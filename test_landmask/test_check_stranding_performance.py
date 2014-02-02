@@ -8,7 +8,10 @@
 # - initialise map
 # - check stranding of a large number of points using
 #   - Basemap.is_land()
-#   - points_in_polys
+#   - matplotlib.nxutils.points_inside_polys
+
+# See:
+# http://stackoverflow.com/questions/13796315/plot-only-on-continent-in-matplotlib
 
 import numpy as np
 from mpl_toolkits.basemap import Basemap
@@ -51,7 +54,7 @@ for mapname, bounds in maps.iteritems():
 		polys = [p.boundary for p in map.landpolygons]
 		
 		# Check beaching of random points within map bounds
-		npoints = 1000
+		npoints = 10000
 		isLand = [0]*npoints
 		np.random.seed(1)
 		x = np.random.uniform(xmin, xmax, npoints)
@@ -61,7 +64,7 @@ for mapname, bounds in maps.iteritems():
 		startTime = datetime.now()
 		isLand = [map.is_land(X, Y) for X,Y in zip(x,y)]
 		print '\t%6.2f seconds to check that %s points out of %s are ' \
-				'stranded, using list comprehension' % \
+				'stranded, using Basemap.is_land()' % \
 				((datetime.now()-startTime).total_seconds(), \
 				sum(isLand), npoints)
 
@@ -69,7 +72,7 @@ for mapname, bounds in maps.iteritems():
 		startTime = datetime.now()
 		isLand = points_in_polys(np.c_[x, y], polys)
 		print '\t%6.2f seconds to check that %s points out of %s are ' \
-				'stranded, using polygons' % \
+				'stranded, using matplotlib polygons' % \
 				((datetime.now()-startTime).total_seconds(), \
 				sum(isLand), npoints)
 
