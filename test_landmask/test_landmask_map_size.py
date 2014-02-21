@@ -67,11 +67,11 @@ lon = -2
 lat = 59
 
 # Medium sized area, North Europe
-propagate_towards_land('cyl', 'c', -16.,16.,50.,70., lon, lat)
-propagate_towards_land('cyl', 'i', -16.,16.,50.,70., lon, lat)
+#propagate_towards_land('cyl', 'c', -16.,16.,50.,70., lon, lat)
+#propagate_towards_land('cyl', 'i', -16.,16.,50.,70., lon, lat)
 propagate_towards_land('cyl', 'h', -16.,16.,50.,70., lon, lat)
 
-# (near) Global area
-propagate_towards_land('cyl', 'c', -180.,180.,-80.,80., lon, lat)
-propagate_towards_land('cyl', 'i', -180.,180.,-80.,80., lon, lat)
-propagate_towards_land('cyl', 'h', -180.,180.,-80.,80., lon, lat)
+## (near) Global area
+#propagate_towards_land('cyl', 'c', -180.,180.,-80.,80., lon, lat)
+#propagate_towards_land('cyl', 'i', -180.,180.,-80.,80., lon, lat)
+#propagate_towards_land('cyl', 'h', -180.,180.,-80.,80., lon, lat)
