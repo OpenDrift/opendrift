@@ -1,8 +1,9 @@
-from lagrangian_element import LagrangianElement
+from elements import LagrangianArray
 
-class OilElement(LagrangianElement):
+class Oil(LagrangianArray):
 
-    variables = LagrangianElement.variables + [
-                    ('massOil', 'float32'),
-                    ('massEvaporated', 'float32'),
-                    ('massEmulsion', 'float32')]
+    variables = LagrangianArray.variables + [
+                        # name, data type[, default value]
+                        ('massOil', 'float32'),
+                        ('massEvaporated', 'float32', 0),
+                        ('massEmulsion', 'float32', 0)]

@@ -1,10 +1,40 @@
-from lagrangian_element import LagrangianElement
+from elements import LagrangianArray
 
-class LarvaeElement(LagrangianElement):
+#########################################
+# Generic Larvae class
+#########################################
 
-    variables = LagrangianElement.variables + ['length']
+class Larvae(LagrangianArray):
 
-    @classmethod
+    variables = LagrangianArray.variables + [('length', 'float32')]
+
     def update_properties(cls):
-        super(LarvaeElement, cls).update_properties()
+        super(Larvae, cls).update_properties()
         print '...using specialised function for Larvae class'
+
+
+#########################################
+# Subclassing with specific Larva types 
+#########################################
+
+class CodLarvae(Larvae):
+
+    variables = Larvae.variables + [
+                                ('CodLarvaeProperty1', 'float32')]
+
+    def update_properties(self):
+        super(Larvae, self).update_properties()
+        print '...using specialised function for CodLarvae class'
+
+
+
+class HalibutLarvae(Larvae):
+
+    variables = Larvae.variables + [
+                    ('HalibutLarvaeProperty1', 'float32')]
+
+    def update_properties(self):
+        super(Larvae, self).update_properties()
+        print '...using specialised function for HalibutLarvae class'
+
+
