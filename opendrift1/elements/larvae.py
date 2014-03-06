@@ -1,3 +1,5 @@
+import numpy as np
+
 from elements import LagrangianArray
 
 #########################################
@@ -6,7 +8,7 @@ from elements import LagrangianArray
 
 class Larvae(LagrangianArray):
 
-    variables = LagrangianArray.variables + [('length', 'float32')]
+    variables = LagrangianArray.variables + [('length', np.float32)]
 
     def update_properties(cls):
         super(Larvae, cls).update_properties()
@@ -20,7 +22,7 @@ class Larvae(LagrangianArray):
 class CodLarvae(Larvae):
 
     variables = Larvae.variables + [
-                                ('CodLarvaeProperty1', 'float32')]
+                                ('CodLarvaeProperty1', np.float32)]
 
     def update_properties(self):
         super(Larvae, self).update_properties()
@@ -31,7 +33,7 @@ class CodLarvae(Larvae):
 class HalibutLarvae(Larvae):
 
     variables = Larvae.variables + [
-                    ('HalibutLarvaeProperty1', 'float32')]
+                    ('HalibutLarvaeProperty1', np.float32)]
 
     def update_properties(self):
         super(Larvae, self).update_properties()
