@@ -6,37 +6,33 @@ from elements import LagrangianArray
 # Generic Larvae class
 #########################################
 
+
 class Larvae(LagrangianArray):
 
-    variables = LagrangianArray.variables + [('length', np.float32)]
+    parameters = LagrangianArray.add_parameters(
+        {'length':
+            {'dtype': np.float32}})
 
-    def update_properties(cls):
-        super(Larvae, cls).update_properties()
-        print '...using specialised function for Larvae class'
+    def update_properties(self):
+        self.length = self.length*1.01  # General larvae grow by 1%
 
 
 #########################################
-# Subclassing with specific Larva types 
+# Subclassing with specific Larva types
 #########################################
 
 class CodLarvae(Larvae):
 
-    variables = Larvae.variables + [
-                                ('CodLarvaeProperty1', np.float32)]
-
-    def update_properties(self):
-        super(Larvae, self).update_properties()
-        print '...using specialised function for CodLarvae class'
-
+    parameters = Larvae.add_parameters(
+        {'CodLarvaeProperty1':
+            {'dtype': np.float32}})
 
 
 class HalibutLarvae(Larvae):
 
-    variables = Larvae.variables + [
-                    ('HalibutLarvaeProperty1', np.float32)]
+    parameters = Larvae.add_parameters(
+        {'HalibutLarvaeProperty1':
+            {'dtype': np.float32}})
 
     def update_properties(self):
-        super(Larvae, self).update_properties()
-        print '...using specialised function for HalibutLarvae class'
-
-
+        self.length = self.length*1.02  # Halibut larvae grow by 2%
