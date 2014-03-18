@@ -11,7 +11,8 @@ class Larvae(LagrangianArray):
 
     parameters = LagrangianArray.add_parameters(
         {'length':
-            {'dtype': np.float32}})
+            {'dtype': np.float32,
+             'unit': 'mm'}})
 
     def update_properties(self):
         self.length = self.length*1.01  # General larvae grow by 1%

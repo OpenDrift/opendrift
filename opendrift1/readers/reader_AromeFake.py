@@ -1,4 +1,6 @@
-class AromeFake(PointReader):
+from readers import PointReader
+
+class Reader(PointReader):
 
     # Parameters (CF standard names) which
     # can be provided by this model/reader

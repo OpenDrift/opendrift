@@ -1,4 +1,6 @@
-class Norkyst800Fake(PointReader):
+from readers import PointReader
+
+class Reader(PointReader):
 
     # Parameters (CF standard names) which
     # can be provided by this model/reader
@@ -11,8 +13,8 @@ class Norkyst800Fake(PointReader):
         # e.g. open file, check that everything is ok
         pass
 
-    def read_parameters(self, time=None, lon=None, lat=None,
-                        depth=None, parameters):
+    def read_parameters(self, parameters, time=None, lon=None, lat=None,
+                        depth=None ):
         # Fake northward current with velocity 1 m/s
         if 'eastward_sea_water_velocity' in parameters:
             self.easthward_sea_water_velocity = 0

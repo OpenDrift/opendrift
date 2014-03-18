@@ -20,7 +20,7 @@ from elements.larvae import Larvae, CodLarvae, HalibutLarvae
 
 #o = LagrangianArray(lon=[32, 3, 8], lat=np.array([22, 3, 4]))
 #o = Oil(lon=[32, 3, 8], lat=np.array([22, 3, 4]), depth=44, massOil=[100])
-o = CodLarvae(lon=[32, 3, 8], lat=[22, 3, 4], CodLarvaeProperty1=[2], length=10)
+o = CodLarvae(lon=[5, 6, 7], lat=[60, 60, 60], CodLarvaeProperty1=[1], length=10)
 #o = HalibutLarvae(lon=[32, 3, 8], lat=[22, 3, 4], HalibutLarvaeProperty1=[2], length=10)
 #
 #print '####################################'
