@@ -1,9 +1,11 @@
+from abc import abstractmethod, ABCMeta
 from collections import OrderedDict
 
 import numpy as np
 
 
 class LagrangianArray(object):
+    __metaclass__ = ABCMeta
 
     parameters = OrderedDict([
         ('lon', {'dtype': np.float32,
@@ -72,6 +74,11 @@ class LagrangianArray(object):
         for parameter in self.parameters.keys():
             print parameter + ': ' + str(getattr(self, parameter))
 
+    @abstractmethod
     def update_properties(self):
         print '\nUpdating properties: ' + \
             str(self.parameters.keys())
+
+    @abstractmethod
+    def update_position(self, readers):
+        print '\nUpdating position.'

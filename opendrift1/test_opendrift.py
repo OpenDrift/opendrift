@@ -3,6 +3,7 @@
 import numpy as np
 
 from elements import LagrangianArray
+from elements.passivetracer import PassiveTracer
 from elements.oil import Oil
 from elements.larvae import Larvae, CodLarvae, HalibutLarvae
 
@@ -19,8 +20,9 @@ from elements.larvae import Larvae, CodLarvae, HalibutLarvae
 #print '####################################'
 
 #o = LagrangianArray(lon=[32, 3, 8], lat=np.array([22, 3, 4]))
+o = PassiveTracer(lon=[5, 6, 7], lat=[60, 60, 60])
 #o = Oil(lon=[32, 3, 8], lat=np.array([22, 3, 4]), depth=44, massOil=[100])
-o = CodLarvae(lon=[5, 6, 7], lat=[60, 60, 60], CodLarvaeProperty1=[1], length=10)
+#o = CodLarvae(lon=[5, 6, 7], lat=[60, 60, 60], CodLarvaeProperty1=[1], length=10)
 #o = HalibutLarvae(lon=[32, 3, 8], lat=[22, 3, 4], HalibutLarvaeProperty1=[2], length=10)
 #
 #print '####################################'
