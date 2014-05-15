@@ -75,7 +75,7 @@ class LagrangianArray(object):
             print parameter + ': ' + str(getattr(self, parameter))
 
     @abstractmethod
-    def update_properties(self):
+    def update_properties(self, environment):
         print '\nUpdating properties: ' + \
             str(self.parameters.keys())
 
