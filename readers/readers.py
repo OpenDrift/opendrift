@@ -1,3 +1,15 @@
+try:
+    import pyproj  # Import pyproj
+except:
+    try: 
+        # ...alternatively use version included with Basemap
+        from mpl_toolkits.basemap import pyproj
+    except:
+        raise ImportError('pyproj needed for coordinate transformations,'\
+                          ' please install from ' \
+                          'https://code.google.com/p/pyproj/')
+
+
 class Readers(object):
     '''Single entry point towards driver data from several models'''
 
@@ -25,4 +37,28 @@ class Readers(object):
 
 class PointReader(object):
     '''Parent PointReader class'''
-    pass
+
+    def __init__(self):
+        # Common constructor for all readers
+
+        # Set projection for coordinate transformations
+        self.proj = pyproj.Proj(self.proj4)
+
+    def xy2lonlat(self, x, y):
+       return self.proj(x, y, inverse=True)
+
+    def lonlat2xy(self, lon, lat):
+       return self.proj(lon, lat, inverse=False)
+
+    def check_arguments(self, parameters, time, x, y, depth):
+        for parameter in parameters:
+            if parameter not in self.parameters:
+                raise ValueError('Parameter not available: ' + parameter)
+        if self.startTime is not None and time < self.startTime:
+            raise ValueError('Outside time domain')
+        if self.endTime is not None and time < self.endTime:
+            raise ValueError('Outside time domain')
+        if x < self.xmin or x > self.xmax:
+            raise ValueError('x outside available domain')
+        if y < self.ymin or y > self.ymax:
+            raise ValueError('y outside available domain')
