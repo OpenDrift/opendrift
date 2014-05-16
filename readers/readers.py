@@ -51,14 +51,33 @@ class PointReader(object):
        return self.proj(lon, lat, inverse=False)
 
     def check_arguments(self, parameters, time, x, y, depth):
+        # Check that required position and time are within
+        # coverage of this reader, and that it can provide
+        # the requested parameters
         for parameter in parameters:
             if parameter not in self.parameters:
                 raise ValueError('Parameter not available: ' + parameter)
+        print time, self.startTime, self.endTime
         if self.startTime is not None and time < self.startTime:
             raise ValueError('Outside time domain')
-        if self.endTime is not None and time < self.endTime:
+        if self.endTime is not None and time > self.endTime:
             raise ValueError('Outside time domain')
-        if x < self.xmin or x > self.xmax:
+        if x.min() < self.xmin or x.max() > self.xmax:
             raise ValueError('x outside available domain')
-        if y < self.ymin or y > self.ymax:
+        if y.min() < self.ymin or y.max() > self.ymax:
             raise ValueError('y outside available domain')
+
+    def __repr__(self):
+        outString = '===========================\n'
+        outString += 'Reader: \n'
+        outString += 'Projection: \n  ' + self.proj4 + '\n'
+        outString += '  xmin: %f   xmax: %f   step: %f\n' % (self.xmin, self.xmax, self.delta_x)
+        outString += '  ymin: %f   ymax: %f   step: %f\n' % (self.ymin, self.ymax, self.delta_y)
+        outString += 'Parameters:\n'
+        for parameter in self.parameters:
+            outString += '  ' + parameter + '\n'
+        outString += '===========================\n'
+        return outString
+
+        print self.parameters
+        print self.proj4
