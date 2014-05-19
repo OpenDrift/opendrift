@@ -14,31 +14,29 @@ class Reader(PointReader):
     parameters = ['x_sea_water_velocity',
                   'y_sea_water_velocity',
                   'sea_water_salinity',
-                  'sea_water_temperature']
+                  'sea_water_temperature',
+                  'sea_ice_area_fraction']
 
     def __init__(self):
 
         print 'Initialising...'
         
-        # Construct filename (updated daily, hence using present time)
-        fileTime = datetime(datetime.now().year,
-                            datetime.now().month,
-                            datetime.now().day)
-        #f = 'http://thredds.met.no/thredds/dodsC/fou-hi/norkyst800m-1h/NorKyst-800m_ZDEPTHS_his.fc.' + fileTime.strftime('%Y%m%d') + '00.nc'
-        f = 'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'
+        f = 'http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be'
 
         # Open file, check that everything is ok
         self.Dataset = Dataset(f)
 
         # Read and store projection as proj4 string
-        self.proj4 = str(self.Dataset.variables['projection_stere'].\
-                                    __getattr__('proj4'))
+        self.proj4 = str(self.Dataset.variables['polar_stereographic'].\
+                                    __getattr__('proj4_string'))
 
         # Read and store min, max and step of x and y 
         x = self.Dataset.variables['X'][:]
+        x = x*1000 # NB - fix to convert from km to m!
         self.xmin, self.xmax = x.min(), x.max()
         self.delta_x = np.abs(x[1] - x[0])
         y = self.Dataset.variables['Y'][:]
+        y = y*1000 # NB - fix to convert from km to m!
         self.ymin, self.ymax = y.min(), y.max()
         self.delta_y = np.abs(y[1] - y[0])
         # Depth
@@ -57,7 +55,8 @@ class Reader(PointReader):
             'sea_water_temperature': 'temperature',
             'sea_water_salinity': 'salinity',
             'x_sea_water_velocity': 'u',
-            'y_sea_water_velocity': 'v'}
+            'y_sea_water_velocity': 'v',
+            'sea_ice_area_fraction': 'aice'}
 
         # Run constructor of parent PointReader class
         super(Reader, self).__init__()
@@ -82,4 +81,7 @@ class Reader(PointReader):
 
         par = requestedParameters[0] # Temporarily only one parameter
         var = self.Dataset.variables[self.parameterMapping[par]]
-        return var[indxTime, 1, indy, indx] # Temporarily neglecting time and depth
+        if par == 'sea_ice_area_fraction':
+            return var[indxTime, indy, indx] # Sea ice variable has no depth dimension
+        else:
+            return var[indxTime, 1, indy, indx]

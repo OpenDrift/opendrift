@@ -57,7 +57,6 @@ class PointReader(object):
         for parameter in parameters:
             if parameter not in self.parameters:
                 raise ValueError('Parameter not available: ' + parameter)
-        print time, self.startTime, self.endTime
         if self.startTime is not None and time < self.startTime:
             raise ValueError('Outside time domain')
         if self.endTime is not None and time > self.endTime:
@@ -67,17 +66,41 @@ class PointReader(object):
         if y.min() < self.ymin or y.max() > self.ymax:
             raise ValueError('y outside available domain')
 
+    def index_of_closest_time(self, requestedTime):
+        # Temporarily assuming time steps are constant 
+        indx = float((requestedTime - self.startTime).total_seconds()) / \
+                float(self.timeStep.total_seconds())
+        indx = int(round(indx))
+        nearestTime = self.times[indx]
+        return indx, nearestTime
+        
+
     def __repr__(self):
-        outString = '===========================\n'
-        outString += 'Reader: \n'
-        outString += 'Projection: \n  ' + self.proj4 + '\n'
-        outString += '  xmin: %f   xmax: %f   step: %f\n' % (self.xmin, self.xmax, self.delta_x)
-        outString += '  ymin: %f   ymax: %f   step: %f\n' % (self.ymin, self.ymax, self.delta_y)
-        outString += 'Parameters:\n'
+        outStr = '===========================\n'
+        outStr += 'Reader: \n'
+        outStr += 'Projection: \n  ' + self.proj4 + '\n'
+        outStr += '  xmin: %f   xmax: %f   step: %f\n' % (self.xmin, self.xmax, self.delta_x)
+        outStr += '  ymin: %f   ymax: %f   step: %f\n' % (self.ymin, self.ymax, self.delta_y)
+        corners = self.xy2lonlat([self.xmin, self.xmax, self.xmin, self.xmax],
+                                 [self.ymax, self.ymax, self.ymin, self.ymin])
+        outStr += '  Corners (lon, lat):\n'
+        outStr += '    (%6.2f, %6.2f)  (%6.2f, %6.2f)\n' % (corners[0][0],
+                                                           corners[1][0],
+                                                           corners[0][2],
+                                                           corners[1][2])
+        outStr += '    (%6.2f, %6.2f)  (%6.2f, %6.2f)\n' % (corners[0][1],
+                                                           corners[1][1],
+                                                           corners[0][3],
+                                                           corners[1][3]) 
+        outStr += 'Available time range:\n'
+        outStr += '  start: ' + str(self.startTime) + \
+                    '   end: ' + str(self.endTime) + \
+                    '   step: ' + str(self.timeStep) + '\n'
+        outStr += 'Parameters:\n'
         for parameter in self.parameters:
-            outString += '  ' + parameter + '\n'
-        outString += '===========================\n'
-        return outString
+            outStr += '  ' + parameter + '\n'
+        outStr += '===========================\n'
+        return outStr
 
         print self.parameters
         print self.proj4
