@@ -19,8 +19,6 @@ class Reader(PointReader):
 
     def __init__(self):
 
-        print 'Initialising...'
-        
         f = 'http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be'
 
         # Open file, check that everything is ok
@@ -43,7 +41,6 @@ class Reader(PointReader):
         self.depths = self.Dataset.variables['depth'][:]
 
         # Read and store time coverage (of this particular file)
-        # - to be implemented
         time = self.Dataset.variables['time'][:]
         self.times = [datetime.utcfromtimestamp(t) for t in time] 
         self.startTime = datetime.utcfromtimestamp(time[0])

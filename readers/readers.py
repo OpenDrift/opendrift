@@ -53,7 +53,7 @@ class PointReader(object):
     def check_arguments(self, parameters, time, x, y, depth):
         # Check that required position and time are within
         # coverage of this reader, and that it can provide
-        # the requested parameters
+        # the requested parameter(s)
         for parameter in parameters:
             if parameter not in self.parameters:
                 raise ValueError('Parameter not available: ' + parameter)
@@ -81,8 +81,8 @@ class PointReader(object):
         outStr += 'Projection: \n  ' + self.proj4 + '\n'
         outStr += '  xmin: %f   xmax: %f   step: %f\n' % (self.xmin, self.xmax, self.delta_x)
         outStr += '  ymin: %f   ymax: %f   step: %f\n' % (self.ymin, self.ymax, self.delta_y)
-        corners = self.xy2lonlat([self.xmin, self.xmax, self.xmin, self.xmax],
-                                 [self.ymax, self.ymax, self.ymin, self.ymin])
+        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                 [self.ymax, self.ymin, self.ymax, self.ymin])
         outStr += '  Corners (lon, lat):\n'
         outStr += '    (%6.2f, %6.2f)  (%6.2f, %6.2f)\n' % (corners[0][0],
                                                            corners[1][0],

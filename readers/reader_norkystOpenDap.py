@@ -18,8 +18,6 @@ class Reader(PointReader):
 
     def __init__(self):
 
-        print 'Initialising...'
-        
         # Construct filename (updated daily, hence using present time)
         fileTime = datetime(datetime.now().year,
                             datetime.now().month,
@@ -45,7 +43,6 @@ class Reader(PointReader):
         self.depths = self.Dataset.variables['depth'][:]
 
         # Read and store time coverage (of this particular file)
-        # - to be implemented
         time = self.Dataset.variables['time'][:]
         self.times = [datetime.utcfromtimestamp(t) for t in time] 
         self.startTime = datetime.utcfromtimestamp(time[0])
