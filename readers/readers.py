@@ -79,8 +79,8 @@ class PointReader(object):
         outStr = '===========================\n'
         outStr += 'Reader: \n'
         outStr += 'Projection: \n  ' + self.proj4 + '\n'
-        outStr += '  xmin: %f   xmax: %f   step: %f\n' % (self.xmin, self.xmax, self.delta_x)
-        outStr += '  ymin: %f   ymax: %f   step: %f\n' % (self.ymin, self.ymax, self.delta_y)
+        outStr += '  xmin: %f   xmax: %f   step: %f\n' % (self.xmin, self.xmax, self.delta_x or 0)
+        outStr += '  ymin: %f   ymax: %f   step: %f\n' % (self.ymin, self.ymax, self.delta_y or 0)
         corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
                                  [self.ymax, self.ymin, self.ymax, self.ymin])
         outStr += '  Corners (lon, lat):\n'
@@ -94,8 +94,8 @@ class PointReader(object):
                                                            corners[1][3]) 
         outStr += 'Available time range:\n'
         outStr += '  start: ' + str(self.startTime) + \
-                    '   end: ' + str(self.endTime) + \
-                    '   step: ' + str(self.timeStep) + '\n'
+                  '   end: ' + str(self.endTime) + \
+                  '   step: ' + str(self.timeStep) + '\n'
         outStr += 'Parameters:\n'
         for parameter in self.parameters:
             outStr += '  ' + parameter + '\n'
