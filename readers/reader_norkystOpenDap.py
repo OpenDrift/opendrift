@@ -14,7 +14,8 @@ class Reader(PointReader):
     parameters = ['x_sea_water_velocity',
                   'y_sea_water_velocity',
                   'sea_water_salinity',
-                  'sea_water_temperature']
+                  'sea_water_temperature',
+                  'sea_floor_depth_below_sea_level']
 
     def __init__(self):
 
@@ -54,7 +55,8 @@ class Reader(PointReader):
             'sea_water_temperature': 'temperature',
             'sea_water_salinity': 'salinity',
             'x_sea_water_velocity': 'u',
-            'y_sea_water_velocity': 'v'}
+            'y_sea_water_velocity': 'v',
+            'sea_floor_depth_below_sea_level': 'h'}
 
         # Run constructor of parent PointReader class
         super(Reader, self).__init__()
@@ -79,4 +81,7 @@ class Reader(PointReader):
 
         par = requestedParameters[0] # Temporarily only one parameter
         var = self.Dataset.variables[self.parameterMapping[par]]
-        return var[indxTime, 1, indy, indx] # Temporarily neglecting time and depth
+        if par == 'sea_floor_depth_below_sea_level':
+            return var[indy, indx]
+        else:
+            return var[indxTime, 1, indy, indx] # Temporarily neglecting time and depth

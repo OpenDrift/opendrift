@@ -100,4 +100,7 @@ class Reader(PointReader):
 
         par = requestedParameters[0] # Temporarily only one parameter
         var = self.Dataset.variables[self.parameterMapping[par]]
-        return var[indxTime, 1, indy, indx] # Temporarily neglecting depth
+        if par == 'sea_floor_depth_below_sea_level':
+            return var[indy, indx]
+        else:
+            return var[indxTime, 1, indy, indx] # Temporarily neglecting depth
