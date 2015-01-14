@@ -6,7 +6,7 @@ import numpy as np
 from mpl_toolkits.basemap import Basemap
 import matplotlib.nxutils as nx
 
-from readers import PointReader
+from readers import Reader
 
 def points_in_polys(points, polys):
     # Function to quickly check stranding of many points
@@ -17,11 +17,11 @@ def points_in_polys(points, polys):
     return insidePoly
 
 
-class Reader(PointReader):
+class Reader(Reader):
 
-    # Parameters (CF standard names) which
+    # Variables (CF standard names) which
     # can be provided by this model/reader
-    parameters = ['land_binary_mask']
+    variables = ['land_binary_mask']
 
     def __init__(self, llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat,
                        resolution='i', projection='cyl'):
@@ -34,7 +34,7 @@ class Reader(PointReader):
         # Store proj4 string
         self.proj4 = self.map.proj4string
 
-        # Run constructor of parent PointReader class
+        # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
         # Depth
@@ -54,14 +54,13 @@ class Reader(PointReader):
         # Extract polygons for faster checking of stranding
         self.polys = [p.boundary for p in self.map.landpolygons]
 
-
-    def get_parameters(self, requestedParameters, time=None, 
+    def get_variables(self, requestedVariables, time=None, 
                         x=None, y=None, depth=None):
 
-        if isinstance(requestedParameters, str):
-            requestedParameters = [requestedParameters]
+        if isinstance(requestedVariables, str):
+            requestedVariables = [requestedVariables]
 
-        self.check_arguments(requestedParameters, time, x, y, depth)
+        self.check_arguments(requestedVariables, time, x, y, depth)
 
         x, y = self.xy2lonlat(x, y)
         isLand = points_in_polys(np.c_[x, y], self.polys)

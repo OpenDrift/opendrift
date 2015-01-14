@@ -14,8 +14,8 @@ ng = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.n
 #ng = reader_netCDF_CF_generic.Reader('/opdata/arome_norway25/AROME_Norway25_00.nc')
 r = reader_basemap_landmask.Reader(llcrnrlon=-3, llcrnrlat=59,
                                    urcrnrlon=10, urcrnrlat=67, resolution='i')
-#r = ng
-r = n800_od
+r = ng
+#r = n800_od
 #r = a20
 print r
 
@@ -26,6 +26,7 @@ lat = np.array([60, 59.1, 65.042])
 #lat = np.random.uniform(59, 67, size)
 
 t = datetime(2014, 11, 19, 2, 0, 0)
+t = datetime.now()
 x, y = r.lonlat2xy(lon, lat)
 
 res = a20.get_parameters('sea_water_salinity', time=t, x=x, y=y, depth=None)#

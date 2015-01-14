@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 import numpy as np
 from netCDF4 import Dataset
 
-from readers import PointReader
+from readers import Reader
 
-class Reader(PointReader):
+class Reader(Reader):
 
     # Parameters (CF standard names) which
     # can be provided by this model/reader
@@ -55,7 +55,7 @@ class Reader(PointReader):
             'y_sea_water_velocity': 'v',
             'sea_ice_area_fraction': 'aice'}
 
-        # Run constructor of parent PointReader class
+        # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
 

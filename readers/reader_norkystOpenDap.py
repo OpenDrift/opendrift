@@ -5,13 +5,13 @@ from datetime import datetime, timedelta
 import numpy as np
 from netCDF4 import Dataset
 
-from readers import PointReader
+from readers import Reader
 
-class Reader(PointReader):
+class Reader(Reader):
 
-    # Parameters (CF standard names) which
+    # Variables (CF standard names) which
     # can be provided by this model/reader
-    parameters = ['x_sea_water_velocity',
+    variables = ['x_sea_water_velocity',
                   'y_sea_water_velocity',
                   'sea_water_salinity',
                   'sea_water_temperature',
@@ -51,36 +51,36 @@ class Reader(PointReader):
         self.timeStep = timedelta(seconds = (time[1] - time[0]))
 
         # Map variable names to their CF standard names
-        self.parameterMapping = {
+        self.variableMapping = {
             'sea_water_temperature': 'temperature',
             'sea_water_salinity': 'salinity',
             'x_sea_water_velocity': 'u',
             'y_sea_water_velocity': 'v',
             'sea_floor_depth_below_sea_level': 'h'}
 
-        # Run constructor of parent PointReader class
+        # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
 
-    def get_parameters(self, requestedParameters, time=None, 
+    def get_variables(self, requestedVariables, time=None, 
                         x=None, y=None, depth=None):
 
-        if isinstance(requestedParameters, str):
-            requestedParameters = [requestedParameters]
+        if isinstance(requestedVariables, str):
+            requestedVariables = [requestedVariables]
         if time == None:
             time = self.startTime # Get data from first timestep, if not given
             indxTime = 0
         else:
             indxTime, nearestTime = self.index_of_closest_time(time)
 
-        self.check_arguments(requestedParameters, time, x, y, depth)
+        self.check_arguments(requestedVariables, time, x, y, depth)
 
         # Find indices corresponding to requested x and y 
         indx = np.round((x-self.xmin)/self.delta_x).astype(int)
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
 
-        par = requestedParameters[0] # Temporarily only one parameter
-        var = self.Dataset.variables[self.parameterMapping[par]]
+        par = requestedVariables[0] # Temporarily only one variable
+        var = self.Dataset.variables[self.variableMapping[par]]
         if par == 'sea_floor_depth_below_sea_level':
             return var[indy, indx]
         else:
