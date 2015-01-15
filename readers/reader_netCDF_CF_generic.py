@@ -8,11 +8,10 @@ from netCDF4 import Dataset
 
 from readers import Reader
 
+
 class Reader(Reader):
 
-
     def __init__(self, filename=None, name=None):
-
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -28,8 +27,8 @@ class Reader(Reader):
             # Open file, check that everything is ok
             self.Dataset = Dataset(filename)
         except:
-            raise ValueError('Could not open ' + filename + 
-                                ' with netCDF4 library')
+            raise ValueError('Could not open ' + filename +
+                             ' with netCDF4 library')
 
         # Find projection (variable which as proj4 string)
         for varName in self.Dataset.variables:
@@ -68,11 +67,11 @@ class Reader(Reader):
         self.delta_y = np.abs(y[1] - y[0])
 
         # Read and store time coverage (of this particular file)
-        time = self.Dataset.variables['time'][:] # Assuming it is called 'time'
-        self.times = [datetime.utcfromtimestamp(t) for t in time] 
+        time = self.Dataset.variables['time'][:]  # Assuming name 'time'
+        self.times = [datetime.utcfromtimestamp(t) for t in time]
         self.startTime = datetime.utcfromtimestamp(time[0])
         self.endTime = datetime.utcfromtimestamp(time[-1])
-        self.timeStep = timedelta(seconds = (time[1] - time[0]))
+        self.timeStep = timedelta(seconds=(time[1] - time[0]))
 
         # Find all variables (with given grid mapping)
         self.variableMapping = {}
@@ -90,39 +89,13 @@ class Reader(Reader):
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
-
-    def get_variables(self, requestedVariables, time=None, 
-                        x=None, y=None, depth=None):
-
-        if isinstance(requestedVariables, str):
-            requestedVariables = [requestedVariables]
-        if time == None:
-            time = self.startTime # Get data from first timestep, if not given
-            indxTime = 0
-        else:
-            indxTime, nearestTime = self.index_of_closest_time(time)
-
-        self.check_arguments(requestedVariables, time, x, y, depth)
-
-        # Find indices corresponding to requested x and y 
-        indx = np.round((x-self.xmin)/self.delta_x).astype(int)
-        indy = np.round((y-self.ymin)/self.delta_y).astype(int)
-
-        par = requestedVariables[0] # Temporarily only one variable
-        var = self.Dataset.variables[self.variableMapping[par]]
-        if par == 'sea_floor_depth_below_sea_level':
-            return var[indy, indx]
-        else:
-            return var[indxTime, 1, indy, indx] # Temporarily neglecting depth
-
-
-    def read_variables(self, requestedVariables, time=None, 
-                        x=None, y=None, depth=None, block=False):
+    def get_variables(self, requestedVariables, time=None,
+                      x=None, y=None, depth=None, block=False):
 
         if isinstance(requestedVariables, str):
             requestedVariables = [requestedVariables]
-        if time == None:
-            time = self.startTime # Get data from first timestep, if not given
+        if time is None:
+            time = self.startTime  # Get data from first timestep, if not given
             indxTime = 0
         else:
             indxTime, nearestTime = self.index_of_closest_time(time)
@@ -130,19 +103,19 @@ class Reader(Reader):
         self.check_arguments(requestedVariables, time, x, y, depth)
 
         if block is True:
-            # Find indices corresponding to requested x and y 
+            # Find indices corresponding to requested x and y
             indx = np.round((x-self.xmin)/self.delta_x).astype(int)
             indy = np.round((y-self.ymin)/self.delta_y).astype(int)
             indx = np.arange(indx.min(), indx.max())
             indy = np.arange(indy.min(), indy.max())
         else:
-            # Find indices corresponding to requested x and y 
+            # Find indices corresponding to requested x and y
             indx = np.round((x-self.xmin)/self.delta_x).astype(int)
             indy = np.round((y-self.ymin)/self.delta_y).astype(int)
 
-        par = requestedVariables[0] # Temporarily only one variable
+        par = requestedVariables[0]  # Temporarily only one variable
         var = self.Dataset.variables[self.variableMapping[par]]
         if par == 'sea_floor_depth_below_sea_level':
             return var[indy, indx]
         else:
-            return var[indxTime, 1, indy, indx] # Temporarily neglecting depth
+            return var[indxTime, 1, indy, indx]  # Temporarily neglecting depth

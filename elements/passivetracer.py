@@ -8,7 +8,6 @@ from elements import LagrangianArray
 
 class PassiveTracer(LagrangianArray):
 
-
     def update_properties(self):
         # overload from superclass
         super(PassiveTracer, self).update_properties()

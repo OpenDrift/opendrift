@@ -8,6 +8,7 @@ import matplotlib.nxutils as nx
 
 from readers import Reader
 
+
 def points_in_polys(points, polys):
     # Function to quickly check stranding of many points
     insidePoly = np.array([False]*len(points))
@@ -24,7 +25,7 @@ class Reader(Reader):
     variables = ['land_binary_mask']
 
     def __init__(self, llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat,
-                       resolution='i', projection='cyl'):
+                 resolution='i', projection='cyl'):
 
         # Set up Basemap
         self.map = Basemap(llcrnrlon, llcrnrlat,
@@ -45,17 +46,17 @@ class Reader(Reader):
         self.endTime = None
         self.timeStep = None
 
-        # Read and store min, max and step of x and y 
-        self.xmin, self.ymin = self.lonlat2xy(llcrnrlon, llcrnrlat)        
-        self.xmax, self.ymax = self.lonlat2xy(urcrnrlon, urcrnrlat)        
+        # Read and store min, max and step of x and y
+        self.xmin, self.ymin = self.lonlat2xy(llcrnrlon, llcrnrlat)
+        self.xmax, self.ymax = self.lonlat2xy(urcrnrlon, urcrnrlat)
         self.delta_x = None
         self.delta_y = None
 
         # Extract polygons for faster checking of stranding
         self.polys = [p.boundary for p in self.map.landpolygons]
 
-    def get_variables(self, requestedVariables, time=None, 
-                        x=None, y=None, depth=None):
+    def get_variables(self, requestedVariables, time=None,
+                      x=None, y=None, depth=None):
 
         if isinstance(requestedVariables, str):
             requestedVariables = [requestedVariables]

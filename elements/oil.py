@@ -22,4 +22,4 @@ class Oil(LagrangianArray):
         self.massEvaporated = self.massEvaporated + evaporated_mass
 
     def update_position(self, environment=None):
-        self.lon = self.lon + .2 # propagate eastwards
+        self.lon = self.lon + .2  # propagate eastwards

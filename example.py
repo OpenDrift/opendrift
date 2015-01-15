@@ -50,7 +50,7 @@ print time
 x,y = o.readers.readers[0].lonlat2xy(lons, lats)
 
 print o.readers.readers[0].indices_min_max_depth(depths)
-env = o.readers.readers[0].read_variables(['sea_water_salinity'],
+env = o.readers.readers[0].get_variables(['sea_water_salinity'],
                             time, x, y, depths, block=True)
 
 print env
