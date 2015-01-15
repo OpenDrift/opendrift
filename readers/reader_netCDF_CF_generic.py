@@ -11,12 +11,18 @@ from readers import Reader
 class Reader(Reader):
 
 
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, name=None):
+
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
         #if not os.path.exists(filename):
         #    raise IOError('File does not exist: ' + filename)
+
+        if name is None:
+            self.name = filename
+        else:
+            self.name = name
 
         try:
             # Open file, check that everything is ok
@@ -35,7 +41,7 @@ class Reader(Reader):
         if not hasattr(self, 'proj4'):
             raise ValueError('Did not find any proj4 string in dataset')
 
-        # Find x and y coordinates
+        # Find x, y and depth coordinates
         for varName in self.Dataset.variables:
             var = self.Dataset.variables[varName]
             try:
@@ -49,6 +55,8 @@ class Reader(Reader):
                     x = var[:]*unitfactor
                 if att == 'projection_y_coordinate':
                     y = var[:]*unitfactor
+                if att == 'depth':
+                    self.depths = var[:]
             except:
                 pass
 
@@ -58,9 +66,6 @@ class Reader(Reader):
         self.ymin, self.ymax = y.min(), y.max()
         self.delta_x = np.abs(x[1] - x[0])
         self.delta_y = np.abs(y[1] - y[0])
-
-        ## Depth
-        #self.depths = self.Dataset.variables['depth'][:]
 
         # Read and store time coverage (of this particular file)
         time = self.Dataset.variables['time'][:] # Assuming it is called 'time'
@@ -112,7 +117,7 @@ class Reader(Reader):
 
 
     def read_variables(self, requestedVariables, time=None, 
-                        x=None, y=None, depth=None):
+                        x=None, y=None, depth=None, block=False):
 
         if isinstance(requestedVariables, str):
             requestedVariables = [requestedVariables]
@@ -124,9 +129,16 @@ class Reader(Reader):
 
         self.check_arguments(requestedVariables, time, x, y, depth)
 
-        # Find indices corresponding to requested x and y 
-        indx = np.round((x-self.xmin)/self.delta_x).astype(int)
-        indy = np.round((y-self.ymin)/self.delta_y).astype(int)
+        if block is True:
+            # Find indices corresponding to requested x and y 
+            indx = np.round((x-self.xmin)/self.delta_x).astype(int)
+            indy = np.round((y-self.ymin)/self.delta_y).astype(int)
+            indx = np.arange(indx.min(), indx.max())
+            indy = np.arange(indy.min(), indy.max())
+        else:
+            # Find indices corresponding to requested x and y 
+            indx = np.round((x-self.xmin)/self.delta_x).astype(int)
+            indy = np.round((y-self.ymin)/self.delta_y).astype(int)
 
         par = requestedVariables[0] # Temporarily only one variable
         var = self.Dataset.variables[self.variableMapping[par]]

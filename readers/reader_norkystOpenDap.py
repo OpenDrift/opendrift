@@ -19,6 +19,8 @@ class Reader(Reader):
 
     def __init__(self):
 
+        self.name = 'norkyst_800m'
+
         # Construct filename (updated daily, hence using present time)
         fileTime = datetime(datetime.now().year,
                             datetime.now().month,

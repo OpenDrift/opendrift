@@ -106,12 +106,20 @@ class Reader(object):
             raise ValueError('y outside available domain')
 
     def index_of_closest_time(self, requestedTime):
-        # Temporarily assuming time steps are constant 
+        # Assuming time steps are constant; this method should be
+        # overloaded for readers for which this is not the case
         indx = float((requestedTime - self.startTime).total_seconds()) / \
                 float(self.timeStep.total_seconds())
         indx = int(round(indx))
         nearestTime = self.times[indx]
         return indx, nearestTime
+
+    def indices_min_max_depth(self, depths):
+        # Return min and max indices of depth dimension,
+        # covering the requested depths
+        minIndex = (self.depths <= depths.min()).argmin() - 1
+        maxIndex = (self.depths >= depths.max()).argmax()
+        return minIndex, maxIndex
         
     def __repr__(self):
         outStr = '===========================\n'
@@ -130,6 +138,7 @@ class Reader(object):
                                                            corners[1][1],
                                                            corners[0][3],
                                                            corners[1][3]) 
+        outStr += 'Depths [m]: \n  ' + str(self.depths) + '\n'
         outStr += 'Available time range:\n'
         outStr += '  start: ' + str(self.startTime) + \
                   '   end: ' + str(self.endTime) + \
