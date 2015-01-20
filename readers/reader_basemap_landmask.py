@@ -56,7 +56,7 @@ class Reader(Reader):
         self.polys = [p.boundary for p in self.map.landpolygons]
 
     def get_variables(self, requestedVariables, time=None,
-                      x=None, y=None, depth=None):
+                      x=None, y=None, depth=None, block=False):
 
         if isinstance(requestedVariables, str):
             requestedVariables = [requestedVariables]
@@ -64,6 +64,9 @@ class Reader(Reader):
         self.check_arguments(requestedVariables, time, x, y, depth)
 
         x, y = self.xy2lonlat(x, y)
-        isLand = points_in_polys(np.c_[x, y], self.polys)
+        variables = {}
 
-        return isLand
+        variables['land_binary_mask'] = points_in_polys(
+                                            np.c_[x, y], self.polys)
+
+        return variables

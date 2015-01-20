@@ -92,15 +92,10 @@ class Reader(Reader):
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, depth=None, block=False):
 
-        if isinstance(requestedVariables, str):
-            requestedVariables = [requestedVariables]
-        if time is None:
-            time = self.startTime  # Get data from first timestep, if not given
-            indxTime = 0
-        else:
-            indxTime, nearestTime = self.index_of_closest_time(time)
+        requestedVariables, time, x, y, depth = self.check_arguments(
+                                    requestedVariables, time, x, y, depth)
 
-        self.check_arguments(requestedVariables, time, x, y, depth)
+        indxTime, nearestTime = self.index_of_closest_time(time)
 
         if block is True:
             # Find indices corresponding to requested x and y
@@ -113,9 +108,12 @@ class Reader(Reader):
             indx = np.round((x-self.xmin)/self.delta_x).astype(int)
             indy = np.round((y-self.ymin)/self.delta_y).astype(int)
 
-        par = requestedVariables[0]  # Temporarily only one variable
-        var = self.Dataset.variables[self.variableMapping[par]]
-        if par == 'sea_floor_depth_below_sea_level':
-            return var[indy, indx]
-        else:
-            return var[indxTime, 1, indy, indx]  # Temporarily neglecting depth
+        variables = {}
+        for par in requestedVariables:
+            var = self.Dataset.variables[self.variableMapping[par]]
+            if par == 'sea_floor_depth_below_sea_level':
+                variables[par] = var[indy, indx]
+            else:
+                variables[par] = var[indxTime, 1, indy, indx]  # Temporarily neglecting depth
+
+        return variables

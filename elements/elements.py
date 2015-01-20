@@ -73,12 +73,3 @@ class LagrangianArray(object):
     def show_data(self):
         for parameter in self.parameters.keys():
             print parameter + ': ' + str(getattr(self, parameter))
-
-    @abstractmethod
-    def update_properties(self, environment):
-        print '\nUpdating properties: ' + \
-            str(self.parameters.keys())
-
-    @abstractmethod
-    def update_position(self, readers):
-        print '\nUpdating position.'

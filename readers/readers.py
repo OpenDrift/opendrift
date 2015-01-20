@@ -1,5 +1,6 @@
 import importlib
 from abc import abstractmethod, ABCMeta
+import numpy as np
 
 
 try:
@@ -66,6 +67,10 @@ class Readers(object):
             raise ValueError('Missing variables: ' +
                              str(list(missingVariables)))
 
+        # Use first reader - TEMPORAY SOLUTION
+        env = self.readers[0].get_variables(variables, time, x, y, depth)
+        print env
+        stop
 
 class Reader(object):
     __metaclass__ = ABCMeta
@@ -92,17 +97,38 @@ class Reader(object):
         # Check that required position and time are within
         # coverage of this reader, and that it can provide
         # the requested variable(s)
+
+        # Check time
+        if time is None:
+            time = self.startTime  # Get data from first timestep, if not given
+            indxTime = 0
+
+        # Convert variables to list and x,y to ndarrays
+        if isinstance(variables, str):
+            variables = [variables]
+        x = np.asarray(x)
+        y = np.asarray(y)
+        depth = np.asarray(depth)
+        if len(x) == 2:
+            raise ValueError('Dimensions of length 2 not tackled '
+                             'by Python-netCDF4; 2x2 array returned '
+                             'instead of 1x2 array')
+
         for variable in variables:
             if variable not in self.variables:
                 raise ValueError('Variable not available: ' + variable)
         if self.startTime is not None and time < self.startTime:
-            raise ValueError('Outside time domain')
+            raise ValueError('Requested time (%s) is before first available '
+                             'time (%s)' % (time, self.startTime))
         if self.endTime is not None and time > self.endTime:
-            raise ValueError('Outside time domain')
+            #raise ValueError('Outside time domain')
+            raise ValueError('Requested time (%s) is after last available '
+                             'time (%s)' % (time, self.endTime))
         if x.min() < self.xmin or x.max() > self.xmax:
             raise ValueError('x outside available domain')
         if y.min() < self.ymin or y.max() > self.ymax:
             raise ValueError('y outside available domain')
+        return variables, time, x, y, depth
 
     def index_of_closest_time(self, requestedTime):
         # Assuming time steps are constant; this method should be
@@ -151,6 +177,3 @@ class Reader(object):
             outStr += '  ' + variable + '\n'
         outStr += '===========================\n'
         return outStr
-
-        print self.variables
-        print self.proj4
