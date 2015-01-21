@@ -121,7 +121,6 @@ class Reader(object):
             raise ValueError('Requested time (%s) is before first available '
                              'time (%s)' % (time, self.startTime))
         if self.endTime is not None and time > self.endTime:
-            #raise ValueError('Outside time domain')
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s)' % (time, self.endTime))
         if x.min() < self.xmin or x.max() > self.xmax:
@@ -152,6 +151,7 @@ class Reader(object):
         outStr = '===========================\n'
         outStr += 'Reader: ' + self.name + '\n'
         outStr += 'Projection: \n  ' + self.proj4 + '\n'
+        outStr += 'Coverage: \n'
         outStr += '  xmin: %f   xmax: %f   step: %f\n' % \
             (self.xmin, self.xmax, self.delta_x or 0)
         outStr += '  ymin: %f   ymax: %f   step: %f\n' % \

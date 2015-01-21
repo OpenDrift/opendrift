@@ -6,8 +6,9 @@ class OD3D(OpenDriftSimulation):
     ElementType = Oil
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity', 
                           'land_binary_mask']
+    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
 
-    def propagate(self):
+    def update(self):
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
                               self.environment.y_sea_water_velocity)

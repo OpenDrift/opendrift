@@ -20,6 +20,8 @@ def points_in_polys(points, polys):
 
 class Reader(Reader):
 
+    name = 'basemap_landmask'
+
     # Variables (CF standard names) which
     # can be provided by this model/reader
     variables = ['land_binary_mask']
