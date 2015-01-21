@@ -125,9 +125,11 @@ class Reader(object):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s)' % (time, self.endTime))
         if x.min() < self.xmin or x.max() > self.xmax:
-            raise ValueError('x outside available domain')
+            raise ValueError('Requested x (%s) is outside domain '
+                             '<%s, %s>' % (x.min(), self.xmin, self.xmax))
         if y.min() < self.ymin or y.max() > self.ymax:
-            raise ValueError('y outside available domain')
+            raise ValueError('Requested y (%s) is outside domain '
+                             '<%s, %s>' % (y.min(), self.ymin, self.ymax))
         return variables, time, x, y, depth
 
     def index_of_closest_time(self, requestedTime):

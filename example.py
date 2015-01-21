@@ -26,18 +26,18 @@ lats = np.linspace(60., 64., 30)
 depths = np.linspace(0, 0, 30)
 x,y = reader_norkyst.lonlat2xy(lons, lats)
 time = datetime.datetime(2015,1,15,12,0,0)
-##time = datetime.datetime.now()
+#time = datetime.datetime.now()
 #
 #v = reader_norkyst.get_variables(['x_sea_water_velocity',
 #                                  'y_sea_water_velocity'],
 #                                  time, x, y, depths, block=True)
 
-# Arctic20
-reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be')
-o.readers.add_reader(reader_arctic20, name='arctic20_thredds')
+## Arctic20
+#reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be')
+#o.readers.add_reader(reader_arctic20, name='arctic20_thredds')
 
 # Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-3, llcrnrlat=59,
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-3, llcrnrlat=57,
                     urcrnrlon=20, urcrnrlat=67, resolution='i')
 o.readers.add_reader(reader_basemap, name='basemap_landmask')
 
@@ -55,8 +55,10 @@ o.readers.add_reader(reader_basemap, name='basemap_landmask')
 #print o.readers.get_environment(['x_sea_water_velocity'], o.proj4, x, y, depths, time)
 #
 o.seed_point(lon=3, lat=60, radius=10000, number=10, massOil=5, time=time)
+o.time_step = 3600 # seconds
 
 print o.get_environment()
+o.propagate()
 stop
 #o.run()
 #o.get_environment(['x_wind', 'y_wind', 'salinity'], 0,0,0,0)
