@@ -38,27 +38,48 @@ class OpenDriftSimulation(object):
         kwargs['lon'] = lon + radius*(np.random.rand(number) - 0.5)
         kwargs['lat'] = lat + radius*(np.random.rand(number) - 0.5)
         self.elements = self.ElementType(**kwargs)
-        self.time = time
+        if time is None:
+            # Use first time of first reader of time is not given for seeding
+            print 'Using start time of reader ' + self.readers.readers[0].name
+            self.time = self.readers.readers[0].startTime
+        else:
+            self.time = time
+        self.startTime = self.time  # Record start time for reference
                                           
 
-    def run(self, steps=30):
-        # - initialise / check initialisation
-        # - loop:
-        #   - seed particles 
-        #   - call model.propagate
-        #   - deactivate particles
-        #   - write output
-        #   - check if finished, else repeat
+    def run(self, steps=100):
+        # Primitive function to test overall functionality
+        self.time_environment = timedelta(seconds=0)
+        self.time_model = timedelta(seconds=0)
         self.lons = np.zeros((steps, len(self.elements)))
         self.lats = np.zeros((steps, len(self.elements)))
         for i in range(steps):
-            self.get_environment()
-            self.propagate()
-            self.lons[i,:] = self.elements.lon
-            self.lats[i,:] = self.elements.lat
+            try:
+                # Get environment data
+                startTime = datetime.now()
+                self.get_environment()
+                self.time_environment += datetime.now() - startTime
+                # Propagate
+                startTime = datetime.now()
+                self.propagate()
+                self.time_model += datetime.now() - startTime
+                # Log positions
+                self.lons[i,:] = self.elements.lon
+                self.lats[i,:] = self.elements.lat
+            except Exception as e:
+                print '========================'
+                print 'End of simulation:'
+                print e
+                print '========================'
+                # Truncate lon/lat, and then return
+                self.lons = self.lons[0:i-1,:]
+                self.lats = self.lats[0:i-1,:]
+                break
 
     def plot(self):
         # Temporary plotting function based on Basemap
+        if self.lons.shape[0] < 1:
+            raise ValueError('No points to plot!')
         from mpl_toolkits.basemap import Basemap
         import matplotlib.pyplot as plt
         lonmin = self.lons.min()
@@ -66,10 +87,11 @@ class OpenDriftSimulation(object):
         latmin = self.lats.min()
         latmax = self.lats.max()
         buffer = 1
-        map = Basemap(lonmin-buffer, latmin-buffer,
+        map = Basemap(lonmin-buffer*2, latmin-buffer*2,
                       lonmax+buffer, latmax+buffer,
-                      resolution='i', projection='cyl')
-        map.plot(self.lons, self.lats, color='k')
+                      resolution='h', projection='merc')
+        x, y = map(self.lons, self.lats)
+        map.plot(x, y, color='k')
         map.drawcoastlines()
         map.fillcontinents(color='coral')
         map.drawmeridians(np.arange(0,360,1))
@@ -78,7 +100,7 @@ class OpenDriftSimulation(object):
 
     def propagate(self):
         #print 'Getting environment data...'
-        self.get_environment()
+        #self.get_environment()
         #print 'Updating particle positions and properties...'
         self.update()
         #print 'Updating time...'
@@ -146,6 +168,15 @@ class OpenDriftSimulation(object):
         for reader in self.readers.readers:
             outStr += '\t' + reader.name + '\n'
         if hasattr(self, 'time'):
-            outStr += 'Time: %s\n' % (self.time)
+            outStr += 'Time:\n'
+            outStr += '\tStart: %s\n' % (self.startTime)
+            outStr += '\tPresent: %s\n' % (self.time)
+            outStr += '\tNumber of steps: %i\n' % (
+                (self.time-self.startTime).total_seconds() /
+                    self.time_step.total_seconds())
+        if hasattr(self, 'time_environment'):
+            outStr += 'Time spent:\n'
+            outStr += '\tFetching environment data: %s \n' % self.time_environment
+            outStr += '\tUpdating elements: %s \n' % self.time_model
         outStr += '===========================\n'
         return outStr

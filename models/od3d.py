@@ -4,8 +4,6 @@ from elements.oil import Oil
 class OD3D(OpenDriftSimulation):
 
     ElementType = Oil
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity', 
-                          'land_binary_mask']
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
 
     def update(self):

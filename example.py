@@ -16,8 +16,8 @@ o = OD3D()
 #o.readers.add_reader(reader_arome)
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-#reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')#, name='norkyst800_file')
+#reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')#, name='norkyst800_file')
 o.add_reader(reader_norkyst)
 
 # Arctic20
@@ -30,10 +30,14 @@ o.add_reader(reader_norkyst)
 #o.add_reader(reader_basemap)
 
 # Seeding some particles
-time = datetime(2015,1,15,0,0,0)
-o.seed_point(lon=4.1, lat=60, radius=10000, number=3, massOil=5, time=time)
+#time = datetime(2015,1,20,1,0,0) # Arctic20
+#time = datetime(2015,1,15,0,0,0) # Norkyst800
+o.seed_point(lon=4.2, lat=60, radius=10000, number=3, massOil=5, time=None)
 print o
 
-o.run(40)
+# Running model (until end of driver data)
+o.run()
+
+# Print and plot results
 print o
 o.plot()
