@@ -109,15 +109,20 @@ class Reader(Reader):
             indy = np.round((y-self.ymin)/self.delta_y).astype(int)
 
         variables = {}
+        # Store coordinates of returned points
+        variables['x'] = self.xmin + (indx-1)*self.delta_x
+        variables['y'] = self.ymin + (indy-1)*self.delta_y
         for par in requestedVariables:
             var = self.Dataset.variables[self.variableMapping[par]]
             if par == 'sea_floor_depth_below_sea_level':
                 variables[par] = var[indy, indx]
             else:
-                variables[par] = var[indxTime, 1, indy, indx]  # Temporarily neglecting depth
+                # Temporarily neglecting depth
+                variables[par] = var[indxTime, 1, indy, indx]
+
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
-            if variables[par].ndim > 1:
+            if variables[par].ndim > 1 and block is False:
                 variables[par] = variables[par].diagonal()
 
         return variables

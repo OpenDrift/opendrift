@@ -32,7 +32,7 @@ o.add_reader(reader_norkyst)
 # Seeding some particles
 #time = datetime(2015,1,20,1,0,0) # Arctic20
 #time = datetime(2015,1,15,0,0,0) # Norkyst800
-o.seed_point(lon=4.3, lat=60, radius=10000, number=20, massOil=5, time=None)
+o.seed_point(lon=4.95, lat=59.9, radius=10000, number=20, massOil=5, time=None)
 print o
 print o.elements.show_data()
 
@@ -41,5 +41,6 @@ o.run()
 
 # Print and plot results
 print o
-o.plot()
+#o.plot('x_sea_water_velocity')
+o.plot('sea_water_potential_temperature')
 print o.elements.show_data()

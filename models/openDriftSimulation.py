@@ -78,26 +78,40 @@ class OpenDriftSimulation(object):
                 self.lats = self.lats[0:i-1,:]
                 break
 
-    def plot(self):
+    def plot(self, background=None):
         # Temporary plotting function based on Basemap
         if self.lons.shape[0] < 1:
             raise ValueError('No points to plot!')
         from mpl_toolkits.basemap import Basemap
         import matplotlib.pyplot as plt
-        lonmin = self.lons.min()
-        lonmax = self.lons.max()
+        buffer = 1
+        lonmin = self.lons.min() - buffer*2
+        lonmax = self.lons.max() + buffer*2
         latmin = self.lats.min()
         latmax = self.lats.max()
-        buffer = 1
-        map = Basemap(lonmin-buffer*2, latmin-buffer,
-                      lonmax+buffer*2, latmax+buffer,
+        map = Basemap(lonmin-buffer, latmin-buffer,
+                      lonmax+buffer, latmax+buffer,
                       resolution='h', projection='merc')
         x, y = map(self.lons, self.lats)
         map.plot(x, y, color='k')
         map.drawcoastlines()
-        map.fillcontinents(color='coral')
+        if background is None:
+            map.fillcontinents(color='coral')
         map.drawmeridians(np.arange(0,360,1))
         map.drawparallels(np.arange(-90,90,1))
+        if background is not None:
+            # Plot background field, if requested
+            reader = self.readers.readers[0]
+            lons, lats = map.makegrid(4, 4) # get lat/lons of ny by nx evenly space grid.
+            reader_x, reader_y = reader.lonlat2xy(lons, lats)
+            data = self.readers.readers[0].get_variables(
+                background, self.time-self.time_step, reader_x, reader_y,
+                0, block=True)
+            reader_x, reader_y = np.meshgrid(data['x'], data['y'])
+            data = data[background]
+            rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
+            map_x, map_y = map(rlons, rlats) 
+            map.contourf(map_x, map_y, data, interpolation='nearest')
         plt.show()
 
 
@@ -113,6 +127,9 @@ class OpenDriftSimulation(object):
 
 
     def get_environment(self):
+
+        if hasattr(self, 'environment'):
+            self.environment_previous = self.environment  # Store last info
 
         # Convert lon/lat to x,y
         self.elements.x, self.elements.y = self.lonlat2xy(
@@ -139,6 +156,9 @@ class OpenDriftSimulation(object):
 
         for variable in environment.keys():
             setattr(self.environment, variable, environment[variable])
+
+        if not hasattr(self, 'environment_previous'):
+            self.environment_previous = self.environment  # Use current/first
 
         return self.environment
 
