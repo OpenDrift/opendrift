@@ -6,8 +6,8 @@ elements - LagrangianArray
 
 The module 'elements.py' defines the fundamental class 'LagrangianArray'
 
-The LagrangianArray class holds a dictionary (OrderedDict) defining the parameters (properties) of an element.
-The parameters are defined by:
+The LagrangianArray class holds a dictionary (OrderedDict) defining the variables (properties) of an element.
+The variables are defined by:
 ```
 - name
 - dtype (typically numpy.float32)
@@ -20,7 +20,7 @@ and optionally:
 ```
 
 
-The values for these parameters are given through the constructor, and are stored as named attributes of the created object:
+The values for these variables are given through the constructor, and are stored as named attributes of the created object:
 
 ```
 >>> from elements import LagrangianArray
@@ -41,14 +41,14 @@ l.update_properties()
 
 New element types can be created by subclassing the LagrangianArray class and:
 - overloading the 'update_properties' class 
-- and (possibly) adding more parameters through method 'add_parameters'
+- and (possibly) adding more variables through method 'add_variables'
 
 Example for Larvae:
 
 ```
 class Larvae(LagrangianArray):
 
-    parameters = LagrangianArray.add_parameters(
+    variables = LagrangianArray.add_variables(
         {'length':
             {'dtype': np.float32}})
 
@@ -62,14 +62,14 @@ Multiple inheritance is supported:
 ```
 class CodLarvae(Larvae):
 
-    parameters = Larvae.add_parameters(
+    variables = Larvae.add_variables(
         {'CodLarvaeProperty1':
             {'dtype': np.float32}})
 
 
 class HalibutLarvae(Larvae):
 
-    parameters = Larvae.add_parameters(
+    variables = Larvae.add_variables(
         {'HalibutLarvaeProperty1':
             {'dtype': np.float32}})
 

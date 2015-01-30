@@ -9,7 +9,7 @@ from elements import LagrangianArray
 
 class Larvae(LagrangianArray):
 
-    parameters = LagrangianArray.add_parameters(
+    variables = LagrangianArray.add_variables(
         {'length':
             {'dtype': np.float32,
              'unit': 'mm'}})
@@ -21,13 +21,13 @@ class Larvae(LagrangianArray):
 
 class CodLarvae(Larvae):
 
-    parameters = Larvae.add_parameters(
+    variables = Larvae.add_variables(
         {'CodLarvaeProperty1':
             {'dtype': np.float32}})
 
 
 class HalibutLarvae(Larvae):
 
-    parameters = Larvae.add_parameters(
+    variables = Larvae.add_variables(
         {'HalibutLarvaeProperty1':
             {'dtype': np.float32}})

@@ -64,10 +64,11 @@ class Readers(object):
         missingVariables = set(variables) - set(
             self.list_environment_variables())
         if missingVariables:
-            raise ValueError('Missing variables: ' +
-                             str(list(missingVariables)))
+            raise ValueError(
+                'Please add readers for the following variables: ' +
+                str(list(missingVariables)))
 
-        # Use first reader - TEMPORAY SOLUTION
+        # Use first reader - TEMPORARY SOLUTION
         env = self.readers[0].get_variables(variables, time, x, y, depth)
         print env
         stop

@@ -87,8 +87,8 @@ class OpenDriftSimulation(object):
         latmin = self.lats.min()
         latmax = self.lats.max()
         buffer = 1
-        map = Basemap(lonmin-buffer*2, latmin-buffer*2,
-                      lonmax+buffer, latmax+buffer,
+        map = Basemap(lonmin-buffer*2, latmin-buffer,
+                      lonmax+buffer*2, latmax+buffer,
                       resolution='h', projection='merc')
         x, y = map(self.lons, self.lats)
         map.plot(x, y, color='k')
@@ -97,6 +97,7 @@ class OpenDriftSimulation(object):
         map.drawmeridians(np.arange(0,360,1))
         map.drawparallels(np.arange(-90,90,1))
         plt.show()
+
 
     def propagate(self):
         #print 'Getting environment data...'
@@ -114,7 +115,7 @@ class OpenDriftSimulation(object):
         # Convert lon/lat to x,y
         self.elements.x, self.elements.y = self.lonlat2xy(
             self.elements.lon, self.elements.lat)
-        # Find which readers have the needed parameters
+        # Find which readers have the needed variables
         self.environment = Environment()
         environment = {}
         required_variables = self.required_variables
@@ -130,9 +131,12 @@ class OpenDriftSimulation(object):
             required_variables = list(set(required_variables) - set(available_variables))
             if len(required_variables) == 0:
                 break # Got all variables, no need to check more readers
+        if len(required_variables) != 0:
+            raise ValueError('Missing variables: %s \n'
+                'Please add appropriate reader' % str(required_variables))
 
-        for parameter in environment.keys():
-            setattr(self.environment, parameter, environment[parameter])
+        for variable in environment.keys():
+            setattr(self.environment, variable, environment[variable])
 
         return self.environment
 

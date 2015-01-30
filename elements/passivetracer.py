@@ -2,7 +2,7 @@ import numpy as np
 
 from elements import LagrangianArray
 
-# Modify Class name and parameter name/properties
+# Modify Class name and variable name/properties
 # below to make a new element class
 
 

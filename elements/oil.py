@@ -5,7 +5,7 @@ from elements import LagrangianArray
 
 class Oil(LagrangianArray):
 
-    parameters = LagrangianArray.add_parameters([
+    variables = LagrangianArray.add_variables([
         ('massOil', {'dtype': np.float32,
                      'unit': 'kg'}),
         ('massEvaporated', {'dtype': np.float32,
