@@ -115,5 +115,9 @@ class Reader(Reader):
                 variables[par] = var[indy, indx]
             else:
                 variables[par] = var[indxTime, 1, indy, indx]  # Temporarily neglecting depth
+            # If 2D array is returned due to the fancy slicing methods
+            # of netcdf-python, we need to take the diagonal
+            if variables[par].ndim > 1:
+                variables[par] = variables[par].diagonal()
 
         return variables

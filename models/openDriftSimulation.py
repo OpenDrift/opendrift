@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime, timedelta
 import numpy as np
 from readers import readers
@@ -70,6 +71,7 @@ class OpenDriftSimulation(object):
                 print '========================'
                 print 'End of simulation:'
                 print e
+                print traceback.format_exc()
                 print '========================'
                 # Truncate lon/lat, and then return
                 self.lons = self.lons[0:i-1,:]

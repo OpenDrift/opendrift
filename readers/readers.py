@@ -110,10 +110,6 @@ class Reader(object):
         x = np.asarray(x)
         y = np.asarray(y)
         depth = np.asarray(depth)
-        if len(x) == 2:
-            raise ValueError('Dimensions of length 2 not tackled '
-                             'by Python-netCDF4; 2x2 array returned '
-                             'instead of 1x2 array')
 
         for variable in variables:
             if variable not in self.variables:
