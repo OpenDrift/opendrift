@@ -11,7 +11,7 @@ class Environment(object):
 
 class OpenDriftSimulation(object):
 
-    def __init__(self, time_step=3600, proj4=None):
+    def __init__(self, time_step=3600, proj4=None, seed=0):
 
         # Add Readers object as single point interface
         # towards environmental data
@@ -26,13 +26,25 @@ class OpenDriftSimulation(object):
         else:
             self.proj4 = None
 
+        # Using a fixed seed will generate the same random numbers
+        # each run, useful for sensitivity tests
+        # Use seed = None to get different random numbers each time
+        np.random.seed(seed)
+
         print 'OpenDriftSimulation initialised'
 
-    def add_reader(self, reader, **kwargs):
-        self.readers.add_reader(reader, kwargs)
+    def add_reader(self, reader, variables=None):
+        'Mainly passing on variables to Reader class'
+        self.readers.add_reader(reader, variables)
         if self.proj4 is None:
-            self.proj4 = reader.proj4
+            if not isinstance(reader, list):
+                reader = [reader]
+            self.proj4 = reader[0].proj4
             self.proj = readers.pyproj.Proj(self.proj4)
+        # Remove/hide variables not needed by the current trajectory model
+        for variable in self.readers.priority_list:
+            if variable not in self.required_variables:
+                del self.readers.priority_list[variable]
 
     def seed_point(self, lon, lat, radius, number, time, **kwargs):
         radius = radius/111000.  # convert radius from m to degrees
@@ -41,8 +53,10 @@ class OpenDriftSimulation(object):
         self.elements = self.ElementType(**kwargs)
         if time is None:
             # Use first time of first reader of time is not given for seeding
-            print 'Using start time of reader ' + self.readers.readers[0].name
-            self.time = self.readers.readers[0].startTime
+            #print 'Using start time of reader ' + self.readers.readers[0].name
+            firstReader = list(self.readers.readers.items())[0][1]
+            print 'Using start time of reader ' + firstReader.name
+            self.time = firstReader.startTime
         else:
             self.time = time
         self.startTime = self.time  # Record start time for reference
@@ -93,18 +107,24 @@ class OpenDriftSimulation(object):
                       lonmax+buffer, latmax+buffer,
                       resolution='h', projection='merc')
         x, y = map(self.lons, self.lats)
-        map.plot(x, y, color='k')
-        map.drawcoastlines()
+        map.plot(x, y, color='gray')
+        map.plot(x[-1], y[-1], '*', color='r')
+        map.plot(x[0], y[0], '*', color='g')
+        map.drawcoastlines(color='coral')
         if background is None:
             map.fillcontinents(color='coral')
         map.drawmeridians(np.arange(0,360,1))
         map.drawparallels(np.arange(-90,90,1))
-        if background is not None:
+        if background is not None and None:  # Disabled
             # Plot background field, if requested
-            reader = self.readers.readers[0]
+            for readerName in self.readers.readers:
+                reader = self.readers.readers[readerName]
+                if background in reader.variables:
+                    break
+                    #reader = list(self.readers.readers.items())[0][1]  # first reader
             lons, lats = map.makegrid(4, 4) # get lat/lons of ny by nx evenly space grid.
             reader_x, reader_y = reader.lonlat2xy(lons, lats)
-            data = self.readers.readers[0].get_variables(
+            data = reader.get_variables(
                 background, self.time-self.time_step, reader_x, reader_y,
                 0, block=True)
             reader_x, reader_y = np.meshgrid(data['x'], data['y'])
@@ -127,6 +147,8 @@ class OpenDriftSimulation(object):
 
 
     def get_environment(self):
+        '''Retrieve variables requested by this model by looping
+        through all available readers'''
 
         if hasattr(self, 'environment'):
             self.environment_previous = self.environment  # Store last info
@@ -139,6 +161,7 @@ class OpenDriftSimulation(object):
         environment = {}
         required_variables = self.required_variables
         for reader in self.readers.readers:
+            reader = self.readers.readers[reader]  # Use reader object, not name
             available_variables = list(
                 set(reader.variables) & set(required_variables))
             # Get available variables from this reader
@@ -177,9 +200,9 @@ class OpenDriftSimulation(object):
         self.elements.x, self.elements.y = self.lonlat2xy(
             self.elements.lon, self.elements.lat)
         # Update x,y
-        self.elements.x = self.elements.x + x_vel*self.time_step.total_seconds()
-        self.elements.y = self.elements.y + y_vel*self.time_step.total_seconds()
-        # Calculate x,y from lon,lat
+        self.elements.x += x_vel*self.time_step.total_seconds()
+        self.elements.y += y_vel*self.time_step.total_seconds()
+        # Calculate lon,lat from x,y
         self.elements.lon, self.elements.lat = self.xy2lonlat(
             self.elements.x, self.elements.y)
 
@@ -190,9 +213,10 @@ class OpenDriftSimulation(object):
             outStr += '\t%s %s particles\n' % (
                         len(self.elements), type(self.elements).__name__)
         outStr += 'Projection: %s\n' % self.proj4
-        outStr += 'Readers:\n'
-        for reader in self.readers.readers:
-            outStr += '\t' + reader.name + '\n'
+        outStr += str(self.readers)
+        #outStr += 'Readers:\n'
+        #for reader in self.readers.readers:
+        #    outStr += '\t' + reader + '\n'
         if hasattr(self, 'time'):
             outStr += 'Time:\n'
             outStr += '\tStart: %s\n' % (self.startTime)

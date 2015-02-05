@@ -1,5 +1,6 @@
 import importlib
 from abc import abstractmethod, ABCMeta
+from collections import OrderedDict
 import numpy as np
 
 
@@ -19,37 +20,61 @@ class Readers(object):
     '''Single entry point towards driver data from several models'''
 
     def __init__(self):
-        self.readers = []
+        self.readers = {}  # Dictionary, key=name, value=reader object
+        self.priority_list = OrderedDict()
 
-    def add_reader(self, reader, arguments=None, variables=None, name=None):
+    def add_reader(self, readers, variables=None):
 
         if isinstance(variables, str):
             variables = [variables]
-        if isinstance(reader, str):
-            # Import requested reader
-            try:
-                readerModule = importlib.import_module(
-                    'readers.reader_' + reader)
-                reader = readerModule.Reader()
-            except ImportError:
-                raise ImportError('Reader ' + reader + ' (reader_' +
-                                  reader + '.py)' + ' not available')
 
+        if isinstance(readers, Reader):
+            readers = [readers]
+
+        for reader in readers:
         # Check if input class is of correct type
-        if not isinstance(reader, Reader):
-            raise TypeError('Please provide Reader object')
+            if not isinstance(reader, Reader):
+                raise TypeError('Please provide Reader object')
 
-        # Check that reader class contains the requested variables
-        if variables is not None:
-            missingVariables = set(variables) - set(reader.variables)
-            if missingVariables:
-                raise ValueError('Missing variable: ' +
-                                 str(list(missingVariables)))
+            # Check that reader class contains the requested variables
+            if variables is not None:
+                missingVariables = set(variables) - set(reader.variables)
+                if missingVariables:
+                    raise ValueError('Reader %s does not provide variables: %s' \
+                        % (reader.name, list(missingVariables)))
 
-        if name is not None:
-            reader.name = name
-        # Finally add new reader to list
-        self.readers.append(reader)
+            # Finally add new reader to list
+            if reader not in self.readers:
+                self.readers[reader.name] = reader
+                #print 'Added ' + reader.name
+
+            # Add this reader for each of the given variables
+            for variable in variables if variables else reader.variables:
+                if variable in self.priority_list:
+                    if reader.name not in self.priority_list[variable]:
+                        self.priority_list[variable].append(reader.name)
+                else:
+                    self.priority_list[variable] = [reader.name]
+
+    def get_reader_groups(self):
+
+        # Find which groups of variables are provided by
+        # the same set of readers (in the same order)
+        reader_groups = []
+        # Find all unique reader groups
+        for variable, readers in self.priority_list.items():
+            if readers not in reader_groups:
+                reader_groups.append(readers)
+        # Find all variables returned by the same reader group
+        variable_groups = [None]*len(reader_groups)
+        for variable, readers in self.priority_list.items():
+            for i, readerGroup in enumerate(reader_groups):
+                if readers == readerGroup:
+                    if variable_groups[i]:
+                        variable_groups[i].append(variable)
+                    else:
+                        variable_groups[i] = [variable]
+        return variable_groups, reader_groups
 
     def list_environment_variables(self):
         variables = []
@@ -57,21 +82,37 @@ class Readers(object):
             variables.extend(reader.variables)
         return variables
 
-    def get_environment(self, variables, proj4, x, y, depth, time):
-        if isinstance(variables, str):
-            variables = [variables]
+    def __repr__(self):
 
-        missingVariables = set(variables) - set(
-            self.list_environment_variables())
-        if missingVariables:
-            raise ValueError(
-                'Please add readers for the following variables: ' +
-                str(list(missingVariables)))
+        variable_groups, reader_groups = self.get_reader_groups()
+        outStr = '-------------------\n'
+        outStr += 'Variables:\n'
+        for i, variableGroup in enumerate(variable_groups):
+            outStr += '  -----\n'
+            readerGroup = reader_groups[i]
+            for variable in sorted(variableGroup):
+                outStr += '  ' + variable + '\n'
+            for i, reader in enumerate(readerGroup):
+                outStr += '     ' + str(i+1) + ') ' + reader + '\n'
+        #outStr += '-------------------\n'
+        return outStr
 
-        # Use first reader - TEMPORARY SOLUTION
-        env = self.readers[0].get_variables(variables, time, x, y, depth)
-        print env
-        stop
+#    def get_environment(self, variables, proj4, x, y, depth, time):
+#        if isinstance(variables, str):
+#            variables = [variables]
+#
+#        missingVariables = set(variables) - set(
+#            self.list_environment_variables())
+#        if missingVariables:
+#            raise ValueError(
+#                'Please add readers for the following variables: ' +
+#                str(list(missingVariables)))
+#
+#        # Use first reader - TEMPORARY SOLUTION
+#        stop
+#        env = self.readers[0].get_variables(variables, time, x, y, depth)
+#        #print env
+#        #stop
 
 class Reader(object):
     __metaclass__ = ABCMeta
@@ -120,12 +161,12 @@ class Reader(object):
         if self.endTime is not None and time > self.endTime:
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s)' % (time, self.endTime))
-        if x.min() < self.xmin or x.max() > self.xmax:
-            raise ValueError('Requested x <%s, %s> is outside domain '
-                    '<%s, %s>' % (x.min(), x.max(), self.xmin, self.xmax))
-        if y.min() < self.ymin or y.max() > self.ymax:
-            raise ValueError('Requested y <%s, %s> is outside domain '
-                    '<%s, %s>' % (y.min(), y.max(), self.ymin, self.ymax))
+        #if x.min() < self.xmin or x.max() > self.xmax:
+        #    raise ValueError('Requested x <%s, %s> is outside domain '
+        #            '<%s, %s>' % (x.min(), x.max(), self.xmin, self.xmax))
+        #if y.min() < self.ymin or y.max() > self.ymax:
+        #    raise ValueError('Requested y <%s, %s> is outside domain '
+        #            '<%s, %s>' % (y.min(), y.max(), self.ymin, self.ymax))
         return variables, time, x, y, depth
 
     def index_of_closest_time(self, requestedTime):
@@ -166,7 +207,8 @@ class Reader(object):
              corners[1][1],
              corners[0][3],
              corners[1][3])
-        outStr += 'Depths [m]: \n  ' + str(self.depths) + '\n'
+        if hasattr(self, 'depth'):
+            outStr += 'Depths [m]: \n  ' + str(self.depths) + '\n'
         outStr += 'Available time range:\n'
         outStr += '  start: ' + str(self.startTime) + \
                   '   end: ' + str(self.endTime) + \

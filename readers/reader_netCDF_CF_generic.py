@@ -114,7 +114,11 @@ class Reader(Reader):
         variables['y'] = self.ymin + (indy-1)*self.delta_y
         for par in requestedVariables:
             var = self.Dataset.variables[self.variableMapping[par]]
-            if par == 'sea_floor_depth_below_sea_level':
+            # Hardcoded checks for variable dimensions below,
+            # this should be generalised later
+            if par == 'x_wind' or par  == 'y_wind':
+                variables[par] = var[indxTime, indy, indx]
+            elif par == 'sea_floor_depth_below_sea_level':
                 variables[par] = var[indy, indx]
             else:
                 # Temporarily neglecting depth
