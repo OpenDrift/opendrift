@@ -1,7 +1,10 @@
 import traceback
 from datetime import datetime, timedelta
+from collections import OrderedDict
+
 import numpy as np
-from readers import readers
+
+from readers.readers import pyproj, Reader
 
 class Environment(object):
 
@@ -13,18 +16,15 @@ class OpenDriftSimulation(object):
 
     def __init__(self, time_step=3600, proj4=None, seed=0):
 
-        # Add Readers object as single point interface
-        # towards environmental data
-        self.readers = readers.Readers()
+        # Dict to store readers
+        self.readers = {}  # Dictionary, key=name, value=reader object
+        self.priority_list = OrderedDict()
 
         # Time step in seconds
         self.time_step = timedelta(seconds=time_step)
 
-        if proj4 is not None:
-            self.proj4 = proj4
-            self.proj = readers.pyproj.Proj(self.proj4)
-        else:
-            self.proj4 = None
+        # Set projection, if given
+        self.set_projection(proj4)
 
         # Using a fixed seed will generate the same random numbers
         # each run, useful for sensitivity tests
@@ -33,18 +33,149 @@ class OpenDriftSimulation(object):
 
         print 'OpenDriftSimulation initialised'
 
-    def add_reader(self, reader, variables=None):
-        'Mainly passing on variables to Reader class'
-        self.readers.add_reader(reader, variables)
-        if self.proj4 is None:
-            if not isinstance(reader, list):
-                reader = [reader]
-            self.proj4 = reader[0].proj4
-            self.proj = readers.pyproj.Proj(self.proj4)
+    def set_projection(self, proj4):
+        self.proj4 = proj4
+        if proj4 is not None:
+            self.proj = pyproj.Proj(self.proj4)
+        else:
+            self.proj = None
+
+    def lonlat2xy(self, lon, lat):
+        return self.proj(lon, lat, inverse=False)
+
+    def xy2lonlat(self, x, y):
+        return self.proj(x, y, inverse=True)
+
+    ######################################
+    # Readers
+    ######################################
+
+    def add_reader(self, readers, variables=None):
+
+        # Prepare lists, for looping
+        if isinstance(variables, str):
+            variables = [variables]
+        if isinstance(readers, Reader):
+            readers = [readers]
+
+        for reader in readers:
+            # Check if input class is of correct type
+            if not isinstance(reader, Reader):
+                raise TypeError('Please provide Reader object')
+
+            # Check that reader class contains the requested variables
+            if variables is not None:
+                missingVariables = set(variables) - set(reader.variables)
+                if missingVariables:
+                    raise ValueError('Reader %s does not provide variables: %s' \
+                        % (reader.name, list(missingVariables)))
+
+            # Finally add new reader to list
+            if reader not in self.readers:
+                self.readers[reader.name] = reader
+                if self.proj == None:
+                    self.set_projection(reader.proj4)
+                print 'Added ' + reader.name
+
+            # Add this reader for each of the given variables
+            for variable in variables if variables else reader.variables:
+                if variable in self.priority_list:
+                    if reader.name not in self.priority_list[variable]:
+                        self.priority_list[variable].append(reader.name)
+                else:
+                    self.priority_list[variable] = [reader.name]
+ 
         # Remove/hide variables not needed by the current trajectory model
-        for variable in self.readers.priority_list:
+        for variable in self.priority_list:
             if variable not in self.required_variables:
-                del self.readers.priority_list[variable]
+                del self.priority_list[variable]
+
+    def list_environment_variables(self):
+        variables = []
+        for reader in self.readers:
+            variables.extend(self.readers[reader].variables)
+        return variables
+
+    def get_reader_groups(self):
+
+        # Find which groups of variables are provided by
+        # the same set of readers (in the same order)
+        reader_groups = []
+        # Find all unique reader groups
+        for variable, readers in self.priority_list.items():
+            if readers not in reader_groups:
+                reader_groups.append(readers)
+        # Find all variables returned by the same reader group
+        variable_groups = [None]*len(reader_groups)
+        for variable, readers in self.priority_list.items():
+            for i, readerGroup in enumerate(reader_groups):
+                if readers == readerGroup:
+                    if variable_groups[i]:
+                        variable_groups[i].append(variable)
+                    else:
+                        variable_groups[i] = [variable]
+        return variable_groups, reader_groups
+
+    def get_environment(self):
+        '''Retrieve variables requested by this model by looping
+        through all available readers'''
+
+        if hasattr(self, 'environment'):
+            self.environment_previous = self.environment  # Store last info
+
+        # Convert lon/lat to x,y
+        self.elements.x, self.elements.y = self.lonlat2xy(
+            self.elements.lon, self.elements.lat)
+        # Find which readers have the needed variables
+        self.environment = Environment()
+        environment = {}
+        required_variables = self.required_variables
+        for reader in self.readers:
+            print reader
+            reader = self.readers[reader]  # Use reader object, not name
+            available_variables = list(
+                set(reader.variables) & set(required_variables))
+            # Get available variables from this reader
+            reader_x, reader_y = reader.lonlat2xy(
+                self.elements.lon, self.elements.lat)  # x,y in reader coords
+            env = reader.get_variables(available_variables, self.time,
+                    reader_x, reader_y, self.elements.depth)
+            ###################################################
+            # TBD: interpolation of block onto particle array
+            ###################################################
+            environment.update(env)
+            required_variables = list(set(required_variables) - set(available_variables))
+            if len(required_variables) == 0:
+                break # Got all variables, no need to check more readers
+
+        if len(required_variables) != 0:
+            raise ValueError('Missing variables: %s \n'
+                'Please add appropriate reader' % str(required_variables))
+
+        for variable in environment.keys():
+            setattr(self.environment, variable, environment[variable])
+
+        if not hasattr(self, 'environment_previous'):
+            self.environment_previous = self.environment  # Use current/first
+
+        # Use last good values, if currently missing
+        for varName in env:
+            if varName == 'x' or varName == 'y':
+                continue
+            var = env[varName]
+            print varName
+            print type(var)
+            print var
+            mask = var.mask
+            print mask
+            #self.environment.x_sea_water_velocity[mask] = \
+            #    self.environment_previous.x_sea_water_velocity[mask]
+            #self.environment.y_sea_water_velocity[mask] = \
+            #    self.environment_previous.y_sea_water_velocity[mask]
+
+    #######################
+    # Run
+    #######################
 
     def seed_point(self, lon, lat, radius, number, time, **kwargs):
         radius = radius/111000.  # convert radius from m to degrees
@@ -54,7 +185,7 @@ class OpenDriftSimulation(object):
         if time is None:
             # Use first time of first reader of time is not given for seeding
             #print 'Using start time of reader ' + self.readers.readers[0].name
-            firstReader = list(self.readers.readers.items())[0][1]
+            firstReader = list(self.readers.items())[0][1]
             print 'Using start time of reader ' + firstReader.name
             self.time = firstReader.startTime
         else:
@@ -131,6 +262,7 @@ class OpenDriftSimulation(object):
             data = data[background]
             rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
             map_x, map_y = map(rlons, rlats) 
+            print data.shape, map_x.shape, map_y.shape
             map.contourf(map_x, map_y, data, interpolation='nearest')
         plt.show()
 
@@ -145,51 +277,6 @@ class OpenDriftSimulation(object):
         #print 'Finished'
         print self.time
 
-
-    def get_environment(self):
-        '''Retrieve variables requested by this model by looping
-        through all available readers'''
-
-        if hasattr(self, 'environment'):
-            self.environment_previous = self.environment  # Store last info
-
-        # Convert lon/lat to x,y
-        self.elements.x, self.elements.y = self.lonlat2xy(
-            self.elements.lon, self.elements.lat)
-        # Find which readers have the needed variables
-        self.environment = Environment()
-        environment = {}
-        required_variables = self.required_variables
-        for reader in self.readers.readers:
-            reader = self.readers.readers[reader]  # Use reader object, not name
-            available_variables = list(
-                set(reader.variables) & set(required_variables))
-            # Get available variables from this reader
-            reader_x, reader_y = reader.lonlat2xy(
-                self.elements.lon, self.elements.lat)  # x,y in reader coords
-            env = reader.get_variables(available_variables, self.time,
-                    reader_x, reader_y, self.elements.depth)
-            environment.update(env)
-            required_variables = list(set(required_variables) - set(available_variables))
-            if len(required_variables) == 0:
-                break # Got all variables, no need to check more readers
-        if len(required_variables) != 0:
-            raise ValueError('Missing variables: %s \n'
-                'Please add appropriate reader' % str(required_variables))
-
-        for variable in environment.keys():
-            setattr(self.environment, variable, environment[variable])
-
-        if not hasattr(self, 'environment_previous'):
-            self.environment_previous = self.environment  # Use current/first
-
-        return self.environment
-
-    def lonlat2xy(self, lon, lat):
-        return self.proj(lon, lat, inverse=False)
-
-    def xy2lonlat(self, x, y):
-        return self.proj(x, y, inverse=True)
 
     def update_positions(self, x_vel, y_vel):
         # Move particles according to timestep and velocities
@@ -213,10 +300,16 @@ class OpenDriftSimulation(object):
             outStr += '\t%s %s particles\n' % (
                         len(self.elements), type(self.elements).__name__)
         outStr += 'Projection: %s\n' % self.proj4
-        outStr += str(self.readers)
-        #outStr += 'Readers:\n'
-        #for reader in self.readers.readers:
-        #    outStr += '\t' + reader + '\n'
+        variable_groups, reader_groups = self.get_reader_groups()
+        outStr += '-------------------\n'
+        outStr += 'Environment variables:\n'
+        for i, variableGroup in enumerate(variable_groups):
+            outStr += '  -----\n'
+            readerGroup = reader_groups[i]
+            for variable in sorted(variableGroup):
+                outStr += '  ' + variable + '\n'
+            for i, reader in enumerate(readerGroup):
+                outStr += '     ' + str(i+1) + ') ' + reader + '\n'
         if hasattr(self, 'time'):
             outStr += 'Time:\n'
             outStr += '\tStart: %s\n' % (self.startTime)

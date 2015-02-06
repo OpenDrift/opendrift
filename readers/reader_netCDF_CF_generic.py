@@ -92,21 +92,25 @@ class Reader(Reader):
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, depth=None, block=False):
 
-        requestedVariables, time, x, y, depth = self.check_arguments(
+        requestedVariables, time, x, y, depth, outside = self.check_arguments(
                                     requestedVariables, time, x, y, depth)
+        #print '%s of %s particles are outside domain' % (
+        #    len(outside), len(x))
 
         indxTime, nearestTime = self.index_of_closest_time(time)
 
         if block is True:
             # Find indices corresponding to requested x and y
-            indx = np.round((x-self.xmin)/self.delta_x).astype(int)
-            indy = np.round((y-self.ymin)/self.delta_y).astype(int)
             indx = np.arange(indx.min(), indx.max())
             indy = np.arange(indy.min(), indy.max())
         else:
             # Find indices corresponding to requested x and y
             indx = np.round((x-self.xmin)/self.delta_x).astype(int)
             indy = np.round((y-self.ymin)/self.delta_y).astype(int)
+
+        # Mask outside values
+        indx[outside] = 0 # Read first element for particles outside,
+        indy[outside] = 0 # to be masked later
 
         variables = {}
         # Store coordinates of returned points
@@ -128,5 +132,10 @@ class Reader(Reader):
             # of netcdf-python, we need to take the diagonal
             if variables[par].ndim > 1 and block is False:
                 variables[par] = variables[par].diagonal()
+
+            # Mask values outside domain
+            variables[par] = np.ma.array(variables[par], mask=False)
+            variables[par].mask[outside] = True
+            #print variables[par]
 
         return variables

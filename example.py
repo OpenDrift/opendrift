@@ -9,9 +9,8 @@ from readers import reader_netCDF_CF_generic
 from models.od3d import OD3D
 from models.windblow import WindBlow
 
-#o = OD3D(proj4='+proj=stere +lat_0=90 +lon_0=70 +lat_ts=60 +units=m +a=6.371e+06 +e=0 +no_defs')
-#o = OD3D()
-o = WindBlow()
+o = OD3D()
+#o = WindBlow()
 
 # Arome
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')  #, name='arome_thredds')
@@ -31,15 +30,16 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
                     urcrnrlon=20, urcrnrlat=69, resolution='i')
 #o.add_reader(reader_basemap)
 
+#o.add_reader(reader_arome)
 #o.add_reader([reader_norkyst, reader_arctic20], ['x_sea_water_velocity', 'y_sea_water_velocity'])
-#o.add_reader([reader_norkyst, reader_arctic20, reader_arome, reader_basemap])
-o.add_reader(reader_arome)
+o.add_reader([reader_norkyst, reader_basemap, reader_arctic20])
+
+print o
 
 # Seeding some particles
-#time = datetime(2015,1,20,1,0,0) # Arctic20
-#time = datetime(2015,1,15,0,0,0) # Norkyst800
-#o.seed_point(lon=4.8, lat=60.0, radius=10000, number=30, massOil=5, time=None)
-o.seed_point(lon=8, lat=60.0, radius=20000, number=30, time=None)
+lon = 15; lat = 72.0; # Close to Norkyst boundary
+#lon = 4.5; lat = 61.0; # Outside Bergen
+o.seed_point(lon, lat, radius=10000, number=30, massOil=5, time=None)
 print o
 
 # Running model (until end of driver data)
