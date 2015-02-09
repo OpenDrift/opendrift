@@ -14,7 +14,7 @@ o = OD3D()
 
 # Arome
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')  #, name='arome_thredds')
-reader_arome = reader_netCDF_CF_generic.Reader('/opdata_local/arome2_5/arome_metcoop_default2_5km_20150205_00.nc')
+reader_arome = reader_netCDF_CF_generic.Reader('/opdata_local/arome2_5/arome_metcoop_default2_5km_20150209_00.nc')
 #o.readers.add_reader(reader_arome)
 
 # Norkyst
@@ -32,13 +32,15 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
 
 #o.add_reader(reader_arome)
 #o.add_reader([reader_norkyst, reader_arctic20], ['x_sea_water_velocity', 'y_sea_water_velocity'])
-o.add_reader([reader_norkyst, reader_basemap, reader_arctic20])
+o.add_reader([reader_norkyst])
+print reader_norkyst
 
 print o
 
 # Seeding some particles
 lon = 15; lat = 72.0; # Close to Norkyst boundary
-#lon = 4.5; lat = 61.0; # Outside Bergen
+lon = 21; lat = 73.5; # Close to Norkyst boundary
+lon = 4.7; lat = 60.0; # Outside Bergen
 o.seed_point(lon, lat, radius=10000, number=30, massOil=5, time=None)
 print o
 
@@ -48,4 +50,4 @@ o.run()
 # Print and plot results
 print o
 #o.plot('x_sea_water_velocity')
-o.plot('sea_water_potential_temperature')
+o.plot('')

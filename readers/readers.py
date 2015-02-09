@@ -65,7 +65,8 @@ class Reader(object):
         outside = np.where((x<self.xmin) | (x>self.xmax) |
                            (y<self.xmin) | (y>self.ymax))[0]
         if len(outside) == len(x):
-            raise ValueError('All particles are outside domain')
+            raise ValueError('All particles are outside domain '
+                'of reader ' + self.name)
 
         return variables, time, x, y, depth, outside
 

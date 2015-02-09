@@ -116,6 +116,9 @@ class OpenDriftSimulation(object):
                         variable_groups[i] = [variable]
         return variable_groups, reader_groups
 
+    ###################################################
+    # Get Environment
+    ###################################################
     def get_environment(self):
         '''Retrieve variables requested by this model by looping
         through all available readers'''
@@ -129,28 +132,38 @@ class OpenDriftSimulation(object):
         # Find which readers have the needed variables
         self.environment = Environment()
         environment = {}
-        required_variables = self.required_variables
-        for reader in self.readers:
-            print reader
-            reader = self.readers[reader]  # Use reader object, not name
-            available_variables = list(
-                set(reader.variables) & set(required_variables))
-            # Get available variables from this reader
-            reader_x, reader_y = reader.lonlat2xy(
-                self.elements.lon, self.elements.lat)  # x,y in reader coords
-            env = reader.get_variables(available_variables, self.time,
-                    reader_x, reader_y, self.elements.depth)
-            ###################################################
-            # TBD: interpolation of block onto particle array
-            ###################################################
-            environment.update(env)
-            required_variables = list(set(required_variables) - set(available_variables))
-            if len(required_variables) == 0:
-                break # Got all variables, no need to check more readers
+        # Initialise environment with empty, masked arrays
+        for var in self.required_variables:
+            environment[var] = np.ma.array(
+                np.zeros(len(self.elements.x)), mask=True)
+        variable_groups, reader_groups = self.get_reader_groups()
 
-        if len(required_variables) != 0:
-            raise ValueError('Missing variables: %s \n'
-                'Please add appropriate reader' % str(required_variables))
+        for i, variable_group in enumerate(variable_groups):
+            reader_group = reader_groups[i]
+            # Loop through readers until environment variables are found
+            for reader in reader_group:
+                reader = self.readers[reader]  # Use reader object, not name
+
+                # NB: take copy, as mask ('missing') will update
+                # when this element gets updated!
+                missing = environment[variable_group[0]].mask.copy()
+                if not True in missing:
+                    print 'Found all variables, continuing...'
+                    break
+
+                # x,y in reader coords
+                reader_x, reader_y = reader.lonlat2xy(
+                    self.elements.lon[missing], self.elements.lat[missing])
+                env = reader.get_variables(variable_group, self.time,
+                        reader_x, reader_y, self.elements.depth)
+                ###################################################
+                # TBD: 
+                # - interpolation of block onto particle array
+                # - rotation of vectors
+                # - addition of variable uncertainty
+                ###################################################
+                for var in variable_group:
+                    environment[var][missing] = env[var]
 
         for variable in environment.keys():
             setattr(self.environment, variable, environment[variable])
@@ -159,19 +172,15 @@ class OpenDriftSimulation(object):
             self.environment_previous = self.environment  # Use current/first
 
         # Use last good values, if currently missing
-        for varName in env:
-            if varName == 'x' or varName == 'y':
-                continue
-            var = env[varName]
-            print varName
-            print type(var)
-            print var
-            mask = var.mask
-            print mask
-            #self.environment.x_sea_water_velocity[mask] = \
-            #    self.environment_previous.x_sea_water_velocity[mask]
-            #self.environment.y_sea_water_velocity[mask] = \
-            #    self.environment_previous.y_sea_water_velocity[mask]
+        #for varName in env:
+        #    if varName == 'x' or varName == 'y':
+        #        continue
+        #    var = env[varName]
+        #    mask = var.mask
+        #    #self.environment.x_sea_water_velocity[mask] = \
+        #    #    self.environment_previous.x_sea_water_velocity[mask]
+        #    #self.environment.y_sea_water_velocity[mask] = \
+        #    #    self.environment_previous.y_sea_water_velocity[mask]
 
     #######################
     # Run
