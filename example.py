@@ -9,8 +9,15 @@ from readers import reader_netCDF_CF_generic
 from models.openoil import OpenOil
 from models.windblow import WindBlow
 
-o = OpenOil()
 #o = WindBlow()
+#now = datetime.now()
+#o.seed_point(4.9, 60.0, radius=1000, number=10, time=now, length=1, CodLarvaeProperty1=1)
+#print o.elements
+##o.seed_point(4.9, 60.0, radius=1000, number=10, time=now)
+##print o.elements
+#stop
+
+o = OpenOil()
 
 # Arome
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')  #, name='arome_thredds')

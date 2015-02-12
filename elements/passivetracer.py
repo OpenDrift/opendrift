@@ -2,13 +2,13 @@ import numpy as np
 
 from elements import LagrangianArray
 
-# Modify Class name and variable name/properties
-# below to make a new element class
-
 
 class PassiveTracer(LagrangianArray):
+    """Basic implementation of LagrangianArray with no additional properties.
 
-    def update_properties(self):
-        # overload from superclass
-        super(PassiveTracer, self).update_properties()
-        pass
+    Contains only the properties of the abstract class LagrangianArray,
+    i.e. position (lon, lat, depth) and ID.
+    May be used for passive tracer calculations when no properties are needed.
+    """
+
+    pass

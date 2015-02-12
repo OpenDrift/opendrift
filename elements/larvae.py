@@ -8,6 +8,7 @@ from elements import LagrangianArray
 
 
 class Larvae(LagrangianArray):
+    """Extending LagrangianArray with variables relevant for (marine) larvae."""
 
     variables = LagrangianArray.add_variables(
         {'length':
@@ -20,6 +21,7 @@ class Larvae(LagrangianArray):
 
 
 class CodLarvae(Larvae):
+    """Extending Larvae with variables relevant for cod larvae."""
 
     variables = Larvae.add_variables(
         {'CodLarvaeProperty1':
@@ -27,6 +29,7 @@ class CodLarvae(Larvae):
 
 
 class HalibutLarvae(Larvae):
+    """Extending Larvae with variables relevant for halibut larvae."""
 
     variables = Larvae.add_variables(
         {'HalibutLarvaeProperty1':

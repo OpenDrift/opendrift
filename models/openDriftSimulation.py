@@ -9,12 +9,47 @@ from readers.readers import pyproj, Reader
 
 
 class Environment(object):
+    """Store environment variables (from readers) as named attributes."""
 
     def __init__(self):
         pass
 
 
 class OpenDriftSimulation(object):
+    """Generic trajectory model class, to be extended (subclassed) by modules.
+
+    Attributes:
+        ElementType: the type (class) of particles to be used by this model
+        elements: object of the class ElementType, storing the specific
+            particle properties (ndarrays and scalars) of all active particles
+            as named attributes. Elements are added by seeding-functions
+            (presently only one implemented: seed_point).
+        elements_deactivated: ElementType object containing particles which
+            have been deactivated (and removed from 'elements')
+        required_variables: list of strings of CF standard_names which is
+            needed by this model (update function) to update properties of
+            particles ('elements') at each time_step. This core class has
+            no required_elements, this is implemented by subclasses/modules.
+        environment: Environment object storing environment variables (wind,
+            waves, current etc) as named attributes. Attribute names follow
+            standard_name from CF-convention, allowing any OpenDriftSimulation
+            module/subclass using environment data from any readers which
+            can provide the requested variables. Used in method 'update'
+            to update properties of elements every time_step.
+        proj4: string defining the common spatial reference system (SRS) onto
+            which data from all readers are interpolated
+        proj: Proj object initialised from proj4 string; used for
+            coordinate tranformations
+        time_step: timedelta object, time interval at which element properties
+            are updated (including advection).
+        readers: Dictionary where values are Reader objects, and names are
+            unique reference keywords used to access a given reader (typically
+            filename or URL)
+        priority_list: OrderedDict where names are variable names,
+            and values are lists of names (kewywords) of the reader, in the
+            order of priority (user defined) of which the readers shall be
+            called to retrieve environmental data.
+    """
 
     def __init__(self, time_step=3600, proj4=None, seed=0):
 
@@ -39,6 +74,7 @@ class OpenDriftSimulation(object):
         print 'OpenDriftSimulation initialised'
 
     def set_projection(self, proj4):
+        """Set the projection onto which data from readers is reprojected."""
         self.proj4 = proj4
         if proj4 is not None:
             self.proj = pyproj.Proj(self.proj4)
@@ -51,13 +87,10 @@ class OpenDriftSimulation(object):
     def xy2lonlat(self, x, y):
         return self.proj(x, y, inverse=True)
 
-    ######################################
-    # Readers
-    ######################################
-
     def add_reader(self, readers, variables=None):
+        """Add one or more readers providing variables used by this model."""
 
-        # Prepare lists, for looping
+        # Convert any strings to lists, for looping
         if isinstance(variables, str):
             variables = [variables]
         if isinstance(readers, Reader):
@@ -96,15 +129,15 @@ class OpenDriftSimulation(object):
                 del self.priority_list[variable]
 
     def list_environment_variables(self):
+        """Return list of all variables provided by the added readers."""
         variables = []
         for reader in self.readers:
             variables.extend(self.readers[reader].variables)
         return variables
 
     def get_reader_groups(self):
-
-        # Find which groups of variables are provided by
-        # the same set of readers (in the same order)
+        """Find which groups of variables are provided by the same readers.
+        """
         reader_groups = []
         # Find all unique reader groups
         for variable, readers in self.priority_list.items():
@@ -180,7 +213,7 @@ class OpenDriftSimulation(object):
     # Run
     #######################
 
-    def seed_point(self, lon, lat, radius, number, time, **kwargs):
+    def seed_point(self, lon, lat, radius, number, time=None, **kwargs):
         radius = radius/111000.  # convert radius from m to degrees
         kwargs['lon'] = lon + radius*(np.random.rand(number) - 0.5)
         kwargs['lat'] = lat + radius*(np.random.rand(number) - 0.5)
@@ -192,8 +225,10 @@ class OpenDriftSimulation(object):
             self.elements = self.ElementType(**kwargs)
         if time is None:
             # Use first time of first reader of time is not given for seeding
-            #print 'Using start time of reader ' + self.readers.readers[0].name
-            firstReader = list(self.readers.items())[0][1]
+            try:
+                firstReader = list(self.readers.items())[0][1]
+            except:
+                raise ValueError('Time must be specified when no reader is added')
             print 'Using start time of reader ' + firstReader.name
             self.time = firstReader.startTime
         else:
@@ -202,7 +237,7 @@ class OpenDriftSimulation(object):
 
     def deactivate_elements(self, indices):
         ''' Basic, but some other housekeeping may be needed later '''
-        self.elements.move(self.elements_deactivated, indices)
+        self.elements.move_elements(self.elements_deactivated, indices)
 
     def run(self, steps=1000000):
         # Primitive function to test overall functionality

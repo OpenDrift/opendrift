@@ -4,6 +4,7 @@ from elements import LagrangianArray
 
 
 class Oil(LagrangianArray):
+    """Extending LagrangianArray with variables relevant for oil particles."""
 
     variables = LagrangianArray.add_variables([
         ('massOil', {'dtype': np.float32,

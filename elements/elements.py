@@ -5,6 +5,33 @@ import numpy as np
 
 
 class LagrangianArray(object):
+    """A generic array-like class for Lagrangian particle tracking.
+
+    A LagrangianArray is a generic class keeping the values of given
+    properties ('variables') of a collection of particles at a given time.
+    Values are stored as named attributes (similar to recarray) which are
+    ndarrays (1D, vectors) with one value for each particle, or as scalars
+    for values shared among all particles.
+
+    This is an Abstract Base Class, meaning that only subclasses can be used.
+    Subclasses will add specific variables for specific purposes (particle
+    types, e.g. oil, fish eggs...) to the core variables described below.
+
+    Attributes:
+        variables: An OrderedDict where keys are names of the
+            variables/properties of the current object. The values
+            of the OrtderedDict are dictionaries with names such as
+            'dtype', 'unit', 'standard_name' (CF), 'default' etc.
+        All variable names will be added dynamically as attributes of
+            the object after initialisation. These attributes will be
+            numpy ndarrays of same length, or scalars. The core variables
+            are:
+        ID: an integer identifying each particle.
+        lon: longitude (np.float32)
+        lat: latitude (np.float32)
+        depth: depth of the particle in m below sea surface.
+    """
+
     __metaclass__ = ABCMeta
 
     variables = OrderedDict([
@@ -21,15 +48,25 @@ class LagrangianArray(object):
                    'default': 0})])
 
     def __init__(self, **kwargs):
+        """Initialises a LagrangianArray with given properties.
 
-        # Collect default values in separate dict
+        Args:
+            Keyword arguments (kwargs) with names corresponding to the
+            OrderedDict 'variables' of the class, and corresponding values.
+            The values must be ndarrays of equal length, or scalars.
+            All (or none) variables must be given, unless a default value
+            is specified in the OrderedDict 'variables'
+            An empty object may be created by giving no input.
+        """
+
+        # Collect default values in separate dict, for easier access
         default_values = {variable: self.variables[variable]['dtype'](
                           self.variables[variable]['default'])
                           for variable in self.variables
                           if 'default' in self.variables[variable]}
 
         if len(kwargs) == 0:
-            # Initialise an empty array
+            # Initialise an empty object (all variables have length 0)
             for var in self.variables:
                 kwargs[var] = []
 
@@ -59,25 +96,32 @@ class LagrangianArray(object):
                 + str(array_lengths))
 
         # Store input arrays
-        # NB: should check that variable names are not reserved!
         for default_variable in default_values.keys():  # set default values
             setattr(self, default_variable, default_values[default_variable])
         for input_variable in kwargs.keys():  # override with input values
-            # presently as scalars, but should be arrays?
             setattr(self, input_variable, self.variables[input_variable]
                     ['dtype'](kwargs[input_variable]))
 
     @classmethod
     def add_variables(cls, new_variables):
+        """Method used by subclasses to add specific properties/variables."""
         variables = cls.variables.copy()
         variables.update(new_variables)
         return variables
 
     def extend(self, other):
+        """Add particles from another object. Scalar values are overwritten"""
         for var in self.variables:
-            np.concatenate((getattr(self, var), getattr(other, f)))
+            present_data = getattr(self, var)
+            new_data = getattr(other, var)
+            if isinstance(new_data, np.ndarray) and \
+               isinstance(present_data, np.ndarray):  # Concatenating arrays
+                setattr(self, var, np.concatenate((present_data, new_data)))
+            else:
+                setattr(self, var, new_data)  # NB: overwriting if scalar
 
-    def move(self, other, indices):
+    def move_elements(self, other, indices):
+        """Remove elements with given indices, and append to another object."""
         # Move elements with given indices (boolean array)
         # to another LagrangianArray
         for var in self.variables:
@@ -96,6 +140,8 @@ class LagrangianArray(object):
     def __len__(self):
         return len(self.lat)
 
-    def show_data(self):
+    def __repr__(self):
+        outStr = ''
         for variable in self.variables.keys():
-            print variable + ': ' + str(getattr(self, variable))
+            outStr += variable + ': ' + str(getattr(self, variable)) + '\n'
+        return outStr
