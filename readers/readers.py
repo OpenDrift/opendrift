@@ -55,18 +55,20 @@ class Reader(object):
 
         for variable in variables:
             if variable not in self.variables:
-                raise ValueError('Variable not available: ' + variable)
+                raise ValueError('Variable not available: ' + variable +
+                                 '\nAvailable parameters are: ' +
+                                 str(self.variables))
         if self.startTime is not None and time < self.startTime:
             raise ValueError('Requested time (%s) is before first available '
                              'time (%s)' % (time, self.startTime))
         if self.endTime is not None and time > self.endTime:
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s)' % (time, self.endTime))
-        outside = np.where((x<self.xmin) | (x>self.xmax) |
-                           (y<self.xmin) | (y>self.ymax))[0]
+        outside = np.where((x < self.xmin) | (x > self.xmax) |
+                           (y < self.xmin) | (y > self.ymax))[0]
         if len(outside) == len(x):
             raise ValueError('All particles are outside domain '
-                'of reader ' + self.name)
+                             'of reader ' + self.name)
 
         return variables, time, x, y, depth, outside
 

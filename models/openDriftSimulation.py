@@ -1,3 +1,4 @@
+import sys
 import traceback
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -5,6 +6,7 @@ from collections import OrderedDict
 import numpy as np
 
 from readers.readers import pyproj, Reader
+
 
 class Environment(object):
 
@@ -30,6 +32,9 @@ class OpenDriftSimulation(object):
         # each run, useful for sensitivity tests
         # Use seed = None to get different random numbers each time
         np.random.seed(seed)
+
+        self.num_elements = 0  # Increase when seeding particles
+        self.elements_deactivated = self.ElementType()  # Empty array
 
         print 'OpenDriftSimulation initialised'
 
@@ -67,13 +72,13 @@ class OpenDriftSimulation(object):
             if variables is not None:
                 missingVariables = set(variables) - set(reader.variables)
                 if missingVariables:
-                    raise ValueError('Reader %s does not provide variables: %s' \
-                        % (reader.name, list(missingVariables)))
+                    raise ValueError('Reader %s does not provide variables: %s'
+                                     % (reader.name, list(missingVariables)))
 
             # Finally add new reader to list
             if reader not in self.readers:
                 self.readers[reader.name] = reader
-                if self.proj == None:
+                if self.proj is None:
                     self.set_projection(reader.proj4)
                 print 'Added ' + reader.name
 
@@ -84,7 +89,7 @@ class OpenDriftSimulation(object):
                         self.priority_list[variable].append(reader.name)
                 else:
                     self.priority_list[variable] = [reader.name]
- 
+
         # Remove/hide variables not needed by the current trajectory model
         for variable in self.priority_list:
             if variable not in self.required_variables:
@@ -148,16 +153,16 @@ class OpenDriftSimulation(object):
                 # when this element gets updated!
                 missing = environment[variable_group[0]].mask.copy()
                 if not True in missing:
-                    print 'Found all variables, continuing...'
                     break
 
-                # x,y in reader coords
+                # x,y may be different for each reader, related to reader.proj4
                 reader_x, reader_y = reader.lonlat2xy(
                     self.elements.lon[missing], self.elements.lat[missing])
                 env = reader.get_variables(variable_group, self.time,
-                        reader_x, reader_y, self.elements.depth)
+                                           reader_x, reader_y,
+                                           self.elements.depth)
                 ###################################################
-                # TBD: 
+                # TBD:
                 # - interpolation of block onto particle array
                 # - rotation of vectors
                 # - addition of variable uncertainty
@@ -171,17 +176,6 @@ class OpenDriftSimulation(object):
         if not hasattr(self, 'environment_previous'):
             self.environment_previous = self.environment  # Use current/first
 
-        # Use last good values, if currently missing
-        #for varName in env:
-        #    if varName == 'x' or varName == 'y':
-        #        continue
-        #    var = env[varName]
-        #    mask = var.mask
-        #    #self.environment.x_sea_water_velocity[mask] = \
-        #    #    self.environment_previous.x_sea_water_velocity[mask]
-        #    #self.environment.y_sea_water_velocity[mask] = \
-        #    #    self.environment_previous.y_sea_water_velocity[mask]
-
     #######################
     # Run
     #######################
@@ -190,7 +184,12 @@ class OpenDriftSimulation(object):
         radius = radius/111000.  # convert radius from m to degrees
         kwargs['lon'] = lon + radius*(np.random.rand(number) - 0.5)
         kwargs['lat'] = lat + radius*(np.random.rand(number) - 0.5)
-        self.elements = self.ElementType(**kwargs)
+        kwargs['ID'] = np.arange(self.num_elements + 1,
+                                 self.num_elements + number + 1)
+        if hasattr(self, 'elements'):
+            self.elements.extend(self.ElementType(**kwargs))
+        else:
+            self.elements = self.ElementType(**kwargs)
         if time is None:
             # Use first time of first reader of time is not given for seeding
             #print 'Using start time of reader ' + self.readers.readers[0].name
@@ -200,27 +199,39 @@ class OpenDriftSimulation(object):
         else:
             self.time = time
         self.startTime = self.time  # Record start time for reference
-                                          
 
-    def run(self, steps=100):
+    def deactivate_elements(self, indices):
+        ''' Basic, but some other housekeeping may be needed later '''
+        self.elements.move(self.elements_deactivated, indices)
+
+    def run(self, steps=1000000):
         # Primitive function to test overall functionality
         self.time_environment = timedelta(seconds=0)
         self.time_model = timedelta(seconds=0)
-        self.lons = np.zeros((steps, len(self.elements)))
-        self.lats = np.zeros((steps, len(self.elements)))
+        # Initialise arrays to store output (temoprary solution)
+        self.lons = np.ma.array(np.zeros((steps, len(self.elements))),
+                                mask=True)
+        self.lats = np.ma.array(np.zeros((steps, len(self.elements))),
+                                mask=True)
         for i in range(steps):
             try:
                 # Get environment data
                 startTime = datetime.now()
                 self.get_environment()
                 self.time_environment += datetime.now() - startTime
-                # Propagate
                 startTime = datetime.now()
-                self.propagate()
+                # Propagate one timestep forwards
+                self.update()
+                # Updating time
+                self.time = self.time + self.time_step
+                # Display time to terminal
+                print self.time
                 self.time_model += datetime.now() - startTime
                 # Log positions
-                self.lons[i,:] = self.elements.lon
-                self.lats[i,:] = self.elements.lat
+                self.lons[i, self.elements.ID-1] = self.elements.lon
+                self.lats[i, self.elements.ID-1] = self.elements.lat
+                if len(self.elements) == 0:
+                    raise ValueError('No active elements, quitting simulation')
             except Exception as e:
                 print '========================'
                 print 'End of simulation:'
@@ -228,17 +239,21 @@ class OpenDriftSimulation(object):
                 print traceback.format_exc()
                 print '========================'
                 # Truncate lon/lat, and then return
-                self.lons = self.lons[0:i-1,:]
-                self.lats = self.lats[0:i-1,:]
+                self.lons = self.lons[0:i-1, :]
+                self.lats = self.lats[0:i-1, :]
                 break
 
-    def plot(self, background=None):
+    def plot(self, background=None, buffer=.5):
         # Temporary plotting function based on Basemap
         if self.lons.shape[0] < 1:
             raise ValueError('No points to plot!')
-        from mpl_toolkits.basemap import Basemap
-        import matplotlib.pyplot as plt
-        buffer = 1
+        try:
+            from mpl_toolkits.basemap import Basemap
+            import matplotlib.pyplot as plt
+        except:
+            sys.exit('Basemap is needed to plot trajectories')
+
+        # Initialise map
         lonmin = self.lons.min() - buffer*2
         lonmax = self.lons.max() + buffer*2
         latmin = self.lats.min()
@@ -246,23 +261,29 @@ class OpenDriftSimulation(object):
         map = Basemap(lonmin-buffer, latmin-buffer,
                       lonmax+buffer, latmax+buffer,
                       resolution='h', projection='merc')
+        map.drawcoastlines(color='gray')
+        if background is None:  # Fill continents if no field is requested
+            map.fillcontinents(color='#ddaa99')
+        map.drawmeridians(np.arange(0, 360, .5))
+        map.drawparallels(np.arange(-90, 90, .5))
+
+        # Trajectories
         x, y = map(self.lons, self.lats)
-        map.plot(x, y, color='gray')
-        map.plot(x[-1], y[-1], '*', color='r')
-        map.plot(x[0], y[0], '*', color='g')
-        map.drawcoastlines(color='coral')
-        if background is None:
-            map.fillcontinents(color='coral')
-        map.drawmeridians(np.arange(0,360,1))
-        map.drawparallels(np.arange(-90,90,1))
-        if background is not None and None:  # Disabled
+        numParticles = x.shape[1]
+        index_of_last = (~x.mask).sum(axis=0)-1
+        map.plot(x, y, color='gray')  # Plot trajectories
+        map.plot(x[index_of_last, range(numParticles)],  # Deactivated
+                 y[index_of_last, range(numParticles)], '*', color='r')
+        map.plot(x[-1], y[-1], '*', color='b')  # Active
+        map.plot(x[0], y[0], '*', color='g')  # Seed positions
+        if background is not None:  # Disabled
             # Plot background field, if requested
-            for readerName in self.readers.readers:
-                reader = self.readers.readers[readerName]
+            for readerName in self.readers:
+                reader = self.readers[readerName]
                 if background in reader.variables:
                     break
-                    #reader = list(self.readers.readers.items())[0][1]  # first reader
-            lons, lats = map.makegrid(4, 4) # get lat/lons of ny by nx evenly space grid.
+            # Get lat/lons of ny by nx evenly space grid.
+            lons, lats = map.makegrid(4, 4)
             reader_x, reader_y = reader.lonlat2xy(lons, lats)
             data = reader.get_variables(
                 background, self.time-self.time_step, reader_x, reader_y,
@@ -270,27 +291,22 @@ class OpenDriftSimulation(object):
             reader_x, reader_y = np.meshgrid(data['x'], data['y'])
             data = data[background]
             rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
-            map_x, map_y = map(rlons, rlats) 
-            print data.shape, map_x.shape, map_y.shape
+            map_x, map_y = map(rlons, rlats)
             map.contourf(map_x, map_y, data, interpolation='nearest')
         plt.show()
 
-
     def propagate(self):
-        #print 'Getting environment data...'
-        #self.get_environment()
-        #print 'Updating particle positions and properties...'
+        # Updating particle positions and properties
         self.update()
-        #print 'Updating time...'
+        # Updating time
         self.time = self.time + self.time_step
-        #print 'Finished'
+        # Display time
         print self.time
-
 
     def update_positions(self, x_vel, y_vel):
         # Move particles according to timestep and velocities
-        # along x- and y-axes. 
-        # TODO: account for vector orientation, and projection skewness
+        # along x- and y-axes.
+        # TODO: account for vector orientation and projection metrics
 
         # Calculate x,y from lon,lat
         self.elements.x, self.elements.y = self.lonlat2xy(
@@ -306,8 +322,9 @@ class OpenDriftSimulation(object):
         outStr = '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + '\n'
         if hasattr(self, 'elements'):
-            outStr += '\t%s %s particles\n' % (
-                        len(self.elements), type(self.elements).__name__)
+            outStr += '\t%s active %s particles  (%s deactivated)\n' % (
+                len(self.elements), type(self.elements).__name__,
+                len(self.elements_deactivated))
         outStr += 'Projection: %s\n' % self.proj4
         variable_groups, reader_groups = self.get_reader_groups()
         outStr += '-------------------\n'
@@ -325,10 +342,11 @@ class OpenDriftSimulation(object):
             outStr += '\tPresent: %s\n' % (self.time)
             outStr += '\tNumber of steps: %i\n' % (
                 (self.time-self.startTime).total_seconds() /
-                    self.time_step.total_seconds())
+                self.time_step.total_seconds())
         if hasattr(self, 'time_environment'):
             outStr += 'Time spent:\n'
-            outStr += '\tFetching environment data: %s \n' % self.time_environment
+            outStr += '\tFetching environment data: %s \n' % (
+                self.time_environment)
             outStr += '\tUpdating elements: %s \n' % self.time_model
         outStr += '===========================\n'
         return outStr

@@ -93,24 +93,20 @@ class Reader(Reader):
                       x=None, y=None, depth=None, block=False):
 
         requestedVariables, time, x, y, depth, outside = self.check_arguments(
-                                    requestedVariables, time, x, y, depth)
-        #print '%s of %s particles are outside domain' % (
-        #    len(outside), len(x))
+            requestedVariables, time, x, y, depth)
 
         indxTime, nearestTime = self.index_of_closest_time(time)
 
+        indx = np.round((x-self.xmin)/self.delta_x).astype(int)
+        indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
             # Find indices corresponding to requested x and y
             indx = np.arange(indx.min(), indx.max())
             indy = np.arange(indy.min(), indy.max())
-        else:
-            # Find indices corresponding to requested x and y
-            indx = np.round((x-self.xmin)/self.delta_x).astype(int)
-            indy = np.round((y-self.ymin)/self.delta_y).astype(int)
 
         # Mask outside values
-        indx[outside] = 0 # Read first element for particles outside,
-        indy[outside] = 0 # to be masked later
+        indx[outside] = 0  # Read first element for particles outside,
+        indy[outside] = 0  # to be masked later
 
         variables = {}
         # Store coordinates of returned points
@@ -120,7 +116,7 @@ class Reader(Reader):
             var = self.Dataset.variables[self.variableMapping[par]]
             # Hardcoded checks for variable dimensions below,
             # this should be generalised later
-            if par == 'x_wind' or par  == 'y_wind':
+            if par == 'x_wind' or par == 'y_wind':
                 variables[par] = var[indxTime, indy, indx]
             elif par == 'sea_floor_depth_below_sea_level':
                 variables[par] = var[indy, indx]
@@ -136,6 +132,5 @@ class Reader(Reader):
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], mask=False)
             variables[par].mask[outside] = True
-            #print variables[par]
 
         return variables

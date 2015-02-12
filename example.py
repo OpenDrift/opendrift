@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import matplotlib.pyplot as plt
 
 from readers import reader_basemap_landmask
 from readers import reader_netCDF_CF_generic
-from models.od3d import OD3D
+from models.openoil import OpenOil
 from models.windblow import WindBlow
 
-o = OD3D()
+o = OpenOil()
 #o = WindBlow()
 
 # Arome
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')  #, name='arome_thredds')
-reader_arome = reader_netCDF_CF_generic.Reader('/opdata_local/arome2_5/arome_metcoop_default2_5km_20150209_00.nc')
+reader_arome = reader_netCDF_CF_generic.Reader('/opdata_local/arome2_5/arome_metcoop_default2_5km_20150212_00.nc')
 #o.readers.add_reader(reader_arome)
 
 # Norkyst
@@ -33,21 +33,19 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
 #o.add_reader(reader_arome)
 #o.add_reader([reader_norkyst, reader_arctic20], ['x_sea_water_velocity', 'y_sea_water_velocity'])
 o.add_reader([reader_norkyst])
-print reader_norkyst
 
 print o
 
 # Seeding some particles
-lon = 15; lat = 72.0; # Close to Norkyst boundary
-lon = 21; lat = 73.5; # Close to Norkyst boundary
-lon = 4.7; lat = 60.0; # Outside Bergen
-o.seed_point(lon, lat, radius=10000, number=30, massOil=5, time=None)
-print o
+#lon = 15; lat = 72.0; # Close to Norkyst boundary
+#lon = 21; lat = 73.5; # Close to Norkyst boundary
+lon = 4.9; lat = 60.0; # Outside Bergen
+o.seed_point(lon, lat, radius=10000, number=10, massOil=5, time=None)
 
 # Running model (until end of driver data)
 o.run()
 
 # Print and plot results
 print o
-#o.plot('x_sea_water_velocity')
-o.plot('')
+#o.plot(background='sea_water_potential_temperature')
+o.plot()

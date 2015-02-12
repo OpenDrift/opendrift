@@ -8,6 +8,7 @@ class LagrangianArray(object):
     __metaclass__ = ABCMeta
 
     variables = OrderedDict([
+        ('ID', {'dtype': np.int32}),
         ('lon', {'dtype': np.float32,
                  'unit': 'degrees',
                  'standard_name': 'longitude'}),
@@ -26,6 +27,11 @@ class LagrangianArray(object):
                           self.variables[variable]['default'])
                           for variable in self.variables
                           if 'default' in self.variables[variable]}
+
+        if len(kwargs) == 0:
+            # Initialise an empty array
+            for var in self.variables:
+                kwargs[var] = []
 
         # Check for missing arguments
         missing_args = set(self.variables.keys()) - \
@@ -66,6 +72,26 @@ class LagrangianArray(object):
         variables = cls.variables.copy()
         variables.update(new_variables)
         return variables
+
+    def extend(self, other):
+        for var in self.variables:
+            np.concatenate((getattr(self, var), getattr(other, f)))
+
+    def move(self, other, indices):
+        # Move elements with given indices (boolean array)
+        # to another LagrangianArray
+        for var in self.variables:
+            # Copy elements to other
+            if isinstance(getattr(self, var), np.ndarray):  # Array
+                setattr(other, var,
+                        np.concatenate((getattr(other, var),
+                                        getattr(self, var)[indices])))
+                # Remove elements from self
+                setattr(self, var, getattr(self, var)[~indices])
+            else:
+                setattr(other, var, getattr(self, var))  # Scalar
+        if sum(indices) > 0:
+            print '%s particles deactivated' % (sum(indices))
 
     def __len__(self):
         return len(self.lat)

@@ -1,6 +1,7 @@
 from openDriftSimulation import OpenDriftSimulation
 from elements.passivetracer import PassiveTracer
 
+
 class WindBlow(OpenDriftSimulation):
 
     ElementType = PassiveTracer
