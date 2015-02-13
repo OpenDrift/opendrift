@@ -2,6 +2,7 @@ import sys
 import traceback
 from datetime import datetime, timedelta
 from collections import OrderedDict
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
 
@@ -16,7 +17,15 @@ class Environment(object):
 
 
 class OpenDriftSimulation(object):
-    """Generic trajectory model class, to be extended (subclassed) by modules.
+    """Generic trajectory model class, to be extended (subclassed).
+
+    This as an Abstract Base Class, meaning that only subclasses can
+    be initiated and used.
+    Any specific subclass ('model') must contain its own (or shared)
+    specific type of particles (ElementType), whose properties are
+    updated at each time_step using method update() on basis of model
+    physics/chemistry/biology and 'required_variables' (environment)
+    which are provided by one or more Reader objects.
 
     Attributes:
         ElementType: the type (class) of particles to be used by this model
@@ -51,8 +60,24 @@ class OpenDriftSimulation(object):
             called to retrieve environmental data.
     """
 
-    def __init__(self, time_step=3600, proj4=None, seed=0):
+    __metaclass__ = ABCMeta
 
+    def __init__(self, time_step=3600, proj4=None, seed=0):
+        """Initialise OpenDriftSimulation
+
+        Args:
+            time_step: interval between particles updates, in seconds
+                Default: 3600 (1 hour)
+            proj4: proj4 string defining spatial reference system.
+                If not specified, SRS is taken from the first added reader.
+            seed: integer or None. A given integer will yield identical
+                random numbers drawn each simulation. Random numbers are
+                e.g. used to distribute particles spatially when seeding,
+                and may be used by modules (subclasses) for e.g. diffusion.
+                Specifying a fixed value (default: 0) is useful for sensitivity
+                tests. With seed = None, different random numbers will be drawn
+                for subsequent runs, even with identical configuration/input.
+        """
         # Dict to store readers
         self.readers = {}  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
@@ -73,6 +98,21 @@ class OpenDriftSimulation(object):
 
         print 'OpenDriftSimulation initialised'
 
+    @abstractmethod
+    def update(self):
+        """Any trajectory model implementation must define an update method.
+        This method must/can use environment data (self.environment) to
+        update properties (including position) of its particles (self.elements)
+        """
+
+    @abstractproperty
+    def ElementType(self):
+        """Any trajectory model implementation must define an ElementType."""
+
+    @abstractproperty
+    def required_variables(self):
+        """Any trajectory model implementation must list needed variables."""
+
     def set_projection(self, proj4):
         """Set the projection onto which data from readers is reprojected."""
         self.proj4 = proj4
@@ -82,13 +122,26 @@ class OpenDriftSimulation(object):
             self.proj = None
 
     def lonlat2xy(self, lon, lat):
+        """Calculate x,y in own projection from given lon,lat (scalars/arrays).
+        """
         return self.proj(lon, lat, inverse=False)
 
     def xy2lonlat(self, x, y):
+        """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
+        """
         return self.proj(x, y, inverse=True)
 
     def add_reader(self, readers, variables=None):
-        """Add one or more readers providing variables used by this model."""
+        """Add one or more readers providing variables used by this model.
+
+        Method may be called subsequently to add more readers
+        for other variables.
+
+        Args:
+            readers: one or more (list) Reader objects.
+            variables: optional, list of strings of standard_name of
+                variables to be provided by this/these reader(s).
+        """
 
         # Convert any strings to lists, for looping
         if isinstance(variables, str):
@@ -137,6 +190,16 @@ class OpenDriftSimulation(object):
 
     def get_reader_groups(self):
         """Find which groups of variables are provided by the same readers.
+
+        This function loops through 'priority_list' (see above) and groups
+        all variables returned by the same readers in the same order. This
+        allows asking readers for several variables simultaneously,
+        improving performance. Used by method 'get_environment'.
+
+        Returns:
+            variable_groups: list of lists of (environment) variables.
+            reader_groups: list of list of reader names, corresponding to
+                each of the variable_groups.
         """
         reader_groups = []
         # Find all unique reader groups
@@ -158,8 +221,24 @@ class OpenDriftSimulation(object):
     # Get Environment
     ###################################################
     def get_environment(self):
-        '''Retrieve variables requested by this model by looping
-        through all available readers'''
+        """Retrieve environmental variables at the positions of all particles.
+
+        Loops through all readers (groups) in their given order to obtain
+        all variables requested by the specific model implementation
+        (required_variables) at the positions of the present collection
+        of active particles (elements).
+        As different readers generally provide variables in different
+        spatial reference systems (SRS), this method takes care of
+        interpolating/reprojecting data onto a common SRS, defined by proj4.
+        The method also rotates vectors (not yet implemented) from native
+        SRS onto the destination SRS.
+        Uses method self.get_reader_groups() to determine which readers
+        shall be used (in which order) to retrieve variables.
+
+        Updates:
+            self.environment
+            self.environment_previous is copied from previous self.environment
+        """
 
         if hasattr(self, 'environment'):
             self.environment_previous = self.environment  # Store last info
@@ -209,11 +288,24 @@ class OpenDriftSimulation(object):
         if not hasattr(self, 'environment_previous'):
             self.environment_previous = self.environment  # Use current/first
 
-    #######################
-    # Run
-    #######################
-
     def seed_point(self, lon, lat, radius, number, time=None, **kwargs):
+        """Seed a given number of particles spread around a given position.
+
+        Arguments:
+            lon: scalar, central longitude.
+            lat: scalar, central latitude.
+            radius: scalar, radius in meters within which particles will
+                be randomly seeded.
+            number: integer, number of particles to be seeded
+            time: datenume, the time at which particles are seeded/released.
+                If time is None (default) particles are seeded at the start
+                time of the first added Reader object.
+            kwargs: keyword arguments containing properties/attributes and
+                values corresponding to the actual particle type (ElementType).
+                These are forwarded to the ElementType class. All properties
+                for which there are no default value must be specified.
+        """
+
         radius = radius/111000.  # convert radius from m to degrees
         kwargs['lon'] = lon + radius*(np.random.rand(number) - 0.5)
         kwargs['lat'] = lat + radius*(np.random.rand(number) - 0.5)
@@ -228,7 +320,8 @@ class OpenDriftSimulation(object):
             try:
                 firstReader = list(self.readers.items())[0][1]
             except:
-                raise ValueError('Time must be specified when no reader is added')
+                raise ValueError('Time must be specified when no '
+                                 'reader is added')
             print 'Using start time of reader ' + firstReader.name
             self.time = firstReader.startTime
         else:
@@ -236,10 +329,35 @@ class OpenDriftSimulation(object):
         self.startTime = self.time  # Record start time for reference
 
     def deactivate_elements(self, indices):
-        ''' Basic, but some other housekeeping may be needed later '''
+        """Deactivate particles by moving them from elements
+        to elements_deactivated."""
+        # Basic, but some more housekeeping will be required later
         self.elements.move_elements(self.elements_deactivated, indices)
 
     def run(self, steps=1000000):
+        """Start a trajectory simulation, after configuration.
+
+        Performs the loop:
+            - Obtain environment data for positions of all particles.
+            - Call method 'update' to update (incl advect) particle properties.
+        until one of the following conditions are met:
+            - Maximum number of iterations (steps) are reached
+            - A needed variable can not be obtained by any reader
+                (outside spatial/temporal domain) and has no fallback
+                (default) value.
+            - All particles have been deactivated (e.g. by stranding)
+            - Occurance of any error, whose trace will be output to terminal.
+
+        Before starting a model run, readers must be added for all
+        reuired variables, and some particles/elements must be seeded.
+        This function keeps track of the time consumed by obtaining data
+        with readers, and updating their properties, respectively.
+
+        Arguments:
+            steps: integer, maximum number of iterations. End of simulation
+                will be self.startTime + steps*self.time_step
+        """
+
         # Primitive function to test overall functionality
         self.time_environment = timedelta(seconds=0)
         self.time_model = timedelta(seconds=0)
@@ -279,7 +397,24 @@ class OpenDriftSimulation(object):
                 break
 
     def plot(self, background=None, buffer=.5):
-        # Temporary plotting function based on Basemap
+        """Basic built-in plotting function intended for developing/debugging.
+
+        Plots trajectories of all particles.
+        Positions marked with colored stars:
+        - green: all start positions
+        - red: deactivated particles
+        - blue: particles still active at end of simulation
+
+        Requires availability of Basemap.
+
+        Arguments:
+            background: string, name of variable (standard_name) which will
+                be plotted as background of trajectories, provided that it
+                can be read with one of the available readers.
+            buffer: float; spatial buffer of plot in degrees of
+                longitude/latitude around particle collection.
+        """
+
         if self.lons.shape[0] < 1:
             raise ValueError('No points to plot!')
         try:
@@ -330,18 +465,17 @@ class OpenDriftSimulation(object):
             map.contourf(map_x, map_y, data, interpolation='nearest')
         plt.show()
 
-    def propagate(self):
-        # Updating particle positions and properties
-        self.update()
-        # Updating time
-        self.time = self.time + self.time_step
-        # Display time
-        print self.time
-
     def update_positions(self, x_vel, y_vel):
-        # Move particles according to timestep and velocities
-        # along x- and y-axes.
-        # TODO: account for vector orientation and projection metrics
+        """Move particles according to given velocity components.
+
+        This method shall account for projection metrics (a distance
+        on a map projection doest not necessarily correspond to the same
+        distance over true ground (not yet implemented).
+
+        Arguments:
+            x_vel and v_vel: floats, velocities in m/s of particle along
+            x- and y-axes of the inherit SRS (proj4).
+        """
 
         # Calculate x,y from lon,lat
         self.elements.x, self.elements.y = self.lonlat2xy(
@@ -354,6 +488,7 @@ class OpenDriftSimulation(object):
             self.elements.x, self.elements.y)
 
     def __repr__(self):
+        """String representation providing overview of model status."""
         outStr = '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + '\n'
         if hasattr(self, 'elements'):

@@ -3,6 +3,11 @@ from elements.passivetracer import PassiveTracer
 
 
 class WindBlow(OpenDriftSimulation):
+    """Demonstration trajectory model based on OpenDrift framework.
+
+    Simply advects a particle (passive tracer with
+    no properties except for position) with the ambient wind.
+    """
 
     ElementType = PassiveTracer
     required_variables = ['x_wind', 'y_wind']

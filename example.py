@@ -17,7 +17,14 @@ from models.windblow import WindBlow
 ##print o.elements
 #stop
 
+#o = OpenDriftSimulation()
 o = OpenOil()
+
+#from test_concrete import *
+#c = Concrete()
+#c.foo()
+#c.bar()
+#stop
 
 # Arome
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')  #, name='arome_thredds')

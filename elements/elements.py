@@ -1,4 +1,3 @@
-from abc import abstractmethod, ABCMeta
 from collections import OrderedDict
 
 import numpy as np
@@ -31,8 +30,6 @@ class LagrangianArray(object):
         lat: latitude (np.float32)
         depth: depth of the particle in m below sea surface.
     """
-
-    __metaclass__ = ABCMeta
 
     variables = OrderedDict([
         ('ID', {'dtype': np.int32}),
