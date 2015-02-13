@@ -32,16 +32,8 @@ The values for these variables are given through the constructor, and are stored
 ```
 The input values are arrays, where a single element is simply a special case of LagrangianArray with length 1.
 
-The element properties are updated by the method 'update_properties', which does nothing for a general LagrangianArray
 
-
-```
-l.update_properties()
-```
-
-New element types can be created by subclassing the LagrangianArray class and:
-- overloading the 'update_properties' class 
-- and (possibly) adding more variables through method 'add_variables'
+New element types can be created by subclassing the LagrangianArray class and adding more variables through method 'add_variables'
 
 Example for Larvae:
 
@@ -50,10 +42,8 @@ class Larvae(LagrangianArray):
 
     variables = LagrangianArray.add_variables(
         {'length':
-            {'dtype': np.float32}})
-
-    def update_properties(self):
-        self.length = self.length*1.01  # General larvae grow by 1%
+            {'dtype': np.float32,
+             'unit': 'mm'}})
 
 ```
 New modules may easily be created from a template (template_elements.py).
@@ -61,6 +51,7 @@ Multiple inheritance is supported:
 
 ```
 class CodLarvae(Larvae):
+    """Extending Larvae with variables relevant for cod larvae."""
 
     variables = Larvae.add_variables(
         {'CodLarvaeProperty1':
@@ -68,14 +59,11 @@ class CodLarvae(Larvae):
 
 
 class HalibutLarvae(Larvae):
+    """Extending Larvae with variables relevant for halibut larvae."""
 
     variables = Larvae.add_variables(
         {'HalibutLarvaeProperty1':
             {'dtype': np.float32}})
-
-    def update_properties(self):
-        self.length = self.length*1.02  # Halibut larvae grow by 2%
-
 ```
 
 
@@ -83,16 +71,6 @@ Example CodLarvae:
 
 ```
 l = CodLarvae(lon=[5, 6, 7], lat=[60, 60, 60], CodLarvaeProperty1=[1], length=10)
-l.update_properties()
 l.length
-10.1
-```
-
-Example HalibutLarvae:
-
-```
-l = HalibutLarvae(lon=[5, 6, 7], lat=[60, 60, 60], HalibutLarvaeProperty1=[1], length=10)
-l.update_properties()
-l.length
-10.2
+10
 ```
