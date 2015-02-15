@@ -81,6 +81,7 @@ class OpenDriftSimulation(object):
         # Dict to store readers
         self.readers = {}  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
+        self.use_block = True  # Set to False if reader shall perform interpolation
 
         # Time step in seconds
         self.time_step = timedelta(seconds=time_step)
@@ -272,15 +273,32 @@ class OpenDriftSimulation(object):
                     self.elements.lon[missing], self.elements.lat[missing])
                 env = reader.get_variables(variable_group, self.time,
                                            reader_x, reader_y,
-                                           self.elements.depth)
+                                           self.elements.depth,
+                                           block=self.use_block)
                 ###################################################
                 # TBD:
-                # - interpolation of block onto particle array
                 # - rotation of vectors
                 # - addition of variable uncertainty
                 ###################################################
-                for var in variable_group:
-                    environment[var][missing] = env[var]
+
+                if self.use_block:
+                    # Request 2D/3D block of data,
+                    # and interpolate onto particle array
+                    for var in variable_group:
+                        delta_x = env['x'][1] - env['x'][0]
+                        delta_y = env['y'][1] - env['y'][0]
+                        block_ind_x = np.round((reader_x-env['x'][0])/
+                                        delta_x).astype(int) - 1
+                        block_ind_y = np.round((reader_y-env['y'][0])/
+                                        delta_y).astype(int) - 1
+                        # Depth dimention TBD
+                        #block_ind_depth = reader.index_of_closest_depths(
+                        #    self.elements.depth)[0]
+                        environment[var][missing] = \
+                            env[var][block_ind_y, block_ind_x]
+                else:
+                    for var in variable_group:
+                        environment[var][missing] = env[var]
 
         for variable in environment.keys():
             setattr(self.environment, variable, environment[variable])
@@ -334,7 +352,7 @@ class OpenDriftSimulation(object):
         # Basic, but some more housekeeping will be required later
         self.elements.move_elements(self.elements_deactivated, indices)
 
-    def run(self, steps=1000000):
+    def run(self, steps=1000):
         """Start a trajectory simulation, after configuration.
 
         Performs the loop:

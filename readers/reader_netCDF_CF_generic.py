@@ -97,21 +97,22 @@ class Reader(Reader):
 
         indxTime, nearestTime = self.index_of_closest_time(time)
 
+        ind_depth = self.index_of_closest_depths(depth)[0]
+
+        # Find indices corresponding to requested x and y
         indx = np.round((x-self.xmin)/self.delta_x).astype(int)
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
-            # Find indices corresponding to requested x and y
-            indx = np.arange(indx.min(), indx.max())
-            indy = np.arange(indy.min(), indy.max())
-
-        # Mask outside values
-        indx[outside] = 0  # Read first element for particles outside,
-        indy[outside] = 0  # to be masked later
+            # Adding buffer of 1, to be checked
+            indx = np.arange(indx.min()-1, indx.max()+1)
+            indy = np.arange(indy.min()-1, indy.max()+1)
 
         variables = {}
         # Store coordinates of returned points
         variables['x'] = self.xmin + (indx-1)*self.delta_x
         variables['y'] = self.ymin + (indy-1)*self.delta_y
+        variables['depth'] = self.depths[ind_depth]
+
         for par in requestedVariables:
             var = self.Dataset.variables[self.variableMapping[par]]
             # Hardcoded checks for variable dimensions below,
@@ -122,7 +123,7 @@ class Reader(Reader):
                 variables[par] = var[indy, indx]
             else:
                 # Temporarily neglecting depth
-                variables[par] = var[indxTime, 1, indy, indx]
+               variables[par] = var[indxTime, 1, indy, indx]
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
@@ -131,6 +132,6 @@ class Reader(Reader):
 
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], mask=False)
-            variables[par].mask[outside] = True
+            variables[par].mask[outside[0]] = True
 
         return variables

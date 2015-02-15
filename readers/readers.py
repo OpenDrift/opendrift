@@ -117,7 +117,7 @@ class Reader(object):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s)' % (time, self.endTime))
         outside = np.where((x < self.xmin) | (x > self.xmax) |
-                           (y < self.xmin) | (y > self.ymax))[0]
+                           (y < self.xmin) | (y > self.ymax))
         if len(outside) == len(x):
             raise ValueError('All particles are outside domain '
                              'of reader ' + self.name)
@@ -135,6 +135,15 @@ class Reader(object):
         indx = int(round(indx))
         nearestTime = self.times[indx]
         return indx, nearestTime
+
+    def index_of_closest_depths(self, requestedDepths):
+        """Return (internal) index of depths closest to requested depths.
+
+        Depths of layers (of ocean model) are not assumed to be constant.
+        """
+        ind_depth = [np.abs(np.subtract.outer(
+            self.depths, requestedDepths)).argmin(0)]
+        return ind_depth, self.depths[ind_depth]
 
     def indices_min_max_depth(self, depths):
         """
