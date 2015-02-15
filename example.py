@@ -39,10 +39,15 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be', name='arctic20_thredds')
 #o.add_reader(reader_arctic20)
 
+
 # Landmask (Basemap)
-#reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
-#                    urcrnrlon=20, urcrnrlat=69, resolution='i')
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
+                    urcrnrlon=20, urcrnrlat=69, resolution='i')
 #o.add_reader(reader_basemap)
+
+reader_basemap.plot()
+reader_norkyst.plot()
+reader_arctic20.plot()
 
 #o.add_reader(reader_arome)
 #o.add_reader([reader_norkyst, reader_arctic20], ['x_sea_water_velocity', 'y_sea_water_velocity'])

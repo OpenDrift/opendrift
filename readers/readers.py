@@ -191,3 +191,49 @@ class Reader(object):
             outStr += '  ' + variable + '\n'
         outStr += '===========================\n'
         return outStr
+
+    def plot(self):
+        """Plot geographical coverage of reader."""
+
+        try:
+            from mpl_toolkits.basemap import Basemap
+            import matplotlib.pyplot as plt
+            from matplotlib.patches import Polygon
+        except:
+            sys.exit('Basemap is needed to plot coverage map.')
+
+        # Initialise map, stereographic projection centred on domain
+        x0 = (self.xmin + self.xmax) / 2
+        y0 = (self.ymin + self.ymax) / 2
+        lon0, lat0 = self.xy2lonlat(x0, y0)
+        width = np.max([self.xmax-self.xmin, self.ymax-self.ymin])*1.5
+        map = Basemap(projection='stere', resolution='i',
+                      lat_ts=lat0, lat_0=lat0, lon_0=lon0,
+                      width=width, height=width)
+        map.drawcoastlines()
+        map.fillcontinents(color='coral')
+        map.drawparallels(np.arange(-90.,90.,5.))
+        map.drawmeridians(np.arange(-180.,181.,5.))
+        # Get boundary
+        npoints = 10  # points per side
+        x = np.array([])
+        y = np.array([])
+        x = np.concatenate((x, np.linspace(self.xmin, self.xmax, npoints)))
+        y = np.concatenate((y, [self.ymin]*npoints))
+        x = np.concatenate((x, [self.xmax]*npoints))
+        y = np.concatenate((y, np.linspace(self.ymin, self.ymax, npoints)))
+        x = np.concatenate((x, np.linspace(self.xmax, self.xmin, npoints)))
+        y = np.concatenate((y, [self.ymax]*npoints))
+        x = np.concatenate((x, [self.xmin]*npoints))
+        y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
+        # from x/y vectors create a Patch to be added to map
+        lon, lat = self.xy2lonlat(x, y)
+        mapproj = pyproj.Proj(map.proj4string)
+        xm, ym = mapproj(lon, lat)
+        #map.plot(xm, ym, color='gray')
+        boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
+        plt.gca().add_patch(boundary)
+# add patch to the map
+        plt.title(self.name)
+        plt.xlabel('Time coverage: %s to %s' % (self.startTime, self.endTime))
+        plt.show()
