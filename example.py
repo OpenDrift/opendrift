@@ -41,8 +41,8 @@ reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds
 
 
 # Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
-                    urcrnrlon=20, urcrnrlat=69, resolution='i')
+#reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
+#                    urcrnrlon=20, urcrnrlat=69, resolution='i')
 #o.add_reader(reader_basemap)
 
 reader_basemap.plot()
