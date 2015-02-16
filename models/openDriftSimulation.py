@@ -267,14 +267,26 @@ class OpenDriftSimulation(object):
                 missing = environment[variable_group[0]].mask.copy()
                 if not True in missing:
                     break
+                print '\t' + reader.name
+                print missing
 
                 # x,y may be different for each reader, related to reader.proj4
                 reader_x, reader_y = reader.lonlat2xy(
                     self.elements.lon[missing], self.elements.lat[missing])
-                env = reader.get_variables(variable_group, self.time,
-                                           reader_x, reader_y,
-                                           self.elements.depth,
-                                           block=self.use_block)
+                try:
+                    # env is temporary dict to hold variables
+                    # while looping through readers
+                    env = reader.get_variables(variable_group, self.time,
+                                               reader_x, reader_y,
+                                               self.elements.depth,
+                                               block=self.use_block)
+                except ValueError as e:  # Outside spatial or temporal coverage
+                    print e
+                    continue  # Continue to next reader (if any)
+                except Exception as e:
+                    print e
+                    raise  # Something unexpected, display error and quit
+
                 ###################################################
                 # TBD:
                 # - rotation of vectors
@@ -284,23 +296,34 @@ class OpenDriftSimulation(object):
                 if self.use_block:
                     # Request 2D/3D block of data,
                     # and interpolate onto particle array
+                    # TBD: other interpolation methods
                     for var in variable_group:
+                        # Lines below may be moved outside loop
                         delta_x = env['x'][1] - env['x'][0]
                         delta_y = env['y'][1] - env['y'][0]
                         block_ind_x = np.round((reader_x-env['x'][0])/
-                                        delta_x).astype(int) - 1
+                                        delta_x).astype(int)
                         block_ind_y = np.round((reader_y-env['y'][0])/
-                                        delta_y).astype(int) - 1
+                                        delta_y).astype(int)
+                        # Find which of requested points lie inside block
+                        inside_block = np.where(
+                            (block_ind_x <= len(env['x'])) &
+                            (block_ind_x >= 0) &
+                            (block_ind_y <= len(env['y'])) &
+                            (block_ind_y >= 0))[0]
+                        #block_ind_x = block_ind_x[inside_block]
+                        #block_ind_y = block_ind_y[inside_block]
                         # Depth dimention TBD
-                        #block_ind_depth = reader.index_of_closest_depths(
-                        #    self.elements.depth)[0]
-                        environment[var][missing] = \
-                            env[var][block_ind_y, block_ind_x]
+                        environment[var][missing[inside_block]] = \
+                            env[var][block_ind_y[inside_block],
+                                     block_ind_x[inside_block]]
+                        # Problem: does not continue correctly to
+                        # next reader when block is used
                 else:
                     for var in variable_group:
                         environment[var][missing] = env[var]
 
-        for variable in environment.keys():
+        for variable in environment.keys():  # Update environment with new data
             setattr(self.environment, variable, environment[variable])
 
         if not hasattr(self, 'environment_previous'):
@@ -452,7 +475,7 @@ class OpenDriftSimulation(object):
         map.drawcoastlines(color='gray')
         if background is None:  # Fill continents if no field is requested
             map.fillcontinents(color='#ddaa99')
-        map.drawmeridians(np.arange(0, 360, .5))
+        map.drawmeridians(np.arange(-360, 360, .5))
         map.drawparallels(np.arange(-90, 90, .5))
 
         # Trajectories

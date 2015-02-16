@@ -101,8 +101,8 @@ class Reader(object):
         # Convert variables to list and x,y to ndarrays
         if isinstance(variables, str):
             variables = [variables]
-        x = np.asarray(x)
-        y = np.asarray(y)
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
         depth = np.asarray(depth)
 
         for variable in variables:
@@ -118,7 +118,7 @@ class Reader(object):
                              'time (%s)' % (time, self.endTime))
         outside = np.where((x < self.xmin) | (x > self.xmax) |
                            (y < self.xmin) | (y > self.ymax))
-        if len(outside) == len(x):
+        if np.size(outside) == np.size(x):
             raise ValueError('All particles are outside domain '
                              'of reader ' + self.name)
 

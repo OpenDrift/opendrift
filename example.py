@@ -45,26 +45,23 @@ reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds
 #                    urcrnrlon=20, urcrnrlat=69, resolution='i')
 #o.add_reader(reader_basemap)
 
-reader_basemap.plot()
-reader_norkyst.plot()
-reader_arctic20.plot()
-
 #o.add_reader(reader_arome)
 #o.add_reader([reader_norkyst, reader_arctic20], ['x_sea_water_velocity', 'y_sea_water_velocity'])
-o.add_reader([reader_norkyst])
+o.add_reader([reader_norkyst, reader_arctic20])
+#o.add_reader([reader_norkyst])
 
 print o
 
 # Seeding some particles
-#lon = 15; lat = 72.0; # Close to Norkyst boundary
+lon = 15; lat = 72.0; # Close to Norkyst boundary
 #lon = 21; lat = 73.5; # Close to Norkyst boundary
-lon = 4.9; lat = 60.0; # Outside Bergen
-o.seed_point(lon, lat, radius=10000, number=5, massOil=5, time=None)
+#lon = 4.9; lat = 60.0; # Outside Bergen
+o.seed_point(lon, lat, radius=10000, number=5, massOil=5, time=reader_arctic20.startTime)
 
 # Running model (until end of driver data)
 o.use_block = True
 #o.time_step = timedelta(seconds=900)
-o.run(steps=100)
+o.run(steps=200)
 
 # Print and plot results
 print o

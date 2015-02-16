@@ -46,6 +46,7 @@ class Reader(Reader):
             try:
                 att = var.getncattr('standard_name')
                 if att == 'projection_x_coordinate':
+                    self.xname = varName
                     # Fix for units; should ideally use udunits package
                     if var.getncattr('units') == 'km':
                         unitfactor = 1000
@@ -53,6 +54,7 @@ class Reader(Reader):
                         unitfactor = 1
                     x = var[:]*unitfactor
                 if att == 'projection_y_coordinate':
+                    self.yname = varName
                     y = var[:]*unitfactor
                 if att == 'depth':
                     self.depths = var[:]
@@ -106,12 +108,11 @@ class Reader(Reader):
             # Adding buffer of 1, to be checked
             indx = np.arange(indx.min()-1, indx.max()+1)
             indy = np.arange(indy.min()-1, indy.max()+1)
+        else:
+            indx[outside[0]] = 0  # To be masked later
+            indy[outside[0]] = 0
 
         variables = {}
-        # Store coordinates of returned points
-        variables['x'] = self.xmin + (indx-1)*self.delta_x
-        variables['y'] = self.ymin + (indy-1)*self.delta_y
-        variables['depth'] = self.depths[ind_depth]
 
         for par in requestedVariables:
             var = self.Dataset.variables[self.variableMapping[par]]
@@ -132,6 +133,16 @@ class Reader(Reader):
 
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], mask=False)
-            variables[par].mask[outside[0]] = True
+            if block == False:
+                variables[par].mask[outside[0]] = True
+
+        # Store coordinates of returned points
+        variables['depth'] = self.depths[ind_depth]
+        if block is True:
+            variables['x'] = self.Dataset.variables[self.xname][indx]
+            variables['y'] = self.Dataset.variables[self.yname][indy]
+        else:
+            variables['x'] = self.xmin + (indx-1)*self.delta_x
+            variables['y'] = self.ymin + (indy-1)*self.delta_y
 
         return variables
