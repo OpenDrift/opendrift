@@ -189,7 +189,7 @@ class OpenDriftSimulation(object):
             variables.extend(self.readers[reader].variables)
         return variables
 
-    def get_reader_groups(self):
+    def get_reader_groups(self, variables=None):
         """Find which groups of variables are provided by the same readers.
 
         This function loops through 'priority_list' (see above) and groups
@@ -202,6 +202,8 @@ class OpenDriftSimulation(object):
             reader_groups: list of list of reader names, corresponding to
                 each of the variable_groups.
         """
+        if variables is None:
+            variables = self.required_variables
         reader_groups = []
         # Find all unique reader groups
         for variable, readers in self.priority_list.items():
@@ -210,6 +212,8 @@ class OpenDriftSimulation(object):
         # Find all variables returned by the same reader group
         variable_groups = [None]*len(reader_groups)
         for variable, readers in self.priority_list.items():
+            if variable not in variables:
+                continue
             for i, readerGroup in enumerate(reader_groups):
                 if readers == readerGroup:
                     if variable_groups[i]:
@@ -218,11 +222,9 @@ class OpenDriftSimulation(object):
                         variable_groups[i] = [variable]
         return variable_groups, reader_groups
 
-    ###################################################
-    # Get Environment
-    ###################################################
-    def get_environment(self):
-        """Retrieve environmental variables at the positions of all particles.
+    def get_variables(self, variables, time=None,
+                      lon=None, lat=None, depth=None):
+        """Retrieve environment data at given positions by using available readers.
 
         Loops through all readers (groups) in their given order to obtain
         all variables requested by the specific model implementation
@@ -235,44 +237,26 @@ class OpenDriftSimulation(object):
         SRS onto the destination SRS.
         Uses method self.get_reader_groups() to determine which readers
         shall be used (in which order) to retrieve variables.
-
-        Updates:
-            self.environment
-            self.environment_previous is copied from previous self.environment
         """
 
-        if hasattr(self, 'environment'):
-            self.environment_previous = self.environment  # Store last info
-
-        # Convert lon/lat to x,y
-        self.elements.x, self.elements.y = self.lonlat2xy(
-            self.elements.lon, self.elements.lat)
-        # Find which readers have the needed variables
-        self.environment = Environment()
+        # Initialise dictionary with empty, masked arrays
         environment = {}
-        # Initialise environment with empty, masked arrays
-        for var in self.required_variables:
-            environment[var] = np.ma.array(
-                np.zeros(len(self.elements.x)), mask=True)
-        variable_groups, reader_groups = self.get_reader_groups()
+        for var in variables:
+            environment[var] = np.ma.array(np.zeros(len(lon)), mask=True)
 
+        variable_groups, reader_groups = self.get_reader_groups(variables)
         for i, variable_group in enumerate(variable_groups):
             reader_group = reader_groups[i]
-            # Loop through readers until environment variables are found
+            # Loop through readers until variables are found for all positions
             for reader in reader_group:
                 reader = self.readers[reader]  # Use reader object, not name
-
-                # NB: take copy, as mask ('missing') will update
-                # when this element gets updated!
+                # find which points are still missing
                 missing = environment[variable_group[0]].mask.copy()
                 if not True in missing:
-                    break
-                print '\t' + reader.name
-                print missing
-
+                    break  # Variables found at all points
                 # x,y may be different for each reader, related to reader.proj4
-                reader_x, reader_y = reader.lonlat2xy(
-                    self.elements.lon[missing], self.elements.lat[missing])
+                reader_x, reader_y = reader.lonlat2xy(lon[missing],
+                                                      lat[missing])
                 try:
                     # env is temporary dict to hold variables
                     # while looping through readers
@@ -286,13 +270,11 @@ class OpenDriftSimulation(object):
                 except Exception as e:
                     print e
                     raise  # Something unexpected, display error and quit
-
                 ###################################################
                 # TBD:
                 # - rotation of vectors
                 # - addition of variable uncertainty
                 ###################################################
-
                 if self.use_block:
                     # Request 2D/3D block of data,
                     # and interpolate onto particle array
@@ -311,8 +293,6 @@ class OpenDriftSimulation(object):
                             (block_ind_x >= 0) &
                             (block_ind_y <= len(env['y'])) &
                             (block_ind_y >= 0))[0]
-                        #block_ind_x = block_ind_x[inside_block]
-                        #block_ind_y = block_ind_y[inside_block]
                         # Depth dimention TBD
                         environment[var][missing[inside_block]] = \
                             env[var][block_ind_y[inside_block],
@@ -323,8 +303,39 @@ class OpenDriftSimulation(object):
                     for var in variable_group:
                         environment[var][missing] = env[var]
 
-        for variable in environment.keys():  # Update environment with new data
-            setattr(self.environment, variable, environment[variable])
+        return environment
+
+    def get_environment(self):
+        """Retrieve environmental variables at the positions of all particles.
+
+        Elements for which data is missing will be deactivated by default,
+        unless one of the following options are given in the dictionary
+        fallback_values for the given variable:
+        - a numerical default value (e.g. 0 m waveheight if data are missing)
+        - 'end_simulation' -> simulation is terminated
+        - 'keep_last' -> the value from the previous timestep is kept
+
+        Updates:
+            self.environment
+            self.environment_previous is copied from previous self.environment
+        """
+        if hasattr(self, 'environment'):
+            self.environment_previous = self.environment  # Store last info
+        else:
+            self.environment = Environment()
+
+        env = self.get_variables(self.required_variables,
+                                self.time,
+                                self.elements.lon, self.elements.lat,
+                                self.elements.depth)
+        missing = False
+        for variable in env.keys():  # Update environment with new data
+            missing = missing & env[variable].mask
+#            if True in env[variable].mask:
+#                self.deactivate_elements(env[variable].mask)
+#                raise ValueError('Missing environment for %i particles.' %
+#                                 sum(env[variable].mask))
+            setattr(self.environment, variable, env[variable])
 
         if not hasattr(self, 'environment_previous'):
             self.environment_previous = self.environment  # Use current/first
@@ -346,7 +357,6 @@ class OpenDriftSimulation(object):
                 These are forwarded to the ElementType class. All properties
                 for which there are no default value must be specified.
         """
-
         radius = radius/111000.  # convert radius from m to degrees
         kwargs['lon'] = lon + radius*(np.random.rand(number) - 0.5)
         kwargs['lat'] = lat + radius*(np.random.rand(number) - 0.5)
@@ -456,8 +466,9 @@ class OpenDriftSimulation(object):
                 longitude/latitude around particle collection.
         """
 
-        if self.lons.shape[0] < 1:
-            raise ValueError('No points to plot!')
+        if self.number_of_iterations() <= 1:
+            print 'No trajectories to plot.'
+            return
         try:
             from mpl_toolkits.basemap import Basemap
             import matplotlib.pyplot as plt
@@ -504,6 +515,11 @@ class OpenDriftSimulation(object):
             rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
             map_x, map_y = map(rlons, rlats)
             map.contourf(map_x, map_y, data, interpolation='nearest')
+        plt.xlabel('%i active %s elements (%i deactivated)' %
+                    (len(self.elements.lon), type(self.elements).__name__,
+                     len(self.elements_deactivated.lon)))
+        plt.title(type(self).__name__ + '  %s to %s (%i iterations)' %
+                    (self.startTime, self.time, self.number_of_iterations()))
         plt.show()
 
     def update_positions(self, x_vel, y_vel):
@@ -528,6 +544,11 @@ class OpenDriftSimulation(object):
         self.elements.lon, self.elements.lat = self.xy2lonlat(
             self.elements.x, self.elements.y)
 
+    def number_of_iterations(self):
+        """Calculate the number of iterations since start of simulation."""
+        return ((self.time-self.startTime).total_seconds() /
+            self.time_step.total_seconds())
+
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
@@ -551,9 +572,10 @@ class OpenDriftSimulation(object):
             outStr += 'Time:\n'
             outStr += '\tStart: %s\n' % (self.startTime)
             outStr += '\tPresent: %s\n' % (self.time)
-            outStr += '\tNumber of steps: %i\n' % (
-                (self.time-self.startTime).total_seconds() /
-                self.time_step.total_seconds())
+            outStr += '\tIterations: %i\n' % self.number_of_iterations()
+                #(
+                #(self.time-self.startTime).total_seconds() /
+                #self.time_step.total_seconds())
         if hasattr(self, 'time_environment'):
             outStr += 'Time spent:\n'
             outStr += '\tFetching environment data: %s \n' % (

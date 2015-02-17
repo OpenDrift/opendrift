@@ -112,15 +112,17 @@ class Reader(object):
                                  str(self.variables))
         if self.startTime is not None and time < self.startTime:
             raise ValueError('Requested time (%s) is before first available '
-                             'time (%s)' % (time, self.startTime))
+                             'time (%s) of %s' % (time, self.startTime,
+                                                  self.name))
         if self.endTime is not None and time > self.endTime:
             raise ValueError('Requested time (%s) is after last available '
-                             'time (%s)' % (time, self.endTime))
+                             'time (%s) of %s' % (time, self.endTime,
+                                                  self.name))
         outside = np.where((x < self.xmin) | (x > self.xmax) |
                            (y < self.xmin) | (y > self.ymax))
         if np.size(outside) == np.size(x):
             raise ValueError('All particles are outside domain '
-                             'of reader ' + self.name)
+                             'of ' + self.name)
 
         return variables, time, x, y, depth, outside
 
