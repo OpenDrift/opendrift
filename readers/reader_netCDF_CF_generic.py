@@ -53,6 +53,7 @@ class Reader(Reader):
                     else:
                         unitfactor = 1
                     x = var[:]*unitfactor
+                    self.unitfactor = unitfactor
                 if att == 'projection_y_coordinate':
                     self.yname = varName
                     y = var[:]*unitfactor
@@ -106,8 +107,10 @@ class Reader(Reader):
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
             # Adding buffer of 1, to be checked
-            indx = np.arange(indx.min()-1, indx.max()+1)
-            indy = np.arange(indy.min()-1, indy.max()+1)
+            indx = np.arange(np.max([0, indx.min()-1]),
+                             np.min([indx.max()+1, indx.max()+1]))
+            indy = np.arange(np.max([0, indy.min()-1]),
+                             np.min([indy.max()+1, indy.max()+1]))
         else:
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0
@@ -138,9 +141,12 @@ class Reader(Reader):
 
         # Store coordinates of returned points
         variables['depth'] = self.depths[ind_depth]
+        print indx, indy
         if block is True:
-            variables['x'] = self.Dataset.variables[self.xname][indx]
-            variables['y'] = self.Dataset.variables[self.yname][indy]
+            variables['x'] = \
+                self.Dataset.variables[self.xname][indx]*self.unitfactor
+            variables['y'] = \
+                self.Dataset.variables[self.yname][indy]*self.unitfactor
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y

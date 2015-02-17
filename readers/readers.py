@@ -69,6 +69,48 @@ class Reader(object):
         """
         return self.proj(lon, lat, inverse=False)
 
+
+    def check_coverage(self, time, lon, lat):
+        """Check which points are within coverage of reader.
+        
+        Checks that requested positions and time are within coverage of
+        this reader, and that it can provide the requested variable(s).
+        Returns the input arguments, possibly modified/corrected (below)
+
+        Arguments:
+            See function get_variables for definition.
+
+        Returns:
+            x, y: coordinates of point in spatial reference system of reader
+            indices: indices of the input points which are inside domain
+
+        Raises:
+            ValueError:
+                - if requested time is outside coverage of reader.
+                - if all requested positions are outside coverage of reader.
+        """
+
+        # Check time
+        if self.startTime is not None and time < self.startTime:
+            raise ValueError('Requested time (%s) is before first available '
+                             'time (%s) of %s' % (time, self.startTime,
+                                                  self.name))
+        if self.endTime is not None and time > self.endTime:
+            raise ValueError('Requested time (%s) is after last available '
+                             'time (%s) of %s' % (time, self.endTime,
+                                                  self.name))
+
+        # Calculate x,y coordinates from lon,lat
+        x, y = self.lonlat2xy(lon, lat)
+
+        indices = np.where((x >= self.xmin) & (x <= self.xmax) &
+                           (y >= self.xmin) & (y <= self.ymax))
+        if len(indices)==0:
+            raise ValueError('All particles are outside domain '
+                             'of ' + self.name)
+
+        return x, y, indices
+
     def check_arguments(self, variables, time, x, y, depth):
         """Check validity of arguments input to method get_variables.
         
@@ -96,7 +138,6 @@ class Reader(object):
         # Check time
         if time is None:
             time = self.startTime  # Get data from first timestep, if not given
-            indxTime = 0
 
         # Convert variables to list and x,y to ndarrays
         if isinstance(variables, str):

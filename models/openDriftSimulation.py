@@ -87,6 +87,7 @@ class OpenDriftSimulation(object):
 
         # Time step in seconds
         self.time_step = timedelta(seconds=time_step)
+        self.iterations = 0
 
         # Set projection, if given
         self.set_projection(proj4)
@@ -262,54 +263,42 @@ class OpenDriftSimulation(object):
                     break  # Variables found at all points
                 logging.debug('%s needed for %i elements, calling reader %s' %
                               (variable_group, sum(missing), reader.name))
-                # x,y may be different for each reader, related to reader.proj4
-                reader_x, reader_y = reader.lonlat2xy(lon[missing],
-                                                      lat[missing])
                 try:
-                    # env is temporary dict to hold variables
-                    # while looping through readers
-                    env = reader.get_variables(variable_group, self.time,
-                                               reader_x, reader_y,
-                                               self.elements.depth,
-                                               block=self.use_block)
+                    # Check first if reader covers elements in time/space
+                    reader_x, reader_y, inside = reader.check_coverage(
+                        time, lon[missing], lat[missing])
+
                 except ValueError as e:  # Outside spatial or temporal coverage
                     logging.info(e)
                     continue  # Continue to next reader (if any)
                 except Exception as e:
                     logging.info(e)
                     raise  # Something unexpected, display error and quit
+
+                # Retrieve data from reader
+                #depth = depth[inside]  # Needed if depth is array also
+                env = reader.get_variables(variable_group, time,
+                                           reader_x, reader_y,
+                                           depth, block=self.use_block)
                 ###################################################
                 # TBD:
                 # - rotation of vectors
                 # - addition of variable uncertainty
                 ###################################################
                 if self.use_block:
-                    # Request 2D/3D block of data,
-                    # and interpolate onto particle array
+                    # Interpolate block onto particle array
                     # TBD: other interpolation methods
+                    block_ind_x = np.round((reader_x-env['x'][0])/
+                                    reader.delta_x).astype(int)
+                    block_ind_y = np.round((reader_y-env['y'][0])/
+                                    reader.delta_y).astype(int)
+                    # Depth dimention TBD
                     for var in variable_group:
-                        # Lines below may be moved outside loop
-                        delta_x = env['x'][1] - env['x'][0]
-                        delta_y = env['y'][1] - env['y'][0]
-                        block_ind_x = np.round((reader_x-env['x'][0])/
-                                        delta_x).astype(int)
-                        block_ind_y = np.round((reader_y-env['y'][0])/
-                                        delta_y).astype(int)
-                        # Find which of requested points lie inside block
-                        inside_block = np.where(
-                            (block_ind_x <= len(env['x'])) &
-                            (block_ind_x >= 0) &
-                            (block_ind_y <= len(env['y'])) &
-                            (block_ind_y >= 0))[0]
-                        # Depth dimention TBD
-                        environment[var][missing[inside_block]] = \
-                            env[var][block_ind_y[inside_block],
-                                     block_ind_x[inside_block]]
-                        # Problem: does not continue correctly to
-                        # next reader when block is used
+                        environment[var][missing[inside]] = \
+                            env[var][block_ind_y, block_ind_x]
                 else:
                     for var in variable_group:
-                        environment[var][missing] = env[var]
+                        environment[var][missing[inside]] = env[var]
 
         return environment
 
@@ -439,10 +428,12 @@ class OpenDriftSimulation(object):
                 startTime = datetime.now()
                 # Propagate one timestep forwards
                 self.update()
+                self.iterations += 1
                 # Updating time
                 self.time = self.time + self.time_step
                 # Display time to terminal
-                print self.time
+                logging.info('%s - iteration %i of %i' % (self.time,
+                             self.iterations, steps))
                 self.time_model += datetime.now() - startTime
                 # Log positions
                 self.lons[i, self.elements.ID-1] = self.elements.lon
@@ -502,8 +493,8 @@ class OpenDriftSimulation(object):
         map.drawcoastlines(color='gray')
         if background is None:  # Fill continents if no field is requested
             map.fillcontinents(color='#ddaa99')
-        map.drawmeridians(np.arange(-360, 360, .5))
-        map.drawparallels(np.arange(-90, 90, .5))
+        map.drawmeridians(np.arange(-360, 360, .5), labels=[0,0,0,0])
+        map.drawparallels(np.arange(-90, 90, .5), labels=[0,1,1,0])
 
         # Trajectories
         x, y = map(self.lons, self.lats)

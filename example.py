@@ -32,8 +32,8 @@ o = OpenOil(loglevel=0)
 #o.readers.add_reader(reader_arome)
 
 # Norkyst
-#reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')#, name='norkyst800_file')
+reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+#reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')#, name='norkyst800_file')
 
 # Arctic20
 reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be', name='arctic20_thredds')
@@ -48,20 +48,23 @@ reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds
 #o.add_reader(reader_arome)
 #o.add_reader([reader_norkyst, reader_arctic20], ['x_sea_water_velocity', 'y_sea_water_velocity'])
 o.add_reader([reader_norkyst, reader_arctic20])
+#o.add_reader([reader_arctic20])
 #o.add_reader([reader_norkyst])
 
 print o
 
 # Seeding some particles
-#lon = 15; lat = 72.0; # Close to Norkyst boundary
+lon = 15; lat = 72.0; # Close to Norkyst boundary
 #lon = 21; lat = 73.5; # Close to Norkyst boundary
-lon = 4.9; lat = 60.0; # Outside Bergen
+#reader_norkyst.plot()
+#lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
+#lon = 4.9; lat = 60.0; # Outside Bergen
 o.seed_point(lon, lat, radius=10000, number=5, massOil=5, time=None)#reader_arctic20.startTime)
 
 # Running model (until end of driver data)
 o.use_block = True
 #o.time_step = timedelta(seconds=900)
-o.run(steps=200)
+o.run(steps=100)
 
 # Print and plot results
 print o
