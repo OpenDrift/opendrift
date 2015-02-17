@@ -18,7 +18,7 @@ from models.windblow import WindBlow
 #stop
 
 #o = OpenDriftSimulation()
-o = OpenOil()
+o = OpenOil(loglevel=0)
 
 #from test_concrete import *
 #c = Concrete()

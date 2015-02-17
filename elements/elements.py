@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import logging
 
 import numpy as np
 
@@ -132,7 +133,7 @@ class LagrangianArray(object):
             else:
                 setattr(other, var, getattr(self, var))  # Scalar
         if sum(indices) > 0:
-            print '%s particles deactivated' % (sum(indices))
+            logging.info('%s particles deactivated' % (sum(indices)))
 
     def __len__(self):
         return len(self.lat)

@@ -1,5 +1,6 @@
 import sys
 import traceback
+import logging
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -62,7 +63,8 @@ class OpenDriftSimulation(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, time_step=3600, proj4=None, seed=0):
+    def __init__(self, time_step=3600, proj4=None, seed=0,
+                 loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
 
         Args:
@@ -97,7 +99,9 @@ class OpenDriftSimulation(object):
         self.num_elements = 0  # Increase when seeding particles
         self.elements_deactivated = self.ElementType()  # Empty array
 
-        print 'OpenDriftSimulation initialised'
+        logging.basicConfig(level=loglevel, format='%(levelname)s: %(message)s')
+
+        logging.info('OpenDriftSimulation initialised')
 
     @abstractmethod
     def update(self):
@@ -167,7 +171,7 @@ class OpenDriftSimulation(object):
                 self.readers[reader.name] = reader
                 if self.proj is None:
                     self.set_projection(reader.proj4)
-                print 'Added ' + reader.name
+                logging.debug('Added reader ' + reader.name)
 
             # Add this reader for each of the given variables
             for variable in variables if variables else reader.variables:
@@ -253,7 +257,11 @@ class OpenDriftSimulation(object):
                 # find which points are still missing
                 missing = environment[variable_group[0]].mask.copy()
                 if not True in missing:
+                    logging.debug('Variables %s found for all elements' %
+                        variable_group)
                     break  # Variables found at all points
+                logging.debug('%s needed for %i elements, calling reader %s' %
+                              (variable_group, sum(missing), reader.name))
                 # x,y may be different for each reader, related to reader.proj4
                 reader_x, reader_y = reader.lonlat2xy(lon[missing],
                                                       lat[missing])
@@ -265,10 +273,10 @@ class OpenDriftSimulation(object):
                                                self.elements.depth,
                                                block=self.use_block)
                 except ValueError as e:  # Outside spatial or temporal coverage
-                    print e
+                    logging.info(e)
                     continue  # Continue to next reader (if any)
                 except Exception as e:
-                    print e
+                    logging.info(e)
                     raise  # Something unexpected, display error and quit
                 ###################################################
                 # TBD:
@@ -330,6 +338,10 @@ class OpenDriftSimulation(object):
                                 self.elements.depth)
         missing = False
         for variable in env.keys():  # Update environment with new data
+            if sum(env[variable].mask) > 0:
+                logging.debug('Variable %s missing for %i of %i elements.' %
+                              (variable, sum(env[variable].mask),
+                                         len(env[variable].mask)))
             missing = missing & env[variable].mask
 #            if True in env[variable].mask:
 #                self.deactivate_elements(env[variable].mask)
@@ -373,7 +385,8 @@ class OpenDriftSimulation(object):
             except:
                 raise ValueError('Time must be specified when no '
                                  'reader is added')
-            print 'Using start time of reader ' + firstReader.name
+            logging.info('Using start time (%s) of reader %s' %
+                            (firstReader.startTime, firstReader.name))
             self.time = firstReader.startTime
         else:
             self.time = time
@@ -436,6 +449,9 @@ class OpenDriftSimulation(object):
                 self.lats[i, self.elements.ID-1] = self.elements.lat
                 if len(self.elements) == 0:
                     raise ValueError('No active elements, quitting simulation')
+                logging.debug('%s active elements (%s deactivated)' %
+                              (len(self.elements),
+                               len(self.elements_deactivated)))
             except Exception as e:
                 print '========================'
                 print 'End of simulation:'
@@ -467,7 +483,7 @@ class OpenDriftSimulation(object):
         """
 
         if self.number_of_iterations() <= 1:
-            print 'No trajectories to plot.'
+            logging.warning('No trajectories to plot.')
             return
         try:
             from mpl_toolkits.basemap import Basemap
