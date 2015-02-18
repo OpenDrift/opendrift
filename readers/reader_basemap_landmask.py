@@ -21,6 +21,7 @@ def points_in_polys(points, polys):
 class Reader(Reader):
 
     name = 'basemap_landmask'
+    return_block = False  # Vector based, so checks only individual points
 
     # Variables (CF standard names) which
     # can be provided by this model/reader

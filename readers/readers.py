@@ -21,6 +21,9 @@ class Reader(object):
 
     __metaclass__ = ABCMeta
 
+    return_block = True  # By default, all readers should be
+                         # cabable of returning blocks of data
+
     def __init__(self):
         # Common constructor for all readers
 

@@ -13,7 +13,7 @@ class OpenOil(OpenDriftSimulation):
     """
 
     ElementType = Oil
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
+    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity', 'land_binary_mask']
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0}
 

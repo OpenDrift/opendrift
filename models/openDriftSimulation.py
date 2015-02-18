@@ -292,7 +292,7 @@ class OpenDriftSimulation(object):
                 # - rotation of vectors
                 # - addition of variable uncertainty
                 ###################################################
-                if self.use_block:
+                if self.use_block and reader.return_block:
                     # Interpolate block onto particle array (nearest point)
                     # TBD: other interpolation methods
                     logging.debug('Retrieved blocks of size %s, to be '
