@@ -133,7 +133,7 @@ class LagrangianArray(object):
             else:
                 setattr(other, var, getattr(self, var))  # Scalar
         if sum(indices) > 0:
-            logging.info('%s particles deactivated' % (sum(indices)))
+            logging.debug('%s particles moved' % (sum(indices)))
 
     def __len__(self):
         return len(self.lat)

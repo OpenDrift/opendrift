@@ -103,13 +103,13 @@ class Reader(object):
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
-        indices = np.where((x >= self.xmin) & (x <= self.xmax) &
-                           (y >= self.xmin) & (y <= self.ymax))
+        indices = np.where((x > self.xmin) & (x < self.xmax) &
+                           (y > self.xmin) & (y < self.ymax))[0]
         if len(indices)==0:
             raise ValueError('All particles are outside domain '
                              'of ' + self.name)
 
-        return x, y, indices
+        return x[indices], y[indices], indices
 
     def check_arguments(self, variables, time, x, y, depth):
         """Check validity of arguments input to method get_variables.
@@ -159,8 +159,8 @@ class Reader(object):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s) of %s' % (time, self.endTime,
                                                   self.name))
-        outside = np.where((x < self.xmin) | (x > self.xmax) |
-                           (y < self.xmin) | (y > self.ymax))
+        outside = np.where((x < self.xmin) | (x > self.xmax ) |
+                           (y < self.xmin) | (y > self.ymax ))
         if np.size(outside) == np.size(x):
             raise ValueError('All particles are outside domain '
                              'of ' + self.name)

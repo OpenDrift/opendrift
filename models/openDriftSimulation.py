@@ -249,6 +249,7 @@ class OpenDriftSimulation(object):
         for var in variables:
             environment[var] = np.ma.array(np.zeros(len(lon)), mask=True)
 
+        # Loop through all groups of variables-readers
         variable_groups, reader_groups = self.get_reader_groups(variables)
         for i, variable_group in enumerate(variable_groups):
             reader_group = reader_groups[i]
@@ -268,6 +269,12 @@ class OpenDriftSimulation(object):
                     reader_x, reader_y, inside = reader.check_coverage(
                         time, lon[missing], lat[missing])
 
+                    # Update missing indices to only include positions
+                    # covered by the present reader
+                    missing = np.where(missing)[0][inside]
+
+                # If something wrong, raise exception so that we can
+                # continue to next reader for points still missing
                 except ValueError as e:  # Outside spatial or temporal coverage
                     logging.info(e)
                     continue  # Continue to next reader (if any)
@@ -276,7 +283,7 @@ class OpenDriftSimulation(object):
                     raise  # Something unexpected, display error and quit
 
                 # Retrieve data from reader
-                #depth = depth[inside]  # Needed if depth is array also
+                #depth = depth[inside]  # Needed if depth is array as well
                 env = reader.get_variables(variable_group, time,
                                            reader_x, reader_y,
                                            depth, block=self.use_block)
@@ -286,19 +293,27 @@ class OpenDriftSimulation(object):
                 # - addition of variable uncertainty
                 ###################################################
                 if self.use_block:
-                    # Interpolate block onto particle array
+                    # Interpolate block onto particle array (nearest point)
                     # TBD: other interpolation methods
+                    logging.debug('Retrieved blocks of size %s, to be '
+                                  'interpolated.' % 
+                                  (str(env[variable_group[0]].shape)))
                     block_ind_x = np.round((reader_x-env['x'][0])/
                                     reader.delta_x).astype(int)
                     block_ind_y = np.round((reader_y-env['y'][0])/
                                     reader.delta_y).astype(int)
+                    logging.debug('Block indices range: x [%i-%i], y [%i-%i]' %
+                                  (block_ind_x.min(), block_ind_x.max(),
+                                   block_ind_y.min(), block_ind_y.max()))
                     # Depth dimention TBD
                     for var in variable_group:
-                        environment[var][missing[inside]] = \
+                        environment[var][missing] = \
                             env[var][block_ind_y, block_ind_x]
                 else:
                     for var in variable_group:
-                        environment[var][missing[inside]] = env[var]
+                        environment[var][missing] = env[var]
+                logging.debug('Retrieved data for %i points from %s.' %
+                                (len(missing), reader.name))
 
         return environment
 
@@ -325,18 +340,22 @@ class OpenDriftSimulation(object):
                                 self.time,
                                 self.elements.lon, self.elements.lat,
                                 self.elements.depth)
-        missing = False
-        for variable in env.keys():  # Update environment with new data
+        # Update environment with new data
+
+        # Find out which elements are still missing environment data
+        missing = np.array([False]*len(self.elements))
+        for variable in env.keys():  
             if sum(env[variable].mask) > 0:
                 logging.debug('Variable %s missing for %i of %i elements.' %
                               (variable, sum(env[variable].mask),
                                          len(env[variable].mask)))
-            missing = missing & env[variable].mask
-#            if True in env[variable].mask:
-#                self.deactivate_elements(env[variable].mask)
-#                raise ValueError('Missing environment for %i particles.' %
-#                                 sum(env[variable].mask))
-            setattr(self.environment, variable, env[variable])
+                missing = missing | env[variable].mask
+
+        if True in missing:
+            self.deactivate_elements(missing)
+
+        for variable in env.keys():  # Update environment with new data
+            setattr(self.environment, variable, env[variable][~missing])
 
         if not hasattr(self, 'environment_previous'):
             self.environment_previous = self.environment  # Use current/first
@@ -386,6 +405,8 @@ class OpenDriftSimulation(object):
         to elements_deactivated."""
         # Basic, but some more housekeeping will be required later
         self.elements.move_elements(self.elements_deactivated, indices)
+        logging.debug('Deactivated %i elements.' % (sum(indices)))
+        # Should also remove items from environment_previous
 
     def run(self, steps=1000):
         """Start a trajectory simulation, after configuration.
@@ -444,11 +465,11 @@ class OpenDriftSimulation(object):
                               (len(self.elements),
                                len(self.elements_deactivated)))
             except Exception as e:
-                print '========================'
-                print 'End of simulation:'
-                print e
-                print traceback.format_exc()
-                print '========================'
+                logging.info('========================')
+                logging.info('End of simulation:')
+                logging.info(e)
+                logging.info(traceback.format_exc())
+                logging.info('========================')
                 # Truncate lon/lat, and then return
                 self.lons = self.lons[0:i-1, :]
                 self.lats = self.lats[0:i-1, :]

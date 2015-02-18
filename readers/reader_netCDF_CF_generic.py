@@ -54,9 +54,11 @@ class Reader(Reader):
                         unitfactor = 1
                     x = var[:]*unitfactor
                     self.unitfactor = unitfactor
+                    self.numx = var.shape[0]
                 if att == 'projection_y_coordinate':
                     self.yname = varName
                     y = var[:]*unitfactor
+                    self.numy = var.shape[0]
                 if att == 'depth':
                     self.depths = var[:]
             except:
@@ -107,10 +109,10 @@ class Reader(Reader):
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
             # Adding buffer of 1, to be checked
-            indx = np.arange(np.max([0, indx.min()-1]),
-                             np.min([indx.max()+1, indx.max()+1]))
-            indy = np.arange(np.max([0, indy.min()-1]),
-                             np.min([indy.max()+1, indy.max()+1]))
+            indx = np.arange(np.max([0, indx.min()]),
+                             np.min([indx.max()+1, self.numx]))
+            indy = np.arange(np.max([0, indy.min()]),
+                             np.min([indy.max()+1, self.numy]))
         else:
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0
@@ -135,13 +137,12 @@ class Reader(Reader):
                 variables[par] = variables[par].diagonal()
 
             # Mask values outside domain
-            variables[par] = np.ma.array(variables[par], mask=False)
+            variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
             if block == False:
                 variables[par].mask[outside[0]] = True
 
         # Store coordinates of returned points
         variables['depth'] = self.depths[ind_depth]
-        print indx, indy
         if block is True:
             variables['x'] = \
                 self.Dataset.variables[self.xname][indx]*self.unitfactor
