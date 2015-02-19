@@ -13,7 +13,8 @@ class OpenOil(OpenDriftSimulation):
     """
 
     ElementType = Oil
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity', 'land_binary_mask']
+    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
+                          'x_wind', 'y_wind']
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0}
 
@@ -23,6 +24,11 @@ class OpenOil(OpenDriftSimulation):
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
                               self.environment.y_sea_water_velocity)
+
+        # Wind drag
+        wind_factor = 0.02
+        self.update_positions(self.environment.x_wind*wind_factor,
+                              self.environment.y_wind*wind_factor)
 
         # Evaporate 10% of oil mass
         evaporated = self.elements.massOil*0.1

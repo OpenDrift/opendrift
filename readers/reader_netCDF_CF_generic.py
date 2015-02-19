@@ -102,7 +102,10 @@ class Reader(Reader):
 
         indxTime, nearestTime = self.index_of_closest_time(time)
 
-        ind_depth = self.index_of_closest_depths(depth)[0]
+        try:
+            ind_depth = self.index_of_closest_depths(depth)[0]
+        except:
+            ind_depth = 0  # For datasets with no vertical dimension
 
         # Find indices corresponding to requested x and y
         indx = np.round((x-self.xmin)/self.delta_x).astype(int)
@@ -142,7 +145,10 @@ class Reader(Reader):
                 variables[par].mask[outside[0]] = True
 
         # Store coordinates of returned points
-        variables['depth'] = self.depths[ind_depth]
+        try:
+            variables['depth'] = self.depths[ind_depth]
+        except:
+            variables['depth'] = None
         if block is True:
             variables['x'] = \
                 self.Dataset.variables[self.xname][indx]*self.unitfactor
