@@ -79,6 +79,8 @@ class OpenDriftSimulation(object):
                 Specifying a fixed value (default: 0) is useful for sensitivity
                 tests. With seed = None, different random numbers will be drawn
                 for subsequent runs, even with identical configuration/input.
+            loglevel: set to 0 (default) to retrieve all debug information.
+                Provide a higher value (e.g. 20) to receive less output.
         """
         # Dict to store readers
         self.readers = {}  # Dictionary, key=name, value=reader object
@@ -394,11 +396,11 @@ class OpenDriftSimulation(object):
                 raise ValueError('Time must be specified when no '
                                  'reader is added')
             logging.info('Using start time (%s) of reader %s' %
-                            (firstReader.startTime, firstReader.name))
-            self.time = firstReader.startTime
+                            (firstReader.start_time, firstReader.name))
+            self.time = firstReader.start_time
         else:
             self.time = time
-        self.startTime = self.time  # Record start time for reference
+        self.start_time = self.time  # Record start time for reference
 
     def deactivate_elements(self, indices):
         """Deactivate particles by moving them from elements
@@ -429,7 +431,7 @@ class OpenDriftSimulation(object):
 
         Arguments:
             steps: integer, maximum number of iterations. End of simulation
-                will be self.startTime + steps*self.time_step
+                will be self.start_time + steps*self.time_step
         """
 
         # Primitive function to test overall functionality
@@ -443,10 +445,10 @@ class OpenDriftSimulation(object):
         for i in range(steps):
             try:
                 # Get environment data
-                startTime = datetime.now()
+                start_time = datetime.now()
                 self.get_environment()
-                self.time_environment += datetime.now() - startTime
-                startTime = datetime.now()
+                self.time_environment += datetime.now() - start_time
+                start_time = datetime.now()
                 # Propagate one timestep forwards
                 self.update()
                 self.iterations += 1
@@ -455,7 +457,7 @@ class OpenDriftSimulation(object):
                 # Display time to terminal
                 logging.info('%s - iteration %i of %i' % (self.time,
                              self.iterations, steps))
-                self.time_model += datetime.now() - startTime
+                self.time_model += datetime.now() - start_time
                 # Log positions
                 self.lons[i, self.elements.ID-1] = self.elements.lon
                 self.lats[i, self.elements.ID-1] = self.elements.lat
@@ -547,7 +549,7 @@ class OpenDriftSimulation(object):
                     (len(self.elements.lon), type(self.elements).__name__,
                      len(self.elements_deactivated.lon)))
         plt.title(type(self).__name__ + '  %s to %s (%i iterations)' %
-                    (self.startTime, self.time, self.number_of_iterations()))
+                    (self.start_time, self.time, self.number_of_iterations()))
         plt.show()
 
     def update_positions(self, x_vel, y_vel):
@@ -574,7 +576,7 @@ class OpenDriftSimulation(object):
 
     def number_of_iterations(self):
         """Calculate the number of iterations since start of simulation."""
-        return ((self.time-self.startTime).total_seconds() /
+        return ((self.time-self.start_time).total_seconds() /
             self.time_step.total_seconds())
 
     def __repr__(self):
@@ -598,12 +600,9 @@ class OpenDriftSimulation(object):
                 outStr += '     ' + str(i+1) + ') ' + reader + '\n'
         if hasattr(self, 'time'):
             outStr += 'Time:\n'
-            outStr += '\tStart: %s\n' % (self.startTime)
+            outStr += '\tStart: %s\n' % (self.start_time)
             outStr += '\tPresent: %s\n' % (self.time)
             outStr += '\tIterations: %i\n' % self.number_of_iterations()
-                #(
-                #(self.time-self.startTime).total_seconds() /
-                #self.time_step.total_seconds())
         if hasattr(self, 'time_environment'):
             outStr += 'Time spent:\n'
             outStr += '\tFetching environment data: %s \n' % (

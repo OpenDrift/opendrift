@@ -94,13 +94,13 @@ class Reader(object):
         """
 
         # Check time
-        if self.startTime is not None and time < self.startTime:
+        if self.start_time is not None and time < self.start_time:
             raise ValueError('Requested time (%s) is before first available '
-                             'time (%s) of %s' % (time, self.startTime,
+                             'time (%s) of %s' % (time, self.start_time,
                                                   self.name))
-        if self.endTime is not None and time > self.endTime:
+        if self.end_time is not None and time > self.end_time:
             raise ValueError('Requested time (%s) is after last available '
-                             'time (%s) of %s' % (time, self.endTime,
+                             'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
 
         # Calculate x,y coordinates from lon,lat
@@ -126,7 +126,7 @@ class Reader(object):
 
         Returns:
             variables: same as input, but converted to list if given as string.
-            time: same as input, or startTime of reader if given as None.
+            time: same as input, or start_time of reader if given as None.
             x, y, depth: same as input, but converted to ndarrays
                 if given as scalars.
             outside: boolean array which is True for any particles outside
@@ -140,7 +140,7 @@ class Reader(object):
 
         # Check time
         if time is None:
-            time = self.startTime  # Get data from first timestep, if not given
+            time = self.start_time  # Get data from first timestep, if not given
 
         # Convert variables to list and x,y to ndarrays
         if isinstance(variables, str):
@@ -154,13 +154,13 @@ class Reader(object):
                 raise ValueError('Variable not available: ' + variable +
                                  '\nAvailable parameters are: ' +
                                  str(self.variables))
-        if self.startTime is not None and time < self.startTime:
+        if self.start_time is not None and time < self.start_time:
             raise ValueError('Requested time (%s) is before first available '
-                             'time (%s) of %s' % (time, self.startTime,
+                             'time (%s) of %s' % (time, self.start_time,
                                                   self.name))
-        if self.endTime is not None and time > self.endTime:
+        if self.end_time is not None and time > self.end_time:
             raise ValueError('Requested time (%s) is after last available '
-                             'time (%s) of %s' % (time, self.endTime,
+                             'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
         outside = np.where((x < self.xmin) | (x > self.xmax ) |
                            (y < self.xmin) | (y > self.ymax ))
@@ -176,8 +176,8 @@ class Reader(object):
         Assuming time step is constant; this method should be
         overloaded for readers for which this is not the case
         """
-        indx = float((requestedTime - self.startTime).total_seconds()) / \
-            float(self.timeStep.total_seconds())
+        indx = float((requestedTime - self.start_time).total_seconds()) / \
+            float(self.time_step.total_seconds())
         indx = int(round(indx))
         nearestTime = self.times[indx]
         return indx, nearestTime
@@ -229,9 +229,9 @@ class Reader(object):
         if hasattr(self, 'depth'):
             outStr += 'Depths [m]: \n  ' + str(self.depths) + '\n'
         outStr += 'Available time range:\n'
-        outStr += '  start: ' + str(self.startTime) + \
-                  '   end: ' + str(self.endTime) + \
-                  '   step: ' + str(self.timeStep) + '\n'
+        outStr += '  start: ' + str(self.start_time) + \
+                  '   end: ' + str(self.end_time) + \
+                  '   step: ' + str(self.time_step) + '\n'
         outStr += 'Variables:\n'
         for variable in self.variables:
             outStr += '  ' + variable + '\n'
@@ -281,5 +281,5 @@ class Reader(object):
         plt.gca().add_patch(boundary)
 # add patch to the map
         plt.title(self.name)
-        plt.xlabel('Time coverage: %s to %s' % (self.startTime, self.endTime))
+        plt.xlabel('Time coverage: %s to %s' % (self.start_time, self.end_time))
         plt.show()

@@ -35,7 +35,9 @@ print o
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 lon = 4.9; lat = 60.0; # Outside Bergen
-o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=None)#reader_arctic20.startTime)
+time = None
+#time = reader_arctic20.start_time
+o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=time)
 
 # Running model (until end of driver data)
 o.run(steps=200)

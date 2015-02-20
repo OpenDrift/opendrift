@@ -45,9 +45,9 @@ class Reader(Reader):
         self.depths = None
 
         # Time
-        self.startTime = None
-        self.endTime = None
-        self.timeStep = None
+        self.start_time = None
+        self.end_time = None
+        self.time_step = None
 
         # Read and store min, max and step of x and y
         self.xmin, self.ymin = self.lonlat2xy(llcrnrlon, llcrnrlat)

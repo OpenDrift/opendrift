@@ -30,6 +30,12 @@ class OpenOil(OpenDriftSimulation):
         self.update_positions(self.environment.x_wind*wind_factor,
                               self.environment.y_wind*wind_factor)
 
+        ## Dispersion
+        #windspeed = np.sqrt(self.environment.x_wind**2 +
+        #                    self.environment.y_wind**2)
+        #wave_height = 0.0246*windspeed**2  # Martinsen et al. (1994)
+        #at_surface = np.where(self.elements.depth == 0)
+
         # Evaporate 10% of oil mass
         evaporated = self.elements.massOil*0.1
         self.elements.massOil = self.elements.massOil - evaporated

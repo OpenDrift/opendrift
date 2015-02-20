@@ -74,9 +74,9 @@ class Reader(Reader):
         # Read and store time coverage (of this particular file)
         time = self.Dataset.variables['time'][:]  # Assuming name 'time'
         self.times = [datetime.utcfromtimestamp(t) for t in time]
-        self.startTime = datetime.utcfromtimestamp(time[0])
-        self.endTime = datetime.utcfromtimestamp(time[-1])
-        self.timeStep = timedelta(seconds=(time[1] - time[0]))
+        self.start_time = datetime.utcfromtimestamp(time[0])
+        self.end_time = datetime.utcfromtimestamp(time[-1])
+        self.time_step = timedelta(seconds=(time[1] - time[0]))
 
         # Find all variables (with given grid mapping)
         self.variableMapping = {}
