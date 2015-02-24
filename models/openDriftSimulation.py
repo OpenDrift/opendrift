@@ -452,8 +452,6 @@ class OpenDriftSimulation(object):
                 # Propagate one timestep forwards
                 self.update()
                 self.iterations += 1
-                # Updating time
-                self.time = self.time + self.time_step
                 # Display time to terminal
                 logging.info('%s - iteration %i of %i' % (self.time,
                              self.iterations, steps))
@@ -466,6 +464,9 @@ class OpenDriftSimulation(object):
                 logging.debug('%s active elements (%s deactivated)' %
                               (len(self.elements),
                                len(self.elements_deactivated)))
+                # Updating time
+                if self.time is not None:
+                    self.time = self.time + self.time_step
             except Exception as e:
                 logging.info('========================')
                 logging.info('End of simulation:')
@@ -496,7 +497,7 @@ class OpenDriftSimulation(object):
                 longitude/latitude around particle collection.
         """
 
-        if self.number_of_iterations() <= 1:
+        if self.iterations <= 1:
             logging.warning('No trajectories to plot.')
             return
         try:
@@ -549,7 +550,7 @@ class OpenDriftSimulation(object):
                     (len(self.elements.lon), type(self.elements).__name__,
                      len(self.elements_deactivated.lon)))
         plt.title(type(self).__name__ + '  %s to %s (%i iterations)' %
-                    (self.start_time, self.time, self.number_of_iterations()))
+                    (self.start_time, self.time, self.iterations))
         plt.show()
 
     def update_positions(self, x_vel, y_vel):
@@ -574,11 +575,6 @@ class OpenDriftSimulation(object):
         self.elements.lon, self.elements.lat = self.xy2lonlat(
             self.elements.x, self.elements.y)
 
-    def number_of_iterations(self):
-        """Calculate the number of iterations since start of simulation."""
-        return ((self.time-self.start_time).total_seconds() /
-            self.time_step.total_seconds())
-
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
@@ -602,7 +598,7 @@ class OpenDriftSimulation(object):
             outStr += 'Time:\n'
             outStr += '\tStart: %s\n' % (self.start_time)
             outStr += '\tPresent: %s\n' % (self.time)
-            outStr += '\tIterations: %i\n' % self.number_of_iterations()
+            outStr += '\tIterations: %i\n' % self.iterations
         if hasattr(self, 'time_environment'):
             outStr += 'Time spent:\n'
             outStr += '\tFetching environment data: %s \n' % (

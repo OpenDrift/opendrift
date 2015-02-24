@@ -26,7 +26,7 @@ class OpenOil(OpenDriftSimulation):
                               self.environment.y_sea_water_velocity)
 
         # Wind drag
-        wind_factor = 0.02
+        wind_factor = 0.03
         self.update_positions(self.environment.x_wind*wind_factor,
                               self.environment.y_wind*wind_factor)
 

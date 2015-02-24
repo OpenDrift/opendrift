@@ -72,6 +72,16 @@ class Reader(object):
         """
         return self.proj(lon, lat, inverse=False)
 
+    def y_azimuth(self, lon, lat):
+        """Calculate the azimuth orientation of the y-axis of the reader SRS."""
+        x0, y0 = self.lonlat2xy(lon, lat)
+        distance = 1000.0  # Create points 1 km away to determine azimuth
+        lon_2, lat_2 = self.xy2lonlat(x0, y0 + distance)
+        geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
+        y_az = geod.inv(lon_2, lat_2, lon, lat, radians=False)
+        dist = y_az[2]
+        return y_az[0]
+
 
     def check_coverage(self, time, lon, lat):
         """Check which points are within coverage of reader.
@@ -94,11 +104,13 @@ class Reader(object):
         """
 
         # Check time
-        if self.start_time is not None and time < self.start_time:
+        if self.start_time is not None and (time is not None and
+                                            time < self.start_time):
             raise ValueError('Requested time (%s) is before first available '
                              'time (%s) of %s' % (time, self.start_time,
                                                   self.name))
-        if self.end_time is not None and time > self.end_time:
+        if self.end_time is not None and (time is not None and
+                                          time > self.end_time):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
