@@ -196,6 +196,11 @@ class OpenDriftSimulation(object):
             variables.extend(self.readers[reader].variables)
         return variables
 
+    def missing_variables(self):
+        """Return list of all variables for which no reader has been added."""
+        return [var for var in self.required_variables
+                   if var not in self.priority_list]
+
     def get_reader_groups(self, variables=None):
         """Find which groups of variables are provided by the same readers.
 
@@ -434,6 +439,11 @@ class OpenDriftSimulation(object):
                 will be self.start_time + steps*self.time_step
         """
 
+        if len(self.missing_variables()) > 0:
+            raise ValueError('Readers must be added for the '
+                             'following required variables: '
+                             + str(self.missing_variables()))
+
         # Primitive function to test overall functionality
         self.time_environment = timedelta(seconds=0)
         self.time_model = timedelta(seconds=0)
@@ -594,6 +604,11 @@ class OpenDriftSimulation(object):
                 outStr += '  ' + variable + '\n'
             for i, reader in enumerate(readerGroup):
                 outStr += '     ' + str(i+1) + ') ' + reader + '\n'
+        if len(self.missing_variables()) > 0:
+            outStr += '  -----\n'
+            outStr += 'Readers not added for the following variables:\n'
+            for variable in sorted(self.missing_variables()):
+                outStr += '  ' + variable + '\n'
         if hasattr(self, 'time'):
             outStr += 'Time:\n'
             outStr += '\tStart: %s\n' % (self.start_time)

@@ -13,20 +13,21 @@ fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
 o.add_reader([fake_eddy])
 
 
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=0, llcrnrlat=57,
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-10, llcrnrlat=57,
                     urcrnrlon=10, urcrnrlat=67, resolution='h')
+
 o.add_reader([reader_basemap])
-print reader_basemap
 
 print o
 
+
 # Seeding some particles
-lon = 2.0; lat = 65.0; # Close to Station M
+#lon = 2.0; lat = 63.0; # Close to Station M
 lon = 3.0; lat = 60.0; # Off Bergen, for stranding test
-o.seed_point(lon, lat, radius=10000, number=100, time=None)
+o.seed_point(lon, lat, radius=10000, number=10, time=None)
 
 # Running model (until end of driver data)
-o.run(steps=6000)
+o.run(steps=600)
 
 # Print and plot results
 print o

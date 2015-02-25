@@ -41,6 +41,3 @@ class OpenOil(OpenDriftSimulation):
         self.elements.massOil = self.elements.massOil - evaporated
         self.elements.massEvaporated = \
             self.elements.massEvaporated + evaporated
-
-        # Deactivate particles with no (masked) currents (on land)
-        #self.deactivate_elements(self.environment.x_sea_water_velocity.mask)

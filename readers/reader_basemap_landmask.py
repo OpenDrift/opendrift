@@ -4,18 +4,14 @@ from datetime import datetime, timedelta
 
 import numpy as np
 from mpl_toolkits.basemap import Basemap
-import matplotlib.nxutils as nx
+try:
+    import matplotlib.nxutils as nx
+    has_nxutils = True  # For matplotlib version < 1.2
+except:
+    from matplotlib.path import Path
+    has_nxutils = False  # For matplotlib version >= 1.2
 
 from readers import Reader
-
-
-def points_in_polys(points, polys):
-    # Function to quickly check stranding of many points
-    insidePoly = np.array([False]*len(points))
-    for poly in polys:
-        # NB: use contains_points for matplotlib version >= 1.2.0
-        insidePoly[nx.points_inside_poly(points, poly)] = True
-    return insidePoly
 
 
 class Reader(Reader):
@@ -56,7 +52,10 @@ class Reader(Reader):
         self.delta_y = None
 
         # Extract polygons for faster checking of stranding
-        self.polys = [p.boundary for p in self.map.landpolygons]
+        if has_nxutils is True:
+            self.polygons = [p.boundary for p in self.map.landpolygons]
+        else:
+            self.polygons = [Path(p.boundary) for p in self.map.landpolygons]
 
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, depth=None, block=False):
@@ -67,9 +66,17 @@ class Reader(Reader):
         self.check_arguments(requestedVariables, time, x, y, depth)
 
         x, y = self.xy2lonlat(x, y)
-        variables = {}
+        points = np.c_[x, y]
 
-        variables['land_binary_mask'] = points_in_polys(
-                                            np.c_[x, y], self.polys)
+        insidePoly = np.array([False]*len(x))
+        if has_nxutils is True:
+            for polygon in self.polygons:
+                insidePoly[nx.points_inside_poly(points, polygon)] = True
+        else:
+            for polygon in self.polygons:
+                insidePoly += np.array(polygon.contains_points(points))
+
+        variables = {}
+        variables['land_binary_mask'] = insidePoly
 
         return variables
