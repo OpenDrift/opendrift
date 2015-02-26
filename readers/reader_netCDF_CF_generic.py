@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import os
+import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-from netCDF4 import Dataset
+from netCDF4 import Dataset, num2date
 
 from readers import Reader
 
@@ -15,8 +16,6 @@ class Reader(Reader):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
-        #if not os.path.exists(filename):
-        #    raise IOError('File does not exist: ' + filename)
 
         if name is None:
             self.name = filename
@@ -25,47 +24,73 @@ class Reader(Reader):
 
         try:
             # Open file, check that everything is ok
-            self.Dataset = Dataset(filename)
+            logging.info('Opening dataset: ' + filename)
+            self.Dataset = Dataset(filename, 'r')
         except:
             raise ValueError('Could not open ' + filename +
                              ' with netCDF4 library')
 
+        logging.debug('Finding map projection.')
         # Find projection (variable which as proj4 string)
-        for varName in self.Dataset.variables:
-            var = self.Dataset.variables[varName]
+        for var_name in self.Dataset.variables:
+            var = self.Dataset.variables[var_name]
             for att in var.ncattrs():
                 if 'proj4' in att:
                     self.proj4 = str(var.__getattr__(att))
-                    grid_mapping = varName
+                    grid_mapping = var_name
         if not hasattr(self, 'proj4'):
-            raise ValueError('Did not find any proj4 string in dataset')
+            self.proj4 = '+proj=longlat'  # Assuming lonlat
+            #raise ValueError('Did not find any proj4 string in dataset')
 
+        logging.debug('Finding coordinate variables.')
         # Find x, y and depth coordinates
-        for varName in self.Dataset.variables:
-            var = self.Dataset.variables[varName]
-            try:
-                att = var.getncattr('standard_name')
-                if att == 'projection_x_coordinate':
-                    self.xname = varName
-                    # Fix for units; should ideally use udunits package
-                    if var.getncattr('units') == 'km':
-                        unitfactor = 1000
-                    else:
-                        unitfactor = 1
-                    x = var[:]*unitfactor
-                    self.unitfactor = unitfactor
-                    self.numx = var.shape[0]
-                if att == 'projection_y_coordinate':
-                    self.yname = varName
-                    y = var[:]*unitfactor
-                    self.numy = var.shape[0]
-                if att == 'depth':
-                    self.depths = var[:]
-            except:
-                pass
+        for var_name in self.Dataset.variables:
+            var = self.Dataset.variables[var_name]
+            if var.ndim > 1:
+                continue  # Coordinates must be 1D-array
+            attributes = var.ncattrs()
+            standard_name = ''
+            long_name = ''
+            axis = ''
+            units = ''
+            if 'standard_name' in attributes:
+                standard_name = var.getncattr('standard_name')
+            if 'long_name' in attributes:
+                long_name = var.getncattr('long_name')
+            if 'axis' in attributes:
+                axis = var.getncattr('axis')
+            if 'units' in attributes:
+                units = var.getncattr('units')
+            if standard_name == 'longitude' or \
+                    long_name == 'longitude' or \
+                    standard_name == 'projection_x_coordinate':
+                self.xname = var_name
+                # Fix for units; should ideally use udunits package
+                if units == 'km':
+                    unitfactor = 1000
+                else:
+                    unitfactor = 1
+                x = var[:]*unitfactor
+                self.unitfactor = unitfactor
+                self.numx = var.shape[0]
+            if standard_name == 'latitude' or \
+                    long_name == 'latitude' or \
+                    standard_name == 'projection_y_coordinate':
+                self.yname = var_name
+                # Fix for units; should ideally use udunits package
+                if units == 'km':
+                    unitfactor = 1000
+                else:
+                    unitfactor = 1
+                y = var[:]*unitfactor
+                self.numy = var.shape[0]
+            if standard_name == 'depth' or axis == 'Z':
+                self.depths = var[:]
 
         if not 'x' in locals():
             raise ValueError('Did not find x-coordinate variable')
+        if not 'y' in locals():
+            raise ValueError('Did not find y-coordinate variable')
         self.xmin, self.xmax = x.min(), x.max()
         self.ymin, self.ymax = y.min(), y.max()
         self.delta_x = np.abs(x[1] - x[0])
@@ -73,32 +98,35 @@ class Reader(Reader):
 
         # Read and store time coverage (of this particular file)
         time = self.Dataset.variables['time'][:]  # Assuming name 'time'
-        self.times = [datetime.utcfromtimestamp(t) for t in time]
-        self.start_time = datetime.utcfromtimestamp(time[0])
-        self.end_time = datetime.utcfromtimestamp(time[-1])
-        self.time_step = timedelta(seconds=(time[1] - time[0]))
+        time_units = self.Dataset.variables['time'].getncattr('units')
+        self.times = num2date(time, time_units)
+        self.start_time = self.times[0]
+        self.end_time = self.times[-1]
+        self.time_step = self.times[1] - self.times[0]
 
-        # Find all variables (with given grid mapping)
-        self.variableMapping = {}
-        for varName in self.Dataset.variables:
-            var = self.Dataset.variables[varName]
-            try:
-                if var.getncattr('grid_mapping') == grid_mapping:
-                    stdName = str(var.getncattr('standard_name'))
-                    self.variableMapping[stdName] = str(varName)
-            except:
-                pass
+        # Find all variables having standard_name
+        self.variable_mapping = {}
+        for var_name in self.Dataset.variables:
+            if var_name in [self.xname, self.yname, 'depth']:
+                continue  # Skip coordinate variables
+            var = self.Dataset.variables[var_name]
+            attributes = var.ncattrs()
+            if 'standard_name' in attributes:
+                standard_name = str(var.getncattr('standard_name'))
+                if standard_name in self.variable_aliases:  # Mapping if needed
+                    standard_name = self.variable_aliases[standard_name]
+                self.variable_mapping[standard_name] = str(var_name)
 
-        self.variables = self.variableMapping.keys()
+        self.variables = self.variable_mapping.keys()
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
-    def get_variables(self, requestedVariables, time=None,
+    def get_variables(self, requested_variables, time=None,
                       x=None, y=None, depth=None, block=False):
 
-        requestedVariables, time, x, y, depth, outside = self.check_arguments(
-            requestedVariables, time, x, y, depth)
+        requested_variables, time, x, y, depth, outside = self.check_arguments(
+            requested_variables, time, x, y, depth)
 
         indxTime, nearestTime = self.index_of_closest_time(time)
 
@@ -111,28 +139,30 @@ class Reader(Reader):
         indx = np.round((x-self.xmin)/self.delta_x).astype(int)
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
-            # Adding buffer of 1, to be checked
+            # Adding buffer of 2, to be checked
             indx = np.arange(np.max([0, indx.min()]),
-                             np.min([indx.max()+1, self.numx]))
+                             np.min([indx.max()+2, self.numx]))
             indy = np.arange(np.max([0, indy.min()]),
-                             np.min([indy.max()+1, self.numy]))
+                             np.min([indy.max()+2, self.numy]))
         else:
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0
 
         variables = {}
 
-        for par in requestedVariables:
-            var = self.Dataset.variables[self.variableMapping[par]]
-            # Hardcoded checks for variable dimensions below,
-            # this should be generalised later
-            if par == 'x_wind' or par == 'y_wind':
-                variables[par] = var[indxTime, indy, indx]
-            elif par == 'sea_floor_depth_below_sea_level':
+        for par in requested_variables:
+            var = self.Dataset.variables[self.variable_mapping[par]]
+
+            if var.ndim == 2:
                 variables[par] = var[indy, indx]
-            else:
+            elif var.ndim == 3:
+                variables[par] = var[indxTime, indy, indx]
+            elif var.ndim == 4:
                 # Temporarily neglecting depth
-               variables[par] = var[indxTime, 1, indy, indx]
+               variables[par] = var[indxTime, 0, indy, indx]  # NB 0 was 1
+            else:
+                raise Exception('Wrong dimension of variable: '
+                                + self.variable_mapping[par])
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal

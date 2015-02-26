@@ -24,6 +24,11 @@ class Reader(object):
     return_block = True  # By default, all readers should be
                          # cabable of returning blocks of data
 
+    # Mapping variable names, e.g. from east-north to x-y, temporarily
+    # presuming coordinate system then is lon-lat for equivalence
+    variable_aliases = {'eastward_sea_water_velocity': 'x_sea_water_velocity',
+                        'northward_sea_water_velocity': 'y_sea_water_velocity'}
+
     def __init__(self):
         # Common constructor for all readers
 
@@ -65,12 +70,18 @@ class Reader(object):
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
-        return self.proj(x, y, inverse=True)
+        if self.proj.is_latlong():
+            return x,y
+        else:
+            return self.proj(x, y, inverse=True)
 
     def lonlat2xy(self, lon, lat):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        return self.proj(lon, lat, inverse=False)
+        if self.proj.is_latlong():
+            return lon,lat
+        else:
+            return self.proj(lon, lat, inverse=False)
 
     def y_azimuth(self, lon, lat):
         """Calculate the azimuth orientation of the y-axis of the reader SRS."""
@@ -114,6 +125,11 @@ class Reader(object):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
+
+        # Compensate for wrapping about 0 or 180 longitude
+        if self.proj.is_latlong():
+            if self.xmax > 180:
+                lon[lon<0] = lon[lon<0] + 360
 
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
@@ -238,7 +254,8 @@ class Reader(object):
              corners[1][1],
              corners[0][3],
              corners[1][3])
-        if hasattr(self, 'depth'):
+        if hasattr(self, 'depths'):
+            np.set_printoptions(suppress=True)
             outStr += 'Depths [m]: \n  ' + str(self.depths) + '\n'
         outStr += 'Available time range:\n'
         outStr += '  start: ' + str(self.start_time) + \

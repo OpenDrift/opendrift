@@ -63,13 +63,10 @@ class OpenDriftSimulation(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, time_step=3600, proj4=None, seed=0,
-                 loglevel=logging.DEBUG):
+    def __init__(self, proj4=None, seed=0, loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
 
         Args:
-            time_step: interval between particles updates, in seconds
-                Default: 3600 (1 hour)
             proj4: proj4 string defining spatial reference system.
                 If not specified, SRS is taken from the first added reader.
             seed: integer or None. A given integer will yield identical
@@ -87,10 +84,6 @@ class OpenDriftSimulation(object):
         self.priority_list = OrderedDict()
         self.use_block = True  # Set to False if reader shall perform interpolation
 
-        # Time step in seconds
-        self.time_step = timedelta(seconds=time_step)
-        self.iterations = 0
-
         # Set projection, if given
         self.set_projection(proj4)
 
@@ -100,6 +93,7 @@ class OpenDriftSimulation(object):
         np.random.seed(seed)
 
         self.num_elements = 0  # Increase when seeding particles
+        self.iterations = 0  # Increase for each simulation step
         self.elements_deactivated = self.ElementType()  # Empty array
 
         logging.basicConfig(level=loglevel, format='%(levelname)s: %(message)s')
@@ -132,12 +126,18 @@ class OpenDriftSimulation(object):
     def lonlat2xy(self, lon, lat):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
-        return self.proj(lon, lat, inverse=False)
+        if self.proj.is_latlong():
+            return lon,lat
+        else:
+            return self.proj(lon, lat, inverse=False)
 
     def xy2lonlat(self, x, y):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        return self.proj(x, y, inverse=True)
+        if self.proj.is_latlong():
+            return x,y
+        else:
+            return self.proj(x, y, inverse=True)
 
     def add_reader(self, readers, variables=None):
         """Add one or more readers providing variables used by this model.
@@ -394,9 +394,12 @@ class OpenDriftSimulation(object):
         else:
             self.elements = self.ElementType(**kwargs)
         if time is None:
-            # Use first time of first reader of time is not given for seeding
+            # Use first time of first reader if time is not given for seeding
             try:
-                firstReader = list(self.readers.items())[0][1]
+                for reader in self.readers.items():
+                    if reader[1].start_time is not None:
+                        firstReader = reader[1]
+                        break
             except:
                 raise ValueError('Time must be specified when no '
                                  'reader is added')
@@ -415,7 +418,7 @@ class OpenDriftSimulation(object):
         logging.debug('Deactivated %i elements.' % (sum(indices)))
         # Should also remove items from environment_previous
 
-    def run(self, steps=1000):
+    def run(self, time_step=3600, steps=1000):
         """Start a trajectory simulation, after configuration.
 
         Performs the loop:
@@ -435,6 +438,8 @@ class OpenDriftSimulation(object):
         with readers, and updating their properties, respectively.
 
         Arguments:
+            time_step: interval between particles updates, in seconds
+                Default: 3600 (1 hour)
             steps: integer, maximum number of iterations. End of simulation
                 will be self.start_time + steps*self.time_step
         """
@@ -447,6 +452,9 @@ class OpenDriftSimulation(object):
         # Primitive function to test overall functionality
         self.time_environment = timedelta(seconds=0)
         self.time_model = timedelta(seconds=0)
+        # Time step in seconds
+        self.time_step = timedelta(seconds=time_step)
+
         # Initialise arrays to store output (temoprary solution)
         self.lons = np.ma.array(np.zeros((steps, len(self.elements))),
                                 mask=True)
@@ -507,7 +515,7 @@ class OpenDriftSimulation(object):
                 longitude/latitude around particle collection.
         """
 
-        if self.iterations <= 1:
+        if self.iterations <= 2:
             logging.warning('No trajectories to plot.')
             return
         try:
@@ -567,7 +575,7 @@ class OpenDriftSimulation(object):
         """Move particles according to given velocity components.
 
         This method shall account for projection metrics (a distance
-        on a map projection doest not necessarily correspond to the same
+        on a map projection does not necessarily correspond to the same
         distance over true ground (not yet implemented).
 
         Arguments:
@@ -579,8 +587,16 @@ class OpenDriftSimulation(object):
         self.elements.x, self.elements.y = self.lonlat2xy(
             self.elements.lon, self.elements.lat)
         # Update x,y
-        self.elements.x += x_vel*self.time_step.total_seconds()
-        self.elements.y += y_vel*self.time_step.total_seconds()
+        if self.proj.is_latlong():
+            geod = pyproj.Geod(ellps='WGS84')
+            velocity = np.sqrt(x_vel**2 + y_vel**2)
+            azimuth = np.degrees(np.arctan2(x_vel, y_vel))  # Direction of motion
+            self.elements.x, self.elements.y, back_az = geod.fwd(
+                self.elements.x, self.elements.y,
+                azimuth, velocity*self.time_step.total_seconds())
+        else:
+            self.elements.x += x_vel*self.time_step.total_seconds()
+            self.elements.y += y_vel*self.time_step.total_seconds()
         # Calculate lon,lat from x,y
         self.elements.lon, self.elements.lat = self.xy2lonlat(
             self.elements.x, self.elements.y)
