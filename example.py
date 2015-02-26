@@ -20,12 +20,12 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be', name='arctic20_thredds')
 
 # Landmask (Basemap)
-#reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
-#                    urcrnrlon=20, urcrnrlat=79, resolution='i')
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
+                    urcrnrlon=20, urcrnrlat=79, resolution='h')
 
 #o.add_reader([reader_norkyst])
-o.add_reader([reader_norkyst, reader_arome])
-#o.add_reader([reader_norkyst, reader_arctic20, reader_arome])
+o.add_reader([reader_norkyst, reader_arome, reader_basemap])
+#o.add_reader([reader_norkyst, reader_arctic20, reader_arome, reader_basemap])
 
 print o
 

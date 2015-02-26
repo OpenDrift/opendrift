@@ -14,9 +14,10 @@ class OpenOil(OpenDriftSimulation):
 
     ElementType = Oil
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                          'x_wind', 'y_wind']
+                          'x_wind', 'y_wind', 'land_binary_mask']
     fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0}
+                       'y_sea_water_velocity': 0,
+                       'x_wind': 0, 'y_wind': 0}
 
     def update(self):
         """Update positions and properties of oil particles."""
@@ -41,3 +42,6 @@ class OpenOil(OpenDriftSimulation):
         self.elements.massOil = self.elements.massOil - evaporated
         self.elements.massEvaporated = \
             self.elements.massEvaporated + evaporated
+
+        # Deactivate elements on land
+        self.deactivate_elements(self.environment.land_binary_mask==1)

@@ -356,7 +356,13 @@ class OpenDriftSimulation(object):
                 logging.debug('Variable %s missing for %i of %i elements.' %
                               (variable, sum(env[variable].mask),
                                          len(env[variable].mask)))
-                missing = missing | env[variable].mask
+                if variable in self.fallback_values:
+                    # Setting fallback value, presently only numeric
+                    logging.debug('Using fallback value: %s'
+                                  % self.fallback_values[variable])
+                    env[variable][missing] = self.fallback_values[variable]
+                else:
+                    missing = missing | env[variable].mask
 
         if True in missing:
             self.deactivate_elements(missing)
@@ -444,11 +450,19 @@ class OpenDriftSimulation(object):
                 will be self.start_time + steps*self.time_step
         """
 
-        if len(self.missing_variables()) > 0:
-            raise ValueError('Readers must be added for the '
-                             'following required variables: '
-                             + str(self.missing_variables()))
-
+        missing_variables = self.missing_variables()
+        if len(missing_variables) > 0:
+            has_fallback = [var for var in missing_variables 
+                            if var in self.fallback_values]
+            if has_fallback == missing_variables:
+                logging.info('Fallback values will be used for the following '
+                             'variables which have no readers: ')
+                for var in has_fallback:
+                    logging.info('\t%s: %f' % (var, self.fallback_values[var]))
+            else:
+                raise ValueError('Readers must be added for the '
+                                 'following required variables: '
+                                 + str(missing_variables))
         # Primitive function to test overall functionality
         self.time_environment = timedelta(seconds=0)
         self.time_model = timedelta(seconds=0)
