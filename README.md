@@ -1,7 +1,6 @@
 opendrift
 =========
 
-Open source framework for ocean trajectory modelling
+Open source framework for ocean trajectory modelling.
 
-
-Under construction
+See the wiki for description and installation: https://github.com/knutfrode/opendrift/wiki
