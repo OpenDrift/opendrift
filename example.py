@@ -5,8 +5,9 @@ from datetime import datetime, timedelta
 from readers import reader_basemap_landmask
 from readers import reader_netCDF_CF_generic
 from models.openoil import OpenOil
+from models.model_template import ModelTemplate
 
-o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
+o = ModelTemplate(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
@@ -21,10 +22,11 @@ reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
-                    urcrnrlon=20, urcrnrlat=79, resolution='h')
+                    urcrnrlon=27, urcrnrlat=79, resolution='h')
 
 #o.add_reader([reader_norkyst])
-o.add_reader([reader_norkyst, reader_arome, reader_basemap])
+#o.add_reader([reader_norkyst, reader_arome, reader_basemap])
+o.add_reader([reader_norkyst, reader_basemap])
 #o.add_reader([reader_norkyst, reader_arctic20, reader_arome, reader_basemap])
 
 print o
@@ -35,6 +37,7 @@ print o
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 lon = 4.9; lat = 60.0; # Outside Bergen
+lon = 22.6; lat = 71.00; # Barents
 time = None
 #time = reader_arctic20.start_time
 o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=time)
