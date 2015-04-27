@@ -10,11 +10,11 @@ import numpy as np
 from readers.readers import pyproj, Reader
 
 
-class Environment(object):
-    """Store environment variables (from readers) as named attributes."""
-
-    def __init__(self):
-        pass
+#class Environment(object):
+#    """Store environment variables (from readers) as named attributes."""
+#
+#    def __init__(self):
+#        pass
 
 
 class OpenDriftSimulation(object):
@@ -232,7 +232,11 @@ class OpenDriftSimulation(object):
                         variable_groups[i].append(variable)
                     else:
                         variable_groups[i] = [variable]
-        return variable_groups, reader_groups
+
+        missing_variables = list(set(variables) -
+                                 set(self.priority_list.keys()))
+
+        return variable_groups, reader_groups, missing_variables
 
     def get_variables(self, variables, time=None,
                       lon=None, lat=None, depth=None):
@@ -257,7 +261,8 @@ class OpenDriftSimulation(object):
             environment[var] = np.ma.array(np.zeros(len(lon)), mask=True)
 
         # Loop through all groups of variables-readers
-        variable_groups, reader_groups = self.get_reader_groups(variables)
+        variable_groups, reader_groups, missing_variables = \
+            self.get_reader_groups(variables)
         for i, variable_group in enumerate(variable_groups):
             reader_group = reader_groups[i]
             # Loop through readers until variables are found for all positions
@@ -323,6 +328,86 @@ class OpenDriftSimulation(object):
                                 (len(missing), reader.name))
 
         return environment
+
+    def get_env(self, variables, time, lon, lat, depth):
+        '''
+        Updates:
+            [readers].var_block_before
+            [readers].var_block_after
+                - lists of one dictionary per group:
+                    - time, x, y, [vars]
+            (each reader stores raw data blocks as buffer for performance)
+        Returns:
+            environment: recarray with variables as named attributes,
+                         interpolated to requested positions/time.
+                         Also includes "reader_number" for reference
+                         to which reader is used for each element.
+            
+        '''
+        # Initialise dictionary with empty, masked arrays
+        env = {}
+        for var in variables:
+            env[var] = np.ma.array(np.zeros(len(lon)), mask=True)
+
+        # For each variable/reader group:
+        variable_groups, reader_groups, missing_variables = \
+            self.get_reader_groups(variables)
+        for variable in missing_variables:
+            env[variable] = np.ma.array(env[variable].filled(
+                                self.fallback_values[variable]))
+
+        for i, variable_group in enumerate(variable_groups):
+            print 'VAR GROUP %s' % (str(variable_group))
+            reader_group = reader_groups[i]
+            missing_indices = np.array(range(len(lon)))
+            # For each reader:
+            for reader_name in reader_group:
+                reader = self.readers[reader_name]
+                # Continue if not not within time
+                print reader_name
+                # Fetch given variables at given positions from current reader
+                env_tmp = reader.get_variables_from_buffer(variable_group,
+                            time, lon, lat, depth, self.use_block)
+                print env_tmp
+                # Rotation of vectors - TBD
+                # Detect particles with missing data, continue to next reader
+                    # Store reader number for the particles covered
+
+                # Copy retrieved variables to env dictionary
+                for var in variable_group:
+                    env[var][missing_indices] = env_tmp[var]
+
+                if hasattr(env[variable_group[0]], 'mask'):
+                    mask = env[variable_group[0]].mask
+                    missing_indices = missing_indices[mask]
+                else:
+                    missing_indices = []  # temporary workaround
+                if len(missing_indices) == 0:
+                    print 'All found'
+                    continue
+                else:
+                    print '%i missing' % (len(missing_indices))
+             
+            # Perform default action for particles missing env data
+            print 'H'*40
+            print missing_indices
+            print len(missing_indices)
+            if len(missing_indices) > 0:
+                print 'Replacing...'
+                for var in variables:
+                    if var in self.fallback_values:
+                        # Setting fallback value, presently only numeric
+                        logging.debug('Using fallback value: %s'
+                                  % self.fallback_values[variable])
+                        env[var][missing] = self.fallback_values[var]
+        # Convert ndarray to recarray and return
+        print 'ok'
+        return env
+
+    def update_environment(self):
+        """Retrieve environmental variables at the positions of all particles.
+        """
+        pass
 
     def get_environment(self):
         """Retrieve environmental variables at the positions of all particles.
@@ -624,7 +709,7 @@ class OpenDriftSimulation(object):
                 len(self.elements), type(self.elements).__name__,
                 len(self.elements_deactivated))
         outStr += 'Projection: %s\n' % self.proj4
-        variable_groups, reader_groups = self.get_reader_groups()
+        variable_groups, reader_groups, missing = self.get_reader_groups()
         outStr += '-------------------\n'
         outStr += 'Environment variables:\n'
         for i, variableGroup in enumerate(variable_groups):

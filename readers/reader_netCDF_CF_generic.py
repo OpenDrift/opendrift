@@ -140,9 +140,9 @@ class Reader(Reader):
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
             # Adding buffer of 2, to be checked
-            indx = np.arange(np.max([0, indx.min()]),
+            indx = np.arange(np.max([0, indx.min()-2]),
                              np.min([indx.max()+2, self.numx]))
-            indy = np.arange(np.max([0, indy.min()]),
+            indy = np.arange(np.max([0, indy.min()-2]),
                              np.min([indy.max()+2, self.numy]))
         else:
             indx[outside[0]] = 0  # To be masked later
@@ -188,4 +188,5 @@ class Reader(Reader):
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
+        variables['time'] = nearestTime
         return variables
