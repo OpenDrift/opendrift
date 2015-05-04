@@ -1,6 +1,6 @@
 import importlib
 from abc import abstractmethod, ABCMeta
-from scipy.interpolate import RectBivariateSpline
+from scipy.interpolate import RectBivariateSpline, LinearNDInterpolator
 from scipy.spatial import KDTree
 import numpy as np
 
@@ -82,15 +82,17 @@ class Reader(object):
                 continue
             if block[var].ndim == 2:
                 ## Create spline for interpolation
-                #spl = RectBivariateSpline(block['y'], block['x'],
-                #            block[var], kx=1, ky=1, s=0)
-                #env[var] = spl.ev(y, x)  # Evaluate at positions
+                block_x, block_y = np.meshgrid(block['x'], block['y'])
+                spl = LinearNDInterpolator((block_y.ravel(), block_x.ravel()),
+                            block[var].ravel())
+                env[var] = spl(y, x)  # Evaluate at positions
 
-                # Make and use KDTree for interpolation
-                tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
-                d,p = tree.query(zip(x,y), k=1) #nearest point, gives distance and point index
-                ## NB - or transpose array first ?
-                env[var] = block[var].ravel()[p]
+                ## Make and use KDTree for interpolation
+                #tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
+                #d,p = tree.query(zip(x,y), k=1) #nearest point, gives distance and point index
+                ### NB - or transpose array first ?
+                #env[var] = block[var].ravel()[p]
+
             elif block[var].ndim == 3:
                 raise ValueError('Not yet implemented')
         return env
@@ -115,7 +117,6 @@ class Reader(object):
             self.nearest_time(time)
         if time == time_before:
             time_after = None
-        print time, time_before, time_after, time_nearest
         # Check which particles are covered (indep of time) 
         ind_covered = self.covers_positions(lon, lat, depth)
         if len(ind_covered)==0:
@@ -132,10 +133,12 @@ class Reader(object):
             env_before = self.get_variables(variables, time_before,
                             reader_x, reader_y, depth,
                             block=block)
+            print 'Fetched env-before: ' 
             if time_after is not None:
                 env_after = self.get_variables(variables, time_after,
                                 reader_x, reader_y, depth,
                                 block=block)
+                print 'Fetched env-after: '
             else:
                 env_after = None
         else:
@@ -159,19 +162,28 @@ class Reader(object):
                             self.var_block_before[
                                 str(variables)]  
             # Fetch data, if no buffer is available
-            if not self.var_block_before.has_key(str(variables)):
-                print 'fetching before'
+            if not self.var_block_before.has_key(str(variables)) or \
+                self.var_block_before[str(variables)]['time'] != time_before:
                 self.var_block_before[str(variables)] = \
                     self.get_variables(variables, time_before,
                         reader_x, reader_y, depth,
                         block=block)
-            if not self.var_block_after.has_key(str(variables)):
-                print 'fetching after'
-                self.var_block_after[str(variables)] = \
-                    self.get_variables(variables, time_after,
-                        reader_x, reader_y, depth,
-                        block=block)
+                print 'Fetched block-before: ' 
+            if not self.var_block_after.has_key(str(variables)) or \
+                self.var_block_after[str(variables)]['time'] != time_after:
+                if time_after is None:
+                    self.var_block_after[str(variables)] = \
+                        self.var_block_before[str(variables)]
+                else:
+                    self.var_block_after[str(variables)] = \
+                        self.get_variables(variables, time_after,
+                            reader_x, reader_y, depth,
+                            block=block)
+                    print 'Fetched block-after: ' 
             # check if buffer-block covers these particles
+            print 'TIME-BLOCK'
+            print self.var_block_before[str(variables)]['time']
+            print self.var_block_after[str(variables)]['time']
             x_before = self.var_block_before[str(variables)]['x']
             y_before = self.var_block_before[str(variables)]['y']
             x_after = self.var_block_after[str(variables)]['x']

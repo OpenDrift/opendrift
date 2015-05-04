@@ -140,10 +140,11 @@ class Reader(Reader):
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
             # Adding buffer of 2, to be checked
-            indx = np.arange(np.max([0, indx.min()-2]),
-                             np.min([indx.max()+2, self.numx]))
-            indy = np.arange(np.max([0, indy.min()-2]),
-                             np.min([indy.max()+2, self.numy]))
+            buffer=10
+            indx = np.arange(np.max([0, indx.min()-buffer]),
+                             np.min([indx.max()+buffer, self.numx]))
+            indy = np.arange(np.max([0, indy.min()-buffer]),
+                             np.min([indy.max()+buffer, self.numy]))
         else:
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0

@@ -345,9 +345,11 @@ class OpenDriftSimulation(object):
             
         '''
         # Initialise dictionary with empty, masked arrays
-        env = {}
-        for var in variables:
-            env[var] = np.ma.array(np.zeros(len(lon)), mask=True)
+        #env = {}
+        #for var in variables:
+        #    env[var] = np.ma.array(np.zeros(len(lon)), mask=True)
+        dtype = [(var, np.float) for var in variables]
+        env = np.ma.array(np.zeros(len(lon)), dtype=dtype)
 
         # For each variable/reader group:
         variable_groups, reader_groups, missing_variables = \
@@ -364,11 +366,9 @@ class OpenDriftSimulation(object):
             for reader_name in reader_group:
                 reader = self.readers[reader_name]
                 # Continue if not not within time
-                print reader_name
                 # Fetch given variables at given positions from current reader
                 env_tmp = reader.get_variables_from_buffer(variable_group,
                             time, lon, lat, depth, self.use_block)
-                print env_tmp
                 # Rotation of vectors - TBD
                 # Detect particles with missing data, continue to next reader
                     # Store reader number for the particles covered
@@ -389,9 +389,6 @@ class OpenDriftSimulation(object):
                     print '%i missing' % (len(missing_indices))
              
             # Perform default action for particles missing env data
-            print 'H'*40
-            print missing_indices
-            print len(missing_indices)
             if len(missing_indices) > 0:
                 print 'Replacing...'
                 for var in variables:
@@ -400,9 +397,8 @@ class OpenDriftSimulation(object):
                         logging.debug('Using fallback value: %s'
                                   % self.fallback_values[variable])
                         env[var][missing] = self.fallback_values[var]
-        # Convert ndarray to recarray and return
-        print 'ok'
-        return env
+        # Convert dictionary to recarray and return
+        return env.view(np.recarray)
 
     def update_environment(self):
         """Retrieve environmental variables at the positions of all particles.
@@ -563,15 +559,20 @@ class OpenDriftSimulation(object):
             try:
                 # Get environment data
                 start_time = datetime.now()
-                self.get_environment()
+                # Display time to terminal
+                logging.info('%s - iteration %i of %i' % (self.time,
+                             self.iterations, steps))
+                self.environment = self.get_env(self.required_variables,
+                                                self.time,
+                                                self.elements.lon,
+                                                self.elements.lat,
+                                                self.elements.depth)
+                #print self.environment.x_sea_water_velocity
                 self.time_environment += datetime.now() - start_time
                 start_time = datetime.now()
                 # Propagate one timestep forwards
                 self.update()
                 self.iterations += 1
-                # Display time to terminal
-                logging.info('%s - iteration %i of %i' % (self.time,
-                             self.iterations, steps))
                 self.time_model += datetime.now() - start_time
                 # Log positions
                 self.lons[i, self.elements.ID-1] = self.elements.lon
