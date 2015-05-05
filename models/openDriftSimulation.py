@@ -359,13 +359,19 @@ class OpenDriftSimulation(object):
                                 self.fallback_values[variable]))
 
         for i, variable_group in enumerate(variable_groups):
-            print 'VAR GROUP %s' % (str(variable_group))
+            logging.debug('Variable group %s' % (str(variable_group)))
             reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
             # For each reader:
             for reader_name in reader_group:
+                logging.debug('Calling reader ' + reader_name)
                 reader = self.readers[reader_name]
                 # Continue if not not within time
+                if (reader.start_time is not None) and (
+                    time < reader.start_time or time > reader.end_time):
+                    logging.debug('Outside time coverage of reader (%s - %s)'
+                    % (reader.start_time, reader.end_time))
+                    continue
                 # Fetch given variables at given positions from current reader
                 env_tmp = reader.get_variables_from_buffer(variable_group,
                             time, lon, lat, depth, self.use_block)
@@ -383,20 +389,20 @@ class OpenDriftSimulation(object):
                 else:
                     missing_indices = []  # temporary workaround
                 if len(missing_indices) == 0:
-                    print 'All found'
-                    continue
+                    logging.debug('Obtained data for all elements.')
+                    break
                 else:
-                    print '%i missing' % (len(missing_indices))
+                    logging.debug('Data missing for %i elements' %
+                                    (len(missing_indices)))
              
             # Perform default action for particles missing env data
             if len(missing_indices) > 0:
-                print 'Replacing...'
                 for var in variables:
                     if var in self.fallback_values:
                         # Setting fallback value, presently only numeric
                         logging.debug('Using fallback value: %s'
-                                  % self.fallback_values[variable])
-                        env[var][missing] = self.fallback_values[var]
+                                  % self.fallback_values[var])
+                        env[var][missing_indices] = self.fallback_values[var]
         # Convert dictionary to recarray and return
         return env.view(np.recarray)
 
@@ -567,7 +573,6 @@ class OpenDriftSimulation(object):
                                                 self.elements.lon,
                                                 self.elements.lat,
                                                 self.elements.depth)
-                #print self.environment.x_sea_water_velocity
                 self.time_environment += datetime.now() - start_time
                 start_time = datetime.now()
                 # Propagate one timestep forwards

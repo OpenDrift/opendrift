@@ -1,4 +1,5 @@
 import importlib
+import logging
 from abc import abstractmethod, ABCMeta
 from scipy.interpolate import RectBivariateSpline, LinearNDInterpolator
 from scipy.spatial import KDTree
@@ -115,6 +116,9 @@ class Reader(object):
         # Find reader time_before/time_after 
         time_nearest, time_before, time_after, i1, i2, i3 = \
             self.nearest_time(time)
+        logging.debug('Reader time:\n\t%s (nearest)\n\t%s '
+                      '(before)\n\t%s (after)' %
+                      (time_nearest, time_before, time_after))
         if time == time_before:
             time_after = None
         # Check which particles are covered (indep of time) 
@@ -133,12 +137,12 @@ class Reader(object):
             env_before = self.get_variables(variables, time_before,
                             reader_x, reader_y, depth,
                             block=block)
-            print 'Fetched env-before: ' 
+            logging.debug('Fetched env-before')
             if time_after is not None:
                 env_after = self.get_variables(variables, time_after,
                                 reader_x, reader_y, depth,
                                 block=block)
-                print 'Fetched env-after: '
+                logging.debug('Fetched env-after')
             else:
                 env_after = None
         else:
@@ -168,7 +172,8 @@ class Reader(object):
                     self.get_variables(variables, time_before,
                         reader_x, reader_y, depth,
                         block=block)
-                print 'Fetched block-before: ' 
+                logging.debug('Fetched env-block for time before (%s)' %
+                        (time_before))
             if not self.var_block_after.has_key(str(variables)) or \
                 self.var_block_after[str(variables)]['time'] != time_after:
                 if time_after is None:
@@ -179,11 +184,9 @@ class Reader(object):
                         self.get_variables(variables, time_after,
                             reader_x, reader_y, depth,
                             block=block)
-                    print 'Fetched block-after: ' 
+                    logging.debug('Fetched env-block for time after (%s)' %
+                        (time_after))
             # check if buffer-block covers these particles
-            print 'TIME-BLOCK'
-            print self.var_block_before[str(variables)]['time']
-            print self.var_block_after[str(variables)]['time']
             x_before = self.var_block_before[str(variables)]['x']
             y_before = self.var_block_before[str(variables)]['y']
             x_after = self.var_block_after[str(variables)]['x']
@@ -192,39 +195,49 @@ class Reader(object):
                 reader_x_max > x_before.max() or
                 reader_y_min < y_before.min() or
                 reader_y_max > y_before.max()):
-                print 'before needs update'
+                logging.debug('Some elements not covered by before-block')
                 print reader_x_min, x_before.min()
                 update
             else:
-                print 'before is ok'
+                logging.debug('All elements covered by before-block')
             if (reader_x_min < x_after.min() or
                 reader_x_max > x_after.max() or
                 reader_y_min < y_after.min() or
                 reader_y_max > y_after.max()):
-                print 'after needs update'
+                logging.debug('Some elements not covered by after-block')
                 update
             else:
-                print 'after is ok'
+                logging.debug('All elements covered by after-block')
             # Interpolate before/after onto particles in space
             #   x-y
-            print 'Interpolating x-y'
+            logging.debug('Interpolating before (%s) in space' %
+                (self.var_block_before[str(variables)]['time']))
             env_before = self.interpolate_block(
                             self.var_block_before[str(variables)],
                             reader_x, reader_y, depth)
+            logging.debug('Interpolating after (%s) in space' %
+                (self.var_block_after[str(variables)]['time']))
             env_after = self.interpolate_block(
                             self.var_block_after[str(variables)],
                             reader_x, reader_y, depth)
             #   depth interpolation - TBD
 
         # Time interpolation
-        if time_after is not None:
+        if (time_after is not None) and (time_before != time):
             weight = ((time - time_before).total_seconds() /
                        (time_after - time_before).total_seconds())
+            logging.debug('Interpolating before (%s, weight %f) and '
+                          'after (%s, weight %f) in time' %
+                          (self.var_block_before[str(variables)]['time'],
+                          1 - weight,
+                          self.var_block_after[str(variables)]['time'],
+                          weight))
             env = {}
             for var in variables:
                 env[var] = (env_before[var] * (1 - weight) + 
                             env_after[var] * weight)
         else:
+            logging.debug('No time interpolation needed - right on time!')
             env = env_before
 
         return env
