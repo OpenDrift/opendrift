@@ -37,7 +37,7 @@ print o
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 #lon = 10.6; lat = 54.83; # outside Norkyst boundary
-lon = 4.9; lat = 60.0; # Outside Bergen
+lon = 5.9; lat = 60.0; # Outside Bergen
 time = None
 #time = datetime(2015, 5, 4, 18, 0, 0)
 #time = reader_arctic20.start_time
@@ -46,9 +46,9 @@ o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=time)
 #stop
 
 # Running model (until end of driver data)
-o.run(steps=300, time_step=900)
+o.run(steps=100, time_step=900)
 
 # Print and plot results
 print o
 #o.plot(background='sea_water_potential_temperature')
-o.plot()
+o.plot(buffer=.5)

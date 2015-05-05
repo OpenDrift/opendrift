@@ -400,8 +400,8 @@ class OpenDriftSimulation(object):
                 for var in variables:
                     if var in self.fallback_values:
                         # Setting fallback value, presently only numeric
-                        logging.debug('Using fallback value: %s'
-                                  % self.fallback_values[var])
+                        logging.debug('Using fallback value for %s: %s'
+                                  % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
         # Convert dictionary to recarray and return
         return env.view(np.recarray)
@@ -734,9 +734,10 @@ class OpenDriftSimulation(object):
             outStr += 'Time:\n'
             outStr += '\tStart: %s\n' % (self.start_time)
             outStr += '\tPresent: %s\n' % (self.time)
-            outStr += '\tIterations: %i\n' % self.iterations
+            outStr += '\tSteps: %i * %s - total time: %s\n' % (
+                self.iterations, self.time_step, self.time-self.start_time)
         if hasattr(self, 'time_environment'):
-            outStr += 'Time spent:\n'
+            outStr += 'Performance:\n'
             outStr += '\tFetching environment data: %s \n' % (
                 self.time_environment)
             outStr += '\tUpdating elements: %s \n' % self.time_model

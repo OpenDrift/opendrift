@@ -1,5 +1,6 @@
 import importlib
 import logging
+from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
 from scipy.interpolate import RectBivariateSpline, LinearNDInterpolator
 from scipy.spatial import KDTree
@@ -27,6 +28,7 @@ class Reader(object):
     return_block = True  # By default, all readers should be
                          # cabable of returning blocks of data
 
+    start_time = None
     # Dictionaries to store blocks of data for reuse (buffering)
     var_block_before = {}  # Data for last timestep before present
     var_block_after = {}   # Data for first timestep after present
@@ -41,6 +43,19 @@ class Reader(object):
 
         # Set projection for coordinate transformations
         self.proj = pyproj.Proj(self.proj4)
+
+        # Check if there are holes in time domain
+        if self.start_time is not None:
+            self.expected_time_steps = (
+                self.end_time - self.start_time).total_seconds() / (
+                    self.time_step.total_seconds()) + 1
+            if hasattr(self, 'times'):
+                self.missing_time_steps = self.expected_time_steps - \
+                    len(self.times)
+            else:
+                self.missing_time_steps = 0
+            self.actual_time_steps = self.expected_time_steps - \
+                self.missing_time_steps
 
     @abstractmethod
     def get_variables(self, variables, time=None,
@@ -394,9 +409,6 @@ class Reader(object):
     def nearest_time(self, time):
         """Return nearest times before and after the requested time.
 
-        Assuming time step is constant; this method should be
-        overloaded for readers for which this is not the case
-
         Returns:
             nearest_time: datetime
             time_before: datetime
@@ -408,28 +420,27 @@ class Reader(object):
 
         if self.start_time is None:
             return None, None, None, None, None, None
-        indx = float((time - self.start_time).total_seconds()) / \
-            float(self.time_step.total_seconds())
-        indx_nearest = int(round(indx))
-        nearest_time = self.times[indx_nearest]
-        indx_before = int(np.floor(indx))
-        time_before = self.times[indx_before]
-        indx_after = int(np.ceil(indx))
-        time_after = self.times[indx_after]
+        if hasattr(self, 'times'):  # Time as array, possibly with holes
+            indx_before = bisect_left(self.times, time) - 1
+            time_before = self.times[indx_before]
+            indx_after = indx_before + 1
+            time_after = self.times[indx_after]
+            if (time - time_before) < (time_after - time):
+                indx_nearest = indx_before
+            else:
+                indx_nearest = indx_after
+            nearest_time = self.times[indx_nearest]
+        else:  # Time step is constant (no holes)
+            indx = float((time - self.start_time).total_seconds()) / \
+                float(self.time_step.total_seconds())
+            indx_nearest = int(round(indx))
+            nearest_time = self.times[indx_nearest]
+            indx_before = int(np.floor(indx))
+            time_before = self.times[indx_before]
+            indx_after = int(np.ceil(indx))
+            time_after = self.times[indx_after]
         return nearest_time, time_before, time_after,\
                 indx_nearest, indx_before, indx_after
-
-    def index_of_closest_time(self, requestedTime):
-        """Return (internal) index of internal time closest to requested time.
-
-        Assuming time step is constant; this method should be
-        overloaded for readers for which this is not the case
-        """
-        indx = float((requestedTime - self.start_time).total_seconds()) / \
-            float(self.time_step.total_seconds())
-        indx = int(round(indx))
-        nearestTime = self.times[indx]
-        return indx, nearestTime
 
     def index_of_closest_depths(self, requestedDepths):
         """Return (internal) index of depths closest to requested depths.
@@ -482,6 +493,9 @@ class Reader(object):
         outStr += '  start: ' + str(self.start_time) + \
                   '   end: ' + str(self.end_time) + \
                   '   step: ' + str(self.time_step) + '\n'
+        if self.start_time is not None:
+            outStr += '    %i times (%i missing)\n' % (
+                        self.expected_time_steps, self.missing_time_steps)
         outStr += 'Variables:\n'
         for variable in self.variables:
             outStr += '  ' + variable + '\n'

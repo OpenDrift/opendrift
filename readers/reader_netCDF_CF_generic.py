@@ -128,7 +128,8 @@ class Reader(Reader):
         requested_variables, time, x, y, depth, outside = self.check_arguments(
             requested_variables, time, x, y, depth)
 
-        indxTime, nearestTime = self.index_of_closest_time(time)
+        nearestTime,dummy1,dummy2,indxTime,dummy3,dummy4 = \
+            self.nearest_time(time)
 
         try:
             ind_depth = self.index_of_closest_depths(depth)[0]
