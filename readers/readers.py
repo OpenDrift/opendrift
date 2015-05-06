@@ -1,5 +1,9 @@
 import importlib
+import logging
+from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
+from scipy.interpolate import RectBivariateSpline, LinearNDInterpolator
+from scipy.spatial import KDTree
 import numpy as np
 
 
@@ -24,6 +28,11 @@ class Reader(object):
     return_block = True  # By default, all readers should be
                          # cabable of returning blocks of data
 
+    start_time = None
+    # Dictionaries to store blocks of data for reuse (buffering)
+    var_block_before = {}  # Data for last timestep before present
+    var_block_after = {}   # Data for first timestep after present
+
     # Mapping variable names, e.g. from east-north to x-y, temporarily
     # presuming coordinate system then is lon-lat for equivalence
     variable_aliases = {'eastward_sea_water_velocity': 'x_sea_water_velocity',
@@ -34,6 +43,19 @@ class Reader(object):
 
         # Set projection for coordinate transformations
         self.proj = pyproj.Proj(self.proj4)
+
+        # Check if there are holes in time domain
+        if self.start_time is not None:
+            self.expected_time_steps = (
+                self.end_time - self.start_time).total_seconds() / (
+                    self.time_step.total_seconds()) + 1
+            if hasattr(self, 'times'):
+                self.missing_time_steps = self.expected_time_steps - \
+                    len(self.times)
+            else:
+                self.missing_time_steps = 0
+            self.actual_time_steps = self.expected_time_steps - \
+                self.missing_time_steps
 
     @abstractmethod
     def get_variables(self, variables, time=None,
@@ -67,6 +89,174 @@ class Reader(object):
                         interpolation in space and time.
         """
 
+    def interpolate_block(self, block, x, y, depth=None):
+        """Interpolating a 2D or 3D block onto given positions."""
+
+        env = {}
+        for var in block.keys():
+            if not hasattr(block[var], 'ndim'):
+                continue
+            if block[var].ndim == 2:
+                ## Create spline for interpolation
+                block_x, block_y = np.meshgrid(block['x'], block['y'])
+                spl = LinearNDInterpolator((block_y.ravel(), block_x.ravel()),
+                            block[var].ravel())
+                env[var] = spl(y, x)  # Evaluate at positions
+
+                ## Make and use KDTree for interpolation
+                #tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
+                #d,p = tree.query(zip(x,y), k=1) #nearest point, gives distance and point index
+                ### NB - or transpose array first ?
+                #env[var] = block[var].ravel()[p]
+
+            elif block[var].ndim == 3:
+                raise ValueError('Not yet implemented')
+        return env
+
+
+    def get_variables_from_buffer(self, variables, time=None,
+                                  lon=None, lat=None, depth=None, block=False):
+        """Wrapper around get_variables(), reading from buffer if available.
+        
+        Also performs interpolation in the following order:
+        - horizontally (x-y, bilinear)
+        - vertically (z/depth, TBD)
+        - time (linear)
+        
+        """
+
+        # Raise error if not not within time
+        if not self.covers_time(time):
+            raise ValueError('Outside time coverage of ' + self.name)
+        # Find reader time_before/time_after 
+        time_nearest, time_before, time_after, i1, i2, i3 = \
+            self.nearest_time(time)
+        logging.debug('Reader time:\n\t%s (nearest)\n\t%s '
+                      '(before)\n\t%s (after)' %
+                      (time_nearest, time_before, time_after))
+        if time == time_before:
+            time_after = None
+        # Check which particles are covered (indep of time) 
+        ind_covered = self.covers_positions(lon, lat, depth)
+        if len(ind_covered)==0:
+            raise ValueError('All particles are outside domain '
+                             'of ' + self.name)  
+
+        reader_x, reader_y = self.lonlat2xy(lon, lat)
+        reader_x_min = reader_x.min()
+        reader_x_max = reader_x.max()
+        reader_y_min = reader_y.min()
+        reader_y_max = reader_y.max()
+
+        if block is False or self.return_block is False:
+            env_before = self.get_variables(variables, time_before,
+                            reader_x, reader_y, depth,
+                            block=block)
+            logging.debug('Fetched env-before')
+            if time_after is not None:
+                env_after = self.get_variables(variables, time_after,
+                                reader_x, reader_y, depth,
+                                block=block)
+                logging.debug('Fetched env-after')
+            else:
+                env_after = None
+        else:
+            # Swap before- and after-blocks if matching times
+            if self.var_block_before.has_key(str(variables)):
+                block_before_time = self.var_block_before[
+                                        str(variables)]['time']
+                if self.var_block_after.has_key(str(variables)):
+                    block_after_time = self.var_block_after[
+                                        str(variables)]['time']
+                    if block_before_time != time_before:
+                        if block_after_time == time_before:
+                            self.var_block_before[
+                                str(variables)]  = \
+                            self.var_block_after[
+                                str(variables)]
+                    if block_after_time != time_after:
+                        if block_before_time == time_before:
+                            self.var_block_after[
+                                str(variables)]  = \
+                            self.var_block_before[
+                                str(variables)]  
+            # Fetch data, if no buffer is available
+            if not self.var_block_before.has_key(str(variables)) or \
+                self.var_block_before[str(variables)]['time'] != time_before:
+                self.var_block_before[str(variables)] = \
+                    self.get_variables(variables, time_before,
+                        reader_x, reader_y, depth,
+                        block=block)
+                logging.debug('Fetched env-block for time before (%s)' %
+                        (time_before))
+            if not self.var_block_after.has_key(str(variables)) or \
+                self.var_block_after[str(variables)]['time'] != time_after:
+                if time_after is None:
+                    self.var_block_after[str(variables)] = \
+                        self.var_block_before[str(variables)]
+                else:
+                    self.var_block_after[str(variables)] = \
+                        self.get_variables(variables, time_after,
+                            reader_x, reader_y, depth,
+                            block=block)
+                    logging.debug('Fetched env-block for time after (%s)' %
+                        (time_after))
+            # check if buffer-block covers these particles
+            x_before = self.var_block_before[str(variables)]['x']
+            y_before = self.var_block_before[str(variables)]['y']
+            x_after = self.var_block_after[str(variables)]['x']
+            y_after = self.var_block_after[str(variables)]['y']
+            if (reader_x_min < x_before.min() or
+                reader_x_max > x_before.max() or
+                reader_y_min < y_before.min() or
+                reader_y_max > y_before.max()):
+                logging.debug('Some elements not covered by before-block')
+                print reader_x_min, x_before.min()
+                update
+            else:
+                logging.debug('All elements covered by before-block')
+            if (reader_x_min < x_after.min() or
+                reader_x_max > x_after.max() or
+                reader_y_min < y_after.min() or
+                reader_y_max > y_after.max()):
+                logging.debug('Some elements not covered by after-block')
+                update
+            else:
+                logging.debug('All elements covered by after-block')
+            # Interpolate before/after onto particles in space
+            #   x-y
+            logging.debug('Interpolating before (%s) in space' %
+                (self.var_block_before[str(variables)]['time']))
+            env_before = self.interpolate_block(
+                            self.var_block_before[str(variables)],
+                            reader_x, reader_y, depth)
+            logging.debug('Interpolating after (%s) in space' %
+                (self.var_block_after[str(variables)]['time']))
+            env_after = self.interpolate_block(
+                            self.var_block_after[str(variables)],
+                            reader_x, reader_y, depth)
+            #   depth interpolation - TBD
+
+        # Time interpolation
+        if (time_after is not None) and (time_before != time):
+            weight = ((time - time_before).total_seconds() /
+                       (time_after - time_before).total_seconds())
+            logging.debug('Interpolating before (%s, weight %f) and '
+                          'after (%s, weight %f) in time' %
+                          (self.var_block_before[str(variables)]['time'],
+                          1 - weight,
+                          self.var_block_after[str(variables)]['time'],
+                          weight))
+            env = {}
+            for var in variables:
+                env[var] = (env_before[var] * (1 - weight) + 
+                            env_after[var] * weight)
+        else:
+            logging.debug('No time interpolation needed - right on time!')
+            env = env_before
+
+        return env
+
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
@@ -93,6 +283,24 @@ class Reader(object):
         dist = y_az[2]
         return y_az[0]
 
+    def covers_time(self, time):
+
+        if self.start_time is None:
+            return True  # No time limitations of reader
+        if (time < self.start_time) or (time > self.end_time):
+            return False
+        else:
+            return True
+
+    def covers_positions(self, lon, lat, depth):
+        """Return indices of input points covered by reader."""
+        # Calculate x,y coordinates from lon,lat
+        x, y = self.lonlat2xy(lon, lat)
+
+        indices = np.where((x > self.xmin) & (x < self.xmax) &
+                           (y > self.xmin) & (y < self.ymax))[0]
+
+        return indices
 
     def check_coverage(self, time, lon, lat):
         """Check which points are within coverage of reader.
@@ -198,17 +406,41 @@ class Reader(object):
 
         return variables, time, x, y, depth, outside
 
-    def index_of_closest_time(self, requestedTime):
-        """Return (internal) index of internal time closest to requested time.
+    def nearest_time(self, time):
+        """Return nearest times before and after the requested time.
 
-        Assuming time step is constant; this method should be
-        overloaded for readers for which this is not the case
+        Returns:
+            nearest_time: datetime
+            time_before: datetime
+            time_after: datetime
+            indx_nearest: int
+            indx_before: int
+            indx_after: int
         """
-        indx = float((requestedTime - self.start_time).total_seconds()) / \
-            float(self.time_step.total_seconds())
-        indx = int(round(indx))
-        nearestTime = self.times[indx]
-        return indx, nearestTime
+
+        if self.start_time is None:
+            return None, None, None, None, None, None
+        if hasattr(self, 'times'):  # Time as array, possibly with holes
+            indx_before = bisect_left(self.times, time) - 1
+            time_before = self.times[indx_before]
+            indx_after = indx_before + 1
+            time_after = self.times[indx_after]
+            if (time - time_before) < (time_after - time):
+                indx_nearest = indx_before
+            else:
+                indx_nearest = indx_after
+            nearest_time = self.times[indx_nearest]
+        else:  # Time step is constant (no holes)
+            indx = float((time - self.start_time).total_seconds()) / \
+                float(self.time_step.total_seconds())
+            indx_nearest = int(round(indx))
+            nearest_time = self.times[indx_nearest]
+            indx_before = int(np.floor(indx))
+            time_before = self.times[indx_before]
+            indx_after = int(np.ceil(indx))
+            time_after = self.times[indx_after]
+        return nearest_time, time_before, time_after,\
+                indx_nearest, indx_before, indx_after
 
     def index_of_closest_depths(self, requestedDepths):
         """Return (internal) index of depths closest to requested depths.
@@ -261,6 +493,9 @@ class Reader(object):
         outStr += '  start: ' + str(self.start_time) + \
                   '   end: ' + str(self.end_time) + \
                   '   step: ' + str(self.time_step) + '\n'
+        if self.start_time is not None:
+            outStr += '    %i times (%i missing)\n' % (
+                        self.expected_time_steps, self.missing_time_steps)
         outStr += 'Variables:\n'
         for variable in self.variables:
             outStr += '  ' + variable + '\n'

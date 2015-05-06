@@ -7,7 +7,7 @@ from readers import reader_netCDF_CF_generic
 from models.openoil import OpenOil
 from models.model_template import ModelTemplate
 
-o = ModelTemplate(loglevel=20)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
@@ -25,27 +25,32 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
                     urcrnrlon=27, urcrnrlat=79, resolution='h')
 
 #o.add_reader([reader_norkyst])
-#o.add_reader([reader_norkyst, reader_arome, reader_basemap])
-o.add_reader([reader_norkyst, reader_basemap])
-#o.add_reader([reader_norkyst, reader_arctic20, reader_arome, reader_basemap])
+#o.add_reader([reader_arctic20, reader_arome, reader_basemap])
+#o.add_reader([reader_norkyst, reader_basemap])
+#o.add_reader([reader_arctic20, reader_basemap])
+o.add_reader([reader_norkyst, reader_arctic20, reader_arome, reader_basemap])
 
 print o
 
 # Seeding some particles
 #lon = 15; lat = 72.0; # Close to Norkyst boundary
-#lon = 21; lat = 73.5; # Close to Norkyst boundary
+lon = 21; lat = 73.5; # Close to Norkyst boundary
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
+#lon = 10.6; lat = 54.83; # outside Norkyst boundary
 lon = 4.9; lat = 60.0; # Outside Bergen
-lon = 22.6; lat = 71.00; # Barents
+#lon = 22.6; lat = 71.00; # Barents
 time = None
+#time = datetime(2015, 5, 4, 18, 0, 0)
 #time = reader_arctic20.start_time
 o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=time)
 
+#stop
+
 # Running model (until end of driver data)
-o.run(steps=200)
+o.run(steps=300, time_step=900)
 
 # Print and plot results
 print o
 #o.plot(background='sea_water_potential_temperature')
-o.plot()
+o.plot(buffer=.5)

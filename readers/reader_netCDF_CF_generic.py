@@ -128,7 +128,8 @@ class Reader(Reader):
         requested_variables, time, x, y, depth, outside = self.check_arguments(
             requested_variables, time, x, y, depth)
 
-        indxTime, nearestTime = self.index_of_closest_time(time)
+        nearestTime,dummy1,dummy2,indxTime,dummy3,dummy4 = \
+            self.nearest_time(time)
 
         try:
             ind_depth = self.index_of_closest_depths(depth)[0]
@@ -140,10 +141,11 @@ class Reader(Reader):
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
             # Adding buffer of 2, to be checked
-            indx = np.arange(np.max([0, indx.min()]),
-                             np.min([indx.max()+2, self.numx]))
-            indy = np.arange(np.max([0, indy.min()]),
-                             np.min([indy.max()+2, self.numy]))
+            buffer=10
+            indx = np.arange(np.max([0, indx.min()-buffer]),
+                             np.min([indx.max()+buffer, self.numx]))
+            indy = np.arange(np.max([0, indy.min()-buffer]),
+                             np.min([indy.max()+buffer, self.numy]))
         else:
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0
@@ -188,4 +190,5 @@ class Reader(Reader):
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
+        variables['time'] = nearestTime
         return variables
