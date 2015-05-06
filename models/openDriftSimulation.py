@@ -397,7 +397,7 @@ class OpenDriftSimulation(object):
              
             # Perform default action for particles missing env data
             if len(missing_indices) > 0:
-                for var in variables:
+                for var in variable_group:
                     if var in self.fallback_values:
                         # Setting fallback value, presently only numeric
                         logging.debug('Using fallback value for %s: %s'
