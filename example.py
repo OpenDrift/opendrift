@@ -5,9 +5,8 @@ from datetime import datetime, timedelta
 from readers import reader_basemap_landmask
 from readers import reader_netCDF_CF_generic
 from models.openoil import OpenOil
-from models.model_template import ModelTemplate
 
-o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
@@ -43,12 +42,12 @@ lon = 4.9; lat = 60.0; # Outside Bergen
 time = None
 #time = datetime(2015, 5, 4, 18, 0, 0)
 #time = reader_arctic20.start_time
-o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=time)
+o.seed_point(lon, lat, radius=10000, number=500, massOil=5, time=time)
 
 #stop
 
 # Running model (until end of driver data)
-o.run(steps=300, time_step=900)
+o.run(steps=100, time_step=1800)
 
 # Print and plot results
 print o

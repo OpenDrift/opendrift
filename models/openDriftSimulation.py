@@ -10,13 +10,6 @@ import numpy as np
 from readers.readers import pyproj, Reader
 
 
-#class Environment(object):
-#    """Store environment variables (from readers) as named attributes."""
-#
-#    def __init__(self):
-#        pass
-
-
 class OpenDriftSimulation(object):
     """Generic trajectory model class, to be extended (subclassed).
 
@@ -40,8 +33,8 @@ class OpenDriftSimulation(object):
             needed by this model (update function) to update properties of
             particles ('elements') at each time_step. This core class has
             no required_elements, this is implemented by subclasses/modules.
-        environment: Environment object storing environment variables (wind,
-            waves, current etc) as named attributes. Attribute names follow
+        environment: recarray storing environment variables (wind, waves,
+            current etc) as named attributes. Attribute names follow
             standard_name from CF-convention, allowing any OpenDriftSimulation
             module/subclass using environment data from any readers which
             can provide the requested variables. Used in method 'update'
@@ -93,7 +86,7 @@ class OpenDriftSimulation(object):
         np.random.seed(seed)
 
         self.num_elements = 0  # Increase when seeding particles
-        self.iterations = 0  # Increase for each simulation step
+        self.steps = 0  # Increase for each simulation step
         self.elements_deactivated = self.ElementType()  # Empty array
 
         logging.basicConfig(level=loglevel, format='%(levelname)s: %(message)s')
@@ -238,105 +231,15 @@ class OpenDriftSimulation(object):
 
         return variable_groups, reader_groups, missing_variables
 
-    def get_variables(self, variables, time=None,
-                      lon=None, lat=None, depth=None):
-        """Retrieve environment data at given positions by using available readers.
+    def get_environment(self, variables, time, lon, lat, depth):
+        '''Retrieve environmental variables at requested positions.
 
-        Loops through all readers (groups) in their given order to obtain
-        all variables requested by the specific model implementation
-        (required_variables) at the positions of the present collection
-        of active particles (elements).
-        As different readers generally provide variables in different
-        spatial reference systems (SRS), this method takes care of
-        interpolating/reprojecting data onto a common SRS, defined by proj4.
-        The method also rotates vectors (not yet implemented) from native
-        SRS onto the destination SRS.
-        Uses method self.get_reader_groups() to determine which readers
-        shall be used (in which order) to retrieve variables.
-        """
-
-        # Initialise dictionary with empty, masked arrays
-        environment = {}
-        for var in variables:
-            environment[var] = np.ma.array(np.zeros(len(lon)), mask=True)
-
-        # Loop through all groups of variables-readers
-        variable_groups, reader_groups, missing_variables = \
-            self.get_reader_groups(variables)
-        for i, variable_group in enumerate(variable_groups):
-            reader_group = reader_groups[i]
-            # Loop through readers until variables are found for all positions
-            for reader in reader_group:
-                reader = self.readers[reader]  # Use reader object, not name
-                # find which points are still missing
-                missing = environment[variable_group[0]].mask.copy()
-                if not True in missing:
-                    logging.debug('Variables %s found for all elements' %
-                        variable_group)
-                    break  # Variables found at all points
-                logging.debug('%s needed for %i elements, calling reader %s' %
-                              (variable_group, sum(missing), reader.name))
-                try:
-                    # Check first if reader covers elements in time/space
-                    reader_x, reader_y, inside = reader.check_coverage(
-                        time, lon[missing], lat[missing])
-
-                    # Update missing indices to only include positions
-                    # covered by the present reader
-                    missing = np.where(missing)[0][inside]
-
-                # If something wrong, raise exception so that we can
-                # continue to next reader for points still missing
-                except ValueError as e:  # Outside spatial or temporal coverage
-                    logging.info(e)
-                    continue  # Continue to next reader (if any)
-                except Exception as e:
-                    logging.info(e)
-                    raise  # Something unexpected, display error and quit
-
-                # Retrieve data from reader
-                #depth = depth[inside]  # Needed if depth is array as well
-                env = reader.get_variables(variable_group, time,
-                                           reader_x, reader_y,
-                                           depth, block=self.use_block)
-                ###################################################
-                # TBD:
-                # - rotation of vectors
-                # - addition of variable uncertainty
-                ###################################################
-                if self.use_block and reader.return_block:
-                    # Interpolate block onto particle array (nearest point)
-                    # TBD: other interpolation methods
-                    logging.debug('Retrieved blocks of size %s, to be '
-                                  'interpolated.' % 
-                                  (str(env[variable_group[0]].shape)))
-                    block_ind_x = np.round((reader_x-env['x'][0])/
-                                    reader.delta_x).astype(int)
-                    block_ind_y = np.round((reader_y-env['y'][0])/
-                                    reader.delta_y).astype(int)
-                    logging.debug('Block indices range: x [%i-%i], y [%i-%i]' %
-                                  (block_ind_x.min(), block_ind_x.max(),
-                                   block_ind_y.min(), block_ind_y.max()))
-                    # Depth dimention TBD
-                    for var in variable_group:
-                        environment[var][missing] = \
-                            env[var][block_ind_y, block_ind_x]
-                else:
-                    for var in variable_group:
-                        environment[var][missing] = env[var]
-                logging.debug('Retrieved data for %i points from %s.' %
-                                (len(missing), reader.name))
-
-        return environment
-
-    def get_env(self, variables, time, lon, lat, depth):
-        '''
         Updates:
-            [readers].var_block_before
-            [readers].var_block_after
-                - lists of one dictionary per group:
-                    - time, x, y, [vars]
-            (each reader stores raw data blocks as buffer for performance)
+            Buffer (raw data blocks) for each reader stored for performace:
+                [readers].var_block_before (last before requested time)
+                [readers].var_block_after (first after requested time)
+                    - lists of one dictionary per group:
+                        - time, x, y, [vars]
         Returns:
             environment: recarray with variables as named attributes,
                          interpolated to requested positions/time.
@@ -344,10 +247,7 @@ class OpenDriftSimulation(object):
                          to which reader is used for each element.
             
         '''
-        # Initialise dictionary with empty, masked arrays
-        #env = {}
-        #for var in variables:
-        #    env[var] = np.ma.array(np.zeros(len(lon)), mask=True)
+        # Initialise ndarray to hold environment variables
         dtype = [(var, np.float) for var in variables]
         env = np.ma.array(np.zeros(len(lon)), dtype=dtype)
 
@@ -373,19 +273,39 @@ class OpenDriftSimulation(object):
                     % (reader.start_time, reader.end_time))
                     continue
                 # Fetch given variables at given positions from current reader
-                env_tmp = reader.get_variables_from_buffer(variable_group,
-                            time, lon, lat, depth, self.use_block)
+                try:
+                    logging.debug('Data needed for %i elements' % 
+                                    len(missing_indices))
+                    env_tmp = reader.get_variables_from_buffer(
+                        variable_group, time, lon[missing_indices], lat[missing_indices], depth, self.use_block)
+                except Exception as e:
+                    logging.info('========================')
+                    logging.info('Exception:')
+                    logging.info(e)
+                    logging.debug(traceback.format_exc())
+                    logging.info('========================')
+                    continue
                 # Rotation of vectors - TBD
                 # Detect particles with missing data, continue to next reader
                     # Store reader number for the particles covered
 
-                # Copy retrieved variables to env dictionary
+                # Copy retrieved variables to env array
                 for var in variable_group:
                     env[var][missing_indices] = env_tmp[var]
 
-                if hasattr(env[variable_group[0]], 'mask'):
-                    mask = env[variable_group[0]].mask
-                    missing_indices = missing_indices[mask]
+                if hasattr(env_tmp[variable_group[0]], 'mask'):
+                    try:
+                        del combined_mask
+                    except:
+                        pass
+                    for var in variable_group:
+                        if 'combined_mask' not in locals():
+                            combined_mask = np.ma.getmask(env_tmp[var])
+                        else:
+                            combined_mask = np.ma.mask_or(combined_mask,
+                                            np.ma.getmask(env_tmp[var]),
+                                            shrink=False)
+                    missing_indices = missing_indices[combined_mask]
                 else:
                     missing_indices = []  # temporary workaround
                 if len(missing_indices) == 0:
@@ -403,62 +323,13 @@ class OpenDriftSimulation(object):
                         logging.debug('Using fallback value for %s: %s'
                                   % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
+        # Diagnostic output
+        for var in variables:
+            logging.debug('\t%s: %f (min) %f (max)' %
+                            (var, env[var].min(), env[var].max()))
+
         # Convert dictionary to recarray and return
         return env.view(np.recarray)
-
-    def update_environment(self):
-        """Retrieve environmental variables at the positions of all particles.
-        """
-        pass
-
-    def get_environment(self):
-        """Retrieve environmental variables at the positions of all particles.
-
-        Elements for which data is missing will be deactivated by default,
-        unless one of the following options are given in the dictionary
-        fallback_values for the given variable:
-        - a numerical default value (e.g. 0 m waveheight if data are missing)
-        - 'end_simulation' -> simulation is terminated
-        - 'keep_last' -> the value from the previous timestep is kept
-
-        Updates:
-            self.environment
-            self.environment_previous is copied from previous self.environment
-        """
-        if hasattr(self, 'environment'):
-            self.environment_previous = self.environment  # Store last info
-        else:
-            self.environment = Environment()
-
-        env = self.get_variables(self.required_variables,
-                                self.time,
-                                self.elements.lon, self.elements.lat,
-                                self.elements.depth)
-        # Update environment with new data
-
-        # Find out which elements are still missing environment data
-        missing = np.array([False]*len(self.elements))
-        for variable in env.keys():  
-            if sum(env[variable].mask) > 0:
-                logging.debug('Variable %s missing for %i of %i elements.' %
-                              (variable, sum(env[variable].mask),
-                                         len(env[variable].mask)))
-                if variable in self.fallback_values:
-                    # Setting fallback value, presently only numeric
-                    logging.debug('Using fallback value: %s'
-                                  % self.fallback_values[variable])
-                    env[variable][missing] = self.fallback_values[variable]
-                else:
-                    missing = missing | env[variable].mask
-
-        if True in missing:
-            self.deactivate_elements(missing)
-
-        for variable in env.keys():  # Update environment with new data
-            setattr(self.environment, variable, env[variable][~missing])
-
-        if not hasattr(self, 'environment_previous'):
-            self.environment_previous = self.environment  # Use current/first
 
     def seed_point(self, lon, lat, radius, number, time=None, **kwargs):
         """Seed a given number of particles spread around a given position.
@@ -509,7 +380,6 @@ class OpenDriftSimulation(object):
         # Basic, but some more housekeeping will be required later
         self.elements.move_elements(self.elements_deactivated, indices)
         logging.debug('Deactivated %i elements.' % (sum(indices)))
-        # Should also remove items from environment_previous
 
     def run(self, time_step=3600, steps=1000):
         """Start a trajectory simulation, after configuration.
@@ -518,7 +388,7 @@ class OpenDriftSimulation(object):
             - Obtain environment data for positions of all particles.
             - Call method 'update' to update (incl advect) particle properties.
         until one of the following conditions are met:
-            - Maximum number of iterations (steps) are reached
+            - Maximum number of steps are reached
             - A needed variable can not be obtained by any reader
                 (outside spatial/temporal domain) and has no fallback
                 (default) value.
@@ -533,7 +403,7 @@ class OpenDriftSimulation(object):
         Arguments:
             time_step: interval between particles updates, in seconds
                 Default: 3600 (1 hour)
-            steps: integer, maximum number of iterations. End of simulation
+            steps: integer, maximum number of steps. End of simulation
                 will be self.start_time + steps*self.time_step
         """
 
@@ -566,9 +436,12 @@ class OpenDriftSimulation(object):
                 # Get environment data
                 start_time = datetime.now()
                 # Display time to terminal
-                logging.info('%s - iteration %i of %i' % (self.time,
-                             self.iterations, steps))
-                self.environment = self.get_env(self.required_variables,
+                logging.debug('==========================================')
+                logging.info('%s - step %i of %i' % (self.time,
+                             self.steps, steps))
+                logging.debug('==========================================')
+                self.environment = self.get_environment(
+                                                self.required_variables,
                                                 self.time,
                                                 self.elements.lon,
                                                 self.elements.lat,
@@ -577,7 +450,7 @@ class OpenDriftSimulation(object):
                 start_time = datetime.now()
                 # Propagate one timestep forwards
                 self.update()
-                self.iterations += 1
+                self.steps += 1
                 self.time_model += datetime.now() - start_time
                 # Log positions
                 self.lons[i, self.elements.ID-1] = self.elements.lon
@@ -620,7 +493,7 @@ class OpenDriftSimulation(object):
                 longitude/latitude around particle collection.
         """
 
-        if self.iterations <= 2:
+        if self.steps <= 2:
             logging.warning('No trajectories to plot.')
             return
         try:
@@ -672,8 +545,8 @@ class OpenDriftSimulation(object):
         plt.xlabel('%i active %s elements (%i deactivated)' %
                     (len(self.elements.lon), type(self.elements).__name__,
                      len(self.elements_deactivated.lon)))
-        plt.title(type(self).__name__ + '  %s to %s (%i iterations)' %
-                    (self.start_time, self.time, self.iterations))
+        plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
+                    (self.start_time, self.time, self.steps))
         plt.show()
 
     def update_positions(self, x_vel, y_vel):
@@ -705,6 +578,14 @@ class OpenDriftSimulation(object):
         # Calculate lon,lat from x,y
         self.elements.lon, self.elements.lat = self.xy2lonlat(
             self.elements.x, self.elements.y)
+        # Check that new positions are valid
+        if (self.elements.lon.min() < -180) or (
+                self.elements.lon.min() > 360) or (
+                self.elements.lat.min() < -90) or (
+                self.elements.lat.max() > 90):
+            logging.info('Invalid new coordinates:')
+            logging.info(self.elements)
+            sys.exit('Quitting')
 
     def __repr__(self):
         """String representation providing overview of model status."""
@@ -734,8 +615,9 @@ class OpenDriftSimulation(object):
             outStr += 'Time:\n'
             outStr += '\tStart: %s\n' % (self.start_time)
             outStr += '\tPresent: %s\n' % (self.time)
-            outStr += '\tSteps: %i * %s - total time: %s\n' % (
-                self.iterations, self.time_step, self.time-self.start_time)
+            if hasattr(self, 'time_step'):
+                outStr += '\tSteps: %i * %s - total time: %s\n' % (
+                    self.steps, self.time_step, self.time-self.start_time)
         if hasattr(self, 'time_environment'):
             outStr += 'Performance:\n'
             outStr += '\tFetching environment data: %s \n' % (

@@ -1,3 +1,4 @@
+import sys
 import importlib
 import logging
 from bisect import bisect_left
@@ -18,6 +19,12 @@ except:
                           ' please install from '
                           'https://code.google.com/p/pyproj/')
 
+# Som valid (but extreme) ranges for checking that values are reasonable
+standard_names = {
+    'x_wind': {'valid_min': -50, 'valid_max': 50},
+    'y_wind': {'valid_min': -50, 'valid_max': 50},
+    'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
+    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10} }
 
 class Reader(object):
     """Parent Reader class, to be subclassed by specific readers.
@@ -99,8 +106,10 @@ class Reader(object):
             if block[var].ndim == 2:
                 ## Create spline for interpolation
                 block_x, block_y = np.meshgrid(block['x'], block['y'])
-                spl = LinearNDInterpolator((block_y.ravel(), block_x.ravel()),
-                            block[var].ravel())
+                data = block[var]
+                data[data.mask] = np.nan
+                spl = LinearNDInterpolator(
+                        (block_y.ravel(), block_x.ravel()), data.ravel())
                 env[var] = spl(y, x)  # Evaluate at positions
 
                 ## Make and use KDTree for interpolation
@@ -112,7 +121,6 @@ class Reader(object):
             elif block[var].ndim == 3:
                 raise ValueError('Not yet implemented')
         return env
-
 
     def get_variables_from_buffer(self, variables, time=None,
                                   lon=None, lat=None, depth=None, block=False):
@@ -211,8 +219,7 @@ class Reader(object):
                 reader_y_min < y_before.min() or
                 reader_y_max > y_before.max()):
                 logging.debug('Some elements not covered by before-block')
-                print reader_x_min, x_before.min()
-                update
+                update  # to be implemented
             else:
                 logging.debug('All elements covered by before-block')
             if (reader_x_min < x_after.min() or
@@ -220,7 +227,7 @@ class Reader(object):
                 reader_y_min < y_after.min() or
                 reader_y_max > y_after.max()):
                 logging.debug('Some elements not covered by after-block')
-                update
+                update  # to be implemented
             else:
                 logging.debug('All elements covered by after-block')
             # Interpolate before/after onto particles in space
@@ -249,8 +256,17 @@ class Reader(object):
                           weight))
             env = {}
             for var in variables:
-                env[var] = (env_before[var] * (1 - weight) + 
-                            env_after[var] * weight)
+                # Weighting together, and masking invalid entries
+                env[var] = np.ma.masked_invalid(
+                            (env_before[var] * (1 - weight) + 
+                            env_after[var] * weight))
+
+                if var in standard_names.keys():
+                    if (env[var].min() < standard_names[var]['valid_min']) \
+                        or (env[var].max() > standard_names[var]['valid_max']):
+                            logging.info('Invalid values found for ' + var)
+                            logging.ingo(env[var])
+                            sys.exit('quitting') 
         else:
             logging.debug('No time interpolation needed - right on time!')
             env = env_before
@@ -294,6 +310,12 @@ class Reader(object):
 
     def covers_positions(self, lon, lat, depth):
         """Return indices of input points covered by reader."""
+
+        # Compensate for wrapping about 0 or 180 longitude
+        if self.proj.is_latlong():
+            if self.xmax > 180:
+                lon[lon<0] = lon[lon<0] + 360
+
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 

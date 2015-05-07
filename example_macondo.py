@@ -17,8 +17,8 @@ reader_oceanwind = reader_netCDF_CF_generic.Reader('http://www.ncdc.noaa.gov/thr
 print reader_oceanwind
 
 # Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-95, llcrnrlat=20,
-                    urcrnrlon=-80, urcrnrlat=32, resolution='h')
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-95, llcrnrlat=16,
+                    urcrnrlon=-80, urcrnrlat=36, resolution='h')
 
 # Add readers
 print 'adding...'
@@ -28,11 +28,11 @@ o.add_reader([reader_hycom, reader_oceanwind, reader_basemap])
 # Seed some particles
 lon = -88.387161; lat = 28.736669  # Macondo location
 time = datetime(2010, 4, 21, 6, 0, 0)  # 4 hours after explosion
-o.seed_point(lon, lat, radius=10000, number=500, massOil=1, time=time)
+o.seed_point(lon, lat, radius=10000, number=100, massOil=1, time=time)
 
 # Run model
 print o
-o.run(steps=150, time_step=3600*3)  # Using three hour timestep of hycom
+o.run(steps=130, time_step=3600*3)  # Using three hour timestep of hycom
 
 # Print and plot results
 print o
