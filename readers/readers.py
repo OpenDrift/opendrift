@@ -26,6 +26,11 @@ standard_names = {
     'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
     'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10} }
 
+# Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
+vector_pairs_xy = [
+    ['x_wind', 'y_wind'],
+    ['x_sea_water_velocity', 'y_sea_water_velocity']]
+
 class Reader(object):
     """Parent Reader class, to be subclassed by specific readers.
     """
@@ -123,7 +128,8 @@ class Reader(object):
         return env
 
     def get_variables_from_buffer(self, variables, time=None,
-                                  lon=None, lat=None, depth=None, block=False):
+                                  lon=None, lat=None, depth=None,
+                                  block=False, rotate_to_proj=None):
         """Wrapper around get_variables(), reading from buffer if available.
         
         Also performs interpolation in the following order:
@@ -268,8 +274,47 @@ class Reader(object):
                             logging.ingo(env[var])
                             sys.exit('quitting') 
         else:
-            logging.debug('No time interpolation needed - right on time!')
+            logging.debug('No time interpolation needed - right on time.')
             env = env_before
+
+        # Rotate vectors
+        if rotate_to_proj is not None:
+            vector_pairs = []
+            for var in variables:
+                for vector_pair in vector_pairs_xy:
+                    if var in vector_pair:
+                        counterpart = list(set(vector_pair) - set([var]))[0]
+                        if counterpart in variables:
+                            vector_pairs.append(vector_pair)
+                        else:
+                            sys.exit('Missing component of vector pair:' +
+                                        counterpart)
+            # Extract unique vector pairs
+            vector_pairs = [list(x) for x in set(tuple(x)
+                                for x in vector_pairs)]
+            # Calculate azimuth angle between coordinate systems (y-axis)
+            if self.delta_y is None:
+                delta_y = 1000
+            else:
+                delta_y = self.delta_y*.1  # 10% of grid separation
+            x2, y2 = pyproj.transform(self.proj, rotate_to_proj,
+                                        reader_x, reader_y)
+            x2_delta, y2_delta = pyproj.transform(self.proj,
+                                    rotate_to_proj,
+                                    reader_x, reader_y + delta_y)
+            rot_angle_rad = np.arctan2(x2_delta - x2, y2_delta - y2)
+            logging.debug('Rotating vectors to srs: "%s"' %
+                            rotate_to_proj.srs)
+            for vector_pair in vector_pairs:
+                logging.debug('Rotating %s an angle of %f to %f degrees' %
+                    (str(vector_pair), np.degrees(rot_angle_rad).min(),
+                        np.degrees(rot_angle_rad).min()))
+                u2 = (env[vector_pair[0]]*np.cos(rot_angle_rad) -
+                        env[vector_pair[1]]*np.sin(rot_angle_rad))
+                v2 = (env[vector_pair[0]]*np.sin(rot_angle_rad) +
+                        env[vector_pair[1]]*np.cos(rot_angle_rad))
+                env[vector_pair[0]] = u2
+                env[vector_pair[1]] = v2
 
         return env
 

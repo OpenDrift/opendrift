@@ -212,7 +212,7 @@ class OpenDriftSimulation(object):
         reader_groups = []
         # Find all unique reader groups
         for variable, readers in self.priority_list.items():
-            if readers not in reader_groups:
+            if (variable in variables) and (readers not in reader_groups):
                 reader_groups.append(readers)
         # Find all variables returned by the same reader group
         variable_groups = [None]*len(reader_groups)
@@ -277,7 +277,7 @@ class OpenDriftSimulation(object):
                     logging.debug('Data needed for %i elements' % 
                                     len(missing_indices))
                     env_tmp = reader.get_variables_from_buffer(
-                        variable_group, time, lon[missing_indices], lat[missing_indices], depth, self.use_block)
+                        variable_group, time, lon[missing_indices], lat[missing_indices], depth, self.use_block, self.proj)
                 except Exception as e:
                     logging.info('========================')
                     logging.info('Exception:')
@@ -286,13 +286,14 @@ class OpenDriftSimulation(object):
                     logging.info('========================')
                     continue
                 # Rotation of vectors - TBD
-                # Detect particles with missing data, continue to next reader
-                    # Store reader number for the particles covered
+
+                # Store reader number for the particles covered
 
                 # Copy retrieved variables to env array
                 for var in variable_group:
                     env[var][missing_indices] = env_tmp[var]
 
+                # Detect particles with missing data
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
                     try:
                         del combined_mask
@@ -396,7 +397,7 @@ class OpenDriftSimulation(object):
             - Occurance of any error, whose trace will be output to terminal.
 
         Before starting a model run, readers must be added for all
-        reuired variables, and some particles/elements must be seeded.
+        required variables, and some particles/elements must be seeded.
         This function keeps track of the time consumed by obtaining data
         with readers, and updating their properties, respectively.
 
