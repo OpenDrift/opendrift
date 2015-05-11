@@ -75,7 +75,7 @@ class OpenDriftSimulation(object):
         # Dict to store readers
         self.readers = {}  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
-        self.use_block = True  # Set to False if reader shall perform interpolation
+        self.use_block = True  # Set to False if interpolation left to reader
 
         # Set projection, if given
         self.set_projection(proj4)
@@ -89,7 +89,8 @@ class OpenDriftSimulation(object):
         self.steps = 0  # Increase for each simulation step
         self.elements_deactivated = self.ElementType()  # Empty array
 
-        logging.basicConfig(level=loglevel, format='%(levelname)s: %(message)s')
+        logging.basicConfig(level=loglevel,
+                            format='%(levelname)s: %(message)s')
 
         logging.info('OpenDriftSimulation initialised')
 
@@ -120,7 +121,7 @@ class OpenDriftSimulation(object):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
         if self.proj.is_latlong():
-            return lon,lat
+            return lon, lat
         else:
             return self.proj(lon, lat, inverse=False)
 
@@ -128,7 +129,7 @@ class OpenDriftSimulation(object):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
         if self.proj.is_latlong():
-            return x,y
+            return x, y
         else:
             return self.proj(x, y, inverse=True)
 
@@ -192,7 +193,7 @@ class OpenDriftSimulation(object):
     def missing_variables(self):
         """Return list of all variables for which no reader has been added."""
         return [var for var in self.required_variables
-                   if var not in self.priority_list]
+                if var not in self.priority_list]
 
     def get_reader_groups(self, variables=None):
         """Find which groups of variables are provided by the same readers.
@@ -245,7 +246,7 @@ class OpenDriftSimulation(object):
                          interpolated to requested positions/time.
                          Also includes "reader_number" for reference
                          to which reader is used for each element.
-            
+
         '''
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float) for var in variables]
@@ -256,7 +257,7 @@ class OpenDriftSimulation(object):
             self.get_reader_groups(variables)
         for variable in missing_variables:
             env[variable] = np.ma.array(env[variable].filled(
-                                self.fallback_values[variable]))
+                                        self.fallback_values[variable]))
 
         for i, variable_group in enumerate(variable_groups):
             logging.debug('Variable group %s' % (str(variable_group)))
@@ -268,16 +269,19 @@ class OpenDriftSimulation(object):
                 reader = self.readers[reader_name]
                 # Continue if not not within time
                 if (reader.start_time is not None) and (
-                    time < reader.start_time or time > reader.end_time):
-                    logging.debug('Outside time coverage of reader (%s - %s)'
-                    % (reader.start_time, reader.end_time))
+                    (time < reader.start_time) or
+                        (time > reader.end_time)):
+                    logging.debug('Outside time coverage of reader '
+                                  '(%s - %s)' %
+                                  (reader.start_time, reader.end_time))
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
-                    logging.debug('Data needed for %i elements' % 
-                                    len(missing_indices))
+                    logging.debug('Data needed for %i elements' %
+                                  len(missing_indices))
                     env_tmp = reader.get_variables_from_buffer(
-                        variable_group, time, lon[missing_indices], lat[missing_indices], depth, self.use_block, self.proj)
+                        variable_group, time, lon[missing_indices],
+                        lat[missing_indices], depth, self.use_block, self.proj)
                 except Exception as e:
                     logging.info('========================')
                     logging.info('Exception:')
@@ -303,9 +307,10 @@ class OpenDriftSimulation(object):
                         if 'combined_mask' not in locals():
                             combined_mask = np.ma.getmask(env_tmp[var])
                         else:
-                            combined_mask = np.ma.mask_or(combined_mask,
-                                            np.ma.getmask(env_tmp[var]),
-                                            shrink=False)
+                            combined_mask = \
+                                np.ma.mask_or(combined_mask,
+                                              np.ma.getmask(env_tmp[var]),
+                                              shrink=False)
                     missing_indices = missing_indices[combined_mask]
                 else:
                     missing_indices = []  # temporary workaround
@@ -314,20 +319,20 @@ class OpenDriftSimulation(object):
                     break
                 else:
                     logging.debug('Data missing for %i elements' %
-                                    (len(missing_indices)))
-             
+                                  (len(missing_indices)))
+
             # Perform default action for particles missing env data
             if len(missing_indices) > 0:
                 for var in variable_group:
                     if var in self.fallback_values:
                         # Setting fallback value, presently only numeric
                         logging.debug('Using fallback value for %s: %s'
-                                  % (var, self.fallback_values[var]))
+                                      % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
         # Diagnostic output
         for var in variables:
             logging.debug('\t%s: %f (min) %f (max)' %
-                            (var, env[var].min(), env[var].max()))
+                          (var, env[var].min(), env[var].max()))
 
         # Convert dictionary to recarray and return
         return env.view(np.recarray)
@@ -369,7 +374,7 @@ class OpenDriftSimulation(object):
                 raise ValueError('Time must be specified when no '
                                  'reader is added')
             logging.info('Using start time (%s) of reader %s' %
-                            (firstReader.start_time, firstReader.name))
+                         (firstReader.start_time, firstReader.name))
             self.time = firstReader.start_time
         else:
             self.time = time
@@ -410,7 +415,7 @@ class OpenDriftSimulation(object):
 
         missing_variables = self.missing_variables()
         if len(missing_variables) > 0:
-            has_fallback = [var for var in missing_variables 
+            has_fallback = [var for var in missing_variables
                             if var in self.fallback_values]
             if has_fallback == missing_variables:
                 logging.info('Fallback values will be used for the following '
@@ -441,12 +446,12 @@ class OpenDriftSimulation(object):
                 logging.info('%s - step %i of %i' % (self.time,
                              self.steps, steps))
                 logging.debug('==========================================')
-                self.environment = self.get_environment(
-                                                self.required_variables,
-                                                self.time,
-                                                self.elements.lon,
-                                                self.elements.lat,
-                                                self.elements.depth)
+                self.environment = \
+                    self.get_environment(self.required_variables,
+                                         self.time,
+                                         self.elements.lon,
+                                         self.elements.lat,
+                                         self.elements.depth)
                 self.time_environment += datetime.now() - start_time
                 start_time = datetime.now()
                 # Propagate one timestep forwards
@@ -514,8 +519,8 @@ class OpenDriftSimulation(object):
         map.drawcoastlines(color='gray')
         if background is None:  # Fill continents if no field is requested
             map.fillcontinents(color='#ddaa99')
-        map.drawmeridians(np.arange(-360, 360, .5), labels=[0,0,0,0])
-        map.drawparallels(np.arange(-90, 90, .5), labels=[0,1,1,0])
+        map.drawmeridians(np.arange(-360, 360, .5), labels=[0, 0, 0, 0])
+        map.drawparallels(np.arange(-90, 90, .5), labels=[0, 1, 1, 0])
 
         # Trajectories
         x, y = map(self.lons, self.lats)
@@ -544,10 +549,10 @@ class OpenDriftSimulation(object):
             map_x, map_y = map(rlons, rlats)
             map.contourf(map_x, map_y, data, interpolation='nearest')
         plt.xlabel('%i active %s elements (%i deactivated)' %
-                    (len(self.elements.lon), type(self.elements).__name__,
-                     len(self.elements_deactivated.lon)))
+                   (len(self.elements.lon), type(self.elements).__name__,
+                    len(self.elements_deactivated.lon)))
         plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
-                    (self.start_time, self.time, self.steps))
+                  (self.start_time, self.time, self.steps))
         plt.show()
 
     def update_positions(self, x_vel, y_vel):
@@ -569,7 +574,7 @@ class OpenDriftSimulation(object):
         if self.proj.is_latlong():
             geod = pyproj.Geod(ellps='WGS84')
             velocity = np.sqrt(x_vel**2 + y_vel**2)
-            azimuth = np.degrees(np.arctan2(x_vel, y_vel))  # Direction of motion
+            azimuth = np.degrees(np.arctan2(x_vel, y_vel))  # Dir. of motion
             self.elements.x, self.elements.y, back_az = geod.fwd(
                 self.elements.x, self.elements.y,
                 azimuth, velocity*self.time_step.total_seconds())

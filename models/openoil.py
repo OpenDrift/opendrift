@@ -7,7 +7,7 @@ class OpenOil(OpenDriftSimulation):
     """Open source oil trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway based on oil weathering parameterisations
-        found in open/published litterature. 
+        found in open/published litterature.
 
         Under construction.
     """
@@ -27,7 +27,7 @@ class OpenOil(OpenDriftSimulation):
                               self.environment.y_sea_water_velocity)
 
         # Wind drag
-        wind_factor = 0.03
+        wind_factor = 0.02
         self.update_positions(self.environment.x_wind*wind_factor,
                               self.environment.y_wind*wind_factor)
 
@@ -44,4 +44,4 @@ class OpenOil(OpenDriftSimulation):
             self.elements.massEvaporated + evaporated
 
         # Deactivate elements on land
-        self.deactivate_elements(self.environment.land_binary_mask==1)
+        self.deactivate_elements(self.environment.land_binary_mask == 1)

@@ -128,7 +128,7 @@ class Reader(Reader):
         requested_variables, time, x, y, depth, outside = self.check_arguments(
             requested_variables, time, x, y, depth)
 
-        nearestTime,dummy1,dummy2,indxTime,dummy3,dummy4 = \
+        nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
         try:
@@ -140,8 +140,8 @@ class Reader(Reader):
         indx = np.round((x-self.xmin)/self.delta_x).astype(int)
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
-            # Adding buffer of 2, to be checked
-            buffer=10
+            # Adding buffer, to cover also future positions of elements
+            buffer = 10
             indx = np.arange(np.max([0, indx.min()-buffer]),
                              np.min([indx.max()+buffer, self.numx]))
             indy = np.arange(np.max([0, indy.min()-buffer]),
@@ -161,7 +161,7 @@ class Reader(Reader):
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
                 # Temporarily neglecting depth
-               variables[par] = var[indxTime, 0, indy, indx]  # NB 0 was 1
+                variables[par] = var[indxTime, 0, indy, indx]  # NB 0 was 1
             else:
                 raise Exception('Wrong dimension of variable: '
                                 + self.variable_mapping[par])
@@ -173,7 +173,7 @@ class Reader(Reader):
 
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
-            if block == False:
+            if block is False:
                 variables[par].mask[outside[0]] = True
 
         # Store coordinates of returned points

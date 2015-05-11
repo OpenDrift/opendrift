@@ -24,12 +24,13 @@ standard_names = {
     'x_wind': {'valid_min': -50, 'valid_max': 50},
     'y_wind': {'valid_min': -50, 'valid_max': 50},
     'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
-    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10} }
+    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10}}
 
 # Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
 vector_pairs_xy = [
     ['x_wind', 'y_wind'],
     ['x_sea_water_velocity', 'y_sea_water_velocity']]
+
 
 class Reader(object):
     """Parent Reader class, to be subclassed by specific readers.
@@ -60,7 +61,7 @@ class Reader(object):
         if self.start_time is not None:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
-                    self.time_step.total_seconds()) + 1
+                self.time_step.total_seconds()) + 1
             if hasattr(self, 'times'):
                 self.missing_time_steps = self.expected_time_steps - \
                     len(self.times)
@@ -76,12 +77,12 @@ class Reader(object):
 
         Obtain and return values of the requested variables at all positions
         (x, y, depth) closest to given time.
-        
+
         Arguments:
             variables: string, or list of strings (standard_name) of
                 requested variables. These must be provided by reader.
             time: datetime or None, time at which data are requested.
-                Can be None (default) if reader/variable has no time 
+                Can be None (default) if reader/variable has no time
                 dimension (e.g. climatology or landmask).
             x, y: float or ndarrays; coordinates of requested points in the
                 Spatial Reference System (SRS) of the reader (NB!!)
@@ -97,7 +98,7 @@ class Reader(object):
                         (neichbour) of requested position are returned.
                     - 3D ndarray encompassing all requested points in
                         x,y,depth domain if block=True. It is task of invoking
-                        application (OpenDriftSimulation) to perform 
+                        application (OpenDriftSimulation) to perform
                         interpolation in space and time.
         """
 
@@ -113,13 +114,14 @@ class Reader(object):
                 block_x, block_y = np.meshgrid(block['x'], block['y'])
                 data = block[var]
                 data[data.mask] = np.nan
-                spl = LinearNDInterpolator(
-                        (block_y.ravel(), block_x.ravel()), data.ravel())
+                spl = LinearNDInterpolator((block_y.ravel(),
+                                            block_x.ravel()), data.ravel())
                 env[var] = spl(y, x)  # Evaluate at positions
 
                 ## Make and use KDTree for interpolation
                 #tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
-                #d,p = tree.query(zip(x,y), k=1) #nearest point, gives distance and point index
+                #d,p = tree.query(zip(x,y), k=1) #nearest point, gives
+                # distance and point index
                 ### NB - or transpose array first ?
                 #env[var] = block[var].ravel()[p]
 
@@ -131,18 +133,18 @@ class Reader(object):
                                   lon=None, lat=None, depth=None,
                                   block=False, rotate_to_proj=None):
         """Wrapper around get_variables(), reading from buffer if available.
-        
+
         Also performs interpolation in the following order:
         - horizontally (x-y, bilinear)
         - vertically (z/depth, TBD)
         - time (linear)
-        
+
         """
 
         # Raise error if not not within time
         if not self.covers_time(time):
             raise ValueError('Outside time coverage of ' + self.name)
-        # Find reader time_before/time_after 
+        # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
             self.nearest_time(time)
         logging.debug('Reader time:\n\t%s (nearest)\n\t%s '
@@ -150,11 +152,11 @@ class Reader(object):
                       (time_nearest, time_before, time_after))
         if time == time_before:
             time_after = None
-        # Check which particles are covered (indep of time) 
+        # Check which particles are covered (indep of time)
         ind_covered = self.covers_positions(lon, lat, depth)
-        if len(ind_covered)==0:
+        if len(ind_covered) == 0:
             raise ValueError('All particles are outside domain '
-                             'of ' + self.name)  
+                             'of ' + self.name)
 
         reader_x, reader_y = self.lonlat2xy(lon, lat)
         reader_x_min = reader_x.min()
@@ -164,74 +166,71 @@ class Reader(object):
 
         if block is False or self.return_block is False:
             env_before = self.get_variables(variables, time_before,
-                            reader_x, reader_y, depth,
-                            block=block)
+                                            reader_x, reader_y, depth,
+                                            block=block)
             logging.debug('Fetched env-before')
             if time_after is not None:
                 env_after = self.get_variables(variables, time_after,
-                                reader_x, reader_y, depth,
-                                block=block)
+                                               reader_x, reader_y, depth,
+                                               block=block)
                 logging.debug('Fetched env-after')
             else:
                 env_after = None
         else:
             # Swap before- and after-blocks if matching times
-            if self.var_block_before.has_key(str(variables)):
+            if str(variables) in self.var_block_before:
                 block_before_time = self.var_block_before[
-                                        str(variables)]['time']
-                if self.var_block_after.has_key(str(variables)):
+                    str(variables)]['time']
+                if str(variables) in self.var_block_after:
                     block_after_time = self.var_block_after[
-                                        str(variables)]['time']
+                        str(variables)]['time']
                     if block_before_time != time_before:
                         if block_after_time == time_before:
-                            self.var_block_before[
-                                str(variables)]  = \
-                            self.var_block_after[
-                                str(variables)]
+                            self.var_block_before[str(variables)] = \
+                                self.var_block_after[str(variables)]
                     if block_after_time != time_after:
                         if block_before_time == time_before:
-                            self.var_block_after[
-                                str(variables)]  = \
-                            self.var_block_before[
-                                str(variables)]  
+                            self.var_block_after[str(variables)] = \
+                                self.var_block_before[str(variables)]
             # Fetch data, if no buffer is available
-            if not self.var_block_before.has_key(str(variables)) or \
-                self.var_block_before[str(variables)]['time'] != time_before:
+            if (not str(variables) in self.var_block_before) or \
+                    (self.var_block_before[str(variables)]['time']
+                        != time_before):
                 self.var_block_before[str(variables)] = \
                     self.get_variables(variables, time_before,
-                        reader_x, reader_y, depth,
-                        block=block)
+                                       reader_x, reader_y, depth,
+                                       block=block)
                 logging.debug('Fetched env-block for time before (%s)' %
-                        (time_before))
-            if not self.var_block_after.has_key(str(variables)) or \
-                self.var_block_after[str(variables)]['time'] != time_after:
+                              (time_before))
+            if not str(variables) in self.var_block_after or \
+                    self.var_block_after[str(variables)]['time'] != time_after:
                 if time_after is None:
                     self.var_block_after[str(variables)] = \
                         self.var_block_before[str(variables)]
                 else:
                     self.var_block_after[str(variables)] = \
                         self.get_variables(variables, time_after,
-                            reader_x, reader_y, depth,
-                            block=block)
+                                           reader_x, reader_y, depth,
+                                           block=block)
                     logging.debug('Fetched env-block for time after (%s)' %
-                        (time_after))
+                                  (time_after))
             # check if buffer-block covers these particles
             x_before = self.var_block_before[str(variables)]['x']
             y_before = self.var_block_before[str(variables)]['y']
             x_after = self.var_block_after[str(variables)]['x']
             y_after = self.var_block_after[str(variables)]['y']
             if (reader_x_min < x_before.min() or
-                reader_x_max > x_before.max() or
-                reader_y_min < y_before.min() or
-                reader_y_max > y_before.max()):
+                    reader_x_max > x_before.max() or
+                    reader_y_min < y_before.min() or
+                    reader_y_max > y_before.max()):
                 logging.debug('Some elements not covered by before-block')
                 update  # to be implemented
             else:
                 logging.debug('All elements covered by before-block')
             if (reader_x_min < x_after.min() or
-                reader_x_max > x_after.max() or
-                reader_y_min < y_after.min() or
-                reader_y_max > y_after.max()):
+                    reader_x_max > x_after.max() or
+                    reader_y_min < y_after.min() or
+                    reader_y_max > y_after.max()):
                 logging.debug('Some elements not covered by after-block')
                 update  # to be implemented
             else:
@@ -239,40 +238,41 @@ class Reader(object):
             # Interpolate before/after onto particles in space
             #   x-y
             logging.debug('Interpolating before (%s) in space' %
-                (self.var_block_before[str(variables)]['time']))
-            env_before = self.interpolate_block(
-                            self.var_block_before[str(variables)],
-                            reader_x, reader_y, depth)
+                          (self.var_block_before[str(variables)]['time']))
+            env_before = self.interpolate_block(self.var_block_before[
+                                                str(variables)],
+                                                reader_x, reader_y, depth)
             logging.debug('Interpolating after (%s) in space' %
-                (self.var_block_after[str(variables)]['time']))
-            env_after = self.interpolate_block(
-                            self.var_block_after[str(variables)],
-                            reader_x, reader_y, depth)
+                          (self.var_block_after[str(variables)]['time']))
+            env_after = self.interpolate_block(self.var_block_after[
+                                               str(variables)],
+                                               reader_x, reader_y, depth)
             #   depth interpolation - TBD
 
         # Time interpolation
         if (time_after is not None) and (time_before != time):
             weight = ((time - time_before).total_seconds() /
-                       (time_after - time_before).total_seconds())
+                      (time_after - time_before).total_seconds())
             logging.debug('Interpolating before (%s, weight %f) and '
                           'after (%s, weight %f) in time' %
                           (self.var_block_before[str(variables)]['time'],
-                          1 - weight,
-                          self.var_block_after[str(variables)]['time'],
-                          weight))
+                           1 - weight,
+                           self.var_block_after[str(variables)]['time'],
+                           weight))
             env = {}
             for var in variables:
                 # Weighting together, and masking invalid entries
-                env[var] = np.ma.masked_invalid(
-                            (env_before[var] * (1 - weight) + 
-                            env_after[var] * weight))
+                env[var] = np.ma.masked_invalid((env_before[var] *
+                                                (1 - weight) +
+                                                env_after[var] * weight))
 
                 if var in standard_names.keys():
                     if (env[var].min() < standard_names[var]['valid_min']) \
-                        or (env[var].max() > standard_names[var]['valid_max']):
-                            logging.info('Invalid values found for ' + var)
-                            logging.ingo(env[var])
-                            sys.exit('quitting') 
+                            or (env[var].max() >
+                                standard_names[var]['valid_max']):
+                        logging.info('Invalid values found for ' + var)
+                        logging.ingo(env[var])
+                        sys.exit('quitting')
         else:
             logging.debug('No time interpolation needed - right on time.')
             env = env_before
@@ -288,31 +288,32 @@ class Reader(object):
                             vector_pairs.append(vector_pair)
                         else:
                             sys.exit('Missing component of vector pair:' +
-                                        counterpart)
+                                     counterpart)
             # Extract unique vector pairs
             vector_pairs = [list(x) for x in set(tuple(x)
-                                for x in vector_pairs)]
+                            for x in vector_pairs)]
             # Calculate azimuth angle between coordinate systems (y-axis)
             if self.delta_y is None:
                 delta_y = 1000
             else:
                 delta_y = self.delta_y*.1  # 10% of grid separation
             x2, y2 = pyproj.transform(self.proj, rotate_to_proj,
-                                        reader_x, reader_y)
+                                      reader_x, reader_y)
             x2_delta, y2_delta = pyproj.transform(self.proj,
-                                    rotate_to_proj,
-                                    reader_x, reader_y + delta_y)
+                                                  rotate_to_proj,
+                                                  reader_x, reader_y + delta_y)
             rot_angle_rad = np.arctan2(x2_delta - x2, y2_delta - y2)
             logging.debug('Rotating vectors to srs: "%s"' %
-                            rotate_to_proj.srs)
+                          rotate_to_proj.srs)
             for vector_pair in vector_pairs:
                 logging.debug('Rotating %s an angle of %f to %f degrees' %
-                    (str(vector_pair), np.degrees(rot_angle_rad).min(),
-                        np.degrees(rot_angle_rad).min()))
-                u2 = (env[vector_pair[0]]*np.cos(rot_angle_rad) -
-                        env[vector_pair[1]]*np.sin(rot_angle_rad))
-                v2 = (env[vector_pair[0]]*np.sin(rot_angle_rad) +
-                        env[vector_pair[1]]*np.cos(rot_angle_rad))
+                              (str(vector_pair),
+                               np.degrees(rot_angle_rad).min(),
+                               np.degrees(rot_angle_rad).min()))
+                v2 = (env[vector_pair[0]]*np.cos(rot_angle_rad) -
+                      env[vector_pair[1]]*np.sin(rot_angle_rad))
+                u2 = (env[vector_pair[0]]*np.sin(rot_angle_rad) +
+                      env[vector_pair[1]]*np.cos(rot_angle_rad))
                 env[vector_pair[0]] = u2
                 env[vector_pair[1]] = v2
 
@@ -322,7 +323,7 @@ class Reader(object):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
         if self.proj.is_latlong():
-            return x,y
+            return x, y
         else:
             return self.proj(x, y, inverse=True)
 
@@ -330,12 +331,12 @@ class Reader(object):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
         if self.proj.is_latlong():
-            return lon,lat
+            return lon, lat
         else:
             return self.proj(lon, lat, inverse=False)
 
     def y_azimuth(self, lon, lat):
-        """Calculate the azimuth orientation of the y-axis of the reader SRS."""
+        """Calculate azimuth orientation of the y-axis of the reader SRS."""
         x0, y0 = self.lonlat2xy(lon, lat)
         distance = 1000.0  # Create points 1 km away to determine azimuth
         lon_2, lat_2 = self.xy2lonlat(x0, y0 + distance)
@@ -359,7 +360,7 @@ class Reader(object):
         # Compensate for wrapping about 0 or 180 longitude
         if self.proj.is_latlong():
             if self.xmax > 180:
-                lon[lon<0] = lon[lon<0] + 360
+                lon[lon < 0] = lon[lon < 0] + 360
 
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
@@ -371,7 +372,7 @@ class Reader(object):
 
     def check_coverage(self, time, lon, lat):
         """Check which points are within coverage of reader.
-        
+
         Checks that requested positions and time are within coverage of
         this reader, and that it can provide the requested variable(s).
         Returns the input arguments, possibly modified/corrected (below)
@@ -404,14 +405,14 @@ class Reader(object):
         # Compensate for wrapping about 0 or 180 longitude
         if self.proj.is_latlong():
             if self.xmax > 180:
-                lon[lon<0] = lon[lon<0] + 360
+                lon[lon < 0] = lon[lon < 0] + 360
 
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
         indices = np.where((x > self.xmin) & (x < self.xmax) &
                            (y > self.xmin) & (y < self.ymax))[0]
-        if len(indices)==0:
+        if len(indices) == 0:
             raise ValueError('All particles are outside domain '
                              'of ' + self.name)
 
@@ -419,7 +420,7 @@ class Reader(object):
 
     def check_arguments(self, variables, time, x, y, depth):
         """Check validity of arguments input to method get_variables.
-        
+
         Checks that requested positions and time are within coverage of
         this reader, and that it can provide the requested variable(s).
         Returns the input arguments, possibly modified/corrected (below)
@@ -443,7 +444,7 @@ class Reader(object):
 
         # Check time
         if time is None:
-            time = self.start_time  # Get data from first timestep, if not given
+            time = self.start_time  # Use first timestep, if not given
 
         # Convert variables to list and x,y to ndarrays
         if isinstance(variables, str):
@@ -465,8 +466,8 @@ class Reader(object):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
-        outside = np.where((x < self.xmin) | (x > self.xmax ) |
-                           (y < self.xmin) | (y > self.ymax ))
+        outside = np.where((x < self.xmin) | (x > self.xmax) |
+                           (y < self.xmin) | (y > self.ymax))
         if np.size(outside) == np.size(x):
             raise ValueError('All particles are outside domain '
                              'of ' + self.name)
@@ -507,7 +508,7 @@ class Reader(object):
             indx_after = int(np.ceil(indx))
             time_after = self.times[indx_after]
         return nearest_time, time_before, time_after,\
-                indx_nearest, indx_before, indx_after
+            indx_nearest, indx_before, indx_after
 
     def index_of_closest_depths(self, requestedDepths):
         """Return (internal) index of depths closest to requested depths.
@@ -562,7 +563,7 @@ class Reader(object):
                   '   step: ' + str(self.time_step) + '\n'
         if self.start_time is not None:
             outStr += '    %i times (%i missing)\n' % (
-                        self.expected_time_steps, self.missing_time_steps)
+                      self.expected_time_steps, self.missing_time_steps)
         outStr += 'Variables:\n'
         for variable in self.variables:
             outStr += '  ' + variable + '\n'
@@ -589,8 +590,8 @@ class Reader(object):
                       width=width, height=width)
         map.drawcoastlines()
         map.fillcontinents(color='coral')
-        map.drawparallels(np.arange(-90.,90.,5.))
-        map.drawmeridians(np.arange(-180.,181.,5.))
+        map.drawparallels(np.arange(-90., 90., 5.))
+        map.drawmeridians(np.arange(-180., 181., 5.))
         # Get boundary
         npoints = 10  # points per side
         x = np.array([])
@@ -612,5 +613,6 @@ class Reader(object):
         plt.gca().add_patch(boundary)
 # add patch to the map
         plt.title(self.name)
-        plt.xlabel('Time coverage: %s to %s' % (self.start_time, self.end_time))
+        plt.xlabel('Time coverage: %s to %s' %
+                   (self.start_time, self.end_time))
         plt.show()

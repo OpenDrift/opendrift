@@ -27,8 +27,7 @@ class OceanDrift(OpenDriftSimulation):
                                   self.environment.y_sea_water_velocity)
 
         # Deactivate elements on land
-        self.deactivate_elements(self.environment.land_binary_mask==1)
-
+        self.deactivate_elements(self.environment.land_binary_mask == 1)
 
     def move_rungekutta(self):
         """Helper function for Runge-Kutta advection."""
