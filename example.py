@@ -27,8 +27,8 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
 #o.add_reader([reader_arctic20, reader_arome, reader_basemap])
 #o.add_reader([reader_norkyst, reader_basemap])
 #o.add_reader([reader_arctic20, reader_basemap])
-#o.add_reader([reader_norkyst, reader_arome, reader_basemap])
-o.add_reader([reader_norkyst, reader_arctic20, reader_arome, reader_basemap])
+o.add_reader([reader_norkyst, reader_arome, reader_basemap])
+#o.add_reader([reader_norkyst, reader_arctic20, reader_arome, reader_basemap])
 
 # Seeding some particles
 #lon = 15; lat = 72.0; # Close to Norkyst boundary
@@ -40,15 +40,15 @@ lon = 4.9; lat = 60.0; # Outside Bergen
 #lon = 6.73; lat = 62.78; # Outside Trondheim
 #lon = 22.6; lat = 71.00; # Barents
 time = None
-#time = datetime(2015, 5, 11, 0, 0, 0)
+#time = datetime(2015, 5, 12, 15, 0, 0)
 #time = reader_norkyst.start_time
-o.seed_point(lon, lat, radius=5000, number=5, massOil=5, time=time)
+o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=time)
 
 print o
 #o.set_projection('+proj=longlat')
 
 # Running model (until end of driver data)
-o.run(steps=250, time_step=900)
+o.run(steps=250, time_step=200)
 
 # Print and plot results
 print o

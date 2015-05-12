@@ -77,6 +77,9 @@ class OpenDriftSimulation(object):
         self.priority_list = OrderedDict()
         self.use_block = True  # Set to False if interpolation left to reader
 
+        if not hasattr(self, 'fallback_values'):
+            self.fallback_values = {}
+
         # Set projection, if given
         self.set_projection(proj4)
 

@@ -23,8 +23,8 @@ class Reader(Reader):
 
         # Calculate x,y of center of eddy from given lon and lat
         x0, y0 = self.proj(lon, lat)
-        width = 300000  # 600 km box
-        self.pixelsize = 1000 # Artificial 1 km pixel size
+        width = 600000  # 600 km box
+        self.pixelsize = 10000 # Artificial 10 km pixel size
         self.delta_x = self.pixelsize
         self.delta_y = self.pixelsize
         self.x0 = x0
@@ -61,6 +61,7 @@ class Reader(Reader):
         radius = np.sqrt(X*X + Y*Y)
         radius[radius==0] = 1
 
+        variables['time'] = time
         variables['x'] = x
         variables['y'] = y
         variables['x_sea_water_velocity'] = -Y / radius #np.ones((size, size))

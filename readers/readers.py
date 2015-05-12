@@ -129,6 +129,21 @@ class Reader(object):
                 raise ValueError('Not yet implemented')
         return env
 
+    def get_variables_wrapper(self, variables, time, x, y, depth, block):
+        """Wrapper around reader-specific function get_variables()
+
+        Performs some common operations which should not be duplicated:
+        - monitor time spent by this reader
+        - convert any numpy arrays to masked arrays
+        """
+        env = self.get_variables(variables, time, x, y, depth, block)
+
+        # Convert any numpy arrays to masked arrays
+        for var in env.keys():
+            if isinstance(env[var], np.ndarray):
+                env[var] = np.ma.masked_array(env[var], mask=False)
+        return env
+
     def get_variables_from_buffer(self, variables, time=None,
                                   lon=None, lat=None, depth=None,
                                   block=False, rotate_to_proj=None):
@@ -165,14 +180,14 @@ class Reader(object):
         reader_y_max = reader_y.max()
 
         if block is False or self.return_block is False:
-            env_before = self.get_variables(variables, time_before,
-                                            reader_x, reader_y, depth,
-                                            block=block)
+            env_before = self.get_variables_wrapper(variables, time_before,
+                                                    reader_x, reader_y, depth,
+                                                    block=block)
             logging.debug('Fetched env-before')
             if time_after is not None:
-                env_after = self.get_variables(variables, time_after,
-                                               reader_x, reader_y, depth,
-                                               block=block)
+                env_after = self.get_variables_wrapper(variables, time_after,
+                                                       reader_x, reader_y, depth,
+                                                       block=block)
                 logging.debug('Fetched env-after')
             else:
                 env_after = None
@@ -197,9 +212,9 @@ class Reader(object):
                     (self.var_block_before[str(variables)]['time']
                         != time_before):
                 self.var_block_before[str(variables)] = \
-                    self.get_variables(variables, time_before,
-                                       reader_x, reader_y, depth,
-                                       block=block)
+                    self.get_variables_wrapper(variables, time_before,
+                                               reader_x, reader_y, depth,
+                                               block=block)
                 logging.debug('Fetched env-block for time before (%s)' %
                               (time_before))
             if not str(variables) in self.var_block_after or \
@@ -209,9 +224,9 @@ class Reader(object):
                         self.var_block_before[str(variables)]
                 else:
                     self.var_block_after[str(variables)] = \
-                        self.get_variables(variables, time_after,
-                                           reader_x, reader_y, depth,
-                                           block=block)
+                        self.get_variables_wrapper(variables, time_after,
+                                                   reader_x, reader_y, depth,
+                                                   block=block)
                     logging.debug('Fetched env-block for time after (%s)' %
                                   (time_after))
             # check if buffer-block covers these particles
@@ -310,9 +325,9 @@ class Reader(object):
                               (str(vector_pair),
                                np.degrees(rot_angle_rad).min(),
                                np.degrees(rot_angle_rad).min()))
-                v2 = (env[vector_pair[0]]*np.cos(rot_angle_rad) -
+                u2 = (env[vector_pair[0]]*np.cos(rot_angle_rad) -
                       env[vector_pair[1]]*np.sin(rot_angle_rad))
-                u2 = (env[vector_pair[0]]*np.sin(rot_angle_rad) +
+                v2 = (env[vector_pair[0]]*np.sin(rot_angle_rad) +
                       env[vector_pair[1]]*np.cos(rot_angle_rad))
                 env[vector_pair[0]] = u2
                 env[vector_pair[1]] = v2
@@ -502,11 +517,11 @@ class Reader(object):
             indx = float((time - self.start_time).total_seconds()) / \
                 float(self.time_step.total_seconds())
             indx_nearest = int(round(indx))
-            nearest_time = self.times[indx_nearest]
+            nearest_time = self.start_time + indx_nearest*self.time_step
             indx_before = int(np.floor(indx))
-            time_before = self.times[indx_before]
+            time_before = self.start_time + indx_before*self.time_step
             indx_after = int(np.ceil(indx))
-            time_after = self.times[indx_after]
+            time_after = self.start_time + indx_after*self.time_step
         return nearest_time, time_before, time_after,\
             indx_nearest, indx_before, indx_after
 
