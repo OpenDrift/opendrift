@@ -1,4 +1,5 @@
 import sys
+import types
 import traceback
 import logging
 from datetime import datetime, timedelta
@@ -56,7 +57,8 @@ class OpenDriftSimulation(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, proj4=None, seed=0, loglevel=logging.DEBUG):
+    def __init__(self, proj4=None, seed=0, iomodule='netcdf',
+                 outfile=None, loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
 
         Args:
@@ -69,6 +71,10 @@ class OpenDriftSimulation(object):
                 Specifying a fixed value (default: 0) is useful for sensitivity
                 tests. With seed = None, different random numbers will be drawn
                 for subsequent runs, even with identical configuration/input.
+            iomodule: name of module used to export data
+                default: netcdf, see folder 'io' for more alternatives.
+                'iomodule' is module/filename without preceeding 'io_'
+            outfile: file where output from simulation is stored
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
         """
@@ -94,6 +100,18 @@ class OpenDriftSimulation(object):
 
         logging.basicConfig(level=loglevel,
                             format='%(levelname)s: %(message)s')
+
+        # Prepare outfile
+        try:
+            io_module = __import__('io.io_' + iomodule, fromlist =
+                                   ['init', 'write_buffer',
+                                    'close', 'import_file'])
+        except ImportError:
+            logging.info('Could not import iomodule ' + iomodule)
+        self.io_init = types.MethodType(io_module.init, self)
+        self.io_write_buffer = types.MethodType(io_module.write_buffer, self)
+        self.io_close = types.MethodType(io_module.close, self)
+        self.io_import_file = types.MethodType(io_module.import_file, self)
 
         logging.info('OpenDriftSimulation initialised')
 
@@ -390,7 +408,7 @@ class OpenDriftSimulation(object):
         self.elements.move_elements(self.elements_deactivated, indices)
         logging.debug('Deactivated %i elements.' % (sum(indices)))
 
-    def run(self, time_step=3600, steps=1000):
+    def run(self, time_step=3600, steps=1000, outfile=None):
         """Start a trajectory simulation, after configuration.
 
         Performs the loop:
@@ -440,6 +458,13 @@ class OpenDriftSimulation(object):
                                 mask=True)
         self.lats = np.ma.array(np.zeros((steps, len(self.elements))),
                                 mask=True)
+
+        if outfile is not None:
+            self.io_init(outfile, steps=steps)
+        else:
+            self.outfile = None
+        self.bufferlength = steps
+
         for i in range(steps):
             try:
                 # Get environment data
@@ -447,7 +472,7 @@ class OpenDriftSimulation(object):
                 # Display time to terminal
                 logging.debug('==========================================')
                 logging.info('%s - step %i of %i' % (self.time,
-                             self.steps, steps))
+                             self.steps + 1, steps))
                 logging.debug('==========================================')
                 self.environment = \
                     self.get_environment(self.required_variables,
@@ -455,8 +480,10 @@ class OpenDriftSimulation(object):
                                          self.elements.lon,
                                          self.elements.lat,
                                          self.elements.depth)
+
                 self.time_environment += datetime.now() - start_time
                 start_time = datetime.now()
+                self.state_to_buffer()  # Append status to outfile
                 # Propagate one timestep forwards
                 self.update()
                 self.steps += 1
@@ -482,6 +509,35 @@ class OpenDriftSimulation(object):
                 self.lons = self.lons[0:i-1, :]
                 self.lats = self.lats[0:i-1, :]
                 break
+
+        if outfile is not None:
+            # Write buffer to outfile, and close
+            self.steps = self.steps - 1
+            self.io_write_buffer()
+            self.io_close()
+            self.steps = self.steps + 1
+
+    def state_to_buffer(self):
+        """Append present state (elements and environment) to recarray."""
+        if not hasattr(self, 'history'):
+            # Presently only element properties are stored, env TBD
+            self.history = np.ma.array(np.zeros([len(self.elements.lon),
+                                                 self.bufferlength]),
+                                                 dtype=self.elements.dtype,
+                                                 mask=[True])
+            self.steps_exported = 0
+        # Store present state in history recarray
+        for i, var in enumerate(self.elements.variables):
+            self.history[var][self.elements.ID - 1,
+                              self.steps - self.steps_exported] = \
+                getattr(self.elements, var)
+        
+        # Call writer if buffer is full
+        if (self.outfile is not None) and ((self.steps - self.steps_exported) 
+                   == self.bufferlength - 1):
+            self.io_write_buffer()
+
+
 
     def plot(self, background=None, buffer=.5):
         """Basic built-in plotting function intended for developing/debugging.

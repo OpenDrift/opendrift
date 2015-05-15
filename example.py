@@ -6,7 +6,7 @@ from readers import reader_basemap_landmask
 from readers import reader_netCDF_CF_generic
 from models.openoil import OpenOil
 
-o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
@@ -36,7 +36,7 @@ lon = 21; lat = 73.5; # Close to Norkyst boundary
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 #lon = 10.6; lat = 54.83; # outside Norkyst boundary
-lon = 4.9; lat = 60.0; # Outside Bergen
+lon = 5.0; lat = 60.0; # Outside Bergen
 #lon = 6.73; lat = 62.78; # Outside Trondheim
 #lon = 22.6; lat = 71.00; # Barents
 time = None
@@ -48,7 +48,7 @@ print o
 #o.set_projection('+proj=longlat')
 
 # Running model (until end of driver data)
-o.run(steps=250, time_step=200)
+o.run(steps=300, time_step=1800, outfile='openoil.nc')
 
 # Print and plot results
 print o

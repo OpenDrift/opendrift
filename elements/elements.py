@@ -100,6 +100,10 @@ class LagrangianArray(object):
             setattr(self, input_variable, self.variables[input_variable]
                     ['dtype'](kwargs[input_variable]))
 
+        # Store dtypes for all parameters in a common dtype object (for io)
+        self.dtype = np.dtype([(var[0],var[1]['dtype'])
+                               for var in self.variables.items()])
+
     @classmethod
     def add_variables(cls, new_variables):
         """Method used by subclasses to add specific properties/variables."""
