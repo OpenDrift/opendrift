@@ -48,7 +48,7 @@ print o
 #o.set_projection('+proj=longlat')
 
 # Running model (until end of driver data)
-o.run(steps=300, time_step=1800, outfile='openoil.nc')
+o.run(steps=200, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o

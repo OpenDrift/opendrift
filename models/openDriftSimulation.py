@@ -460,10 +460,10 @@ class OpenDriftSimulation(object):
                                 mask=True)
 
         if outfile is not None:
-            self.io_init(outfile, steps=steps)
+            self.io_init(outfile, times=steps+1)
         else:
             self.outfile = None
-        self.bufferlength = steps
+        self.bufferlength = steps + 1
 
         for i in range(steps):
             try:
@@ -512,10 +512,10 @@ class OpenDriftSimulation(object):
 
         if outfile is not None:
             # Write buffer to outfile, and close
-            self.steps = self.steps - 1
-            self.io_write_buffer()
+            self.state_to_buffer()  # Append final status to outfile
+            if self.steps > self.steps_exported:  # Write last lines, if needed
+                self.io_write_buffer()
             self.io_close()
-            self.steps = self.steps + 1
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
@@ -534,10 +534,8 @@ class OpenDriftSimulation(object):
         
         # Call writer if buffer is full
         if (self.outfile is not None) and ((self.steps - self.steps_exported) 
-                   == self.bufferlength - 1):
+                   == self.bufferlength):
             self.io_write_buffer()
-
-
 
     def plot(self, background=None, buffer=.5):
         """Basic built-in plotting function intended for developing/debugging.
