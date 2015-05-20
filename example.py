@@ -6,7 +6,7 @@ from readers import reader_basemap_landmask
 from readers import reader_netCDF_CF_generic
 from models.openoil import OpenOil
 
-o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
@@ -15,6 +15,9 @@ reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/do
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')#, name='norkyst800_file')
+
+# WAM10
+reader_wam10 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/wam/wam10_be')
 
 # Arctic20
 reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be', name='arctic20_thredds')
@@ -27,7 +30,7 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
 #o.add_reader([reader_arctic20, reader_arome, reader_basemap])
 #o.add_reader([reader_norkyst, reader_basemap])
 #o.add_reader([reader_arctic20, reader_basemap])
-o.add_reader([reader_norkyst, reader_arome, reader_basemap])
+o.add_reader([reader_norkyst, reader_arome, reader_wam10, reader_basemap])
 #o.add_reader([reader_norkyst, reader_arctic20, reader_arome, reader_basemap])
 
 # Seeding some particles
@@ -45,10 +48,10 @@ time = None
 o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=time)
 
 print o
-#o.set_projection('+proj=longlat')
+#o.set_projection(reader_arome.proj4)
 
 # Running model (until end of driver data)
-o.run(steps=200, time_step=900, outfile='openoil.nc')
+o.run(steps=80, time_step=1800, outfile='openoil.nc')
 
 # Print and plot results
 print o

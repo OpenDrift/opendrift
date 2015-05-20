@@ -63,6 +63,7 @@ class Reader(Reader):
                 units = var.getncattr('units')
             if standard_name == 'longitude' or \
                     long_name == 'longitude' or \
+                    axis == 'X' or \
                     standard_name == 'projection_x_coordinate':
                 self.xname = var_name
                 # Fix for units; should ideally use udunits package
@@ -75,6 +76,7 @@ class Reader(Reader):
                 self.numx = var.shape[0]
             if standard_name == 'latitude' or \
                     long_name == 'latitude' or \
+                    axis == 'Y' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
                 # Fix for units; should ideally use udunits package

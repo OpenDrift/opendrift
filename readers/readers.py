@@ -340,6 +340,10 @@ class Reader(object):
         if self.proj.is_latlong():
             return x, y
         else:
+            if 'ob_tran' in self.proj4:
+                logging.info('NB: Converting degrees to radians due to ob_tran srs')
+                x = np.radians(np.array(x))
+                y = np.radians(np.array(y))
             return self.proj(x, y, inverse=True)
 
     def lonlat2xy(self, lon, lat):
@@ -348,7 +352,11 @@ class Reader(object):
         if self.proj.is_latlong():
             return lon, lat
         else:
-            return self.proj(lon, lat, inverse=False)
+            x, y = self.proj(lon, lat, inverse=False)
+            if 'ob_tran' in self.proj4:
+                return np.degrees(x), np.degrees(y)
+            else:
+                return x, y
 
     def y_azimuth(self, lon, lat):
         """Calculate azimuth orientation of the y-axis of the reader SRS."""
@@ -381,7 +389,7 @@ class Reader(object):
         x, y = self.lonlat2xy(lon, lat)
 
         indices = np.where((x > self.xmin) & (x < self.xmax) &
-                           (y > self.xmin) & (y < self.ymax))[0]
+                           (y > self.ymin) & (y < self.ymax))[0]
 
         return indices
 
@@ -426,7 +434,7 @@ class Reader(object):
         x, y = self.lonlat2xy(lon, lat)
 
         indices = np.where((x > self.xmin) & (x < self.xmax) &
-                           (y > self.xmin) & (y < self.ymax))[0]
+                           (y > self.ymin) & (y < self.ymax))[0]
         if len(indices) == 0:
             raise ValueError('All particles are outside domain '
                              'of ' + self.name)
@@ -482,7 +490,7 @@ class Reader(object):
                              'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
         outside = np.where((x < self.xmin) | (x > self.xmax) |
-                           (y < self.xmin) | (y > self.ymax))
+                           (y < self.ymin) | (y > self.ymax))
         if np.size(outside) == np.size(x):
             raise ValueError('All particles are outside domain '
                              'of ' + self.name)

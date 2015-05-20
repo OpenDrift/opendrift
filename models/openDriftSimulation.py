@@ -144,7 +144,13 @@ class OpenDriftSimulation(object):
         if self.proj.is_latlong():
             return lon, lat
         else:
-            return self.proj(lon, lat, inverse=False)
+            x, y = self.proj(lon, lat, inverse=False)
+            if 'ob_tran' in self.proj4:
+                # NB: should check if ob_tran is sufficient condition;
+                # may need lonlat as well?
+                return np.degrees(x), np.degrees(y)
+            else:
+                return x, y
 
     def xy2lonlat(self, x, y):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
@@ -152,6 +158,10 @@ class OpenDriftSimulation(object):
         if self.proj.is_latlong():
             return x, y
         else:
+            if 'ob_tran' in self.proj4:
+                logging.info('NB: Converting degrees to radians due to ob_tran srs')
+                x = np.radians(np.array(x))
+                y = np.radians(np.array(y))
             return self.proj(x, y, inverse=True)
 
     def add_reader(self, readers, variables=None):
