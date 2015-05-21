@@ -10,7 +10,7 @@ def init(self, filename, times=None):
     self.outfile = Dataset(filename, 'w')
     self.outfile.createDimension('elementID', len(self.elements.lon))
     self.outfile.createVariable('elementID', 'i4', ('elementID',))
-    self.outfile.createDimension('timeID', times)
+    self.outfile.createDimension('timeID', None)  # Unlimited time dimension
     self.outfile.createVariable('time', 'f4', ('timeID',))
 
     self.outfile.history = 'Created ' + str(datetime.datetime.now())
@@ -57,4 +57,4 @@ def close(self):
     self.outfile.close()  # Finally close file
 
 def import_file(self, filename, time=None):
-    pass
+    pass  # To be implemented

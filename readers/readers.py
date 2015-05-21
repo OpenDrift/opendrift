@@ -308,23 +308,25 @@ class Reader(object):
             vector_pairs = [list(x) for x in set(tuple(x)
                             for x in vector_pairs)]
             # Calculate azimuth angle between coordinate systems (y-axis)
-            if self.delta_y is None:
-                delta_y = 1000
-            else:
-                delta_y = self.delta_y*.1  # 10% of grid separation
+            delta_y = 1000
             x2, y2 = pyproj.transform(self.proj, rotate_to_proj,
                                       reader_x, reader_y)
             x2_delta, y2_delta = pyproj.transform(self.proj,
                                                   rotate_to_proj,
                                                   reader_x, reader_y + delta_y)
-            rot_angle_rad = np.arctan2(x2_delta - x2, y2_delta - y2)
-            logging.debug('Rotating vectors to srs: "%s"' %
-                          rotate_to_proj.srs)
+            if rotate_to_proj.is_latlong():
+                geod = pyproj.Geod(ellps='WGS84')
+                rot_angle_rad = -np.radians(geod.inv(
+                                    x2, y2, x2_delta, y2_delta)[0])
+            else:
+                rot_angle_rad = -np.arctan2(x2_delta - x2, y2_delta - y2)
+
             for vector_pair in vector_pairs:
-                logging.debug('Rotating %s an angle of %f to %f degrees' %
-                              (str(vector_pair),
+                logging.debug('Rotating %s an angle of %f to %f degrees ' 
+                              ' to srs %s' % (str(vector_pair),
                                np.degrees(rot_angle_rad).min(),
-                               np.degrees(rot_angle_rad).min()))
+                               np.degrees(rot_angle_rad).min(),
+                               rotate_to_proj.srs))
                 u2 = (env[vector_pair[0]]*np.cos(rot_angle_rad) -
                       env[vector_pair[1]]*np.sin(rot_angle_rad))
                 v2 = (env[vector_pair[0]]*np.sin(rot_angle_rad) +

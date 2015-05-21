@@ -631,26 +631,30 @@ class OpenDriftSimulation(object):
 
         Arguments:
             x_vel and v_vel: floats, velocities in m/s of particle along
-            x- and y-axes of the inherit SRS (proj4).
+                             x- and y-axes of the inherit SRS (proj4).
         """
 
-        # Calculate x,y from lon,lat
-        self.elements.x, self.elements.y = self.lonlat2xy(
-            self.elements.lon, self.elements.lat)
-        # Update x,y
-        if self.proj.is_latlong():
-            geod = pyproj.Geod(ellps='WGS84')
-            velocity = np.sqrt(x_vel**2 + y_vel**2)
-            azimuth = np.degrees(np.arctan2(x_vel, y_vel))  # Dir. of motion
-            self.elements.x, self.elements.y, back_az = geod.fwd(
-                self.elements.x, self.elements.y,
-                azimuth, velocity*self.time_step.total_seconds())
-        else:
-            self.elements.x += x_vel*self.time_step.total_seconds()
-            self.elements.y += y_vel*self.time_step.total_seconds()
-        # Calculate lon,lat from x,y
-        self.elements.lon, self.elements.lat = self.xy2lonlat(
-            self.elements.x, self.elements.y)
+        geod = pyproj.Geod(ellps='WGS84')
+
+        azimuth = np.degrees(np.arctan2(x_vel, y_vel))  # Direction of motion
+        velocity = np.sqrt(x_vel**2 + y_vel**2)  # Velocity in m/s
+
+        if not self.proj.is_latlong():  # Need to rotate SRS
+            # Calculate x,y from lon,lat
+            self.elements.x, self.elements.y = self.lonlat2xy(
+                self.elements.lon, self.elements.lat)
+            # Calculate azimuth orientation of y-axis at particle locations
+            delta_y = 1000  # Using delta of 1000 m to calculate azimuth
+            lon2, lat2 = self.xy2lonlat(self.elements.x, self.elements.y + delta_y)
+            azimuth_srs = geod.inv(self.elements.lon, self.elements.lat,
+                                   lon2, lat2)[0]
+            azimuth = azimuth + azimuth_srs
+
+        # Calculate new positions
+        self.elements.lon, self.elements.lat, back_az = geod.fwd(
+            self.elements.lon, self.elements.lat,
+            azimuth, velocity*self.time_step.total_seconds())
+
         # Check that new positions are valid
         if (self.elements.lon.min() < -180) or (
                 self.elements.lon.min() > 360) or (
