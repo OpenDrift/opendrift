@@ -494,13 +494,13 @@ class OpenDriftSimulation(object):
                 self.time_environment += datetime.now() - start_time
                 start_time = datetime.now()
                 self.state_to_buffer()  # Append status to outfile
+                # Log positions
+                self.lons[i, self.elements.ID-1] = self.elements.lon
+                self.lats[i, self.elements.ID-1] = self.elements.lat
                 # Propagate one timestep forwards
                 self.update()
                 self.steps += 1
                 self.time_model += datetime.now() - start_time
-                # Log positions
-                self.lons[i, self.elements.ID-1] = self.elements.lon
-                self.lats[i, self.elements.ID-1] = self.elements.lat
                 if len(self.elements) == 0:
                     raise ValueError('No active elements, quitting simulation')
                 logging.debug('%s active elements (%s deactivated)' %

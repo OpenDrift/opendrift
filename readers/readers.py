@@ -514,7 +514,7 @@ class Reader(object):
         if self.start_time is None:
             return None, None, None, None, None, None
         if hasattr(self, 'times'):  # Time as array, possibly with holes
-            indx_before = bisect_left(self.times, time) - 1
+            indx_before = np.max((0, bisect_left(self.times, time) - 1))
             time_before = self.times[indx_before]
             indx_after = indx_before + 1
             time_after = self.times[indx_after]
