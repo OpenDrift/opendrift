@@ -215,8 +215,10 @@ class Reader(object):
                     self.get_variables_wrapper(variables, time_before,
                                                reader_x, reader_y, depth,
                                                block=block)
-                logging.debug('Fetched env-block for time before (%s)' %
-                              (time_before))
+                logging.debug('Fetched env-block (size %ix%i) for time before (%s)' %
+                              (len(self.var_block_before[str(variables)]['x']),
+                               len(self.var_block_before[str(variables)]['y']),
+                               time_before))
             if not str(variables) in self.var_block_after or \
                     self.var_block_after[str(variables)]['time'] != time_after:
                 if time_after is None:
@@ -227,8 +229,9 @@ class Reader(object):
                         self.get_variables_wrapper(variables, time_after,
                                                    reader_x, reader_y, depth,
                                                    block=block)
-                    logging.debug('Fetched env-block for time after (%s)' %
-                                  (time_after))
+                    logging.debug('Fetched env-block (size %ix%i) for time after (%s)' %
+                                  (len(self.var_block_before[str(variables)]['x']),                               len(self.var_block_before[str(variables)]['y']),
+                                    time_after))
             # check if buffer-block covers these particles
             x_before = self.var_block_before[str(variables)]['x']
             y_before = self.var_block_before[str(variables)]['y']

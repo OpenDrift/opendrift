@@ -34,6 +34,8 @@ class LagrangianArray(object):
 
     variables = OrderedDict([
         ('ID', {'dtype': np.int32}),
+        ('status', {'dtype': np.int32,
+                    'default': 0}),
         ('lon', {'dtype': np.float32,
                  'unit': 'degrees',
                  'standard_name': 'longitude'}),

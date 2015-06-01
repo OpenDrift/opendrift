@@ -57,6 +57,9 @@ class OpenDriftSimulation(object):
 
     __metaclass__ = ABCMeta
 
+    status_categories = {'active': 'blue',
+                         'deactivated': 'red'}
+
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  outfile=None, loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
@@ -411,12 +414,28 @@ class OpenDriftSimulation(object):
             self.time = time
         self.start_time = self.time  # Record start time for reference
 
-    def deactivate_elements(self, indices):
-        """Deactivate particles by moving them from elements
-        to elements_deactivated."""
+    def deactivate_elements(self, indices, reason='deactivated'):
+        """Deactivate particles by moving them from self.elements
+        to self.elements_deactivated."""
+        if sum(indices) == 0:
+            return
+        if reason not in self.status_categories:
+            sys.exit('Status %s not registered in model class definition' %
+                     reason)
+        reason_number = self.status_categories.keys().index(reason)
+        if not hasattr(self.elements.status, "__len__"):
+            status = self.elements.status
+            self.elements.status = np.empty(len(self.elements.lon))
+            self.elements.status.fill(status)
+        self.elements.status[indices] = reason_number
+
         # Basic, but some more housekeeping will be required later
         self.elements.move_elements(self.elements_deactivated, indices)
         logging.debug('Deactivated %i elements.' % (sum(indices)))
+        self.environment = self.environment[~indices]
+        logging.debug('Removed %i values from environment.' % (sum(indices)))
+        if len(self.elements.lon) == 0:
+            raise ValueError('No more active elements.')  # End simulation
 
     def run(self, time_step=3600, steps=1000, outfile=None):
         """Start a trajectory simulation, after configuration.
@@ -463,12 +482,6 @@ class OpenDriftSimulation(object):
         # Time step in seconds
         self.time_step = timedelta(seconds=time_step)
 
-        # Initialise arrays to store output (temoprary solution)
-        self.lons = np.ma.array(np.zeros((steps, len(self.elements))),
-                                mask=True)
-        self.lats = np.ma.array(np.zeros((steps, len(self.elements))),
-                                mask=True)
-
         if outfile is not None:
             self.io_init(outfile, times=steps+1)
         else:
@@ -494,9 +507,6 @@ class OpenDriftSimulation(object):
                 self.time_environment += datetime.now() - start_time
                 start_time = datetime.now()
                 self.state_to_buffer()  # Append status to outfile
-                # Log positions
-                self.lons[i, self.elements.ID-1] = self.elements.lon
-                self.lats[i, self.elements.ID-1] = self.elements.lat
                 # Propagate one timestep forwards
                 self.update()
                 self.steps += 1
@@ -515,9 +525,6 @@ class OpenDriftSimulation(object):
                 logging.info(e)
                 logging.info(traceback.format_exc())
                 logging.info('========================')
-                # Truncate lon/lat, and then return
-                self.lons = self.lons[0:i-1, :]
-                self.lats = self.lats[0:i-1, :]
                 break
 
         if outfile is not None:
@@ -566,9 +573,13 @@ class OpenDriftSimulation(object):
                 longitude/latitude around particle collection.
         """
 
-        if self.steps <= 2:
-            logging.warning('No trajectories to plot.')
-            return
+        if hasattr(self, 'history'):
+            lons = self.history['lon']#.T
+            lats = self.history['lat']#.T
+        else:
+            lons = np.ma.array(np.reshape(self.elements.lon, (1, -1)))
+            lats = np.ma.array(np.reshape(self.elements.lat, (1, -1)))
+
         try:
             from mpl_toolkits.basemap import Basemap
             import matplotlib.pyplot as plt
@@ -576,13 +587,16 @@ class OpenDriftSimulation(object):
             sys.exit('Basemap is needed to plot trajectories')
 
         # Initialise map
-        lonmin = self.lons.min() - buffer*2
-        lonmax = self.lons.max() + buffer*2
-        latmin = self.lats.min()
-        latmax = self.lats.max()
-        map = Basemap(lonmin-buffer, latmin-buffer,
-                      lonmax+buffer, latmax+buffer,
-                      resolution='h', projection='merc')
+        lonmin = lons.min() - buffer*2
+        lonmax = lons.max() + buffer*2
+        latmin = lats.min()
+        latmax = lats.max()
+        try:
+            map = self.readers['basemap_landmask'].map
+        except:
+            map = Basemap(lonmin-buffer, latmin-buffer,
+                          lonmax+buffer, latmax+buffer,
+                          resolution='f', projection='merc')
         map.drawcoastlines(color='gray')
         if background is None:  # Fill continents if no field is requested
             map.fillcontinents(color='#ddaa99')
@@ -590,14 +604,36 @@ class OpenDriftSimulation(object):
         map.drawparallels(np.arange(-90, 90, .5), labels=[0, 1, 1, 0])
 
         # Trajectories
-        x, y = map(self.lons, self.lats)
-        numParticles = x.shape[1]
-        index_of_last = (~x.mask).sum(axis=0)-1
-        map.plot(x, y, color='gray')  # Plot trajectories
-        map.plot(x[index_of_last, range(numParticles)],  # Deactivated
-                 y[index_of_last, range(numParticles)], '*', color='r')
-        map.plot(x[-1], y[-1], '*', color='b')  # Active
-        map.plot(x[0], y[0], '*', color='g')  # Seed positions
+        x, y = map(lons, lats)
+        # The more elements, the more transparent we make the lines
+        num_elements = x.shape[0]
+        min_alpha = 0.015
+        max_elements = 5000.0
+        alpha = min_alpha**(2*(num_elements-1)/(max_elements-1))
+        alpha = np.max((min_alpha, alpha))
+        map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
+        legend_entries = []
+        map.scatter(x[:,0], y[:,0], marker='o', zorder=3, color='g',
+                        edgecolor='k',
+                        label='initial (%i)' % x.shape[0])  # Seed positions
+        map.scatter(x[:,-1], y[:,-1], zorder=3, color='b',
+                        edgecolor='k',
+                        label='active (%i)' % (x.shape[0] -
+                        len(self.elements_deactivated.lon)))  # Active
+        index_of_last = (~x.mask).sum(axis=1)-1
+        x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
+                                           self.elements_deactivated.lat)
+        # Plot deactivated elements, labeled by deactivation reason
+        for statusnum, status in enumerate(self.status_categories):
+            if status == 'initial' or status == 'active': continue
+            indices = np.where(self.elements_deactivated.status == statusnum)
+            if len(indices[0]) > 0:
+                map.scatter(x_deactivated[indices], y_deactivated[indices],
+                            zorder=3, edgecolor='k',
+                            color=self.status_categories[status],
+                            label='%s (%i)' % (status, len(indices[0])))
+        plt.legend()
+
         if background is not None:  # Disabled
             # Plot background field, if requested
             for readerName in self.readers:
@@ -620,6 +656,15 @@ class OpenDriftSimulation(object):
                     len(self.elements_deactivated.lon)))
         plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
                   (self.start_time, self.time, self.steps))
+        try:  # Activate figure zooming
+            mng = plt.get_current_fig_manager()
+            mng.toolbar.zoom()
+        except: pass
+            
+        try:  # Maximise figure window size
+            mng.resize(*mng.window.maxsize())
+        except: pass
+
         plt.show()
 
     def update_positions(self, x_vel, y_vel):
