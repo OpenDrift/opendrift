@@ -27,6 +27,7 @@ class LagrangianArray(object):
             numpy ndarrays of same length, or scalars. The core variables
             are:
         ID: an integer identifying each particle.
+        status: 0 for active particles and a positive integer when deactivated
         lon: longitude (np.float32)
         lat: latitude (np.float32)
         depth: depth of the particle in m below sea surface.
@@ -37,13 +38,15 @@ class LagrangianArray(object):
         ('status', {'dtype': np.int32,
                     'default': 0}),
         ('lon', {'dtype': np.float32,
-                 'unit': 'degrees',
-                 'standard_name': 'longitude'}),
+                 'units': 'degrees_east',
+                 'standard_name': 'longitude',
+                 'axis': 'X'}),
         ('lat', {'dtype': np.float32,
-                 'unit': 'degrees',
-                 'standard_name': 'latitude'}),
+                 'units': 'degrees_north',
+                 'standard_name': 'latitude',
+                 'axis': 'Y'}),
         ('depth', {'dtype': np.float32,
-                   'unit': 'm',
+                   'units': 'm',
                    'standard_name': 'depth',
                    'default': 0})])
 

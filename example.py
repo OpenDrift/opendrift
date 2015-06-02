@@ -49,8 +49,9 @@ lon = 4.9; lat = 59.9; # Outside Bergen
 #lon = 22.6; lat = 71.00; # Barents
 time = None
 #time = datetime(2015, 5, 12, 15, 0, 0)
-#time = reader_norkyst.start_time
-o.seed_point(lon, lat, radius=10000, number=1000, massOil=5, time=time)
+time = reader_wam10.start_time
+#o.seed_point(lon, lat, radius=10000, number=1000, massOil=5, time=time)
+o.seed_point(lon, lat, radius=10000, number=2000, massOil=5, time=time)
 
 #o.set_projection(reader_arome.proj4)
 #o.set_projection('+proj=latlong')
