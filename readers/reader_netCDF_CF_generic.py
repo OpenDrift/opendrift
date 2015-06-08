@@ -104,7 +104,9 @@ class Reader(Reader):
         self.times = num2date(time, time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
-        self.time_step = self.times[1] - self.times[0]
+        if len(self.times) > 1:
+            self.time_step = self.times[1] - self.times[0]
+        else: self.time_step = None
 
         # Find all variables having standard_name
         self.variable_mapping = {}
@@ -143,7 +145,7 @@ class Reader(Reader):
         indy = np.round((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
             # Adding buffer, to cover also future positions of elements
-            buffer = 5
+            buffer = 8
             indx = np.arange(np.max([0, indx.min()-buffer]),
                              np.min([indx.max()+buffer, self.numx]))
             indy = np.arange(np.max([0, indy.min()-buffer]),

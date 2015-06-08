@@ -79,3 +79,93 @@ class OpenOil(OpenDriftSimulation):
                               self.environment.y_wind*wind_factor)
 
 
+    def seed_from_gml(self, gmlfile, num_elements=1000):
+        """Read oil slick contours from GML file, and seed particles within."""
+
+        # Specific imports
+        import datetime
+        import matplotlib.nxutils as nx
+        from xml.etree import ElementTree
+        from matplotlib.patches import Polygon
+        from mpl_toolkits.basemap import pyproj
+
+        namespaces = {'od': 'http://cweb.ksat.no/cweb/schema/geoweb/oil',
+                      'gml': 'http://www.opengis.net/gml'}
+        slicks = []
+
+        with open(gmlfile, 'rt') as e:
+            tree = ElementTree.parse(e)
+  
+        pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Polygon'
+        pos2 = 'gml:exterior/gml:LinearRing/gml:posList'
+
+        # Find detection time
+        time_pos = 'od:oilDetectionMember/od:oilDetection/od:detectionTime'
+        self.start_time = datetime.datetime.strptime(
+                        tree.find(time_pos, namespaces).text,
+                                  '%Y-%m-%dT%H:%M:%S.%fZ')
+
+        for patch in tree.findall(pos1, namespaces):
+            pos = patch.find(pos2, namespaces).text
+            c = np.array(pos.split()).astype(np.float)
+            lon = c[0::2]
+            lat = c[1::2]
+            slicks.append(Polygon(zip(lon, lat)))
+
+        # Find boundary and area of all patches
+        lons = np.array([])
+        lats = lons.copy()
+        for slick in slicks:
+            ext = slick.get_extents()
+            lons = np.append(lons, [ext.xmin, ext.xmax])
+            lats = np.append(lats, [ext.ymin, ext.ymax])
+            # Make a stereographic projection centred on the polygon
+        lonmin = lons.min()
+        lonmax = lons.max()
+        latmin = lats.min()
+        latmax = lats.max()
+ 
+        # Place n points within the polygons
+        proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f +lon_0=%f' %
+                           (latmin, latmax, (latmin+latmax)/2, (lonmin+lonmax)/2))
+        slickarea = np.array([])
+        for slick in slicks:
+            lonlat = slick.get_xy()
+            lon = lonlat[:,0]
+            lat = lonlat[:,1]
+            x,y = proj(lon, lat)
+
+            area_of_polygon = 0.0
+            for i in xrange(-1, len(x)-1):
+                area_of_polygon += x[i] * (y[i+1] - y[i-1])
+            area_of_polygon = abs(area_of_polygon) / 2.0
+            slickarea = np.append(slickarea, area_of_polygon) # in m2
+
+        # Make points
+        deltax = np.sqrt(np.sum(slickarea)/num_elements)
+
+        lonpoints = np.array([])
+        latpoints = np.array([])
+        for i, slick in enumerate(slicks):
+            lonlat = slick.get_xy()
+            lon = lonlat[:,0]
+            lat = lonlat[:,1]
+            x,y = proj(lon, lat)
+            xvec = np.arange(x.min(), x.max(), deltax)
+            yvec = np.arange(y.min(), y.max(), deltax)
+            x, y = np.meshgrid(xvec, yvec)
+            lon, lat = proj(x, y, inverse=True)
+            lon = lon.ravel()
+            lat = lat.ravel()
+            points = np.c_[lon, lat]
+            ind = nx.points_inside_poly(points, slick.xy)
+            lonpoints = np.append(lonpoints, lon[ind])
+            latpoints = np.append(latpoints, lat[ind])
+
+        # Finally seed at found positions
+        kwargs = {}
+        kwargs['lon'] = lonpoints
+        kwargs['lat'] = latpoints
+        kwargs['ID'] = np.arange(len(lonpoints)) + 1
+        kwargs['massOil'] = 1
+        self.elements = self.ElementType(**kwargs)

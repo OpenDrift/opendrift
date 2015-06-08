@@ -409,10 +409,9 @@ class OpenDriftSimulation(object):
                                  'reader is added')
             logging.info('Using start time (%s) of reader %s' %
                          (firstReader.start_time, firstReader.name))
-            self.time = firstReader.start_time
+            self.start_time = firstReader.start_time
         else:
-            self.time = time
-        self.start_time = self.time  # Record start time for reference
+            self.start_time = time
 
     def deactivate_elements(self, indices, reason='deactivated'):
         """Deactivate particles by moving them from self.elements
@@ -476,11 +475,13 @@ class OpenDriftSimulation(object):
                 raise ValueError('Readers must be added for the '
                                  'following required variables: '
                                  + str(missing_variables))
-        # Primitive function to test overall functionality
-        self.time_environment = timedelta(seconds=0)
-        self.time_model = timedelta(seconds=0)
-        # Time step in seconds
-        self.time_step = timedelta(seconds=time_step)
+
+        # Store runtime to report on OpenDrift performance
+        self.runtime_environment = timedelta(seconds=0)
+        self.runtime_model = timedelta(seconds=0)
+
+        self.time_step = timedelta(seconds=time_step)  # Time step in seconds
+        self.time = self.start_time  # Start time has been set when seeding
 
         if outfile is not None:
             self.io_init(outfile, times=steps+1)
@@ -491,12 +492,14 @@ class OpenDriftSimulation(object):
         for i in range(steps):
             try:
                 # Get environment data
-                start_time = datetime.now()
+                runtime_start = datetime.now()
                 # Display time to terminal
-                logging.debug('==========================================')
-                logging.info('%s - step %i of %i' % (self.time,
-                             self.steps + 1, steps))
-                logging.debug('==========================================')
+                logging.debug('==================================='*2)
+                logging.info('%s - step %i of %i - %i active elements '
+                             '(%i deactivated)' % (self.time, self.steps + 1,
+                              steps, len(self.elements.lon), 
+                              len(self.elements_deactivated.lon)))
+                logging.debug('==================================='*2)
                 self.environment = \
                     self.get_environment(self.required_variables,
                                          self.time,
@@ -504,13 +507,13 @@ class OpenDriftSimulation(object):
                                          self.elements.lat,
                                          self.elements.depth)
 
-                self.time_environment += datetime.now() - start_time
-                start_time = datetime.now()
+                self.runtime_environment += datetime.now() - runtime_start
+                runtime_start = datetime.now()
                 self.state_to_buffer()  # Append status to outfile
                 # Propagate one timestep forwards
                 self.update()
                 self.steps += 1
-                self.time_model += datetime.now() - start_time
+                self.runtime_model += datetime.now() - runtime_start
                 if len(self.elements) == 0:
                     raise ValueError('No active elements, quitting simulation')
                 logging.debug('%s active elements (%s deactivated)' %
@@ -655,7 +658,8 @@ class OpenDriftSimulation(object):
                    (len(self.elements.lon), type(self.elements).__name__,
                     len(self.elements_deactivated.lon)))
         plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
-                  (self.start_time, self.time, self.steps))
+                  (self.start_time.strftime('%Y-%m-%d %H:%M'),
+                   self.time.strftime('%Y-%m-%d %H:%M'), self.steps))
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
             mng.toolbar.zoom()
@@ -740,10 +744,10 @@ class OpenDriftSimulation(object):
             if hasattr(self, 'time_step'):
                 outStr += '\tSteps: %i * %s - total time: %s\n' % (
                     self.steps, self.time_step, self.time-self.start_time)
-        if hasattr(self, 'time_environment'):
+        if hasattr(self, 'runtime_environment'):
             outStr += 'Performance:\n'
             outStr += '\tFetching environment data: %s \n' % (
-                self.time_environment)
-            outStr += '\tUpdating elements: %s \n' % self.time_model
+                self.runtime_environment)
+            outStr += '\tUpdating elements: %s \n' % self.runtime_model
         outStr += '===========================\n'
         return outStr

@@ -58,7 +58,7 @@ class Reader(object):
         self.proj = pyproj.Proj(self.proj4)
 
         # Check if there are holes in time domain
-        if self.start_time is not None:
+        if self.start_time is not None and len(self.times)>1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
                 self.time_step.total_seconds()) + 1
@@ -242,7 +242,7 @@ class Reader(object):
                     reader_y_min < y_before.min() or
                     reader_y_max > y_before.max()):
                 logging.debug('Some elements not covered by before-block')
-                update  # to be implemented
+                #update  # to be implemented
             else:
                 logging.debug('All elements covered by before-block')
             if (reader_x_min < x_after.min() or
@@ -250,7 +250,7 @@ class Reader(object):
                     reader_y_min < y_after.min() or
                     reader_y_max > y_after.max()):
                 logging.debug('Some elements not covered by after-block')
-                update  # to be implemented
+                #update  # to be implemented
             else:
                 logging.debug('All elements covered by after-block')
             # Interpolate before/after onto particles in space
@@ -589,7 +589,7 @@ class Reader(object):
         outStr += '  start: ' + str(self.start_time) + \
                   '   end: ' + str(self.end_time) + \
                   '   step: ' + str(self.time_step) + '\n'
-        if self.start_time is not None:
+        if self.start_time is not None and self.time_step is not None:
             outStr += '    %i times (%i missing)\n' % (
                       self.expected_time_steps, self.missing_time_steps)
         outStr += 'Variables:\n'
