@@ -11,6 +11,12 @@ import numpy as np
 from readers.readers import pyproj, Reader
 
 
+class ModelSettings(object):
+    # Empty class to store model specific information,
+    # to avoid namespace conflicts with OpenDriftSimulation class
+    pass
+
+
 class OpenDriftSimulation(object):
     """Generic trajectory model class, to be extended (subclassed).
 
@@ -59,6 +65,8 @@ class OpenDriftSimulation(object):
 
     status_categories = {'active': 'blue',
                          'deactivated': 'red'}
+
+    model = ModelSettings  # To store model specific information
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  outfile=None, loglevel=logging.DEBUG):
@@ -289,17 +297,20 @@ class OpenDriftSimulation(object):
         # For each variable/reader group:
         variable_groups, reader_groups, missing_variables = \
             self.get_reader_groups(variables)
-        for variable in missing_variables:
-            env[variable] = np.ma.array(env[variable].filled(
-                                        self.fallback_values[variable]))
+        for variable in missing_variables:  # Use fallback value, if no reader
+            env[variable] = np.ma.ones(env[variable].shape)\
+                                *self.fallback_values[variable]
 
         for i, variable_group in enumerate(variable_groups):
+            logging.debug('----------------------------------------')
             logging.debug('Variable group %s' % (str(variable_group)))
+            logging.debug('----------------------------------------')
             reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
             # For each reader:
             for reader_name in reader_group:
                 logging.debug('Calling reader ' + reader_name)
+                logging.debug('----------------------------------------')
                 reader = self.readers[reader_name]
                 # Continue if not not within time
                 if (reader.start_time is not None) and (
@@ -557,7 +568,7 @@ class OpenDriftSimulation(object):
                    == self.bufferlength):
             self.io_write_buffer()
 
-    def plot(self, background=None, buffer=.5):
+    def plot(self, background=None, buffer=.5, filename=None):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -595,16 +606,18 @@ class OpenDriftSimulation(object):
         latmin = lats.min()
         latmax = lats.max()
         try:
+            skipping
             map = self.readers['basemap_landmask'].map
         except:
             map = Basemap(lonmin-buffer, latmin-buffer,
                           lonmax+buffer, latmax+buffer,
-                          resolution='f', projection='merc')
+                          resolution='h', projection='merc')
+        
         map.drawcoastlines(color='gray')
         if background is None:  # Fill continents if no field is requested
             map.fillcontinents(color='#ddaa99')
-        map.drawmeridians(np.arange(-360, 360, .5), labels=[0, 0, 0, 0])
-        map.drawparallels(np.arange(-90, 90, .5), labels=[0, 1, 1, 0])
+        map.drawmeridians(np.arange(np.floor(map.lonmin), np.ceil(map.lonmax), .05), labels=[0, 0, 0, 1])
+        map.drawparallels(np.arange(np.floor(map.latmin), np.ceil(map.latmax), .01), labels=[0, 1, 1, 0])
 
         # Trajectories
         x, y = map(lons, lats)
@@ -617,10 +630,10 @@ class OpenDriftSimulation(object):
         map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
         legend_entries = []
         map.scatter(x[:,0], y[:,0], marker='o', zorder=3, color='g',
-                        edgecolor='k',
+                        edgecolor='k', linewidths=.2,
                         label='initial (%i)' % x.shape[0])  # Seed positions
         map.scatter(x[:,-1], y[:,-1], zorder=3, color='b',
-                        edgecolor='k',
+                        edgecolor='k', linewidths=.2,
                         label='active (%i)' % (x.shape[0] -
                         len(self.elements_deactivated.lon)))  # Active
         index_of_last = (~x.mask).sum(axis=1)-1
@@ -632,16 +645,20 @@ class OpenDriftSimulation(object):
             indices = np.where(self.elements_deactivated.status == statusnum)
             if len(indices[0]) > 0:
                 map.scatter(x_deactivated[indices], y_deactivated[indices],
-                            zorder=3, edgecolor='k',
+                            zorder=3, edgecolor='k', linewidths=.1,
                             color=self.status_categories[status],
                             label='%s (%i)' % (status, len(indices[0])))
         plt.legend()
 
         if background is not None:  # Disabled
             # Plot background field, if requested
+            if type(background) is list:
+                variable = background[0]  # A vector is requested
+            else:
+                variable = background  # A scalar is requested
             for readerName in self.readers:
                 reader = self.readers[readerName]
-                if background in reader.variables:
+                if variable in reader.variables:
                     break
             # Get lat/lons of ny by nx evenly space grid.
             lons, lats = map.makegrid(4, 4)
@@ -650,13 +667,28 @@ class OpenDriftSimulation(object):
                 background, self.time-self.time_step, reader_x, reader_y,
                 0, block=True)
             reader_x, reader_y = np.meshgrid(data['x'], data['y'])
-            data = data[background]
+            if type(background) is list:
+                u_component = data[background[0]]
+                v_component = data[background[1]]
+                scalar = np.sqrt(u_component**2 + v_component**2)
+                # NB: rotation not completed!
+                u_component, v_component = reader.rotate_vectors(
+                    reader_x, reader_y, u_component, v_component,
+                    reader.proj4, map.srs)
+            else:
+                scalar = data[background]
             rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
             map_x, map_y = map(rlons, rlats)
-            map.contourf(map_x, map_y, data, interpolation='nearest')
-        plt.xlabel('%i active %s elements (%i deactivated)' %
-                   (len(self.elements.lon), type(self.elements).__name__,
-                    len(self.elements_deactivated.lon)))
+            #map.contourf(map_x, map_y, scalar, interpolation='nearest')
+            if type(background) is list:
+                skip = 10
+                map.quiver(rlons[::skip,::skip], rlats[::skip,::skip],
+                           u_component[::skip,::skip],
+                           v_component[::skip,::skip], scale=10)
+
+        #plt.xlabel('%i active %s elements (%i deactivated)' %
+        #           (len(self.elements.lon), type(self.elements).__name__,
+        #            len(self.elements_deactivated.lon)))
         plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
                   (self.start_time.strftime('%Y-%m-%d %H:%M'),
                    self.time.strftime('%Y-%m-%d %H:%M'), self.steps))
@@ -669,6 +701,31 @@ class OpenDriftSimulation(object):
             mng.resize(*mng.window.maxsize())
         except: pass
 
+        if filename is not None:
+            plt.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+
+    def plot_property(self, prop):
+        """Basic function to plot time series of any element properties."""
+        import matplotlib.pyplot as plt
+        from matplotlib import dates
+
+        hfmt = dates.DateFormatter('%d %b %Y %H:%M')
+        fig = plt.figure()
+        ax = fig.gca()
+        ax.xaxis.set_major_formatter(hfmt)
+        plt.xticks(rotation='vertical')
+        data = self.history[prop].T
+        times = [self.start_time + n*self.time_step
+                    for n in range(self.steps + 1)]
+        plt.plot(times, data)
+        plt.title(prop)
+        plt.xlabel('Time  [UTC]')
+        plt.ylabel('%s  [%s]' % (prop, self.elements.variables[prop]['unit']) )
+        plt.subplots_adjust(bottom=.3)
+        plt.grid()
         plt.show()
 
     def update_positions(self, x_vel, y_vel):

@@ -49,7 +49,15 @@ class Reader(object):
     # Mapping variable names, e.g. from east-north to x-y, temporarily
     # presuming coordinate system then is lon-lat for equivalence
     variable_aliases = {'eastward_sea_water_velocity': 'x_sea_water_velocity',
-                        'northward_sea_water_velocity': 'y_sea_water_velocity'}
+                        'northward_sea_water_velocity': 'y_sea_water_velocity',
+                        'eastward_tidal_current':
+                            'x_sea_water_velocity',
+                        'northward_tidal_current':
+                            'y_sea_water_velocity',
+                        'eastward_eulerian_current_velocity':
+                            'x_sea_water_velocity',
+                        'northward_eulerian_current_velocity':
+                            'y_sea_water_velocity'}
 
     def __init__(self):
         # Common constructor for all readers
@@ -338,6 +346,22 @@ class Reader(object):
                 env[vector_pair[1]] = v2
 
         return env
+
+    def rotate_vectors(self, x, y, u, v, proj4, proj4_to):
+        proj = pyproj.Proj(proj4)
+        proj2 = pyproj.Proj(proj4_to)
+        delta_y = 1000
+        x2, y2 = pyproj.transform(proj, proj2, x, y)
+        x2_delta, y2_delta = pyproj.transform(proj, proj2, x, y + delta_y)
+        if proj2.is_latlong():
+            geod = pyproj.Geod(ellps='WGS84')
+            rot_angle_rad = -np.radians(
+                                geod.inv(x2, y2, x2_delta, y2_delta)[0])
+        else:
+            rot_angle_rad = -np.arctan2(x2_delta - x2, y2_delta - y2)
+        u2 = (u*np.cos(rot_angle_rad) - v*np.sin(rot_angle_rad))
+        v2 = (u*np.sin(rot_angle_rad) + v*np.cos(rot_angle_rad))
+        return u2, v2
 
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).

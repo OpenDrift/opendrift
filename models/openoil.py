@@ -1,6 +1,42 @@
-from openDriftSimulation import OpenDriftSimulation
-from elements.oil import Oil
+import os
 import numpy as np
+
+from openDriftSimulation import OpenDriftSimulation
+from elements import LagrangianArray
+
+# Defining the oil element properties
+class Oil(LagrangianArray):
+    """Extending LagrangianArray with variables relevant for oil particles."""
+    
+    variables = LagrangianArray.add_variables([
+        ('mass_oil', {'dtype': np.float32,
+                     'unit': 'kg',
+                     'default': 1}),
+        ('viscosity', {'dtype': np.float32,
+                       'unit': 'mm2/s (centiStokes)',
+                       'default': 100}),
+        ('density', {'dtype': np.float32,
+                     'unit': 'kg/cm^3',
+                     'default': .8}),
+        ('age_seconds', {'dtype': np.float32,
+                         'unit': 's',
+                         'default': 0}),
+        ('age_exposure_seconds', {'dtype': np.float32,
+                                  'unit': 's',
+                                  'default': 0}),
+        ('age_emulsion_seconds', {'dtype': np.float32,
+                                  'unit': 's',
+                                  'default': 0}),
+        ('mass_emulsion', {'dtype': np.float32,
+                          'unit': 'kg',
+                          'default': 0}),
+        ('fraction_evaporated', {'dtype': np.float32,
+                          'unit': 'fraction',
+                          'default': 0}),
+        ('water_content', {'dtype': np.float32,
+                          'unit': 'fraction',
+                          'default': 0})])
+
 
 
 class OpenOil(OpenDriftSimulation):
@@ -31,18 +67,59 @@ class OpenOil(OpenDriftSimulation):
                          'evaporated': 'yellow',
                          'stranded': 'red'}
 
+    wind_factor = 0.02
+
+    def __init__(self, *args, **kwargs):
+
+        # Read oil properties from file
+        d = os.path.dirname(os.path.realpath(__file__))
+        oilprop = np.loadtxt(d + '/prop.dat')
+        self.model.fref = oilprop[1:, 1]*.01  # Evaporation as fraction
+        self.model.tref = oilprop[1:, 0]*3600  # Time in seconds
+        self.model.wmax = oilprop[1:, 3]  # 
+        self.model.reference_wind = oilprop[0,1]
+        self.model.reference_thickness = oilprop[0,0]
+
+        # Calling general constructor of parent class
+        super(OpenOil, self).__init__(*args, **kwargs)
+
+
     def update(self):
         """Update positions and properties of oil particles."""
 
-        ## Evaporation
+        self.elements.age_seconds += self.elements.age_seconds \
+                                        + self.time_step.total_seconds()
+
         windspeed = np.sqrt(self.environment.x_wind**2 +
                             self.environment.y_wind**2)
 
-        # Evaporate 10% of oil mass
-        evaporated = self.elements.massOil*0.1
-        self.elements.massOil = self.elements.massOil - evaporated
-        self.elements.massEvaporated = \
-            self.elements.massEvaporated + evaporated
+        ################
+        ## Evaporation
+        ################
+        # NB: temorarily assuming all particles are at ocean surface!
+
+        Urel = windspeed/self.model.reference_wind  # Relative wind
+        h = 2  # Film thickness in mm, harcoded for now
+        self.elements.age_exposure_seconds += \
+            (self.model.reference_thickness/h)*Urel* \
+             self.time_step.total_seconds()
+
+        self.elements.fraction_evaporated = np.interp(
+            self.elements.age_exposure_seconds,
+            self.model.tref, self.model.fref)
+
+
+        ##################
+        # Emulsification
+        ##################
+
+        # Apparent emulsion age of particles
+        self.elements.age_emulsion_seconds += \
+            Urel*self.time_step.total_seconds()
+
+        self.elements.water_content = np.interp(
+            self.elements.age_emulsion_seconds,
+            self.model.tref, self.model.wmax)
 
         ###############
         # Dispersion
@@ -63,20 +140,23 @@ class OpenOil(OpenDriftSimulation):
         droplet_size = np.power((p*oil_per_unit_surface)/(c_oil*
                                 np.power(dissipation_energy, 0.57)),
                                 1/1.17)
-        self.deactivate_elements(droplet_size<1E-7, reason='dispersed')
+        #self.deactivate_elements(droplet_size<1E-7, reason='dispersed')
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
                                  reason='stranded')
+
+        # Deactivate evaporated elements
+        self.deactivate_elements(self.elements.fraction_evaporated > 0.7,
+                                 reason='evaporated')
 
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
                               self.environment.y_sea_water_velocity)
 
         # Wind drag
-        wind_factor = 0.02
-        self.update_positions(self.environment.x_wind*wind_factor,
-                              self.environment.y_wind*wind_factor)
+        self.update_positions(self.environment.x_wind*self.wind_factor,
+                              self.environment.y_wind*self.wind_factor)
 
 
     def seed_from_gml(self, gmlfile, num_elements=1000):
@@ -98,6 +178,12 @@ class OpenOil(OpenDriftSimulation):
   
         pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Polygon'
         pos2 = 'gml:exterior/gml:LinearRing/gml:posList'
+
+        # This retrieves some other types of patches, found in some files only
+        # Should be combines with the above, to get all patches
+        #pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Surface/gml:polygonPatches'
+        #pos2 = 'gml:PolygonPatch/gml:exterior/gml:LinearRing/gml:posList'
+
 
         # Find detection time
         time_pos = 'od:oilDetectionMember/od:oilDetection/od:detectionTime'
@@ -167,5 +253,5 @@ class OpenOil(OpenDriftSimulation):
         kwargs['lon'] = lonpoints
         kwargs['lat'] = latpoints
         kwargs['ID'] = np.arange(len(lonpoints)) + 1
-        kwargs['massOil'] = 1
+        kwargs['mass_oil'] = 1
         self.elements = self.ElementType(**kwargs)
