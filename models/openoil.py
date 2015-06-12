@@ -158,6 +158,18 @@ class OpenOil(OpenDriftSimulation):
         self.update_positions(self.environment.x_wind*self.wind_factor,
                               self.environment.y_wind*self.wind_factor)
 
+        # Uncertainty / diffusion
+        std_current_comp = .1  # Current
+        sigma_u = np.random.normal(0, std_current_comp, self.num_elements())
+        sigma_v = np.random.normal(0, std_current_comp, self.num_elements())
+        self.update_positions(sigma_u, sigma_v)
+
+        std_wind_comp = 1.0  # Wind
+        sigma_u = np.random.normal(0, std_wind_comp*self.wind_factor,
+                                   self.num_elements())
+        sigma_v = np.random.normal(0, std_wind_comp*self.wind_factor,
+                                   self.num_elements())
+        self.update_positions(sigma_u, sigma_v)
 
     def seed_from_gml(self, gmlfile, num_elements=1000):
         """Read oil slick contours from GML file, and seed particles within."""
@@ -181,8 +193,8 @@ class OpenOil(OpenDriftSimulation):
 
         # This retrieves some other types of patches, found in some files only
         # Should be combines with the above, to get all patches
-        #pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Surface/gml:polygonPatches'
-        #pos2 = 'gml:PolygonPatch/gml:exterior/gml:LinearRing/gml:posList'
+        pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Surface/gml:polygonPatches'
+        pos2 = 'gml:PolygonPatch/gml:exterior/gml:LinearRing/gml:posList'
 
 
         # Find detection time

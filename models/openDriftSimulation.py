@@ -105,7 +105,6 @@ class OpenDriftSimulation(object):
         # Use seed = None to get different random numbers each time
         np.random.seed(seed)
 
-        self.num_elements = 0  # Increase when seeding particles
         self.steps = 0  # Increase for each simulation step
         self.elements_deactivated = self.ElementType()  # Empty array
 
@@ -114,7 +113,7 @@ class OpenDriftSimulation(object):
 
         # Prepare outfile
         try:
-            io_module = __import__('io.io_' + iomodule, fromlist =
+            io_module = __import__('export.io_' + iomodule, fromlist =
                                    ['init', 'write_buffer',
                                     'close', 'import_file'])
         except ImportError:
@@ -382,6 +381,13 @@ class OpenDriftSimulation(object):
         # Convert dictionary to recarray and return
         return env.view(np.recarray)
 
+    def num_elements(self):
+        """The number of active elements"""
+        if hasattr(self, 'elements'):
+            return len(self.elements.lon)
+        else:
+            return 0
+
     def seed_point(self, lon, lat, radius, number, time=None, **kwargs):
         """Seed a given number of particles spread around a given position.
 
@@ -402,8 +408,8 @@ class OpenDriftSimulation(object):
         radius = radius/111000.  # convert radius from m to degrees
         kwargs['lon'] = lon + radius*(np.random.rand(number) - 0.5)
         kwargs['lat'] = lat + radius*(np.random.rand(number) - 0.5)
-        kwargs['ID'] = np.arange(self.num_elements + 1,
-                                 self.num_elements + number + 1)
+        kwargs['ID'] = np.arange(self.num_elements() + 1,
+                                 self.num_elements() + number + 1)
         if hasattr(self, 'elements'):
             self.elements.extend(self.ElementType(**kwargs))
         else:
@@ -568,7 +574,8 @@ class OpenDriftSimulation(object):
                    == self.bufferlength):
             self.io_write_buffer()
 
-    def plot(self, background=None, buffer=.5, filename=None):
+    def plot(self, background=None, buffer=.5,
+                filename=None, drifter_file=None):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -686,12 +693,19 @@ class OpenDriftSimulation(object):
                            u_component[::skip,::skip],
                            v_component[::skip,::skip], scale=10)
 
-        #plt.xlabel('%i active %s elements (%i deactivated)' %
-        #           (len(self.elements.lon), type(self.elements).__name__,
-        #            len(self.elements_deactivated.lon)))
         plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
                   (self.start_time.strftime('%Y-%m-%d %H:%M'),
                    self.time.strftime('%Y-%m-%d %H:%M'), self.steps))
+
+        if drifter_file is not None:
+            for dfile in drifter_file:
+                data = np.recfromcsv(dfile)
+                x, y = map(data['longitude'], data['latitude'])
+                map.plot(x, y, '-k', linewidth=2)
+                map.plot(x[0], y[0], '*k')
+                map.plot(x[-1], y[-1], '*k')
+
+
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
             mng.toolbar.zoom()
