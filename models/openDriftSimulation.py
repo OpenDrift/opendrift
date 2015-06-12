@@ -623,8 +623,8 @@ class OpenDriftSimulation(object):
         map.drawcoastlines(color='gray')
         if background is None:  # Fill continents if no field is requested
             map.fillcontinents(color='#ddaa99')
-        map.drawmeridians(np.arange(np.floor(map.lonmin), np.ceil(map.lonmax), .05), labels=[0, 0, 0, 1])
-        map.drawparallels(np.arange(np.floor(map.latmin), np.ceil(map.latmax), .01), labels=[0, 1, 1, 0])
+        map.drawmeridians(np.arange(np.floor(map.lonmin), np.ceil(map.lonmax), .5), labels=[0, 0, 0, 1])
+        map.drawparallels(np.arange(np.floor(map.latmin), np.ceil(map.latmax), .5), labels=[0, 1, 1, 0])
 
         # Trajectories
         x, y = map(lons, lats)
