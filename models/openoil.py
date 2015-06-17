@@ -193,8 +193,8 @@ class OpenOil(OpenDriftSimulation):
 
         # This retrieves some other types of patches, found in some files only
         # Should be combines with the above, to get all patches
-        pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Surface/gml:polygonPatches'
-        pos2 = 'gml:PolygonPatch/gml:exterior/gml:LinearRing/gml:posList'
+        #pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Surface/gml:polygonPatches'
+        #pos2 = 'gml:PolygonPatch/gml:exterior/gml:LinearRing/gml:posList'
 
 
         # Find detection time

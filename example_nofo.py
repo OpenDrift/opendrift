@@ -71,8 +71,8 @@ o.seed_point(2.391800, 60.051200, radius=0, number=500, time=time)
 #o.elements = o.ElementType(**kwargs)
 o.start_time = datetime(2015, 6, 10, 5, 15, 0)
 
-#o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150608_171458_0045_SCNA_HH_SGF_401754_5438_11441747_Oil.gml', num_elements=1000)
 #o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150611_172613_0086_SCNB_HH_SGF_402348_0016_11441894_Oil.gml', num_elements=1000)
+o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150615_053843_0045_SCNA_HHHV_SGF_403055_5578_11441860_Oil.gml', num_elements=1000)
 #o.start_time = reader_nordic4.start_time
 
 #o.set_projection(reader_arome.proj4)
@@ -80,7 +80,7 @@ o.start_time = datetime(2015, 6, 10, 5, 15, 0)
 
 # Running model (until end of driver data)
 o.wind_factor = 0.035
-o.run(steps=4*50, time_step=900, outfile='openoil.nc')
+o.run(steps=4*10, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o
