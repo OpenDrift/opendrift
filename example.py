@@ -70,7 +70,7 @@ o.seed_point(lon, lat, radius=1000, number=1000, time=time)
 #o.wind_factor = 0.03
 o.dispersion = True
 o.diffusion = True
-o.run(steps=60*4, time_step=900, outfile='openoil.nc')
+o.run(steps=70*4, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o

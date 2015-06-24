@@ -48,16 +48,13 @@ class Reader(object):
 
     # Mapping variable names, e.g. from east-north to x-y, temporarily
     # presuming coordinate system then is lon-lat for equivalence
-    variable_aliases = {'eastward_sea_water_velocity': 'x_sea_water_velocity',
-                        'northward_sea_water_velocity': 'y_sea_water_velocity',
-                        'eastward_tidal_current':
-                            'x_sea_water_velocity',
-                        'northward_tidal_current':
-                            'y_sea_water_velocity',
-                        'eastward_eulerian_current_velocity':
-                            'x_sea_water_velocity',
-                        'northward_eulerian_current_velocity':
-                            'y_sea_water_velocity'}
+    variable_aliases = {
+        'eastward_sea_water_velocity': 'x_sea_water_velocity',
+        'northward_sea_water_velocity': 'y_sea_water_velocity',
+        'eastward_tidal_current': 'x_sea_water_velocity',
+        'northward_tidal_current': 'y_sea_water_velocity',
+        'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
+        'northward_eulerian_current_velocity': 'y_sea_water_velocity'}
 
     def __init__(self):
         # Common constructor for all readers
@@ -66,7 +63,7 @@ class Reader(object):
         self.proj = pyproj.Proj(self.proj4)
 
         # Check if there are holes in time domain
-        if self.start_time is not None and len(self.times)>1:
+        if self.start_time is not None and len(self.times) > 1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
                 self.time_step.total_seconds()) + 1
@@ -194,8 +191,8 @@ class Reader(object):
             logging.debug('Fetched env-before')
             if time_after is not None:
                 env_after = self.get_variables_wrapper(variables, time_after,
-                                                       reader_x, reader_y, depth,
-                                                       block=block)
+                                                       reader_x, reader_y,
+                                                       depth, block=block)
                 logging.debug('Fetched env-after')
             else:
                 env_after = None
@@ -223,7 +220,8 @@ class Reader(object):
                     self.get_variables_wrapper(variables, time_before,
                                                reader_x, reader_y, depth,
                                                block=block)
-                logging.debug('Fetched env-block (size %ix%i) for time before (%s)' %
+                logging.debug(('Fetched env-block (size %ix%i) ' +
+                              'for time before (%s)') %
                               (len(self.var_block_before[str(variables)]['x']),
                                len(self.var_block_before[str(variables)]['y']),
                                time_before))
@@ -237,9 +235,13 @@ class Reader(object):
                         self.get_variables_wrapper(variables, time_after,
                                                    reader_x, reader_y, depth,
                                                    block=block)
-                    logging.debug('Fetched env-block (size %ix%i) for time after (%s)' %
-                                  (len(self.var_block_before[str(variables)]['x']),                               len(self.var_block_before[str(variables)]['y']),
-                                    time_after))
+                    logging.debug(('Fetched env-block (size %ix%i) ' +
+                                  'for time after (%s)') %
+                                  (len(self.var_block_before[
+                                       str(variables)]['x']),
+                                   len(self.var_block_before[
+                                       str(variables)]['y']),
+                                   time_after))
             # check if buffer-block covers these particles
             x_before = self.var_block_before[str(variables)]['x']
             y_before = self.var_block_before[str(variables)]['y']
@@ -279,8 +281,8 @@ class Reader(object):
         if (time_after is not None) and (time_before != time):
             weight = ((time - time_before).total_seconds() /
                       (time_after - time_before).total_seconds())
-            logging.debug('Interpolating before (%s, weight %f) and '
-                          'after (%s, weight %f) in time' %
+            logging.debug(('Interpolating before (%s, weight %f) and '
+                          'after (%s, weight %f) in time') %
                           (self.var_block_before[str(variables)]['time'],
                            1 - weight,
                            self.var_block_after[str(variables)]['time'],
@@ -328,13 +330,14 @@ class Reader(object):
             if rotate_to_proj.is_latlong():
                 geod = pyproj.Geod(ellps='WGS84')
                 rot_angle_rad = -np.radians(geod.inv(
-                                    x2, y2, x2_delta, y2_delta)[0])
+                    x2, y2, x2_delta, y2_delta)[0])
             else:
                 rot_angle_rad = -np.arctan2(x2_delta - x2, y2_delta - y2)
 
             for vector_pair in vector_pairs:
-                logging.debug('Rotating %s an angle of %f to %f degrees ' 
-                              ' to srs %s' % (str(vector_pair),
+                logging.debug(('Rotating %s an angle of %f to %f degrees ' +
+                              ' to srs %s') %
+                              (str(vector_pair),
                                np.degrees(rot_angle_rad).min(),
                                np.degrees(rot_angle_rad).min(),
                                rotate_to_proj.srs))
@@ -356,7 +359,7 @@ class Reader(object):
         if proj2.is_latlong():
             geod = pyproj.Geod(ellps='WGS84')
             rot_angle_rad = -np.radians(
-                                geod.inv(x2, y2, x2_delta, y2_delta)[0])
+                geod.inv(x2, y2, x2_delta, y2_delta)[0])
         else:
             rot_angle_rad = -np.arctan2(x2_delta - x2, y2_delta - y2)
         u2 = (u*np.cos(rot_angle_rad) - v*np.sin(rot_angle_rad))
@@ -370,7 +373,8 @@ class Reader(object):
             return x, y
         else:
             if 'ob_tran' in self.proj4:
-                logging.info('NB: Converting degrees to radians due to ob_tran srs')
+                logging.info('NB: Converting degrees to radians ' +
+                             'due to ob_tran srs')
                 x = np.radians(np.array(x))
                 y = np.radians(np.array(y))
             return self.proj(x, y, inverse=True)

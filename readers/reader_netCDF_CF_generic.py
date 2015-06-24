@@ -106,7 +106,8 @@ class Reader(Reader):
         self.end_time = self.times[-1]
         if len(self.times) > 1:
             self.time_step = self.times[1] - self.times[0]
-        else: self.time_step = None
+        else:
+            self.time_step = None
 
         # Find all variables having standard_name
         self.variable_mapping = {}

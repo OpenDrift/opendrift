@@ -9,12 +9,14 @@ from readers import Reader, pyproj
 
 class Reader(Reader):
     """Artificial reader, with cyclonic surface current around selected centre.
-    
+
     Purpose is demonstration and testing (unittest).
     """
 
-    def __init__(self, lon=2, lat=66, proj4='+proj=stere +lat_0=90 +lon_0=70 +lat_ts=60 +units=m +a=6.371e+06 +e=0 +no_defs'):
-    
+    def __init__(self, lon=2, lat=66,
+                 proj4='+proj=stere +lat_0=90 +lon_0=70 +lat_ts=60 ' +
+                       '+units=m +a=6.371e+06 +e=0 +no_defs'):
+
         self.fileName = 'ArtificialOceanEddy'
         self.name = 'ArtificialOceanEddy'
 
@@ -24,7 +26,7 @@ class Reader(Reader):
         # Calculate x,y of center of eddy from given lon and lat
         x0, y0 = self.proj(lon, lat)
         width = 600000  # 600 km box
-        self.pixelsize = 10000 # Artificial 10 km pixel size
+        self.pixelsize = 10000  # Artificial 10 km pixel size
         self.delta_x = self.pixelsize
         self.delta_y = self.pixelsize
         self.x0 = x0
@@ -40,7 +42,6 @@ class Reader(Reader):
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
-
 
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, depth=None, block=False):
@@ -59,12 +60,12 @@ class Reader(Reader):
             X = x - self.x0
             Y = y - self.y0
         radius = np.sqrt(X*X + Y*Y)
-        radius[radius==0] = 1
+        radius[radius == 0] = 1
 
         variables['time'] = time
         variables['x'] = x
         variables['y'] = y
-        variables['x_sea_water_velocity'] = -Y / radius #np.ones((size, size))
-        variables['y_sea_water_velocity'] = X / radius #np.zeros((size, size))
+        variables['x_sea_water_velocity'] = -Y / radius  # np.ones((size,size))
+        variables['y_sea_water_velocity'] = X / radius  # np.zeros((size,size))
 
         return variables

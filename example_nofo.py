@@ -84,7 +84,7 @@ o.start_time = datetime(2015, 6, 10, 5, 15, 0)
 # Running model (until end of driver data)
 o.wind_factor = 0.035
 o.wind_factor = 0.004
-o.diffusion = 0
+o.diffusion = False
 o.run(steps=4*50, time_step=900, outfile='openoil.nc')
 
 # Print and plot results

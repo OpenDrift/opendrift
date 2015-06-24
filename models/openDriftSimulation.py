@@ -113,7 +113,7 @@ class OpenDriftSimulation(object):
 
         # Prepare outfile
         try:
-            io_module = __import__('export.io_' + iomodule, fromlist =
+            io_module = __import__('export.io_' + iomodule, fromlist=
                                    ['init', 'write_buffer',
                                     'close', 'import_file'])
         except ImportError:
@@ -169,7 +169,7 @@ class OpenDriftSimulation(object):
             return x, y
         else:
             if 'ob_tran' in self.proj4:
-                logging.info('NB: Converting degrees to radians due to ob_tran srs')
+                logging.info('NB: Converting deg to rad due to ob_tran srs')
                 x = np.radians(np.array(x))
                 y = np.radians(np.array(y))
             return self.proj(x, y, inverse=True)
@@ -298,7 +298,7 @@ class OpenDriftSimulation(object):
             self.get_reader_groups(variables)
         for variable in missing_variables:  # Use fallback value, if no reader
             env[variable] = np.ma.ones(env[variable].shape)\
-                                *self.fallback_values[variable]
+                * self.fallback_values[variable]
 
         for i, variable_group in enumerate(variable_groups):
             logging.debug('----------------------------------------')
@@ -384,7 +384,14 @@ class OpenDriftSimulation(object):
     def num_elements(self):
         """The number of active elements"""
         if hasattr(self, 'elements'):
-            return len(self.elements.lon)
+            return len(self.elements)
+        else:
+            return 0
+
+    def num_elements_deactivated(self):
+        """The number of deactivated elements"""
+        if hasattr(self, 'elements_deactivated'):
+            return len(self.elements_deactivated)
         else:
             return 0
 
@@ -441,7 +448,7 @@ class OpenDriftSimulation(object):
         reason_number = self.status_categories.keys().index(reason)
         if not hasattr(self.elements.status, "__len__"):
             status = self.elements.status
-            self.elements.status = np.empty(len(self.elements.lon))
+            self.elements.status = np.empty(self.num_elements())
             self.elements.status.fill(status)
         self.elements.status[indices] = reason_number
 
@@ -450,7 +457,7 @@ class OpenDriftSimulation(object):
         logging.debug('Deactivated %i elements.' % (sum(indices)))
         self.environment = self.environment[~indices]
         logging.debug('Removed %i values from environment.' % (sum(indices)))
-        if len(self.elements.lon) == 0:
+        if self.num_elements() == 0:
             raise ValueError('No more active elements.')  # End simulation
 
     def run(self, time_step=3600, steps=1000, outfile=None):
@@ -513,9 +520,10 @@ class OpenDriftSimulation(object):
                 # Display time to terminal
                 logging.debug('==================================='*2)
                 logging.info('%s - step %i of %i - %i active elements '
-                             '(%i deactivated)' % (self.time, self.steps + 1,
-                              steps, len(self.elements.lon), 
-                              len(self.elements_deactivated.lon)))
+                             '(%i deactivated)' %
+                             (self.time, self.steps + 1,
+                              steps, self.num_elements(),
+                              self.num_elements_deactivated()))
                 logging.debug('==================================='*2)
                 self.environment = \
                     self.get_environment(self.required_variables,
@@ -531,11 +539,11 @@ class OpenDriftSimulation(object):
                 self.update()
                 self.steps += 1
                 self.runtime_model += datetime.now() - runtime_start
-                if len(self.elements) == 0:
+                if self.num_elements() == 0:
                     raise ValueError('No active elements, quitting simulation')
                 logging.debug('%s active elements (%s deactivated)' %
-                              (len(self.elements),
-                               len(self.elements_deactivated)))
+                              (self.num_elements(),
+                               self.num_elements_deactivated()))
                 # Updating time
                 if self.time is not None:
                     self.time = self.time + self.time_step
@@ -558,24 +566,24 @@ class OpenDriftSimulation(object):
         """Append present state (elements and environment) to recarray."""
         if not hasattr(self, 'history'):
             # Presently only element properties are stored, env TBD
-            self.history = np.ma.array(np.zeros([len(self.elements.lon),
-                                                 self.bufferlength]),
-                                                 dtype=self.elements.dtype,
-                                                 mask=[True])
+            self.history = np.ma.array(np.zeros([self.num_elements(),
+                                       self.bufferlength]),
+                                       dtype=self.elements.dtype,
+                                       mask=[True])
             self.steps_exported = 0
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
             self.history[var][self.elements.ID - 1,
                               self.steps - self.steps_exported] = \
                 getattr(self.elements, var)
-        
+
         # Call writer if buffer is full
-        if (self.outfile is not None) and ((self.steps - self.steps_exported) 
-                   == self.bufferlength):
+        if (self.outfile is not None) and \
+                ((self.steps - self.steps_exported) == self.bufferlength):
             self.io_write_buffer()
 
     def plot(self, background=None, buffer=.5,
-                filename=None, drifter_file=None):
+             filename=None, drifter_file=None):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -595,8 +603,8 @@ class OpenDriftSimulation(object):
         """
 
         if hasattr(self, 'history'):
-            lons = self.history['lon']#.T
-            lats = self.history['lat']#.T
+            lons = self.history['lon']
+            lats = self.history['lat']
         else:
             lons = np.ma.array(np.reshape(self.elements.lon, (1, -1)))
             lats = np.ma.array(np.reshape(self.elements.lat, (1, -1)))
@@ -620,12 +628,16 @@ class OpenDriftSimulation(object):
             map = Basemap(lonmin-buffer, latmin-buffer,
                           lonmax+buffer, latmax+buffer,
                           resolution='h', projection='merc')
-        
+
         map.drawcoastlines(color='gray')
         if background is None:  # Fill continents if no field is requested
             map.fillcontinents(color='#ddaa99')
-        map.drawmeridians(np.arange(np.floor(map.lonmin), np.ceil(map.lonmax), .5), labels=[0, 0, 0, 1])
-        map.drawparallels(np.arange(np.floor(map.latmin), np.ceil(map.latmax), .5), labels=[0, 1, 1, 0])
+        map.drawmeridians(np.arange(np.floor(map.lonmin),
+                                    np.ceil(map.lonmax), .5),
+                          labels=[0, 0, 0, 1])
+        map.drawparallels(np.arange(np.floor(map.latmin),
+                                    np.ceil(map.latmax), .5),
+                          labels=[0, 1, 1, 0])
 
         # Trajectories
         x, y = map(lons, lats)
@@ -636,24 +648,25 @@ class OpenDriftSimulation(object):
         alpha = min_alpha**(2*(num_elements-1)/(max_elements-1))
         alpha = np.max((min_alpha, alpha))
         map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
-        legend_entries = []
-        map.scatter(x[:,0], y[:,0], zorder=3, color='g', s=20,
-                        edgecolor='k', linewidths=.2,
-                        label='initial (%i)' % x.shape[0])  # Seed positions
-        map.scatter(x[:,-1], y[:,-1], zorder=3, color='b', s=20,
-                        edgecolor='k', linewidths=.2,
-                        label='active (%i)' % (x.shape[0] -
-                        len(self.elements_deactivated.lon)))  # Active
-        index_of_last = (~x.mask).sum(axis=1)-1
+        # NB: should check that endpoints are always included
+        map.scatter(x[:, 0], y[:, 0], zorder=3, edgecolor='k', linewidths=.2,
+                    color=self.status_categories['initial'],
+                    label='initial (%i)' % x.shape[0])
+        map.scatter(x[:, -1], y[:, -1], zorder=3, edgecolor='k', linewidths=.2,
+                    color=self.status_categories['active'],
+                    label='active (%i)' %
+                    (x.shape[0] - self.num_elements_deactivated()))
+        index_of_last = (~x.mask).sum(axis=1) - 1
         x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
                                            self.elements_deactivated.lat)
         # Plot deactivated elements, labeled by deactivation reason
         for statusnum, status in enumerate(self.status_categories):
-            if status == 'initial' or status == 'active': continue
+            if status == 'initial' or status == 'active':
+                continue  # plotted above
             indices = np.where(self.elements_deactivated.status == statusnum)
             if len(indices[0]) > 0:
                 map.scatter(x_deactivated[indices], y_deactivated[indices],
-                            s=20, zorder=3, edgecolor='k', linewidths=.1,
+                            zorder=3, edgecolor='k', linewidths=.1,
                             color=self.status_categories[status],
                             label='%s (%i)' % (status, len(indices[0])))
         try:
@@ -661,7 +674,6 @@ class OpenDriftSimulation(object):
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
             print traceback.format_exc()
-
 
         if background is not None:  # Disabled
             # Plot background field, if requested
@@ -695,9 +707,9 @@ class OpenDriftSimulation(object):
             #map.contourf(map_x, map_y, scalar, interpolation='nearest')
             if type(background) is list:
                 skip = 10
-                map.quiver(rlons[::skip,::skip], rlats[::skip,::skip],
-                           u_component[::skip,::skip],
-                           v_component[::skip,::skip], scale=10)
+                map.quiver(rlons[::skip, ::skip], rlats[::skip, ::skip],
+                           u_component[::skip, ::skip],
+                           v_component[::skip, ::skip], scale=10)
 
         plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
                   (self.start_time.strftime('%Y-%m-%d %H:%M'),
@@ -711,15 +723,16 @@ class OpenDriftSimulation(object):
                 map.plot(x[0], y[0], '*k')
                 map.plot(x[-1], y[-1], '*k')
 
-
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
             mng.toolbar.zoom()
-        except: pass
-            
+        except:
+            pass
+
         try:  # Maximise figure window size
             mng.resize(*mng.window.maxsize())
-        except: pass
+        except:
+            pass
 
         if filename is not None:
             plt.savefig(filename)
@@ -739,11 +752,11 @@ class OpenDriftSimulation(object):
         plt.xticks(rotation='vertical')
         data = self.history[prop].T
         times = [self.start_time + n*self.time_step
-                    for n in range(self.steps + 1)]
+                 for n in range(self.steps + 1)]
         plt.plot(times, data)
         plt.title(prop)
         plt.xlabel('Time  [UTC]')
-        plt.ylabel('%s  [%s]' % (prop, self.elements.variables[prop]['unit']) )
+        plt.ylabel('%s  [%s]' % (prop, self.elements.variables[prop]['unit']))
         plt.subplots_adjust(bottom=.3)
         plt.grid()
         plt.show()
@@ -771,7 +784,8 @@ class OpenDriftSimulation(object):
                 self.elements.lon, self.elements.lat)
             # Calculate azimuth orientation of y-axis at particle locations
             delta_y = 1000  # Using delta of 1000 m to calculate azimuth
-            lon2, lat2 = self.xy2lonlat(self.elements.x, self.elements.y + delta_y)
+            lon2, lat2 = self.xy2lonlat(self.elements.x,
+                                        self.elements.y + delta_y)
             azimuth_srs = geod.inv(self.elements.lon, self.elements.lat,
                                    lon2, lat2)[0]
             azimuth = azimuth + azimuth_srs
@@ -794,10 +808,9 @@ class OpenDriftSimulation(object):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + '\n'
-        if hasattr(self, 'elements'):
-            outStr += '\t%s active %s particles  (%s deactivated)\n' % (
-                len(self.elements), type(self.elements).__name__,
-                len(self.elements_deactivated))
+        outStr += '\t%s active %s particles  (%s deactivated)\n' % (
+            self.num_elements(), self.ElementType.__name__,
+            self.num_elements_deactivated())
         outStr += 'Projection: %s\n' % self.proj4
         variable_groups, reader_groups, missing = self.get_reader_groups()
         outStr += '-------------------\n'
