@@ -4,6 +4,7 @@ import numpy as np
 from openDriftSimulation import OpenDriftSimulation
 from elements import LagrangianArray
 
+
 # Defining the oil element properties
 class Oil(LagrangianArray):
     """Extending LagrangianArray with variables relevant for oil particles."""
@@ -38,7 +39,6 @@ class Oil(LagrangianArray):
                           'default': 0})])
 
 
-
 class OpenOil(OpenDriftSimulation):
     """Open source oil trajectory model based on the OpenDrift framework.
 
@@ -67,7 +67,14 @@ class OpenOil(OpenDriftSimulation):
                          'evaporated': 'yellow',
                          'stranded': 'red'}
 
+    # Some parameters which may be altered by user.
+    # Plan to make some generic itnerface for this,
+    # e.g. for making dynamic web interface
     wind_factor = 0.02
+    evaporation = True
+    emulsification = True
+    dispersion = True
+    diffusion = True
 
     def __init__(self, *args, **kwargs):
 
@@ -97,58 +104,58 @@ class OpenOil(OpenDriftSimulation):
         ## Evaporation
         ################
         # NB: temorarily assuming all particles are at ocean surface!
+        if self.evaporation:
+            Urel = windspeed/self.model.reference_wind  # Relative wind
+            h = 2  # Film thickness in mm, harcoded for now
+            self.elements.age_exposure_seconds += \
+                (self.model.reference_thickness/h)*Urel* \
+                 self.time_step.total_seconds()
 
-        Urel = windspeed/self.model.reference_wind  # Relative wind
-        h = 2  # Film thickness in mm, harcoded for now
-        self.elements.age_exposure_seconds += \
-            (self.model.reference_thickness/h)*Urel* \
-             self.time_step.total_seconds()
+            self.elements.fraction_evaporated = np.interp(
+                self.elements.age_exposure_seconds,
+                self.model.tref, self.model.fref)
 
-        self.elements.fraction_evaporated = np.interp(
-            self.elements.age_exposure_seconds,
-            self.model.tref, self.model.fref)
-
+            # Deactivate evaporated elements
+            self.deactivate_elements(self.elements.fraction_evaporated > 0.321,
+                                     reason='evaporated')
 
         ##################
         # Emulsification
         ##################
+        if self.emulsification:
+            # Apparent emulsion age of particles
+            self.elements.age_emulsion_seconds += \
+                Urel*self.time_step.total_seconds()
 
-        # Apparent emulsion age of particles
-        self.elements.age_emulsion_seconds += \
-            Urel*self.time_step.total_seconds()
-
-        self.elements.water_content = np.interp(
-            self.elements.age_emulsion_seconds,
-            self.model.tref, self.model.wmax)
+            self.elements.water_content = np.interp(
+                self.elements.age_emulsion_seconds,
+                self.model.tref, self.model.wmax)
 
         ###############
         # Dispersion
         ###############
-        self.elements.depth = \
-            self.environment.sea_surface_wave_significant_height
-        whitecap_coverage = (2.54E-4)*np.power(windspeed, 3.58)  # In percent
-        wave_period = 3.85*np.sqrt(
-            self.environment.sea_surface_wave_significant_height)  # In seconds
-        time_between_breaking_events = 3.85/whitecap_coverage  # TBC
-        rho_w = 1025  # kg/m3
-        wave_period[wave_period==0] = 5  # NB - temporal workaround when no waves
-        dissipation_energy = 0.0034*rho_w*9.81*(wave_period**2)
-        dsize_coeff = 2100  # Wettre et al., Appendix A
-        c_oil = dsize_coeff*np.power(self.elements.viscosity, -0.4)
-        p = np.random.rand(len(self.elements.lon), )  # Random numbers between 0 and 1
-        oil_per_unit_surface = 1
-        droplet_size = np.power((p*oil_per_unit_surface)/(c_oil*
-                                np.power(dissipation_energy, 0.57)),
-                                1/1.17)
-        #self.deactivate_elements(droplet_size<1E-7, reason='dispersed')
+        if self.dispersion:
+            self.elements.depth = \
+                self.environment.sea_surface_wave_significant_height
+            whitecap_coverage = (2.54E-4)*np.power(windspeed, 3.58)  # In percent
+            wave_period = 3.85*np.sqrt(
+                self.environment.sea_surface_wave_significant_height)  # In seconds
+            time_between_breaking_events = 3.85/whitecap_coverage  # TBC
+            rho_w = 1025  # kg/m3
+            wave_period[wave_period==0] = 5  # NB - temporal workaround when no waves
+            dissipation_energy = 0.0034*rho_w*9.81*(wave_period**2)
+            dsize_coeff = 2100  # Wettre et al., Appendix A
+            c_oil = dsize_coeff*np.power(self.elements.viscosity, -0.4)
+            p = np.random.rand(len(self.elements.lon), )  # Random numbers between 0 and 1
+            oil_per_unit_surface = 1
+            droplet_size = np.power((p*oil_per_unit_surface)/(c_oil*
+                                    np.power(dissipation_energy, 0.57)),
+                                    1/1.17)
+            self.deactivate_elements(droplet_size<5E-7, reason='dispersed')
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
                                  reason='stranded')
-
-        # Deactivate evaporated elements
-        self.deactivate_elements(self.elements.fraction_evaporated > 0.7,
-                                 reason='evaporated')
 
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
@@ -159,17 +166,27 @@ class OpenOil(OpenDriftSimulation):
                               self.environment.y_wind*self.wind_factor)
 
         # Uncertainty / diffusion
-        std_current_comp = .1  # Current
-        sigma_u = np.random.normal(0, std_current_comp, self.num_elements())
-        sigma_v = np.random.normal(0, std_current_comp, self.num_elements())
-        self.update_positions(sigma_u, sigma_v)
+        if self.diffusion is True:
+            std_current_comp = .1  # Current
+            if std_current_comp > 0:
+                sigma_u = np.random.normal(0, std_current_comp, self.num_elements())
+                sigma_v = np.random.normal(0, std_current_comp, self.num_elements())
+            else:
+                sigma_u = 0*self.environment.x_wind
+                sigma_v = 0*self.environment.x_wind
+            self.update_positions(sigma_u, sigma_v)
 
-        std_wind_comp = 1.0  # Wind
-        sigma_u = np.random.normal(0, std_wind_comp*self.wind_factor,
-                                   self.num_elements())
-        sigma_v = np.random.normal(0, std_wind_comp*self.wind_factor,
-                                   self.num_elements())
-        self.update_positions(sigma_u, sigma_v)
+            std_wind_comp = 1.0  # Wind
+            if self.wind_factor > 0 and std_wind_comp > 0:
+                sigma_u = np.random.normal(0, std_wind_comp*self.wind_factor,
+                                           self.num_elements())
+                sigma_v = np.random.normal(0, std_wind_comp*self.wind_factor,
+                                           self.num_elements())
+            else:
+                sigma_u = 0*self.environment.x_wind
+                sigma_v = 0*self.environment.x_wind
+            self.update_positions(sigma_u, sigma_v)
+
 
     def seed_from_gml(self, gmlfile, num_elements=1000):
         """Read oil slick contours from GML file, and seed particles within."""

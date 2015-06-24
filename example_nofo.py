@@ -17,6 +17,7 @@ reader_arome3 = reader_netCDF_CF_generic.Reader('/vol/hindcast3/nofo_olje_paa_va
 
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+reader_norkyst1 = reader_netCDF_CF_generic.Reader('/vol/hindcast3/nofo_olje_paa_vann_2015/NorKyst-800m_ZDEPTHS_his.fc.2015061000.nc')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')#, name='norkyst800_file')
 
 # WAM10
@@ -25,6 +26,7 @@ reader_wam10 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/do
 
 # Nordic4
 reader_nordic4 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
+reader_nordic1 = reader_netCDF_CF_generic.Reader('/vol/hindcast3/nofo_olje_paa_vann_2015/Nordic-4km_SURF_1h_avg_00.nc_2015061000_2015061523')
 
 # Arctic20
 #reader_arctic20 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/arctic20km/1h/aggregate_be', name='arctic20_thredds')
@@ -41,7 +43,8 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
 
 #o.add_reader([reader_norkyst])
 #o.add_reader([reader_arctic20, reader_arome, reader_basemap])
-o.add_reader([reader_norkyst, reader_arome3, reader_arome2, reader_arome1, reader_basemap])
+#o.add_reader([reader_norkyst, reader_arome3, reader_arome2, reader_arome1, reader_basemap])
+o.add_reader([reader_nordic1, reader_arome1, reader_basemap])
 #o.add_reader([reader_norkyst, reader_basemap])
 #o.add_reader([reader_arctic20, reader_basemap])
 #o.add_reader([reader_norkyst, reader_nordic4, reader_arctic20, reader_arome, reader_basemap])
@@ -62,9 +65,9 @@ time = None
 import numpy as np
 kwargs = {}
 #kwargs['lon'] = np.array([2.385876, 2.391800])
-o.seed_point(2.385876, 60.032848, radius=0, number=500, time=time)
+o.seed_point(2.385876, 60.032848, radius=0, number=1, time=time)
 #kwargs['lat'] = np.array([60.032848, 60.051200])
-o.seed_point(2.391800, 60.051200, radius=0, number=500, time=time)
+o.seed_point(2.391800, 60.051200, radius=0, number=1, time=time)
 #kwargs['ID'] = np.array([1, 2])
 #kwargs['age_exposure_seconds'] = np.array([6, 6])*3600  # Some already avaporated
 #kwargs['fraction_evaporated'] = np.array([0.3, 0.3])  # Some already avaporated
@@ -72,7 +75,7 @@ o.seed_point(2.391800, 60.051200, radius=0, number=500, time=time)
 o.start_time = datetime(2015, 6, 10, 5, 15, 0)
 
 #o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150611_172613_0086_SCNB_HH_SGF_402348_0016_11441894_Oil.gml', num_elements=1000)
-o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150615_053843_0045_SCNA_HHHV_SGF_403055_5578_11441860_Oil.gml', num_elements=1000)
+#o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150615_053843_0045_SCNA_HHHV_SGF_403055_5578_11441860_Oil.gml', num_elements=1000)
 #o.start_time = reader_nordic4.start_time
 
 #o.set_projection(reader_arome.proj4)
@@ -80,16 +83,18 @@ o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150615_053
 
 # Running model (until end of driver data)
 o.wind_factor = 0.035
-o.run(steps=4*10, time_step=900, outfile='openoil.nc')
+o.wind_factor = 0.004
+o.diffusion = 0
+o.run(steps=4*50, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o
 #o.plot(background='x_sea_water_velocity', buffer=.5)
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
 #dfiles = ['/disk1/data/nofo_olje_pa_vann_2015/ovp_isphere1-300234062952180-20150612T090517UTC.csv', '/disk1/data/nofo_olje_pa_vann_2015/ovp_isphere2-300234062957180-20150612T090518UTC.csv']
-#dfiles = ['/disk1/data/nofo_olje_pa_vann_2015/ovp_isldmb1-300234062953170-20150612T090518UTC.csv', '/disk1/data/nofo_olje_pa_vann_2015/ovp_isldmb2-300234062959190-20150612T090518UTC.csv']
+dfiles = ['/disk1/data/nofo_olje_pa_vann_2015/ovp_isldmb1-300234062953170-20150612T090518UTC.csv', '/disk1/data/nofo_olje_pa_vann_2015/ovp_isldmb2-300234062959190-20150612T090518UTC.csv']
 #dfiles = ['/disk1/data/nofo_olje_pa_vann_2015/isphere1.csv', '/disk1/data/nofo_olje_pa_vann_2015/isphere2.csv']
-#o.plot(buffer=.05, drifter_file=dfiles)
-o.plot(buffer=.05)
-o.plot_property('fraction_evaporated')
-o.plot_property('water_content')
+o.plot(buffer=.1, drifter_file=dfiles)
+#o.plot(buffer=.05)
+#o.plot_property('fraction_evaporated')
+#o.plot_property('water_content')

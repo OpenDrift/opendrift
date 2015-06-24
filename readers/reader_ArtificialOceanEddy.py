@@ -33,9 +33,9 @@ class Reader(Reader):
         self.xmax = x0 + width
         self.ymin = y0 - width
         self.ymax = y0 + width
-        self.start_time = datetime(2015, 1, 1)
-        self.end_time = datetime(2015, 12, 31)
-        self.time_step = timedelta(seconds=3600)
+        self.start_time = None
+        self.end_time = None
+        self.time_step = None
         self.variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
 
         # Run constructor of parent Reader class

@@ -613,9 +613,10 @@ class OpenDriftSimulation(object):
         latmin = lats.min()
         latmax = lats.max()
         try:
-            skipping
+            # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
         except:
+            # Otherwise create a new Basemap covering the elements
             map = Basemap(lonmin-buffer, latmin-buffer,
                           lonmax+buffer, latmax+buffer,
                           resolution='h', projection='merc')
@@ -636,10 +637,10 @@ class OpenDriftSimulation(object):
         alpha = np.max((min_alpha, alpha))
         map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
         legend_entries = []
-        map.scatter(x[:,0], y[:,0], marker='o', zorder=3, color='g',
+        map.scatter(x[:,0], y[:,0], zorder=3, color='g', s=20,
                         edgecolor='k', linewidths=.2,
                         label='initial (%i)' % x.shape[0])  # Seed positions
-        map.scatter(x[:,-1], y[:,-1], zorder=3, color='b',
+        map.scatter(x[:,-1], y[:,-1], zorder=3, color='b', s=20,
                         edgecolor='k', linewidths=.2,
                         label='active (%i)' % (x.shape[0] -
                         len(self.elements_deactivated.lon)))  # Active
@@ -652,10 +653,15 @@ class OpenDriftSimulation(object):
             indices = np.where(self.elements_deactivated.status == statusnum)
             if len(indices[0]) > 0:
                 map.scatter(x_deactivated[indices], y_deactivated[indices],
-                            zorder=3, edgecolor='k', linewidths=.1,
+                            s=20, zorder=3, edgecolor='k', linewidths=.1,
                             color=self.status_categories[status],
                             label='%s (%i)' % (status, len(indices[0])))
-        plt.legend()
+        try:
+            plt.legend()
+        except Exception as e:
+            print 'Cannot plot legend, due to bug in matplotlib:'
+            print traceback.format_exc()
+
 
         if background is not None:  # Disabled
             # Plot background field, if requested
