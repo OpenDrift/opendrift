@@ -14,10 +14,10 @@ def init(self, filename, times=None):
     
     self.outfile_name = filename
     self.outfile = Dataset(filename, 'w')
-    self.outfile.createDimension('elementID', len(self.elements.lon))
-    self.outfile.createVariable('elementID', 'i4', ('elementID',))
-    self.outfile.createDimension('timeID', None)  # Unlimited time dimension
-    self.outfile.createVariable('time', 'f4', ('timeID',))
+    self.outfile.createDimension('trajectory', len(self.elements.lon))
+    self.outfile.createVariable('elementID', 'i4', ('trajectory',))
+    self.outfile.createDimension('obs', None)  # Unlimited time dimension
+    self.outfile.createVariable('time', 'f4', ('obs',))
 
     self.outfile.Conventions = 'CF-1.6'
     self.outfile.standard_name_vocabulary = 'CF-1.6'
@@ -28,10 +28,16 @@ def init(self, filename, times=None):
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step = str(self.time_step)
 
+    self.outfile.createVariable('crs', 'i4')
+    self.outfile.variables['crs'].grid_mapping_name = 'latitude_longitude'
+    self.outfile.variables['crs'].epsg_code = 'EPSG:4326'
+    self.outfile.variables['crs'].semi_major_axis = 6378137.0
+    self.outfile.variables['crs'].inverse_flattening = 298.257223563
+
     # Add all element properties as variables
     for prop in self.elements.variables:
         if prop in skip_parameters: continue
-        var = self.outfile.createVariable(prop, 'f4', ('elementID', 'timeID'))
+        var = self.outfile.createVariable(prop, 'f4', ('trajectory', 'obs'))
         for subprop in self.elements.variables[prop].items():
             if subprop[0] != 'dtype':
                 var.setncattr(subprop[0], subprop[1])
