@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from openDriftSimulation import OpenDriftSimulation
+from opendrift import OpenDriftSimulation
 from elements import LagrangianArray
 
 

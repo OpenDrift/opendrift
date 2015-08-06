@@ -1,6 +1,6 @@
 import numpy as np
 from elements import LagrangianArray
-from openDriftSimulation import OpenDriftSimulation
+from opendrift import OpenDriftSimulation
 
 
 # This file is a template for an ocean trajectory model

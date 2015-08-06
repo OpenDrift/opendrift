@@ -1,4 +1,4 @@
-from openDriftSimulation import OpenDriftSimulation
+from opendrift import OpenDriftSimulation
 from elements.passivetracer import PassiveTracer
 
 
