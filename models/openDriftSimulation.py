@@ -63,7 +63,7 @@ class OpenDriftSimulation(object):
 
     __metaclass__ = ABCMeta
 
-    status_categories = {'active': 'blue',
+    status_categories = {'initial': 'green', 'active': 'blue',
                          'deactivated': 'red'}
 
     model = ModelSettings  # To store model specific information
