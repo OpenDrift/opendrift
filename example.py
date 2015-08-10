@@ -58,7 +58,7 @@ lon = 4.9; lat = 59.9; # Outside Bergen
 time = None
 #time = reader_wam10.start_time
 #time = datetime(2015, 6, 9, 9, 0, 0)
-o.seed_point(lon, lat, radius=1000, number=1000, time=time)
+o.seed_point(lon, lat, radius=1000, number=100, time=time)
 
 #o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150608_171458_0045_SCNA_HH_SGF_401754_5438_11441747_Oil.gml', num_elements=1000)
 #o.start_time = reader_nordic4.start_time
@@ -70,7 +70,7 @@ o.seed_point(lon, lat, radius=1000, number=1000, time=time)
 #o.wind_factor = 0.03
 o.dispersion = True
 o.diffusion = True
-o.run(steps=70*4, time_step=900, outfile='openoil.nc')
+o.run(steps=50, time_step=3600, outfile='openoil.nc')
 
 # Print and plot results
 print o

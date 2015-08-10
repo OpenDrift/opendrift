@@ -35,8 +35,9 @@ class LagrangianArray(object):
 
     variables = OrderedDict([
         ('ID', {'dtype': np.int32}),
-        ('status', {'dtype': np.int32,
-                    'default': 0}),
+        ('status', {'dtype': np.int32,  # Max 63 categories, should be enough
+                    'default': 0,
+                    'constant': True}),  # Constant regarding time/step
         ('lon', {'dtype': np.float32,
                  'units': 'degrees_east',
                  'standard_name': 'longitude',
@@ -142,7 +143,7 @@ class LagrangianArray(object):
             else:
                 setattr(other, var, getattr(self, var))  # Scalar
         if sum(indices) > 0:
-            logging.debug('%s particles moved' % (sum(indices)))
+            logging.debug('%s particles moved to other array' % (sum(indices)))
 
     def __len__(self):
         return len(self.lat)

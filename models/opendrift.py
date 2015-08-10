@@ -438,8 +438,7 @@ class OpenDriftSimulation(object):
             self.start_time = time
 
     def deactivate_elements(self, indices, reason='deactivated'):
-        """Deactivate particles by moving them from self.elements
-        to self.elements_deactivated."""
+        """Schedule deactivated particles for deletion (at end of step)"""
         if sum(indices) == 0:
             return
         if reason not in self.status_categories:
@@ -448,17 +447,28 @@ class OpenDriftSimulation(object):
         reason_number = self.status_categories.keys().index(reason)
         if not hasattr(self.elements.status, "__len__"):
             status = self.elements.status
-            self.elements.status = np.empty(self.num_elements())
+            self.elements.status = np.zeros(self.num_elements())
             self.elements.status.fill(status)
         self.elements.status[indices] = reason_number
 
+    def remove_deactivated_elements(self):
+        """Moving deactivated elements from self.elements
+        to self.elements_deactivated."""
+        # All particles scheduled for deletion
+        indices = (self.elements.status != 0)
+        try:
+            len(indices)
+        except:
+            print 'no elements to deactivate'
+            return  # No elements scheduled for deactivation
         # Basic, but some more housekeeping will be required later
         self.elements.move_elements(self.elements_deactivated, indices)
-        logging.debug('Deactivated %i elements.' % (sum(indices)))
-        self.environment = self.environment[~indices]
-        logging.debug('Removed %i values from environment.' % (sum(indices)))
-        if self.num_elements() == 0:
-            raise ValueError('No more active elements.')  # End simulation
+        logging.debug('Removed %i elements.' % (sum(indices)))
+        if hasattr(self, 'environment'):
+            self.environment = self.environment[~indices]
+            logging.debug('Removed %i values from environment.' % (sum(indices)))
+            if self.num_elements() == 0:
+                raise ValueError('No more active elements.')  # End simulation
 
     def run(self, time_step=3600, steps=1000, outfile=None):
         """Start a trajectory simulation, after configuration.
@@ -535,9 +545,13 @@ class OpenDriftSimulation(object):
                 self.runtime_environment += datetime.now() - runtime_start
                 runtime_start = datetime.now()
                 self.state_to_buffer()  # Append status to outfile
+                if self.steps > 0:
+                    self.remove_deactivated_elements()
                 # Propagate one timestep forwards
-                self.update()
                 self.steps += 1
+                logging.debug('Calling module: %s.update()' %
+                                type(self).__name__)
+                self.update()
                 self.runtime_model += datetime.now() - runtime_start
                 if self.num_elements() == 0:
                     raise ValueError('No active elements, quitting simulation')
@@ -555,12 +569,17 @@ class OpenDriftSimulation(object):
                 logging.info('========================')
                 break
 
+        logging.debug('Cleaning up')
+
         if outfile is not None:
             # Write buffer to outfile, and close
             self.state_to_buffer()  # Append final status to outfile
             if self.steps > self.steps_exported:  # Write last lines, if needed
                 self.io_write_buffer()
             self.io_close()
+
+        # Remove any elements scheduled for deactivation during last step
+        self.remove_deactivated_elements()
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
@@ -606,8 +625,8 @@ class OpenDriftSimulation(object):
             lons = self.history['lon']
             lats = self.history['lat']
         else:
-            lons = np.ma.array(np.reshape(self.elements.lon, (1, -1)))
-            lats = np.ma.array(np.reshape(self.elements.lat, (1, -1)))
+            lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
+            lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
 
         try:
             from mpl_toolkits.basemap import Basemap
@@ -642,12 +661,14 @@ class OpenDriftSimulation(object):
         # Trajectories
         x, y = map(lons, lats)
         # The more elements, the more transparent we make the lines
-        num_elements = x.shape[0]
+        #num_elements = x.shape[0]
+        num_elements = self.num_elements()
         min_alpha = 0.015
         max_elements = 5000.0
         alpha = min_alpha**(2*(num_elements-1)/(max_elements-1))
         alpha = np.max((min_alpha, alpha))
-        map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
+        if hasattr(self, 'history'):
+            map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
         # NB: should check that endpoints are always included
         map.scatter(x[:, 0], y[:, 0], zorder=3, edgecolor='k', linewidths=.2,
                     color=self.status_categories['initial'],
@@ -656,7 +677,10 @@ class OpenDriftSimulation(object):
                     color=self.status_categories['active'],
                     label='active (%i)' %
                     (x.shape[0] - self.num_elements_deactivated()))
-        index_of_last = (~x.mask).sum(axis=1) - 1
+        try:
+            index_of_last = (~x.mask).sum(axis=1) - 1
+        except:
+            index_of_last = 0
         x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
                                            self.elements_deactivated.lat)
         # Plot deactivated elements, labeled by deactivation reason
@@ -711,9 +735,10 @@ class OpenDriftSimulation(object):
                            u_component[::skip, ::skip],
                            v_component[::skip, ::skip], scale=10)
 
-        plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
-                  (self.start_time.strftime('%Y-%m-%d %H:%M'),
-                   self.time.strftime('%Y-%m-%d %H:%M'), self.steps))
+        if hasattr(self, 'time'):
+            plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
+                      (self.start_time.strftime('%Y-%m-%d %H:%M'),
+                       self.time.strftime('%Y-%m-%d %H:%M'), self.steps))
 
         if drifter_file is not None:
             for dfile in drifter_file:

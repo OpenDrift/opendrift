@@ -93,8 +93,7 @@ class OpenOil(OpenDriftSimulation):
     def update(self):
         """Update positions and properties of oil particles."""
 
-        self.elements.age_seconds += self.elements.age_seconds \
-            + self.time_step.total_seconds()
+        self.elements.age_seconds += self.time_step.total_seconds()
 
         windspeed = np.sqrt(self.environment.x_wind**2 +
                             self.environment.y_wind**2)
