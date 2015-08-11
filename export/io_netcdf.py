@@ -27,6 +27,7 @@ def init(self, filename, times=None):
     self.outfile.history = 'Created ' + str(datetime.datetime.now())
     self.outfile.source = 'Output from simulation with OpenDrift'
     self.outfile.model_url = 'https://github.com/knutfrode/opendrift'
+    self.outfile.readers = str(self.readers.keys())
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step = str(self.time_step)
 

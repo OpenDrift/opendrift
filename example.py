@@ -60,6 +60,8 @@ time = None
 #time = datetime(2015, 6, 9, 9, 0, 0)
 o.seed_point(lon, lat, radius=1000, number=100, time=time)
 
+print o
+
 #o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150608_171458_0045_SCNA_HH_SGF_401754_5438_11441747_Oil.gml', num_elements=1000)
 #o.start_time = reader_nordic4.start_time
 

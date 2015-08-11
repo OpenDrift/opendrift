@@ -2,6 +2,7 @@ import sys
 import types
 import traceback
 import logging
+import pdb
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -510,6 +511,12 @@ class OpenDriftSimulation(object):
                                  'following required variables: '
                                  + str(missing_variables))
 
+        # Some cleanup needed if starting from imported state
+        if self.steps > 1:
+            self.steps = 0
+        if hasattr(self, 'history'):
+            delattr(self, 'history')  # Delete history matrix before new run
+
         # Store runtime to report on OpenDrift performance
         self.runtime_environment = timedelta(seconds=0)
         self.runtime_model = timedelta(seconds=0)
@@ -571,9 +578,10 @@ class OpenDriftSimulation(object):
 
         logging.debug('Cleaning up')
 
+        self.state_to_buffer()  # Append final status to buffer
+
         if outfile is not None:
             # Write buffer to outfile, and close
-            self.state_to_buffer()  # Append final status to outfile
             if self.steps > self.steps_exported:  # Write last lines, if needed
                 self.io_write_buffer()
             self.io_close()
@@ -642,6 +650,8 @@ class OpenDriftSimulation(object):
         try:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
+            map.axis([lonmin-buffer, latmin-buffer,
+                      lonmax+buffer, latmax+buffer])
         except:
             # Otherwise create a new Basemap covering the elements
             map = Basemap(lonmin-buffer, latmin-buffer,
@@ -670,6 +680,7 @@ class OpenDriftSimulation(object):
         if hasattr(self, 'history'):
             map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
         # NB: should check that endpoints are always included
+
         map.scatter(x[:, 0], y[:, 0], zorder=3, edgecolor='k', linewidths=.2,
                     color=self.status_categories['initial'],
                     label='initial (%i)' % x.shape[0])
@@ -677,6 +688,7 @@ class OpenDriftSimulation(object):
                     color=self.status_categories['active'],
                     label='active (%i)' %
                     (x.shape[0] - self.num_elements_deactivated()))
+
         try:
             index_of_last = (~x.mask).sum(axis=1) - 1
         except:
