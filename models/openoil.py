@@ -58,14 +58,8 @@ class OpenOil(OpenDriftSimulation):
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_to_direction': np.nan,
+                       'sea_surface_wave_to_direction': 0,
                        'x_wind': 0, 'y_wind': 0}
-
-    status_categories = {'initial': 'green',
-                         'active': 'blue',
-                         'dispersed': 'darkviolet',
-                         'evaporated': 'yellow',
-                         'stranded': 'red'}
 
     # Some parameters which may be altered by user.
     # Plan to make some generic itnerface for this,
@@ -113,6 +107,8 @@ class OpenOil(OpenDriftSimulation):
                 self.elements.age_exposure_seconds,
                 self.model.tref, self.model.fref)
 
+            self.deactivate_elements(self.elements.fraction_evaporated > 0.321,
+                                     reason='evaporated', color='yellow')
         ##################
         # Emulsification
         ##################
@@ -146,21 +142,12 @@ class OpenOil(OpenDriftSimulation):
             droplet_size = np.power((p*oil_per_unit_surface)/(c_oil *
                                     np.power(dissipation_energy, 0.57)),
                                     1/1.17)
-            self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
+            self.deactivate_elements(droplet_size < 5E-7,
+                                     reason='dispersed', color='darkviolet')
 
-        # NB: presently, all deactivation of elements should/must be done
-        # at the end of this update function, otherwise length of
-        # constructed arrays (e.g. Urel) do not correspond to length of
-        # elements and environment arrays. A general fix for this should
-        # be made in OpenDriftSimulation class
-
-        if self.evaporation:
-            # Deactivate evaporated elements
-            self.deactivate_elements(self.elements.fraction_evaporated > 0.321,
-                                     reason='evaporated')
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded')
+                                 reason='stranded', color='red')
 
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,

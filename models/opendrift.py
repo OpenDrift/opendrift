@@ -64,6 +64,7 @@ class OpenDriftSimulation(object):
 
     __metaclass__ = ABCMeta
 
+    # Default categories with colors
     status_categories = {'initial': 'green', 'active': 'blue',
                          'missing data': 'gray'}
 
@@ -450,13 +451,15 @@ class OpenDriftSimulation(object):
         else:
             self.start_time = time
 
-    def deactivate_elements(self, indices, reason='deactivated'):
+    def deactivate_elements(self, indices, reason='deactivated', color=None):
         """Schedule deactivated particles for deletion (at end of step)"""
         if sum(indices) == 0:
             return
         if reason not in self.status_categories:
-            sys.exit('Status %s not registered in model class definition' %
-                     reason)
+            if color is None:
+                color = 'gray'  # Should here traverse a list of colors
+            self.status_categories[reason] = color
+            logging.debug('Added status %s (color %s)' % (reason, color))
         reason_number = self.status_categories.keys().index(reason)
         if not hasattr(self.elements.status, "__len__"):
             status = self.elements.status

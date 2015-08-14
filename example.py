@@ -47,7 +47,7 @@ o.add_reader([reader_norkyst, reader_arome, reader_basemap])
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 #lon = 10.6; lat = 54.83; # outside Norkyst boundary
-lon = 4.9; lat = 59.9; # Outside Bergen
+lon = 5.2; lat = 59.1; # Outside Bergen
 #lon = 2.5; lat = 60.0; # Frigg/NOFO
 #lon = 6.73; lat = 62.78; # Outside Trondheim
 #lon = 10.546; lat = 59.486 # Godafoss
@@ -72,7 +72,7 @@ print o
 #o.wind_factor = 0.03
 o.dispersion = True
 o.diffusion = True
-o.run(steps=50, time_step=3600, outfile='openoil.nc')
+o.run(steps=50*4, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o
