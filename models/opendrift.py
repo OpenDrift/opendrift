@@ -65,7 +65,7 @@ class OpenDriftSimulation(object):
     __metaclass__ = ABCMeta
 
     status_categories = {'initial': 'green', 'active': 'blue',
-                         'deactivated': 'red'}
+                         'missing data': 'gray'}
 
     model = ModelSettings  # To store model specific information
 
@@ -334,27 +334,29 @@ class OpenDriftSimulation(object):
                     logging.debug(traceback.format_exc())
                     logging.info('========================')
                     continue
-                # Rotation of vectors - TBD
 
-                # Store reader number for the particles covered
+                # TBD: Store reader number for the particles covered
 
-                # Copy retrieved variables to env array
+                # Copy retrieved variables to env array, and mask nan-values
                 for var in variable_group:
-                    env[var][missing_indices] = env_tmp[var]
+                    env[var][missing_indices] = np.ma.masked_invalid(
+                                                    env_tmp[var])
 
-                # Detect particles with missing data
+                # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
                     try:
                         del combined_mask
                     except:
                         pass
                     for var in variable_group:
+                        #tmp_var = np.ma.masked_invalid(env_tmp[var])
+                        tmp_var = env_tmp[var]
                         if 'combined_mask' not in locals():
-                            combined_mask = np.ma.getmask(env_tmp[var])
+                            combined_mask = np.ma.getmask(tmp_var)
                         else:
                             combined_mask = \
                                 np.ma.mask_or(combined_mask,
-                                              np.ma.getmask(env_tmp[var]),
+                                              np.ma.getmask(tmp_var),
                                               shrink=False)
                     missing_indices = missing_indices[combined_mask]
                 else:
@@ -374,13 +376,23 @@ class OpenDriftSimulation(object):
                         logging.debug('Using fallback value for %s: %s'
                                       % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
+                    else:
+                        logging.debug('%s values missing for %s' % (
+                            len(missing_indices), var))
         # Diagnostic output
         for var in variables:
             logging.debug('\t%s: %f (min) %f (max)' %
                           (var, env[var].min(), env[var].max()))
 
+        # Prepare array indiciating which elements contain any invalid values
+        missing = np.ma.masked_invalid(env[variables[0]]).mask
+        for var in variables[1:]:
+            missing = np.ma.mask_or(missing,
+                                    np.ma.masked_invalid(env[var]).mask,
+                                    shrink=False)
+
         # Convert dictionary to recarray and return
-        return env.view(np.recarray)
+        return env.view(np.recarray), missing
 
     def num_elements(self):
         """The number of active elements"""
@@ -451,6 +463,8 @@ class OpenDriftSimulation(object):
             self.elements.status = np.zeros(self.num_elements())
             self.elements.status.fill(status)
         self.elements.status[indices] = reason_number
+        logging.debug('%s elements scheduled for deactivation (%s)' %
+                      (sum(indices), reason))
 
     def remove_deactivated_elements(self):
         """Moving deactivated elements from self.elements
@@ -460,7 +474,7 @@ class OpenDriftSimulation(object):
         try:
             len(indices)
         except:
-            print 'no elements to deactivate'
+            logging.debug('No elements to deactivate')
             return  # No elements scheduled for deactivation
         # Basic, but some more housekeeping will be required later
         self.elements.move_elements(self.elements_deactivated, indices)
@@ -468,8 +482,8 @@ class OpenDriftSimulation(object):
         if hasattr(self, 'environment'):
             self.environment = self.environment[~indices]
             logging.debug('Removed %i values from environment.' % (sum(indices)))
-            if self.num_elements() == 0:
-                raise ValueError('No more active elements.')  # End simulation
+            #if self.num_elements() == 0:
+            #    raise ValueError('No more active elements.')  # End simulation
 
     def run(self, time_step=3600, steps=1000, outfile=None):
         """Start a trajectory simulation, after configuration.
@@ -542,20 +556,24 @@ class OpenDriftSimulation(object):
                               steps, self.num_elements(),
                               self.num_elements_deactivated()))
                 logging.debug('==================================='*2)
-                self.environment = \
+                self.environment, missing = \
                     self.get_environment(self.required_variables,
                                          self.time,
                                          self.elements.lon,
                                          self.elements.lat,
                                          self.elements.depth)
 
+                self.deactivate_elements(missing, reason='missing data')
+
                 self.runtime_environment += datetime.now() - runtime_start
                 runtime_start = datetime.now()
                 self.state_to_buffer()  # Append status to outfile
-                if self.steps > 0:
-                    self.remove_deactivated_elements()
+                #if self.steps > 0:
+                self.remove_deactivated_elements()
                 # Propagate one timestep forwards
                 self.steps += 1
+                if self.num_elements() == 0:
+                    raise ValueError('No more active elements, quitting.')
                 logging.debug('Calling module: %s.update()' %
                                 type(self).__name__)
                 self.update()
