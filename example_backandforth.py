@@ -10,7 +10,7 @@ from models.oceandrift import OceanDrift
 ncfile = 'backandforth.nc'
 
 back = False
-back = True
+#back = True
 
 o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')

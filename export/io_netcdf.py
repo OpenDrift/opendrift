@@ -42,7 +42,11 @@ def init(self, filename, times=None):
         if prop in skip_parameters: continue
         # Note: Should use 'f8' if 'f4' is not accurate enough,
         #       at expense of larger files
-        var = self.outfile.createVariable(prop, 'f4', ('trajectory', 'obs'))
+        try:
+            dtype = self.elements.variables[prop]['dtype']
+        except:
+            dtype = 'f4'
+        var = self.outfile.createVariable(prop, dtype, ('trajectory', 'obs'))
         for subprop in self.elements.variables[prop].items():
             if subprop[0] not in ['dtype', 'constant']:
                 var.setncattr(subprop[0], subprop[1])
@@ -69,6 +73,11 @@ def write_buffer(self):
 
 def close(self):
 
+    # Write status categories metadata
+    for i, category in enumerate(self.status_categories):
+        self.outfile.variables['status'].setncattr(str(i), category)
+        self.outfile.variables['status'].setncattr('color_' + str(i),
+                self.status_categories[category])
     # Write timesteps to file
     self.outfile.time_coverage_end = str(self.time)
     timeStr = 'seconds since 1970-01-01 00:00:00'
