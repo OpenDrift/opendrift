@@ -17,9 +17,13 @@ def init(self, filename, times=None):
     self.outfile_name = filename
     self.outfile = Dataset(filename, 'w')
     self.outfile.createDimension('trajectory', len(self.elements.lon))
-    self.outfile.createVariable('elementID', 'i4', ('trajectory',))
-    self.outfile.createDimension('obs', None)  # Unlimited time dimension
-    self.outfile.createVariable('time', 'f8', ('obs',))
+    self.outfile.createVariable('trajectory', 'i4', ('trajectory',))
+    # NB: trajectory_id must be changed for future ragged array representation
+    self.outfile.variables['trajectory'][:] = np.arange(self.num_elements())+1
+    self.outfile.variables['trajectory'].cf_role = 'trajectory_id'
+    self.outfile.variables['trajectory'].units = '1'
+    self.outfile.createDimension('time', None)  # Unlimited time dimension
+    self.outfile.createVariable('time', 'f8', ('time',))
 
     self.outfile.Conventions = 'CF-1.6'
     self.outfile.standard_name_vocabulary = 'CF-1.6'
@@ -31,12 +35,6 @@ def init(self, filename, times=None):
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step = str(self.time_step)
 
-    self.outfile.createVariable('crs', 'i4')
-    self.outfile.variables['crs'].grid_mapping_name = 'latitude_longitude'
-    self.outfile.variables['crs'].epsg_code = 'EPSG:4326'
-    self.outfile.variables['crs'].semi_major_axis = 6378137.0
-    self.outfile.variables['crs'].inverse_flattening = 298.257223563
-
     # Add all element properties as variables
     for prop in self.elements.variables:
         if prop in skip_parameters: continue
@@ -46,9 +44,11 @@ def init(self, filename, times=None):
             dtype = self.elements.variables[prop]['dtype']
         except:
             dtype = 'f4'
-        var = self.outfile.createVariable(prop, dtype, ('trajectory', 'obs'))
+        var = self.outfile.createVariable(prop, dtype, ('trajectory', 'time'))
         for subprop in self.elements.variables[prop].items():
             if subprop[0] not in ['dtype', 'constant']:
+                # Apparently axis attribute shall not be given for lon and lat:
+                if prop in ['lon', 'lat'] and subprop[0] == 'axis': continue
                 var.setncattr(subprop[0], subprop[1])
     # list and number all readers
 
@@ -75,8 +75,10 @@ def close(self):
 
     # Write status categories metadata
     for i, category in enumerate(self.status_categories):
-        self.outfile.variables['status'].setncattr(str(i), category)
-        self.outfile.variables['status'].setncattr('color_' + str(i),
+        self.outfile.variables['status'].units = '1'
+        #self.outfile.variables['status'].setncattr('value_' + str(i), category)
+        #self.outfile.variables['status'].setncattr('color_' + str(i),
+        self.outfile.variables['status'].valid_range = 0, len(
                 self.status_categories[category])
     # Write timesteps to file
     self.outfile.time_coverage_end = str(self.time)
@@ -84,7 +86,10 @@ def close(self):
     times = [self.start_time + n*self.time_step for n in range(self.steps + 1)]
     self.outfile.variables['time'][:] = date2num(times, timeStr)
     self.outfile.variables['time'].units = timeStr
-    self.outfile.variables['time'].axis = 'T'
+    self.outfile.variables['time'].standard_name = 'time'
+    self.outfile.variables['time'].long_name = 'time'
+    # Apparently axis attribute shall not be given for time, lon and lat
+    #self.outfile.variables['time'].axis = 'T'  
     self.outfile.close()  # Finally close file
 
 def import_file(self, filename, time=None):
@@ -103,7 +108,7 @@ def import_file(self, filename, time=None):
             print var + ' does not exist - adding to element class definition'
 
     num_elements = len(infile.dimensions['trajectory'])
-    num_timesteps = len(infile.dimensions['obs'])
+    num_timesteps = len(infile.dimensions['time'])
     self.steps = num_timesteps - 1  # we do not here count initial state
     dtype = np.dtype([(var[0],var[1]['dtype'])
                 for var in self.ElementType.variables.items()])
@@ -112,7 +117,7 @@ def import_file(self, filename, time=None):
     self.history = np.ma.array(np.zeros([num_elements, num_timesteps]),
                                dtype=dtype, mask=[True])
     for var in infile.variables:
-        if var in ['elementID', 'time', 'crs']:
+        if var in ['time', 'crs']:
             continue
         self.history[var] = infile.variables[var][:,:]
 
@@ -124,7 +129,7 @@ def import_file(self, filename, time=None):
     stat = self.history['status'][np.arange(len(index_of_last)), index_of_last]
     kwargs = {}
     for var in infile.variables:
-        if var in ['elementID', 'time', 'crs']:
+        if var in ['time', 'crs']:
             continue
         kwargs[var] = self.history[var][np.arange(len(index_of_last)),
                                         index_of_last]

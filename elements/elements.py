@@ -41,14 +41,17 @@ class LagrangianArray(object):
         ('lon', {'dtype': np.float32,
                  'units': 'degrees_east',
                  'standard_name': 'longitude',
+                 'long_name': 'longitude',
                  'axis': 'X'}),
         ('lat', {'dtype': np.float32,
                  'units': 'degrees_north',
                  'standard_name': 'latitude',
+                 'long_name': 'latitude',
                  'axis': 'Y'}),
         ('depth', {'dtype': np.float32,
                    'units': 'm',
                    'standard_name': 'depth',
+                   'long_name': 'depth',
                    'default': 0})])
 
     def __init__(self, **kwargs):

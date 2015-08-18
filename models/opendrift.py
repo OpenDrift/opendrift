@@ -66,7 +66,7 @@ class OpenDriftSimulation(object):
 
     # Default categories with colors
     status_categories = {'initial': 'green', 'active': 'blue',
-                         'missing data': 'gray'}
+                         'missing_data': 'gray'}
 
     model = ModelSettings  # To store model specific information
 
