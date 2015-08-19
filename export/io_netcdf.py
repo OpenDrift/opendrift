@@ -1,5 +1,6 @@
 import sys
 import datetime
+import string
 import logging
 
 import numpy as np
@@ -74,12 +75,12 @@ def write_buffer(self):
 def close(self):
 
     # Write status categories metadata
-    for i, category in enumerate(self.status_categories):
-        self.outfile.variables['status'].units = '1'
-        #self.outfile.variables['status'].setncattr('value_' + str(i), category)
-        #self.outfile.variables['status'].setncattr('color_' + str(i),
-        self.outfile.variables['status'].valid_range = 0, len(
-                self.status_categories[category])
+    self.outfile.variables['status'].valid_range = 0, len(
+                    self.status_categories) - 1
+    self.outfile.variables['status'].flag_values = \
+                    np.arange(len(self.status_categories))
+    self.outfile.variables['status'].flag_meanings = \
+        string.join(self.status_categories)
     # Write timesteps to file
     self.outfile.time_coverage_end = str(self.time)
     timeStr = 'seconds since 1970-01-01 00:00:00'
@@ -102,6 +103,7 @@ def import_file(self, filename, time=None):
     self.time_step = num2date(infile.variables['time'][1],
                               infile.variables['time'].units) - self.start_time
     self.time = self.end_time  # Using end time as default
+    self.status_categories = infile.variables['status'].flag_meanings.split()
 
     for var in infile.variables:
         if var not in self.ElementType.variables:
@@ -117,7 +119,7 @@ def import_file(self, filename, time=None):
     self.history = np.ma.array(np.zeros([num_elements, num_timesteps]),
                                dtype=dtype, mask=[True])
     for var in infile.variables:
-        if var in ['time', 'crs']:
+        if var in ['time', 'trajectory']:
             continue
         self.history[var] = infile.variables[var][:,:]
 
@@ -129,12 +131,13 @@ def import_file(self, filename, time=None):
     stat = self.history['status'][np.arange(len(index_of_last)), index_of_last]
     kwargs = {}
     for var in infile.variables:
-        if var in ['time', 'crs']:
+        if var in ['time', 'trajectory']:
             continue
         kwargs[var] = self.history[var][np.arange(len(index_of_last)),
                                         index_of_last]
-    kwargs['ID'] = np.arange(num_elements) + 1  # Should rader be saved/read from file TBD
+    # Import element IDs, which are named 'trajectory' in netCDF CF convention
+    kwargs['ID'] = infile.variables['trajectory'][:]
     self.elements = self.ElementType(**kwargs)
 
-    # Remove elements which are schedules for deactivation
+    # Remove elements which are scheduled for deactivation
     self.remove_deactivated_elements()

@@ -61,6 +61,11 @@ class OpenOil(OpenDriftSimulation):
                        'sea_surface_wave_to_direction': 0,
                        'x_wind': 0, 'y_wind': 0}
 
+    # Default colors for plotting
+    status_colors = {'initial': 'green', 'active': 'blue',
+                     'missing_data': 'gray', 'stranded': 'red',
+                     'evaporated': 'yellow', 'dispersed': 'magenta'}
+
     # Some parameters which may be altered by user.
     # Plan to make some generic itnerface for this,
     # e.g. for making dynamic web interface
@@ -108,7 +113,7 @@ class OpenOil(OpenDriftSimulation):
                 self.model.tref, self.model.fref)
 
             self.deactivate_elements(self.elements.fraction_evaporated > 0.321,
-                                     reason='evaporated', color='yellow')
+                                     reason='evaporated')
         ##################
         # Emulsification
         ##################
@@ -142,12 +147,11 @@ class OpenOil(OpenDriftSimulation):
             droplet_size = np.power((p*oil_per_unit_surface)/(c_oil *
                                     np.power(dissipation_energy, 0.57)),
                                     1/1.17)
-            self.deactivate_elements(droplet_size < 5E-7,
-                                     reason='dispersed', color='darkviolet')
+            self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded', color='red')
+                                 reason='stranded')
 
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,

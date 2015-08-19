@@ -34,6 +34,7 @@ if back:
 else:
     # Seeding some particles
     lon = 4.4; lat = 60.0; 
+#    lon = 3.4; lat = 60.0; 
     time = reader_norkyst.start_time
     o.seed_point(lon, lat, radius=10000, number=100, time=time)
 

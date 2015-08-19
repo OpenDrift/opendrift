@@ -34,10 +34,9 @@ class LagrangianArray(object):
     """
 
     variables = OrderedDict([
-        ('ID', {'dtype': np.int32}),
-        ('status', {'dtype': np.int32,  # Max 63 categories, should be enough
-                    'default': 0,
-                    'constant': True}),  # Constant regarding time/step
+        ('ID', {'dtype': np.int32}),  # Unique numerical identifier
+        ('status', {'dtype': np.int32,  # Status categories
+                    'default': 0}),
         ('lon', {'dtype': np.float32,
                  'units': 'degrees_east',
                  'standard_name': 'longitude',

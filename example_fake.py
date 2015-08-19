@@ -28,4 +28,4 @@ o.run(steps=1000)
 
 # Print and plot results
 print o
-o.plot(buffer=.1)
+o.plot(buffer=.5)

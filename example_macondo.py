@@ -28,11 +28,11 @@ o.add_reader([reader_hycom, reader_oceanwind, reader_basemap])
 # Seed some particles
 lon = -88.387161; lat = 28.736669  # Macondo location
 time = datetime(2010, 4, 21, 6, 0, 0)  # 4 hours after explosion
-o.seed_point(lon, lat, radius=10000, number=100, massOil=1, time=time)
+o.seed_point(lon, lat, radius=10000, number=100, mass_oil=1, time=time)
 
 # Run model
 print o
-o.run(steps=130, time_step=3600*3)  # Using three hour timestep of hycom
+o.run(steps=50, time_step=3600*3)  # Using three hour timestep of hycom
 
 # Print and plot results
 print o

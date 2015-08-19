@@ -47,7 +47,7 @@ o.add_reader([reader_norkyst, reader_arome, reader_basemap])
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 #lon = 10.6; lat = 54.83; # outside Norkyst boundary
-lon = 5.2; lat = 59.1; # Outside Bergen
+lon = 5.3; lat = 59.1; # Outside Bergen
 #lon = 2.5; lat = 60.0; # Frigg/NOFO
 #lon = 6.73; lat = 62.78; # Outside Trondheim
 #lon = 10.546; lat = 59.486 # Godafoss
@@ -58,7 +58,7 @@ lon = 5.2; lat = 59.1; # Outside Bergen
 time = None
 #time = reader_wam10.start_time
 #time = datetime(2015, 6, 9, 9, 0, 0)
-o.seed_point(lon, lat, radius=1000, number=100, time=time)
+o.seed_point(lon, lat, radius=3000, number=100, time=time)
 
 print o
 

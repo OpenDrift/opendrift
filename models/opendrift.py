@@ -64,9 +64,12 @@ class OpenDriftSimulation(object):
 
     __metaclass__ = ABCMeta
 
-    # Default categories with colors
-    status_categories = {'initial': 'green', 'active': 'blue',
-                         'missing_data': 'gray'}
+    status_categories = ['active']  # Particles are active by default
+
+    # Default plotting colors of trajectory endpoints
+    status_colors_default = {'initial': 'green',
+                             'active': 'blue',
+                             'missing_data': 'gray'}
 
     model = ModelSettings  # To store model specific information
 
@@ -98,6 +101,13 @@ class OpenDriftSimulation(object):
 
         if not hasattr(self, 'fallback_values'):
             self.fallback_values = {}
+
+        if hasattr(self, 'status_colors'):
+            # Append model specific colors to (and override) default colors
+            self.status_colors_default.update(self.status_colors)
+            self.status_colors = self.status_colors_default
+        else:
+            self.status_colors = self.status_colors_default
 
         # Set projection, if given
         self.set_projection(proj4)
@@ -451,16 +461,14 @@ class OpenDriftSimulation(object):
         else:
             self.start_time = time
 
-    def deactivate_elements(self, indices, reason='deactivated', color=None):
+    def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
         if sum(indices) == 0:
             return
         if reason not in self.status_categories:
-            if color is None:
-                color = 'gray'  # Should here traverse a list of colors
-            self.status_categories[reason] = color
-            logging.debug('Added status %s (color %s)' % (reason, color))
-        reason_number = self.status_categories.keys().index(reason)
+            self.status_categories.append(reason)
+            logging.debug('Added status %s' % (reason))
+        reason_number = self.status_categories.index(reason)
         if not hasattr(self.elements.status, "__len__"):
             status = self.elements.status
             self.elements.status = np.zeros(self.num_elements())
@@ -532,7 +540,11 @@ class OpenDriftSimulation(object):
         if self.steps > 1:
             self.steps = 0
         if hasattr(self, 'history'):
-            delattr(self, 'history')  # Delete history matrix before new run
+            # Delete history matrix before new run
+            delattr(self, 'history')
+            # Renumbering elements from 0 to num_elements, necessary fix when
+            # importing from file, where elements may have been deactivated
+            self.elements.ID = np.arange(0, self.num_elements())
 
         # Store runtime to report on OpenDrift performance
         self.runtime_environment = timedelta(seconds=0)
@@ -566,7 +578,7 @@ class OpenDriftSimulation(object):
                                          self.elements.lat,
                                          self.elements.depth)
 
-                self.deactivate_elements(missing, reason='missing data')
+                self.deactivate_elements(missing, reason='missing_data')
 
                 self.runtime_environment += datetime.now() - runtime_start
                 runtime_start = datetime.now()
@@ -621,6 +633,9 @@ class OpenDriftSimulation(object):
             self.steps_exported = 0
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
+            # Temporarily assuming elements numbered from 0 to num_elements()
+            # Does not hold when importing ID from a saved file, where 
+            # some elements have been deactivated
             self.history[var][self.elements.ID - 1,
                               self.steps - self.steps_exported] = \
                 getattr(self.elements, var)
@@ -703,10 +718,10 @@ class OpenDriftSimulation(object):
         # NB: should check that endpoints are always included
 
         map.scatter(x[:, 0], y[:, 0], zorder=3, edgecolor='k', linewidths=.2,
-                    color=self.status_categories['initial'],
+                    color=self.status_colors['initial'],
                     label='initial (%i)' % x.shape[0])
         map.scatter(x[:, -1], y[:, -1], zorder=3, edgecolor='k', linewidths=.2,
-                    color=self.status_categories['active'],
+                    color=self.status_colors['active'],
                     label='active (%i)' %
                     (x.shape[0] - self.num_elements_deactivated()))
 
@@ -718,13 +733,20 @@ class OpenDriftSimulation(object):
                                            self.elements_deactivated.lat)
         # Plot deactivated elements, labeled by deactivation reason
         for statusnum, status in enumerate(self.status_categories):
-            if status == 'initial' or status == 'active':
+            if status == 'active':
                 continue  # plotted above
+            if status not in self.status_colors:
+                # If no color specified, pick an unused one
+                for color in ['red', 'blue', 'green', 'black', 'gray',
+                              'cyan', 'DarkSeaGreen', 'brown']:
+                    if color not in self.status_colors.values():
+                        self.status_colors[status] = color
+                        break
             indices = np.where(self.elements_deactivated.status == statusnum)
             if len(indices[0]) > 0:
                 map.scatter(x_deactivated[indices], y_deactivated[indices],
                             zorder=3, edgecolor='k', linewidths=.1,
-                            color=self.status_categories[status],
+                            color=self.status_colors[status],
                             label='%s (%i)' % (status, len(indices[0])))
         try:
             plt.legend()
