@@ -82,9 +82,6 @@ def close(self):
 
     # Write status categories metadata
     status_dtype = self.ElementType.variables['status']['dtype']
-    print status_dtype
-    print np.array([0]).astype(status_dtype)
-    print np.array([len(self.status_categories) - 1]).astype(status_dtype)
     self.outfile.variables['status'].valid_range = np.array([0]).astype(
         status_dtype), \
         np.array([len(self.status_categories) - 1]).astype(status_dtype)
