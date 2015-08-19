@@ -109,7 +109,7 @@ class LagrangianArray(object):
                     ['dtype'](kwargs[input_variable]))
 
         # Store dtypes for all parameters in a common dtype object (for io)
-        self.dtype = np.dtype([(var[0],var[1]['dtype'])
+        self.dtype = np.dtype([(var[0], var[1]['dtype'])
                                for var in self.variables.items()])
 
     @classmethod

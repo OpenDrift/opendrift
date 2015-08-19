@@ -351,7 +351,7 @@ class OpenDriftSimulation(object):
                 # Copy retrieved variables to env array, and mask nan-values
                 for var in variable_group:
                     env[var][missing_indices] = np.ma.masked_invalid(
-                                                    env_tmp[var])
+                        env_tmp[var])
 
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
@@ -492,7 +492,8 @@ class OpenDriftSimulation(object):
         logging.debug('Removed %i elements.' % (sum(indices)))
         if hasattr(self, 'environment'):
             self.environment = self.environment[~indices]
-            logging.debug('Removed %i values from environment.' % (sum(indices)))
+            logging.debug('Removed %i values from environment.' %
+                          (sum(indices)))
             #if self.num_elements() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
@@ -590,7 +591,7 @@ class OpenDriftSimulation(object):
                 if self.num_elements() == 0:
                     raise ValueError('No more active elements, quitting.')
                 logging.debug('Calling module: %s.update()' %
-                                type(self).__name__)
+                              type(self).__name__)
                 self.update()
                 self.runtime_model += datetime.now() - runtime_start
                 if self.num_elements() == 0:
@@ -634,7 +635,7 @@ class OpenDriftSimulation(object):
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
             # Temporarily assuming elements numbered from 0 to num_elements()
-            # Does not hold when importing ID from a saved file, where 
+            # Does not hold when importing ID from a saved file, where
             # some elements have been deactivated
             self.history[var][self.elements.ID - 1,
                               self.steps - self.steps_exported] = \

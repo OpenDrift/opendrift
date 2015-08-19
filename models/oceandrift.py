@@ -28,7 +28,7 @@ class OceanDrift(OpenDriftSimulation):
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
-            reason='stranded')
+                                 reason='stranded')
 
     def move_rungekutta(self):
         """Helper function for Runge-Kutta advection."""
@@ -42,8 +42,8 @@ class OceanDrift(OpenDriftSimulation):
         mid_lon, mid_lat = self.xy2lonlat(mid_x, mid_y)
         # Find current at midpoint, a half timestep later
         mid_env = self.get_environment(self.required_variables,
-                                     self.time + self.time_step/2,
-                                     mid_lon, mid_lat, self.elements.depth)
+                                       self.time + self.time_step/2,
+                                       mid_lon, mid_lat, self.elements.depth)
         # Move particles using runge-kutta velocity
         self.update_positions(mid_env['x_sea_water_velocity'],
                               mid_env['y_sea_water_velocity'])

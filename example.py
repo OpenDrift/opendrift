@@ -72,7 +72,7 @@ print o
 #o.wind_factor = 0.03
 o.dispersion = True
 o.diffusion = True
-o.run(steps=50*4, time_step=900, outfile='openoil.nc')
+o.run(steps=5*4, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o
