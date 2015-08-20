@@ -100,19 +100,44 @@ class OpenOil(OpenDriftSimulation):
         ################
         ## Evaporation
         ################
-        # NB: temorarily assuming all particles are at ocean surface!
         if self.evaporation:
+            # Store evaporation fraction at beginning of timestep
+            fraction_evaporated_previous = self.elements.fraction_evaporated
+
+            # Evaporate only elements at surface
+            at_surface = (self.elements.depth == 0)
+            if np.isscalar(at_surface):
+                at_surface = at_surface*np.ones(self.num_elements(),
+                                                dtype=bool)
             Urel = windspeed/self.model.reference_wind  # Relative wind
             h = 2  # Film thickness in mm, harcoded for now
-            self.elements.age_exposure_seconds += \
+
+            # Calculate exposure time
+            #   presently without compensation for sea temperature
+            delta_exposure_seconds = \
                 (self.model.reference_thickness/h)*Urel * \
                 self.time_step.total_seconds()
+            if np.isscalar(self.elements.age_exposure_seconds):
+                self.elements.age_exposure_seconds += delta_exposure_seconds
+            else:
+                self.elements.age_exposure_seconds[at_surface] += \
+                    delta_exposure_seconds[at_surface]
 
             self.elements.fraction_evaporated = np.interp(
                 self.elements.age_exposure_seconds,
                 self.model.tref, self.model.fref)
 
-            self.deactivate_elements(self.elements.fraction_evaporated > 0.321,
+            # Evaporation probability equals the difference in fraction
+            # evaporated at this timestep compared to previous timestep,
+            # divided by the remaining fraction of the particle at 
+            # previous timestep
+            evaporation_probability = ((self.elements.fraction_evaporated -
+                                        fraction_evaporated_previous) /
+                                       (1 - fraction_evaporated_previous))
+            evaporation_probability[~at_surface] = 0
+            print evaporation_probability
+            self.deactivate_elements(evaporation_probability >
+                                     np.random.rand(self.num_elements(),),
                                      reason='evaporated')
         ##################
         # Emulsification
