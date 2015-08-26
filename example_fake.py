@@ -17,7 +17,7 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-1.5, llcrnrlat=59,
 o.add_reader([fake_eddy, reader_basemap])
 
 o.use_block = False
-o.runge_kutta = False
+o.config['runge_kutta'] = False
 
 # Seeding some particles
 lon = 2.0; lat = 63.0; # Close to Station M

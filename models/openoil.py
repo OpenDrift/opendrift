@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from datetime import datetime
 
 from opendrift import OpenDriftSimulation
 from elements import LagrangianArray
@@ -14,11 +15,12 @@ class Oil(LagrangianArray):
                       'unit': 'kg',
                       'default': 1}),
         ('viscosity', {'dtype': np.float32,
-                       'unit': 'mm2/s (centiStokes)',
-                       'default': 100}),
+                       #'unit': 'mm2/s (centiStokes)',
+                       'unit': 'N s/m2 (Pa s)',
+                       'default': 0.5}),
         ('density', {'dtype': np.float32,
-                     'unit': 'kg/cm^3',
-                     'default': .8}),
+                     'unit': 'kg/m^3',
+                     'default': 800}),
         ('age_seconds', {'dtype': np.float32,
                          'unit': 's',
                          'default': 0}),
@@ -66,14 +68,33 @@ class OpenOil(OpenDriftSimulation):
                      'missing_data': 'gray', 'stranded': 'red',
                      'evaporated': 'yellow', 'dispersed': 'magenta'}
 
-    # Some parameters which may be altered by user.
-    # Plan to make some generic itnerface for this,
-    # e.g. for making dynamic web interface
-    wind_factor = 0.02
-    evaporation = True
-    emulsification = True
-    dispersion = True
-    diffusion = True
+    # Read oil types from file (presently only for illustrative effect)
+    oil_types = str([str(l.strip()) for l in open(
+                    os.path.dirname(os.path.realpath(__file__))
+                    + '/oil_types.txt').readlines()])[1:-1]
+    default_oil = oil_types.split(',')[0].strip()
+
+    # Configuration
+
+    configspec = '''
+        [input]
+            readers = list(min=1, default=list(''))
+            [[spill]]
+                longitude = float(min=-360, max=360, default=5)
+                latitude = float(min=-90, max=90, default=60)
+                time = string(default='%s')
+                oil_type = option(%s, default=%s)
+        [processes]
+            dispersion = boolean(default=False)
+            diffusion = boolean(default=False)
+            evaporation = boolean(default=True)
+            emulsification = boolean(default=False)
+        [drift]
+            wind_drift_factor = float(min=0, max=1, default=0.02)
+            current_uncertainty = float(min=0, max=5, default=.1)
+            wind_uncertainty = float(min=0, max=5, default=1)
+    ''' % (datetime.now().strftime('%Y-%d-%m %H:00'), oil_types, default_oil)
+
 
     def __init__(self, *args, **kwargs):
 
@@ -100,7 +121,7 @@ class OpenOil(OpenDriftSimulation):
         ################
         ## Evaporation
         ################
-        if self.evaporation:
+        if self.config['processes']['evaporation'] is True:
             # Store evaporation fraction at beginning of timestep
             fraction_evaporated_previous = self.elements.fraction_evaporated
 
@@ -135,14 +156,13 @@ class OpenOil(OpenDriftSimulation):
                                         fraction_evaporated_previous) /
                                        (1 - fraction_evaporated_previous))
             evaporation_probability[~at_surface] = 0
-            print evaporation_probability
             self.deactivate_elements(evaporation_probability >
                                      np.random.rand(self.num_elements(),),
                                      reason='evaporated')
         ##################
         # Emulsification
         ##################
-        if self.emulsification:
+        if self.config['processes']['emulsification'] is True:
             # Apparent emulsion age of particles
             self.elements.age_emulsion_seconds += \
                 Urel*self.time_step.total_seconds()
@@ -154,25 +174,63 @@ class OpenOil(OpenDriftSimulation):
         ###############
         # Dispersion
         ###############
-        if self.dispersion:
-            self.elements.depth = \
-                self.environment.sea_surface_wave_significant_height
-            whitecap_coverage = (2.54E-4)*np.power(windspeed, 3.58)  # percent
-            wave_period = 3.85*np.sqrt(
-                self.environment.sea_surface_wave_significant_height)  # sec
-            time_between_breaking_events = 3.85/whitecap_coverage  # TBC
-            rho_w = 1025  # kg/m3
-            wave_period[wave_period == 0] = 5  # NB: temporal fix for no waves
-            dissipation_energy = 0.0034*rho_w*9.81*(wave_period**2)
-            dsize_coeff = 2100  # Wettre et al., Appendix A
-            c_oil = dsize_coeff*np.power(self.elements.viscosity, -0.4)
-            # Random numbers between 0 and 1:
-            p = np.random.rand(self.num_elements(), )
-            oil_per_unit_surface = 1
-            droplet_size = np.power((p*oil_per_unit_surface)/(c_oil *
-                                    np.power(dissipation_energy, 0.57)),
-                                    1/1.17)
-            self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
+        if self.config['processes']['dispersion'] is True:
+
+            # From NOAA PyGnome model:
+            # https://github.com/NOAA-ORR-ERD/PyGnome/ 
+            v_entrain = 3.9E-8
+            sea_water_density = 1028
+            fraction_breaking_waves = 0.02
+            dissipation_wave_energy = (0.0034*sea_water_density*9.81*
+                      self.environment.sea_surface_wave_significant_height**2)
+            c_disp = np.power(dissipation_wave_energy, 0.57) * \
+                        fraction_breaking_waves
+            # Roy's constant
+            C_Roy = 2400.0 * np.exp(-73.682*np.sqrt(
+                                self.elements.viscosity/self.elements.density))
+
+            q_disp = C_Roy * c_disp * v_entrain / self.elements.density
+
+            oil_mass_loss = (q_disp * self.time_step.total_seconds() *
+                             self.elements.density)
+
+            self.elements.mass_oil -= oil_mass_loss
+
+#            print dissipation_wave_energy
+#            print c_disp
+#            print self.elements.viscosity
+#            print C_Roy
+#            print q_disp
+#            print oil_mass_loss
+#            import sys; sys.exit('disp')
+
+            #self.elements.depth = \
+            #    self.environment.sea_surface_wave_significant_height
+
+            ## Marks R. (1987), Marine aerosols and whitecaps in the
+            ## North Atlantic and Greenland sea regions 
+            ## Deutsche Hydrografische Zeitschrift, Vol 40, Issue 2 , pp 71-79
+            #whitecap_coverage = (2.54E-4)*np.power(windspeed, 3.58)  # percent
+
+            ## Martinsen et al. (1994), The operational oil drift system at DNMI
+            ## DNMI Technical report No 125, 51 p 
+            #wave_period = 3.85*np.sqrt(
+            #    self.environment.sea_surface_wave_significant_height)  # sec
+
+            #time_between_breaking_events = 3.85/whitecap_coverage  # TBC
+
+            #rho_w = 1025  # kg/m3
+            #wave_period[wave_period == 0] = 5  # NB: temporal fix for no waves
+            #dissipation_energy = 0.0034*rho_w*9.81*(wave_period**2)
+            #dsize_coeff = 2100  # Wettre et al., Appendix A
+            #c_oil = dsize_coeff*np.power(self.elements.viscosity, -0.4)
+            ## Random numbers between 0 and 1:
+            #p = np.random.rand(self.num_elements(), )
+            #oil_per_unit_surface = 1
+            #droplet_size = np.power((p*oil_per_unit_surface)/(c_oil *
+            #                        np.power(dissipation_energy, 0.57)),
+            #                        1/1.17)
+            #self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
@@ -183,12 +241,14 @@ class OpenOil(OpenDriftSimulation):
                               self.environment.y_sea_water_velocity)
 
         # Wind drag
-        self.update_positions(self.environment.x_wind*self.wind_factor,
-                              self.environment.y_wind*self.wind_factor)
+        wind_drift_factor = self.config['drift']['wind_drift_factor']
+        self.update_positions(self.environment.x_wind*wind_drift_factor,
+                              self.environment.y_wind*wind_drift_factor)
 
         # Uncertainty / diffusion
-        if self.diffusion is True:
-            std_current_comp = .1  # Current
+        if self.config['processes']['diffusion'] is True:
+            # Current
+            std_current_comp = self.config['drift']['current_uncertainty']
             if std_current_comp > 0:
                 sigma_u = np.random.normal(0, std_current_comp,
                                            self.num_elements())
@@ -199,11 +259,12 @@ class OpenOil(OpenDriftSimulation):
                 sigma_v = 0*self.environment.x_wind
             self.update_positions(sigma_u, sigma_v)
 
-            std_wind_comp = 1.0  # Wind
-            if self.wind_factor > 0 and std_wind_comp > 0:
-                sigma_u = np.random.normal(0, std_wind_comp*self.wind_factor,
+            # Wind
+            std_wind_comp = self.config['drift']['wind_uncertainty']
+            if wind_drift_factor > 0 and std_wind_comp > 0:
+                sigma_u = np.random.normal(0, std_wind_comp*wind_drift_factor,
                                            self.num_elements())
-                sigma_v = np.random.normal(0, std_wind_comp*self.wind_factor,
+                sigma_v = np.random.normal(0, std_wind_comp*wind_drift_factor,
                                            self.num_elements())
             else:
                 sigma_u = 0*self.environment.x_wind

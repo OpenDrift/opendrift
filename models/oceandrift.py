@@ -14,12 +14,13 @@ class OceanDrift(OpenDriftSimulation):
     ElementType = PassiveTracer
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
     required_variables.append('land_binary_mask')
-    runge_kutta = False
+
+    configspec = 'runge_kutta = boolean(default=False)'
 
     def update(self):
         """Update positions and properties of oil particles."""
 
-        if self.runge_kutta:
+        if self.config['runge_kutta'] is True:
             self.move_rungekutta()
         else:
             # Simply move particles with ambient current
@@ -41,9 +42,10 @@ class OceanDrift(OpenDriftSimulation):
         mid_y = start_y + y_vel*self.time_step.total_seconds()*.5
         mid_lon, mid_lat = self.xy2lonlat(mid_x, mid_y)
         # Find current at midpoint, a half timestep later
-        mid_env = self.get_environment(self.required_variables,
+        mid_env, missing = self.get_environment(self.required_variables,
                                        self.time + self.time_step/2,
                                        mid_lon, mid_lat, self.elements.depth)
+
         # Move particles using runge-kutta velocity
         self.update_positions(mid_env['x_sea_water_velocity'],
                               mid_env['y_sea_water_velocity'])

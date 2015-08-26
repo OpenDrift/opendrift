@@ -10,6 +10,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import numpy as np
 
 from readers.readers import pyproj, Reader
+from configobj import configobj, validate
 
 
 class ModelSettings(object):
@@ -73,6 +74,8 @@ class OpenDriftSimulation(object):
 
     model = ModelSettings  # To store model specific information
 
+    configspec = ''  # Default (empty) configuration options, to be overriden
+
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  outfile=None, loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
@@ -94,6 +97,14 @@ class OpenDriftSimulation(object):
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
         """
+
+        # Set default configuration
+        self.config = configobj.ConfigObj(configspec=self.configspec.split('\n'),
+                                          raise_errors=True)
+        validation = self.config.validate(validate.Validator())
+        if not isinstance(validation, bool) or validation is False:
+            raise ValueError('Wrong configuration: "%s"' % (validation))
+
         # Dict to store readers
         self.readers = {}  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
@@ -718,7 +729,7 @@ class OpenDriftSimulation(object):
             map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
         # NB: should check that endpoints are always included
 
-        map.scatter(x[:, 0], y[:, 0], zorder=3, edgecolor='k', linewidths=.2,
+        map.scatter(x[:, 0], y[:, 0], zorder=10, edgecolor='k', linewidths=.2,
                     color=self.status_colors['initial'],
                     label='initial (%i)' % x.shape[0])
         map.scatter(x[:, -1], y[:, -1], zorder=3, edgecolor='k', linewidths=.2,

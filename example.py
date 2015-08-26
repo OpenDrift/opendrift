@@ -50,15 +50,18 @@ o.add_reader([reader_norkyst, reader_arome, reader_basemap])
 lon = 4.9; lat = 60.0; # Outside Bergen
 #lon = 2.5; lat = 60.0; # Frigg/NOFO
 #lon = 6.73; lat = 62.78; # Outside Trondheim
-#lon = 10.546; lat = 59.486 # Godafoss
+lon = 10.546; lat = 59.486 # Godafoss
 #lon = 9.76; lat = 58.94 # Full City
 #lon = 9.76; lat = 58.84 # Full City south
 #lon = 22.6; lat = 71.00; # Barents
 #lon = 14.332435; lat = 68.045021; # Vestfjorden, Rohrs et al., 2012
+
 time = None
 #time = reader_wam10.start_time
 #time = datetime(2015, 6, 9, 9, 0, 0)
-o.seed_point(lon, lat, radius=3000, number=100, time=time)
+
+# Seed oil elements at defined position and time
+o.seed_point(lon, lat, radius=5000, number=1000, time=time)
 
 print o
 
@@ -68,13 +71,17 @@ print o
 #o.set_projection(reader_arome.proj4)
 #o.set_projection('+proj=latlong')
 
+# Adjusting some configuration
+o.config['drift']['wind_drift_factor'] = .03
+o.config['processes']['diffusion'] = True
+o.config['drift']['current_uncertainty'] = .0
+o.config['drift']['wind_uncertainty'] = 2
+
 # Running model (until end of driver data)
-#o.wind_factor = 0.03
-o.dispersion = True
-o.diffusion = True
 o.run(steps=50*4, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
+#o.plot_property('mass_oil')
 o.plot(buffer=.1)
