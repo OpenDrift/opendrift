@@ -719,7 +719,6 @@ class OpenDriftSimulation(object):
         # Trajectories
         x, y = map(lons, lats)
         # The more elements, the more transparent we make the lines
-        #num_elements = x.shape[0]
         num_elements = self.num_elements()
         min_alpha = 0.015
         max_elements = 5000.0

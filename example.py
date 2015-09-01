@@ -50,7 +50,7 @@ o.add_reader([reader_norkyst, reader_arome, reader_basemap])
 lon = 4.9; lat = 60.0; # Outside Bergen
 #lon = 2.5; lat = 60.0; # Frigg/NOFO
 #lon = 6.73; lat = 62.78; # Outside Trondheim
-lon = 10.546; lat = 59.486 # Godafoss
+#lon = 10.546; lat = 59.486 # Godafoss
 #lon = 9.76; lat = 58.94 # Full City
 #lon = 9.76; lat = 58.84 # Full City south
 #lon = 22.6; lat = 71.00; # Barents
@@ -61,7 +61,7 @@ time = None
 #time = datetime(2015, 6, 9, 9, 0, 0)
 
 # Seed oil elements at defined position and time
-o.seed_point(lon, lat, radius=5000, number=1000, time=time)
+o.seed_point(lon, lat, radius=5000, number=100, time=time)
 
 print o
 
@@ -74,6 +74,8 @@ print o
 # Adjusting some configuration
 o.config['drift']['wind_drift_factor'] = .03
 o.config['processes']['diffusion'] = True
+o.config['processes']['evaporation'] = True
+o.config['processes']['emulsification'] = True
 o.config['drift']['current_uncertainty'] = .0
 o.config['drift']['wind_uncertainty'] = 2
 

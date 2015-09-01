@@ -20,12 +20,12 @@ def init(self, filename, times=None):
     self.outfile = Dataset(filename, 'w')
     self.outfile.createDimension('trajectory', len(self.elements.lon))
     self.outfile.createVariable('trajectory', 'i4', ('trajectory',))
+    self.outfile.createDimension('time', None)  # Unlimited time dimension
+    self.outfile.createVariable('time', 'f8', ('time',))
     # NB: trajectory_id must be changed for future ragged array representation
     self.outfile.variables['trajectory'][:] = np.arange(self.num_elements())+1
     self.outfile.variables['trajectory'].cf_role = 'trajectory_id'
     self.outfile.variables['trajectory'].units = '1'
-    self.outfile.createDimension('time', None)  # Unlimited time dimension
-    self.outfile.createVariable('time', 'f8', ('time',))
 
     self.outfile.Conventions = 'CF-1.6'
     self.outfile.standard_name_vocabulary = 'CF-1.6'
@@ -49,11 +49,12 @@ def init(self, filename, times=None):
             dtype = 'f4'
         var = self.outfile.createVariable(prop, dtype, ('trajectory', 'time'))
         for subprop in self.elements.variables[prop].items():
-            if subprop[0] not in ['dtype', 'constant']:
+            if subprop[0] not in ['dtype', 'constant', 'default']:
                 # Apparently axis attribute shall not be given for lon and lat:
                 if prop in ['lon', 'lat'] and subprop[0] == 'axis':
                     continue
                 var.setncattr(subprop[0], subprop[1])
+                var.setncattr('coordinates', 'lat lon time')
     # list and number all readers
 
 
@@ -99,6 +100,17 @@ def close(self):
     self.outfile.variables['time'].long_name = 'time'
     # Apparently axis attribute shall not be given for time, lon and lat
     #self.outfile.variables['time'].axis = 'T'
+
+    # Write bounds metadata
+    self.outfile.geospatial_lat_min = self.history['lat'].min()
+    self.outfile.geospatial_lat_max = self.history['lat'].max()
+    self.outfile.geospatial_lat_units = 'degrees_north'
+    self.outfile.geospatial_lat_resolution = 'point'
+    self.outfile.geospatial_lon_min = self.history['lon'].min()
+    self.outfile.geospatial_lon_max = self.history['lon'].max()
+    self.outfile.geospatial_lon_units = 'degrees_east'
+    self.outfile.geospatial_lon_resolution = 'point'
+
     self.outfile.close()  # Finally close file
 
 
