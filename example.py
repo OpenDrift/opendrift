@@ -61,7 +61,7 @@ time = None
 #time = datetime(2015, 6, 9, 9, 0, 0)
 
 # Seed oil elements at defined position and time
-o.seed_point(lon, lat, radius=5000, number=100, time=time)
+o.seed_point(lon, lat, radius=5000, number=1000, time=time)
 
 print o
 

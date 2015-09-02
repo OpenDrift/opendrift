@@ -1,6 +1,7 @@
 import sys
 import datetime
 import string
+from shutil import move
 import logging
 
 import numpy as np
@@ -94,7 +95,7 @@ def close(self):
     self.outfile.time_coverage_end = str(self.time)
     timeStr = 'seconds since 1970-01-01 00:00:00'
     times = [self.start_time + n*self.time_step for n in range(self.steps + 1)]
-    self.outfile.variables['time'][:] = date2num(times, timeStr)
+    self.outfile.variables['time'][0:len(times)] = date2num(times, timeStr)
     self.outfile.variables['time'].units = timeStr
     self.outfile.variables['time'].standard_name = 'time'
     self.outfile.variables['time'].long_name = 'time'
@@ -113,6 +114,28 @@ def close(self):
 
     self.outfile.close()  # Finally close file
 
+    # Finally changing UNLIMITED time dimension to fixed, for CDM compliance.
+    # Fortunately this is quite fast.
+    # http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/reference/FeatureDatasets/CFpointImplement.html
+    with Dataset(self.outfile_name) as src, \
+            Dataset(self.outfile_name + '_tmp', 'w') as dst:
+        for name, dimension in src.dimensions.iteritems():
+            dst.createDimension(name, len(dimension))
+
+        for name, variable in src.variables.iteritems():
+            dstVar = dst.createVariable(name, variable.datatype,
+                                         variable.dimensions)
+            srcVar = src.variables[name]
+            dstVar[:] = srcVar[:]  # Copy data
+            for att in src.variables[name].ncattrs():
+                # Copy variable attributes
+                dstVar.setncattr(att, srcVar.getncattr(att))
+
+        for att in src.ncattrs():  # Copy global attributes
+            dst.setncattr(att, src.getncattr(att))
+
+    move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
+    
 
 def import_file(self, filename, time=None):
 
