@@ -698,11 +698,10 @@ class OpenDriftSimulation(object):
         lonmax = lons.max() + buffer*2
         latmin = lats.min()
         latmax = lats.max()
-        try:
+        if 'basemap_landmask' in self.readers:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
-        except:
-            print traceback.format_exc()
+        else:
             # Otherwise create a new Basemap covering the elements
             map = Basemap(lonmin-buffer, latmin-buffer,
                           lonmax+buffer, latmax+buffer,
@@ -730,7 +729,7 @@ class OpenDriftSimulation(object):
         x, y = map(lons, lats)
         # The more elements, the more transparent we make the lines
         num_elements = self.num_elements() + self.num_elements_deactivated()
-        min_alpha = 0.015
+        min_alpha = 0.025
         max_elements = 5000.0
         alpha = min_alpha**(2*(num_elements-1)/(max_elements-1))
         alpha = np.max((min_alpha, alpha))
@@ -804,11 +803,11 @@ class OpenDriftSimulation(object):
                 scalar = data[background]
             rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
             map_x, map_y = map(rlons, rlats)
-            map.contourf(map_x, map_y, scalar, interpolation='nearest',
-                         alpha=.5)
+            map.pcolormesh(map_x, map_y, scalar, alpha=1)
+
             if type(background) is list:
                 skip = 10
-                map.quiver(rlons[::skip, ::skip], rlats[::skip, ::skip],
+                map.quiver(map_x[::skip, ::skip], map_y[::skip, ::skip],
                            u_component[::skip, ::skip],
                            v_component[::skip, ::skip], scale=10)
 
@@ -859,7 +858,7 @@ class OpenDriftSimulation(object):
         plt.plot(times, data)
         plt.title(prop)
         plt.xlabel('Time  [UTC]')
-        plt.ylabel('%s  [%s]' % (prop, self.elements.variables[prop]['unit']))
+        plt.ylabel('%s  [%s]' % (prop, self.elements.variables[prop]['units']))
         plt.subplots_adjust(bottom=.3)
         plt.grid()
         plt.show()
