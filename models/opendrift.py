@@ -698,9 +698,8 @@ class OpenDriftSimulation(object):
         try:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
-            map.axis([lonmin-buffer, latmin-buffer,
-                      lonmax+buffer, latmax+buffer])
         except:
+            print traceback.format_exc()
             # Otherwise create a new Basemap covering the elements
             map = Basemap(lonmin-buffer, latmin-buffer,
                           lonmax+buffer, latmax+buffer,
@@ -709,11 +708,19 @@ class OpenDriftSimulation(object):
         map.drawcoastlines(color='gray')
         if background is None:  # Fill continents if no field is requested
             map.fillcontinents(color='#ddaa99')
+        # Adjusting spacing of lon-lat lines dynamically
+        latspan = map.latmax - map.latmin
+        if latspan > 20:
+            deltalat = 1
+        elif latspan > 1 and latspan < 20:
+            deltalat = .5
+        else:
+            deltalat = .1
         map.drawmeridians(np.arange(np.floor(map.lonmin),
-                                    np.ceil(map.lonmax), .5),
+                                    np.ceil(map.lonmax), deltalat),
                           labels=[0, 0, 0, 1])
         map.drawparallels(np.arange(np.floor(map.latmin),
-                                    np.ceil(map.latmax), .5),
+                                    np.ceil(map.latmax), deltalat),
                           labels=[0, 1, 1, 0])
 
         # Trajectories
@@ -794,7 +801,8 @@ class OpenDriftSimulation(object):
                 scalar = data[background]
             rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
             map_x, map_y = map(rlons, rlats)
-            #map.contourf(map_x, map_y, scalar, interpolation='nearest')
+            map.contourf(map_x, map_y, scalar, interpolation='nearest',
+                         alpha=.5)
             if type(background) is list:
                 skip = 10
                 map.quiver(rlons[::skip, ::skip], rlats[::skip, ::skip],
@@ -826,6 +834,7 @@ class OpenDriftSimulation(object):
             pass
 
         if filename is not None:
+            #plt.savefig(filename, dpi=200)
             plt.savefig(filename)
             plt.close()
         else:

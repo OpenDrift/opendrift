@@ -32,7 +32,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
-                    urcrnrlon=27, urcrnrlat=79, resolution='h')
+                    urcrnrlon=27, urcrnrlat=79,
+                    resolution='h', projection='merc')
 
 #o.add_reader([reader_norkyst])
 #o.add_reader([reader_arctic20, reader_arome, reader_basemap])
@@ -47,9 +48,9 @@ o.add_reader([reader_norkyst, reader_arome, reader_basemap])
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 #lon = 10.6; lat = 54.83; # outside Norkyst boundary
-lon = 4.9; lat = 60.0; # Outside Bergen
+#lon = 5.0; lat = 60.0; # Outside Bergen
 #lon = 2.5; lat = 60.0; # Frigg/NOFO
-#lon = 6.73; lat = 62.78; # Outside Trondheim
+lon = 6.73; lat = 62.78; # Outside Trondheim
 #lon = 10.546; lat = 59.486 # Godafoss
 #lon = 9.76; lat = 58.94 # Full City
 #lon = 9.76; lat = 58.84 # Full City south
