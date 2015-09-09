@@ -118,9 +118,13 @@ class Reader(object):
                 ## Create spline for interpolation
                 block_x, block_y = np.meshgrid(block['x'], block['y'])
                 data = block[var]
-                data[data.mask] = np.nan
-                spl = LinearNDInterpolator((block_y.ravel(),
-                                            block_x.ravel()), data.ravel())
+                data_ravel = data.ravel()
+                valid = ~data_ravel.mask
+                # We want to interpolate valid values only,
+                # to avoid holes, and to get values towards coast
+                spl = LinearNDInterpolator((block_y.ravel()[valid],
+                                            block_x.ravel()[valid]),
+                                            data.ravel()[valid])
                 env[var] = spl(y, x)  # Evaluate at positions
 
                 ## Make and use KDTree for interpolation
