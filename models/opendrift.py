@@ -447,9 +447,12 @@ class OpenDriftSimulation(object):
                 These are forwarded to the ElementType class. All properties
                 for which there are no default value must be specified.
         """
-        radius = radius/111000.  # convert radius from m to degrees
-        kwargs['lon'] = lon + radius*(np.random.rand(number) - 0.5)
-        kwargs['lat'] = lat + radius*(np.random.rand(number) - 0.5)
+        geod = pyproj.Geod(ellps='WGS84')
+        ones = np.ones(number)
+        kwargs['lon'], kwargs['lat'], az = \
+            geod.fwd(lon*ones, lat*ones,
+                     360*np.random.rand(number),
+                     radius*np.random.rand(number), radians=False)
         kwargs['ID'] = np.arange(self.num_elements() + 1,
                                  self.num_elements() + number + 1)
         if hasattr(self, 'elements'):
@@ -726,7 +729,7 @@ class OpenDriftSimulation(object):
         # Trajectories
         x, y = map(lons, lats)
         # The more elements, the more transparent we make the lines
-        num_elements = self.num_elements()
+        num_elements = self.num_elements() + self.num_elements_deactivated()
         min_alpha = 0.015
         max_elements = 5000.0
         alpha = min_alpha**(2*(num_elements-1)/(max_elements-1))
