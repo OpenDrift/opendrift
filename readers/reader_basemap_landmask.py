@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from datetime import datetime, timedelta
+import logging
 
 import numpy as np
 from mpl_toolkits.basemap import Basemap
@@ -25,6 +26,8 @@ class Reader(Reader):
 
     def __init__(self, llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat,
                  resolution='i', projection='cyl'):
+
+        logging.debug('Creating Basemap...')
 
         # Set up Basemap
         self.map = Basemap(llcrnrlon, llcrnrlat,
@@ -65,7 +68,12 @@ class Reader(Reader):
 
         self.check_arguments(requestedVariables, time, x, y, depth)
 
-        x, y = self.xy2lonlat(x, y)
+        # Apparently it is necessary to first convert from x,y to lon,lat
+        # using proj library, and back to x,y using Basemap instance
+        # Perhaps a bug in Basemap related to x_0/y_0 offsets?
+        # Nevertheless, seems not to affect performance
+        lon, lat = self.xy2lonlat(x, y)
+        x, y = self.map(lon, lat, inverse=False)
         points = np.c_[x, y]
 
         insidePoly = np.array([False]*len(x))
