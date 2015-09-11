@@ -111,6 +111,7 @@ def close(self):
     self.outfile.geospatial_lon_max = self.history['lon'].max()
     self.outfile.geospatial_lon_units = 'degrees_east'
     self.outfile.geospatial_lon_resolution = 'point'
+    self.outfile.runtime = str(self.runtime_environment + self.runtime_model)
 
     self.outfile.close()  # Finally close file
 

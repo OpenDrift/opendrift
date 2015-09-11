@@ -8,9 +8,9 @@ from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
+from configobj import configobj, validate
 
 from readers.readers import pyproj, Reader
-from configobj import configobj, validate
 
 
 class ModelSettings(object):
@@ -696,15 +696,14 @@ class OpenDriftSimulation(object):
         # Initialise map
         lonmin = lons.min() - buffer*2
         lonmax = lons.max() + buffer*2
-        latmin = lats.min()
-        latmax = lats.max()
+        latmin = lats.min() - buffer
+        latmax = lats.max() + buffer
         if 'basemap_landmask' in self.readers:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
         else:
             # Otherwise create a new Basemap covering the elements
-            map = Basemap(lonmin-buffer, latmin-buffer,
-                          lonmax+buffer, latmax+buffer,
+            map = Basemap(lonmin, latmin, lonmax, latmax,
                           resolution='h', projection='merc')
 
         map.drawcoastlines(color='gray')

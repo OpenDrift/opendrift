@@ -81,10 +81,10 @@ o.config['drift']['current_uncertainty'] = .0
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=50*4, time_step=900, outfile='openoil.nc')
+o.run(steps=60*4, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
 #o.plot_property('mass_oil')
-o.plot(buffer=.1)
+o.plot()
