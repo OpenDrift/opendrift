@@ -630,7 +630,7 @@ class Reader(object):
         outStr += '===========================\n'
         return outStr
 
-    def plot(self):
+    def plot(self, variable=None):
         """Plot geographical coverage of reader."""
 
         try:
@@ -640,16 +640,28 @@ class Reader(object):
         except:
             sys.exit('Basemap is needed to plot coverage map.')
 
-        # Initialise map, stereographic projection centred on domain
-        x0 = (self.xmin + self.xmax) / 2
-        y0 = (self.ymin + self.ymax) / 2
-        lon0, lat0 = self.xy2lonlat(x0, y0)
-        width = np.max([self.xmax-self.xmin, self.ymax-self.ymin])*1.5
-        map = Basemap(projection='stere', resolution='i',
-                      lat_ts=lat0, lat_0=lat0, lon_0=lon0,
-                      width=width, height=width)
+        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                 [self.ymax, self.ymin, self.ymax, self.ymin])
+        latspan = np.max(corners[1]) - np.min(corners[1])
+
+        # Initialise map
+        if latspan < 90:
+            # Stereographic projection centred on domain, if small domain
+            x0 = (self.xmin + self.xmax) / 2
+            y0 = (self.ymin + self.ymax) / 2
+            lon0, lat0 = self.xy2lonlat(x0, y0)
+            width = np.max([self.xmax-self.xmin, self.ymax-self.ymin])*1.5
+            map = Basemap(projection='stere', resolution='i',
+                          lat_ts=lat0, lat_0=lat0, lon_0=lon0,
+                          width=width, height=width)
+        else:
+            # Global map if reader domain is large
+            map = Basemap(-180, -89, 180, 89,
+                          resolution='c', projection='cyl')
+
         map.drawcoastlines()
-        map.fillcontinents(color='coral')
+        if variable is None:
+            map.fillcontinents(color='coral')
         map.drawparallels(np.arange(-90., 90., 5.))
         map.drawmeridians(np.arange(-180., 181., 5.))
         # Get boundary
@@ -667,12 +679,34 @@ class Reader(object):
         # from x/y vectors create a Patch to be added to map
         lon, lat = self.xy2lonlat(x, y)
         mapproj = pyproj.Proj(map.proj4string)
+        # Cut at 89 deg N/S to avoid singularity at poles
+        lat[lat>89] = 89  
+        lat[lat<-89] = -89
         xm, ym = mapproj(lon, lat)
+        xm, ym = map(lon, lat)
         #map.plot(xm, ym, color='gray')
-        boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
-        plt.gca().add_patch(boundary)
+        if variable is None:
+            boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
+            plt.gca().add_patch(boundary)
 # add patch to the map
         plt.title(self.name)
         plt.xlabel('Time coverage: %s to %s' %
                    (self.start_time, self.end_time))
+
+        if variable is not None:
+            rx = np.array([self.xmin, self.xmax])
+            ry = np.array([self.ymin, self.ymax])
+            data = self.get_variables(variable, self.start_time,
+                                      rx, ry, depth=None, block=True)
+            rx, ry = np.meshgrid(data['x'], data['y'])
+            rlon, rlat = self.xy2lonlat(rx, ry)
+            map_x, map_y = map(rlon, rlat, inverse=False)
+            map.pcolormesh(map_x, map_y, data[variable])
+
+        try:  # Activate figure zooming
+            mng = plt.get_current_fig_manager()
+            mng.toolbar.zoom()
+        except:
+            pass
+
         plt.show()
