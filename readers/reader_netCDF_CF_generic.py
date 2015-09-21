@@ -142,8 +142,8 @@ class Reader(Reader):
             ind_depth = 0  # For datasets with no vertical dimension
 
         # Find indices corresponding to requested x and y
-        indx = np.round((x-self.xmin)/self.delta_x).astype(int)
-        indy = np.round((y-self.ymin)/self.delta_y).astype(int)
+        indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
+        indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = 8
@@ -189,8 +189,10 @@ class Reader(Reader):
         if block is True:
             variables['x'] = \
                 self.Dataset.variables[self.xname][indx]*self.unitfactor
+            # Subtracting 1 from indy (not indx) makes Norkyst800
+            # fit better with GSHHS coastline - but unclear why
             variables['y'] = \
-                self.Dataset.variables[self.yname][indy]*self.unitfactor
+                self.Dataset.variables[self.yname][indy-1]*self.unitfactor
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y

@@ -118,24 +118,27 @@ def close(self):
     # Finally changing UNLIMITED time dimension to fixed, for CDM compliance.
     # Fortunately this is quite fast.
     # http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/reference/FeatureDatasets/CFpointImplement.html
-    with Dataset(self.outfile_name) as src, \
-            Dataset(self.outfile_name + '_tmp', 'w') as dst:
-        for name, dimension in src.dimensions.iteritems():
-            dst.createDimension(name, len(dimension))
+    try:
+        with Dataset(self.outfile_name) as src, \
+                Dataset(self.outfile_name + '_tmp', 'w') as dst:
+            for name, dimension in src.dimensions.iteritems():
+                dst.createDimension(name, len(dimension))
 
-        for name, variable in src.variables.iteritems():
-            dstVar = dst.createVariable(name, variable.datatype,
-                                         variable.dimensions)
-            srcVar = src.variables[name]
-            dstVar[:] = srcVar[:]  # Copy data
-            for att in src.variables[name].ncattrs():
-                # Copy variable attributes
-                dstVar.setncattr(att, srcVar.getncattr(att))
+            for name, variable in src.variables.iteritems():
+                dstVar = dst.createVariable(name, variable.datatype,
+                                             variable.dimensions)
+                srcVar = src.variables[name]
+                dstVar[:] = srcVar[:]  # Copy data
+                for att in src.variables[name].ncattrs():
+                    # Copy variable attributes
+                    dstVar.setncattr(att, srcVar.getncattr(att))
 
-        for att in src.ncattrs():  # Copy global attributes
-            dst.setncattr(att, src.getncattr(att))
+            for att in src.ncattrs():  # Copy global attributes
+                dst.setncattr(att, src.getncattr(att))
 
-    move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
+        move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
+    except:
+        print 'Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)'
     
 
 def import_file(self, filename, time=None):
