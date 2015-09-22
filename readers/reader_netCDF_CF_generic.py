@@ -192,7 +192,7 @@ class Reader(Reader):
             # Subtracting 1 from indy (not indx) makes Norkyst800
             # fit better with GSHHS coastline - but unclear why
             variables['y'] = \
-                self.Dataset.variables[self.yname][indy-1]*self.unitfactor
+                self.Dataset.variables[self.yname][indy]*self.unitfactor
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
