@@ -97,6 +97,8 @@ class Reader(Reader):
         self.ymin, self.ymax = y.min(), y.max()
         self.delta_x = np.abs(x[1] - x[0])
         self.delta_y = np.abs(y[1] - y[0])
+        self.x = x  # Store coordinate vectors
+        self.y = y
 
         # Read and store time coverage (of this particular file)
         time = self.Dataset.variables['time'][:]  # Assuming name 'time'
@@ -144,6 +146,11 @@ class Reader(Reader):
         # Find indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
+        # If x or y coordinates are decreasing, we need to flip
+        if self.x[0] > self.x[-1]:
+            indx = len(self.x) - indx
+        if self.y[0] > self.y[-1]:
+            indy = len(self.y) - indy
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = 8

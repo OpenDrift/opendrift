@@ -12,6 +12,8 @@ o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
 #reader_arome = reader_netCDF_CF_generic.Reader('/opdata_local/arome2_5/arome_metcoop_default2_5km_20150212_00.nc')
 
+#reader_ec = reader_netCDF_CF_generic.Reader('/opdata/ec/la/nc4/ec_la_atmo_2015092200.nc')
+
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')#, name='norkyst800_file')
@@ -31,13 +33,17 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 #reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/GC_MOD_TIDE_GLO_010_FES2012_FULL_TIME_SERIE') # FES Tidal
 
 # Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
-                    urcrnrlon=27, urcrnrlat=79,
+#reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=6, llcrnrlat=62.7,
+#                    urcrnrlon=7, urcrnrlat=63,
+#                    resolution='h', projection='merc')
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=10.2, llcrnrlat=59.4,
+                    urcrnrlon=10.7, urcrnrlat=59.7,
                     resolution='h', projection='merc')
 
 #o.add_reader([reader_norkyst])
 #o.add_reader([reader_arctic20, reader_arome, reader_basemap])
-o.add_reader([reader_norkyst, reader_arome, reader_basemap])
+#o.add_reader([reader_norkyst, reader_arome, reader_basemap])
+o.add_reader([reader_basemap, reader_norkyst, reader_arome])
 #o.add_reader([reader_norkyst, reader_basemap])
 #o.add_reader([reader_norkyst, reader_nordic4, reader_arctic20, reader_arome, reader_basemap])
 #o.add_reader([reader_globcurrent, reader_basemap])
@@ -50,7 +56,8 @@ o.add_reader([reader_norkyst, reader_arome, reader_basemap])
 #lon = 10.6; lat = 54.83; # outside Norkyst boundary
 #lon = 5.0; lat = 60.0; # Outside Bergen
 #lon = 2.5; lat = 60.0; # Frigg/NOFO
-lon = 6.73; lat = 62.78; # Outside Trondheim
+#lon = 6.73; lat = 62.78; # Outside Trondheim
+lat = 59.551010; lon = 10.618833 # Ytre Oslofjord
 #lon = 10.546; lat = 59.486 # Godafoss
 #lon = 9.76; lat = 58.94 # Full City
 #lon = 9.76; lat = 58.84 # Full City south
@@ -59,10 +66,10 @@ lon = 6.73; lat = 62.78; # Outside Trondheim
 
 time = None
 #time = reader_wam10.start_time
-#time = datetime(2015, 6, 9, 9, 0, 0)
+#time = datetime(2015, 9, 22, 6, 0, 0)
 
 # Seed oil elements at defined position and time
-o.seed_point(lon, lat, radius=2000, number=1000, time=time)
+o.seed_point(lon, lat, radius=1000, number=1000, time=time)
 
 print o
 
@@ -75,13 +82,14 @@ print o
 # Adjusting some configuration
 o.config['drift']['wind_drift_factor'] = .03
 o.config['processes']['diffusion'] = True
+o.config['processes']['dispersion'] = True
 o.config['processes']['evaporation'] = True
 o.config['processes']['emulsification'] = True
 o.config['drift']['current_uncertainty'] = .0
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=60*4, time_step=900, outfile='openoil.nc')
+o.run(steps=40*4, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
 print o

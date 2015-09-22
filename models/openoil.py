@@ -85,10 +85,10 @@ class OpenOil(OpenDriftSimulation):
                 time = string(default='%s')
                 oil_type = option(%s, default=%s)
         [processes]
-            dispersion = boolean(default=False)
-            diffusion = boolean(default=False)
+            dispersion = boolean(default=True)
+            diffusion = boolean(default=True)
             evaporation = boolean(default=True)
-            emulsification = boolean(default=False)
+            emulsification = boolean(default=True)
         [drift]
             wind_drift_factor = float(min=0, max=1, default=0.02)
             current_uncertainty = float(min=0, max=5, default=.1)
@@ -115,6 +115,8 @@ class OpenOil(OpenDriftSimulation):
 
         self.elements.age_seconds += self.time_step.total_seconds()
 
+        # Calculate windspeed, which is needed for emulsification,
+        # and dispersion (if wave height is not given)
         windspeed = np.sqrt(self.environment.x_wind**2 +
                             self.environment.y_wind**2)
 
@@ -181,8 +183,12 @@ class OpenOil(OpenDriftSimulation):
             v_entrain = 3.9E-8
             sea_water_density = 1028
             fraction_breaking_waves = 0.02
+            wave_significant_height = \
+                self.environment.sea_surface_wave_significant_height
+            wave_significant_height[wave_significant_height==0] = \
+                0.0246*windspeed[wave_significant_height==0]**2
             dissipation_wave_energy = (0.0034*sea_water_density*9.81*
-                      self.environment.sea_surface_wave_significant_height**2)
+                                       wave_significant_height**2)
             c_disp = np.power(dissipation_wave_energy, 0.57) * \
                         fraction_breaking_waves
             # Roy's constant
@@ -195,14 +201,6 @@ class OpenOil(OpenDriftSimulation):
                              self.elements.density)
 
             self.elements.mass_oil -= oil_mass_loss
-
-#            print dissipation_wave_energy
-#            print c_disp
-#            print self.elements.viscosity
-#            print C_Roy
-#            print q_disp
-#            print oil_mass_loss
-#            import sys; sys.exit('disp')
 
             #self.elements.depth = \
             #    self.environment.sea_surface_wave_significant_height

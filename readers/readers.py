@@ -325,7 +325,10 @@ class Reader(object):
             vector_pairs = [list(x) for x in set(tuple(x)
                             for x in vector_pairs)]
             # Calculate azimuth angle between coordinate systems (y-axis)
-            delta_y = 1000
+            if self.proj.is_latlong():
+                delta_y = .1
+            else:
+                delta_y = 1000
             x2, y2 = pyproj.transform(self.proj, rotate_to_proj,
                                       reader_x, reader_y)
             x2_delta, y2_delta = pyproj.transform(self.proj,
@@ -353,22 +356,6 @@ class Reader(object):
                 env[vector_pair[1]] = v2
 
         return env
-
-    def rotate_vectors(self, x, y, u, v, proj4, proj4_to):
-        proj = pyproj.Proj(proj4)
-        proj2 = pyproj.Proj(proj4_to)
-        delta_y = 1000
-        x2, y2 = pyproj.transform(proj, proj2, x, y)
-        x2_delta, y2_delta = pyproj.transform(proj, proj2, x, y + delta_y)
-        if proj2.is_latlong():
-            geod = pyproj.Geod(ellps='WGS84')
-            rot_angle_rad = -np.radians(
-                geod.inv(x2, y2, x2_delta, y2_delta)[0])
-        else:
-            rot_angle_rad = -np.arctan2(x2_delta - x2, y2_delta - y2)
-        u2 = (u*np.cos(rot_angle_rad) - v*np.sin(rot_angle_rad))
-        v2 = (u*np.sin(rot_angle_rad) + v*np.cos(rot_angle_rad))
-        return u2, v2
 
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).

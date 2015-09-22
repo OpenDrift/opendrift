@@ -12,4 +12,5 @@ o.io_import_file('openoil.nc')
 
 print o
 
-o.plot()
+o.plot(buffer=.1)
+#o.plot_property('mass_oil')
