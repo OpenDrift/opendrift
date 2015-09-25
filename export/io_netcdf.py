@@ -24,7 +24,8 @@ def init(self, filename, times=None):
     self.outfile.createDimension('time', None)  # Unlimited time dimension
     self.outfile.createVariable('time', 'f8', ('time',))
     # NB: trajectory_id must be changed for future ragged array representation
-    self.outfile.variables['trajectory'][:] = np.arange(self.num_elements())+1
+    self.outfile.variables['trajectory'][:] = \
+        np.arange(self.num_elements_total())+1
     self.outfile.variables['trajectory'].cf_role = 'trajectory_id'
     self.outfile.variables['trajectory'].units = '1'
 

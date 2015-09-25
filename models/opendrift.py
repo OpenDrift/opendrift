@@ -416,7 +416,7 @@ class OpenDriftSimulation(object):
         # Convert dictionary to recarray and return
         return env.view(np.recarray), missing
 
-    def num_elements(self):
+    def num_elements_active(self):
         """The number of active elements"""
         if hasattr(self, 'elements'):
             return len(self.elements)
@@ -429,6 +429,10 @@ class OpenDriftSimulation(object):
             return len(self.elements_deactivated)
         else:
             return 0
+
+    def num_elements_total(self):
+        """The total number of active and deactivated elements"""
+        return self.num_elements_active() + self.num_elements_deactivated()
 
     def seed_point(self, lon, lat, radius, number, time=None, **kwargs):
         """Seed a given number of particles spread around a given position.
@@ -453,8 +457,8 @@ class OpenDriftSimulation(object):
             geod.fwd(lon*ones, lat*ones,
                      360*np.random.rand(number),
                      radius*np.random.rand(number), radians=False)
-        kwargs['ID'] = np.arange(self.num_elements() + 1,
-                                 self.num_elements() + number + 1)
+        kwargs['ID'] = np.arange(self.num_elements_active() + 1,
+                                 self.num_elements_active() + number + 1)
         if hasattr(self, 'elements'):
             self.elements.extend(self.ElementType(**kwargs))
         else:
@@ -485,7 +489,7 @@ class OpenDriftSimulation(object):
         reason_number = self.status_categories.index(reason)
         if not hasattr(self.elements.status, "__len__"):
             status = self.elements.status
-            self.elements.status = np.zeros(self.num_elements())
+            self.elements.status = np.zeros(self.num_elements_active())
             self.elements.status.fill(status)
         self.elements.status[indices] = reason_number
         logging.debug('%s elements scheduled for deactivation (%s)' %
@@ -508,7 +512,7 @@ class OpenDriftSimulation(object):
             self.environment = self.environment[~indices]
             logging.debug('Removed %i values from environment.' %
                           (sum(indices)))
-            #if self.num_elements() == 0:
+            #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
     def run(self, time_step=3600, steps=1000, outfile=None):
@@ -559,7 +563,7 @@ class OpenDriftSimulation(object):
             delattr(self, 'history')
             # Renumbering elements from 0 to num_elements, necessary fix when
             # importing from file, where elements may have been deactivated
-            self.elements.ID = np.arange(0, self.num_elements())
+            self.elements.ID = np.arange(0, self.num_elements_active())
 
         # Store runtime to report on OpenDrift performance
         self.runtime_environment = timedelta(seconds=0)
@@ -583,7 +587,7 @@ class OpenDriftSimulation(object):
                 logging.info('%s - step %i of %i - %i active elements '
                              '(%i deactivated)' %
                              (self.time, self.steps + 1,
-                              steps, self.num_elements(),
+                              steps, self.num_elements_active(),
                               self.num_elements_deactivated()))
                 logging.debug('==================================='*2)
                 self.environment, missing = \
@@ -602,16 +606,16 @@ class OpenDriftSimulation(object):
                 self.remove_deactivated_elements()
                 # Propagate one timestep forwards
                 self.steps += 1
-                if self.num_elements() == 0:
+                if self.num_elements_active() == 0:
                     raise ValueError('No more active elements, quitting.')
                 logging.debug('Calling module: %s.update()' %
                               type(self).__name__)
                 self.update()
                 self.runtime_model += datetime.now() - runtime_start
-                if self.num_elements() == 0:
+                if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
                 logging.debug('%s active elements (%s deactivated)' %
-                              (self.num_elements(),
+                              (self.num_elements_active(),
                                self.num_elements_deactivated()))
                 # Updating time
                 if self.time is not None:
@@ -641,14 +645,14 @@ class OpenDriftSimulation(object):
         """Append present state (elements and environment) to recarray."""
         if not hasattr(self, 'history'):
             # Presently only element properties are stored, env TBD
-            self.history = np.ma.array(np.zeros([self.num_elements(),
+            self.history = np.ma.array(np.zeros([self.num_elements_active(),
                                        self.bufferlength]),
                                        dtype=self.elements.dtype,
                                        mask=[True])
             self.steps_exported = 0
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
-            # Temporarily assuming elements numbered from 0 to num_elements()
+            # Temporarily assuming elements numbered from 0 to num_elements_active()
             # Does not hold when importing ID from a saved file, where
             # some elements have been deactivated
             self.history[var][self.elements.ID - 1,
@@ -727,10 +731,9 @@ class OpenDriftSimulation(object):
         # Trajectories
         x, y = map(lons, lats)
         # The more elements, the more transparent we make the lines
-        num_elements = self.num_elements() + self.num_elements_deactivated()
         min_alpha = 0.025
         max_elements = 5000.0
-        alpha = min_alpha**(2*(num_elements-1)/(max_elements-1))
+        alpha = min_alpha**(2*(self.num_elements_total()-1)/(max_elements-1))
         alpha = np.max((min_alpha, alpha))
         if hasattr(self, 'history'):
             map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
@@ -910,7 +913,7 @@ class OpenDriftSimulation(object):
         outStr = '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + '\n'
         outStr += '\t%s active %s particles  (%s deactivated)\n' % (
-            self.num_elements(), self.ElementType.__name__,
+            self.num_elements_active(), self.ElementType.__name__,
             self.num_elements_deactivated())
         outStr += 'Projection: %s\n' % self.proj4
         variable_groups, reader_groups, missing = self.get_reader_groups()

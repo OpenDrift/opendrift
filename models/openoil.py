@@ -130,7 +130,7 @@ class OpenOil(OpenDriftSimulation):
             # Evaporate only elements at surface
             at_surface = (self.elements.depth == 0)
             if np.isscalar(at_surface):
-                at_surface = at_surface*np.ones(self.num_elements(),
+                at_surface = at_surface*np.ones(self.num_elements_active(),
                                                 dtype=bool)
             Urel = windspeed/self.model.reference_wind  # Relative wind
             h = 2  # Film thickness in mm, harcoded for now
@@ -159,7 +159,7 @@ class OpenOil(OpenDriftSimulation):
                                        (1 - fraction_evaporated_previous))
             evaporation_probability[~at_surface] = 0
             self.deactivate_elements(evaporation_probability >
-                                     np.random.rand(self.num_elements(),),
+                                     np.random.rand(self.num_elements_active(),),
                                      reason='evaporated')
         ##################
         # Emulsification
@@ -223,7 +223,7 @@ class OpenOil(OpenDriftSimulation):
             #dsize_coeff = 2100  # Wettre et al., Appendix A
             #c_oil = dsize_coeff*np.power(self.elements.viscosity, -0.4)
             ## Random numbers between 0 and 1:
-            #p = np.random.rand(self.num_elements(), )
+            #p = np.random.rand(self.num_elements_active(), )
             #oil_per_unit_surface = 1
             #droplet_size = np.power((p*oil_per_unit_surface)/(c_oil *
             #                        np.power(dissipation_energy, 0.57)),
@@ -249,9 +249,9 @@ class OpenOil(OpenDriftSimulation):
             std_current_comp = self.config['drift']['current_uncertainty']
             if std_current_comp > 0:
                 sigma_u = np.random.normal(0, std_current_comp,
-                                           self.num_elements())
+                                           self.num_elements_active())
                 sigma_v = np.random.normal(0, std_current_comp,
-                                           self.num_elements())
+                                           self.num_elements_active())
             else:
                 sigma_u = 0*self.environment.x_wind
                 sigma_v = 0*self.environment.x_wind
@@ -261,9 +261,9 @@ class OpenOil(OpenDriftSimulation):
             std_wind_comp = self.config['drift']['wind_uncertainty']
             if wind_drift_factor > 0 and std_wind_comp > 0:
                 sigma_u = np.random.normal(0, std_wind_comp*wind_drift_factor,
-                                           self.num_elements())
+                                           self.num_elements_active())
                 sigma_v = np.random.normal(0, std_wind_comp*wind_drift_factor,
-                                           self.num_elements())
+                                           self.num_elements_active())
             else:
                 sigma_u = 0*self.environment.x_wind
                 sigma_v = 0*self.environment.x_wind
