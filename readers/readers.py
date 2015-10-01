@@ -53,6 +53,10 @@ class Reader(object):
         'northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward_tidal_current': 'x_sea_water_velocity',
         'northward_tidal_current': 'y_sea_water_velocity',
+        'eastward_ekman_current_velocity': 'x_sea_water_velocity',
+        'northward_ekman_current_velocity': 'y_sea_water_velocity',
+        'eastward_geostrophic_current_velocity': 'x_sea_water_velocity',
+        'northward_geostrophic_current_velocity': 'y_sea_water_velocity',
         'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
         'northward_eulerian_current_velocity': 'y_sea_water_velocity'}
 

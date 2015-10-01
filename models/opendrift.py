@@ -131,6 +131,7 @@ class OpenDriftSimulation(object):
         self.steps = 0  # Increase for each simulation step
         self.elements_deactivated = self.ElementType()  # Empty array
 
+        logging.getLogger('').handlers = []
         logging.basicConfig(level=loglevel,
                             format='%(levelname)s: %(message)s')
 
@@ -417,33 +418,33 @@ class OpenDriftSimulation(object):
         return env.view(np.recarray), missing
 
     def num_elements_active(self):
-        """The number of active elements"""
+        """The number of active elements."""
         if hasattr(self, 'elements'):
             return len(self.elements)
         else:
             return 0
 
     def num_elements_deactivated(self):
-        """The number of deactivated elements"""
+        """The number of deactivated elements."""
         if hasattr(self, 'elements_deactivated'):
             return len(self.elements_deactivated)
         else:
             return 0
 
     def num_elements_total(self):
-        """The total number of active and deactivated elements"""
+        """The total number of active and deactivated elements."""
         return self.num_elements_active() + self.num_elements_deactivated()
 
-    def seed_point(self, lon, lat, radius, number, time=None, **kwargs):
-        """Seed a given number of particles spread around a given position.
+    def seed_point(self, lon, lat, radius=0, number=1, time=None, **kwargs):
+        """Seed a given number of particles around given position(s).
 
         Arguments:
-            lon: scalar, central longitude.
-            lat: scalar, central latitude.
+            lon: scalar or array, central longitude(s).
+            lat: scalar or array, central latitude(s).
             radius: scalar, radius in meters within which particles will
                 be randomly seeded.
-            number: integer, number of particles to be seeded
-            time: datenume, the time at which particles are seeded/released.
+            number: integer, number of particles to be seeded around each point
+            time: datenum, the time at which particles are seeded/released.
                 If time is None (default) particles are seeded at the start
                 time of the first added Reader object.
             kwargs: keyword arguments containing properties/attributes and
@@ -451,6 +452,12 @@ class OpenDriftSimulation(object):
                 These are forwarded to the ElementType class. All properties
                 for which there are no default value must be specified.
         """
+        if len(np.atleast_1d(lon)) > 1:
+            # Recursively seeding elements around each point
+            for i in range(len(lon)):
+                self.seed_point([lon[i]], [lat[i]], radius, number, time, **kwargs)
+            return
+
         geod = pyproj.Geod(ellps='WGS84')
         ones = np.ones(number)
         kwargs['lon'], kwargs['lat'], az = \
