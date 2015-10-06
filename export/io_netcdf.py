@@ -19,7 +19,7 @@ def init(self, filename, times=None):
 
     self.outfile_name = filename
     self.outfile = Dataset(filename, 'w')
-    self.outfile.createDimension('trajectory', len(self.elements.lon))
+    self.outfile.createDimension('trajectory', self.num_elements_active())
     self.outfile.createVariable('trajectory', 'i4', ('trajectory',))
     self.outfile.createDimension('time', None)  # Unlimited time dimension
     self.outfile.createVariable('time', 'f8', ('time',))
@@ -40,29 +40,29 @@ def init(self, filename, times=None):
     self.outfile.time_step = str(self.time_step)
 
     # Add all element properties as variables
-    for prop in self.elements.variables:
+    for prop in self.history.dtype.fields:
         if prop in skip_parameters:
             continue
         # Note: Should use 'f8' if 'f4' is not accurate enough,
         #       at expense of larger files
         try:
-            dtype = self.elements.variables[prop]['dtype']
+            dtype = self.history.dtype[prop]
         except:
             dtype = 'f4'
         var = self.outfile.createVariable(prop, dtype, ('trajectory', 'time'))
-        for subprop in self.elements.variables[prop].items():
+        var.setncattr('coordinates', 'lat lon time')
+        for subprop in self.history_metadata[prop].items():
             if subprop[0] not in ['dtype', 'constant', 'default']:
                 # Apparently axis attribute shall not be given for lon and lat:
                 if prop in ['lon', 'lat'] and subprop[0] == 'axis':
                     continue
                 var.setncattr(subprop[0], subprop[1])
-                var.setncattr('coordinates', 'lat lon time')
     # list and number all readers
 
 
 def write_buffer(self):
     num_steps_to_export = self.steps + 1 - self.steps_exported
-    for prop in self.elements.variables:
+    for prop in self.history_metadata:
         if prop in skip_parameters:
             continue
         var = self.outfile.variables[prop]
@@ -156,7 +156,8 @@ def import_file(self, filename, time=None):
 
     for var in infile.variables:
         if var not in self.ElementType.variables:
-            print var + ' does not exist - adding to element class definition'
+            print '%s does not contain %s - skipping.' % \
+                    (type(self).__name__, var)
 
     num_elements = len(infile.dimensions['trajectory'])
     num_timesteps = len(infile.dimensions['time'])
@@ -164,9 +165,18 @@ def import_file(self, filename, time=None):
     dtype = np.dtype([(var[0], var[1]['dtype'])
                       for var in self.ElementType.variables.items()])
 
+    history_dtype_fields = [(name, self.ElementType.variables[name]['dtype'])
+                                for name in self.ElementType.variables]
+    # Add environment variables
+    self.history_metadata = self.ElementType.variables.copy()
+    for env_var in self.required_variables:
+        history_dtype_fields.append((env_var, np.dtype('float32')))
+        self.history_metadata[env_var] = {}
+    history_dtype = np.dtype(history_dtype_fields)
+
     # Import whole dataset (history)
     self.history = np.ma.array(np.zeros([num_elements, num_timesteps]),
-                               dtype=dtype, mask=[True])
+                               dtype=history_dtype, mask=[True])
     for var in infile.variables:
         if var in ['time', 'trajectory']:
             continue
@@ -180,10 +190,9 @@ def import_file(self, filename, time=None):
     stat = self.history['status'][np.arange(len(index_of_last)), index_of_last]
     kwargs = {}
     for var in infile.variables:
-        if var in ['time', 'trajectory']:
-            continue
-        kwargs[var] = self.history[var][np.arange(len(index_of_last)),
-                                        index_of_last]
+        if var in self.ElementType.variables:
+            kwargs[var] = self.history[var][np.arange(len(index_of_last)),
+                                            index_of_last]
     # Import element IDs, which are named 'trajectory' in netCDF CF convention
     kwargs['ID'] = infile.variables['trajectory'][:]
     self.elements = self.ElementType(**kwargs)

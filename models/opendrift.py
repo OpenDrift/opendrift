@@ -579,11 +579,27 @@ class OpenDriftSimulation(object):
         self.time_step = timedelta(seconds=time_step)  # Time step in seconds
         self.time = self.start_time  # Start time has been set when seeding
 
+        self.bufferlength = steps + 1
+        # Initialise array to hold history (element properties and environment)
+        # for export to file.
+        history_dtype_fields = [(name, self.elements.dtype[name]) for name in self.elements.dtype.fields]
+        # Add environment variables
+        self.history_metadata = self.elements.variables.copy()
+        for env_var in self.required_variables:
+            history_dtype_fields.append((env_var, np.dtype('float32'))) 
+            self.history_metadata[env_var] = {}
+        history_dtype = np.dtype(history_dtype_fields)
+        self.history = np.ma.array(np.zeros([self.num_elements_active(),
+                                             self.bufferlength]),
+                                   dtype=history_dtype,
+                                   mask=[True])
+        self.steps_exported = 0
+
         if outfile is not None:
             self.io_init(outfile, times=steps+1)
         else:
             self.outfile = None
-        self.bufferlength = steps + 1
+
 
         for i in range(steps):
             try:
@@ -650,13 +666,6 @@ class OpenDriftSimulation(object):
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
-        if not hasattr(self, 'history'):
-            # Presently only element properties are stored, env TBD
-            self.history = np.ma.array(np.zeros([self.num_elements_active(),
-                                       self.bufferlength]),
-                                       dtype=self.elements.dtype,
-                                       mask=[True])
-            self.steps_exported = 0
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
             # Temporarily assuming elements numbered from 0 to num_elements_active()
@@ -665,6 +674,11 @@ class OpenDriftSimulation(object):
             self.history[var][self.elements.ID - 1,
                               self.steps - self.steps_exported] = \
                 getattr(self.elements, var)
+        # Copy environment data to history array
+        for i, var in enumerate(self.environment.dtype.names):
+            self.history[var][self.elements.ID - 1,
+                              self.steps - self.steps_exported] = \
+                getattr(self.environment, var)
 
         # Call writer if buffer is full
         if (self.outfile is not None) and \
@@ -672,7 +686,7 @@ class OpenDriftSimulation(object):
             self.io_write_buffer()
 
     def plot(self, background=None, buffer=.5,
-             filename=None, drifter_file=None):
+             filename=None, drifter_file=None, show=True):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -849,7 +863,10 @@ class OpenDriftSimulation(object):
             plt.savefig(filename)
             plt.close()
         else:
-            plt.show()
+            if show is True:
+                plt.show()
+        
+        return map, plt
 
     def plot_property(self, prop):
         """Basic function to plot time series of any element properties."""
@@ -861,13 +878,17 @@ class OpenDriftSimulation(object):
         ax = fig.gca()
         ax.xaxis.set_major_formatter(hfmt)
         plt.xticks(rotation='vertical')
-        data = self.history[prop].T
         times = [self.start_time + n*self.time_step
                  for n in range(self.steps + 1)]
+        data = self.history[prop].T[0:len(times), :]
         plt.plot(times, data)
         plt.title(prop)
         plt.xlabel('Time  [UTC]')
-        plt.ylabel('%s  [%s]' % (prop, self.elements.variables[prop]['units']))
+        try:
+            plt.ylabel('%s  [%s]' %
+                        (prop, self.elements.variables[prop]['units']))
+        except:
+            plt.ylabel(prop)
         plt.subplots_adjust(bottom=.3)
         plt.grid()
         plt.show()

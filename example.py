@@ -94,5 +94,6 @@ o.run(steps=40*4, time_step=900, outfile='openoil.nc')
 # Print and plot results
 print o
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
-#o.plot_property('mass_oil')
 o.plot()
+o.plot_property('mass_oil')
+o.plot_property('x_sea_water_velocity')
