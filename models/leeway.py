@@ -6,6 +6,9 @@ from opendrift import OpenDriftSimulation
 from elements import LagrangianArray
 from collections import OrderedDict
 
+RIGHT = 0
+LEFT = 1
+
 # Defining the leeway element properties
 class LeewayObj(LagrangianArray):
     """Extending LagrangianArray with variables relevant for leeway objects.
@@ -18,14 +21,14 @@ class LeewayObj(LagrangianArray):
         ('orientation', {'dtype': np.int16,
                      'unit': '1',
                      'default': 1}),
-        ('jibeProbability', {'dtype': np.float32,
-                     'unit': '1/h',
-                     'default': 0.04}),
-        ('downwindLeeway', {'dtype': np.float32,
+        #('jibeProbability', {'dtype': np.float32,
+        #             'unit': '1/h',
+        #             'default': 0.04}),
+        ('downwindSlope', {'dtype': np.float32,
                             'unit': '%',
                             'default': 1}),
-        ('crosswindLeeway', {'dtype': np.float32,
-                            'unit': '%',
+        ('crosswindSlope', {'dtype': np.float32,
+                            'unit': '1',
                             'default': 1}),
         ('downwindOffset', {'dtype': np.float32,
                           'unit': 'cm/s',
@@ -77,46 +80,119 @@ class Leeway(OpenDriftSimulation):
         objprop_file.close()
         MAXOBJ=85 # CCC must fix
         self.leewayprop=OrderedDict({})
-        for i in xrange(MAXOBJ):
-            line = objproptxt[i*3].split()[0]
-            key = objproptxt[i*3].split()[0]
+        for i in xrange(len(objproptxt)//3+1):
+            # Stop at first blank line
+            if not objproptxt[i*3].strip():
+                break
+            elems = objproptxt[i*3].split()[0]
+
+            objKey = objproptxt[i*3].split()[0]
+            arr = [float(x) for x in objproptxt[i*3+2].split()]
             props = {'OBJNUMBER':i}
             props['Description'] = objproptxt[i*3+1]
-            arr = [float(x) for x in objproptxt[i*3+2].split()]
-            proplist = {}
-            proplist['DWSLOPE']  = arr[0]
-            proplist['DWOFFSET'] = arr[1]
-            proplist['DWSTD']    = arr[2]
-            proplist['CWRSLOPE'] = arr[3]
-            proplist['CWROFFSET']= arr[4]
-            proplist['CWRSTD']   = arr[5]
-            proplist['CWLSLOPE'] = arr[6]
-            proplist['CWLOFFSET']= arr[7]
-            proplist['CWLSTD']   = arr[8]
-            self.leewayprop[key] = proplist
-
-        #objno = 0 # CCC default object no
-        #objkey = "PIW-1" # CCC default object key
+            props['DWSLOPE']  = arr[0]
+            props['DWOFFSET'] = arr[1]
+            props['DWSTD']    = arr[2]
+            props['CWRSLOPE'] = arr[3]
+            props['CWROFFSET']= arr[4]
+            props['CWRSTD']   = arr[5]
+            props['CWLSLOPE'] = arr[6]
+            props['CWLOFFSET']= arr[7]
+            props['CWLSTD']   = arr[8]
+            self.leewayprop[objKey] = props
 
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
 
-    def seed_point_leeway(self, lon, lat, radius, number, time=None, objectType=0):
-        """Seed a given number of particles spread around a given position.
+    def seed_leeway(self, lon, lat, radius=0, number=1, time=None, radius1=None, lon1=None, lat1=None, time1=None, objectType=0):
+        """Seed a given number of particles in a cone-shaped area over a time period.
         """
-        #orientation = np.int_(random.random(number)+0.5)
-        # Left is -1, Right of downwind is 1
-        orientation = 2*(np.random.rand(number)>0.5)-1
-        cwslo=self.leewayprop.values()[objectType]['CWRSLOPE']
-        cwoff=self.leewayprop.values()[objectType]['CWRSTD']
-        cwstd=self.leewayprop.values()[objectType]['CWROFFSET']
-        crosswindLeeway = 0.002*orientation
-        downwindLeeway = 0.02
+        # All particles carry their own objectType (number), but so far we only use one for each sim
+        # objtype = np.ones(number)*objectType
+         
+        if time is None:
+            # Use first time of first reader if time is not given for seeding
+            try:
+                for reader in self.readers.items():
+                    if reader[1].start_time is not None:
+                        firstReader = reader[1]
+                        break
+            except:
+                raise ValueError('Time must be specified when no '
+                                 'reader is added')
+            logging.info('Using start time (%s) of reader %s' %
+                         (firstReader.start_time, firstReader.name))
+            self.start_time = firstReader.start_time
+        else:
+            self.start_time = time
 
-        self.seed_point(lon, lat, radius, number, time,
+        if radius1 is None:
+            radius1 = radius
+
+        if time1 is None:
+            time1 = time
+
+        if lon1 is None:
+            lon1 = lon
+            lat1 = lat
+
+        # Drift orientation of particles.  0 is right of downwind, 1 is left of downwind
+        # orientation = 1*(np.random.rand(number)>=0.5)
+        # Odd numbered particles are left-drifting, even are right of downwind.
+        orientation = np.r_[:number]%2
+
+        # Downwind leeway properties.
+        # Generate normal, N(0,1), random perturbations for leeway coeffs. 
+        # Negative downwind slope must be avoided as particles should drift downwind. 
+        # The problem arises because of high error variances (see e.g. PIW-1).
+        dwslo=self.leewayprop.values()[objectType]['DWSLOPE']
+        dwoff=self.leewayprop.values()[objectType]['DWOFFSET']
+        dwstd=self.leewayprop.values()[objectType]['DWSTD']
+        rdw = np.zeros(number)
+        epsdw = np.zeros_like(rdw)
+        for i in xrange(number):
+            rdw[i] = np.random.randn(1)
+            epsdw[i] = rdw[i]*dwstd
+            # Avoid negative downwind slopes
+            while dwslo+epsdw[i]/20.0 < 0.0:
+                rdw[i] = np.random.randn(1)
+                epsdw[i] = rdw[i]*dwstd
+
+        # Crosswind leeway properties
+        rcw = np.random.randn(number)
+        cwslo[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWRSLOPE']
+        cwstd[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWRSTD']
+        cwoff[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWROFFSET']
+        cwslo[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLSLOPE']
+        cwstd[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLSTD']
+        cwoff[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLOFFSET']
+        epscw = rcw*cwstd
+
+        for i, ort in enumerate(orientation):
+            cwslo[i]=self.leewayprop.values()[objectType]['CWRSLOPE']
+            cwstd=self.leewayprop.values()[objectType]['CWRSTD']
+            cwoff=self.leewayprop.values()[objectType]['CWROFFSET']
+            crosswindLeewayslope = cwslo[i]
+
+        # Calculate the great circle line from lon,lat to lon1,lat1 
+        geod = pyproj.Geod(ellps='WGS84')
+        clonlats = np.array(geod.npts(lon, lat, lon1, lat1, number, radians=False))
+        clons = clonlats[:,0]
+        clats = clonlats[:,1]
+
+        # The radius varies linearly from radius to radius1
+        radii = np.r_[radius:radius1:number*1j]
+
+        # time is a now vector of length number
+        dt = (time1-time)/(number-1)
+        times = [time+i*dt for i in range(number)]
+
+        self.seed_point(clons, clats, radii, number, times,
              orientation=orientation, objectType=objectType,
-             downwindLeeway=downwindLeeway, crosswindLeeway=crosswindLeeway)
-        #jibeProbability=jibeProbability, 
+             downwindLeewayslope=downwindLeewayslope, crosswindLeewayslope=crosswindLeewayslope,
+             downwindLeewayoffset=downwindLeewayoffset, crosswindLeewayoffset=crosswindLeewayoffset,
+             downwindEpsilon=epsdw, crosswindEpsilon=epscw, jibeProbability=jibeProbability)
+
 
 
     def update(self):
