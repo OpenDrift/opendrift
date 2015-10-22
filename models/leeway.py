@@ -21,9 +21,9 @@ class LeewayObj(LagrangianArray):
         ('orientation', {'dtype': np.int16,
                      'unit': '1',
                      'default': 1}),
-        #('jibeProbability', {'dtype': np.float32,
-        #             'unit': '1/h',
-        #             'default': 0.04}),
+        ('jibeProbability', {'dtype': np.float32,
+                     'unit': '1/h',
+                     'default': 0.04}),
         ('downwindSlope', {'dtype': np.float32,
                             'unit': '%',
                             'default': 1}),
@@ -34,6 +34,12 @@ class LeewayObj(LagrangianArray):
                           'unit': 'cm/s',
                           'default': 0}),
         ('crosswindOffset', {'dtype': np.float32,
+                          'unit': 'cm/s',
+                          'default': 0}),
+        ('downwindEps', {'dtype': np.float32,
+                          'unit': 'cm/s',
+                          'default': 0}),
+        ('crosswindEps', {'dtype': np.float32,
                           'unit': 'cm/s',
                           'default': 0}),
         ('age_seconds', {'dtype': np.float32,
@@ -109,6 +115,9 @@ class Leeway(OpenDriftSimulation):
         """
         # All particles carry their own objectType (number), but so far we only use one for each sim
         # objtype = np.ones(number)*objectType
+        
+        # Probability of jibing (4 % per hour)
+        pjibe = 0.04
          
         if time is None:
             # Use first time of first reader if time is not given for seeding
@@ -145,8 +154,8 @@ class Leeway(OpenDriftSimulation):
         # Generate normal, N(0,1), random perturbations for leeway coeffs. 
         # Negative downwind slope must be avoided as particles should drift downwind. 
         # The problem arises because of high error variances (see e.g. PIW-1).
-        dwslo=self.leewayprop.values()[objectType]['DWSLOPE']
-        dwoff=self.leewayprop.values()[objectType]['DWOFFSET']
+        downwindSlope=self.leewayprop.values()[objectType]['DWSLOPE']
+        downwindOffset=self.leewayprop.values()[objectType]['DWOFFSET']
         dwstd=self.leewayprop.values()[objectType]['DWSTD']
         rdw = np.zeros(number)
         epsdw = np.zeros_like(rdw)
@@ -157,22 +166,19 @@ class Leeway(OpenDriftSimulation):
             while dwslo+epsdw[i]/20.0 < 0.0:
                 rdw[i] = np.random.randn(1)
                 epsdw[i] = rdw[i]*dwstd
+        downwindEps = epsdw
 
         # Crosswind leeway properties
         rcw = np.random.randn(number)
-        cwslo[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWRSLOPE']
-        cwstd[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWRSTD']
-        cwoff[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWROFFSET']
-        cwslo[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLSLOPE']
-        cwstd[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLSTD']
-        cwoff[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLOFFSET']
-        epscw = rcw*cwstd
+        crosswindSlope[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWRSLOPE']
+        crosswindSlope[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLSLOPE']
+        crosswindOffset[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWROFFSET']
+        crosswindOffset[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLOFFSET']
+        crosswindEps[orientation==RIGHT] = rcw[orientation==RIGHT]*self.leewayprop.values()[objectType]['CWRSTD']
+        crosswindEps[orientation==LEFT] = rcw[orientation==LEFT]*self.leewayprop.values()[objectType]['CWLSTD']
 
-        for i, ort in enumerate(orientation):
-            cwslo[i]=self.leewayprop.values()[objectType]['CWRSLOPE']
-            cwstd=self.leewayprop.values()[objectType]['CWRSTD']
-            cwoff=self.leewayprop.values()[objectType]['CWROFFSET']
-            crosswindLeewayslope = cwslo[i]
+        # Jibe probability
+        jibeProbability = np.ones_like(orientation)*pjibe
 
         # Calculate the great circle line from lon,lat to lon1,lat1 
         geod = pyproj.Geod(ellps='WGS84')
@@ -188,11 +194,10 @@ class Leeway(OpenDriftSimulation):
         times = [time+i*dt for i in range(number)]
 
         self.seed_point(clons, clats, radii, number, times,
-             orientation=orientation, objectType=objectType,
-             downwindLeewayslope=downwindLeewayslope, crosswindLeewayslope=crosswindLeewayslope,
-             downwindLeewayoffset=downwindLeewayoffset, crosswindLeewayoffset=crosswindLeewayoffset,
-             downwindEpsilon=epsdw, crosswindEpsilon=epscw, jibeProbability=jibeProbability)
-
+            orientation=orientation, objectType=objectType,
+            downwindSlope=downwindSlope, crosswindSlope=crosswindSlope,
+            downwindOffset=downwindOffset, crosswindOffset=crosswindOffset,
+            downwindEps=downwindEps, crosswindEps=crosswindEps, jibeProbability=jibeProbability)
 
 
     def update(self):
@@ -206,8 +211,8 @@ class Leeway(OpenDriftSimulation):
         winddir = np.arctan2(self.environment.x_wind, self.environment.y_wind)
         
         # Move particles with the leeway CCC TODO
-        dwl_leeway = self.elements.downwindLeeway*windspeed + \
-                     self.elements.downwindOffset
+        dwl_leeway = (self.elements.downwindSlope+self.elements.epsilon/20.0)*windspeed + \
+                     self.elements.downwindOffset + self.elements.downwindEpsilon/2.0
         cwl_leeway = self.elements.orientation * \
                      (self.elements.crosswindLeeway*windspeed + \
                       self.elements.crosswindOffset)
