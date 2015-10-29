@@ -33,12 +33,12 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 #reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/GC_MOD_TIDE_GLO_010_FES2012_FULL_TIME_SERIE') # FES Tidal
 
 # Landmask (Basemap)
-#reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=6, llcrnrlat=62.7,
-#                    urcrnrlon=7, urcrnrlat=63,
-#                    resolution='h', projection='merc')
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=10.2, llcrnrlat=59.4,
-                    urcrnrlon=10.7, urcrnrlat=59.7,
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=2, llcrnrlat=59,
+                    urcrnrlon=9, urcrnrlat=65,
                     resolution='h', projection='merc')
+#reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=10.2, llcrnrlat=59.4,
+#                    urcrnrlon=10.7, urcrnrlat=59.7,
+#                    resolution='h', projection='merc')
 
 #o.add_reader([reader_norkyst])
 #o.add_reader([reader_arctic20, reader_arome, reader_basemap])
@@ -54,10 +54,10 @@ o.add_reader([reader_basemap, reader_norkyst, reader_arome])
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 #lon = 10.6; lat = 54.83; # outside Norkyst boundary
-#lon = 5.0; lat = 60.0; # Outside Bergen
+lon = 4.6; lat = 60.0; # Outside Bergen
 #lon = 2.5; lat = 60.0; # Frigg/NOFO
-#lon = 6.73; lat = 62.78; # Outside Trondheim
-lat = 59.551010; lon = 10.618833 # Ytre Oslofjord
+lon = 6.73; lat = 62.78; # Outside Trondheim
+#lat = 59.551010; lon = 10.618833 # Ytre Oslofjord
 #lon = 10.546; lat = 59.486 # Godafoss
 #lon = 9.76; lat = 58.94 # Full City
 #lon = 9.76; lat = 58.84 # Full City south
@@ -67,9 +67,12 @@ lat = 59.551010; lon = 10.618833 # Ytre Oslofjord
 time = None
 #time = reader_wam10.start_time
 #time = datetime(2015, 9, 22, 6, 0, 0)
+time = [reader_arome.start_time,
+        reader_arome.start_time + timedelta(hours=4)]
+#time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
-o.seed_point(lon, lat, radius=1000, number=1000, time=time)
+o.seed_point(lon, lat, radius=0, number=1000, time=time)
 
 print o
 
@@ -80,7 +83,7 @@ print o
 #o.set_projection('+proj=latlong')
 
 # Adjusting some configuration
-o.config['drift']['wind_drift_factor'] = .03
+o.config['drift']['wind_drift_factor'] = .01
 o.config['processes']['diffusion'] = True
 o.config['processes']['dispersion'] = True
 o.config['processes']['evaporation'] = True
@@ -89,11 +92,14 @@ o.config['drift']['current_uncertainty'] = .0
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=40*4, time_step=900, outfile='openoil.nc')
+#o.run(steps=80*4, time_step=900)
+o.run(steps=80*4, time_step=900, outfile='openoil.nc')
+
+print o.history
 
 # Print and plot results
 print o
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
 o.plot()
-o.plot_property('mass_oil')
-o.plot_property('x_sea_water_velocity')
+#o.plot_property('mass_oil')
+#o.plot_property('x_sea_water_velocity')

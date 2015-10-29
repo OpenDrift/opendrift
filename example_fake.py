@@ -21,11 +21,12 @@ o.config['runge_kutta'] = False
 
 # Seeding some particles
 lon = 2.0; lat = 63.0; # Close to Station M
-o.seed_point(lon, lat, radius=10000, number=1, time=datetime(2015,1,1))
+o.seed_point(lon, lat, radius=10000, number=10, time=datetime(2015,1,1))
 
 # Running model (until end of driver data)
-o.run(steps=1000)
+o.run(steps=100)
 
 # Print and plot results
 print o
 o.plot(buffer=.5)
+print o.history.shape
