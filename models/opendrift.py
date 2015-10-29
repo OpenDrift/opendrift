@@ -130,6 +130,7 @@ class OpenDriftSimulation(object):
 
         self.steps = 0  # Increase for each simulation step
         self.elements_deactivated = self.ElementType()  # Empty array
+        self.elements = self.ElementType()  # Empty array
 
         logging.getLogger('').handlers = []
         logging.basicConfig(level=loglevel,
@@ -431,60 +432,156 @@ class OpenDriftSimulation(object):
         else:
             return 0
 
+    def num_elements_scheduled(self):
+        if hasattr(self, 'elements_scheduled'):
+            return len(self.elements_scheduled)
+        else:
+            return 0
+
     def num_elements_total(self):
+        """The total number of scheduled, active and deactivated elements."""
+        return self.num_elements_activated() + self.num_elements_scheduled()
+
+    def num_elements_activated(self):
         """The total number of active and deactivated elements."""
         return self.num_elements_active() + self.num_elements_deactivated()
 
-    def seed_point(self, lon, lat, radius=0, number=1, time=None, **kwargs):
+    def schedule_elements(self, elements, time):
+        """Schedule elements to be seeded during runtime.
+
+        Also assigns a unique ID to each particle, monotonically increasing."""
+
+        ## TODO
+        # prepare time
+        if type(time) == datetime:
+            time = [time]*len(elements)  # Convert to array of same length
+        logging.info('Scheduling %i elements for seeding.' % len(elements))
+        if not hasattr(self, 'elements_scheduled'):
+            self.elements_scheduled = elements
+            self.elements_scheduled_time = np.array(time)
+            # We start simulation at time of release of first element:
+            self.start_time = time[0]
+            self.elements_scheduled.ID = np.arange(1, len(elements) + 1)
+        else:
+            elements.ID = np.arange(self.num_elements_scheduled() + 1,
+                                    self.num_elements_scheduled() + 1 +
+                                    len(elements))  # Increase ID successively
+            self.elements_scheduled.extend(elements)
+            self.elements_scheduled_time = np.append(
+                self.elements_scheduled_time, np.array(time))
+
+
+    def release_elements(self):
+        """Activate elements which are scheduled within following timestep."""
+        
+        logging.debug('to be seeded: %s, already seeded %s' % (
+                len(self.elements_scheduled), self.num_elements_activated()))
+        if len(self.elements_scheduled) == 0:
+            return
+        if self.time_step.days >= 0: 
+            indices = (self.elements_scheduled_time >= self.time) & \
+                      (self.elements_scheduled_time <
+                       self.time + self.time_step)
+        else:
+            indices = (self.elements_scheduled_time <= self.time) & \
+                      (self.elements_scheduled_time >
+                       self.time + self.time_step)
+        self.elements_scheduled.move_elements(self.elements, indices)
+        self.elements_scheduled_time = self.elements_scheduled_time[~indices]
+        logging.debug('Released %i new elements.' % np.sum(indices))
+
+    def seed_point(self, lon, lat, radius=0, number=None, time=None, **kwargs):
         """Seed a given number of particles around given position(s).
 
         Arguments:
             lon: scalar or array, central longitude(s).
             lat: scalar or array, central latitude(s).
-            radius: scalar, radius in meters within which particles will
-                be randomly seeded.
-            number: integer, number of particles to be seeded around each point
+            radius: scalar or array, radius in meters around each lon-lat
+                pair, within which particles will be randomly seeded.
+            number: integer, total number of particles to be seeded
+                Elements are spread equally among the given lon/lat points.
+                Default is one particle for each lon-lat pair.
             time: datenum, the time at which particles are seeded/released.
-                If time is None (default) particles are seeded at the start
-                time of the first added Reader object.
+                If time is an array with two elements, elements are seeded
+                continously from start/first to end/last time.
             kwargs: keyword arguments containing properties/attributes and
                 values corresponding to the actual particle type (ElementType).
                 These are forwarded to the ElementType class. All properties
                 for which there are no default value must be specified.
         """
-        if len(np.atleast_1d(lon)) > 1:
+
+        if time is None:
+            raise ValueError('Time of seeding must be specified')
+
+        #################################################################
+        # Make arrays of all input parameters, with one element per
+        # lon/lat pair, for sequential seeding
+        #################################################################
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
+        num_points = len(lon)  # Number of lon/lat pairs
+        if number is not None and number < num_points:
+            raise ValueError('Number of elements must be greather or equal '
+                             'to number of points.')
+
+        if num_points > 1:
+            radius_array = np.atleast_1d(radius)
+            if len(radius_array) == 1:
+                # If scalar radius is given, apply to all points
+                radius_array = radius_array*np.ones(num_points)
+            if number is None:
+                # Default is one element per given position
+                #number = 1*np.ones(num_points)
+                number = num_points  # temporarily scalar, should be array
+            number = np.atleast_1d(number)
+            if len(number) == 1 and num_points > 1:
+                number_array = np.floor(number/num_points)*np.ones(num_points)
+                # Add remaining elements to first point
+                remainder = number - np.floor(number/num_points)*num_points
+                number_array[0] = number_array[0] + remainder
+
+            if isinstance(time, datetime):
+                time = [time, time]
+
+            if type(time) == list and len(time) == 2:
+                td = (time[1]-time[0])/(number-1)  # timestep between points
+                time_array = [time[0] + i*td for i in range(number)]
+                time_array = [t[0] for t in time_array]
+                indx_time_end = np.cumsum(number_array, dtype=int)
+                indx_time_start = np.append([0], indx_time_end[0:-1])
+                time_array2 = [time_array[int(indx_time_start[i]):
+                                          int(indx_time_end[i])]
+                               for i in range(num_points)]
+                time_array = time_array2  # Subset of times for this point
+
             # Recursively seeding elements around each point
             for i in range(len(lon)):
-                self.seed_point([lon[i]], [lat[i]], radius, number, time, **kwargs)
+                self.seed_point(lon=[lon[i]], lat=[lat[i]],
+                radius=radius_array[i],
+                number=int(number_array[i]), time=time_array[i], **kwargs)
             return
 
+        # Below we have only for single points
+        if isinstance(time, datetime):
+            time = [time, time]
+
+        if type(time) == list and len(time) == 2 and number > 1:
+            td = (time[1]-time[0])/(number-1)  # timestep between points
+            # Spread seeding times equally between start/first and end/last
+            time_array = [time[0] + i*td for i in range(number)]
+        else:
+            time_array = time
+             
         geod = pyproj.Geod(ellps='WGS84')
         ones = np.ones(number)
         kwargs['lon'], kwargs['lat'], az = \
             geod.fwd(lon*ones, lat*ones,
                      360*np.random.rand(number),
                      radius*np.random.rand(number), radians=False)
-        kwargs['ID'] = np.arange(self.num_elements_active() + 1,
-                                 self.num_elements_active() + number + 1)
-        if hasattr(self, 'elements'):
-            self.elements.extend(self.ElementType(**kwargs))
-        else:
-            self.elements = self.ElementType(**kwargs)
-        if time is None:
-            # Use first time of first reader if time is not given for seeding
-            try:
-                for reader in self.readers.items():
-                    if reader[1].start_time is not None:
-                        firstReader = reader[1]
-                        break
-            except:
-                raise ValueError('Time must be specified when no '
-                                 'reader is added')
-            logging.info('Using start time (%s) of reader %s' %
-                         (firstReader.start_time, firstReader.name))
-            self.start_time = firstReader.start_time
-        else:
-            self.start_time = time
+
+        elements = self.ElementType(**kwargs)
+
+        self.schedule_elements(elements, time_array)
 
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
@@ -494,8 +591,9 @@ class OpenDriftSimulation(object):
             self.status_categories.append(reason)
             logging.debug('Added status %s' % (reason))
         reason_number = self.status_categories.index(reason)
-        if not hasattr(self.elements.status, "__len__"):
-            status = self.elements.status
+        #if not hasattr(self.elements.status, "__len__"):
+        if len(np.atleast_1d(self.elements.status)) == 1:
+            status = np.asscalar(self.elements.status)
             self.elements.status = np.zeros(self.num_elements_active())
             self.elements.status.fill(status)
         self.elements.status[indices] = reason_number
@@ -505,11 +603,13 @@ class OpenDriftSimulation(object):
     def remove_deactivated_elements(self):
         """Moving deactivated elements from self.elements
         to self.elements_deactivated."""
+
         # All particles scheduled for deletion
         indices = (self.elements.status != 0)
-        try:
-            len(indices)
-        except:
+        #try:
+        #    len(indices)
+        #except:
+        if indices == [] or len(indices) == 0:
             logging.debug('No elements to deactivate')
             return  # No elements scheduled for deactivation
         # Basic, but some more housekeeping will be required later
@@ -582,14 +682,19 @@ class OpenDriftSimulation(object):
         self.bufferlength = steps + 1
         # Initialise array to hold history (element properties and environment)
         # for export to file.
-        history_dtype_fields = [(name, self.elements.dtype[name]) for name in self.elements.dtype.fields]
+        #history_dtype_fields = [(name, self.elements.dtype[name]) for name in self.elements.dtype.fields]
+        history_dtype_fields = [(name,
+                                 self.ElementType.variables[name]['dtype'])
+                                for name in self.ElementType.variables]
         # Add environment variables
-        self.history_metadata = self.elements.variables.copy()
+        #self.history_metadata = self.elements.variables.copy()
+        self.history_metadata = self.ElementType.variables.copy()
         for env_var in self.required_variables:
             history_dtype_fields.append((env_var, np.dtype('float32'))) 
             self.history_metadata[env_var] = {}
         history_dtype = np.dtype(history_dtype_fields)
-        self.history = np.ma.array(np.zeros([self.num_elements_active(),
+        #self.history = np.ma.array(np.zeros([self.num_elements_active(),
+        self.history = np.ma.array(np.zeros([len(self.elements_scheduled),
                                              self.bufferlength]),
                                    dtype=history_dtype,
                                    mask=[True])
@@ -600,11 +705,15 @@ class OpenDriftSimulation(object):
         else:
             self.outfile = None
 
-
+        ##########################
+        # Main loop
+        ##########################
         for i in range(steps):
             try:
                 # Get environment data
                 runtime_start = datetime.now()
+                # Release elements
+                self.release_elements()
                 # Display time to terminal
                 logging.debug('==================================='*2)
                 logging.info('%s - step %i of %i - %i active elements '
@@ -612,6 +721,8 @@ class OpenDriftSimulation(object):
                              (self.time, self.steps + 1,
                               steps, self.num_elements_active(),
                               self.num_elements_deactivated()))
+                logging.debug('%s elements scheduled.' %
+                              self.num_elements_scheduled())
                 logging.debug('==================================='*2)
                 self.environment, missing = \
                     self.get_environment(self.required_variables,
@@ -655,7 +766,11 @@ class OpenDriftSimulation(object):
 
         self.state_to_buffer()  # Append final status to buffer
 
+        # Remove columns for unseeded elements in history array
+        self.history = self.history[range(self.num_elements_activated()), :]
+
         if outfile is not None:
+            logging.debug('Writing and closing output file: %s' % outfile)
             # Write buffer to outfile, and close
             if self.steps > self.steps_exported:  # Write last lines, if needed
                 self.io_write_buffer()
@@ -751,6 +866,12 @@ class OpenDriftSimulation(object):
 
         # Trajectories
         x, y = map(lons, lats)
+        try:
+            firstlast = np.ma.notmasked_edges(x, axis=1)
+            index_of_first = firstlast[0][1]
+            index_of_last = firstlast[1][1]
+        except:
+            index_of_last = 0
         # The more elements, the more transparent we make the lines
         min_alpha = 0.025
         max_elements = 5000.0
@@ -760,18 +881,18 @@ class OpenDriftSimulation(object):
             map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
         # NB: should check that endpoints are always included
 
-        map.scatter(x[:, 0], y[:, 0], zorder=10, edgecolor='k', linewidths=.2,
+        map.scatter(x[range(x.shape[0]), index_of_first],
+                    y[range(x.shape[0]), index_of_first],
+                    zorder=10, edgecolor='k', linewidths=.2,
                     color=self.status_colors['initial'],
                     label='initial (%i)' % x.shape[0])
-        map.scatter(x[:, -1], y[:, -1], zorder=3, edgecolor='k', linewidths=.2,
+        map.scatter(x[range(x.shape[0]), index_of_last],
+                    y[range(x.shape[0]), index_of_last],
+                    zorder=3, edgecolor='k', linewidths=.2,
                     color=self.status_colors['active'],
                     label='active (%i)' %
                     (x.shape[0] - self.num_elements_deactivated()))
 
-        try:
-            index_of_last = (~x.mask).sum(axis=1) - 1
-        except:
-            index_of_last = 0
         x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
                                            self.elements_deactivated.lat)
         # Plot deactivated elements, labeled by deactivation reason
@@ -940,9 +1061,9 @@ class OpenDriftSimulation(object):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + '\n'
-        outStr += '\t%s active %s particles  (%s deactivated)\n' % (
-            self.num_elements_active(), self.ElementType.__name__,
-            self.num_elements_deactivated())
+        outStr += '\t%s active %s particles  (%s deactivated, %s scheduled)\n'\
+            % (self.num_elements_active(), self.ElementType.__name__,
+               self.num_elements_deactivated(), self.num_elements_scheduled())
         outStr += 'Projection: %s\n' % self.proj4
         variable_groups, reader_groups, missing = self.get_reader_groups()
         outStr += '-------------------\n'
