@@ -23,7 +23,7 @@ o.add_reader([reader_arome, reader_basemap])
 # Seeding some particles
 lon = 4.5; lat = 63.0; 
 lon = 9.6; lat = 64.3; 
-o.seed_point(lon, lat, radius=50000, number=500) #, time=datetime(2015,7,28,4,0,0))
+o.seed_point(lon, lat, radius=50000, number=500, time=reader_arome.start_time)
 
 # Running model (until end of driver data)
 o.run(steps=125*4, time_step=900)

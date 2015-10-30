@@ -20,7 +20,7 @@ class LagrangianArray(object):
     Attributes:
         variables: An OrderedDict where keys are names of the
             variables/properties of the current object. The values
-            of the OrtderedDict are dictionaries with names such as
+            of the OrderedDict are dictionaries with names such as
             'dtype', 'unit', 'standard_name' (CF), 'default' etc.
         All variable names will be added dynamically as attributes of
             the object after initialisation. These attributes will be
@@ -34,7 +34,8 @@ class LagrangianArray(object):
     """
 
     variables = OrderedDict([
-        ('ID', {'dtype': np.int32}),  # Unique numerical identifier
+        ('ID', {'dtype': np.int32,  # Unique numerical identifier
+                'default': -1}),  # ID to be assigned by application
         ('status', {'dtype': np.int32,  # Status categories
                     'default': 0}),
         ('lon', {'dtype': np.float32,
@@ -112,6 +113,10 @@ class LagrangianArray(object):
         self.dtype = np.dtype([(var[0], var[1]['dtype'])
                                for var in self.variables.items()])
 
+        # Status must always be array
+        if not type(self.status) == np.ndarray:
+            self.status = self.status*np.ones(self.lon.shape)
+
     @classmethod
     def add_variables(cls, new_variables):
         """Method used by subclasses to add specific properties/variables."""
@@ -131,24 +136,53 @@ class LagrangianArray(object):
                 setattr(self, var, new_data)  # NB: overwriting if scalar
 
     def move_elements(self, other, indices):
-        """Remove elements with given indices, and append to another object."""
+        """Remove elements with given indices, and append to another object.
+        
+        NB: indices is boolean array, not real indices!"""
+
         # Move elements with given indices (boolean array)
         # to another LagrangianArray
+        # NB: scalars and 1D arrays are converted to ndarrays and concatenated
+        self_len = len(self)
+        other_len = len(other)
         for var in self.variables:
+            self_var = getattr(self, var)
+            other_var = getattr(other, var)
+            if (not isinstance(self_var, np.ndarray) and
+                not isinstance(other_var, np.ndarray)) and \
+                    (other_var == self_var):
+                   continue  # Equal scalars - we do nothing
+
             # Copy elements to other
-            if isinstance(getattr(self, var), np.ndarray):  # Array
-                setattr(other, var,
-                        np.concatenate((getattr(other, var),
-                                        getattr(self, var)[indices])))
-                # Remove elements from self
-                setattr(self, var, getattr(self, var)[~indices])
+            self_var = np.atleast_1d(self_var)
+            other_var = np.atleast_1d(other_var)
+            if len(self_var) < self_len:  # Convert scalar to array
+                self_var = self_var*np.ones(self_len)
+            if len(other_var) < other_len:  # Convert scalar to aray
+                other_var = other_var*np.ones(other_len)
+            if len(self_var) > 0:
+                setattr(other, var, np.concatenate((other_var,
+                                                    self_var[indices])))
             else:
-                setattr(other, var, getattr(self, var))  # Scalar
-        if sum(indices) > 0:
-            logging.debug('%s particles moved to other array' % (sum(indices)))
+                setattr(other, var, self_var[indices])
+            setattr(self, var, self_var[~indices])  # Remove from self
+
+            #if isinstance(self_var, np.ndarray) or\
+            #    isinstance(other_var, np.ndarray):  # Array
+            #    setattr(other, var,
+            #            np.concatenate((getattr(other, var),
+            #                            getattr(self, var)[indices])))
+            #    # Remove elements from self
+            #    setattr(self, var, getattr(self, var)[~indices])
+            #elif isinstance(getattr(other, var), np.ndarray):
+            #    setattr(other, var,
+            #            np.concatenate((getattr(other, var),
+            #                            np.atleast_1d(getattr(self, var)))))
+            #else:
+            #    setattr(other, var, getattr(self, var))  # Scalar
 
     def __len__(self):
-        return len(self.lat)
+        return len(np.atleast_1d(self.lon))
 
     def __repr__(self):
         outStr = ''

@@ -19,7 +19,7 @@ def init(self, filename, times=None):
 
     self.outfile_name = filename
     self.outfile = Dataset(filename, 'w')
-    self.outfile.createDimension('trajectory', self.num_elements_active())
+    self.outfile.createDimension('trajectory', self.num_elements_total())
     self.outfile.createVariable('trajectory', 'i4', ('trajectory',))
     self.outfile.createDimension('time', None)  # Unlimited time dimension
     self.outfile.createVariable('time', 'f8', ('time',))
@@ -120,16 +120,28 @@ def close(self):
     # Fortunately this is quite fast.
     # http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/reference/FeatureDatasets/CFpointImplement.html
     try:
+        logging.debug('Making netCDF file CDM compliant with fixed dimensions')
         with Dataset(self.outfile_name) as src, \
                 Dataset(self.outfile_name + '_tmp', 'w') as dst:
             for name, dimension in src.dimensions.iteritems():
-                dst.createDimension(name, len(dimension))
+                if name=='trajectory':
+                    # Truncate dimension length to  number actually seeded
+                    dst.createDimension(name, self.num_elements_activated())
+                else:
+                    dst.createDimension(name, len(dimension))
 
             for name, variable in src.variables.iteritems():
                 dstVar = dst.createVariable(name, variable.datatype,
                                              variable.dimensions)
                 srcVar = src.variables[name]
-                dstVar[:] = srcVar[:]  # Copy data
+                # Truncate data to number actually seeded
+                if 'trajectory' in variable.dimensions:
+                    if len(variable.dimensions) == 2:
+                        dstVar[:] = srcVar[0:self.num_elements_activated(), :] 
+                    else:
+                        dstVar[:] = srcVar[0:self.num_elements_activated()]  # Copy data
+                else:
+                    dstVar[:] = srcVar[:]
                 for att in src.variables[name].ncattrs():
                     # Copy variable attributes
                     dstVar.setncattr(att, srcVar.getncattr(att))
@@ -138,7 +150,8 @@ def close(self):
                 dst.setncattr(att, src.getncattr(att))
 
         move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
-    except:
+    except Exception as me:
+        print me
         print 'Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)'
     
 
@@ -183,11 +196,8 @@ def import_file(self, filename, time=None):
         self.history[var] = infile.variables[var][:, :]
 
     # Initialise elements from given (or last) state/time
-    indx = -1  # using last as default - to be fixed
-    lon = self.history['lon'][:, :]
-    index_of_last = (self.history['status'] == 0).sum(axis=1)
-    index_of_last[index_of_last >= num_timesteps] = num_timesteps - 1
-    stat = self.history['status'][np.arange(len(index_of_last)), index_of_last]
+    firstlast = np.ma.notmasked_edges(self.history['status'], axis=1)
+    index_of_last = firstlast[1][1]
     kwargs = {}
     for var in infile.variables:
         if var in self.ElementType.variables:
