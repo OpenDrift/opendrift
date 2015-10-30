@@ -574,10 +574,12 @@ class OpenDriftSimulation(object):
              
         geod = pyproj.Geod(ellps='WGS84')
         ones = np.ones(number)
+        x = np.random.randn(number)*radius
+        y = np.random.randn(number)*radius
+        az = np.degrees(np.arctan2(x,y))
+        dist = np.sqrt(x*x+y*y)
         kwargs['lon'], kwargs['lat'], az = \
-            geod.fwd(lon*ones, lat*ones,
-                     360*np.random.rand(number),
-                     radius*np.random.rand(number), radians=False)
+            geod.fwd(lon*ones, lat*ones, az, dist, radians=False) 
 
         elements = self.ElementType(**kwargs)
 
