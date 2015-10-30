@@ -6,8 +6,7 @@ from readers import reader_basemap_landmask
 from readers import reader_netCDF_CF_generic
 from models.leeway import Leeway
 
-lee = Leeway(loglevel=0)  # Set loglevel to 0 for debug information
-#print lee.leewayprop
+lw = Leeway(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
@@ -37,7 +36,7 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
 
 #o.add_reader([reader_norkyst])
 #o.add_reader([reader_arctic20, reader_arome, reader_basemap])
-lee.add_reader([reader_norkyst, reader_arome, reader_basemap])
+lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
 #o.add_reader([reader_norkyst, reader_basemap])
 #o.add_reader([reader_norkyst, reader_nordic4, reader_arctic20, reader_arome, reader_basemap])
 #o.add_reader([reader_globcurrent, reader_basemap])
@@ -48,7 +47,7 @@ lee.add_reader([reader_norkyst, reader_arome, reader_basemap])
 #reader_norkyst.plot()
 #lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
 #lon = 10.6; lat = 54.83; # outside Norkyst boundary
-lon = 4.9; lat = 60.0; # Outside Bergen
+lon = 4.5; lat = 60.0; # Outside Bergen
 #lon = 2.5; lat = 60.0; # Frigg/NOFO
 #lon = 6.73; lat = 62.78; # Outside Trondheim
 #lon = 10.546; lat = 59.486 # Godafoss
@@ -61,10 +60,10 @@ time = None
 #time = reader_wam10.start_time
 #time = datetime(2015, 6, 9, 9, 0, 0)
 
-# Seed oil elements at defined position and time
-lee.seed_point_leeway(lon, lat, radius=5000, number=1000, time=time, objectType=5)
+# Seed leeway elements at defined position and time
+lw.seed_leeway(lon, lat, radius=5000, number=1000, time=time, objectType=5)
 
-print lee.elements
+print lw.elements
 
 #o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150608_171458_0045_SCNA_HH_SGF_401754_5438_11441747_Oil.gml', num_elements=1000)
 #o.start_time = reader_nordic4.start_time
@@ -72,17 +71,11 @@ print lee.elements
 #o.set_projection(reader_arome.proj4)
 #o.set_projection('+proj=latlong')
 
-# Adjusting some configuration
-#lee.config['drift']['wind_drift_factor'] = .03
-#lee.config['processes']['diffusion'] = True
-#lee.config['drift']['current_uncertainty'] = .0
-#lee.config['drift']['wind_uncertainty'] = 2
-
 # Running model (until end of driver data)
-lee.run(steps=50*4, time_step=900, outfile='outleeway.nc')
+lw.run(steps=50*4, time_step=900, outfile='outleeway.nc')
 
 # Print and plot results
-print lee
+print lw
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
 #o.plot_property('mass_oil')
-lee.plot(buffer=.1)
+lw.plot(buffer=.1)

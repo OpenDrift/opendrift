@@ -1,9 +1,10 @@
 import os
 import numpy as np
 from datetime import datetime
-
+import logging
 from opendrift import OpenDriftSimulation
 from elements import LagrangianArray
+from readers.readers import pyproj, Reader
 from collections import OrderedDict
 
 RIGHT = 0
@@ -84,7 +85,6 @@ class Leeway(OpenDriftSimulation):
         #objprop_file=open('/home/oyvindb/Pro/opendrift/OBJECTPROP.DAT','r')
         objproptxt=objprop_file.readlines()
         objprop_file.close()
-        MAXOBJ=85 # CCC must fix
         self.leewayprop=OrderedDict({})
         for i in xrange(len(objproptxt)//3+1):
             # Stop at first blank line
@@ -135,11 +135,12 @@ class Leeway(OpenDriftSimulation):
         else:
             self.start_time = time
 
+        print "CCC time ", time
         if radius1 is None:
             radius1 = radius
 
         if time1 is None:
-            time1 = time
+            time1 = self.start_time
 
         if lon1 is None:
             lon1 = lon
@@ -149,27 +150,32 @@ class Leeway(OpenDriftSimulation):
         # orientation = 1*(np.random.rand(number)>=0.5)
         # Odd numbered particles are left-drifting, even are right of downwind.
         orientation = np.r_[:number]%2
+        ones = np.ones_like(orientation)
 
         # Downwind leeway properties.
         # Generate normal, N(0,1), random perturbations for leeway coeffs. 
         # Negative downwind slope must be avoided as particles should drift downwind. 
         # The problem arises because of high error variances (see e.g. PIW-1).
-        downwindSlope=self.leewayprop.values()[objectType]['DWSLOPE']
-        downwindOffset=self.leewayprop.values()[objectType]['DWOFFSET']
+        print "CCC length of leewayprop ", len(self.leewayprop.values())
+        downwindSlope = ones*self.leewayprop.values()[objectType]['DWSLOPE']
+        downwindOffset = ones*self.leewayprop.values()[objectType]['DWOFFSET']
         dwstd=self.leewayprop.values()[objectType]['DWSTD']
         rdw = np.zeros(number)
-        epsdw = np.zeros_like(rdw)
+        epsdw = np.zeros(number)
         for i in xrange(number):
             rdw[i] = np.random.randn(1)
             epsdw[i] = rdw[i]*dwstd
             # Avoid negative downwind slopes
-            while dwslo+epsdw[i]/20.0 < 0.0:
+            while downwindSlope[i]+epsdw[i]/20.0 < 0.0:
                 rdw[i] = np.random.randn(1)
                 epsdw[i] = rdw[i]*dwstd
         downwindEps = epsdw
 
         # Crosswind leeway properties
         rcw = np.random.randn(number)
+        crosswindSlope = np.zeros(number)
+        crosswindOffset = np.zeros(number)
+        crosswindEps = np.zeros(number)
         crosswindSlope[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWRSLOPE']
         crosswindSlope[orientation==LEFT] = self.leewayprop.values()[objectType]['CWLSLOPE']
         crosswindOffset[orientation==RIGHT] = self.leewayprop.values()[objectType]['CWROFFSET']
@@ -178,7 +184,7 @@ class Leeway(OpenDriftSimulation):
         crosswindEps[orientation==LEFT] = rcw[orientation==LEFT]*self.leewayprop.values()[objectType]['CWLSTD']
 
         # Jibe probability
-        jibeProbability = np.ones_like(orientation)*pjibe
+        jibeProbability = ones*pjibe
 
         # Calculate the great circle line from lon,lat to lon1,lat1 
         geod = pyproj.Geod(ellps='WGS84')
@@ -190,35 +196,48 @@ class Leeway(OpenDriftSimulation):
         radii = np.r_[radius:radius1:number*1j]
 
         # time is a now vector of length number
-        dt = (time1-time)/(number-1)
-        times = [time+i*dt for i in range(number)]
+        dt = (time1-self.start_time)/(number-1)
+        times = [self.start_time+i*dt for i in range(number)]
 
-        self.seed_point(clons, clats, radii, number, times,
+        #self.seed_point(clons, clats, radii, number, times,
+        #    orientation=orientation, objectType=objectType,
+        #    downwindSlope=downwindSlope, crosswindSlope=crosswindSlope,
+        #    downwindOffset=downwindOffset, crosswindOffset=crosswindOffset,
+        #    downwindEps=downwindEps, crosswindEps=crosswindEps, jibeProbability=jibeProbability)
+
+        # CCC Test with scalar radius and time
+        self.seed_point(clons, clats, radius, 1, time,
             orientation=orientation, objectType=objectType,
             downwindSlope=downwindSlope, crosswindSlope=crosswindSlope,
             downwindOffset=downwindOffset, crosswindOffset=crosswindOffset,
-            downwindEps=downwindEps, crosswindEps=crosswindEps, jibeProbability=jibeProbability)
+            downwindEps=downwindEps, crosswindEps=crosswindEps, 
+            jibeProbability=jibeProbability)
 
 
     def update(self):
         """Update positions and properties of leeway particles."""
 
         self.elements.age_seconds += self.time_step.total_seconds()
+        print "CCC update: age_seconds", self.elements.age_seconds
 
         windspeed = np.sqrt(self.environment.x_wind**2 +
                             self.environment.y_wind**2)
+        print "CCC update: windspeed", windspeed
         # CCC update wind direction
         winddir = np.arctan2(self.environment.x_wind, self.environment.y_wind)
         
         # Move particles with the leeway CCC TODO
-        dwl_leeway = (self.elements.downwindSlope+self.elements.epsilon/20.0)*windspeed + \
-                     self.elements.downwindOffset + self.elements.downwindEpsilon/2.0
-        cwl_leeway = self.elements.orientation * \
-                     (self.elements.crosswindLeeway*windspeed + \
-                      self.elements.crosswindOffset)
-        x_leeway = dwl_leeway*np.cos(winddir)+cwl_leeway*np.sin(winddir)
-        y_leeway = -dwl_leeway*np.sin(winddir)+cwl_leeway*np.cos(winddir)
+        downwind_leeway = 0.01*(self.elements.downwindSlope+self.elements.downwindEps/20.0)*windspeed + \
+                     self.elements.downwindOffset + self.elements.downwindEps/2.0
+        print "CCC update: downwind_leeway", downwind_leeway
+        crosswind_leeway = 0.01*(self.elements.crosswindSlope+self.elements.crosswindEps/20.0)*windspeed + \
+                     self.elements.crosswindOffset + self.elements.crosswindEps/2.0
+        sinth = np.sin(winddir)
+        costh = np.cos(winddir)
+        x_leeway = downwind_leeway*costh+crosswind_leeway*sinth
+        y_leeway = -downwind_leeway*sinth+crosswind_leeway*costh
         self.update_positions(x_leeway, y_leeway)
+        print "CCC update: len(costh), len(x_leeway), len(downwind_leeway)", len(costh),len(x_leeway),len(downwind_leeway)
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
