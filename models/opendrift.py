@@ -766,9 +766,6 @@ class OpenDriftSimulation(object):
 
         self.state_to_buffer()  # Append final status to buffer
 
-        # Remove columns for unseeded elements in history array
-        self.history = self.history[range(self.num_elements_activated()), :]
-
         if outfile is not None:
             logging.debug('Writing and closing output file: %s' % outfile)
             # Write buffer to outfile, and close
@@ -778,6 +775,9 @@ class OpenDriftSimulation(object):
 
         # Remove any elements scheduled for deactivation during last step
         self.remove_deactivated_elements()
+
+        # Remove columns for unseeded elements in history array
+        self.history = self.history[range(self.num_elements_activated()), :]
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""

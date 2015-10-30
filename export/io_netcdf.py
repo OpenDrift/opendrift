@@ -19,7 +19,7 @@ def init(self, filename, times=None):
 
     self.outfile_name = filename
     self.outfile = Dataset(filename, 'w')
-    self.outfile.createDimension('trajectory', self.num_elements_active())
+    self.outfile.createDimension('trajectory', self.num_elements_total())
     self.outfile.createVariable('trajectory', 'i4', ('trajectory',))
     self.outfile.createDimension('time', None)  # Unlimited time dimension
     self.outfile.createVariable('time', 'f8', ('time',))
