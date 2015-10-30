@@ -521,7 +521,7 @@ class OpenDriftSimulation(object):
         lat = np.atleast_1d(lat)
         num_points = len(lon)  # Number of lon/lat pairs
         if number is not None and number < num_points:
-            raise ValueError('Number of elements must be greather or equal '
+            raise ValueError('Number of elements must be greater or equal '
                              'to number of points.')
 
         if num_points > 1:

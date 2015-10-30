@@ -205,8 +205,11 @@ class Leeway(OpenDriftSimulation):
         #    downwindOffset=downwindOffset, crosswindOffset=crosswindOffset,
         #    downwindEps=downwindEps, crosswindEps=crosswindEps, jibeProbability=jibeProbability)
 
+        # KF update - single point
+        clons = lon
+        clats = lat
         # CCC Test with scalar radius and time
-        self.seed_point(clons, clats, radius, 1, time,
+        self.seed_point(clons, clats, radius, number, time,
             orientation=orientation, objectType=objectType,
             downwindSlope=downwindSlope, crosswindSlope=crosswindSlope,
             downwindOffset=downwindOffset, crosswindOffset=crosswindOffset,
@@ -218,26 +221,32 @@ class Leeway(OpenDriftSimulation):
         """Update positions and properties of leeway particles."""
 
         self.elements.age_seconds += self.time_step.total_seconds()
-        print "CCC update: age_seconds", self.elements.age_seconds
 
         windspeed = np.sqrt(self.environment.x_wind**2 +
                             self.environment.y_wind**2)
-        print "CCC update: windspeed", windspeed
         # CCC update wind direction
         winddir = np.arctan2(self.environment.x_wind, self.environment.y_wind)
         
         # Move particles with the leeway CCC TODO
-        downwind_leeway = 0.01*(self.elements.downwindSlope+self.elements.downwindEps/20.0)*windspeed + \
-                     self.elements.downwindOffset + self.elements.downwindEps/2.0
-        print "CCC update: downwind_leeway", downwind_leeway
-        crosswind_leeway = 0.01*(self.elements.crosswindSlope+self.elements.crosswindEps/20.0)*windspeed + \
-                     self.elements.crosswindOffset + self.elements.crosswindEps/2.0
+        downwind_leeway = (self.elements.downwindSlope +
+                           (self.elements.downwindEps/20.0)*windspeed +
+                           self.elements.downwindOffset +
+                           (self.elements.downwindEps/2.0))*.01  # In m/s
+        #print "CCC update: downwind_leeway", downwind_leeway
+        crosswind_leeway = (self.elements.crosswindSlope +
+                            (self.elements.crosswindEps/20.0)*windspeed + \
+                            self.elements.crosswindOffset +
+                            (self.elements.crosswindEps/2.0))*.01  # In m/s
+        # left/right
+        left = (self.elements.orientation==0)
+        crosswind_leeway[left] = -crosswind_leeway[left]
+        #print "CCC update: crosswind_leeway", crosswind_leeway
         sinth = np.sin(winddir)
         costh = np.cos(winddir)
         x_leeway = downwind_leeway*costh+crosswind_leeway*sinth
         y_leeway = -downwind_leeway*sinth+crosswind_leeway*costh
         self.update_positions(x_leeway, y_leeway)
-        print "CCC update: len(costh), len(x_leeway), len(downwind_leeway)", len(costh),len(x_leeway),len(downwind_leeway)
+        #print 'CCC x_leeway, y_leeway', x_leeway, y_leeway
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
