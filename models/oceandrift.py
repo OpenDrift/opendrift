@@ -42,9 +42,10 @@ class OceanDrift(OpenDriftSimulation):
         mid_y = start_y + y_vel*self.time_step.total_seconds()*.5
         mid_lon, mid_lat = self.xy2lonlat(mid_x, mid_y)
         # Find current at midpoint, a half timestep later
-        mid_env, missing = self.get_environment(self.required_variables,
-                                       self.time + self.time_step/2,
-                                       mid_lon, mid_lat, self.elements.depth)
+        mid_env, missing = self.get_environment(
+            self.required_variables,
+            self.time + self.time_step/2,
+            mid_lon, mid_lat, self.elements.depth)
 
         # Move particles using runge-kutta velocity
         self.update_positions(mid_env['x_sea_water_velocity'],

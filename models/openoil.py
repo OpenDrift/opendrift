@@ -95,7 +95,6 @@ class OpenOil(OpenDriftSimulation):
             wind_uncertainty = float(min=0, max=5, default=1)
     ''' % (datetime.now().strftime('%Y-%d-%m %H:00'), oil_types, default_oil)
 
-
     def __init__(self, *args, **kwargs):
 
         # Read oil properties from file
@@ -152,15 +151,16 @@ class OpenOil(OpenDriftSimulation):
 
             # Evaporation probability equals the difference in fraction
             # evaporated at this timestep compared to previous timestep,
-            # divided by the remaining fraction of the particle at 
+            # divided by the remaining fraction of the particle at
             # previous timestep
             evaporation_probability = ((self.elements.fraction_evaporated -
                                         fraction_evaporated_previous) /
                                        (1 - fraction_evaporated_previous))
             evaporation_probability[~at_surface] = 0
-            self.deactivate_elements(evaporation_probability >
-                                     np.random.rand(self.num_elements_active(),),
-                                     reason='evaporated')
+            self.deactivate_elements(
+                evaporation_probability >
+                np.random.rand(self.num_elements_active(),),
+                reason='evaporated')
         ##################
         # Emulsification
         ##################
@@ -179,21 +179,21 @@ class OpenOil(OpenDriftSimulation):
         if self.config['processes']['dispersion'] is True:
 
             # From NOAA PyGnome model:
-            # https://github.com/NOAA-ORR-ERD/PyGnome/ 
+            # https://github.com/NOAA-ORR-ERD/PyGnome/
             v_entrain = 3.9E-8
             sea_water_density = 1028
             fraction_breaking_waves = 0.02
             wave_significant_height = \
                 self.environment.sea_surface_wave_significant_height
-            wave_significant_height[wave_significant_height==0] = \
-                0.0246*windspeed[wave_significant_height==0]**2
-            dissipation_wave_energy = (0.0034*sea_water_density*9.81*
-                                       wave_significant_height**2)
+            wave_significant_height[wave_significant_height == 0] = \
+                0.0246*windspeed[wave_significant_height == 0]**2
+            dissipation_wave_energy = \
+                (0.0034*sea_water_density*9.81*wave_significant_height**2)
             c_disp = np.power(dissipation_wave_energy, 0.57) * \
-                        fraction_breaking_waves
+                fraction_breaking_waves
             # Roy's constant
             C_Roy = 2400.0 * np.exp(-73.682*np.sqrt(
-                                self.elements.viscosity/self.elements.density))
+                self.elements.viscosity/self.elements.density))
 
             q_disp = C_Roy * c_disp * v_entrain / self.elements.density
 
@@ -206,12 +206,13 @@ class OpenOil(OpenDriftSimulation):
             #    self.environment.sea_surface_wave_significant_height
 
             ## Marks R. (1987), Marine aerosols and whitecaps in the
-            ## North Atlantic and Greenland sea regions 
+            ## North Atlantic and Greenland sea regions
             ## Deutsche Hydrografische Zeitschrift, Vol 40, Issue 2 , pp 71-79
-            #whitecap_coverage = (2.54E-4)*np.power(windspeed, 3.58)  # percent
+            #whitecap_coverage = (2.54E-4)*np.power(windspeed, 3.58)
 
-            ## Martinsen et al. (1994), The operational oil drift system at DNMI
-            ## DNMI Technical report No 125, 51 p 
+            ## Martinsen et al. (1994), The operational
+            ## oil drift system at DNMI
+            ## DNMI Technical report No 125, 51
             #wave_period = 3.85*np.sqrt(
             #    self.environment.sea_surface_wave_significant_height)  # sec
 

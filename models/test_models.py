@@ -28,6 +28,5 @@ class TestArray(unittest.TestCase):
         self.assertEqual(len(self.o.elements_scheduled), 100)
 
 
-
 if __name__ == '__main__':
     unittest.main()

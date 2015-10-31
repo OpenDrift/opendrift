@@ -11,6 +11,7 @@ from readers import reader_ArtificialOceanEddy
 from readers import reader_basemap_landmask
 from models.oceandrift import OceanDrift
 
+
 class TestArray(unittest.TestCase):
     """Tests for (non-scalar) LagrangianArray"""
 
@@ -20,8 +21,8 @@ class TestArray(unittest.TestCase):
         self.o.use_block = False
         self.o.config['runge_kutta'] = False
         self.reader_basemap = reader_basemap_landmask.Reader(
-                                llcrnrlon=-1.5, llcrnrlat=59,
-                                urcrnrlon=7, urcrnrlat=64, resolution='i')
+            llcrnrlon=-1.5, llcrnrlat=59,
+            urcrnrlon=7, urcrnrlat=64, resolution='i')
         self.o.add_reader([self.fake_eddy, self.reader_basemap])
 
     def test1_seed_single_point_over_time(self):
@@ -68,7 +69,6 @@ class TestArray(unittest.TestCase):
         self.assertEqual(self.o.num_elements_activated(), 5)
         self.assertEqual(self.o.num_elements_deactivated(), 1)
         self.assertEqual(self.o.num_elements_total(), 9)
-
 
     def test3_run_import(self):
         """Import output file from previous test, and check elements"""

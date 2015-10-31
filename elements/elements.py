@@ -137,7 +137,6 @@ class LagrangianArray(object):
 
     def move_elements(self, other, indices):
         """Remove elements with given indices, and append to another object.
-        
         NB: indices is boolean array, not real indices!"""
 
         # Move elements with given indices (boolean array)
@@ -151,7 +150,7 @@ class LagrangianArray(object):
             if (not isinstance(self_var, np.ndarray) and
                 not isinstance(other_var, np.ndarray)) and \
                     (other_var == self_var):
-                   continue  # Equal scalars - we do nothing
+                    continue  # Equal scalars - we do nothing
 
             # Copy elements to other
             self_var = np.atleast_1d(self_var)
