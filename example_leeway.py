@@ -26,11 +26,12 @@ lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
 lon = 4.5; lat = 60.0; # Outside Bergen
 
 # Seed leeway elements at defined position and time
+objType = 26  # 26 = Life-raft, no ballast
 lw.seed_leeway(lon, lat, radius=1000, number=500,
-               time=reader_arome.start_time, objectType=5)
+               time=reader_arome.start_time, objectType=objType)
 
 # Running model (until end of driver data)
-lw.run(steps=60*4, time_step=900, outfile='outleeway.nc')
+lw.run(steps=60*2, time_step=1800, outfile='outleeway.nc')
 
 # Print and plot results
 print lw
