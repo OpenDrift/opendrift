@@ -17,8 +17,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 #reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')#, name='norkyst800_file')
 
 # Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-5, llcrnrlat=54,
-                    urcrnrlon=27, urcrnrlat=79, resolution='h')
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3.8, llcrnrlat=59.5,
+                    urcrnrlon=5.4, urcrnrlat=61.2, resolution='h')
 
 lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
 
@@ -35,4 +35,4 @@ lw.run(steps=60*2, time_step=1800, outfile='outleeway.nc')
 
 # Print and plot results
 print lw
-lw.plot(buffer=.1)
+lw.plot(buffer=.1, background='x_sea_water_velocity')

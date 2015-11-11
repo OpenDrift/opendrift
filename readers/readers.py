@@ -21,6 +21,7 @@ from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
 from scipy.interpolate import RectBivariateSpline, LinearNDInterpolator
 from scipy.spatial import KDTree
+from scipy.ndimage import map_coordinates
 import numpy as np
 
 
@@ -130,29 +131,44 @@ class Reader(object):
     def interpolate_block(self, block, x, y, depth=None):
         """Interpolating a 2D or 3D block onto given positions."""
 
+        method = 'linearND'
+        #method = 'ndimage'
+        #method = 'KDTree'
         env = {}
         for var in block.keys():
             if not hasattr(block[var], 'ndim'):
                 continue
             if block[var].ndim == 2:
-                ## Create spline for interpolation
-                block_x, block_y = np.meshgrid(block['x'], block['y'])
-                data = block[var]
-                data_ravel = data.ravel()
-                valid = ~data_ravel.mask
-                # We want to interpolate valid values only,
-                # to avoid holes, and to get values towards coast
-                spl = LinearNDInterpolator((block_y.ravel()[valid],
-                                            block_x.ravel()[valid]),
-                                            data.ravel()[valid])
-                env[var] = spl(y, x)  # Evaluate at positions
+                if method == 'linearND':
+                    ## Create spline for interpolation
+                    block_x, block_y = np.meshgrid(block['x'], block['y'])
+                    data = block[var]
+                    data_ravel = data.ravel()
+                    valid = ~data_ravel.mask
+                    #valid = np.arange(len(block_y.ravel()))  # if no interp
+                    # We want to interpolate valid values only,
+                    # to avoid holes, and to get values towards coast
+                    spl = LinearNDInterpolator((block_y.ravel()[valid],
+                                                block_x.ravel()[valid]),
+                                                data.ravel()[valid])
+                    env[var] = spl(y, x)  # Evaluate at positions
 
-                ## Make and use KDTree for interpolation
-                #tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
-                #d,p = tree.query(zip(x,y), k=1) #nearest point, gives
-                # distance and point index
-                ### NB - or transpose array first ?
-                #env[var] = block[var].ravel()[p]
+                if method == 'KDTree':
+                    # Make and use KDTree for interpolation
+                    tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
+                    d,p = tree.query(zip(x,y), k=1) #nearest point, gives
+                                                    #distance and point index
+                    ## NB - or transpose array first ?
+                    env[var] = block[var].ravel()[p]
+
+                if method == 'ndimage':
+                    xMin = block['x'].min()
+                    xMax = block['x'].max()
+                    yMin = block['y'].min()
+                    yMax = block['y'].max()
+                    xi = (x - xMin)/(xMax-xMin)*len(block['x'])
+                    yi = (y - yMin)/(yMax-yMin)*len(block['y'])
+                    env[var] = map_coordinates(block[var], [xi, yi], cval=np.NaN)
 
             elif block[var].ndim == 3:
                 raise ValueError('Not yet implemented')
@@ -323,7 +339,7 @@ class Reader(object):
                             or (env[var].max() >
                                 standard_names[var]['valid_max']):
                         logging.info('Invalid values found for ' + var)
-                        logging.ingo(env[var])
+                        logging.info(env[var])
                         sys.exit('quitting')
         else:
             logging.debug('No time interpolation needed - right on time.')
