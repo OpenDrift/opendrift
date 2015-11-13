@@ -971,7 +971,7 @@ class OpenDriftSimulation(object):
                 skip = 10
                 map.quiver(map_x[::skip, ::skip], map_y[::skip, ::skip],
                            u_component[::skip, ::skip],
-                           v_component[::skip, ::skip], scale=10)
+                           v_component[::skip, ::skip], scale=20)
 
         if hasattr(self, 'time'):
             plt.title(type(self).__name__ + '  %s to %s (%i steps)' %

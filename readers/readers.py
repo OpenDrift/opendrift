@@ -168,7 +168,10 @@ class Reader(object):
                     yMax = block['y'].max()
                     xi = (x - xMin)/(xMax-xMin)*len(block['x'])
                     yi = (y - yMin)/(yMax-yMin)*len(block['y'])
-                    env[var] = map_coordinates(block[var], [xi, yi], cval=np.NaN)
+                    bl = block[var]
+                    bl[bl.mask] = np.nan
+                    env[var] = map_coordinates(bl, [yi, xi],
+                                               cval=np.nan, order=1)
 
             elif block[var].ndim == 3:
                 raise ValueError('Not yet implemented')
@@ -360,38 +363,48 @@ class Reader(object):
             # Extract unique vector pairs
             vector_pairs = [list(x) for x in set(tuple(x)
                             for x in vector_pairs)]
-            # Calculate azimuth angle between coordinate systems (y-axis)
-            if self.proj.is_latlong():
-                delta_y = .1
-            else:
-                delta_y = 1000
-            x2, y2 = pyproj.transform(self.proj, rotate_to_proj,
-                                      reader_x, reader_y)
-            x2_delta, y2_delta = pyproj.transform(self.proj,
-                                                  rotate_to_proj,
-                                                  reader_x, reader_y + delta_y)
-            if rotate_to_proj.is_latlong():
-                geod = pyproj.Geod(ellps='WGS84')
-                rot_angle_rad = -np.radians(geod.inv(
-                    x2, y2, x2_delta, y2_delta)[0])
-            else:
-                rot_angle_rad = -np.arctan2(x2_delta - x2, y2_delta - y2)
 
             for vector_pair in vector_pairs:
-                logging.debug(('Rotating %s an angle of %f to %f degrees ' +
-                              ' to srs %s') %
-                              (str(vector_pair),
-                               np.degrees(rot_angle_rad).min(),
-                               np.degrees(rot_angle_rad).min(),
-                               rotate_to_proj.srs))
-                u2 = (env[vector_pair[0]]*np.cos(rot_angle_rad) -
-                      env[vector_pair[1]]*np.sin(rot_angle_rad))
-                v2 = (env[vector_pair[0]]*np.sin(rot_angle_rad) +
-                      env[vector_pair[1]]*np.cos(rot_angle_rad))
-                env[vector_pair[0]] = u2
-                env[vector_pair[1]] = v2
+                env[vector_pair[0]], env[vector_pair[1]] = \
+                    self.rotate_vectors(reader_x, reader_y,
+                                        env[vector_pair[0]],
+                                        env[vector_pair[1]],
+                                        self.proj, rotate_to_proj)
 
         return env
+
+    def rotate_vectors(self, reader_x, reader_y,
+                       u_component, v_component, proj_from, proj_to):
+        """Rotate vectors from one srs to another."""
+
+        if type(proj_from) is str:
+            proj_from = pyproj.Proj(proj_from)
+        if type(proj_to) is str:
+            proj_to = pyproj.Proj(proj_to)
+
+        if proj_from.is_latlong():
+                delta_y = .1
+        else:
+            delta_y = 1000
+        x2, y2 = pyproj.transform(proj_from, proj_to,
+                                  reader_x, reader_y)
+        x2_delta, y2_delta = pyproj.transform(proj_from,
+                                              proj_to,
+                                              reader_x, reader_y + delta_y)
+
+        if proj_to.is_latlong():
+            geod = pyproj.Geod(ellps='WGS84')
+            rot_angle_rad = -np.radians(geod.inv(
+                    x2, y2, x2_delta, y2_delta)[0])
+        else:
+            rot_angle_rad = -np.arctan2(x2_delta - x2, y2_delta - y2)
+
+        u_rot = (u_component*np.cos(rot_angle_rad) -
+                 v_component*np.sin(rot_angle_rad))
+        v_rot = (u_component*np.sin(rot_angle_rad) +
+                 v_component*np.cos(rot_angle_rad))
+
+        return u_rot, v_rot
 
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).

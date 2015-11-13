@@ -40,32 +40,13 @@ reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=2, llcrnrlat=59,
 #                    urcrnrlon=10.7, urcrnrlat=59.7,
 #                    resolution='h', projection='merc')
 
-#o.add_reader([reader_norkyst])
-#o.add_reader([reader_arctic20, reader_arome, reader_basemap])
-#o.add_reader([reader_norkyst, reader_arome, reader_basemap])
 o.add_reader([reader_basemap, reader_norkyst, reader_arome])
-#o.add_reader([reader_norkyst, reader_basemap])
-#o.add_reader([reader_norkyst, reader_nordic4, reader_arctic20, reader_arome, reader_basemap])
-#o.add_reader([reader_globcurrent, reader_basemap])
 
 # Seeding some particles
-#lon = 15; lat = 72.0; # Close to Norkyst boundary
-#lon = 21; lat = 73.5; # Close to Norkyst boundary
-#reader_norkyst.plot()
-#lon = 10.6; lat = 57.33; # Laesoe, close to Norkyst boundary
-#lon = 10.6; lat = 54.83; # outside Norkyst boundary
 lon = 4.6; lat = 60.0; # Outside Bergen
-#lon = 2.5; lat = 60.0; # Frigg/NOFO
-lon = 6.73; lat = 62.78; # Outside Trondheim
-#lat = 59.551010; lon = 10.618833 # Ytre Oslofjord
-#lon = 10.546; lat = 59.486 # Godafoss
-#lon = 9.76; lat = 58.94 # Full City
-#lon = 9.76; lat = 58.84 # Full City south
-#lon = 22.6; lat = 71.00; # Barents
-#lon = 14.332435; lat = 68.045021; # Vestfjorden, Rohrs et al., 2012
+#lon = 6.73; lat = 62.78; # Outside Trondheim
 
 time = None
-#time = reader_wam10.start_time
 #time = datetime(2015, 9, 22, 6, 0, 0)
 time = [reader_arome.start_time,
         reader_arome.start_time + timedelta(hours=4)]
