@@ -31,7 +31,7 @@ lw.seed_leeway(lon, lat, radius=1000, number=3000,
                time=reader_arome.start_time, objectType=objType)
 
 # Running model (until end of driver data)
-lw.run(steps=60*2, time_step=1800, outfile='outleeway.nc')
+lw.run(steps=60*4, time_step=900, outfile='outleeway.nc')
 
 # Print and plot results
 print lw

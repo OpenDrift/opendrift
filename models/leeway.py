@@ -243,20 +243,15 @@ class Leeway(OpenDriftSimulation):
                             self.elements.downwindEps/20.0)*windspeed +
                            self.elements.downwindOffset +
                            self.elements.downwindEps/2.0)*.01  # In m/s
-        #print "CCC update: downwind_leeway", downwind_leeway
         crosswind_leeway = ((self.elements.crosswindSlope +
                             self.elements.crosswindEps/20.0)*windspeed +
                             self.elements.crosswindOffset +
                             self.elements.crosswindEps/2.0)*.01  # In m/s
-        #print "CCC update: crosswind_leeway", crosswind_leeway
         sinth = np.sin(winddir)
         costh = np.cos(winddir)
-        #print downwind_leeway
-        #print crosswind_leeway
         y_leeway = downwind_leeway*costh+crosswind_leeway*sinth
         x_leeway = -downwind_leeway*sinth+crosswind_leeway*costh
         self.update_positions(-x_leeway, y_leeway)
-        #print 'CCC x_leeway, y_leeway', x_leeway, y_leeway
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
@@ -265,3 +260,11 @@ class Leeway(OpenDriftSimulation):
         # Move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
                               self.environment.y_sea_water_velocity)
+
+        # Jibe elements randomly according to given probability
+        jp_per_timestep = self.elements.jibeProbability * \
+                            self.time_step.total_seconds() / 3600.0
+        jib = jp_per_timestep > np.random.random(self.num_elements_active())
+        self.elements.crosswindSlope[jib] = - self.elements.crosswindSlope[jib]
+        logging.debug('Jibing %i out of %i elements.' %
+                        (sum(jib), self.num_elements_active()))
