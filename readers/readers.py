@@ -131,8 +131,8 @@ class Reader(object):
     def interpolate_block(self, block, x, y, depth=None):
         """Interpolating a 2D or 3D block onto given positions."""
 
-        method = 'linearND'
-        #method = 'ndimage'
+        #method = 'linearND'
+        method = 'ndimage'
         #method = 'KDTree'
         env = {}
         for var in block.keys():
