@@ -182,6 +182,7 @@ class OpenOil(OpenDriftSimulation):
         ##################
         if self.config['processes']['emulsification'] is True:
             # Apparent emulsion age of particles
+            Urel = windspeed/self.model.reference_wind  # Relative wind
             self.elements.age_emulsion_seconds += \
                 Urel*self.time_step.total_seconds()
 

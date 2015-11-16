@@ -25,6 +25,12 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
 from configobj import configobj, validate
+try:
+    from mpl_toolkits.basemap import Basemap
+    import matplotlib.pyplot as plt
+    from matplotlib import animation
+except:
+    logging.info('Basemap is not available, can not make plots')
 
 from readers.readers import pyproj, Reader
 
@@ -818,6 +824,102 @@ class OpenDriftSimulation(object):
                 ((self.steps - self.steps_exported) == self.bufferlength):
             self.io_write_buffer()
 
+    def set_up_map(self, buffer=.1):
+        """Generate Basemap instance on which trajectories are plotted."""
+
+        if hasattr(self, 'history'):
+            lons = self.history['lon']
+            lats = self.history['lat']
+        else:
+            lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
+            lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
+
+        # Initialise map
+        lonmin = lons.min() - buffer*2
+        lonmax = lons.max() + buffer*2
+        latmin = lats.min() - buffer
+        latmax = lats.max() + buffer
+        if 'basemap_landmask' in self.readers:
+            # Using an eventual Basemap already used to check stranding
+            map = self.readers['basemap_landmask'].map
+        else:
+            # Otherwise create a new Basemap covering the elements
+            map = Basemap(lonmin, latmin, lonmax, latmax,
+                          resolution='h', projection='merc')
+
+        map.drawcoastlines(color='gray')
+        map.fillcontinents(color='#ddaa99')
+        # Adjusting spacing of lon-lat lines dynamically
+        latspan = map.latmax - map.latmin
+        if latspan > 20:
+            deltalat = 1
+        elif latspan > 1 and latspan < 20:
+            deltalat = .5
+        else:
+            deltalat = .1
+        map.drawmeridians(np.arange(np.floor(map.lonmin),
+                                    np.ceil(map.lonmax), deltalat),
+                          labels=[0, 0, 0, 1])
+        map.drawparallels(np.arange(np.floor(map.latmin),
+                                    np.ceil(map.latmax), deltalat),
+                          labels=[0, 1, 1, 0])
+
+        x, y = map(lons, lats)
+
+        try:
+            firstlast = np.ma.notmasked_edges(x, axis=1)
+            index_of_first = firstlast[0][1]
+            index_of_last = firstlast[1][1]
+        except:
+            index_of_last = 0
+
+        try:  # Activate figure zooming
+            mng = plt.get_current_fig_manager()
+            mng.toolbar.zoom()
+        except:
+            pass
+
+        try:  # Maximise figure window size
+            mng.resize(*mng.window.maxsize())
+        except:
+            pass
+
+        return map, plt, x, y, index_of_first, index_of_last 
+
+    def animation(self, filename=None):
+        """Animate last run."""
+
+        def init_animation():
+            """Sub function needed for matplotlib animation."""
+            points.set_data([], [])
+            return points,
+
+        def plot_timestep(i):
+            """Sub function needed for matplotlib animation."""
+            points.set_data(x[range(x.shape[0]), i],
+                            y[range(x.shape[0]), i])
+            return points,
+
+        map, plt, x, y, index_of_first, index_of_last = self.set_up_map()
+
+        points = map.plot(x[0, 0], y[0, 0], '.k')[0]
+
+        anim = animation.FuncAnimation(plt.gcf(), plot_timestep,
+                                       init_func=init_animation,
+                                       frames=x.shape[1], interval=50,
+                                       blit=True)
+
+        plt.show()
+
+        if filename is not None:
+            try:
+                logging.info('Saving animation to ' + filename + '...')
+                anim.save(filename, fps=20, clear_temp=False)
+            except Exception as e:
+                print 'Could not save animation:'
+                logging.info(e)
+                logging.debug(traceback.format_exc())
+
     def plot(self, background=None, buffer=.5,
              filename=None, drifter_file=None, show=True):
         """Basic built-in plotting function intended for developing/debugging.
@@ -838,58 +940,8 @@ class OpenDriftSimulation(object):
                 longitude/latitude around particle collection.
         """
 
-        if hasattr(self, 'history'):
-            lons = self.history['lon']
-            lats = self.history['lat']
-        else:
-            lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
-            lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
+        map, plt, x, y, index_of_first, index_of_last = self.set_up_map()
 
-        try:
-            from mpl_toolkits.basemap import Basemap
-            import matplotlib.pyplot as plt
-        except:
-            sys.exit('Basemap is needed to plot trajectories')
-
-        # Initialise map
-        lonmin = lons.min() - buffer*2
-        lonmax = lons.max() + buffer*2
-        latmin = lats.min() - buffer
-        latmax = lats.max() + buffer
-        if 'basemap_landmask' in self.readers:
-            # Using an eventual Basemap already used to check stranding
-            map = self.readers['basemap_landmask'].map
-        else:
-            # Otherwise create a new Basemap covering the elements
-            map = Basemap(lonmin, latmin, lonmax, latmax,
-                          resolution='h', projection='merc')
-
-        map.drawcoastlines(color='gray')
-        if background is None:  # Fill continents if no field is requested
-            map.fillcontinents(color='#ddaa99')
-        # Adjusting spacing of lon-lat lines dynamically
-        latspan = map.latmax - map.latmin
-        if latspan > 20:
-            deltalat = 1
-        elif latspan > 1 and latspan < 20:
-            deltalat = .5
-        else:
-            deltalat = .1
-        map.drawmeridians(np.arange(np.floor(map.lonmin),
-                                    np.ceil(map.lonmax), deltalat),
-                          labels=[0, 0, 0, 1])
-        map.drawparallels(np.arange(np.floor(map.latmin),
-                                    np.ceil(map.latmax), deltalat),
-                          labels=[0, 1, 1, 0])
-
-        # Trajectories
-        x, y = map(lons, lats)
-        try:
-            firstlast = np.ma.notmasked_edges(x, axis=1)
-            index_of_first = firstlast[0][1]
-            index_of_last = firstlast[1][1]
-        except:
-            index_of_last = 0
         # The more elements, the more transparent we make the lines
         min_alpha = 0.025
         max_elements = 5000.0
@@ -986,16 +1038,16 @@ class OpenDriftSimulation(object):
                 map.plot(x[0], y[0], '*k')
                 map.plot(x[-1], y[-1], '*k')
 
-        try:  # Activate figure zooming
-            mng = plt.get_current_fig_manager()
-            mng.toolbar.zoom()
-        except:
-            pass
+        #try:  # Activate figure zooming
+        #    mng = plt.get_current_fig_manager()
+        #    mng.toolbar.zoom()
+        #except:
+        #    pass
 
-        try:  # Maximise figure window size
-            mng.resize(*mng.window.maxsize())
-        except:
-            pass
+        #try:  # Maximise figure window size
+        #    mng.resize(*mng.window.maxsize())
+        #except:
+        #    pass
 
         if filename is not None:
             #plt.savefig(filename, dpi=200)
