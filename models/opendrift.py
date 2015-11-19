@@ -915,7 +915,7 @@ class OpenDriftSimulation(object):
             points_other = map.plot(x_other[0, 0], y_other[0, 0], '.r',
                                     label=legend[1])[0]
 
-        if legend is not ['', '']:
+        if legend != ['', '']:
             plt.legend()
 
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,

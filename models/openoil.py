@@ -314,7 +314,7 @@ class OpenOil(OpenDriftSimulation):
 
         # Find detection time
         time_pos = 'od:oilDetectionMember/od:oilDetection/od:detectionTime'
-        self.start_time = datetime.datetime.strptime(
+        oil_time = datetime.datetime.strptime(
             tree.find(time_pos, namespaces).text, '%Y-%m-%dT%H:%M:%S.%fZ')
 
         for patch in tree.findall(pos1, namespaces):
@@ -381,4 +381,4 @@ class OpenOil(OpenDriftSimulation):
         kwargs['lat'] = latpoints
         kwargs['ID'] = np.arange(len(lonpoints)) + 1
         kwargs['mass_oil'] = 1
-        self.elements = self.ElementType(**kwargs)
+        self.schedule_elements(self.ElementType(**kwargs), oil_time)
