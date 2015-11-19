@@ -886,39 +886,51 @@ class OpenDriftSimulation(object):
 
         return map, plt, x, y, index_of_first, index_of_last 
 
-    def animation(self, filename=None):
+    def animation(self, buffer=.2, filename=None, compare=None,
+                  legend=['', '']):
         """Animate last run."""
-
-        def init_animation():
-            """Sub function needed for matplotlib animation."""
-            points.set_data([], [])
-            return points,
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             points.set_data(x[range(x.shape[0]), i],
                             y[range(x.shape[0]), i])
-            return points,
+            if compare is not None:
+                points_other.set_data(x_other[range(x_other.shape[0]), i],
+                                      y_other[range(x_other.shape[0]), i])
+                return points, points_other
+            else:
+                return points
 
-        map, plt, x, y, index_of_first, index_of_last = self.set_up_map()
+        map, plt, x, y, index_of_first, index_of_last = \
+            self.set_up_map(buffer=buffer)
+        points = map.plot(x[0, 0], y[0, 0], '.k', label=legend[0])[0]
 
-        points = map.plot(x[0, 0], y[0, 0], '.k')[0]
+        if compare is not None:
+            if type(compare) is str:
+                other = self.__class__(loglevel=0)
+                other.io_import_file(compare)
+            else:
+                other = compare
+            x_other, y_other = map(other.history['lon'], other.history['lat'])
+            points_other = map.plot(x_other[0, 0], y_other[0, 0], '.r',
+                                    label=legend[1])[0]
 
-        anim = animation.FuncAnimation(plt.gcf(), plot_timestep,
-                                       init_func=init_animation,
-                                       frames=x.shape[1], interval=50,
-                                       blit=True)
+        if legend is not ['', '']:
+            plt.legend()
 
-        plt.show()
+        anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
+                                       frames=x.shape[1], interval=50)
 
         if filename is not None:
             try:
                 logging.info('Saving animation to ' + filename + '...')
-                anim.save(filename, fps=20, clear_temp=False)
+                anim.save(filename, fps=20, clear_temp=True)
             except Exception as e:
                 print 'Could not save animation:'
                 logging.info(e)
                 logging.debug(traceback.format_exc())
+
+        plt.show()
 
     def plot(self, background=None, buffer=.5,
              filename=None, drifter_file=None, show=True):
