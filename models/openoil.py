@@ -109,6 +109,7 @@ class OpenOil(OpenDriftSimulation):
             wind_drift_factor = float(min=0, max=1, default=0.02)
             current_uncertainty = float(min=0, max=5, default=.1)
             wind_uncertainty = float(min=0, max=5, default=1)
+            relative_wind = boolean(default=True)
     ''' % (datetime.now().strftime('%Y-%d-%m %H:00'), oil_types, default_oil)
 
     def __init__(self, *args, **kwargs):
@@ -258,8 +259,16 @@ class OpenOil(OpenDriftSimulation):
 
         # Wind drag
         wind_drift_factor = self.config['drift']['wind_drift_factor']
-        self.update_positions(self.environment.x_wind*wind_drift_factor,
-                              self.environment.y_wind*wind_drift_factor)
+        if self.config['drift']['relative_wind'] is True:
+            self.update_positions((self.environment.x_wind -
+                                   self.environment.x_sea_water_velocity)*
+                                   wind_drift_factor,
+                                  (self.environment.y_wind -
+                                   self.environment.y_sea_water_velocity)*
+                                   wind_drift_factor)
+        else:
+            self.update_positions(self.environment.x_wind*wind_drift_factor,
+                                  self.environment.y_wind*wind_drift_factor)
 
         # Uncertainty / diffusion
         if self.config['processes']['diffusion'] is True:

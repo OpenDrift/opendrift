@@ -58,6 +58,9 @@ class Reader(object):
     return_block = True  # By default, all readers should be
                          # cabable of returning blocks of data
 
+    # Default interpolation method, see function interpolate_block()
+    interpolation = 'ndimage'
+
     start_time = None
     # Dictionaries to store blocks of data for reuse (buffering)
     var_block_before = {}  # Data for last timestep before present
@@ -131,15 +134,17 @@ class Reader(object):
     def interpolate_block(self, block, x, y, depth=None):
         """Interpolating a 2D or 3D block onto given positions."""
 
-        #method = 'linearND'
-        method = 'ndimage'
-        #method = 'KDTree'
+        interpolation_methods = ['linearND', 'ndimage', 'KDTree']
+        if self.interpolation not in interpolation_methods:
+            raise ValueError('Interpolation method %s not available, '
+                             ' alternatives are: %s' % (self.interpolation,
+                                                        interpolation_methods))
         env = {}
         for var in block.keys():
             if not hasattr(block[var], 'ndim'):
                 continue
             if block[var].ndim == 2:
-                if method == 'linearND':
+                if self.interpolation == 'linearND':
                     ## Create spline for interpolation
                     block_x, block_y = np.meshgrid(block['x'], block['y'])
                     data = block[var]
@@ -153,7 +158,7 @@ class Reader(object):
                                                 data.ravel()[valid])
                     env[var] = spl(y, x)  # Evaluate at positions
 
-                if method == 'KDTree':
+                if self.interpolation == 'KDTree':
                     # Make and use KDTree for interpolation
                     tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
                     d,p = tree.query(zip(x,y), k=1) #nearest point, gives
@@ -161,7 +166,7 @@ class Reader(object):
                     ## NB - or transpose array first ?
                     env[var] = block[var].ravel()[p]
 
-                if method == 'ndimage':
+                if self.interpolation == 'ndimage':
                     xMin = block['x'].min()
                     xMax = block['x'].max()
                     yMin = block['y'].min()

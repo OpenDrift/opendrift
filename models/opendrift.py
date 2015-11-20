@@ -894,26 +894,52 @@ class OpenDriftSimulation(object):
             """Sub function needed for matplotlib animation."""
             points.set_data(x[range(x.shape[0]), i],
                             y[range(x.shape[0]), i])
+            points_deactivated.set_data(
+                x_deactive[index_of_last_deactivated<i],
+                y_deactive[index_of_last_deactivated<i])
+
             if compare is not None:
                 points_other.set_data(x_other[range(x_other.shape[0]), i],
                                       y_other[range(x_other.shape[0]), i])
+                points_other_deactivated.set_data(
+                    x_other_deactive[index_of_last_deactivated<i],
+                    y_other_deactive[index_of_last_deactivated<i])
                 return points, points_other
             else:
                 return points
 
+        # Find map coordinates and plot points with empty data, to be updated
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
-        points = map.plot(x[0, 0], y[0, 0], '.k', label=legend[0])[0]
+        index_of_last_deactivated = \
+            index_of_last[self.elements_deactivated.ID-1]
+        points = map.plot([], [], '.k', label=legend[0])[0]
+        # Plot deactivated elements, with transparency
+        points_deactivated = map.plot([], [], '.k', alpha=.3)[0]
+        x_deactive, y_deactive = map(self.elements_deactivated.lon,
+                                     self.elements_deactivated.lat)
 
         if compare is not None:
             if type(compare) is str:
+                # Other is given as filename
                 other = self.__class__(loglevel=0)
                 other.io_import_file(compare)
             else:
+                # Other is given as an OpenDrift object
                 other = compare
+            # Find map coordinates and plot data for comparison
             x_other, y_other = map(other.history['lon'], other.history['lat'])
             points_other = map.plot(x_other[0, 0], y_other[0, 0], '.r',
                                     label=legend[1])[0]
+            x_other_deactive, y_other_deactive = \
+                map(other.elements_deactivated.lon,
+                    other.elements_deactivated.lat)
+            # Plot deactivated elements, with transparency
+            points_other_deactivated = map.plot([], [], '.r', alpha=.3)[0]
+            firstlast = np.ma.notmasked_edges(x_other, axis=1)
+            index_of_last_other = firstlast[1][1]
+            index_of_last_deactivated_other = \
+                index_of_last_other[other.elements_deactivated.ID-1]
 
         if legend != ['', '']:
             plt.legend()
