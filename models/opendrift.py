@@ -902,8 +902,8 @@ class OpenDriftSimulation(object):
                 points_other.set_data(x_other[range(x_other.shape[0]), i],
                                       y_other[range(x_other.shape[0]), i])
                 points_other_deactivated.set_data(
-                    x_other_deactive[index_of_last_deactivated<i],
-                    y_other_deactive[index_of_last_deactivated<i])
+                    x_other_deactive[index_of_last_deactivated_other<i],
+                    y_other_deactive[index_of_last_deactivated_other<i])
                 return points, points_other
             else:
                 return points
@@ -978,7 +978,8 @@ class OpenDriftSimulation(object):
                 longitude/latitude around particle collection.
         """
 
-        map, plt, x, y, index_of_first, index_of_last = self.set_up_map()
+        map, plt, x, y, index_of_first, index_of_last = \
+            self.set_up_map(buffer=buffer)
 
         # The more elements, the more transparent we make the lines
         min_alpha = 0.025
