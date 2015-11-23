@@ -477,7 +477,6 @@ class OpenDriftSimulation(object):
         # prepare time
         if type(time) == datetime:
             time = [time]*len(elements)  # Convert to array of same length
-        logging.info('Scheduling %i elements for seeding.' % len(elements))
         if not hasattr(self, 'elements_scheduled'):
             self.elements_scheduled = elements
             self.elements_scheduled_time = np.array(time)
@@ -512,7 +511,8 @@ class OpenDriftSimulation(object):
         self.elements_scheduled_time = self.elements_scheduled_time[~indices]
         logging.debug('Released %i new elements.' % np.sum(indices))
 
-    def seed_point(self, lon, lat, radius=0, number=None, time=None, **kwargs):
+    def seed_point(self, lon, lat, radius=0, number=None, time=None,
+                   cone=False, **kwargs):
         """Seed a given number of particles around given position(s).
 
         Arguments:
@@ -526,6 +526,10 @@ class OpenDriftSimulation(object):
             time: datenum, the time at which particles are seeded/released.
                 If time is an array with two elements, elements are seeded
                 continously from start/first to end/last time.
+            cone: boolean or integer. If True, lon and lat must be two element
+                arrays, interpreted as the start and end position of a cone
+                within which elements will be seeded. Radius may also be a 
+                two element array specifying the radius around the points.
             kwargs: keyword arguments containing properties/attributes and
                 values corresponding to the actual particle type (ElementType).
                 These are forwarded to the ElementType class. All properties
@@ -547,6 +551,9 @@ class OpenDriftSimulation(object):
                              'to number of points.')
 
         if num_points > 1:
+            ###############################
+            # lon and lat are arrays
+            ###############################
             radius_array = np.atleast_1d(radius)
             if len(radius_array) == 1:
                 # If scalar radius is given, apply to all points
@@ -576,11 +583,37 @@ class OpenDriftSimulation(object):
                                for i in range(num_points)]
                 time_array = time_array2  # Subset of times for this point
 
+            if cone is True:
+                ###################################################
+                # lon and lat are start and end points of a cone
+                ###################################################
+                if len(lon) != 2 or len(lat) != 2:
+                    raise ValueError('When cone is True, lon and lat must '
+                                     'be 2-element arrays.')
+
+                geod = pyproj.Geod(ellps='WGS84')
+                conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
+                                              number, radians=False)
+                # Seed cone recursively
+                lon, lat = zip(*conelonlats)
+                if len(radius_array) == 1:
+                    radius_array = [radius, radius]
+                radius_array = np.linspace(radius_array[0], radius_array[1],
+                                           number)
+                number_array = np.ones(number)
+                time_array = [time[0] + i*td for i in range(number)]
+
             # Recursively seeding elements around each point
+            scalarargs = {}
             for i in range(len(lon)):
+                for kwarg in kwargs:
+                    try:
+                        scalarargs[kwarg] = kwargs[kwarg][i]
+                    except:
+                        scalarargs[kwarg] = kwargs[kwarg]
                 self.seed_point(lon=[lon[i]], lat=[lat[i]],
-                radius=radius_array[i],
-                number=int(number_array[i]), time=time_array[i], **kwargs)
+                radius=radius_array[i], cone=False,
+                number=int(number_array[i]), time=time_array[i], **scalarargs)
             return
 
         # Below we have only for single points

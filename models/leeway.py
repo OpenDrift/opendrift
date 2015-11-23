@@ -154,7 +154,6 @@ class Leeway(OpenDriftSimulation):
         else:
             self.start_time = time
 
-        print "CCC time ", time
         if radius1 is None:
             radius1 = radius
 
@@ -177,7 +176,6 @@ class Leeway(OpenDriftSimulation):
         # Negative downwind slope must be avoided as
         # particles should drift downwind.
         # The problem arises because of high error variances (see e.g. PIW-1).
-        print "CCC length of leewayprop ", len(self.leewayprop.values())
         downwindSlope = ones*self.leewayprop[objectType]['DWSLOPE']
         downwindOffset = ones*self.leewayprop[objectType]['DWOFFSET']
         dwstd = self.leewayprop[objectType]['DWSTD']
@@ -228,7 +226,7 @@ class Leeway(OpenDriftSimulation):
                         downwindOffset=downwindOffset,
                         crosswindOffset=crosswindOffset,
                         downwindEps=downwindEps, crosswindEps=crosswindEps,
-                        jibeProbability=jibeProbability)
+                        jibeProbability=jibeProbability, cone=True)
 
     def update(self):
         """Update positions and properties of leeway particles."""
