@@ -33,7 +33,8 @@ time = [reader_arome.start_time,
 #time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
-o.seed_point(lon, lat, radius=[1000, 10000], number=5000, time=time, cone=True)
+o.seed_elements(lon, lat, radius=[1000, 10000], number=5000,
+                time=time, cone=True)
 
 print o
 

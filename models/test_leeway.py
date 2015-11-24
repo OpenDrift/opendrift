@@ -55,7 +55,7 @@ class TestArray(unittest.TestCase):
 
     def test_leewayrun(self):
         """Test the expected Leeway left/right split."""
-        self.lee.seed_leeway(lon=4.5, lat=60, number=100,
+        self.lee.seed_elements(lon=4.5, lat=60, number=100,
                              objectType=self.objectType,
                              time=datetime(2015, 1, 1))
         # Check that 7 out of 100 elements strand towards coast

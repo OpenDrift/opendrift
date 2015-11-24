@@ -31,7 +31,7 @@ o.add_reader([reader_globcurrent, reader_oceanwind, reader_basemap])
 lat=10.228248; lon=106.973337
 lat=10.0; lon=107.8
 time = datetime(2010, 3, 23, 6, 0, 0)
-o.seed_point(lon, lat, radius=1000, number=1000, time=time)
+o.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 
 # Run model
 print o
@@ -40,3 +40,4 @@ o.run(steps=200*4, time_step=900)
 # Print and plot results
 print o
 o.plot()
+o.animation()

@@ -27,8 +27,8 @@ lon = 4.5; lat = 60.0; # Outside Bergen
 
 # Seed leeway elements at defined position and time
 objType = 26  # 26 = Life-raft, no ballast
-lw.seed_leeway(lon, lat, radius=1000, number=3000,
-               time=reader_arome.start_time, objectType=objType)
+lw.seed_elements(lon, lat, radius=1000, number=3000,
+                 time=reader_arome.start_time, objectType=objType)
 
 # Running model (until end of driver data)
 lw.run(steps=60*4, time_step=900, outfile='outleeway.nc')

@@ -127,7 +127,8 @@ class Leeway(OpenDriftSimulation):
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
 
-    def seed_leeway(self, lon, lat, radius=0, number=1, time=None,
+    #def seed_leeway(self, lon, lat, radius=0, number=1, time=None,
+    def seed_elements(self, lon, lat, radius=0, number=1, time=None,
                     radius1=None, lon1=None, lat1=None, time1=None,
                     objectType=1):
         """Seed particles in a cone-shaped area over a time period."""
@@ -218,15 +219,17 @@ class Leeway(OpenDriftSimulation):
         # Jibe probability
         jibeProbability = ones*pjibe
 
-        # CCC Test with scalar radius and time
-        self.seed_point(lon, lat, radius, number, time,
+        # Call general seed_elements function of OpenDriftSimulation class
+        # with the specific values calculated
+        super(Leeway, self).seed_elements(lon=lon, lat=lat, radius=radius,
+                        number=number, time=time, cone=True,
                         orientation=orientation, objectType=objectType,
                         downwindSlope=downwindSlope,
                         crosswindSlope=crosswindSlope,
                         downwindOffset=downwindOffset,
                         crosswindOffset=crosswindOffset,
                         downwindEps=downwindEps, crosswindEps=crosswindEps,
-                        jibeProbability=jibeProbability, cone=True)
+                        jibeProbability=jibeProbability)
 
     def update(self):
         """Update positions and properties of leeway particles."""

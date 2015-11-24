@@ -57,7 +57,7 @@ class OpenDriftSimulation(object):
         elements: object of the class ElementType, storing the specific
             particle properties (ndarrays and scalars) of all active particles
             as named attributes. Elements are added by seeding-functions
-            (presently only one implemented: seed_point).
+            (presently only one implemented: seed_elements).
         elements_deactivated: ElementType object containing particles which
             have been deactivated (and removed from 'elements')
         required_variables: list of strings of CF standard_names which is
@@ -511,7 +511,7 @@ class OpenDriftSimulation(object):
         self.elements_scheduled_time = self.elements_scheduled_time[~indices]
         logging.debug('Released %i new elements.' % np.sum(indices))
 
-    def seed_point(self, lon, lat, radius=0, number=None, time=None,
+    def seed_elements(self, lon, lat, radius=0, number=None, time=None,
                    cone=False, **kwargs):
         """Seed a given number of particles around given position(s).
 
@@ -611,9 +611,13 @@ class OpenDriftSimulation(object):
                         scalarargs[kwarg] = kwargs[kwarg][i]
                     except:
                         scalarargs[kwarg] = kwargs[kwarg]
-                self.seed_point(lon=[lon[i]], lat=[lat[i]],
-                radius=radius_array[i], cone=False,
-                number=int(number_array[i]), time=time_array[i], **scalarargs)
+                # Make sure to call seed function of base class,
+                # not of a specific Children class
+                OpenDriftSimulation.seed_elements(self,
+                                lon=[lon[i]], lat=[lat[i]],
+                                radius=radius_array[i],
+                                number=int(number_array[i]),
+                                time=time_array[i], cone=False, **scalarargs)
             return
 
         # Below we have only for single points

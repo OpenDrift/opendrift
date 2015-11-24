@@ -37,7 +37,7 @@ class TestArray(unittest.TestCase):
 
     def test_seed(self):
         """Test seeding"""
-        self.o.seed_point(lon=4, lat=60, number=100,
+        self.o.seed_elements(lon=4, lat=60, number=100,
                           time=self.fake_eddy.start_time)
         self.assertEqual(len(self.o.elements), 0)
         self.assertEqual(len(self.o.elements_deactivated), 0)

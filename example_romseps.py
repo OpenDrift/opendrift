@@ -48,7 +48,7 @@ def do_eps_drift(i):
     o.add_reader([reader_arome, reader_eps, reader_basemap])
     #print o
     #time = None
-    o.seed_point(lon, lat, radius=10000, number=100, massOil=5, time=time)
+    o.seed_elements(lon, lat, radius=10000, number=100, massOil=5, time=time)
     o.run(steps=120)
     #print o
     print 'done number '+str(i)

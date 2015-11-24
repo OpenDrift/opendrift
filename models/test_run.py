@@ -44,7 +44,7 @@ class TestArray(unittest.TestCase):
     def test1_seed_single_point_over_time(self):
         """Test a model run"""
         self.make_OceanDrift_object()
-        self.o.seed_point(2.0, 61.0, radius=0, number=9,
+        self.o.seed_elements(2.0, 61.0, radius=0, number=9,
                           time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
 
         # Check that 6 elements are scheduled, but none seeded
@@ -63,10 +63,10 @@ class TestArray(unittest.TestCase):
         self.assertEqual(self.o.num_elements_deactivated(), 0)
         self.assertEqual(self.o.num_elements_total(), 9)
 
-    def test2_seed_points(self):
+    def test2_seed_elementss(self):
         """Test a model run"""
         self.make_OceanDrift_object()
-        self.o.seed_point([2.0, 4.5, 3.0], [61.0, 60.0, 62.0],
+        self.o.seed_elements([2.0, 4.5, 3.0], [61.0, 60.0, 62.0],
                           radius=0, number=9,
                           time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
 

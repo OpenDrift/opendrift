@@ -29,7 +29,7 @@ o.add_reader([reader_basemap, reader_globcurrent, reader_oceanwind])
 lon = -88.387161; lat = 28.736669  # Macondo location
 starttime = datetime(2010, 4, 21, 6, 0, 0)  # 4 hours after explosion
 time = [starttime, starttime + timedelta(hours=24*40)]
-o.seed_point(lon, lat, radius=0, number=5000, time=time)
+o.seed_elements(lon, lat, radius=0, number=5000, time=time)
 
 # Run model
 print o

@@ -57,22 +57,23 @@ o.add_reader([reader_nordic1, reader_arome1, reader_basemap])
 #lon = 22.6; lat = 71.00; # Barents
 #lon = 14.332435; lat = 68.045021; # Vestfjorden, Rohrs et al., 2012
 lon = 4.5; lat = 60  # Bergen
-time = None
+time = reader_nordic1.start_time
+time = datetime(2015, 6, 10, 5, 15, 0)
 #time = reader_wam10.start_time
 #time = datetime(2015, 6, 9, 9, 0, 0)
 #time = datetime(2011, 7, 1, 0, 0, 0)
-#o.seed_point(lon, lat, radius=100000, number=1000, time=time)
+#o.seed_elements(lon, lat, radius=100000, number=1000, time=time)
 import numpy as np
 kwargs = {}
 #kwargs['lon'] = np.array([2.385876, 2.391800])
-o.seed_point(2.385876, 60.032848, radius=0, number=1, time=time)
+o.seed_elements(2.385876, 60.032848, radius=0, number=1, time=time)
 #kwargs['lat'] = np.array([60.032848, 60.051200])
-o.seed_point(2.391800, 60.051200, radius=0, number=1, time=time)
+o.seed_elements(2.391800, 60.051200, radius=0, number=1, time=time)
 #kwargs['ID'] = np.array([1, 2])
 #kwargs['age_exposure_seconds'] = np.array([6, 6])*3600  # Some already avaporated
 #kwargs['fraction_evaporated'] = np.array([0.3, 0.3])  # Some already avaporated
 #o.elements = o.ElementType(**kwargs)
-o.start_time = datetime(2015, 6, 10, 5, 15, 0)
+#o.start_time = datetime(2015, 6, 10, 5, 15, 0)
 
 #o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150611_172613_0086_SCNB_HH_SGF_402348_0016_11441894_Oil.gml', num_elements=1000)
 #o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150615_053843_0045_SCNA_HHHV_SGF_403055_5578_11441860_Oil.gml', num_elements=1000)

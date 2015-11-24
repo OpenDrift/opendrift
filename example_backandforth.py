@@ -25,7 +25,7 @@ o.add_reader([reader_norkyst, reader_basemap])
 # Seeding some particles
 lon = 4.2; lat = 60.1; 
 time = reader_norkyst.start_time
-o.seed_point(lon, lat, radius=1000, number=100, time=time)
+o.seed_elements(lon, lat, radius=1000, number=100, time=time)
 
 o.run(steps=50*4, time_step=900, outfile=ncfile)
 

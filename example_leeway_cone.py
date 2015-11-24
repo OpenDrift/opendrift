@@ -29,8 +29,8 @@ time = [reader_arome.start_time, reader_arome.start_time + timedelta(hours=30)]
 #time = reader_arome.start_time
 
 objType = 26  # 26 = Life-raft, no ballast
-lw.seed_leeway(lon, lat, radius=[1000, 10000], number=5000,
-               time=time, objectType=objType)
+lw.seed_elements(lon, lat, radius=[1000, 10000], number=5000,
+                 time=time, objectType=objType)
 
 # Running model (until end of driver data)
 lw.run(steps=66*4, time_step=900, outfile='outleeway.nc')
