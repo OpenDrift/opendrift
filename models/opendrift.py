@@ -621,7 +621,7 @@ class OpenDriftSimulation(object):
             return
 
         # Below we have only for single points
-        if isinstance(time, datetime):
+        if isinstance(time, datetime) and number > 1:
             time = [time, time]
 
         if type(time) == list and len(time) == 2 and number > 1:

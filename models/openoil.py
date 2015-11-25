@@ -218,7 +218,7 @@ class OpenOil(OpenDriftSimulation):
             oil_mass_loss = (q_disp * self.time_step.total_seconds() *
                              self.elements.density)
 
-            self.elements.mass_oil -= oil_mass_loss
+            self.elements.mass_oil -= oil_mass_loss*self.elements.mass_oil
 
             #self.elements.depth = \
             #    self.environment.sea_surface_wave_significant_height

@@ -90,6 +90,7 @@ class TestArray(unittest.TestCase):
         self.assertFalse(A0.lon)
 
     def test_move(self):
+        A1 = LagrangianArray(lon = [4.1], lat = [60.1])
         A2 = LagrangianArray(lon = [4.0, 4.5], lat = [60.0, 60.5])
         A3 = LagrangianArray(lon = [1.0, 1.5, 1.7], lat = [60.0, 60.5, 61.0])
         # Moving first and third element from A3 to A2
@@ -98,6 +99,9 @@ class TestArray(unittest.TestCase):
         self.assertEqual(len(A2), 4)
         A2.move_elements(A3, np.array([False, True, False, False], dtype=bool))
         self.assertEqual(len(A2), 3)
+        self.assertEqual(len(A1), 1)
+        A1.move_elements(A3, np.array([True], dtype=bool))
+        self.assertEqual(len(A1), 0)
 
 #    def test_indexing(self):
 #        """LagrangianArray items are Lagrangian elements"""
