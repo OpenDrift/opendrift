@@ -33,7 +33,7 @@ time = None
 #        reader_arome.start_time + timedelta(hours=5)]
 time = reader_arome.start_time
 objType = 1  # 1: Person-in-water (PIW), unknown state (mean values)
-o.seed_leeway(lon, lat, radius=50, number=5000, time=time, objectType=objType)
+o.seed_elements(lon, lat, radius=50, number=5000, time=time, objectType=objType)
 
 print o
 
