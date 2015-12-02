@@ -102,7 +102,7 @@ class Reader(Reader):
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
                 self.depths = var[:]
-            if standard_name == 'time' or axis == 'T':
+            if standard_name == 'time' or axis == 'T' or var_name == 'time':
                 # Read and store time coverage (of this particular file)
                 time = var[:]
                 time_units = units
