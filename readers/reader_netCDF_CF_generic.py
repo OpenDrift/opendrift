@@ -102,6 +102,17 @@ class Reader(Reader):
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
                 self.depths = var[:]
+            if standard_name == 'time' or axis == 'T':
+                # Read and store time coverage (of this particular file)
+                time = var[:]
+                time_units = units
+                self.times = num2date(time, time_units)
+                self.start_time = self.times[0]
+                self.end_time = self.times[-1]
+                if len(self.times) > 1:
+                    self.time_step = self.times[1] - self.times[0]
+                else:
+                    self.time_step = None
 
         if not 'x' in locals():
             raise ValueError('Did not find x-coordinate variable')
@@ -113,17 +124,6 @@ class Reader(Reader):
         self.delta_y = np.abs(y[1] - y[0])
         self.x = x  # Store coordinate vectors
         self.y = y
-
-        # Read and store time coverage (of this particular file)
-        time = self.Dataset.variables['time'][:]  # Assuming name 'time'
-        time_units = self.Dataset.variables['time'].getncattr('units')
-        self.times = num2date(time, time_units)
-        self.start_time = self.times[0]
-        self.end_time = self.times[-1]
-        if len(self.times) > 1:
-            self.time_step = self.times[1] - self.times[0]
-        else:
-            self.time_step = None
 
         # Find all variables having standard_name
         self.variable_mapping = {}
