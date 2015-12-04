@@ -839,6 +839,8 @@ class OpenDriftSimulation(object):
 
         # Remove columns for unseeded elements in history array
         self.history = self.history[range(self.num_elements_activated()), :]
+        # Remove rows for unreached timsteps in history array
+        self.history = self.history[:, range(self.steps+1)]
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
@@ -860,6 +862,14 @@ class OpenDriftSimulation(object):
         if (self.outfile is not None) and \
                 ((self.steps - self.steps_exported) == self.bufferlength):
             self.io_write_buffer()
+
+    def index_of_activation_and_deactivation(self):
+        """Return the indices when elements were seeded and deactivated."""
+
+        firstlast = np.ma.notmasked_edges(self.history['lon'], axis=1)
+        index_of_activation = firstlast[0][1]
+        index_of_deactivation = firstlast[1][1]
+        return index_of_activation, index_of_deactivation
 
     def set_up_map(self, buffer=.1):
         """Generate Basemap instance on which trajectories are plotted."""
@@ -1107,23 +1117,20 @@ class OpenDriftSimulation(object):
                        self.time.strftime('%Y-%m-%d %H:%M'), self.steps))
 
         if drifter_file is not None:
-            for dfile in drifter_file:
-                data = np.recfromcsv(dfile)
-                x, y = map(data['longitude'], data['latitude'])
-                map.plot(x, y, '-k', linewidth=2)
-                map.plot(x[0], y[0], '*k')
-                map.plot(x[-1], y[-1], '*k')
+            # Format of joubeh.com
+            #for dfile in drifter_file:
+            #    data = np.recfromcsv(dfile)
+            #    x, y = map(data['longitude'], data['latitude'])
+            #    map.plot(x, y, '-k', linewidth=2)
+            #    map.plot(x[0], y[0], '*k')
+            #    map.plot(x[-1], y[-1], '*k')
 
-        #try:  # Activate figure zooming
-        #    mng = plt.get_current_fig_manager()
-        #    mng.toolbar.zoom()
-        #except:
-        #    pass
-
-        #try:  # Maximise figure window size
-        #    mng.resize(*mng.window.maxsize())
-        #except:
-        #    pass
+            # Format for shell buoy
+            data = np.loadtxt(drifter_file, skiprows=1, usecols=(2,3))
+            x, y = map(data.T[1], data.T[0])
+            map.plot(x, y, '-r', linewidth=2, zorder=10)
+            map.plot(x[0], y[0], '*r', zorder=10)
+            map.plot(x[-1], y[-1], '*r', zorder=10)
 
         if filename is not None:
             #plt.savefig(filename, dpi=200)
@@ -1134,6 +1141,45 @@ class OpenDriftSimulation(object):
                 plt.show()
         
         return map, plt
+
+    def get_time_array(self):
+        """Return a list of times of last run."""
+        td = self.time_step
+        time_array = [self.start_time + td*i for i in range(self.steps+1)]
+        time_array_relative = [td*i for i in range(self.steps+1)]
+        return time_array, time_array_relative
+
+    def plot_environment(self):
+        """Plot mean wind and current velocities of element of last run."""
+        x_wind = self.get_property('x_wind')[0]
+        y_wind = self.get_property('x_wind')[0]
+        wind = np.sqrt(x_wind**2 + y_wind**2)
+        x_sea_water_velocity = self.get_property('x_sea_water_velocity')[0]
+        y_sea_water_velocity = self.get_property('y_sea_water_velocity')[0]
+        current = np.sqrt(x_sea_water_velocity**2 + y_sea_water_velocity**2)
+        wind = np.ma.mean(wind, axis=1)
+        current = np.ma.mean(current, axis=1)
+        time, time_relative = self.get_time_array()
+        time = np.array([t.total_seconds()/3600. for t in time_relative])
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
+        ax1.plot(time, wind, 'b', label='wind speed')
+        ax1.set_ylabel('Wind speed  [m/s]', color='b')
+        ax1.set_xlim([0, time[-1]])
+        ax1.set_ylim([0, wind.max()])
+
+        ax2 = ax1.twinx()
+        ax2.plot(time, current, 'r', label='current speed')
+        ax2.set_ylabel('Current speed  [m/s]', color='r')
+        ax2.set_xlim([0, time[-1]])
+        ax2.set_ylim([0, current.max()])
+        for tl in ax1.get_yticklabels():
+            tl.set_color('b')
+        for tl in ax2.get_yticklabels():
+            tl.set_color('r')
+        ax1.set_xlabel('Time  [hours]')
+        plt.show()
 
     def plot_property(self, prop):
         """Basic function to plot time series of any element properties."""
@@ -1159,6 +1205,22 @@ class OpenDriftSimulation(object):
         plt.subplots_adjust(bottom=.3)
         plt.grid()
         plt.show()
+
+    def get_property(self, propname):
+        """Get property from history, sorted by status."""
+        prop = self.history[propname]
+        status = self.history['status']
+        #for stat in self.status_categories:
+        #    print '\t%s' % stat
+        index_of_first, index_of_last = \
+            self.index_of_activation_and_deactivation()
+        j = np.arange(status.shape[1])
+        # Fill arrays with last value before deactivation
+        for i in range(status.shape[0]):
+            status[i, j>index_of_last[i]] = status[i, index_of_last[i]]
+            prop[i, j>index_of_last[i]] = prop[i, index_of_last[i]]
+
+        return prop.T, status.T
 
     def update_positions(self, x_vel, y_vel):
         """Move particles according to given velocity components.

@@ -49,6 +49,12 @@ class Oil(LagrangianArray):
         ('mass_emulsion', {'dtype': np.float32,
                            'units': 'kg',
                            'default': 0}),
+        ('mass_dispersed', {'dtype': np.float32,
+                           'units': 'kg',
+                           'default': 0}),
+        ('mass_evaporated', {'dtype': np.float32,
+                                 'units': 'kg',
+                                 'default': 0}),
         ('fraction_evaporated', {'dtype': np.float32,
                                  'units': '%',
                                  'default': 0}),
@@ -165,6 +171,14 @@ class OpenOil(OpenDriftSimulation):
             self.elements.fraction_evaporated = np.interp(
                 self.elements.age_exposure_seconds,
                 self.model.tref, self.model.fref)
+            self.mass_evaporated = \
+                self.elements.mass_oil*self.elements.fraction_evaporated
+            # Remove evaporated part from mass_oil
+            mass_evaporated_timestep = self.elements.mass_oil*(
+                self.elements.fraction_evaporated -
+                fraction_evaporated_previous)
+            self.elements.mass_oil -= mass_evaporated_timestep
+            self.elements.mass_evaporated += mass_evaporated_timestep
 
             # Evaporation probability equals the difference in fraction
             # evaporated at this timestep compared to previous timestep,
@@ -174,10 +188,10 @@ class OpenOil(OpenDriftSimulation):
                                         fraction_evaporated_previous) /
                                        (1 - fraction_evaporated_previous))
             evaporation_probability[~at_surface] = 0
-            self.deactivate_elements(
-                evaporation_probability >
-                np.random.rand(self.num_elements_active(),),
-                reason='evaporated')
+            evaporated_indices = (evaporation_probability >
+                                  np.random.rand(self.num_elements_active(),))
+            self.deactivate_elements(evaporated_indices, reason='evaporated')
+
         ##################
         # Emulsification
         ##################
@@ -216,9 +230,10 @@ class OpenOil(OpenDriftSimulation):
             q_disp = C_Roy * c_disp * v_entrain / self.elements.density
 
             oil_mass_loss = (q_disp * self.time_step.total_seconds() *
-                             self.elements.density)
+                             self.elements.density)*self.elements.mass_oil
 
-            self.elements.mass_oil -= oil_mass_loss*self.elements.mass_oil
+            self.elements.mass_oil -= oil_mass_loss
+            self.elements.mass_dispersed += oil_mass_loss
 
             #self.elements.depth = \
             #    self.environment.sea_surface_wave_significant_height
@@ -295,6 +310,68 @@ class OpenOil(OpenDriftSimulation):
                 sigma_u = 0*self.environment.x_wind
                 sigma_v = 0*self.environment.x_wind
             self.update_positions(sigma_u, sigma_v)
+
+    def plot_oil_budget(self):
+        import matplotlib.pyplot as plt
+        mass_oil, status = self.get_property('mass_oil')
+        mass_stranded = np.ma.sum(np.ma.masked_where(
+                status!=self.status_categories.index('stranded'), mass_oil),
+            axis=1)
+        mass_active = np.ma.sum(np.ma.masked_where(
+                status==self.status_categories.index('stranded'), mass_oil),
+            axis=1)
+        mass_evaporated, status = self.get_property('mass_evaporated')
+        mass_evaporated = np.sum(mass_evaporated, axis=1)
+        mass_dispersed, status = self.get_property('mass_dispersed')
+        mass_dispersed = np.sum(mass_dispersed, axis=1)
+
+        budget = np.row_stack((mass_dispersed, mass_active,
+                               mass_stranded, mass_evaporated))
+        budget = np.cumsum(budget, axis=0)
+
+        time, time_relative = self.get_time_array()
+        time = np.array([t.total_seconds()/3600. for t in time_relative])
+        fig = plt.figure()
+        # Left axis showing oil mass
+        ax1 = fig.add_subplot(111)
+        # Hack: make some emply plots since fill_between does not support label
+        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                      color='salmon', label='dispersed'))
+        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                      color='royalblue', label='in water'))
+        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                      color='black', label='stranded'))
+        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                      color='skyblue', label='evaporated'))
+
+        ax1.fill_between(time, 0, budget[0,:], facecolor='salmon')
+        ax1.fill_between(time, budget[0,:], budget[1,:],
+                         facecolor='royalblue')
+        ax1.fill_between(time, budget[1,:], budget[2,:],
+                         facecolor='black')
+        ax1.fill_between(time, budget[2,:], budget[3,:],
+                         facecolor='skyblue')
+        ax1.set_ylim([0,budget.max()])
+        ax1.set_xlim([0,time.max()])
+        ax1.set_ylabel('Mass oil  [%s]' %
+                        self.elements.variables['mass_oil']['units'])
+        ax1.set_xlabel('Time  [hours]')
+        # Right axis showing percent
+        ax2 = ax1.twinx()
+        ax2.set_ylim([0,100])
+        ax2.set_ylabel('Percent')
+        plt.title('Oil budget  %s to %s' %
+                  (self.start_time.strftime('%Y-%m-%d %H:%M'),
+                  self.time.strftime('%Y-%m-%d %H:%M')))
+        # Shrink current axis's height by 10% on the bottom
+        box = ax1.get_position()
+        ax1.set_position([box.x0, box.y0 + box.height * 0.1,
+                         box.width, box.height * 0.9])
+        ax2.set_position([box.x0, box.y0 + box.height * 0.1,
+                         box.width, box.height * 0.9])
+        ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
+                   ncol=4, mode="expand", borderaxespad=0.)
+        plt.show()
 
     def seed_from_gml(self, gmlfile, num_elements=1000):
         """Read oil slick contours from GML file, and seed particles within."""
