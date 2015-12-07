@@ -15,6 +15,8 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import sys
+import os
+import glob
 import types
 import traceback
 import logging
@@ -939,6 +941,8 @@ class OpenDriftSimulation(object):
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
+            #plt.gcf().gca().set_title(str(i))
+            ax.set_title(times[i])
             points.set_data(x[range(x.shape[0]), i],
                             y[range(x.shape[0]), i])
             points_deactivated.set_data(
@@ -958,6 +962,8 @@ class OpenDriftSimulation(object):
         # Find map coordinates and plot points with empty data, to be updated
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
+        ax = plt.gcf().gca()
+        times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
         points = map.plot([], [], '.k', label=legend[0])[0]
@@ -997,13 +1003,24 @@ class OpenDriftSimulation(object):
         if filename is not None:
             try:
                 logging.info('Saving animation to ' + filename + '...')
-                anim.save(filename, fps=20, clear_temp=True)
+                anim.save(filename, fps=20, clear_temp=False)
             except Exception as e:
                 print 'Could not save animation:'
                 logging.info(e)
                 logging.debug(traceback.format_exc())
 
-        plt.show()
+            if filename[-4:] == '.gif':
+                logging.info('Making animated gif...')
+                os.system('convert -delay %i _tmp*.png %s' %
+                          (self.time_step.total_seconds()/3600.*24.,filename))
+        else:
+            plt.show()
+
+        logging.info('Deleting temporary figures...')
+        tmp = glob.glob('_tmp*.png')
+        for tfile in tmp:
+            os.remove(tfile)
+
 
     def plot(self, background=None, buffer=.5,
              filename=None, drifter_file=None, show=True):

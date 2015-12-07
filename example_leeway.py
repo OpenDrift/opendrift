@@ -18,7 +18,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('test_data/norkyst800_subset_16
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3.3, llcrnrlat=59.5,
-                    urcrnrlon=5.5, urcrnrlat=62.5, resolution='h')
+                    urcrnrlon=5.5, urcrnrlat=62.5, resolution='h',
+                    projection='merc')
 
 lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
 
@@ -35,5 +36,6 @@ lw.run(steps=60*4, time_step=900, outfile='outleeway.nc')
 
 # Print and plot results
 print lw
-lw.plot()
 lw.animation()
+#lw.animation(filename='leeway.gif')
+lw.plot()

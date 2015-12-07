@@ -26,8 +26,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('test_data/norkyst800_subset_16
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=3, llcrnrlat=59.8,
-                    urcrnrlon=5.5, urcrnrlat=62,
+                    llcrnrlon=3.5, llcrnrlat=59.9,
+                    urcrnrlon=5.5, urcrnrlat=61.2,
                     resolution='h', projection='merc')
 
 o.add_reader([reader_basemap, reader_norkyst])

@@ -25,8 +25,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('test_data/norkyst800_subset_16
 #reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/GC_MOD_TIDE_GLO_010_FES2012_FULL_TIME_SERIE') # FES Tidal
 
 # Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=2, llcrnrlat=59,
-                    urcrnrlon=8, urcrnrlat=63,
+reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=4, llcrnrlat=59.8,
+                    urcrnrlon=6, urcrnrlat=61,
                     resolution='h', projection='merc')
 
 o.add_reader([reader_basemap, reader_norkyst, reader_arome])
@@ -55,19 +55,20 @@ print o
 # Adjusting some configuration
 o.config['drift']['wind_drift_factor'] = .02
 o.config['processes']['diffusion'] = True
-o.config['processes']['dispersion'] = True
+o.config['processes']['dispersion'] = False
 o.config['processes']['evaporation'] = False
-o.config['processes']['emulsification'] = True
+o.config['processes']['emulsification'] = False
 o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=66*4, time_step=900, outfile='openoil.nc')
+o.run(steps=66*2, time_step=1800, outfile='openoil.nc')
 
 # Print and plot results
 print o
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
-o.plot()
 o.animation()
+#o.animation(filename='openoil_time_seed.gif')
+o.plot()
 #o.plot_property('mass_oil')
 #o.plot_property('x_sea_water_velocity')
