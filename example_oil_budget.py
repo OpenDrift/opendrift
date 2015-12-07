@@ -32,7 +32,8 @@ lon = 4.9; lat = 60.0; # Outside Bergen
 time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=3000, number=2000, time=time)
+o.seed_elements(lon, lat, radius=3000, number=2000, time=time,
+                oiltype='DRAUGEN')
 
 # Adjusting some configuration
 o.config['drift']['wind_drift_factor'] = .02

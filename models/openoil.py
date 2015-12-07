@@ -96,6 +96,7 @@ class OpenOil(OpenDriftSimulation):
                     + '/oil_types.txt').readlines()])[1:-1]
     default_oil = oil_types.split(',')[0].strip()
 
+
     # Configuration
 
     configspec = '''
@@ -121,13 +122,19 @@ class OpenOil(OpenDriftSimulation):
     def __init__(self, *args, **kwargs):
 
         # Read oil properties from file
-        d = os.path.dirname(os.path.realpath(__file__))
-        oilprop = np.loadtxt(d + '/prop.dat')
-        self.model.fref = oilprop[1:, 1]*.01  # Evaporation as fraction
-        self.model.tref = oilprop[1:, 0]*3600  # Time in seconds
-        self.model.wmax = oilprop[1:, 3]  #
-        self.model.reference_wind = oilprop[0, 1]
-        self.model.reference_thickness = oilprop[0, 0]
+        self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
+                                '/oilprop.dat'
+        oilprop = open(self.oiltype_file)
+        oiltypes = []
+        linenumbers = []
+        for i, line in enumerate(oilprop.readlines()):
+            if line[0].isalpha():
+                oiltype = line.strip()[:-2].strip()
+                oiltypes.append(oiltype)
+                linenumbers.append(i)
+        oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
+        self.oiltypes = oiltypes
+        self.oiltypes_linenumbers = linenumbers
 
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
@@ -314,12 +321,14 @@ class OpenOil(OpenDriftSimulation):
     def plot_oil_budget(self):
         import matplotlib.pyplot as plt
         mass_oil, status = self.get_property('mass_oil')
-        mass_stranded = np.ma.sum(np.ma.masked_where(
-                status!=self.status_categories.index('stranded'), mass_oil),
-            axis=1)
+        if 'stranded' not in self.status_categories:
+            self.status_categories.append('stranded')
         mass_active = np.ma.sum(np.ma.masked_where(
-                status==self.status_categories.index('stranded'), mass_oil),
-            axis=1)
+                status==self.status_categories.index('stranded'),
+                    mass_oil), axis=1)
+        mass_stranded = np.ma.sum(np.ma.masked_where(
+            status!=self.status_categories.index('stranded'),
+            mass_oil), axis=1)
         mass_evaporated, status = self.get_property('mass_evaporated')
         mass_evaporated = np.sum(mass_evaporated, axis=1)
         mass_dispersed, status = self.get_property('mass_dispersed')
@@ -360,9 +369,10 @@ class OpenOil(OpenDriftSimulation):
         ax2 = ax1.twinx()
         ax2.set_ylim([0,100])
         ax2.set_ylabel('Percent')
-        plt.title('Oil budget  %s to %s' %
-                  (self.start_time.strftime('%Y-%m-%d %H:%M'),
-                  self.time.strftime('%Y-%m-%d %H:%M')))
+        plt.title('%s - %s to %s' %
+                  (self.model.oiltype,
+                   self.start_time.strftime('%Y-%m-%d %H:%M'),
+                   self.time.strftime('%Y-%m-%d %H:%M')))
         # Shrink current axis's height by 10% on the bottom
         box = ax1.get_position()
         ax1.set_position([box.x0, box.y0 + box.height * 0.1,
@@ -372,6 +382,45 @@ class OpenOil(OpenDriftSimulation):
         ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
                    ncol=4, mode="expand", borderaxespad=0.)
         plt.show()
+
+
+    def set_oiltype(self, oiltype):
+        if oiltype not in self.oiltypes:
+            raise ValueError('The following oiltypes are available: %s' %
+                             str(self.oiltypes))
+        indx = self.oiltypes.index(oiltype)
+        linenumber = self.oiltypes_linenumbers[indx]
+        oilfile = open(self.oiltype_file, 'r')
+        for i in range(linenumber + 1):
+            oilfile.readline()
+        ref = oilfile.readline().split()
+        self.model.reference_thickness = np.float(ref[0])
+        self.model.reference_wind = np.float(ref[1])
+        tref = []
+        fref = []
+        wmax = []
+        while True:
+            line = oilfile.readline()
+            if not line[0].isdigit():
+                break
+            line = line.split()
+            tref.append(line[0]) 
+            fref.append(line[1]) 
+            wmax.append(line[3]) 
+        self.model.tref = np.array(tref, dtype='float')*3600.
+        self.model.fref = np.array(fref, dtype='float')*.01
+        self.model.wmax = np.array(wmax, dtype='float')
+        self.model.oiltype = oiltype  # Store name of oil type
+
+    def seed_elements(self, *args, **kwargs):
+        if 'oiltype' in kwargs:
+            oiltype = kwargs['oiltype']
+            del kwargs['oiltype']
+        else:
+            oiltype = 'BALDER'  # Default
+        self.set_oiltype(oiltype)
+
+        super(OpenOil, self).seed_elements(*args, **kwargs)
 
     def seed_from_gml(self, gmlfile, num_elements=1000):
         """Read oil slick contours from GML file, and seed particles within."""
