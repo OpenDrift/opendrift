@@ -77,12 +77,14 @@ class OpenOil(OpenDriftSimulation):
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                           'sea_surface_wave_significant_height',
                           'sea_surface_wave_to_direction',
+                          'sea_ice_area_fraction',
                           'x_wind', 'y_wind', 'land_binary_mask']
 
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
                        'sea_surface_wave_to_direction': 0,
+                       'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0}
 
     # Default colors for plotting
@@ -271,15 +273,27 @@ class OpenOil(OpenDriftSimulation):
             #                        1/1.17)
             #self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
 
-        # Deactivate elements on land
+        ####################################
+        # Deactivate elements hitting land
+        ####################################
         self.deactivate_elements(self.environment.land_binary_mask == 1,
                                  reason='stranded')
 
+        ########################################
+        ## Deactivate elements hitting sea ice
+        ########################################
+        self.deactivate_elements(self.environment.sea_ice_area_fraction > 0.6,
+                                 reason='oil-in-ice')
+
+        ##############################################
         # Simply move particles with ambient current
+        ##############################################
         self.update_positions(self.environment.x_sea_water_velocity,
                               self.environment.y_sea_water_velocity)
 
+        ##############
         # Wind drag
+        ##############
         wind_drift_factor = self.config['drift']['wind_drift_factor']
         if self.config['drift']['relative_wind'] is True:
             self.update_positions((self.environment.x_wind -
@@ -292,7 +306,9 @@ class OpenOil(OpenDriftSimulation):
             self.update_positions(self.environment.x_wind*wind_drift_factor,
                                   self.environment.y_wind*wind_drift_factor)
 
+        ############################
         # Uncertainty / diffusion
+        ############################
         if self.config['processes']['diffusion'] is True:
             # Current
             std_current_comp = self.config['drift']['current_uncertainty']
