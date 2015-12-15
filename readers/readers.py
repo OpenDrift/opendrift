@@ -101,11 +101,11 @@ class Reader(object):
 
     @abstractmethod
     def get_variables(self, variables, time=None,
-                      x=None, y=None, depth=None, block=False):
+                      x=None, y=None, z=None, block=False):
         """Method which must be invoked by any reader (subclass).
 
         Obtain and return values of the requested variables at all positions
-        (x, y, depth) closest to given time.
+        (x, y, z) closest to given time.
 
         Arguments:
             variables: string, or list of strings (standard_name) of
@@ -115,7 +115,8 @@ class Reader(object):
                 dimension (e.g. climatology or landmask).
             x, y: float or ndarrays; coordinates of requested points in the
                 Spatial Reference System (SRS) of the reader (NB!!)
-            depth: float or ndarray; depth (in meters) of requested points.
+            z: float or ndarray; vertical position (in meters, positive up)
+                of requested points.
                 default: 0 m (unless otherwise documented by reader)
             block: bool, see return below
 
@@ -126,12 +127,12 @@ class Reader(object):
                     - 1D ndarray of len(x) if block=False. Nearest values
                         (neichbour) of requested position are returned.
                     - 3D ndarray encompassing all requested points in
-                        x,y,depth domain if block=True. It is task of invoking
+                        x,y,z domain if block=True. It is task of invoking
                         application (OpenDriftSimulation) to perform
                         interpolation in space and time.
         """
 
-    def interpolate_block(self, block, x, y, depth=None):
+    def interpolate_block(self, block, x, y, z=None):
         """Interpolating a 2D or 3D block onto given positions."""
 
         interpolation_methods = ['linearND', 'ndimage', 'KDTree']
@@ -182,14 +183,14 @@ class Reader(object):
                 raise ValueError('Not yet implemented')
         return env
 
-    def get_variables_wrapper(self, variables, time, x, y, depth, block):
+    def get_variables_wrapper(self, variables, time, x, y, z, block):
         """Wrapper around reader-specific function get_variables()
 
         Performs some common operations which should not be duplicated:
         - monitor time spent by this reader
         - convert any numpy arrays to masked arrays
         """
-        env = self.get_variables(variables, time, x, y, depth, block)
+        env = self.get_variables(variables, time, x, y, z, block)
 
         # Convert any numpy arrays to masked arrays
         for var in env.keys():
@@ -198,13 +199,13 @@ class Reader(object):
         return env
 
     def get_variables_from_buffer(self, variables, time=None,
-                                  lon=None, lat=None, depth=None,
+                                  lon=None, lat=None, z=None,
                                   block=False, rotate_to_proj=None):
         """Wrapper around get_variables(), reading from buffer if available.
 
         Also performs interpolation in the following order:
         - horizontally (x-y, bilinear)
-        - vertically (z/depth, TBD)
+        - vertically (z, TBD)
         - time (linear)
 
         """
@@ -221,7 +222,7 @@ class Reader(object):
         if time == time_before:
             time_after = None
         # Check which particles are covered (indep of time)
-        ind_covered = self.covers_positions(lon, lat, depth)
+        ind_covered = self.covers_positions(lon, lat, z)
         if len(ind_covered) == 0:
             raise ValueError('All particles are outside domain '
                              'of ' + self.name)
@@ -234,13 +235,13 @@ class Reader(object):
 
         if block is False or self.return_block is False:
             env_before = self.get_variables_wrapper(variables, time_before,
-                                                    reader_x, reader_y, depth,
+                                                    reader_x, reader_y, z,
                                                     block=block)
             logging.debug('Fetched env-before')
             if time_after is not None:
                 env_after = self.get_variables_wrapper(variables, time_after,
                                                        reader_x, reader_y,
-                                                       depth, block=block)
+                                                       z, block=block)
                 logging.debug('Fetched env-after')
             else:
                 env_after = None
@@ -266,7 +267,7 @@ class Reader(object):
                         != time_before):
                 self.var_block_before[str(variables)] = \
                     self.get_variables_wrapper(variables, time_before,
-                                               reader_x, reader_y, depth,
+                                               reader_x, reader_y, z,
                                                block=block)
                 logging.debug(('Fetched env-block (size %ix%i) ' +
                               'for time before (%s)') %
@@ -281,7 +282,7 @@ class Reader(object):
                 else:
                     self.var_block_after[str(variables)] = \
                         self.get_variables_wrapper(variables, time_after,
-                                                   reader_x, reader_y, depth,
+                                                   reader_x, reader_y, z,
                                                    block=block)
                     logging.debug(('Fetched env-block (size %ix%i) ' +
                                   'for time after (%s)') %
@@ -317,12 +318,12 @@ class Reader(object):
                           (self.var_block_before[str(variables)]['time']))
             env_before = self.interpolate_block(self.var_block_before[
                                                 str(variables)],
-                                                reader_x, reader_y, depth)
+                                                reader_x, reader_y, z)
             logging.debug('Interpolating after (%s) in space' %
                           (self.var_block_after[str(variables)]['time']))
             env_after = self.interpolate_block(self.var_block_after[
                                                str(variables)],
-                                               reader_x, reader_y, depth)
+                                               reader_x, reader_y, z)
             #   depth interpolation - TBD
 
         # Time interpolation
@@ -455,7 +456,7 @@ class Reader(object):
         else:
             return True
 
-    def covers_positions(self, lon, lat, depth):
+    def covers_positions(self, lon, lat, z):
         """Return indices of input points covered by reader."""
 
         # Compensate for wrapping about 0 or 180 longitude
@@ -519,7 +520,7 @@ class Reader(object):
 
         return x[indices], y[indices], indices
 
-    def check_arguments(self, variables, time, x, y, depth):
+    def check_arguments(self, variables, time, x, y, z):
         """Check validity of arguments input to method get_variables.
 
         Checks that requested positions and time are within coverage of
@@ -532,7 +533,7 @@ class Reader(object):
         Returns:
             variables: same as input, but converted to list if given as string.
             time: same as input, or start_time of reader if given as None.
-            x, y, depth: same as input, but converted to ndarrays
+            x, y, z: same as input, but converted to ndarrays
                 if given as scalars.
             outside: boolean array which is True for any particles outside
                 the spatial domain covered by this reader.
@@ -552,7 +553,7 @@ class Reader(object):
             variables = [variables]
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
-        depth = np.asarray(depth)
+        z = np.asarray(z)
 
         for variable in variables:
             if variable not in self.variables:
@@ -573,7 +574,7 @@ class Reader(object):
             raise ValueError('All particles are outside domain '
                              'of ' + self.name)
 
-        return variables, time, x, y, depth, outside
+        return variables, time, x, y, z, outside
 
     def nearest_time(self, time):
         """Return nearest times before and after the requested time.
@@ -611,25 +612,26 @@ class Reader(object):
         return nearest_time, time_before, time_after,\
             indx_nearest, indx_before, indx_after
 
-    def index_of_closest_depths(self, requestedDepths):
-        """Return (internal) index of depths closest to requested depths.
+    def index_of_closest_z(self, requested_z):
+        """Return (internal) index of z closest to requested z.
 
-        Depths of layers (of ocean model) are not assumed to be constant.
+        Thickness of layers (of ocean model) are not assumed to be constant.
         """
-        ind_depth = [np.abs(np.subtract.outer(
-            self.depths, requestedDepths)).argmin(0)]
-        return ind_depth, self.depths[ind_depth]
+        ind_z = [np.abs(np.subtract.outer(
+            self.z, requested_z)).argmin(0)]
+        return ind_z, self.z[ind_z]
 
-    def indices_min_max_depth(self, depths):
+    def indices_min_max_z(self, z):
         """
-        Return min and max indices of internal depth dimension,
-        covering the requested depths. Needed when block is requested (True).
+        Return min and max indices of internal vertical dimension,
+        covering the requested vertical positions.
+        Needed when block is requested (True).
 
         Arguments:
-            depths: ndarray of floats, in meters
+            z: ndarray of floats, in meters
         """
-        minIndex = (self.depths <= depths.min()).argmin() - 1
-        maxIndex = (self.depths >= depths.max()).argmax()
+        minIndex = (self.z <= z.min()).argmin() - 1
+        maxIndex = (self.z >= z.max()).argmax()
         return minIndex, maxIndex
 
     def __repr__(self):
@@ -655,9 +657,9 @@ class Reader(object):
              corners[1][1],
              corners[0][3],
              corners[1][3])
-        if hasattr(self, 'depths'):
+        if hasattr(self, 'z'):
             np.set_printoptions(suppress=True)
-            outStr += 'Depths [m]: \n  ' + str(self.depths) + '\n'
+            outStr += 'Depths [m]: \n  ' + str(self.z) + '\n'
         outStr += 'Available time range:\n'
         outStr += '  start: ' + str(self.start_time) + \
                   '   end: ' + str(self.end_time) + \
@@ -738,7 +740,7 @@ class Reader(object):
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
             data = self.get_variables(variable, self.start_time,
-                                      rx, ry, depth=None, block=True)
+                                      rx, ry, z=None, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)
             map_x, map_y = map(rlon, rlat, inverse=False)

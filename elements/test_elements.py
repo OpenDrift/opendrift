@@ -77,8 +77,8 @@ class TestArray(unittest.TestCase):
         """Make LagrangianArray from attribute arrays"""
         lon = [4.0, 4.5, 5.0]
         lat = 60.0
-        depth = 10
-        A = LagrangianArray(lon=lon, lat=lat, depth=depth)
+        z = -10
+        A = LagrangianArray(lon=lon, lat=lat, z=z)
         self.assertEqual(len(A), 3)
         self.assertEqual(list(A.lon), [4.0, 4.5, 5.0])
 

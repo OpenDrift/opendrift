@@ -23,7 +23,7 @@ class PassiveTracer(LagrangianArray):
     """Basic implementation of LagrangianArray with no additional properties.
 
     Contains only the properties of the abstract class LagrangianArray,
-    i.e. position (lon, lat, depth) and ID.
+    i.e. position (lon, lat, z) and ID.
     May be used for passive tracer calculations when no properties are needed.
     """
 

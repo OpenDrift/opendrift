@@ -57,7 +57,7 @@ class Reader(Reader):
             #raise ValueError('Did not find any proj4 string in dataset')
 
         logging.debug('Finding coordinate variables.')
-        # Find x, y and depth coordinates
+        # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
             if var.ndim > 1:
@@ -101,7 +101,7 @@ class Reader(Reader):
                 y = var[:]*unitfactor
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
-                self.depths = var[:]
+                self.z = var[:]
             if standard_name == 'time' or axis == 'T' or var_name == 'time':
                 # Read and store time coverage (of this particular file)
                 time = var[:]
@@ -144,18 +144,18 @@ class Reader(Reader):
         super(Reader, self).__init__()
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, depth=None, block=False):
+                      x=None, y=None, z=None, block=False):
 
-        requested_variables, time, x, y, depth, outside = self.check_arguments(
-            requested_variables, time, x, y, depth)
+        requested_variables, time, x, y, z, outside = self.check_arguments(
+            requested_variables, time, x, y, z)
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
         try:
-            ind_depth = self.index_of_closest_depths(depth)[0]
+            ind_z = self.index_of_closest_z(z)[0]
         except:
-            ind_depth = 0  # For datasets with no vertical dimension
+            ind_z = 0  # For datasets with no vertical dimension
 
         # Find indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
@@ -186,7 +186,7 @@ class Reader(Reader):
             elif var.ndim == 3:
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
-                # Temporarily neglecting depth
+                # Temporarily neglecting z
                 variables[par] = var[indxTime, 0, indy, indx]  # NB 0 was 1
             else:
                 raise Exception('Wrong dimension of variable: '
@@ -204,9 +204,9 @@ class Reader(Reader):
 
         # Store coordinates of returned points
         try:
-            variables['depth'] = self.depths[ind_depth]
+            variables['z'] = self.z[ind_z]
         except:
-            variables['depth'] = None
+            variables['z'] = None
         if block is True:
             variables['x'] = \
                 self.Dataset.variables[self.xname][indx]*self.unitfactor

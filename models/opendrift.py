@@ -322,7 +322,7 @@ class OpenDriftSimulation(object):
 
         return variable_groups, reader_groups, missing_variables
 
-    def get_environment(self, variables, time, lon, lat, depth):
+    def get_environment(self, variables, time, lon, lat, z):
         '''Retrieve environmental variables at requested positions.
 
         Updates:
@@ -374,7 +374,7 @@ class OpenDriftSimulation(object):
                                   len(missing_indices))
                     env_tmp = reader.get_variables_from_buffer(
                         variable_group, time, lon[missing_indices],
-                        lat[missing_indices], depth, self.use_block, self.proj)
+                        lat[missing_indices], z, self.use_block, self.proj)
                 except Exception as e:
                     logging.info('========================')
                     logging.info('Exception:')
@@ -792,7 +792,7 @@ class OpenDriftSimulation(object):
                                          self.time,
                                          self.elements.lon,
                                          self.elements.lat,
-                                         self.elements.depth)
+                                         self.elements.z)
 
                 self.deactivate_elements(missing, reason='missing_data')
 

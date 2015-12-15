@@ -58,10 +58,10 @@ class Reader(Reader):
         super(Reader, self).__init__()
 
     def get_variables(self, requestedVariables, time=None,
-                      x=None, y=None, depth=None, block=False):
+                      x=None, y=None, z=None, block=False):
 
-        requestedVariables, time, x, y, depth, outside = self.check_arguments(
-            requestedVariables, time, x, y, depth)
+        requestedVariables, time, x, y, z, outside = self.check_arguments(
+            requestedVariables, time, x, y, z)
 
         variables = {}
         # Construct cyclonic current field

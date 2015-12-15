@@ -46,7 +46,8 @@ class LagrangianArray(object):
         status: 0 for active particles and a positive integer when deactivated
         lon: longitude (np.float32)
         lat: latitude (np.float32)
-        depth: depth of the particle in m below sea surface.
+        z: vertical position of the particle in m, 
+            positive upwards (above sea surface)
     """
 
     variables = OrderedDict([
@@ -64,10 +65,12 @@ class LagrangianArray(object):
                  'standard_name': 'latitude',
                  'long_name': 'latitude',
                  'axis': 'Y'}),
-        ('depth', {'dtype': np.float32,
+        ('z', {'dtype': np.float32,
                    'units': 'm',
-                   'standard_name': 'depth',
-                   'long_name': 'depth',
+                   'standard_name': 'z',
+                   'long_name': 'vertical position',
+                   'axis': 'Z',
+                   'positive': 'up',
                    'default': 0})])
 
     def __init__(self, **kwargs):

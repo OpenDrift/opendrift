@@ -65,7 +65,7 @@ class OceanDrift(OpenDriftSimulation):
         mid_env, missing = self.get_environment(
             self.required_variables,
             self.time + self.time_step/2,
-            mid_lon, mid_lat, self.elements.depth)
+            mid_lon, mid_lat, self.elements.z)
 
         # Move particles using runge-kutta velocity
         self.update_positions(mid_env['x_sea_water_velocity'],

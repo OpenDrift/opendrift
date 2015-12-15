@@ -159,7 +159,7 @@ class OpenOil(OpenDriftSimulation):
             fraction_evaporated_previous = self.elements.fraction_evaporated
 
             # Evaporate only elements at surface
-            at_surface = (self.elements.depth == 0)
+            at_surface = (self.elements.z == 0)
             if np.isscalar(at_surface):
                 at_surface = at_surface*np.ones(self.num_elements_active(),
                                                 dtype=bool)
@@ -244,7 +244,7 @@ class OpenOil(OpenDriftSimulation):
             self.elements.mass_oil -= oil_mass_loss
             self.elements.mass_dispersed += oil_mass_loss
 
-            #self.elements.depth = \
+            #self.elements.z = \
             #    self.environment.sea_surface_wave_significant_height
 
             ## Marks R. (1987), Marine aerosols and whitecaps in the

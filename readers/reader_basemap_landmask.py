@@ -69,7 +69,7 @@ class Reader(Reader):
         super(Reader, self).__init__()
 
         # Depth
-        self.depths = None
+        self.z = None
 
         # Time
         self.start_time = None
@@ -89,12 +89,12 @@ class Reader(Reader):
             self.polygons = [Path(p.boundary) for p in self.map.landpolygons]
 
     def get_variables(self, requestedVariables, time=None,
-                      x=None, y=None, depth=None, block=False):
+                      x=None, y=None, z=None, block=False):
 
         if isinstance(requestedVariables, str):
             requestedVariables = [requestedVariables]
 
-        self.check_arguments(requestedVariables, time, x, y, depth)
+        self.check_arguments(requestedVariables, time, x, y, z)
 
         # Apparently it is necessary to first convert from x,y to lon,lat
         # using proj library, and back to x,y using Basemap instance

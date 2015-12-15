@@ -36,7 +36,7 @@ from opendrift import OpenDriftSimulation
 class TemplateElementType(LagrangianArray):
     """Extending LagrangianArray with relevant properties."""
     # Define and name the properties which the elements shall have.
-    # These are added to the four core properties (ID, lon, lat, depth)
+    # These are added to the four core properties (ID, lon, lat, z)
     # inherited from the basic/generic LagrangianArray class.
     # Property names may be freely chosen, but the "update" function (below)
     # will refer to the names in the specifications of the processes.
@@ -104,7 +104,7 @@ class ModelTemplate(OpenDriftSimulation):
         # Element properties and environvent variables are namedarrays
         # of same length (number of active particles), or scalars.
         # E.g.:
-        # self.elements.depth
+        # self.elements.z
         # self.elements.mass
         # self.environment.x_wind
         # self.environment.y_wind
