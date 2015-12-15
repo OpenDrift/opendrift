@@ -1282,6 +1282,66 @@ class OpenDriftSimulation(object):
             logging.info(self.elements)
             sys.exit('Quitting')
 
+    def vertical_advection(self, w_vel):
+        """Move particles vertically according to vertical ocean current
+
+            Vertical advection by ocean currents is small compared to termical velocity
+            to do buoyancy and turbulent mixing
+        """
+
+    def vertical_mixing(self, ocean_vertical_diffusivity, terminal_velocity):
+        """Mix particles vertically according to eddy diffusivity and buoyancy
+
+            Binned random walk scheme (Thygessen and Aadlandsvik, 2003)
+        """
+        K = ocean_vertical_diffusivity
+        w = terminal_velocity
+
+        dz = 1. #m
+        dt_mix = 1. #s
+
+        K1 = K # K at current depth
+        K2 = K # K at depth z-dz
+
+        Zmin = 100. # minimum height/maximum depth
+
+        # place particle in center of bin
+        self.elements.z = np.round(self.elements.z/dz)*dz
+
+        #avoid that elements are above surface / below bottom
+        surface = np.where(self.elements.z > dz/2.)
+        self.elements.z[surface] = dz/2.
+        bottom = np.where(self.elements.z < Zmin)
+        self.elements.z[bottom] = int(Zmin/dz)*dz + dz/2.
+
+        # internal loop for fast time step of vertical mixing model
+        # binned random walk needs faster time step compared to horizontal advection
+        for i in range(0, int(self.time_step/dt_mix)):
+            p = dt_mix * (2.0*K1 + dz*w)/(2.0*dz*dz)  #probability to rise
+            q = dt_mix * (2.0*K2 - dz*w)/(2.0*dz*dz)  #probability to sink
+
+            # check
+            wrong = p+q > 1.
+            if wrong.sum() > 0:
+                print 'WARNING: some elements have p+q>1.'
+
+            RandKick = random.random(self.num_elements_active())
+            up   = np.where(RandKick < p)
+            down = np.where(RandKick > 1.0 - q)
+
+            self.elements.z[up]   = self.elements.z[up]   + dz
+            self.elements.z[down] = self.elements.z[down] - dz
+
+            #avoid that elements are above surface / below bottom
+            surface = np.where(self.elements.z > dz/2.)
+            self.elements.z[surface] = dz/2.
+            bottom = np.where(self.elements.z < Zmin)
+            self.elements.z[bottom] = int(Zmin/dz)*dz + dz/2.
+
+            # update vertical diffusivity and terminal velocity
+            # if not working with constant values
+
+
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
