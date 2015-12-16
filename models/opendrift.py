@@ -36,7 +36,6 @@ except:
 
 from readers.readers import pyproj, Reader
 
-
 class ModelSettings(object):
     # Empty class to store model specific information,
     # to avoid namespace conflicts with OpenDriftSimulation class
@@ -1292,7 +1291,13 @@ class OpenDriftSimulation(object):
     def vertical_mixing(self, ocean_vertical_diffusivity, terminal_velocity):
         """Mix particles vertically according to eddy diffusivity and buoyancy
 
-            Binned random walk scheme (Thygessen and Aadlandsvik, 2003)
+            buoyancy is expressed as terminal velocity, which is the steady-state
+            vertical velocity due to positive or negative buoyant behaviour.
+            It is usually a function of particle density, diameter, and shape.
+            
+            Vertical particle displacemend du to turbulent mixing is calculated using 
+            the "binned random walk scheme" (Thygessen and Aadlandsvik, 2007).
+            The formulation of this scheme is copied from LADIM (IMR).
         """
         K = ocean_vertical_diffusivity
         w = terminal_velocity
@@ -1303,7 +1308,7 @@ class OpenDriftSimulation(object):
         K1 = K # K at current depth
         K2 = K # K at depth z-dz
 
-        Zmin = 100. # minimum height/maximum depth
+        Zmin = -100. # minimum height/maximum depth
 
         # place particle in center of bin
         self.elements.z = np.round(self.elements.z/dz)*dz
@@ -1316,7 +1321,11 @@ class OpenDriftSimulation(object):
 
         # internal loop for fast time step of vertical mixing model
         # binned random walk needs faster time step compared to horizontal advection
-        for i in range(0, int(self.time_step/dt_mix)):
+        ntimes_mix = int(self.time_step.seconds/dt_mix)
+        print 'Vertical mixing module:'
+        print 'turbulent diffusion with binned random walk scheme'
+        print 'using '+str(ntimes_mix)+' fast time steps of dt='+str(dt_mix)
+        for i in range(0, ntimes_mix):
             p = dt_mix * (2.0*K1 + dz*w)/(2.0*dz*dz)  #probability to rise
             q = dt_mix * (2.0*K2 - dz*w)/(2.0*dz*dz)  #probability to sink
 
@@ -1325,7 +1334,7 @@ class OpenDriftSimulation(object):
             if wrong.sum() > 0:
                 print 'WARNING: some elements have p+q>1.'
 
-            RandKick = random.random(self.num_elements_active())
+            RandKick = np.random.random(self.num_elements_active())
             up   = np.where(RandKick < p)
             down = np.where(RandKick > 1.0 - q)
 
