@@ -18,37 +18,33 @@ import os
 import numpy as np
 from datetime import datetime
 
-from opendrift import OpenDriftSimulation
+from opendrift3D import OpenDrift3DSimulation, Lagrangian3DArray
 from elements import LagrangianArray
 
 
 # Defining the oil element properties
-class BuoyantParticle(LagrangianArray):
-    """Extending LagrangianArray to a passive particle subject to mixing that can be positively or negatively buoyant"""
+class PelagicEgg(Lagrangian3DArray):
+    """Extending Lagrangian3DArray with specific properties for pelagic eggs
+    """
 
     variables = LagrangianArray.add_variables([
-        ('buoyancy', {'dtype': np.float32,
-                      'units': '',
-                      'default': 0.}),
         ('diameter', {'dtype': np.float32,
                        'units': 'm',
-                       'default': 0.001}),
+                       'default': 0.0014}), # for NEA Cod
+        ('neutral_buoyancy_salinity', {'dtype': np.float32,
+                       'units': '[]',
+                       'default': 31.25}), # for NEA Cod
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
-                     'default': 800}),
-        ('terminal_velocity', {'dtype': np.float32,
-                     'units': 'm/s',
-                     'default': 0.}),
+                     'default': 1028.}),
         ('age_seconds', {'dtype': np.float32,
                          'units': 's',
-                         'default': 0}),])
-    def update_terminal_velocity(self):
-        """Calculate terminal velocity due to bouyancy from own properties
-        and environmental variables"""
-        self.terminal_velocity = 0.001
+                         'default': 0.}),        
+        ('hatched', {'dtype': np.float32,
+                     'units': '',
+                     'default': 0.})])
 
-
-class OpenBuoyantParticle(OpenDriftSimulation):
+class PelagicEggDrift(OpenDrift3DSimulation):
     """Open source buoyant particle trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway
@@ -61,14 +57,16 @@ class OpenBuoyantParticle(OpenDriftSimulation):
         Under construction.
     """
 
-    ElementType = BuoyantParticle
+    ElementType = PelagicEgg
 
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                           'sea_surface_wave_significant_height',
                           'sea_surface_wave_to_direction',
                           'sea_ice_area_fraction',
                           'x_wind', 'y_wind', 'land_binary_mask',
-                          'ocean_vertical_diffusivity'
+                          'sea_floor_depth_below_sea_level',
+                          'ocean_vertical_diffusivity',
+                          'sea_water_temperature', 'sea_water_salinity'
                           #'upward_sea_water_velocity'
                          ]
 
@@ -78,21 +76,16 @@ class OpenBuoyantParticle(OpenDriftSimulation):
                        'sea_surface_wave_to_direction': 0,
                        'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0,
-                       'ocean_vertical_diffusivity': 0.05 #m2s-1
+                       'sea_floor_depth_below_sea_level': 100,
+                       'ocean_vertical_diffusivity': 0.02, #m2s-1
+                       'sea_water_temperature': 10.,
+                       'sea_water_salinity' : 34.
                        #'upward_sea_water_velocity': 0
                       }
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
-                     'missing_data': 'gray', 'stranded': 'red',
-                     'evaporated': 'yellow', 'dispersed': 'magenta'}
-
-    # Read oil types from file (presently only for illustrative effect)
-    #oil_types = str([str(l.strip()) for l in open(
-    #                os.path.dirname(os.path.realpath(__file__))
-    #                + '/oil_types.txt').readlines()])[1:-1]
-    #default_oil = oil_types.split(',')[0].strip()
-
+                     'hatched': 'red', 'eaten': 'yellow', 'died': 'magenta'}
 
     # Configuration
 
@@ -119,23 +112,61 @@ class OpenBuoyantParticle(OpenDriftSimulation):
 
     def __init__(self, *args, **kwargs):
 
-        # Read oil properties from file
-        #self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
-        #                        '/oilprop.dat'
-        #oilprop = open(self.oiltype_file)
-        #oiltypes = []
-        #linenumbers = []
-        #for i, line in enumerate(oilprop.readlines()):
-        #    if line[0].isalpha():
-        #        oiltype = line.strip()[:-2].strip()
-        #        oiltypes.append(oiltype)
-        #        linenumbers.append(i)
-        #oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
-        #self.oiltypes = oiltypes
-        #self.oiltypes_linenumbers = linenumbers
-
         # Calling general constructor of parent class
-        super(OpenBuoyantParticle, self).__init__(*args, **kwargs)
+        super(PelagicEggDrift, self).__init__(*args, **kwargs)
+
+#    def update_terminal_velocity(self):
+#        """Calculate terminal velocity due to bouyancy from own properties
+#        and environmental variables"""
+#        self.elements.terminal_velocity = 0.005
+        
+    def update_terminal_velocity(self):
+        """Calculate terminal velocity for Pelagic Egg
+
+        according to 
+        S. Sundby (1983): A one-dimensional model for the vertical distribution
+        of pelagic fish eggs in the mixed layer
+        Deep Sea Research (30) pp. 645-661
+
+        Method copied from ibm.f90 module of LADIM:
+        Vikebo, F., S. Sundby, B. Aadlandsvik and O. Otteraa (2007),
+        Fish. Oceanogr. (16) pp. 216-228
+        """
+        g = 9.81 # ms-2
+
+        # Pelagic Egg properties that determine buoyancy
+        eggsize = self.elements.diameter # 0.0014 for NEA Cod
+        eggsalinity = self.elements.neutral_buoyancy_salinity # 31.25 for NEA Cod
+
+        T0 = self.environment.sea_water_temperature
+        S0 = self.environment.sea_water_salinity
+
+        # The density difference bettwen a pelagic egg and the ambient water
+        # is regulated by their salinity difference through the equation of state for sea water.
+        # The Egg has the same temperature as the abient water and its salinity is
+        # regulated by osmosis through the egg shell.
+        DENSw   = sea_water_density(T=T0, S=S0)
+        DENSegg = sea_water_density(T=T0, S=eggsalinity)
+        dr = DENSw-DENSegg # density difference
+
+        # water viscosity
+        my_w = 0.001*(1.7915 - 0.0538*T0 + 0.007*(T0**(2.0)) - 0.0023*S0) # ~0.0014 kg m-1 s-1
+
+        # terminal velocity for low Reynolds numbers
+        W = (1.0/my_w)*(1.0/18.0)*g*eggsize**2 * dr
+
+        #check if we are in a Reynolds regime where Re > 0.5
+        highRe = np.where(W*1000*eggsize/my_w > 0.5) 
+        
+        # Use empirical equations for terminal velocity in high Reynolds numbers
+        # empirical equations have length units in cm!
+        my_w = 0.01854*np.exp(-0.02783*T0) #in cm2/s 
+        d0 = (eggsize*100) - 0.4*(9.0*my_w**2 /(100*g) *DENSw/dr)**(1.0/3.0) #cm 
+        W2 = 19.0* d0* (0.001*dr)**(2.0/3.0)*(my_w*0.001*DENSw)**(-1.0/3.0) #cm/s
+        W2 = W2/100. #back to m/s
+
+        W[highRe] = W2[highRe]
+        self.elements.terminal_velocity = W
 
     def update(self):
         """Update positions and properties of buoyant particles."""
@@ -153,17 +184,8 @@ class OpenBuoyantParticle(OpenDriftSimulation):
         ###################
         if self.config['processes']['turbulentmixing'] is True:
 
-
-            #sea_water_density = 1028
-
-            # terminal velocity is the uprising/sedimentation velocity due to buoyancy
-            # it can be calculated from density and diameter
-            self.elements.update_terminal_velocity() # 0.001m/s (1mm/s)
-
-            #self.vertical_mixing(self.environment.ocean_vertical_diffusivity, self.elements.terminal_velocity)
-            self.vertical_mixing(self.environment.ocean_vertical_diffusivity, 0.001)
-
-
+            self.update_terminal_velocity() 
+            self.vertical_mixing()
 
         ###################
         # Vertical advection
@@ -172,19 +194,11 @@ class OpenBuoyantParticle(OpenDriftSimulation):
 
             self.vertical_advection(self.environment.upward_sea_water_velocity)
 
- 
-
-        ####################################
+         ####################################
         # Deactivate elements hitting land
         ####################################
         self.deactivate_elements(self.environment.land_binary_mask == 1,
                                  reason='stranded')
-
-        ########################################
-        ## Deactivate elements hitting sea ice
-        ########################################
-        self.deactivate_elements(self.environment.sea_ice_area_fraction > 0.6,
-                                 reason='oil-in-ice')
 
         ##############################################
         # Simply move particles with ambient current
@@ -236,70 +250,34 @@ class OpenBuoyantParticle(OpenDriftSimulation):
                 sigma_v = 0*self.environment.x_wind
             self.update_positions(sigma_u, sigma_v)
 
-    def plot_vertical_distribution(self):
-        #def plot_oil_budget(self):
-        import matplotlib.pyplot as plt
-        mass_oil, status = self.get_property('mass_oil')
-        if 'stranded' not in self.status_categories:
-            self.status_categories.append('stranded')
-        mass_active = np.ma.sum(np.ma.masked_where(
-                status==self.status_categories.index('stranded'),
-                    mass_oil), axis=1)
-        mass_stranded = np.ma.sum(np.ma.masked_where(
-            status!=self.status_categories.index('stranded'),
-            mass_oil), axis=1)
-        mass_evaporated, status = self.get_property('mass_evaporated')
-        mass_evaporated = np.sum(mass_evaporated, axis=1)
-        mass_dispersed, status = self.get_property('mass_dispersed')
-        mass_dispersed = np.sum(mass_dispersed, axis=1)
+def sea_water_density(T=10.,S=35.):
+    '''The function gives the density of seawater at one atmosphere
+    pressure as given in :
 
-        budget = np.row_stack((mass_dispersed, mass_active,
-                               mass_stranded, mass_evaporated))
-        budget = np.cumsum(budget, axis=0)
+    N.P. Fofonoff and R.C. Millard Jr.,1983,
+    Unesco technical papers in marine science no. 44.
+    
+    S   = Salinity in promille of the seawater
+    T   = Temperature of the seawater in degrees Celsius
+    '''
 
-        time, time_relative = self.get_time_array()
-        time = np.array([t.total_seconds()/3600. for t in time_relative])
-        fig = plt.figure()
-        # Left axis showing oil mass
-        ax1 = fig.add_subplot(111)
-        # Hack: make some emply plots since fill_between does not support label
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='salmon', label='dispersed'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='royalblue', label='in water'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='black', label='stranded'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='skyblue', label='evaporated'))
+    R4=4.8314E-04
+    DR350=28.106331
 
-        ax1.fill_between(time, 0, budget[0,:], facecolor='salmon')
-        ax1.fill_between(time, budget[0,:], budget[1,:],
-                         facecolor='royalblue')
-        ax1.fill_between(time, budget[1,:], budget[2,:],
-                         facecolor='black')
-        ax1.fill_between(time, budget[2,:], budget[3,:],
-                         facecolor='skyblue')
-        ax1.set_ylim([0,budget.max()])
-        ax1.set_xlim([0,time.max()])
-        ax1.set_ylabel('Mass oil  [%s]' %
-                        self.elements.variables['mass_oil']['units'])
-        ax1.set_xlabel('Time  [hours]')
-        # Right axis showing percent
-        ax2 = ax1.twinx()
-        ax2.set_ylim([0,100])
-        ax2.set_ylabel('Percent')
-        plt.title('%s - %s to %s' %
-                  (self.model.oiltype,
-                   self.start_time.strftime('%Y-%m-%d %H:%M'),
-                   self.time.strftime('%Y-%m-%d %H:%M')))
-        # Shrink current axis's height by 10% on the bottom
-        box = ax1.get_position()
-        ax1.set_position([box.x0, box.y0 + box.height * 0.1,
-                         box.width, box.height * 0.9])
-        ax2.set_position([box.x0, box.y0 + box.height * 0.1,
-                         box.width, box.height * 0.9])
-        ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
-                   ncol=4, mode="expand", borderaxespad=0.)
-        plt.show()
+    #Pure water density at atmospheric pressure
+    #Bigg P.H. (1967) BR. J. Applied Physics pp.:521-537
 
-        self.schedule_elements(self.ElementType(**kwargs), oil_time)
+    R1 = ((((6.536332E-09*T-1.120083E-06)*T+1.001685E-04)*T-9.095290E-03)*T+6.793952E-02)*T-28.263737
+    
+    #Seawater density at atmospheric pressure
+    #coefficients involving salinity :
+
+    R2 = (((5.3875E-09*T-8.2467E-07)*T+7.6438E-05)*T-4.0899E-03)*T +8.24493E-01
+
+    R3 = (-1.6546E-06*T+1.0227E-04)*T-5.72466E-03
+
+    #International one-atmosphere equation of state of seawater :
+
+    SIG = R1 + (R4*S + R3*np.sqrt(S) + R2)*S
+    Dens0 = SIG + DR350 + 1000.
+    return Dens0
