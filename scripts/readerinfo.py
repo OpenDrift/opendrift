@@ -27,6 +27,8 @@ import argparse
 
 try:
     from readers import reader_netCDF_CF_generic
+    from readers import reader_ROMS_native
+    readers = [reader_netCDF_CF_generic, reader_ROMS_native]
 except ImportError: # development
     sys.exit('Please add opendrift folder to your PYTHONPATH.')
 
@@ -41,8 +43,20 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    r = reader_netCDF_CF_generic.Reader(args.filename)
-    print r
+    for reader in readers:
+        try:
+            r = reader.Reader(args.filename)
+            print r
+            break
+        except Exception as me:
+            print me
+            import traceback
+            print traceback.format_exc()
+            print 'Reader not applicable: ' + str(reader)
+            print '---------------------------------------'
+
+    if not 'r' in locals():            
+        sys.exit('No readers applicable for ' + args.filename)
 
     if args.variable != 'noplot':
         if args.variable is None:
