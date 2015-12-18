@@ -36,11 +36,12 @@ o.seed_elements(lon, lat, z=-0.5, radius=3000, number=1000, time=time)
 
 # Adjusting some configuration
 o.config['drift']['wind_drift_factor'] = .0
+
 o.config['processes']['turbulentmixing'] = True
+o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983'
+o.config['turbulentmixing']['timestep'] = 2. # seconds
+
 o.config['processes']['diffusion'] = False
-o.config['processes']['dispersion'] = False
-o.config['processes']['evaporation'] = False
-o.config['processes']['emulsification'] = False
 o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
