@@ -39,6 +39,7 @@ o.config['drift']['wind_drift_factor'] = .0
 
 o.config['processes']['turbulentmixing'] = True
 o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983'
+#o.config['turbulentmixing']['diffusivitymodel'] = 'stepfunction'
 o.config['turbulentmixing']['timestep'] = 2. # seconds
 
 o.config['processes']['diffusion'] = False

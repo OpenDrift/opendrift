@@ -119,12 +119,12 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         and environmental variables
         overload this function to create particle-specific behaviour
         """
-        self.elements.terminal_velocity = 0.005
+        #self.elements.terminal_velocity = 0.00
         
     def update(self):
         """Update positions and properties of buoyant particles."""
 
-        self.elements.age_seconds += self.time_step.total_seconds()
+        #self.elements.age_seconds += self.time_step.total_seconds()
 
         # Calculate windspeed, which is needed for emulsification,
         # and dispersion (if wave height is not given)
