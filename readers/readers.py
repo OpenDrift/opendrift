@@ -84,7 +84,8 @@ class Reader(object):
         # Common constructor for all readers
 
         # Set projection for coordinate transformations
-        self.proj = pyproj.Proj(self.proj4)
+        if not hasattr(self, 'proj'):
+            self.proj = pyproj.Proj(self.proj4)
 
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
@@ -385,6 +386,9 @@ class Reader(object):
 
         if type(proj_from) is str:
             proj_from = pyproj.Proj(proj_from)
+        print type(proj_from)
+        if type(proj_from) is not pyproj.Proj:
+            return u_component, v_component  # Unrotated, for development
         if type(proj_to) is str:
             proj_to = pyproj.Proj(proj_to)
 
@@ -694,6 +698,13 @@ class Reader(object):
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
             width = np.max([self.xmax-self.xmin, self.ymax-self.ymin])*1.5
+            geod = pyproj.Geod(ellps='WGS84')
+            # Calculate length of dialogs to determine map size
+            d1 = geod.inv(corners[0][0], corners[1][0],
+                          corners[0][1], corners[1][1], radians=False)[2]
+            d2 = geod.inv(corners[0][2], corners[1][2],
+                          corners[0][3], corners[1][3], radians=False)[2]
+            width = np.max((d1, d2))*2
             map = Basemap(projection='stere', resolution='i',
                           lat_ts=lat0, lat_0=lat0, lon_0=lon0,
                           width=width, height=width)
