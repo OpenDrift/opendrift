@@ -374,8 +374,8 @@ class Reader(object):
                             for x in vector_pairs)]
             
             if len(vector_pairs) > 0:
-                if 'angle_between_x_and_east' in \
-                    self.var_block_before[str(variables)]:
+                if type(self.proj) is not pyproj.Proj:
+                    # We need srs rotation angle
                     angle_block = {}
                     angle_block['x'] = self.var_block_before[str(variables)]['x']
                     angle_block['y'] = self.var_block_before[str(variables)]['y']
