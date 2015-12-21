@@ -181,13 +181,14 @@ class Reader(Reader):
                         self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
 
+            # NB: below x and y are swapped, relative to netCDF_generic-reader
             if var.ndim == 2:
-                variables[par] = var[indy, indx]
+                variables[par] = var[indx, indy]
             elif var.ndim == 3:
-                variables[par] = var[indxTime, indy, indx]
+                variables[par] = var[indxTime, indx, indy]
             elif var.ndim == 4:
                 # Temporarily neglecting depth
-                variables[par] = var[indxTime, 0, indy, indx]  # NB 0 was 1
+                variables[par] = var[indxTime, 0, indx, indy]  # NB 0 was 1
             else:
                 raise Exception('Wrong dimension of variable: '
                                 + self.variable_mapping[par])
@@ -202,6 +203,10 @@ class Reader(Reader):
             if block is False:
                 variables[par].mask[outside[0]] = True
 
+        # Return coordinate system orientation, for vector rotation
+        variables['angle_between_x_and_east'] = \
+            np.degrees(self.angle_between_x_and_east[np.meshgrid(indx, indy)])
+
         # Store coordinates of returned points
         try:
             variables['depth'] = self.depths[ind_depth]
@@ -209,13 +214,7 @@ class Reader(Reader):
             variables['depth'] = None
         if block is True:
             variables['x'] = indx
-            #variables['x'] = \
-            #    self.Dataset.variables[self.xname][indx]*self.unitfactor
-            # Subtracting 1 from indy (not indx) makes Norkyst800
-            # fit better with GSHHS coastline - but unclear why
             variables['y'] = indy
-            #variables['y'] = \
-            #    self.Dataset.variables[self.yname][indy]*self.unitfactor
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y

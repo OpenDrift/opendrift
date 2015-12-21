@@ -144,7 +144,9 @@ class Reader(object):
         env = {}
         for var in block.keys():
             if not hasattr(block[var], 'ndim'):
+                logging.info('Not interpolating ' + var)
                 continue
+
             if block[var].ndim == 2:
                 if self.interpolation == 'linearND':
                     ## Create spline for interpolation
@@ -370,25 +372,50 @@ class Reader(object):
             # Extract unique vector pairs
             vector_pairs = [list(x) for x in set(tuple(x)
                             for x in vector_pairs)]
+            
+            if len(vector_pairs) > 0:
+                if 'angle_between_x_and_east' in \
+                    self.var_block_before[str(variables)]:
+                    angle_block = {}
+                    angle_block['x'] = self.var_block_before[str(variables)]['x']
+                    angle_block['y'] = self.var_block_before[str(variables)]['y']
+                    angle_block['angle_between_x_and_east'] = \
+                        self.var_block_before[str(variables)][
+                                                  'angle_between_x_and_east']
+                    angle_env = self.interpolate_block(angle_block,
+                                                       reader_x,reader_y)
+                    from_angle_between_x_and_east = \
+                        angle_env['angle_between_x_and_east']
+                else:
+                    from_angle_between_x_and_east = None
 
-            for vector_pair in vector_pairs:
-                env[vector_pair[0]], env[vector_pair[1]] = \
-                    self.rotate_vectors(reader_x, reader_y,
-                                        env[vector_pair[0]],
-                                        env[vector_pair[1]],
-                                        self.proj, rotate_to_proj)
+                for vector_pair in vector_pairs:
+                    env[vector_pair[0]], env[vector_pair[1]] = \
+                        self.rotate_vectors(reader_x, reader_y,
+                                            env[vector_pair[0]],
+                                            env[vector_pair[1]],
+                                            self.proj, rotate_to_proj,
+                                            from_angle_between_x_and_east=
+                                            from_angle_between_x_and_east)
 
         return env
 
     def rotate_vectors(self, reader_x, reader_y,
-                       u_component, v_component, proj_from, proj_to):
+                       u_component, v_component,
+                       proj_from, proj_to,
+                       from_angle_between_x_and_east=None):
         """Rotate vectors from one srs to another."""
 
         if type(proj_from) is str:
             proj_from = pyproj.Proj(proj_from)
-        print type(proj_from)
         if type(proj_from) is not pyproj.Proj:
-            return u_component, v_component  # Unrotated, for development
+            # If first coordinate system does not have a proj4 definition,
+            # we need an array of angles to first rotate vectors to east-north
+            rot_angle_rad = np.radians(from_angle_between_x_and_east)
+            proj_from = pyproj.Proj('+proj=latlong')
+            reader_x, reader_y = self.xy2lonlat(reader_x, reader_y)
+        else:
+            rot_angle_rad = 0
         if type(proj_to) is str:
             proj_to = pyproj.Proj(proj_to)
 
@@ -404,10 +431,11 @@ class Reader(object):
 
         if proj_to.is_latlong():
             geod = pyproj.Geod(ellps='WGS84')
-            rot_angle_rad = -np.radians(geod.inv(
+            rot_angle_rad = rot_angle_rad - np.radians(geod.inv(
                     x2, y2, x2_delta, y2_delta)[0])
         else:
-            rot_angle_rad = -np.arctan2(x2_delta - x2, y2_delta - y2)
+            rot_angle_rad = rot_angle_rad - \
+                np.arctan2(x2_delta - x2, y2_delta - y2)
 
         u_rot = (u_component*np.cos(rot_angle_rad) -
                  v_component*np.sin(rot_angle_rad))
