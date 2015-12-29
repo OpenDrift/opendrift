@@ -49,6 +49,17 @@ vector_pairs_xy = [
     ['x_sea_water_velocity', 'y_sea_water_velocity']]
 
 
+class fakeproj():
+    # For readers with unprojected domain, we emulate a
+    # pyproj class with needed functions
+    def is_latlong(self):
+        return False
+
+    def __call__(self, x, y, inverse=False):
+        # Simply return x and y since these are also row/column indices
+        return x, y
+
+
 class Reader(object):
     """Parent Reader class, to be subclassed by specific readers.
     """
@@ -84,8 +95,39 @@ class Reader(object):
         # Common constructor for all readers
 
         # Set projection for coordinate transformations
-        if not hasattr(self, 'proj'):
-            self.proj = pyproj.Proj(self.proj4)
+        if hasattr(self, 'proj'):
+            self.projected = True
+        else:
+            if hasattr(self, 'proj4'):
+                self.projected = True
+                self.proj = pyproj.Proj(self.proj4)
+            else:
+                self.proj4 = 'None'
+                self.proj = fakeproj()
+                self.projected = False
+                if (not hasattr(self, 'lon') or
+                    not hasattr(self, 'lat') or
+                    not hasattr(self, 'angle_between_x_and_east')):
+                        # Note: angle can be calculated from gradient of lat
+                        raise ValueError('Unprojected readers must '
+                                         'have attributes/arrays "lon", "lat" '
+                                         'and "angle_between_x_and_east"')
+
+                logging.info('Making Spline for lon,lat to x,y conversion...')
+                block_x, block_y = np.meshgrid(
+                    np.arange(self.xmin, self.xmax + 1, 1),
+                    np.arange(self.ymin, self.ymax + 1, 1))
+                self.spl_x =  LinearNDInterpolator((self.lon.ravel(),
+                                                    self.lat.ravel()),
+                                                    block_x.ravel(),
+                                                    fill_value=np.nan)
+                self.spl_y =  LinearNDInterpolator((self.lon.ravel(),
+                                                    self.lat.ravel()),
+                                                    block_y.ravel(),
+                                                    fill_value=np.nan)    
+                self.spl_angle =  LinearNDInterpolator(
+                    (block_x.ravel(), block_y.ravel()),
+                    self.angle_between_x_and_east.ravel(), fill_value=np.nan)    
 
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
@@ -144,7 +186,7 @@ class Reader(object):
         env = {}
         for var in block.keys():
             if not hasattr(block[var], 'ndim'):
-                logging.info('Not interpolating ' + var)
+                logging.debug('Not interpolating ' + var)
                 continue
 
             if block[var].ndim == 2:
@@ -199,6 +241,12 @@ class Reader(object):
         for var in env.keys():
             if isinstance(env[var], np.ndarray):
                 env[var] = np.ma.masked_array(env[var], mask=False)
+
+        # Make sure x and y are floats (and not e.g. int64)
+        if 'x' in env.keys():
+            env['x'] = np.array(env['x'], dtype=np.float)
+            env['y'] = np.array(env['y'], dtype=np.float)
+
         return env
 
     def get_variables_from_buffer(self, variables, time=None,
@@ -374,18 +422,9 @@ class Reader(object):
                             for x in vector_pairs)]
             
             if len(vector_pairs) > 0:
-                if type(self.proj) is not pyproj.Proj:
-                    # We need srs rotation angle
-                    angle_block = {}
-                    angle_block['x'] = self.var_block_before[str(variables)]['x']
-                    angle_block['y'] = self.var_block_before[str(variables)]['y']
-                    angle_block['angle_between_x_and_east'] = \
-                        self.var_block_before[str(variables)][
-                                                  'angle_between_x_and_east']
-                    angle_env = self.interpolate_block(angle_block,
-                                                       reader_x,reader_y)
+                if self.projected is False:
                     from_angle_between_x_and_east = \
-                        angle_env['angle_between_x_and_east']
+                        self.spl_angle(reader_x, reader_y)
                 else:
                     from_angle_between_x_and_east = None
 
@@ -411,18 +450,22 @@ class Reader(object):
         if type(proj_from) is not pyproj.Proj:
             # If first coordinate system does not have a proj4 definition,
             # we need an array of angles to first rotate vectors to east-north
-            rot_angle_rad = np.radians(from_angle_between_x_and_east)
+            rot_angle_cs_rad = from_angle_between_x_and_east
+            logging.debug('Rotating coordinate system between %s and %s '
+                           'degrees for east-north alignment.' %
+                          (np.degrees(from_angle_between_x_and_east).min(),
+                           np.degrees(from_angle_between_x_and_east).max()))
             proj_from = pyproj.Proj('+proj=latlong')
             reader_x, reader_y = self.xy2lonlat(reader_x, reader_y)
         else:
-            rot_angle_rad = 0
+            rot_angle_cs_rad = 0
         if type(proj_to) is str:
             proj_to = pyproj.Proj(proj_to)
 
         if proj_from.is_latlong():
-                delta_y = .1
+                delta_y = .1  # 0.1 degree northwards
         else:
-            delta_y = 1000
+            delta_y = 1000  # 1 km along y-axis
         x2, y2 = pyproj.transform(proj_from, proj_to,
                                   reader_x, reader_y)
         x2_delta, y2_delta = pyproj.transform(proj_from,
@@ -431,12 +474,14 @@ class Reader(object):
 
         if proj_to.is_latlong():
             geod = pyproj.Geod(ellps='WGS84')
-            rot_angle_rad = rot_angle_rad - np.radians(geod.inv(
+            rot_angle_vectors_rad = np.radians(geod.inv(
                     x2, y2, x2_delta, y2_delta)[0])
         else:
-            rot_angle_rad = rot_angle_rad - \
-                np.arctan2(x2_delta - x2, y2_delta - y2)
-
+            rot_angle_vectors_rad = np.arctan2(x2_delta - x2, y2_delta - y2)
+        logging.debug('Rotating vectors between %s and %s degrees.' %
+                      (np.degrees(rot_angle_vectors_rad).min(),
+                       np.degrees(rot_angle_vectors_rad).max()))
+        rot_angle_rad = rot_angle_cs_rad - rot_angle_vectors_rad
         u_rot = (u_component*np.cos(rot_angle_rad) -
                  v_component*np.sin(rot_angle_rad))
         v_rot = (u_component*np.sin(rot_angle_rad) +
@@ -447,27 +492,49 @@ class Reader(object):
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
-        if self.proj.is_latlong():
-            return x, y
+        if self.projected is True:
+            if self.proj.is_latlong():
+                return x, y
+            else:
+                if 'ob_tran' in self.proj4:
+                    logging.info('NB: Converting degrees to radians ' +
+                                 'due to ob_tran srs')
+                    x = np.radians(np.array(x))
+                    y = np.radians(np.array(y))
+                return self.proj(x, y, inverse=True)
         else:
-            if 'ob_tran' in self.proj4:
-                logging.info('NB: Converting degrees to radians ' +
-                             'due to ob_tran srs')
-                x = np.radians(np.array(x))
-                y = np.radians(np.array(y))
-            return self.proj(x, y, inverse=True)
+            np.seterr(invalid='ignore')  # Disable warnings for nan-values
+            y = np.atleast_1d(np.array(y))
+            x = np.atleast_1d(np.array(x))
+
+            # NB: mask coordinates outside domain
+            x[x<self.xmin] = np.nan
+            x[x>self.xmax] = np.nan
+            y[y<self.ymin] = np.nan
+            y[y<self.ymin] = np.nan
+
+            lon = map_coordinates(self.lon, [y, x], order=1,
+                                  cval=np.nan, mode='nearest')
+            lat = map_coordinates(self.lat, [y, x], order=1,
+                                  cval=np.nan, mode='nearest')
+            return (lon, lat)
 
     def lonlat2xy(self, lon, lat):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        if self.proj.is_latlong():
-            return lon, lat
-        else:
-            x, y = self.proj(lon, lat, inverse=False)
-            if 'ob_tran' in self.proj4:
-                return np.degrees(x), np.degrees(y)
+        if self.projected is True:
+            if self.proj.is_latlong():
+                return lon, lat
             else:
-                return x, y
+                x, y = self.proj(lon, lat, inverse=False)
+                if 'ob_tran' in self.proj4:
+                    return np.degrees(x), np.degrees(y)
+                else:
+                    return x, y
+        else:
+            x = self.spl_x(lon, lat)
+            y = self.spl_y(lon, lat) 
+            return (x, y)
 
     def y_azimuth(self, lon, lat):
         """Calculate azimuth orientation of the y-axis of the reader SRS."""
@@ -499,8 +566,8 @@ class Reader(object):
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
-        indices = np.where((x > self.xmin) & (x < self.xmax) &
-                           (y > self.ymin) & (y < self.ymax))[0]
+        indices = np.where((x >= self.xmin) & (x <= self.xmax) &
+                           (y >= self.ymin) & (y <= self.ymax))[0]
 
         return indices
 

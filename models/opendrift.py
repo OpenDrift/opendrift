@@ -1012,13 +1012,14 @@ class OpenDriftSimulation(object):
                 logging.info('Making animated gif...')
                 os.system('convert -delay %i _tmp*.png %s' %
                           (self.time_step.total_seconds()/3600.*24.,filename))
+
+            logging.info('Deleting temporary figures...')
+            tmp = glob.glob('_tmp*.png')
+            for tfile in tmp:
+                os.remove(tfile)
         else:
             plt.show()
 
-        logging.info('Deleting temporary figures...')
-        tmp = glob.glob('_tmp*.png')
-        for tfile in tmp:
-            os.remove(tfile)
 
 
     def plot(self, background=None, buffer=.5,

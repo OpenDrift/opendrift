@@ -14,30 +14,18 @@
 # 
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import os
 import logging
 from datetime import datetime, timedelta
 
 import numpy as np
 from netCDF4 import Dataset, num2date
-from scipy.ndimage import map_coordinates
-from scipy.spatial import KDTree
 
 from readers import Reader
 
 
-class fakeproj():
-    # Since ROMS native grid does not correspond to a SRS and proj4-string,
-    # we emulate a pyproj class with needed functions
-    def is_latlong(self):
-        return False
-
-    def __call__(self, x, y, inverse=False):
-        return x, y
-
-
 class Reader(Reader):
 
+    # Map ROMS variable names to CF standard_name
     ROMS_variable_mapping = {
         'mask_psi': 'land_binary_mask',
         'zeta': 'sea_surface_height',
@@ -50,25 +38,7 @@ class Reader(Reader):
         'aice': 'sea_ice_area_fraction',
         'hice': 'sea_ice_thickness'}
 
-    def xy2lonlat(self, x, y):
-        y = np.atleast_1d(np.array(y))
-        x = np.atleast_1d(np.array(x))
-        lon = map_coordinates(self.lon, [x, y], order=1,
-                              cval=np.nan, mode='nearest')
-        lat = map_coordinates(self.lat, [x, y], order=1,
-                              cval=np.nan, mode='nearest')
-        return (lon, lat)
-
-    def lonlat2xy(self, lon, lat):
-        # nearest point, gives distance and point index
-        d,p = self.kdtree.query(zip(np.atleast_1d(lon),
-                                    np.atleast_1d(lat)), k=1) 
-        i, j = np.unravel_index(p, self.lon.shape)
-        return (i, j)
-
     def __init__(self, filename=None, name=None):
-
-        print '\n\n\n'
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -92,6 +62,8 @@ class Reader(Reader):
         theta_s = self.Dataset.variables['theta_s'][:]
         theta_b = self.Dataset.variables['theta_b'][:]
         Tcline = self.Dataset.variables['Tcline'][:]
+        s_rho = self.Dataset.variables['s_rho'][:]
+        self.num_layers = len(s_rho)
 
         # Horizontal oordinates and directions
         self.lat = self.Dataset.variables['lat_rho'][:]
@@ -111,14 +83,12 @@ class Reader(Reader):
 
         # x and y are rows and columns for unprojected datasets
         self.xmin = 0.
-        self.xmax = np.float(len(self.Dataset.dimensions['eta_rho']))
+        self.xmax = np.float(len(self.Dataset.dimensions['xi_rho'])) - 1
         self.delta_x = 1.
         self.ymin = 0.
-        self.ymax = np.float(len(self.Dataset.dimensions['xi_rho']))
+        self.ymax = np.float(len(self.Dataset.dimensions['eta_rho'])) - 1
         self.delta_y = 1.
 
-        self.proj4 = 'none'
-        self.proj = fakeproj()
         self.name = 'roms native'
 
         # Find all variables having standard_name
@@ -128,48 +98,36 @@ class Reader(Reader):
                 var = self.Dataset.variables[var_name]
                 self.variables.append(self.ROMS_variable_mapping[var_name])
 
-        #import matplotlib.pyplot as plt
-        #plt.imshow(h.T)
-        #plt.colorbar()
-        #plt.show()
-
-        logging.debug('Making KDTree for lon,lat to x,y convertion...')
-        self.kdtree = KDTree(zip(self.lon.ravel(), self.lat.ravel()))
-
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, depth=None, block=False):
+                      x=None, y=None, z=None, block=False):
 
-        requested_variables, time, x, y, depth, outside = self.check_arguments(
-            requested_variables, time, x, y, depth)
+        requested_variables, time, x, y, z, outside = self.check_arguments(
+            requested_variables, time, x, y, z)
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
         try:
-            ind_depth = self.index_of_closest_depths(depth)[0]
+            indz = self.index_of_closest_depths(z)[0]
         except:
-            ind_depth = 0  # For datasets with no vertical dimension
+            indz = 0  # For datasets with no vertical dimension
+        indz = self.num_layers - 1  # Hardcodedd surface layer, to begin with
 
         # Find indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
 
-        ## If x or y coordinates are decreasing, we need to flip
-        #if self.x[0] > self.x[-1]:
-        #    indx = len(self.x) - indx
-        #if self.y[0] > self.y[-1]:
-        #    indy = len(self.y) - indy
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = 8
             indx = np.arange(np.max([0, indx.min()-buffer]),
-                             np.min([indx.max()+buffer, self.lon.shape[0]]))
+                             np.min([indx.max()+buffer, self.lon.shape[1]]))
             indy = np.arange(np.max([0, indy.min()-buffer]),
-                             np.min([indy.max()+buffer, self.lon.shape[1]]))
+                             np.min([indy.max()+buffer, self.lon.shape[0]]))
         else:
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0
@@ -181,14 +139,13 @@ class Reader(Reader):
                         self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
 
-            # NB: below x and y are swapped, relative to netCDF_generic-reader
             if var.ndim == 2:
-                variables[par] = var[indx, indy]
+                variables[par] = var[indy, indx]
             elif var.ndim == 3:
-                variables[par] = var[indxTime, indx, indy]
+                variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
                 # Temporarily neglecting depth
-                variables[par] = var[indxTime, 0, indx, indy]  # NB 0 was 1
+                variables[par] = var[indxTime, indz, indy, indx]  # NB 0 was 1
             else:
                 raise Exception('Wrong dimension of variable: '
                                 + self.variable_mapping[par])
@@ -205,13 +162,13 @@ class Reader(Reader):
 
         # Return coordinate system orientation, for vector rotation
         variables['angle_between_x_and_east'] = \
-            np.degrees(self.angle_between_x_and_east[np.meshgrid(indx, indy)])
+            np.degrees(self.angle_between_x_and_east[np.meshgrid(indy, indx)])
 
         # Store coordinates of returned points
         try:
-            variables['depth'] = self.depths[ind_depth]
+            variables['z'] = self.z[indz]
         except:
-            variables['depth'] = None
+            variables['z'] = 0
         if block is True:
             variables['x'] = indx
             variables['y'] = indy

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from datetime import datetime, timedelta
+import numpy as np
 
 from readers import reader_basemap_landmask
 from readers import reader_netCDF_CF_generic
@@ -10,23 +11,41 @@ from models.openoil import OpenOil
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Nordic 4km
-#reader_nordic4 = reader_netCDF_CF_generic.Reader('test_data/norkyst800_subset_16Nov2015.nc')
-reader_nordic4 = reader_ROMS_native.Reader('/disk2/data/roms/ocean_his_0170.nc')
+#nordic_native = reader_ROMS_native.Reader('/disk2/data/roms/ocean_his_0170.nc')
+nordic_native = reader_ROMS_native.Reader('/opdata/roms/Nordic-4km_SLEVELS_avg_00.nc')
+#nordic_cf = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
 
 # Landmask (Basemap)
+#reader_basemap = reader_basemap_landmask.Reader(
+#                    llcrnrlon=13.4, llcrnrlat=67.8,
+#                    urcrnrlon=14.9, urcrnrlat=68.2,
+#                    resolution='h', projection='merc')
+#reader_basemap = reader_basemap_landmask.Reader(
+#                    llcrnrlon=3, llcrnrlat=59,
+#                    urcrnrlon=9, urcrnrlat=64.0,
+#                    resolution='h', projection='merc')
 reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=13.4, llcrnrlat=67.8,
-                    urcrnrlon=14.9, urcrnrlat=68.2,
+                    llcrnrlon=5.9, llcrnrlat=63.9,
+                    urcrnrlon=16.2, urcrnrlat=68.6,
                     resolution='h', projection='merc')
 
-o.add_reader([reader_basemap, reader_nordic4])
+o.add_reader([reader_basemap, nordic_native])
 
 # Seeding some particles
-lon = 14.1; lat = 68.04; # Vestfjorden
-time = reader_nordic4.start_time
+#lon = 14.1; lat = 68.04; # Vestfjorden
+#lon = 4.8; lat = 60.0; # Bergen
+#lon = 10.3; lat = 64.95; # Nordland
+time = nordic_native.start_time
+lons = np.linspace(9, 11.0, 50)
+lats = np.linspace(64, 66.5, 75)
+#lons = np.linspace(3, 5.0, 50)
+#lats = np.linspace(59, 61, 75)
+lons, lats = np.meshgrid(lons, lats)
+lon = lons.ravel()
+lat = lats.ravel()
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, number=4, time=time)
+o.seed_elements(lon, lat, radius=0, number=5000, time=time)
 
 print o
 
@@ -40,9 +59,10 @@ o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=24*2, time_step=1800, outfile='roms.nc')
+#o.run(steps=20, time_step=1800, outfile='native.nc')
+o.run(steps=24*4, time_step=900)
 
 # Print and plot results
 print o
-o.plot()
-#o.animation()
+o.animation()
+#o.plot()
