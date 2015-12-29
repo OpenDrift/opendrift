@@ -108,6 +108,11 @@ class PelagicEggDrift(OpenDrift3DSimulation):
             current_uncertainty = float(min=0, max=5, default=.1)
             wind_uncertainty = float(min=0, max=5, default=1)
             relative_wind = boolean(default=True)
+        [turbulentmixing]
+            timestep = float(min=0.1, max=3600, default=1.)
+            verticalresolution = float(min=0.01, max=10, default = 1.)
+            diffusivitymodel = string(default='environment') 
+
     ''' % (datetime.now().strftime('%Y-%d-%m %H:00'))
 
     def __init__(self, *args, **kwargs):

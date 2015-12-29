@@ -102,6 +102,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             current_uncertainty = float(min=0, max=5, default=.1)
             wind_uncertainty = float(min=0, max=5, default=1)
             relative_wind = boolean(default=True)
+        [turbulentmixing]
+            timestep = float(min=0.1, max=3600, default=1.)
+            verticalresolution = float(min=0.01, max=10, default = 1.)
+            diffusivitymodel = string(default='environment') 
+
     ''' % (datetime.now().strftime('%Y-%d-%m %H:00'))
 
     def __init__(self, *args, **kwargs):
@@ -114,12 +119,12 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         and environmental variables
         overload this function to create particle-specific behaviour
         """
-        self.elements.terminal_velocity = 0.005
+        #self.elements.terminal_velocity = 0.00
         
     def update(self):
         """Update positions and properties of buoyant particles."""
 
-        self.elements.age_seconds += self.time_step.total_seconds()
+        #self.elements.age_seconds += self.time_step.total_seconds()
 
         # Calculate windspeed, which is needed for emulsification,
         # and dispersion (if wave height is not given)
@@ -221,9 +226,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         #     w = self.config['drift']['terminal_velocity']
         #else:
         #    w = terminal_velocity
+        from models import eddydiffusivity
 
-        dz = 1. #m
-        dt_mix = 2. #s
+        dz = self.config['turbulentmixing']['verticalresolution']
+        dt_mix = self.config['turbulentmixing']['timestep']
 
         # minimum height/maximum depth for each particle
         Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
@@ -247,7 +253,12 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             # update terminal velocity according to environmental variables 
             self.update_terminal_velocity()
             w = self.elements.terminal_velocity
-            K = self.environment.ocean_vertical_diffusivity
+
+            # get vertical eddy diffusivity from environment or specific model
+            if self.config['turbulentmixing']['diffusivitymodel'] == 'environment':
+                K = self.environment.ocean_vertical_diffusivity
+            else:
+                K = getattr(eddydiffusivity, self.config['turbulentmixing']['diffusivitymodel'])(self)
 
             #K1 = K # K at current depth
             #K2 = K # K at depth z-dz
