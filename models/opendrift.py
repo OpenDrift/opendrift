@@ -256,7 +256,13 @@ class OpenDriftSimulation(object):
             if reader not in self.readers:
                 self.readers[reader.name] = reader
                 if self.proj is None:
-                    self.set_projection(reader.proj4)
+                    if reader.proj4 is not None and reader.proj4 != 'None':
+                        self.set_projection(reader.proj4)
+                        logging.debug('Using srs for common grid: %s' %
+                                      self.proj4)
+                    else:
+                        logging.debug('%s is unprojected, cannot use '
+                                      'for common grid' % reader.name)
                 logging.debug('Added reader ' + reader.name)
 
             # Add this reader for each of the given variables
@@ -271,6 +277,10 @@ class OpenDriftSimulation(object):
         for variable in self.priority_list:
             if variable not in self.required_variables:
                 del self.priority_list[variable]
+
+        # Set projection to latlong if not taken from any of the readers
+        if self.proj is None:
+            self.set_projection('+proj=latlong')
 
     def list_environment_variables(self):
         """Return list of all variables provided by the added readers."""
@@ -412,7 +422,7 @@ class OpenDriftSimulation(object):
                     logging.debug('Obtained data for all elements.')
                     break
                 else:
-                    logging.debug('Data missing for %i elements' %
+                    logging.debug('Data missing for %i elements:' %
                                   (len(missing_indices)))
 
             # Perform default action for particles missing env data
@@ -420,16 +430,18 @@ class OpenDriftSimulation(object):
                 for var in variable_group:
                     if var in self.fallback_values:
                         # Setting fallback value, presently only numeric
-                        logging.debug('Using fallback value for %s: %s'
+                        logging.debug('    Using fallback value for %s: %s'
                                       % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
                     else:
-                        logging.debug('%s values missing for %s' % (
+                        logging.debug('\t\t%s values missing for %s' % (
                             len(missing_indices), var))
         # Diagnostic output
+        logging.debug('------------ SUMMARY -------------')
         for var in variables:
-            logging.debug('\t%s: %f (min) %f (max)' %
+            logging.debug('    %s: %g (min) %g (max)' %
                           (var, env[var].min(), env[var].max()))
+        logging.debug('---------------------------------')
 
         # Prepare array indiciating which elements contain any invalid values
         missing = np.ma.masked_invalid(env[variables[0]]).mask

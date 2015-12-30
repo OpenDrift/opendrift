@@ -128,7 +128,6 @@ class Reader(object):
                 self.spl_angle =  LinearNDInterpolator(
                     (block_x.ravel(), block_y.ravel()),
                     self.angle_between_x_and_east.ravel(), fill_value=np.nan)    
-
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
             self.expected_time_steps = (
@@ -141,6 +140,37 @@ class Reader(object):
                 self.missing_time_steps = 0
             self.actual_time_steps = self.expected_time_steps - \
                 self.missing_time_steps
+
+        # Calculate shape (size) of domain
+        try:
+            numx = (self.xmax - self.xmin)/self.delta_x + 1
+            numy = (self.ymax - self.ymin)/self.delta_y + 1
+            self.shape = (int(numx), int(numy))
+        except:
+            self.shape = None
+
+        # Find typical pixel size (e.g. for calculating size of buffer)
+        if self.projected is True:
+            if hasattr(self, 'delta_x'):
+                typicalsize = self.delta_x
+            else:
+                typicalsize = None  # Pixel size not defined
+        else:
+            lons, lats = self.xy2lonlat([self.xmin, self.xmax],
+                                        [self.ymin, self.ymin])
+            typicalsize = lons
+            geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
+            dist = geod.inv(lons[0], lats[0],
+                            lons[1], lats[1], radians=False)[2]
+            typicalsize = dist/self.shape[0]
+        if typicalsize is not None and self.time_step is not None:
+            max_speed = 2  # Assumed max average speed of any element
+            self.buffer = np.int(np.ceil(max_speed*
+                                         self.time_step.total_seconds()/
+                                         typicalsize))
+            logging.debug('Setting buffer size %i for reader %s, assuming '
+                          'a maximum average speed of %g m/s.' %
+                          (self.buffer, self.name, max_speed))
 
     @abstractmethod
     def get_variables(self, variables, time=None,
@@ -186,7 +216,8 @@ class Reader(object):
         env = {}
         for var in block.keys():
             if not hasattr(block[var], 'ndim'):
-                logging.debug('Not interpolating ' + var)
+                if var not in ['x', 'y', 'z', 'time']:
+                    logging.debug('Not interpolating ' + var)
                 continue
 
             if block[var].ndim == 2:
@@ -267,9 +298,8 @@ class Reader(object):
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
             self.nearest_time(time)
-        logging.debug('Reader time:\n\t%s (nearest)\n\t%s '
-                      '(before)\n\t%s (after)' %
-                      (time_nearest, time_before, time_after))
+        logging.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
+                      (time_before, time_after))
         if time == time_before:
             time_after = None
         # Check which particles are covered (indep of time)
@@ -352,7 +382,11 @@ class Reader(object):
                     reader_y_min < y_before.min() or
                     reader_y_max > y_before.max()):
                 logging.debug('Some elements not covered by before-block')
-                #update  # to be implemented
+                raise ValueError(50*'#' + '\nWARNING: data block from reader '
+                                 'not large enough to cover element positions '
+                                 ' within timestep. '
+                                 'Code must be updated\n' + 50*'#')
+                #update block_before # to be implemented
             else:
                 logging.debug('All elements covered by before-block')
             if (reader_x_min < x_after.min() or
@@ -360,9 +394,14 @@ class Reader(object):
                     reader_y_min < y_after.min() or
                     reader_y_max > y_after.max()):
                 logging.debug('Some elements not covered by after-block')
-                #update  # to be implemented
+                raise ValueError(50*'#' + '\nWARNING: data block from reader '
+                                 'not large enough to cover element positions '
+                                 ' within timestep. '
+                                 'Code must be updated\n' + 50*'#')
+                #update block_after # to be implemented
             else:
                 logging.debug('All elements covered by after-block')
+
             # Interpolate before/after onto particles in space
             #   x-y
             logging.debug('Interpolating before (%s) in space' %
@@ -381,8 +420,8 @@ class Reader(object):
         if (time_after is not None) and (time_before != time):
             weight = ((time - time_before).total_seconds() /
                       (time_after - time_before).total_seconds())
-            logging.debug(('Interpolating before (%s, weight %f) and '
-                          'after (%s, weight %f) in time') %
+            logging.debug(('Interpolating before (%s, weight %.2f) and'
+                           '\n\t\t      after (%s, weight %.2f) in time') %
                           (self.var_block_before[str(variables)]['time'],
                            1 - weight,
                            self.var_block_after[str(variables)]['time'],
@@ -451,8 +490,8 @@ class Reader(object):
             # If first coordinate system does not have a proj4 definition,
             # we need an array of angles to first rotate vectors to east-north
             rot_angle_cs_rad = from_angle_between_x_and_east
-            logging.debug('Rotating coordinate system between %s and %s '
-                           'degrees for east-north alignment.' %
+            logging.debug('Rotating coordinate system between '
+                          '%.1f and %.1f degrees.' %
                           (np.degrees(from_angle_between_x_and_east).min(),
                            np.degrees(from_angle_between_x_and_east).max()))
             proj_from = pyproj.Proj('+proj=latlong')
@@ -733,16 +772,35 @@ class Reader(object):
         maxIndex = (self.z >= z.max()).argmax()
         return minIndex, maxIndex
 
+    def domain_grid(self, npoints=1000):
+        """Return arrays of lon,lat points spread evenly over reader domain."""
+        numx = np.floor(np.sqrt(npoints))
+        numy = np.floor(np.sqrt(npoints))
+        x = np.linspace(self.xmin, self.xmax - self.delta_x, numx)
+        y = np.linspace(self.ymin, self.ymax - self.delta_y, numy)
+        x, y = np.meshgrid(x, y)
+        lons, lats = self.xy2lonlat(x, y)
+        return lons, lats
+
+
+
     def __repr__(self):
         """String representation of the current reader."""
         outStr = '===========================\n'
         outStr += 'Reader: ' + self.name + '\n'
         outStr += 'Projection: \n  ' + self.proj4 + '\n'
         outStr += 'Coverage: \n'
-        outStr += '  xmin: %f   xmax: %f   step: %f\n' % \
-            (self.xmin, self.xmax, self.delta_x or 0)
-        outStr += '  ymin: %f   ymax: %f   step: %f\n' % \
-            (self.ymin, self.ymax, self.delta_y or 0)
+        shape = self.shape
+        if shape is None:
+            outStr += '  xmin: %f   xmax: %f\n' % (self.xmin, self.xmax)
+            outStr += '  ymin: %f   ymax: %f\n' % (self.ymin, self.ymax)
+        else:
+            outStr += '  xmin: %f   xmax: %f   step: %g   numx: %i\n' % \
+                (self.xmin, self.xmax, self.delta_x or 0, shape[0])
+            outStr += '  ymin: %f   ymax: %f   step: %g   numy: %i\n' % \
+                (self.ymin, self.ymax, self.delta_y or 0, shape[1])
+        if self.projected is False:
+            outStr += '  unit: pixels\n'
         corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
                                  [self.ymax, self.ymin, self.ymax, self.ymin])
         outStr += '  Corners (lon, lat):\n'

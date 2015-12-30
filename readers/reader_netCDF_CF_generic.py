@@ -167,7 +167,7 @@ class Reader(Reader):
             indy = len(self.y) - indy
         if block is True:
             # Adding buffer, to cover also future positions of elements
-            buffer = 8
+            buffer = self.buffer
             indx = np.arange(np.max([0, indx.min()-buffer]),
                              np.min([indx.max()+buffer, self.numx]))
             indy = np.arange(np.max([0, indy.min()-buffer]),

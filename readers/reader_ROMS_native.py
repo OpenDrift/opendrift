@@ -123,7 +123,7 @@ class Reader(Reader):
 
         if block is True:
             # Adding buffer, to cover also future positions of elements
-            buffer = 8
+            buffer = self.buffer
             indx = np.arange(np.max([0, indx.min()-buffer]),
                              np.min([indx.max()+buffer, self.lon.shape[1]]))
             indy = np.arange(np.max([0, indy.min()-buffer]),
@@ -163,6 +163,9 @@ class Reader(Reader):
         # Return coordinate system orientation, for vector rotation
         variables['angle_between_x_and_east'] = \
             np.degrees(self.angle_between_x_and_east[np.meshgrid(indy, indx)])
+
+        if 'land_binary_mask' in variables.keys():
+            variables['land_binary_mask'] = 1 - variables['land_binary_mask']
 
         # Store coordinates of returned points
         try:

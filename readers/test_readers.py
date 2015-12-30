@@ -18,10 +18,10 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
+import os
 
 import numpy as np
 
-from elements import LagrangianArray
 import reader_netCDF_CF_generic
 import reader_ROMS_native
 
@@ -33,8 +33,9 @@ class TestReaders(unittest.TestCase):
         """Check reader functionality."""
         readers = [reader_netCDF_CF_generic.Reader(
             'test_data/norkyst800_subset_16Nov2015.nc')]
-        readers.append(reader_ROMS_native.Reader(
-            '/disk2/data/roms/ocean_his_0170.nc'))
+        if os.path.exists('/disk2/data/roms/ocean_his_0170.nc'):
+            readers.append(reader_ROMS_native.Reader(
+                '/disk2/data/roms/ocean_his_0170.nc'))
         for r in readers:
             print r
             # Make four points:
