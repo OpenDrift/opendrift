@@ -164,10 +164,10 @@ class Reader(object):
                             lons[1], lats[1], radians=False)[2]
             typicalsize = dist/self.shape[0]
         if typicalsize is not None and self.time_step is not None:
-            max_speed = 2  # Assumed max average speed of any element
+            max_speed = 5  # Assumed max average speed of any element
             self.buffer = np.int(np.ceil(max_speed*
                                          self.time_step.total_seconds()/
-                                         typicalsize))
+                                         typicalsize)) + 2
             logging.debug('Setting buffer size %i for reader %s, assuming '
                           'a maximum average speed of %g m/s.' %
                           (self.buffer, self.name, max_speed))
@@ -377,12 +377,25 @@ class Reader(object):
             y_before = self.var_block_before[str(variables)]['y']
             x_after = self.var_block_after[str(variables)]['x']
             y_after = self.var_block_after[str(variables)]['y']
+
+            # Debug-plot to check how blocks cover elements
+            #import matplotlib.patches as patches
+            #import matplotlib.pyplot as plt
+            #fig = plt.figure()
+            #ax1 = fig.add_subplot(111, aspect='equal')
+            #ax1.add_patch(patches.Rectangle((self.xmin, self.ymin), self.xmax-self.xmin, self.ymax-self.ymin, alpha=0.1, color='red'))
+            #ax1.add_patch(patches.Rectangle((x_before.min(), y_before.min()), x_before.max()-x_before.min(), y_before.max()-y_before.min(), alpha=0.1))
+            #ax1.plot(reader_x, reader_y, '.')
+            #plt.show()
+
             if (reader_x_min < x_before.min() or
                     reader_x_max > x_before.max() or
                     reader_y_min < y_before.min() or
                     reader_y_max > y_before.max()):
                 logging.debug('Some elements not covered by before-block')
-                raise ValueError(50*'#' + '\nWARNING: data block from reader '
+                print 'x-block [%s to %s] : elements [%s to %s]' % (x_before.min(), x_before.max(), reader_x_min, reader_x_max)
+                print 'y-block [%s to %s] : elements [%s to %s]' % (y_before.min(), y_before.max(), reader_y_min, reader_y_max)
+                print (50*'#' + '\nWARNING: data block from reader '
                                  'not large enough to cover element positions '
                                  ' within timestep. '
                                  'Code must be updated\n' + 50*'#')
@@ -394,7 +407,9 @@ class Reader(object):
                     reader_y_min < y_after.min() or
                     reader_y_max > y_after.max()):
                 logging.debug('Some elements not covered by after-block')
-                raise ValueError(50*'#' + '\nWARNING: data block from reader '
+                print 'x-block [%s to %s] : elements [%s to %s]' % (x_after.min(), x_after.max(), reader_x_min, reader_x_max)
+                print 'y-block [%s to %s] : elements [%s to %s]' % (y_after.min(), y_after.max(), reader_y_min, reader_y_max)
+                print (50*'#' + '\nWARNING: data block from reader '
                                  'not large enough to cover element positions '
                                  ' within timestep. '
                                  'Code must be updated\n' + 50*'#')
