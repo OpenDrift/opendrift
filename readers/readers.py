@@ -804,7 +804,16 @@ class Reader(object):
         outStr = '===========================\n'
         outStr += 'Reader: ' + self.name + '\n'
         outStr += 'Projection: \n  ' + self.proj4 + '\n'
-        outStr += 'Coverage: \n'
+        if self.proj.is_latlong():
+            if self.projected is False:
+                outStr += 'Coverage: [pixels]\n'
+            else:
+                outStr += 'Coverage: [degrees]\n'
+        else:
+            if self.projected is False:
+                outStr += 'Coverage: [pixels]\n'
+            else:
+                outStr += 'Coverage: [m]\n'
         shape = self.shape
         if shape is None:
             outStr += '  xmin: %f   xmax: %f\n' % (self.xmin, self.xmax)
@@ -814,8 +823,6 @@ class Reader(object):
                 (self.xmin, self.xmax, self.delta_x or 0, shape[0])
             outStr += '  ymin: %f   ymax: %f   step: %g   numy: %i\n' % \
                 (self.ymin, self.ymax, self.delta_y or 0, shape[1])
-        if self.projected is False:
-            outStr += '  unit: pixels\n'
         corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
                                  [self.ymax, self.ymin, self.ymax, self.ymin])
         outStr += '  Corners (lon, lat):\n'
@@ -831,7 +838,11 @@ class Reader(object):
              corners[1][3])
         if hasattr(self, 'z'):
             np.set_printoptions(suppress=True)
-            outStr += 'Depths [m]: \n  ' + str(self.z) + '\n'
+            outStr += 'Vertical levels [m]: \n  ' + str(self.z) + '\n'
+        elif hasattr(self, 'sigma'):
+            outStr += 'Vertical levels [sigma]: \n  ' + str(self.sigma) + '\n'
+        else:
+            outStr += 'Vertical levels [m]: \n  Not specified\n'
         outStr += 'Available time range:\n'
         outStr += '  start: ' + str(self.start_time) + \
                   '   end: ' + str(self.end_time) + \

@@ -62,8 +62,8 @@ class Reader(Reader):
         theta_s = self.Dataset.variables['theta_s'][:]
         theta_b = self.Dataset.variables['theta_b'][:]
         Tcline = self.Dataset.variables['Tcline'][:]
-        s_rho = self.Dataset.variables['s_rho'][:]
-        self.num_layers = len(s_rho)
+        self.sigma = self.Dataset.variables['s_rho'][:]
+        self.num_layers = len(self.sigma)
 
         # Horizontal oordinates and directions
         self.lat = self.Dataset.variables['lat_rho'][:]

@@ -40,6 +40,8 @@ if __name__ == '__main__':
     parser.add_argument('-p', dest='variable',
                         default='noplot', nargs='?',
                         help='Plot domain (or variable if given)')
+    parser.add_argument('-e', action='store_true',
+                        help='Report errors on failure.')
 
     args = parser.parse_args()
 
@@ -50,11 +52,12 @@ if __name__ == '__main__':
             print r
             break
         except Exception as me:
-            #print me
-            #import traceback
-            #print traceback.format_exc()
+            if args.e is True:
+                print me
+                import traceback
+                print traceback.format_exc()
+                print '---------------------------------------'
             print '...not applicable.'
-            #print '---------------------------------------'
 
     if not 'r' in locals():            
         sys.exit('No readers applicable for ' + args.filename)

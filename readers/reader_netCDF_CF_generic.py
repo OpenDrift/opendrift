@@ -101,7 +101,10 @@ class Reader(Reader):
                 y = var[:]*unitfactor
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
-                self.z = var[:]
+                if var.getncattr('positive') == 'up':
+                    self.z = var[:]
+                else:
+                    self.z = -var[:]
             if standard_name == 'time' or axis == 'T' or var_name == 'time':
                 # Read and store time coverage (of this particular file)
                 time = var[:]
