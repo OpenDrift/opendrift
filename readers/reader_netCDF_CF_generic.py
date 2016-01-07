@@ -155,10 +155,15 @@ class Reader(Reader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        try:
-            ind_z = self.index_of_closest_z(z)[0]
-        except:
-            ind_z = 0  # For datasets with no vertical dimension
+        if hasattr(self, 'z'):
+            # Find z-index range
+            # NB: may need to flip if self.z is ascending
+            indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
+            indz = np.arange(np.max(0, indices.min() - 1), indices.max() + 1)
+            if len(indz) == 1:
+                indz = indz[0]  # Extract integer to read only one layer
+        else:
+            indz = 0
 
         # Find indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
@@ -189,8 +194,7 @@ class Reader(Reader):
             elif var.ndim == 3:
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
-                # Temporarily neglecting z
-                variables[par] = var[indxTime, 0, indy, indx]  # NB 0 was 1
+                variables[par] = var[indxTime, indz, indy, indx]
             else:
                 raise Exception('Wrong dimension of variable: '
                                 + self.variable_mapping[par])
@@ -207,7 +211,7 @@ class Reader(Reader):
 
         # Store coordinates of returned points
         try:
-            variables['z'] = self.z[ind_z]
+            variables['z'] = self.z[indz]
         except:
             variables['z'] = None
         if block is True:

@@ -19,7 +19,7 @@ import importlib
 import logging
 from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
-from scipy.interpolate import RectBivariateSpline, LinearNDInterpolator
+from scipy.interpolate import interp1d, LinearNDInterpolator
 from scipy.spatial import KDTree
 from scipy.ndimage import map_coordinates
 import numpy as np
@@ -212,13 +212,27 @@ class Reader(object):
         if self.interpolation not in interpolation_methods:
             raise ValueError('Interpolation method %s not available, '
                              ' alternatives are: %s' % (self.interpolation,
-                                                        interpolation_methods))
+                             interpolation_methods))
+
+        if self.interpolation == 'ndimage':
+            xMin = block['x'].min()
+            xMax = block['x'].max()
+            yMin = block['y'].min()
+            yMax = block['y'].max()
+            xi = (x - xMin)/(xMax-xMin)*len(block['x'])
+            yi = (y - yMin)/(yMax-yMin)*len(block['y'])
         env = {}
+
         for var in block.keys():
             if not hasattr(block[var], 'ndim'):
                 if var not in ['x', 'y', 'z', 'time']:
                     logging.debug('Not interpolating ' + var)
                 continue
+
+            # If we have a 3D block with a single layer, we remove
+            # singular dimension to omit unnecessary vertical interpolation
+            if block[var].ndim == 3:
+                block[var] = np.squeeze(block[var])
 
             if block[var].ndim == 2:
                 if self.interpolation == 'linearND':
@@ -235,28 +249,47 @@ class Reader(object):
                                                 data.ravel()[valid])
                     env[var] = spl(y, x)  # Evaluate at positions
 
-                if self.interpolation == 'KDTree':
-                    # Make and use KDTree for interpolation
-                    tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
-                    d,p = tree.query(zip(x,y), k=1) #nearest point, gives
-                                                    #distance and point index
-                    ## NB - or transpose array first ?
-                    env[var] = block[var].ravel()[p]
+                #if self.interpolation == 'KDTree':
+                #    # Make and use KDTree for interpolation
+                #    tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
+                #    d,p = tree.query(zip(x,y), k=1) #nearest point, gives
+                #                                    #distance and point index
+                #    ## NB - or transpose array first ?
+                #    env[var] = block[var].ravel()[p]
 
                 if self.interpolation == 'ndimage':
-                    xMin = block['x'].min()
-                    xMax = block['x'].max()
-                    yMin = block['y'].min()
-                    yMax = block['y'].max()
-                    xi = (x - xMin)/(xMax-xMin)*len(block['x'])
-                    yi = (y - yMin)/(yMax-yMin)*len(block['y'])
                     bl = block[var]
                     bl[bl.mask] = np.nan
                     env[var] = map_coordinates(bl, [yi, xi],
                                                cval=np.nan, order=1)
 
             elif block[var].ndim == 3:
-                raise ValueError('Not yet implemented')
+                # First interpolate each layer horizontally to x,y
+                num_layers = block[var].shape[0]
+                env3D = np.ma.zeros((num_layers, len(x)))
+                env3D[:] = np.ma.masked
+                bl = block[var]
+                bl[bl.mask] = np.nan
+                for zi in range(num_layers):
+                    # Interpolate each layer horizontally
+                    env3D[zi,:] = map_coordinates(bl[zi,:,:], [yi, xi],
+                                                  cval=np.nan, order=1)
+                # Linear interpolation with depth for each element
+                zb = block['z']
+                Z = z
+                zi = range(len(zb))
+                if zb[1] < zb[0]:
+                    # interp1d needs monotonically increasing values
+                    zb = -zb
+                    Z = -Z
+                z_index = interp1d(zb, zi)  # Interpolator depth -> index
+                zi = z_index(Z)  # Find decimal indices corresponding to z
+                # Calculate weighted average of layers above and below
+                upper = np.floor(zi).astype(np.int) 
+                weight_upper = zi - upper
+                env[var] = \
+                    (env3D[upper, range(env3D.shape[1])]*weight_upper +
+                     env3D[upper+1, range(env3D.shape[1])]*(1-weight_upper))
         return env
 
     def get_variables_wrapper(self, variables, time, x, y, z, block):
