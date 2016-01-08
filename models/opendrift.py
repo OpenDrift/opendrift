@@ -1034,7 +1034,7 @@ class OpenDriftSimulation(object):
 
 
 
-    def plot(self, background=None, buffer=.5,
+    def plot(self, background=None, buffer=.5, linecolor=None,
              filename=None, drifter_file=None, show=True):
         """Basic built-in plotting function intended for developing/debugging.
 
@@ -1063,8 +1063,34 @@ class OpenDriftSimulation(object):
         alpha = min_alpha**(2*(self.num_elements_total()-1)/(max_elements-1))
         alpha = np.max((min_alpha, alpha))
         if hasattr(self, 'history'):
-            map.plot(x.T, y.T, color='gray', alpha=alpha)  # Plot trajectories
-        # NB: should check that endpoints are always included
+            # Plot trajectories
+            if linecolor is None:
+                map.plot(x.T, y.T, color='gray', alpha=alpha)
+            else:
+                # Color lines according to given parameter
+                try:
+                    param = self.history[linecolor]
+                except:
+                    raise ValueError('Available parameters to be used for '
+                        'linecolors: ' + str(self.history.dtype.fields))
+                from matplotlib.collections import LineCollection
+                for i in range(x.shape[0]):
+                    points = np.array([x[i,:].T, y[i,:].T]).T.reshape(-1, 1, 2)
+                    segments = np.concatenate([points[:-1], points[1:]],
+                                              axis=1)
+                    lc = LineCollection(segments,
+                                        cmap=plt.get_cmap('Spectral'),
+                                        norm=plt.Normalize(param.min(),
+                                                           param.max()))
+                    lc.set_array(param.T[:,i])
+                    plt.gca().add_collection(lc)
+                axcb = plt.colorbar(lc)
+                try:  # Add unit to colorbar if available
+                    colorbarstring = linecolor + '  [%s]' % \
+                        (self.history_metadata[linecolor]['units'])
+                except:
+                    colorbarstring = linecolor
+                axcb.set_label(colorbarstring)
 
         map.scatter(x[range(x.shape[0]), index_of_first],
                     y[range(x.shape[0]), index_of_first],

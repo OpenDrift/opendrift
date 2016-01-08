@@ -30,7 +30,6 @@ time = reader_arome.start_time
 # Seed elements at defined position and time
 import numpy as np
 z = -np.random.rand(1000)*50  # Giving elements a random depth
-z=0
 o.seed_elements(lon, lat, z=z, radius=0, number=1000, time=time)
 
 print o
@@ -45,9 +44,9 @@ o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=60*2, time_step=1800, outfile='openoil.nc')
+o.run(steps=66*2, time_step=1800, outfile='openoil.nc')
 
 # Print and plot results
 print o
+o.plot(linecolor='z')  # Color lines according to depth
 o.animation()
-o.plot()
