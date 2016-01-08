@@ -159,7 +159,10 @@ class Reader(Reader):
             # Find z-index range
             # NB: may need to flip if self.z is ascending
             indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
-            indz = np.arange(np.max(0, indices.min() - 1), indices.max() + 1)
+            indz = np.arange(np.maximum(0, indices.min() - 1
+                                        - self.verticalbuffer),
+                             np.minimum(len(self.z), indices.max() + 1
+                                        + self.verticalbuffer))
             if len(indz) == 1:
                 indz = indz[0]  # Extract integer to read only one layer
         else:

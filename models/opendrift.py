@@ -1075,14 +1075,16 @@ class OpenDriftSimulation(object):
                         'linecolors: ' + str(self.history.dtype.fields))
                 from matplotlib.collections import LineCollection
                 for i in range(x.shape[0]):
-                    points = np.array([x[i,:].T, y[i,:].T]).T.reshape(-1, 1, 2)
+                    vind = np.arange(index_of_first[i], index_of_last[i] + 1)
+                    points = np.array([x[i,vind].T, y[i,vind].T]).T.reshape(-1, 1, 2)
                     segments = np.concatenate([points[:-1], points[1:]],
                                               axis=1)
                     lc = LineCollection(segments,
                                         cmap=plt.get_cmap('Spectral'),
                                         norm=plt.Normalize(param.min(),
                                                            param.max()))
-                    lc.set_array(param.T[:,i])
+                    #lc.set_linewidth(3)
+                    lc.set_array(param.T[vind,i])
                     plt.gca().add_collection(lc)
                 axcb = plt.colorbar(lc)
                 try:  # Add unit to colorbar if available

@@ -59,6 +59,23 @@ class fakeproj():
         # Simply return x and y since these are also row/column indices
         return x, y
 
+def extrap1d(interpolator):
+    # For extrapolation (e.g. towards seafloor), not permitted by interp1d
+    xs = interpolator.x
+    ys = interpolator.y
+
+    def pointwise(x):
+        if x < xs[0]:
+            return ys[0]+(x-xs[0])*(ys[1]-ys[0])/(xs[1]-xs[0])
+        elif x > xs[-1]:
+            return ys[-1]+(x-xs[-1])*(ys[-1]-ys[-2])/(xs[-1]-xs[-2])
+        else:
+            return interpolator(x)
+
+    def ufunclike(xs):
+        return np.array(map(pointwise, np.array(xs)))
+
+    return ufunclike
 
 class Reader(object):
     """Parent Reader class, to be subclassed by specific readers.
@@ -172,6 +189,8 @@ class Reader(object):
                           'a maximum average speed of %g m/s.' %
                           (self.buffer, self.name, max_speed))
 
+        self.verticalbuffer = 0  # To be overridden by application as needed
+
     @abstractmethod
     def get_variables(self, variables, time=None,
                       x=None, y=None, z=None, block=False):
@@ -283,7 +302,9 @@ class Reader(object):
                     zb = -zb
                     Z = -Z
                 z_index = interp1d(zb, zi)  # Interpolator depth -> index
+                z_index = extrap1d(z_index)  # Make extrapolator, see above
                 zi = z_index(Z)  # Find decimal indices corresponding to z
+                zi[zi>=num_layers-1] = num_layers - 2  # Use bottom layer below
                 # Calculate weighted average of layers above and below
                 upper = np.floor(zi).astype(np.int) 
                 weight_upper = zi - upper
