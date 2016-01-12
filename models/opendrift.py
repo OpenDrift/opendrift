@@ -99,6 +99,9 @@ class OpenDriftSimulation(object):
 
     configspec = ''  # Default (empty) configuration options, to be overriden
 
+    required_profiles = None  # Optional possibility to get vertical profiles
+    required_profiles_z_range = None  # [min_depth, max_depth]
+
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  outfile=None, loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
@@ -331,7 +334,7 @@ class OpenDriftSimulation(object):
 
         return variable_groups, reader_groups, missing_variables
 
-    def get_environment(self, variables, time, lon, lat, z):
+    def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
 
         Updates:
@@ -381,9 +384,24 @@ class OpenDriftSimulation(object):
                 try:
                     logging.debug('Data needed for %i elements' %
                                   len(missing_indices))
-                    env_tmp = reader.get_variables_from_buffer(
-                        variable_group, time, lon[missing_indices],
-                        lat[missing_indices], z, self.use_block, self.proj)
+                    # Check if vertical profiles are requested from reader
+                    if self.required_profiles is not None:
+                        profiles_from_reader = list(
+                            set(variable_group) & set(self.required_profiles))
+                        if profiles_from_reader == []:
+                            profiles_from_reader = None
+                    else:
+                        profiles_from_reader = None
+                    env_tmp, env_profiles_tmp = \
+                        reader.get_variables_from_buffer(
+                            variable_group, profiles_from_reader,
+                            self.required_profiles_z_range, time,
+                            lon[missing_indices], lat[missing_indices],
+                            z, self.use_block, self.proj)
+
+                    if env_profiles_tmp is not None:
+                        env_profiles = env_profiles_tmp
+
                 except Exception as e:
                     logging.info('========================')
                     logging.info('Exception:')
@@ -451,7 +469,10 @@ class OpenDriftSimulation(object):
                                     shrink=False)
 
         # Convert dictionary to recarray and return
-        return env.view(np.recarray), missing
+        if 'env_profiles' not in locals():
+            env_profiles = None
+
+        return env.view(np.recarray), env_profiles, missing
 
     def num_elements_active(self):
         """The number of active elements."""
@@ -798,12 +819,13 @@ class OpenDriftSimulation(object):
                 logging.debug('%s elements scheduled.' %
                               self.num_elements_scheduled())
                 logging.debug('==================================='*2)
-                self.environment, missing = \
+                self.environment, self.environment_profiles, missing = \
                     self.get_environment(self.required_variables,
                                          self.time,
                                          self.elements.lon,
                                          self.elements.lat,
-                                         self.elements.z)
+                                         self.elements.z,
+                                         self.required_profiles)
 
                 self.deactivate_elements(missing, reason='missing_data')
 

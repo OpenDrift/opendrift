@@ -66,9 +66,21 @@ class PelagicEggDrift(OpenDrift3DSimulation):
                           'x_wind', 'y_wind', 'land_binary_mask',
                           'sea_floor_depth_below_sea_level',
                           'ocean_vertical_diffusivity',
-                          'sea_water_temperature', 'sea_water_salinity'
+                          'sea_water_temperature',
+                          'sea_water_salinity'
                           #'upward_sea_water_velocity'
                          ]
+
+    # Vertical profiles of the following parameters will be available in
+    # dictionary self.environment.vertical_profiles
+    # E.g. self.environment_profiles['x_sea_water_velocity']
+    # will be an array of size [vertical_levels, num_elements]
+    # The vertical levels are available as
+    # self.environment_profiles['z'] or
+    # self.environment_profiles['sigma'] (not yet implemented) 
+    required_profiles = ['sea_water_salinity', 'sea_water_temperature']
+    required_profiles_z_range = [-50, 0]  # The depth range (in m) which
+                                          # profiles shall cover
 
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
@@ -183,6 +195,20 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         # wind speed can also be used to parameterize eddy diffusivity
         windspeed = np.sqrt(self.environment.x_wind**2 +
                             self.environment.y_wind**2)
+
+        # For illustration: plot vertical profile of for element number 10
+        if self.steps == 5:  # We plot profile at a single timestep only
+            import matplotlib.pyplot as plt
+            param = self.required_profiles[0]  # take the first one
+            plt.plot(self.environment_profiles[param][:,10],
+                     self.environment_profiles['z'], '-*')
+            plt.ylabel('Depth  [m]')
+            plt.xlabel(param)
+            plt.title('%s  (%fN, %fE)' % (self.time, self.elements.lat[10],
+                                        self.elements.lon[10]))
+            plt.gca().set_yticks(self.environment_profiles['z'])
+            plt.grid('on')
+            plt.show()
 
         ###################
         # Turbulent Mixing

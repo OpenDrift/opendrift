@@ -97,6 +97,7 @@ class Reader(object):
     # Mapping variable names, e.g. from east-north to x-y, temporarily
     # presuming coordinate system then is lon-lat for equivalence
     variable_aliases = {
+        'sea_water_potential_temperature': 'sea_water_temperature',
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward_tidal_current': 'x_sea_water_velocity',
@@ -224,7 +225,7 @@ class Reader(object):
                         interpolation in space and time.
         """
 
-    def interpolate_block(self, block, x, y, z=None):
+    def interpolate_block(self, block, x, y, z=None, profiles=None):
         """Interpolating a 2D or 3D block onto given positions."""
 
         interpolation_methods = ['linearND', 'ndimage', 'KDTree']
@@ -240,7 +241,12 @@ class Reader(object):
             yMax = block['y'].max()
             xi = (x - xMin)/(xMax-xMin)*len(block['x'])
             yi = (y - yMin)/(yMax-yMin)*len(block['y'])
+
         env = {}
+        if profiles is not None:
+            env_profiles = {}
+        else:
+            env_profiles = None
 
         for var in block.keys():
             if not hasattr(block[var], 'ndim'):
@@ -311,15 +317,29 @@ class Reader(object):
                 env[var] = \
                     (env3D[upper, range(env3D.shape[1])]*weight_upper +
                      env3D[upper+1, range(env3D.shape[1])]*(1-weight_upper))
-        return env
 
-    def get_variables_wrapper(self, variables, time, x, y, z, block):
+                if profiles is not None and var in profiles:
+                    env_profiles[var] = env3D
+                    env_profiles['z'] = block['z']
+
+        return env, env_profiles
+
+    def get_variables_wrapper(self, variables, profiles, profiles_depth,
+                              time, x, y, z, block):
         """Wrapper around reader-specific function get_variables()
 
         Performs some common operations which should not be duplicated:
         - monitor time spent by this reader
         - convert any numpy arrays to masked arrays
         """
+
+        if profiles is not None and block is True:
+            # If profiles are requested for any parameters, we
+            # add two fake points at the end of array to make sure that the 
+            # requested block has the depth range required for profiles
+            x = np.append(x, [x[-1], x[-1]])
+            y = np.append(y, [y[-1], y[-1]])
+            z = np.append(z, [profiles_depth[0], profiles_depth[1]])
         env = self.get_variables(variables, time, x, y, z, block)
 
         # Convert any numpy arrays to masked arrays
@@ -334,7 +354,8 @@ class Reader(object):
 
         return env
 
-    def get_variables_from_buffer(self, variables, time=None,
+    def get_variables_from_buffer(self, variables, profiles=None,
+                                  profiles_depth=None, time=None,
                                   lon=None, lat=None, z=None,
                                   block=False, rotate_to_proj=None):
         """Wrapper around get_variables(), reading from buffer if available.
@@ -343,8 +364,11 @@ class Reader(object):
         - horizontally (x-y, bilinear)
         - vertically (z, TBD)
         - time (linear)
-
         """
+
+        #################################################################
+        # This has become a very long and messy function. Needs cleaning.
+        #################################################################
 
         # Raise error if not not within time
         if not self.covers_time(time):
@@ -369,12 +393,16 @@ class Reader(object):
         reader_y_max = reader_y.max()
 
         if block is False or self.return_block is False:
-            env_before = self.get_variables_wrapper(variables, time_before,
+            env_before = self.get_variables_wrapper(variables, profiles,
+                                                    profiles_depth,
+                                                    time_before,
                                                     reader_x, reader_y, z,
                                                     block=block)
             logging.debug('Fetched env-before')
             if time_after is not None:
-                env_after = self.get_variables_wrapper(variables, time_after,
+                env_after = self.get_variables_wrapper(variables, profiles,
+                                                       profiles_depth,
+                                                       time_after,
                                                        reader_x, reader_y,
                                                        z, block=block)
                 logging.debug('Fetched env-after')
@@ -401,14 +429,19 @@ class Reader(object):
                     (self.var_block_before[str(variables)]['time']
                         != time_before):
                 self.var_block_before[str(variables)] = \
-                    self.get_variables_wrapper(variables, time_before,
+                    self.get_variables_wrapper(variables, profiles,
+                                               profiles_depth, time_before,
                                                reader_x, reader_y, z,
                                                block=block)
-                logging.debug(('Fetched env-block (size %ix%i) ' +
+                try:
+                    len_z = len(self.var_block_before[str(variables)]['z'])
+                except:
+                    len_z = 1
+                logging.debug(('Fetched env-block (size %ix%ix%i) ' +
                               'for time before (%s)') %
                               (len(self.var_block_before[str(variables)]['x']),
                                len(self.var_block_before[str(variables)]['y']),
-                               time_before))
+                               len_z, time_before))
             if not str(variables) in self.var_block_after or \
                     self.var_block_after[str(variables)]['time'] != time_after:
                 if time_after is None:
@@ -416,16 +449,22 @@ class Reader(object):
                         self.var_block_before[str(variables)]
                 else:
                     self.var_block_after[str(variables)] = \
-                        self.get_variables_wrapper(variables, time_after,
+                        self.get_variables_wrapper(variables, profiles,
+                                                   profiles_depth, time_after,
                                                    reader_x, reader_y, z,
                                                    block=block)
-                    logging.debug(('Fetched env-block (size %ix%i) ' +
+                    try:
+                        len_z = len(self.var_block_after[str(variables)]['z'])
+                    except:
+                        len_z = 1
+
+                    logging.debug(('Fetched env-block (size %ix%ix%i) ' +
                                   'for time after (%s)') %
-                                  (len(self.var_block_before[
+                                  (len(self.var_block_after[
                                        str(variables)]['x']),
-                                   len(self.var_block_before[
+                                   len(self.var_block_after[
                                        str(variables)]['y']),
-                                   time_after))
+                                   len_z, time_after))
             # check if buffer-block covers these particles
             x_before = self.var_block_before[str(variables)]['x']
             y_before = self.var_block_before[str(variables)]['y']
@@ -447,8 +486,10 @@ class Reader(object):
                     reader_y_min < y_before.min() or
                     reader_y_max > y_before.max()):
                 logging.debug('Some elements not covered by before-block')
-                print 'x-block [%s to %s] : elements [%s to %s]' % (x_before.min(), x_before.max(), reader_x_min, reader_x_max)
-                print 'y-block [%s to %s] : elements [%s to %s]' % (y_before.min(), y_before.max(), reader_y_min, reader_y_max)
+                print 'x-block [%s to %s] : elements [%s to %s]' % (
+                    x_before.min(), x_before.max(), reader_x_min, reader_x_max)
+                print 'y-block [%s to %s] : elements [%s to %s]' % (
+                    y_before.min(), y_before.max(), reader_y_min, reader_y_max)
                 print (50*'#' + '\nWARNING: data block from reader '
                                  'not large enough to cover element positions '
                                  ' within timestep. '
@@ -461,8 +502,10 @@ class Reader(object):
                     reader_y_min < y_after.min() or
                     reader_y_max > y_after.max()):
                 logging.debug('Some elements not covered by after-block')
-                print 'x-block [%s to %s] : elements [%s to %s]' % (x_after.min(), x_after.max(), reader_x_min, reader_x_max)
-                print 'y-block [%s to %s] : elements [%s to %s]' % (y_after.min(), y_after.max(), reader_y_min, reader_y_max)
+                print 'x-block [%s to %s] : elements [%s to %s]' % (
+                    x_after.min(), x_after.max(), reader_x_min, reader_x_max)
+                print 'y-block [%s to %s] : elements [%s to %s]' % (
+                    y_after.min(), y_after.max(), reader_y_min, reader_y_max)
                 print (50*'#' + '\nWARNING: data block from reader '
                                  'not large enough to cover element positions '
                                  ' within timestep. '
@@ -475,14 +518,16 @@ class Reader(object):
             #   x-y
             logging.debug('Interpolating before (%s) in space' %
                           (self.var_block_before[str(variables)]['time']))
-            env_before = self.interpolate_block(self.var_block_before[
-                                                str(variables)],
-                                                reader_x, reader_y, z)
+            env_before, env_profiles_before = \
+                self.interpolate_block(self.var_block_before[
+                                       str(variables)],
+                                       reader_x, reader_y, z, profiles)
             logging.debug('Interpolating after (%s) in space' %
                           (self.var_block_after[str(variables)]['time']))
-            env_after = self.interpolate_block(self.var_block_after[
-                                               str(variables)],
-                                               reader_x, reader_y, z)
+            env_after, env_profiles_after = \
+                self.interpolate_block(self.var_block_after[
+                                       str(variables)],
+                                       reader_x, reader_y, z, profiles)
             #   depth interpolation - TBD
 
         # Time interpolation
@@ -509,43 +554,64 @@ class Reader(object):
                         logging.info('Invalid values found for ' + var)
                         logging.info(env[var])
                         sys.exit('quitting')
+            if profiles is not None:
+                env_profiles = {}
+                logging.info('Interpolating profiles in time')
+                for var in env_profiles_before.keys():
+                    env_profiles[var] = (env_profiles_before[var]*(1 - weight)
+                                         + env_profiles_after[var]*weight)
+            else:
+                env_profiles = None
+
         else:
             logging.debug('No time interpolation needed - right on time.')
             env = env_before
 
         # Rotate vectors
         if rotate_to_proj is not None:
-            vector_pairs = []
-            for var in variables:
-                for vector_pair in vector_pairs_xy:
-                    if var in vector_pair:
-                        counterpart = list(set(vector_pair) - set([var]))[0]
-                        if counterpart in variables:
-                            vector_pairs.append(vector_pair)
-                        else:
-                            sys.exit('Missing component of vector pair:' +
-                                     counterpart)
-            # Extract unique vector pairs
-            vector_pairs = [list(x) for x in set(tuple(x)
-                            for x in vector_pairs)]
-            
-            if len(vector_pairs) > 0:
-                if self.projected is False:
-                    from_angle_between_x_and_east = \
-                        self.spl_angle(reader_x, reader_y)
-                else:
-                    from_angle_between_x_and_east = None
+            if rotate_to_proj.srs == self.proj.srs:
+                logging.debug('Reader SRS is the same as calculation SRS - '
+                              'rotation of vectors is not needed.')
+            else:
+                vector_pairs = []
+                for var in variables:
+                    for vector_pair in vector_pairs_xy:
+                        if var in vector_pair:
+                            counterpart = list(set(vector_pair) - set([var]))[0]
+                            if counterpart in variables:
+                                vector_pairs.append(vector_pair)
+                            else:
+                                sys.exit('Missing component of vector pair:' +
+                                         counterpart)
+                # Extract unique vector pairs
+                vector_pairs = [list(x) for x in set(tuple(x)
+                                for x in vector_pairs)]
+                
+                if len(vector_pairs) > 0:
+                    if self.projected is False:
+                        from_angle_between_x_and_east = \
+                            self.spl_angle(reader_x, reader_y)
+                    else:
+                        from_angle_between_x_and_east = None
 
-                for vector_pair in vector_pairs:
-                    env[vector_pair[0]], env[vector_pair[1]] = \
-                        self.rotate_vectors(reader_x, reader_y,
-                                            env[vector_pair[0]],
-                                            env[vector_pair[1]],
-                                            self.proj, rotate_to_proj,
-                                            from_angle_between_x_and_east=
-                                            from_angle_between_x_and_east)
+                    for vector_pair in vector_pairs:
+                        env[vector_pair[0]], env[vector_pair[1]] = \
+                            self.rotate_vectors(reader_x, reader_y,
+                                                env[vector_pair[0]],
+                                                env[vector_pair[1]],
+                                                self.proj, rotate_to_proj,
+                                                from_angle_between_x_and_east=
+                                                from_angle_between_x_and_east)
+                        if profiles is not None and vector_pair[0] in profiles:
+                            sys.exit('Rotating profiles of vectors '
+                                     'is not yet implemented')
 
-        return env
+        if profiles is not None and self.return_block is True:
+            env_profiles = env_profiles_before  # placeholder
+        else:
+            env_profiles = None
+
+        return env, env_profiles
 
     def rotate_vectors(self, reader_x, reader_y,
                        u_component, v_component,
