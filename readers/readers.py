@@ -59,6 +59,8 @@ class fakeproj():
         # Simply return x and y since these are also row/column indices
         return x, y
 
+    srs = 'None'
+
 def extrap1d(interpolator):
     # For extrapolation (e.g. towards seafloor), not permitted by interp1d
     xs = interpolator.x
@@ -225,7 +227,8 @@ class Reader(object):
                         interpolation in space and time.
         """
 
-    def interpolate_block(self, block, x, y, z=None, profiles=None):
+    def interpolate_block(self, block, x, y, z=None,
+                          profiles=None, profiles_depth=None):
         """Interpolating a 2D or 3D block onto given positions."""
 
         interpolation_methods = ['linearND', 'ndimage', 'KDTree']
@@ -313,14 +316,20 @@ class Reader(object):
                 zi[zi>=num_layers-1] = num_layers - 2  # Use bottom layer below
                 # Calculate weighted average of layers above and below
                 upper = np.floor(zi).astype(np.int) 
-                weight_upper = zi - upper
+                weight_upper = 1 - (zi - upper)
                 env[var] = \
                     (env3D[upper, range(env3D.shape[1])]*weight_upper +
                      env3D[upper+1, range(env3D.shape[1])]*(1-weight_upper))
 
                 if profiles is not None and var in profiles:
-                    env_profiles[var] = env3D
-                    env_profiles['z'] = block['z']
+                    # Return only profile for the requested depth
+                    profile_layers = \
+                        np.where(np.array(block['z'] >= np.min(profiles_depth)) &
+                                 np.array(block['z'] <= np.max(profiles_depth)))
+                    profile_layers = np.arange(profile_layers[0][0],
+                                               profile_layers[0][-1] + 1)
+                    env_profiles[var] = env3D[profile_layers,:]
+                    env_profiles['z'] = block['z'][profile_layers]
 
         return env, env_profiles
 
@@ -514,38 +523,43 @@ class Reader(object):
             else:
                 logging.debug('All elements covered by after-block')
 
-            # Interpolate before/after onto particles in space
-            #   x-y
+            ############################################################
+            # Interpolate before/after blocks onto particles in space
+            ############################################################
             logging.debug('Interpolating before (%s) in space' %
                           (self.var_block_before[str(variables)]['time']))
             env_before, env_profiles_before = \
                 self.interpolate_block(self.var_block_before[
                                        str(variables)],
-                                       reader_x, reader_y, z, profiles)
+                                       reader_x, reader_y, z,
+                                       profiles, profiles_depth)
             logging.debug('Interpolating after (%s) in space' %
                           (self.var_block_after[str(variables)]['time']))
             env_after, env_profiles_after = \
                 self.interpolate_block(self.var_block_after[
                                        str(variables)],
-                                       reader_x, reader_y, z, profiles)
-            #   depth interpolation - TBD
+                                       reader_x, reader_y, z,
+                                       profiles, profiles_depth)
 
+        #######################
         # Time interpolation
+        #######################
+        env_profiles = None
         if (time_after is not None) and (time_before != time):
-            weight = ((time - time_before).total_seconds() /
-                      (time_after - time_before).total_seconds())
+            weight_after = ((time - time_before).total_seconds() /
+                           (time_after - time_before).total_seconds())
             logging.debug(('Interpolating before (%s, weight %.2f) and'
                            '\n\t\t      after (%s, weight %.2f) in time') %
                           (self.var_block_before[str(variables)]['time'],
-                           1 - weight,
+                           1 - weight_after,
                            self.var_block_after[str(variables)]['time'],
-                           weight))
+                           weight_after))
             env = {}
             for var in variables:
                 # Weighting together, and masking invalid entries
                 env[var] = np.ma.masked_invalid((env_before[var] *
-                                                (1 - weight) +
-                                                env_after[var] * weight))
+                                                (1 - weight_after) +
+                                                env_after[var] * weight_after))
 
                 if var in standard_names.keys():
                     if (env[var].min() < standard_names[var]['valid_min']) \
@@ -554,20 +568,27 @@ class Reader(object):
                         logging.info('Invalid values found for ' + var)
                         logging.info(env[var])
                         sys.exit('quitting')
+            # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
                 logging.info('Interpolating profiles in time')
                 for var in env_profiles_before.keys():
-                    env_profiles[var] = (env_profiles_before[var]*(1 - weight)
-                                         + env_profiles_after[var]*weight)
+                    z = env_profiles_before['z']
+                    env_profiles[var] = (env_profiles_before[var]*
+                                         (1 - weight_after) +
+                                         env_profiles_after[var]*weight_after)
             else:
                 env_profiles = None
 
         else:
             logging.debug('No time interpolation needed - right on time.')
             env = env_before
+            if profiles is not None:
+                env_profiles = env_profiles_before
 
+        ####################
         # Rotate vectors
+        ####################
         if rotate_to_proj is not None:
             if rotate_to_proj.srs == self.proj.srs:
                 logging.debug('Reader SRS is the same as calculation SRS - '
@@ -605,11 +626,6 @@ class Reader(object):
                         if profiles is not None and vector_pair[0] in profiles:
                             sys.exit('Rotating profiles of vectors '
                                      'is not yet implemented')
-
-        if profiles is not None and self.return_block is True:
-            env_profiles = env_profiles_before  # placeholder
-        else:
-            env_profiles = None
 
         return env, env_profiles
 

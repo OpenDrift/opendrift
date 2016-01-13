@@ -78,7 +78,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
     # The vertical levels are available as
     # self.environment_profiles['z'] or
     # self.environment_profiles['sigma'] (not yet implemented) 
-    required_profiles = ['sea_water_salinity', 'sea_water_temperature']
+    required_profiles = ['sea_water_temperature', 'sea_water_salinity']
     required_profiles_z_range = [-50, 0]  # The depth range (in m) which
                                           # profiles shall cover
 
@@ -196,16 +196,20 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         windspeed = np.sqrt(self.environment.x_wind**2 +
                             self.environment.y_wind**2)
 
-        # For illustration: plot vertical profile of for element number 10
+        # For illustration: plot vertical profile for a single element
         if self.steps == 5:  # We plot profile at a single timestep only
             import matplotlib.pyplot as plt
             param = self.required_profiles[0]  # take the first one
-            plt.plot(self.environment_profiles[param][:,10],
+            elem_num = 0
+            plt.plot(self.environment_profiles[param][:,elem_num],
                      self.environment_profiles['z'], '-*')
+            plt.plot(self.environment[param][elem_num],
+                     self.elements.z[elem_num], 'r*', markersize=15)
             plt.ylabel('Depth  [m]')
             plt.xlabel(param)
-            plt.title('%s  (%fN, %fE)' % (self.time, self.elements.lat[10],
-                                        self.elements.lon[10]))
+            plt.title('%s  (%fN, %fE)' %
+                        (self.time, self.elements.lat[elem_num],
+                         self.elements.lon[elem_num]))
             plt.gca().set_yticks(self.environment_profiles['z'])
             plt.grid('on')
             plt.show()
