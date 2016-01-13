@@ -91,8 +91,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         self.elements.z = np.round(self.elements.z/dz)*dz
 
         #avoid that elements are above surface / below bottom
-        surface = np.where(self.elements.z > dz/2.)
-        self.elements.z[surface] = dz/2.
+        surface = np.where(self.elements.z > 0.)
+        self.elements.z[surface] = -dz/2.
         bottom = np.where(self.elements.z < Zmin)
         self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
@@ -132,8 +132,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             self.elements.z[down] = self.elements.z[down] - dz
 
             #avoid that elements are above surface / below bottom
-            surface = np.where(self.elements.z > dz/2.)
-            self.elements.z[surface] = dz/2.
+            surface = np.where(self.elements.z > 0.)
+            self.elements.z[surface] = -dz/2.
             bottom = np.where(self.elements.z < Zmin)
             self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
