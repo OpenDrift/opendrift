@@ -9,12 +9,12 @@ from models.pelagicegg import PelagicEggDrift
 o = PelagicEggDrift(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
-#reader_arome = reader_netCDF_CF_generic.Reader('test_data/arome_subset_16Nov2015.nc')
-reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
+reader_arome = reader_netCDF_CF_generic.Reader('test_data/arome_subset_16Nov2015.nc')
+#reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
 
 # Norkyst
-#reader_norkyst = reader_netCDF_CF_generic.Reader('test_data/norkyst800_subset_16Nov2015.nc')
-reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+reader_norkyst = reader_netCDF_CF_generic.Reader('test_data/norkyst800_subset_16Nov2015.nc')
+#reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(
@@ -22,12 +22,12 @@ reader_basemap = reader_basemap_landmask.Reader(
                     urcrnrlon=7, urcrnrlat=61.5,
                     resolution='h', projection='merc')
 
-#o.add_reader([reader_norkyst, reader_basemap, reader_arome])
+o.add_reader([reader_norkyst, reader_basemap, reader_arome])
 
 # Experiment with constant wind instead of arome
-o.add_reader([reader_norkyst, reader_basemap])
-o.fallback_values['x_wind'] = 20
-o.fallback_values['y_wind'] = 20
+#o.add_reader([reader_norkyst, reader_basemap])
+#o.fallback_values['x_wind'] = 20
+#o.fallback_values['y_wind'] = 20
 
 # Seeding some particles
 lon = 4.5; lat = 60.0; # Outside Bergen
@@ -52,7 +52,7 @@ o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=24, time_step=900, outfile='NEA_Cod.nc')
+o.run(steps=66*4, time_step=900)
 
 # Print and plot results
 print o
