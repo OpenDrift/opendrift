@@ -22,7 +22,12 @@ reader_basemap = reader_basemap_landmask.Reader(
                     urcrnrlon=7, urcrnrlat=61.5,
                     resolution='h', projection='merc')
 
-o.add_reader([reader_norkyst, reader_basemap, reader_arome])
+#o.add_reader([reader_norkyst, reader_basemap, reader_arome])
+
+# Experiment with constant wind instead of arome
+o.add_reader([reader_norkyst, reader_basemap])
+o.fallback_values['x_wind'] = 20
+o.fallback_values['y_wind'] = 20
 
 # Seeding some particles
 lon = 4.5; lat = 60.0; # Outside Bergen

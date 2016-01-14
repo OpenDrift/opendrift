@@ -197,7 +197,8 @@ class PelagicEggDrift(OpenDrift3DSimulation):
                             self.environment.y_wind**2)
 
         # For illustration: plot vertical profile for a single element
-        if self.steps == 5:  # We plot profile at a single timestep only
+        if self.steps == 5 and self.environment_profiles is not None:
+            # We plot profile at a single timestep only
             import matplotlib.pyplot as plt
             param = self.required_profiles[0]  # take the first one
             elem_num = 0
