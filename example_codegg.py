@@ -47,15 +47,13 @@ o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=12, time_step=900, outfile='NEA_Cod.nc')
+o.run(steps=24, time_step=900, outfile='NEA_Cod.nc')
 
 # Print and plot results
 print o
 
-#o.plot_oil_budget()
-#o.plot_environment()
-
 #o.plot()
-o.animation()
-o.plot_vertical_distribution()
+#o.animation()
+#o.plot_vertical_distribution()
+o.plot_vertical_distribution_slider()
 

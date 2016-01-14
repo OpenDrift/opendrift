@@ -159,4 +159,41 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         plt.grid()
         plt.show()
 
+    def plot_vertical_distribution_slider(self):
+        """Function to plot vertical distribution of particles"""
+        import matplotlib.pyplot as plt
+        from matplotlib.widgets import Slider, Button, RadioButtons
+        from pylab import axes, draw
+        from matplotlib import dates
+
+        fig = plt.figure()
+        mainplot = fig.add_axes([.15, .3, .8, .5])
+        sliderax = fig.add_axes([.15, .08, .75, .05])
+        data = self.history['z'].T[1,:]
+        tslider = Slider(sliderax, 'Timestep', 0, self.steps,
+                         valinit=self.steps, valfmt='%0.0f')
+        dz=1.
+        maxrange=-100
+
+        def update(val):
+            tindex = np.int(tslider.val)
+            mainplot.cla()
+            mainplot.grid()
+            mainplot.hist(self.history['z'].T[tindex,:], bins=-maxrange/dz,
+                          range=[maxrange,0], orientation='horizontal')
+            mainplot.set_ylim([maxrange, 0])
+            mainplot.set_xlim([0, self.num_elements_total()*.1])
+            mainplot.set_xlabel('number of particles')
+            mainplot.set_ylabel('depth [m]')
+            x_wind = self.history['x_wind'].T[tindex,:]
+            y_wind = self.history['x_wind'].T[tindex,:]
+            windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
+            mainplot.set_title(str(self.get_time_array()[0][tindex]) +
+                               '   Mean windspeed: %.1f m/s' % windspeed)
+            draw()
+
+        update(0)  # Plot initial distribution
+        tslider.on_changed(update)
+        plt.show()
+
 
