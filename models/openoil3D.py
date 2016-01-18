@@ -470,6 +470,7 @@ class OpenOil3D(OpenDrift3DSimulation):
         ax2 = ax1.twinx()
         ax2.set_ylim([0,100])
         ax2.set_ylabel('Percent')
+        self.model.oiltype = 'unknown'  # Should be changed
         plt.title('%s - %s to %s' %
                   (self.model.oiltype,
                    self.start_time.strftime('%Y-%m-%d %H:%M'),

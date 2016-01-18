@@ -65,17 +65,18 @@ else:
     o.config['drift']['current_uncertainty'] = .1
     o.config['drift']['wind_uncertainty'] = 2
     o.config['processes']['evaporation'] = True
-    o.config['processes']['dispersion'] = False
+    o.config['processes']['dispersion'] = True
     o.config['processes']['emulsification'] = True
 
     # Running model (until end of driver data)
-    o.run(steps=66*1, time_step=3600, outfile=ncfile)
+    o.run(steps=66*4, time_step=900, outfile=ncfile)
 
 ###########################
 # Print and plot results
 ###########################
 print o
 
+o.plot_oil_budget()
 o.plot()
 o.plot(linecolor='z')
 o.animation()
