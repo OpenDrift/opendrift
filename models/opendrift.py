@@ -102,7 +102,7 @@ class OpenDriftSimulation(object):
     required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
 
-    def __init__(self, proj4=None, seed=0, iomodule='netcdf',
+    def __init__(self, proj4='+proj=latlong', seed=0, iomodule='netcdf',
                  outfile=None, loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
 
@@ -455,11 +455,12 @@ class OpenDriftSimulation(object):
                         logging.debug('\t\t%s values missing for %s' % (
                             len(missing_indices), var))
         # Diagnostic output
-        logging.debug('------------ SUMMARY -------------')
-        for var in variables:
-            logging.debug('    %s: %g (min) %g (max)' %
-                          (var, env[var].min(), env[var].max()))
-        logging.debug('---------------------------------')
+        if len(env) > 0:
+            logging.debug('------------ SUMMARY -------------')
+            for var in variables:
+                logging.debug('    %s: %g (min) %g (max)' %
+                              (var, env[var].min(), env[var].max()))
+            logging.debug('---------------------------------')
 
         # Prepare array indiciating which elements contain any invalid values
         missing = np.ma.masked_invalid(env[variables[0]]).mask
@@ -525,6 +526,16 @@ class OpenDriftSimulation(object):
             self.elements_scheduled_time = np.append(
                 self.elements_scheduled_time, np.array(time))
 
+        min_time = np.min(time)
+        if hasattr(self, 'start_time'):
+            if min_time < self.start_time:
+                self.start_time = min_time
+                logging.debug('Setting simulation start time to %s' %
+                              str(min_time))
+        else:
+            self.start_time = min_time
+            logging.debug('Setting simulation start time to %s' %
+                          str(min_time))
 
     def release_elements(self):
         """Activate elements which are scheduled within following timestep."""
@@ -583,6 +594,9 @@ class OpenDriftSimulation(object):
         if number is not None and number < num_points:
             raise ValueError('Number of elements must be greater or equal '
                              'to number of points.')
+
+        if num_points == 1 and number is None:
+            number = 1
 
         if num_points > 1:
             ###############################
@@ -743,6 +757,10 @@ class OpenDriftSimulation(object):
                 will be self.start_time + steps*self.time_step
         """
 
+        if self.num_elements_scheduled() == 0:
+            raise ValueError('Please seed elements before starting a run.')
+        self.elements = self.ElementType()
+
         missing_variables = self.missing_variables()
         if len(missing_variables) > 0:
             has_fallback = [var for var in missing_variables
@@ -758,7 +776,7 @@ class OpenDriftSimulation(object):
                                  + str(missing_variables))
 
         # Some cleanup needed if starting from imported state
-        if self.steps > 1:
+        if self.steps >= 1:
             self.steps = 0
         if hasattr(self, 'history'):
             # Delete history matrix before new run
@@ -766,6 +784,9 @@ class OpenDriftSimulation(object):
             # Renumbering elements from 0 to num_elements, necessary fix when
             # importing from file, where elements may have been deactivated
             self.elements.ID = np.arange(0, self.num_elements_active())
+
+            # New....
+            self.steps_exported = 0
 
         # Store runtime to report on OpenDrift performance
         self.runtime_environment = timedelta(seconds=0)

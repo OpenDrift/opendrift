@@ -17,6 +17,7 @@
 import os
 import numpy as np
 from datetime import datetime
+import logging
 
 from opendrift import OpenDriftSimulation
 from elements import LagrangianArray
@@ -205,14 +206,18 @@ class OpenOil(OpenDriftSimulation):
         # Emulsification
         ##################
         if self.config['processes']['emulsification'] is True:
-            # Apparent emulsion age of particles
-            Urel = windspeed/self.model.reference_wind  # Relative wind
-            self.elements.age_emulsion_seconds += \
-                Urel*self.time_step.total_seconds()
+            if not hasattr(self.model, 'reference_wind'):
+                logging.debug('Emulsification is currently only possible when'
+                               'importing oil properties from file.')
+            else:
+                # Apparent emulsion age of particles
+                Urel = windspeed/self.model.reference_wind  # Relative wind
+                self.elements.age_emulsion_seconds += \
+                    Urel*self.time_step.total_seconds()
 
-            self.elements.water_content = np.interp(
-                self.elements.age_emulsion_seconds,
-                self.model.tref, self.model.wmax)
+                self.elements.water_content = np.interp(
+                    self.elements.age_emulsion_seconds,
+                    self.model.tref, self.model.wmax)
 
         ###############
         # Dispersion
