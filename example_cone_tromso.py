@@ -9,12 +9,12 @@ from models.openoil import OpenOil
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
-#reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
-reader_arome = reader_netCDF_CF_generic.Reader('/disk1/data/opendrift_testdata/arome.nc')
+reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
+#reader_arome = reader_netCDF_CF_generic.Reader('/disk1/data/opendrift_testdata/arome.nc')
 
 # Norkyst
-#reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-reader_norkyst = reader_netCDF_CF_generic.Reader('/disk1/data/opendrift_testdata/norkyst800.nc')
+reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+#reader_norkyst = reader_netCDF_CF_generic.Reader('/disk1/data/opendrift_testdata/norkyst800.nc')
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(
@@ -61,4 +61,5 @@ o.run(steps=66*2, time_step=1800)
 # Print and plot results
 print o
 o.plot()
-o.animation(filename='oilspill_tromsoe.mp4')
+o.animation()
+#o.animation(filename='oilspill_tromsoe.mp4')

@@ -69,7 +69,7 @@ else:
     o.config['processes']['emulsification'] = True
 
     # Running model (until end of driver data)
-    o.run(steps=66*4, time_step=900, outfile=ncfile)
+    o.run(steps=66*2, time_step=1800, outfile=ncfile)
 
 ###########################
 # Print and plot results
