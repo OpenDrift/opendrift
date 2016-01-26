@@ -18,55 +18,22 @@ import os
 import numpy as np
 from datetime import datetime
 
-#from opendrift import OpenDriftSimulation
+from openoil import OpenOil, Oil
 from opendrift3D import OpenDrift3DSimulation, Lagrangian3DArray
 
 
 # Defining the oil element properties
-class Oil3D(Lagrangian3DArray):
-    """Extending LagrangianArray with variables relevant for oil particles."""
+class Oil3D(Oil):
+    """Extending Oil class with variables relevant for the vertical."""
 
-    variables = Lagrangian3DArray.add_variables([
+    variables = Oil.add_variables([
         ('diameter', {'dtype': np.float32,
                        'units': 'm',
-                       'default': 0.0001}), # Typical from litterture
-        ('mass_oil', {'dtype': np.float32,
-                      'units': 'kg',
-                      'default': 1}),
-        ('viscosity', {'dtype': np.float32,
-                       #'unit': 'mm2/s (centiStokes)',
-                       'units': 'N s/m2 (Pa s)',
-                       'default': 0.5}),
-        ('density', {'dtype': np.float32,
-                     'units': 'kg/m^3',
-                     'default': 880}),
-        ('age_seconds', {'dtype': np.float32,
-                         'units': 's',
-                         'default': 0}),
-        ('age_exposure_seconds', {'dtype': np.float32,
-                                  'units': 's',
-                                  'default': 0}),
-        ('age_emulsion_seconds', {'dtype': np.float32,
-                                  'units': 's',
-                                  'default': 0}),
-        ('mass_emulsion', {'dtype': np.float32,
-                           'units': 'kg',
-                           'default': 0}),
-        ('mass_dispersed', {'dtype': np.float32,
-                           'units': 'kg',
-                           'default': 0}),
-        ('mass_evaporated', {'dtype': np.float32,
-                                 'units': 'kg',
-                                 'default': 0}),
-        ('fraction_evaporated', {'dtype': np.float32,
-                                 'units': '%',
-                                 'default': 0}),
-        ('water_content', {'dtype': np.float32,
-                           'units': '%',
-                           'default': 0})])
+                       'default': 0.0001})
+        ])
 
 
-class OpenOil3D(OpenDrift3DSimulation):
+class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     """Open source oil trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway based on oil weathering parameterisations
@@ -102,10 +69,6 @@ class OpenOil3D(OpenDrift3DSimulation):
                        #'upward_sea_water_velocity': 0
                        }
 
-    # Default colors for plotting
-    status_colors = {'initial': 'green', 'active': 'blue',
-                     'missing_data': 'gray', 'stranded': 'red',
-                     'evaporated': 'yellow', 'dispersed': 'magenta'}
 
     # Read oil types from file (presently only for illustrative effect)
     oil_types = str([str(l.strip()) for l in open(
@@ -167,7 +130,8 @@ class OpenOil3D(OpenDrift3DSimulation):
         """Calculate terminal velocity for oil droplets
 
         according to 
-        Tkalich et al. (2002): Vertical mixing of oil droplets by breaking waves
+        Tkalich et al. (2002): Vertical mixing of oil droplets
+                               by breaking waves
         Marine Pollution Bulletin 44, 1219-1229
         """
         g = 9.81 # ms-2
@@ -217,6 +181,7 @@ class OpenOil3D(OpenDrift3DSimulation):
         ################
         ## Evaporation
         ################
+        reference_wind = 10  # Hardcoded for now, should be read from file
         if self.config['processes']['evaporation'] is True:
             # Store evaporation fraction at beginning of timestep
             fraction_evaporated_previous = self.elements.fraction_evaporated
@@ -226,7 +191,7 @@ class OpenOil3D(OpenDrift3DSimulation):
             if np.isscalar(at_surface):
                 at_surface = at_surface*np.ones(self.num_elements_active(),
                                                 dtype=bool)
-            Urel = windspeed/self.model.reference_wind  # Relative wind
+            Urel = windspeed/reference_wind  # Relative wind
             h = 2  # Film thickness in mm, harcoded for now
 
             # Calculate exposure time
@@ -269,7 +234,7 @@ class OpenOil3D(OpenDrift3DSimulation):
         ##################
         if self.config['processes']['emulsification'] is True:
             # Apparent emulsion age of particles
-            Urel = windspeed/self.model.reference_wind  # Relative wind
+            Urel = windspeed/reference_wind  # Relative wind
             self.elements.age_emulsion_seconds += \
                 Urel*self.time_step.total_seconds()
 
@@ -418,204 +383,3 @@ class OpenOil3D(OpenDrift3DSimulation):
                 sigma_u = 0*self.environment.x_wind
                 sigma_v = 0*self.environment.x_wind
             self.update_positions(sigma_u, sigma_v)
-
-    def plot_oil_budget(self):
-        import matplotlib.pyplot as plt
-        mass_oil, status = self.get_property('mass_oil')
-        if 'stranded' not in self.status_categories:
-            self.status_categories.append('stranded')
-        mass_active = np.ma.sum(np.ma.masked_where(
-                status==self.status_categories.index('stranded'),
-                    mass_oil), axis=1)
-        mass_stranded = np.ma.sum(np.ma.masked_where(
-            status!=self.status_categories.index('stranded'),
-            mass_oil), axis=1)
-        mass_evaporated, status = self.get_property('mass_evaporated')
-        mass_evaporated = np.sum(mass_evaporated, axis=1)
-        mass_dispersed, status = self.get_property('mass_dispersed')
-        mass_dispersed = np.sum(mass_dispersed, axis=1)
-
-        budget = np.row_stack((mass_dispersed, mass_active,
-                               mass_stranded, mass_evaporated))
-        budget = np.cumsum(budget, axis=0)
-
-        time, time_relative = self.get_time_array()
-        time = np.array([t.total_seconds()/3600. for t in time_relative])
-        fig = plt.figure()
-        # Left axis showing oil mass
-        ax1 = fig.add_subplot(111)
-        # Hack: make some emply plots since fill_between does not support label
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='salmon', label='dispersed'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='royalblue', label='in water'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='black', label='stranded'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='skyblue', label='evaporated'))
-
-        ax1.fill_between(time, 0, budget[0,:], facecolor='salmon')
-        ax1.fill_between(time, budget[0,:], budget[1,:],
-                         facecolor='royalblue')
-        ax1.fill_between(time, budget[1,:], budget[2,:],
-                         facecolor='black')
-        ax1.fill_between(time, budget[2,:], budget[3,:],
-                         facecolor='skyblue')
-        ax1.set_ylim([0,budget.max()])
-        ax1.set_xlim([0,time.max()])
-        ax1.set_ylabel('Mass oil  [%s]' %
-                        self.elements.variables['mass_oil']['units'])
-        ax1.set_xlabel('Time  [hours]')
-        # Right axis showing percent
-        ax2 = ax1.twinx()
-        ax2.set_ylim([0,100])
-        ax2.set_ylabel('Percent')
-        self.model.oiltype = 'unknown'  # Should be changed
-        plt.title('%s - %s to %s' %
-                  (self.model.oiltype,
-                   self.start_time.strftime('%Y-%m-%d %H:%M'),
-                   self.time.strftime('%Y-%m-%d %H:%M')))
-        # Shrink current axis's height by 10% on the bottom
-        box = ax1.get_position()
-        ax1.set_position([box.x0, box.y0 + box.height * 0.1,
-                         box.width, box.height * 0.9])
-        ax2.set_position([box.x0, box.y0 + box.height * 0.1,
-                         box.width, box.height * 0.9])
-        ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
-                   ncol=4, mode="expand", borderaxespad=0.)
-        plt.show()
-
-
-    def set_oiltype(self, oiltype):
-        if oiltype not in self.oiltypes:
-            raise ValueError('The following oiltypes are available: %s' %
-                             str(self.oiltypes))
-        indx = self.oiltypes.index(oiltype)
-        linenumber = self.oiltypes_linenumbers[indx]
-        oilfile = open(self.oiltype_file, 'r')
-        for i in range(linenumber + 1):
-            oilfile.readline()
-        ref = oilfile.readline().split()
-        self.model.reference_thickness = np.float(ref[0])
-        self.model.reference_wind = np.float(ref[1])
-        tref = []
-        fref = []
-        wmax = []
-        while True:
-            line = oilfile.readline()
-            if not line[0].isdigit():
-                break
-            line = line.split()
-            tref.append(line[0]) 
-            fref.append(line[1]) 
-            wmax.append(line[3]) 
-        self.model.tref = np.array(tref, dtype='float')*3600.
-        self.model.fref = np.array(fref, dtype='float')*.01
-        self.model.wmax = np.array(wmax, dtype='float')
-        self.model.oiltype = oiltype  # Store name of oil type
-
-    def seed_elements(self, *args, **kwargs):
-        if 'oiltype' in kwargs:
-            oiltype = kwargs['oiltype']
-            del kwargs['oiltype']
-        else:
-            oiltype = 'BALDER'  # Default
-        self.set_oiltype(oiltype)
-
-        super(OpenOil3D, self).seed_elements(*args, **kwargs)
-
-    def seed_from_gml(self, gmlfile, num_elements=1000):
-        """Read oil slick contours from GML file, and seed particles within."""
-
-        # Specific imports
-        import datetime
-        import matplotlib.nxutils as nx
-        from xml.etree import ElementTree
-        from matplotlib.patches import Polygon
-        from mpl_toolkits.basemap import pyproj
-
-        namespaces = {'od': 'http://cweb.ksat.no/cweb/schema/geoweb/oil',
-                      'gml': 'http://www.opengis.net/gml'}
-        slicks = []
-
-        with open(gmlfile, 'rt') as e:
-            tree = ElementTree.parse(e)
-
-        pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Polygon'
-        pos2 = 'gml:exterior/gml:LinearRing/gml:posList'
-
-        # This retrieves some other types of patches, found in some files only
-        # Should be combines with the above, to get all patches
-        #pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Surface/gml:polygonPatches'
-        #pos2 = 'gml:PolygonPatch/gml:exterior/gml:LinearRing/gml:posList'
-
-        # Find detection time
-        time_pos = 'od:oilDetectionMember/od:oilDetection/od:detectionTime'
-        oil_time = datetime.datetime.strptime(
-            tree.find(time_pos, namespaces).text, '%Y-%m-%dT%H:%M:%S.%fZ')
-
-        for patch in tree.findall(pos1, namespaces):
-            pos = patch.find(pos2, namespaces).text
-            c = np.array(pos.split()).astype(np.float)
-            lon = c[0::2]
-            lat = c[1::2]
-            slicks.append(Polygon(zip(lon, lat)))
-
-        # Find boundary and area of all patches
-        lons = np.array([])
-        lats = lons.copy()
-        for slick in slicks:
-            ext = slick.get_extents()
-            lons = np.append(lons, [ext.xmin, ext.xmax])
-            lats = np.append(lats, [ext.ymin, ext.ymax])
-            # Make a stereographic projection centred on the polygon
-        lonmin = lons.min()
-        lonmax = lons.max()
-        latmin = lats.min()
-        latmax = lats.max()
-
-        # Place n points within the polygons
-        proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f +lon_0=%f'
-                           % (latmin, latmax,
-                              (latmin+latmax)/2, (lonmin+lonmax)/2))
-        slickarea = np.array([])
-        for slick in slicks:
-            lonlat = slick.get_xy()
-            lon = lonlat[:, 0]
-            lat = lonlat[:, 1]
-            x, y = proj(lon, lat)
-
-            area_of_polygon = 0.0
-            for i in xrange(-1, len(x)-1):
-                area_of_polygon += x[i] * (y[i+1] - y[i-1])
-            area_of_polygon = abs(area_of_polygon) / 2.0
-            slickarea = np.append(slickarea, area_of_polygon)  # in m2
-
-        # Make points
-        deltax = np.sqrt(np.sum(slickarea)/num_elements)
-
-        lonpoints = np.array([])
-        latpoints = np.array([])
-        for i, slick in enumerate(slicks):
-            lonlat = slick.get_xy()
-            lon = lonlat[:, 0]
-            lat = lonlat[:, 1]
-            x, y = proj(lon, lat)
-            xvec = np.arange(x.min(), x.max(), deltax)
-            yvec = np.arange(y.min(), y.max(), deltax)
-            x, y = np.meshgrid(xvec, yvec)
-            lon, lat = proj(x, y, inverse=True)
-            lon = lon.ravel()
-            lat = lat.ravel()
-            points = np.c_[lon, lat]
-            ind = nx.points_inside_poly(points, slick.xy)
-            lonpoints = np.append(lonpoints, lon[ind])
-            latpoints = np.append(latpoints, lat[ind])
-
-        # Finally seed at found positions
-        kwargs = {}
-        kwargs['lon'] = lonpoints
-        kwargs['lat'] = latpoints
-        kwargs['ID'] = np.arange(len(lonpoints)) + 1
-        kwargs['mass_oil'] = 1
-        self.schedule_elements(self.ElementType(**kwargs), oil_time)
