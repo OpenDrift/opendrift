@@ -142,20 +142,13 @@ class OpenOil(OpenDriftSimulation):
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
 
-    def update(self):
-        """Update positions and properties of oil particles."""
+    def evaporate(self):
+       if self.config['processes']['evaporation'] is True:
 
-        self.elements.age_seconds += self.time_step.total_seconds()
+            logging.debug('   Calculating: evaporation')
+            windspeed = np.sqrt(self.environment.x_wind**2 +
+                                self.environment.y_wind**2)
 
-        # Calculate windspeed, which is needed for emulsification,
-        # and dispersion (if wave height is not given)
-        windspeed = np.sqrt(self.environment.x_wind**2 +
-                            self.environment.y_wind**2)
-
-        ################
-        ## Evaporation
-        ################
-        if self.config['processes']['evaporation'] is True:
             # Store evaporation fraction at beginning of timestep
             fraction_evaporated_previous = self.elements.fraction_evaporated
 
@@ -202,14 +195,15 @@ class OpenOil(OpenDriftSimulation):
                                   np.random.rand(self.num_elements_active(),))
             self.deactivate_elements(evaporated_indices, reason='evaporated')
 
-        ##################
-        # Emulsification
-        ##################
+    def emulsification(self):
         if self.config['processes']['emulsification'] is True:
+            logging.debug('   Calculating: emulsification')
             if not hasattr(self.model, 'reference_wind'):
                 logging.debug('Emulsification is currently only possible when'
                                'importing oil properties from file.')
             else:
+                windspeed = np.sqrt(self.environment.x_wind**2 +
+                                    self.environment.y_wind**2)
                 # Apparent emulsion age of particles
                 Urel = windspeed/self.model.reference_wind  # Relative wind
                 self.elements.age_emulsion_seconds += \
@@ -219,11 +213,13 @@ class OpenOil(OpenDriftSimulation):
                     self.elements.age_emulsion_seconds,
                     self.model.tref, self.model.wmax)
 
-        ###############
-        # Dispersion
-        ###############
+
+    def disperse(self):
         if self.config['processes']['dispersion'] is True:
 
+            logging.debug('   Calculating: dispersion')
+            windspeed = np.sqrt(self.environment.x_wind**2 +
+                                self.environment.y_wind**2)
             # From NOAA PyGnome model:
             # https://github.com/NOAA-ORR-ERD/PyGnome/
             v_entrain = 3.9E-8
@@ -278,27 +274,7 @@ class OpenOil(OpenDriftSimulation):
             #                        1/1.17)
             #self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
 
-        ####################################
-        # Deactivate elements hitting land
-        ####################################
-        self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded')
-
-        ########################################
-        ## Deactivate elements hitting sea ice
-        ########################################
-        self.deactivate_elements(self.environment.sea_ice_area_fraction > 0.6,
-                                 reason='oil-in-ice')
-
-        ##############################################
-        # Simply move particles with ambient current
-        ##############################################
-        self.update_positions(self.environment.x_sea_water_velocity,
-                              self.environment.y_sea_water_velocity)
-
-        ##############
-        # Wind drag
-        ##############
+    def wind_drag(self):
         wind_drift_factor = self.config['drift']['wind_drift_factor']
         if self.config['drift']['relative_wind'] is True:
             self.update_positions((self.environment.x_wind -
@@ -311,9 +287,7 @@ class OpenOil(OpenDriftSimulation):
             self.update_positions(self.environment.x_wind*wind_drift_factor,
                                   self.environment.y_wind*wind_drift_factor)
 
-        ############################
-        # Uncertainty / diffusion
-        ############################
+    def diffusion(self):
         if self.config['processes']['diffusion'] is True:
             # Current
             std_current_comp = self.config['drift']['current_uncertainty']
@@ -328,6 +302,7 @@ class OpenOil(OpenDriftSimulation):
             self.update_positions(sigma_u, sigma_v)
 
             # Wind
+            wind_drift_factor = self.config['drift']['wind_drift_factor']
             std_wind_comp = self.config['drift']['wind_uncertainty']
             if wind_drift_factor > 0 and std_wind_comp > 0:
                 sigma_u = np.random.normal(0, std_wind_comp*wind_drift_factor,
@@ -338,6 +313,53 @@ class OpenOil(OpenDriftSimulation):
                 sigma_u = 0*self.environment.x_wind
                 sigma_v = 0*self.environment.x_wind
             self.update_positions(sigma_u, sigma_v)
+
+    def oil_weathering(self):
+
+        self.elements.age_seconds += self.time_step.total_seconds()
+
+        ## Evaporation
+        self.evaporate()
+
+        # Emulsification
+        self.emulsification()
+
+        # Dispersion
+        self.disperse()
+
+    def advect_oil(self):
+        # Simply move particles with ambient current
+        self.update_positions(self.environment.x_sea_water_velocity,
+                              self.environment.y_sea_water_velocity)
+
+        # Wind drag
+        self.wind_drag()
+
+        # Uncertainty / diffusion
+        self.diffusion()
+
+        # Deactivate elements hitting coast
+        self.deactivate_elements(self.environment.land_binary_mask == 1,
+                                 reason='stranded')
+
+        # Do not let particles go below seafloor
+        if hasattr(self.environment, 'sea_floor_depth_below_sea_level'):
+            self.elements.z[np.where(self.elements.z < \
+                -self.environment.sea_floor_depth_below_sea_level)] = \
+                -self.environment.sea_floor_depth_below_sea_level
+
+        ## Deactivate elements hitting sea ice
+        self.deactivate_elements(self.environment.sea_ice_area_fraction > 0.6,
+                                 reason='oil-in-ice')
+ 
+    def update(self):
+        """Update positions and properties of oil particles."""
+
+        # Oil weathering
+        self.oil_weathering()
+
+        # Horizontal advection
+        self.advect_oil()
 
     def plot_oil_budget(self):
         import matplotlib.pyplot as plt

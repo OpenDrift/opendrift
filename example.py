@@ -55,9 +55,9 @@ print o
 # Adjusting some configuration
 o.config['drift']['wind_drift_factor'] = .02
 o.config['processes']['diffusion'] = True
-o.config['processes']['dispersion'] = False
-o.config['processes']['evaporation'] = False
-o.config['processes']['emulsification'] = False
+o.config['processes']['dispersion'] = True
+o.config['processes']['evaporation'] = True
+o.config['processes']['emulsification'] = True
 o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
