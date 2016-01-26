@@ -84,6 +84,5 @@ o.plot_oil_budget()
 o.plot()
 #o.plot(linecolor='z')
 o.animation()
-#o.plot_vertical_distribution()
-o.plot_vertical_distribution_slider()
+o.plot_vertical_distribution()
 

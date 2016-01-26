@@ -59,6 +59,5 @@ print o
 
 #o.plot()
 #o.animation()
-#o.plot_vertical_distribution()
-o.plot_vertical_distribution_slider()
+o.plot_vertical_distribution()
 

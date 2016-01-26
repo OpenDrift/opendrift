@@ -140,28 +140,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""
         import matplotlib.pyplot as plt
-        from matplotlib import dates
-        dz=1.
-        maxrange=-100
-        hfmt = dates.DateFormatter('%d %b %Y %H:%M')
-        fig = plt.figure()
-        ax = fig.gca()
-        #ax.xaxis.set_major_formatter(hfmt)
-        #plt.xticks(rotation='vertical')
-        #times = [self.start_time + n*self.time_step
-        #         for n in range(self.steps + 1)]
-        #data = self.history[prop].T[0:len(times), :]
-        plt.hist(self.elements.z, bins=-maxrange/dz, range=[maxrange,0], orientation='horizontal')
-        plt.title('Vertical particle distribution')
-        plt.xlabel('number of particles')
-        plt.ylabel('depth [m]')
-        plt.subplots_adjust(bottom=.3)
-        plt.grid()
-        plt.show()
-
-    def plot_vertical_distribution_slider(self):
-        """Function to plot vertical distribution of particles"""
-        import matplotlib.pyplot as plt
         from matplotlib.widgets import Slider, Button, RadioButtons
         from pylab import axes, draw
         from matplotlib import dates
@@ -195,5 +173,3 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         update(0)  # Plot initial distribution
         tslider.on_changed(update)
         plt.show()
-
-
