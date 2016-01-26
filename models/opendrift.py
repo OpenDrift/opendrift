@@ -35,6 +35,7 @@ except:
     logging.info('Basemap is not available, can not make plots')
 
 from readers.readers import pyproj, Reader
+from physics_methods import PhysicsMethods
 
 class ModelSettings(object):
     # Empty class to store model specific information,
@@ -42,7 +43,7 @@ class ModelSettings(object):
     pass
 
 
-class OpenDriftSimulation(object):
+class OpenDriftSimulation(PhysicsMethods):
     """Generic trajectory model class, to be extended (subclassed).
 
     This as an Abstract Base Class, meaning that only subclasses can
@@ -1410,37 +1411,3 @@ class OpenDriftSimulation(object):
             outStr += '\tUpdating elements: %s \n' % self.runtime_model
         outStr += '===========================\n'
         return outStr
-
-
-    def sea_water_density(T=10.,S=35.):
-        '''The function gives the density of seawater at one atmosphere
-        pressure as given in :
-
-        N.P. Fofonoff and R.C. Millard Jr.,1983,
-        Unesco technical papers in marine science no. 44.
-        
-        S   = Salinity in promille of the seawater
-        T   = Temperature of the seawater in degrees Celsius
-        '''
-
-        R4=4.8314E-04
-        DR350=28.106331
-
-        #Pure water density at atmospheric pressure
-        #Bigg P.H. (1967) BR. J. Applied Physics pp.:521-537
-
-        R1 = ((((6.536332E-09*T-1.120083E-06)*T+1.001685E-04)*T-9.095290E-03)*T+6.793952E-02)*T-28.263737
-
-        #Seawater density at atmospheric pressure
-        #coefficients involving salinity :
-
-        R2 = (((5.3875E-09*T-8.2467E-07)*T+7.6438E-05)*T-4.0899E-03)*T +8.24493E-01
-
-        R3 = (-1.6546E-06*T+1.0227E-04)*T-5.72466E-03
-
-        #International one-atmosphere equation of state of seawater :
-
-        SIG = R1 + (R4*S + R3*np.sqrt(S) + R2)*S
-        Dens0 = SIG + DR350 + 1000.
-        return Dens0
-
