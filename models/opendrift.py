@@ -102,7 +102,7 @@ class OpenDriftSimulation(object):
     required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
 
-    def __init__(self, proj4='+proj=latlong', seed=0, iomodule='netcdf',
+    def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  outfile=None, loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
 
@@ -196,8 +196,10 @@ class OpenDriftSimulation(object):
         self.proj4 = proj4
         if proj4 is not None:
             self.proj = pyproj.Proj(self.proj4)
+            logging.info('Calculation SRS set to: ' + self.proj.srs)
         else:
             self.proj = None
+            logging.info('Calculation SRS set to: ' + str(self.proj))
 
     def lonlat2xy(self, lon, lat):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
@@ -283,6 +285,7 @@ class OpenDriftSimulation(object):
 
         # Set projection to latlong if not taken from any of the readers
         if self.proj is None:
+            logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
 
     def list_environment_variables(self):
@@ -760,6 +763,11 @@ class OpenDriftSimulation(object):
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
         self.elements = self.ElementType()
+
+        # Set projection to latlong if not taken from any of the readers
+        if self.proj is None:
+            logging.info('Setting SRS to latlong, since not defined before.')
+            self.set_projection('+proj=latlong')
 
         missing_variables = self.missing_variables()
         if len(missing_variables) > 0:

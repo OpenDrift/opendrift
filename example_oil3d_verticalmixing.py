@@ -4,11 +4,15 @@ from datetime import datetime, timedelta
 
 from readers import reader_basemap_landmask
 from readers import reader_netCDF_CF_generic
-from models.pelagicegg import PelagicEggDrift
 from models.openoil3D import OpenOil3D
 
+################################################################
+# NOTE: This example requires some huge 3D input files, 
+#       which are not included in OpenDrift repository. 
+#       Contact Knut-Frode (knutfd@met.no) if you would like
+#       access the data to run this example (~5 GB)
+################################################################
 
-#o = PelagicEggDrift(loglevel=0)  # Set loglevel to 0 for debug information
 o = OpenOil3D(loglevel=0)  # Set loglevel to 0 for debug information
 
 ncfile = 'oil3Dmixing.nc'
@@ -78,7 +82,7 @@ print o
 
 o.plot_oil_budget()
 o.plot()
-o.plot(linecolor='z')
+#o.plot(linecolor='z')
 o.animation()
 #o.plot_vertical_distribution()
 o.plot_vertical_distribution_slider()
