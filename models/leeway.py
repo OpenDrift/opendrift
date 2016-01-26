@@ -1,17 +1,17 @@
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import os
@@ -129,8 +129,8 @@ class Leeway(OpenDriftSimulation):
 
     #def seed_leeway(self, lon, lat, radius=0, number=1, time=None,
     def seed_elements(self, lon, lat, radius=0, number=1, time=None,
-                    radius1=None, lon1=None, lat1=None, time1=None,
-                    objectType=1):
+                      radius1=None, lon1=None, lat1=None, time1=None,
+                      objectType=1):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own objectType (number),
         # but so far we only use one for each sim
@@ -221,15 +221,16 @@ class Leeway(OpenDriftSimulation):
 
         # Call general seed_elements function of OpenDriftSimulation class
         # with the specific values calculated
-        super(Leeway, self).seed_elements(lon=lon, lat=lat, radius=radius,
-                        number=number, time=time, cone=True,
-                        orientation=orientation, objectType=objectType,
-                        downwindSlope=downwindSlope,
-                        crosswindSlope=crosswindSlope,
-                        downwindOffset=downwindOffset,
-                        crosswindOffset=crosswindOffset,
-                        downwindEps=downwindEps, crosswindEps=crosswindEps,
-                        jibeProbability=jibeProbability)
+        super(Leeway, self).seed_elements(
+            lon=lon, lat=lat, radius=radius,
+            number=number, time=time, cone=True,
+            orientation=orientation, objectType=objectType,
+            downwindSlope=downwindSlope,
+            crosswindSlope=crosswindSlope,
+            downwindOffset=downwindOffset,
+            crosswindOffset=crosswindOffset,
+            downwindEps=downwindEps, crosswindEps=crosswindEps,
+            jibeProbability=jibeProbability)
 
     def update(self):
         """Update positions and properties of leeway particles."""
@@ -264,8 +265,8 @@ class Leeway(OpenDriftSimulation):
 
         # Jibe elements randomly according to given probability
         jp_per_timestep = self.elements.jibeProbability * \
-                            self.time_step.total_seconds() / 3600.0
+            self.time_step.total_seconds() / 3600.0
         jib = jp_per_timestep > np.random.random(self.num_elements_active())
         self.elements.crosswindSlope[jib] = - self.elements.crosswindSlope[jib]
         logging.debug('Jibing %i out of %i elements.' %
-                        (sum(jib), self.num_elements_active()))
+                      (sum(jib), self.num_elements_active()))

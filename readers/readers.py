@@ -1,17 +1,17 @@
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import sys
@@ -61,6 +61,7 @@ class fakeproj():
 
     srs = 'None'
 
+
 def extrap1d(interpolator):
     # For extrapolation (e.g. towards seafloor), not permitted by interp1d
     xs = interpolator.x
@@ -78,6 +79,7 @@ def extrap1d(interpolator):
         return np.array(map(pointwise, np.array(xs)))
 
     return ufunclike
+
 
 class Reader(object):
     """Parent Reader class, to be subclassed by specific readers.
@@ -125,29 +127,29 @@ class Reader(object):
                 self.proj4 = 'None'
                 self.proj = fakeproj()
                 self.projected = False
-                if (not hasattr(self, 'lon') or
-                    not hasattr(self, 'lat') or
-                    not hasattr(self, 'angle_between_x_and_east')):
-                        # Note: angle can be calculated from gradient of lat
-                        raise ValueError('Unprojected readers must '
-                                         'have attributes/arrays "lon", "lat" '
-                                         'and "angle_between_x_and_east"')
+                if (not hasattr(self, 'lon') or not hasattr(self, 'lat') or
+                        not hasattr(self, 'angle_between_x_and_east')):
+                    # Note: angle can be calculated from gradient of lat
+                    raise ValueError('Unprojected readers must '
+                                     'have attributes/arrays "lon", "lat" '
+                                     'and "angle_between_x_and_east"')
 
                 logging.info('Making Spline for lon,lat to x,y conversion...')
                 block_x, block_y = np.meshgrid(
                     np.arange(self.xmin, self.xmax + 1, 1),
                     np.arange(self.ymin, self.ymax + 1, 1))
-                self.spl_x =  LinearNDInterpolator((self.lon.ravel(),
-                                                    self.lat.ravel()),
-                                                    block_x.ravel(),
-                                                    fill_value=np.nan)
-                self.spl_y =  LinearNDInterpolator((self.lon.ravel(),
-                                                    self.lat.ravel()),
-                                                    block_y.ravel(),
-                                                    fill_value=np.nan)    
-                self.spl_angle =  LinearNDInterpolator(
+                self.spl_x = LinearNDInterpolator((self.lon.ravel(),
+                                                   self.lat.ravel()),
+                                                  block_x.ravel(),
+                                                  fill_value=np.nan)
+                self.spl_y = LinearNDInterpolator((self.lon.ravel(),
+                                                   self.lat.ravel()),
+                                                  block_y.ravel(),
+                                                  fill_value=np.nan)
+                self.spl_angle = LinearNDInterpolator(
                     (block_x.ravel(), block_y.ravel()),
-                    self.angle_between_x_and_east.ravel(), fill_value=np.nan)    
+                    self.angle_between_x_and_east.ravel(), fill_value=np.nan)
+
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
             self.expected_time_steps = (
@@ -185,8 +187,8 @@ class Reader(object):
             typicalsize = dist/self.shape[0]
         if typicalsize is not None and self.time_step is not None:
             max_speed = 5  # Assumed max average speed of any element
-            self.buffer = np.int(np.ceil(max_speed*
-                                         self.time_step.total_seconds()/
+            self.buffer = np.int(np.ceil(max_speed *
+                                         self.time_step.total_seconds() /
                                          typicalsize)) + 2
             logging.debug('Setting buffer size %i for reader %s, assuming '
                           'a maximum average speed of %g m/s.' %
@@ -234,8 +236,8 @@ class Reader(object):
         interpolation_methods = ['linearND', 'ndimage', 'KDTree']
         if self.interpolation not in interpolation_methods:
             raise ValueError('Interpolation method %s not available, '
-                             ' alternatives are: %s' % (self.interpolation,
-                             interpolation_methods))
+                             ' alternatives are: %s' %
+                             (self.interpolation, interpolation_methods))
 
         if self.interpolation == 'ndimage':
             xMin = block['x'].min()
@@ -274,7 +276,7 @@ class Reader(object):
                     # to avoid holes, and to get values towards coast
                     spl = LinearNDInterpolator((block_y.ravel()[valid],
                                                 block_x.ravel()[valid]),
-                                                data.ravel()[valid])
+                                               data.ravel()[valid])
                     env[var] = spl(y, x)  # Evaluate at positions
 
                 #if self.interpolation == 'KDTree':
@@ -300,8 +302,8 @@ class Reader(object):
                 bl[bl.mask] = np.nan
                 for zi in range(num_layers):
                     # Interpolate each layer horizontally
-                    env3D[zi,:] = map_coordinates(bl[zi,:,:], [yi, xi],
-                                                  cval=np.nan, order=1)
+                    env3D[zi, :] = map_coordinates(bl[zi, :, :], [yi, xi],
+                                                   cval=np.nan, order=1)
                 # Linear interpolation with depth for each element
                 zb = block['z']
                 Z = z
@@ -313,9 +315,10 @@ class Reader(object):
                 z_index = interp1d(zb, zi)  # Interpolator depth -> index
                 z_index = extrap1d(z_index)  # Make extrapolator, see above
                 zi = z_index(Z)  # Find decimal indices corresponding to z
-                zi[zi>=num_layers-1] = num_layers - 2  # Use bottom layer below
+                # Use bottom layer below
+                zi[zi >= num_layers - 1] = num_layers - 2
                 # Calculate weighted average of layers above and below
-                upper = np.floor(zi).astype(np.int) 
+                upper = np.floor(zi).astype(np.int)
                 weight_upper = 1 - (zi - upper)
                 env[var] = \
                     (env3D[upper, range(env3D.shape[1])]*weight_upper +
@@ -324,11 +327,13 @@ class Reader(object):
                 if profiles is not None and var in profiles:
                     # Return only profile for the requested depth
                     profile_layers = \
-                        np.where(np.array(block['z'] >= np.min(profiles_depth)) &
-                                 np.array(block['z'] <= np.max(profiles_depth)))
+                        np.where(np.array(block['z'] >=
+                                          np.min(profiles_depth)) &
+                                 np.array(block['z'] <=
+                                          np.max(profiles_depth)))
                     profile_layers = np.arange(profile_layers[0][0],
                                                profile_layers[0][-1] + 1)
-                    env_profiles[var] = env3D[profile_layers,:]
+                    env_profiles[var] = env3D[profile_layers, :]
                     env_profiles['z'] = block['z'][profile_layers]
 
         return env, env_profiles
@@ -344,7 +349,7 @@ class Reader(object):
 
         if profiles is not None and block is True:
             # If profiles are requested for any parameters, we
-            # add two fake points at the end of array to make sure that the 
+            # add two fake points at the end of array to make sure that the
             # requested block has the depth range required for profiles
             x = np.append(x, [x[-1], x[-1]])
             y = np.append(y, [y[-1], y[-1]])
@@ -485,8 +490,12 @@ class Reader(object):
             #import matplotlib.pyplot as plt
             #fig = plt.figure()
             #ax1 = fig.add_subplot(111, aspect='equal')
-            #ax1.add_patch(patches.Rectangle((self.xmin, self.ymin), self.xmax-self.xmin, self.ymax-self.ymin, alpha=0.1, color='red'))
-            #ax1.add_patch(patches.Rectangle((x_before.min(), y_before.min()), x_before.max()-x_before.min(), y_before.max()-y_before.min(), alpha=0.1))
+            #ax1.add_patch(patches.Rectangle((self.xmin, self.ymin),
+            # self.xmax-self.xmin, self.ymax-self.ymin,
+            # alpha=0.1, color='red'))
+            #ax1.add_patch(patches.Rectangle((x_before.min(), y_before.min()),
+            # x_before.max()-x_before.min(), y_before.max()-y_before.min(),
+            # alpha=0.1))
             #ax1.plot(reader_x, reader_y, '.')
             #plt.show()
 
@@ -500,9 +509,8 @@ class Reader(object):
                 print 'y-block [%s to %s] : elements [%s to %s]' % (
                     y_before.min(), y_before.max(), reader_y_min, reader_y_max)
                 print (50*'#' + '\nWARNING: data block from reader '
-                                 'not large enough to cover element positions '
-                                 ' within timestep. '
-                                 'Code must be updated\n' + 50*'#')
+                       'not large enough to cover element positions '
+                       ' within timestep. Code must be updated\n' + 50*'#')
                 #update block_before # to be implemented
             else:
                 logging.debug('All elements covered by before-block')
@@ -516,9 +524,8 @@ class Reader(object):
                 print 'y-block [%s to %s] : elements [%s to %s]' % (
                     y_after.min(), y_after.max(), reader_y_min, reader_y_max)
                 print (50*'#' + '\nWARNING: data block from reader '
-                                 'not large enough to cover element positions '
-                                 ' within timestep. '
-                                 'Code must be updated\n' + 50*'#')
+                       'not large enough to cover element positions '
+                       ' within timestep. Code must be updated\n' + 50*'#')
                 #update block_after # to be implemented
             else:
                 logging.debug('All elements covered by after-block')
@@ -574,7 +581,7 @@ class Reader(object):
                 logging.info('Interpolating profiles in time')
                 for var in env_profiles_before.keys():
                     z = env_profiles_before['z']
-                    env_profiles[var] = (env_profiles_before[var]*
+                    env_profiles[var] = (env_profiles_before[var] *
                                          (1 - weight_after) +
                                          env_profiles_after[var]*weight_after)
             else:
@@ -598,7 +605,8 @@ class Reader(object):
                 for var in variables:
                     for vector_pair in vector_pairs_xy:
                         if var in vector_pair:
-                            counterpart = list(set(vector_pair) - set([var]))[0]
+                            counterpart = list(set(vector_pair) -
+                                               set([var]))[0]
                             if counterpart in variables:
                                 vector_pairs.append(vector_pair)
                             else:
@@ -607,7 +615,7 @@ class Reader(object):
                 # Extract unique vector pairs
                 vector_pairs = [list(x) for x in set(tuple(x)
                                 for x in vector_pairs)]
-                
+
                 if len(vector_pairs) > 0:
                     if self.projected is False:
                         from_angle_between_x_and_east = \
@@ -664,8 +672,8 @@ class Reader(object):
 
         if proj_to.is_latlong():
             geod = pyproj.Geod(ellps='WGS84')
-            rot_angle_vectors_rad = np.radians(geod.inv(
-                    x2, y2, x2_delta, y2_delta)[0])
+            rot_angle_vectors_rad = np.radians(
+                geod.inv(x2, y2, x2_delta, y2_delta)[0])
         else:
             rot_angle_vectors_rad = np.arctan2(x2_delta - x2, y2_delta - y2)
         logging.debug('Rotating vectors between %s and %s degrees.' %
@@ -698,10 +706,10 @@ class Reader(object):
             x = np.atleast_1d(np.array(x))
 
             # NB: mask coordinates outside domain
-            x[x<self.xmin] = np.nan
-            x[x>self.xmax] = np.nan
-            y[y<self.ymin] = np.nan
-            y[y<self.ymin] = np.nan
+            x[x < self.xmin] = np.nan
+            x[x > self.xmax] = np.nan
+            y[y < self.ymin] = np.nan
+            y[y < self.ymin] = np.nan
 
             lon = map_coordinates(self.lon, [y, x], order=1,
                                   cval=np.nan, mode='nearest')
@@ -723,7 +731,7 @@ class Reader(object):
                     return x, y
         else:
             x = self.spl_x(lon, lat)
-            y = self.spl_y(lon, lat) 
+            y = self.spl_y(lon, lat)
             return (x, y)
 
     def y_azimuth(self, lon, lat):
@@ -933,8 +941,6 @@ class Reader(object):
         lons, lats = self.xy2lonlat(x, y)
         return lons, lats
 
-
-
     def __repr__(self):
         """String representation of the current reader."""
         outStr = '===========================\n'
@@ -1049,8 +1055,8 @@ class Reader(object):
         lon, lat = self.xy2lonlat(x, y)
         mapproj = pyproj.Proj(map.proj4string)
         # Cut at 89 deg N/S to avoid singularity at poles
-        lat[lat>89] = 89  
-        lat[lat<-89] = -89
+        lat[lat > 89] = 89
+        lat[lat < -89] = -89
         xm, ym = mapproj(lon, lat)
         xm, ym = map(lon, lat)
         #map.plot(xm, ym, color='gray')

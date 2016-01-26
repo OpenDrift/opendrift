@@ -52,12 +52,12 @@ o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=66*4, time_step=900)
+o.run(steps=66*2, time_step=1800)
 
 # Print and plot results
 print o
 
-#o.plot()
-#o.animation()
+o.plot()
+o.animation()
 o.plot_vertical_distribution()
 

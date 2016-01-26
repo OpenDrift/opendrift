@@ -1,17 +1,17 @@
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import logging
@@ -55,7 +55,7 @@ class Reader(Reader):
         except:
             raise ValueError('Could not open ' + filename +
                              ' with netCDF4 library')
-        
+
         # Read sigma-coordinate parameters
         Vtransform = self.Dataset.variables['Vtransform'][:]
         Vstretching = self.Dataset.variables['Vstretching'][:]
@@ -101,7 +101,6 @@ class Reader(Reader):
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
-
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False):
 
@@ -136,7 +135,7 @@ class Reader(Reader):
 
         for par in requested_variables:
             varname = [name for name, cf in
-                        self.ROMS_variable_mapping.items() if cf == par]
+                       self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
 
             if var.ndim == 2:

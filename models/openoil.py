@@ -1,17 +1,17 @@
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import os
@@ -51,11 +51,11 @@ class Oil(LagrangianArray):
                            'units': 'kg',
                            'default': 0}),
         ('mass_dispersed', {'dtype': np.float32,
-                           'units': 'kg',
-                           'default': 0}),
+                            'units': 'kg',
+                            'default': 0}),
         ('mass_evaporated', {'dtype': np.float32,
-                                 'units': 'kg',
-                                 'default': 0}),
+                             'units': 'kg',
+                             'default': 0}),
         ('fraction_evaporated', {'dtype': np.float32,
                                  'units': '%',
                                  'default': 0}),
@@ -99,9 +99,7 @@ class OpenOil(OpenDriftSimulation):
                     + '/oil_types.txt').readlines()])[1:-1]
     default_oil = oil_types.split(',')[0].strip()
 
-
     # Configuration
-
     configspec = '''
         [input]
             readers = list(min=1, default=list(''))
@@ -126,7 +124,7 @@ class OpenOil(OpenDriftSimulation):
 
         # Read oil properties from file
         self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
-                                '/oilprop.dat'
+            '/oilprop.dat'
         oilprop = open(self.oiltype_file)
         oiltypes = []
         linenumbers = []
@@ -143,8 +141,7 @@ class OpenOil(OpenDriftSimulation):
         super(OpenOil, self).__init__(*args, **kwargs)
 
     def evaporate(self):
-       if self.config['processes']['evaporation'] is True:
-
+        if self.config['processes']['evaporation'] is True:
             logging.debug('   Calculating: evaporation')
             windspeed = np.sqrt(self.environment.x_wind**2 +
                                 self.environment.y_wind**2)
@@ -200,7 +197,7 @@ class OpenOil(OpenDriftSimulation):
             logging.debug('   Calculating: emulsification')
             if not hasattr(self.model, 'reference_wind'):
                 logging.debug('Emulsification is currently only possible when'
-                               'importing oil properties from file.')
+                              'importing oil properties from file.')
             else:
                 windspeed = np.sqrt(self.environment.x_wind**2 +
                                     self.environment.y_wind**2)
@@ -212,7 +209,6 @@ class OpenOil(OpenDriftSimulation):
                 self.elements.water_content = np.interp(
                     self.elements.age_emulsion_seconds,
                     self.model.tref, self.model.wmax)
-
 
     def disperse(self):
         if self.config['processes']['dispersion'] is True:
@@ -278,11 +274,11 @@ class OpenOil(OpenDriftSimulation):
         wind_drift_factor = self.config['drift']['wind_drift_factor']
         if self.config['drift']['relative_wind'] is True:
             self.update_positions((self.environment.x_wind -
-                                   self.environment.x_sea_water_velocity)*
-                                   wind_drift_factor,
+                                   self.environment.x_sea_water_velocity) *
+                                  wind_drift_factor,
                                   (self.environment.y_wind -
-                                   self.environment.y_sea_water_velocity)*
-                                   wind_drift_factor)
+                                   self.environment.y_sea_water_velocity) *
+                                  wind_drift_factor)
         else:
             self.update_positions(self.environment.x_wind*wind_drift_factor,
                                   self.environment.y_wind*wind_drift_factor)
@@ -344,14 +340,15 @@ class OpenOil(OpenDriftSimulation):
 
         # Do not let particles go below seafloor
         if hasattr(self.environment, 'sea_floor_depth_below_sea_level'):
-            self.elements.z[np.where(self.elements.z < \
+            self.elements.z[np.where(
+                self.elements.z <
                 -self.environment.sea_floor_depth_below_sea_level)] = \
                 -self.environment.sea_floor_depth_below_sea_level
 
         ## Deactivate elements hitting sea ice
         self.deactivate_elements(self.environment.sea_ice_area_fraction > 0.6,
                                  reason='oil-in-ice')
- 
+
     def update(self):
         """Update positions and properties of oil particles."""
 
@@ -367,10 +364,10 @@ class OpenOil(OpenDriftSimulation):
         if 'stranded' not in self.status_categories:
             self.status_categories.append('stranded')
         mass_active = np.ma.sum(np.ma.masked_where(
-                status==self.status_categories.index('stranded'),
-                    mass_oil), axis=1)
+            status == self.status_categories.index('stranded'),
+            mass_oil), axis=1)
         mass_stranded = np.ma.sum(np.ma.masked_where(
-            status!=self.status_categories.index('stranded'),
+            status != self.status_categories.index('stranded'),
             mass_oil), axis=1)
         mass_evaporated, status = self.get_property('mass_evaporated')
         mass_evaporated = np.sum(mass_evaporated, axis=1)
@@ -396,21 +393,21 @@ class OpenOil(OpenDriftSimulation):
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
                       color='skyblue', label='evaporated'))
 
-        ax1.fill_between(time, 0, budget[0,:], facecolor='salmon')
-        ax1.fill_between(time, budget[0,:], budget[1,:],
+        ax1.fill_between(time, 0, budget[0, :], facecolor='salmon')
+        ax1.fill_between(time, budget[0, :], budget[1, :],
                          facecolor='royalblue')
-        ax1.fill_between(time, budget[1,:], budget[2,:],
+        ax1.fill_between(time, budget[1, :], budget[2, :],
                          facecolor='black')
-        ax1.fill_between(time, budget[2,:], budget[3,:],
+        ax1.fill_between(time, budget[2, :], budget[3, :],
                          facecolor='skyblue')
-        ax1.set_ylim([0,budget.max()])
-        ax1.set_xlim([0,time.max()])
+        ax1.set_ylim([0, budget.max()])
+        ax1.set_xlim([0, time.max()])
         ax1.set_ylabel('Mass oil  [%s]' %
-                        self.elements.variables['mass_oil']['units'])
+                       self.elements.variables['mass_oil']['units'])
         ax1.set_xlabel('Time  [hours]')
         # Right axis showing percent
         ax2 = ax1.twinx()
-        ax2.set_ylim([0,100])
+        ax2.set_ylim([0, 100])
         ax2.set_ylabel('Percent')
         plt.title('%s - %s to %s' %
                   (self.model.oiltype,
@@ -425,7 +422,6 @@ class OpenOil(OpenDriftSimulation):
         ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
                    ncol=4, mode="expand", borderaxespad=0.)
         plt.show()
-
 
     def set_oiltype(self, oiltype):
         if oiltype not in self.oiltypes:
@@ -447,9 +443,9 @@ class OpenOil(OpenDriftSimulation):
             if not line[0].isdigit():
                 break
             line = line.split()
-            tref.append(line[0]) 
-            fref.append(line[1]) 
-            wmax.append(line[3]) 
+            tref.append(line[0])
+            fref.append(line[1])
+            wmax.append(line[3])
         self.model.tref = np.array(tref, dtype='float')*3600.
         self.model.fref = np.array(fref, dtype='float')*.01
         self.model.wmax = np.array(wmax, dtype='float')
@@ -487,7 +483,8 @@ class OpenOil(OpenDriftSimulation):
 
         # This retrieves some other types of patches, found in some files only
         # Should be combines with the above, to get all patches
-        #pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/gml:Surface/gml:polygonPatches'
+        #pos1 = 'od:oilDetectionMember/od:oilDetection/od:oilSpill/
+        # gml:Surface/gml:polygonPatches'
         #pos2 = 'gml:PolygonPatch/gml:exterior/gml:LinearRing/gml:posList'
 
         # Find detection time

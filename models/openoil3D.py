@@ -1,17 +1,17 @@
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import os
@@ -28,8 +28,8 @@ class Oil3D(Oil):
 
     variables = Oil.add_variables([
         ('diameter', {'dtype': np.float32,
-                       'units': 'm',
-                       'default': 0.0001})
+                      'units': 'm',
+                      'default': 0.0001})
         ])
 
 
@@ -63,12 +63,11 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                        'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0,
                        'sea_floor_depth_below_sea_level': 100,
-                       'ocean_vertical_diffusivity': 0.02, #m2s-1
+                       'ocean_vertical_diffusivity': 0.02,  # m2s-1
                        'sea_water_temperature': 10.,
-                       'sea_water_salinity' : 34.
+                       'sea_water_salinity': 34.
                        #'upward_sea_water_velocity': 0
                        }
-
 
     # Read oil types from file (presently only for illustrative effect)
     oil_types = str([str(l.strip()) for l in open(
@@ -76,9 +75,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                     + '/oil_types.txt').readlines()])[1:-1]
     default_oil = oil_types.split(',')[0].strip()
 
-
     # Configuration
-
     configspec = '''
         [input]
             readers = list(min=1, default=list(''))
@@ -110,7 +107,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         # Read oil properties from file
         self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
-                                '/oilprop.dat'
+            '/oilprop.dat'
         oilprop = open(self.oiltype_file)
         oiltypes = []
         linenumbers = []
@@ -129,24 +126,24 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     def update_terminal_velocity(self):
         """Calculate terminal velocity for oil droplets
 
-        according to 
+        according to
         Tkalich et al. (2002): Vertical mixing of oil droplets
                                by breaking waves
         Marine Pollution Bulletin 44, 1219-1229
         """
-        g = 9.81 # ms-2
+        g = 9.81  # ms-2
 
-        r = self.elements.diameter # particle radius
+        r = self.elements.diameter  # particle radius
         T0 = self.environment.sea_water_temperature
         S0 = self.environment.sea_water_salinity
         rho_oil = self.elements.density
         rho_water = self.sea_water_density(T=T0, S=S0)
 
         # dynamic water viscosity
-        my_w = 0.001*(1.7915 - 0.0538*T0 + 0.007*(T0**(2.0)) - 0.0023*S0) # ~0.0014 kg m-1 s-1
+        my_w = 0.001*(1.7915 - 0.0538*T0 + 0.007*(T0**(2.0)) - 0.0023*S0)
+        # ~0.0014 kg m-1 s-1
         # kinemativ water viscosity
         ny_w = my_w / rho_water
-        # 
         rhopr = rho_oil/rho_water
 
         # terminal velocity for low Reynolds numbers
@@ -158,15 +155,15 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         #check if we are in a high Reynolds number regime
         Re = 2*r*W/ny_w
-        highRe = np.where(Re > 50) 
-        
+        highRe = np.where(Re > 50)
+
         # Terminal velocity in high Reynolds numbers
         kw = (16*g*(1-rhopr)/3)**0.5
         W2 = kw*r**0.5
 
         W[highRe] = W2[highRe]
         #print W[0:10], 'W after'
-        self.elements.terminal_velocity = W 
+        self.elements.terminal_velocity = W
 
     def update(self):
         """Update positions and properties of oil particles."""

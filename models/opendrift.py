@@ -1,17 +1,17 @@
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import sys
@@ -36,6 +36,7 @@ except:
 
 from readers.readers import pyproj, Reader
 from physics_methods import PhysicsMethods
+
 
 class ModelSettings(object):
     # Empty class to store model specific information,
@@ -126,8 +127,8 @@ class OpenDriftSimulation(PhysicsMethods):
         """
 
         # Set default configuration
-        self.config = configobj.ConfigObj(configspec=self.configspec.split('\n'),
-                                          raise_errors=True)
+        self.config = configobj.ConfigObj(
+            configspec=self.configspec.split('\n'), raise_errors=True)
         validation = self.config.validate(validate.Validator())
         if not isinstance(validation, bool) or validation is False:
             raise ValueError('Wrong configuration: "%s"' % (validation))
@@ -543,12 +544,12 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def release_elements(self):
         """Activate elements which are scheduled within following timestep."""
-        
+
         logging.debug('to be seeded: %s, already seeded %s' % (
-                len(self.elements_scheduled), self.num_elements_activated()))
+            len(self.elements_scheduled), self.num_elements_activated()))
         if len(self.elements_scheduled) == 0:
             return
-        if self.time_step.days >= 0: 
+        if self.time_step.days >= 0:
             indices = (self.elements_scheduled_time >= self.time) & \
                       (self.elements_scheduled_time <
                        self.time + self.time_step)
@@ -561,7 +562,7 @@ class OpenDriftSimulation(PhysicsMethods):
         logging.debug('Released %i new elements.' % np.sum(indices))
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                   cone=False, **kwargs):
+                      cone=False, **kwargs):
         """Seed a given number of particles around given position(s).
 
         Arguments:
@@ -577,7 +578,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 continously from start/first to end/last time.
             cone: boolean or integer. If True, lon and lat must be two element
                 arrays, interpreted as the start and end position of a cone
-                within which elements will be seeded. Radius may also be a 
+                within which elements will be seeded. Radius may also be a
                 two element array specifying the radius around the points.
             kwargs: keyword arguments containing properties/attributes and
                 values corresponding to the actual particle type (ElementType).
@@ -645,7 +646,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 geod = pyproj.Geod(ellps='WGS84')
                 conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
-                                              number, radians=False)
+                                        number, radians=False)
                 # Seed cone recursively
                 lon, lat = zip(*conelonlats)
                 if len(radius_array) == 1:
@@ -665,11 +666,10 @@ class OpenDriftSimulation(PhysicsMethods):
                         scalarargs[kwarg] = kwargs[kwarg]
                 # Make sure to call seed function of base class,
                 # not of a specific Children class
-                OpenDriftSimulation.seed_elements(self,
-                                lon=[lon[i]], lat=[lat[i]],
-                                radius=radius_array[i],
-                                number=int(number_array[i]),
-                                time=time_array[i], cone=False, **scalarargs)
+                OpenDriftSimulation.seed_elements(
+                    self, lon=[lon[i]], lat=[lat[i]], radius=radius_array[i],
+                    number=int(number_array[i]),
+                    time=time_array[i], cone=False, **scalarargs)
             return
 
         # Below we have only for single points
@@ -682,15 +682,15 @@ class OpenDriftSimulation(PhysicsMethods):
             time_array = [time[0] + i*td for i in range(number)]
         else:
             time_array = time
-             
+
         geod = pyproj.Geod(ellps='WGS84')
         ones = np.ones(number)
         x = np.random.randn(number)*radius
         y = np.random.randn(number)*radius
-        az = np.degrees(np.arctan2(x,y))
+        az = np.degrees(np.arctan2(x, y))
         dist = np.sqrt(x*x+y*y)
         kwargs['lon'], kwargs['lat'], az = \
-            geod.fwd(lon*ones, lat*ones, az, dist, radians=False) 
+            geod.fwd(lon*ones, lat*ones, az, dist, radians=False)
 
         elements = self.ElementType(**kwargs)
 
@@ -807,7 +807,8 @@ class OpenDriftSimulation(PhysicsMethods):
         self.bufferlength = steps + 1
         # Initialise array to hold history (element properties and environment)
         # for export to file.
-        #history_dtype_fields = [(name, self.elements.dtype[name]) for name in self.elements.dtype.fields]
+        #history_dtype_fields = [(name, self.elements.dtype[name])
+        # for name in self.elements.dtype.fields]
         history_dtype_fields = [(name,
                                  self.ElementType.variables[name]['dtype'])
                                 for name in self.ElementType.variables]
@@ -815,7 +816,7 @@ class OpenDriftSimulation(PhysicsMethods):
         #self.history_metadata = self.elements.variables.copy()
         self.history_metadata = self.ElementType.variables.copy()
         for env_var in self.required_variables:
-            history_dtype_fields.append((env_var, np.dtype('float32'))) 
+            history_dtype_fields.append((env_var, np.dtype('float32')))
             self.history_metadata[env_var] = {}
         history_dtype = np.dtype(history_dtype_fields)
         #self.history = np.ma.array(np.zeros([self.num_elements_active(),
@@ -911,7 +912,8 @@ class OpenDriftSimulation(PhysicsMethods):
         """Append present state (elements and environment) to recarray."""
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
-            # Temporarily assuming elements numbered from 0 to num_elements_active()
+            # Temporarily assuming elements numbered
+            # from 0 to num_elements_active()
             # Does not hold when importing ID from a saved file, where
             # some elements have been deactivated
             self.history[var][self.elements.ID - 1,
@@ -996,7 +998,7 @@ class OpenDriftSimulation(PhysicsMethods):
         except:
             pass
 
-        return map, plt, x, y, index_of_first, index_of_last 
+        return map, plt, x, y, index_of_first, index_of_last
 
     def animation(self, buffer=.2, filename=None, compare=None,
                   legend=['', '']):
@@ -1009,15 +1011,15 @@ class OpenDriftSimulation(PhysicsMethods):
             points.set_data(x[range(x.shape[0]), i],
                             y[range(x.shape[0]), i])
             points_deactivated.set_data(
-                x_deactive[index_of_last_deactivated<i],
-                y_deactive[index_of_last_deactivated<i])
+                x_deactive[index_of_last_deactivated < i],
+                y_deactive[index_of_last_deactivated < i])
 
             if compare is not None:
                 points_other.set_data(x_other[range(x_other.shape[0]), i],
                                       y_other[range(x_other.shape[0]), i])
                 points_other_deactivated.set_data(
-                    x_other_deactive[index_of_last_deactivated_other<i],
-                    y_other_deactive[index_of_last_deactivated_other<i])
+                    x_other_deactive[index_of_last_deactivated_other < i],
+                    y_other_deactive[index_of_last_deactivated_other < i])
                 return points, points_other
             else:
                 return points
@@ -1075,7 +1077,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if filename[-4:] == '.gif':
                 logging.info('Making animated gif...')
                 os.system('convert -delay %i _tmp*.png %s' %
-                          (self.time_step.total_seconds()/3600.*24.,filename))
+                          (self.time_step.total_seconds()/3600.*24., filename))
 
             logging.info('Deleting temporary figures...')
             tmp = glob.glob('_tmp*.png')
@@ -1083,8 +1085,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 os.remove(tfile)
         else:
             plt.show()
-
-
 
     def plot(self, background=None, buffer=.5, linecolor=None,
              filename=None, drifter_file=None, show=True):
@@ -1123,12 +1123,14 @@ class OpenDriftSimulation(PhysicsMethods):
                 try:
                     param = self.history[linecolor]
                 except:
-                    raise ValueError('Available parameters to be used for '
-                        'linecolors: ' + str(self.history.dtype.fields))
+                    raise ValueError(
+                        'Available parameters to be used for linecolors: ' +
+                        str(self.history.dtype.fields))
                 from matplotlib.collections import LineCollection
                 for i in range(x.shape[0]):
                     vind = np.arange(index_of_first[i], index_of_last[i] + 1)
-                    points = np.array([x[i,vind].T, y[i,vind].T]).T.reshape(-1, 1, 2)
+                    points = np.array(
+                        [x[i, vind].T, y[i, vind].T]).T.reshape(-1, 1, 2)
                     segments = np.concatenate([points[:-1], points[1:]],
                                               axis=1)
                     lc = LineCollection(segments,
@@ -1136,7 +1138,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                         norm=plt.Normalize(param.min(),
                                                            param.max()))
                     #lc.set_linewidth(3)
-                    lc.set_array(param.T[vind,i])
+                    lc.set_array(param.T[vind, i])
                     plt.gca().add_collection(lc)
                 axcb = plt.colorbar(lc)
                 try:  # Add unit to colorbar if available
@@ -1235,7 +1237,7 @@ class OpenDriftSimulation(PhysicsMethods):
             #    map.plot(x[-1], y[-1], '*k')
 
             # Format for shell buoy
-            data = np.loadtxt(drifter_file, skiprows=1, usecols=(2,3))
+            data = np.loadtxt(drifter_file, skiprows=1, usecols=(2, 3))
             x, y = map(data.T[1], data.T[0])
             map.plot(x, y, '-r', linewidth=2, zorder=10)
             map.plot(x[0], y[0], '*r', zorder=10)
@@ -1248,7 +1250,7 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             if show is True:
                 plt.show()
-        
+
         return map, plt
 
     def get_time_array(self):
@@ -1308,7 +1310,7 @@ class OpenDriftSimulation(PhysicsMethods):
         plt.xlabel('Time  [UTC]')
         try:
             plt.ylabel('%s  [%s]' %
-                        (prop, self.elements.variables[prop]['units']))
+                       (prop, self.elements.variables[prop]['units']))
         except:
             plt.ylabel(prop)
         plt.subplots_adjust(bottom=.3)
@@ -1326,8 +1328,8 @@ class OpenDriftSimulation(PhysicsMethods):
         j = np.arange(status.shape[1])
         # Fill arrays with last value before deactivation
         for i in range(status.shape[0]):
-            status[i, j>index_of_last[i]] = status[i, index_of_last[i]]
-            prop[i, j>index_of_last[i]] = prop[i, index_of_last[i]]
+            status[i, j > index_of_last[i]] = status[i, index_of_last[i]]
+            prop[i, j > index_of_last[i]] = prop[i, index_of_last[i]]
 
         return prop.T, status.T
 

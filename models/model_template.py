@@ -1,17 +1,17 @@
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
@@ -56,7 +56,7 @@ class ModelTemplate(OpenDriftSimulation):
 
     This is a template model, to be copied and modified according to need.
     This class is a subclass of "OpenDriftSimulation", and thus inherits
-    all functionality.
+    all functionality. More specialised models may also be subclassed.
     """
 
     # Specify which element/particle type (class) to be used by this model.
@@ -87,13 +87,14 @@ class ModelTemplate(OpenDriftSimulation):
         # e.g. importing external data from file.
         print 'preprocessing...'
 
-        # Call constructor of parent class
+        # Constructor of parent class must always be called
+        # to perform some necessary common initialisation tasks
         super(ModelTemplate, self).__init__(*args, **kwargs)
 
     def update(self):
         """Update positions and properties of particles."""
 
-        # This function ("update", may not be renamed) definnes
+        # This function ("update", may not be renamed) defines
         # the actions (processes) to be performed at each time step.
         # The default timestep is one hour, but this may be overriden
         # by the user (setting model.time_step, see e.g. example.py)

@@ -2,19 +2,19 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
@@ -45,7 +45,7 @@ class TestArray(unittest.TestCase):
         """Test a model run"""
         self.make_OceanDrift_object()
         self.o.seed_elements(2.0, 61.0, radius=0, number=9,
-                          time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
+                             time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
 
         # Check that 6 elements are scheduled, but none seeded
         self.assertEqual(self.o.num_elements_scheduled(), 9)
@@ -67,8 +67,8 @@ class TestArray(unittest.TestCase):
         """Test a model run"""
         self.make_OceanDrift_object()
         self.o.seed_elements([2.0, 4.5, 3.0], [61.0, 60.0, 62.0],
-                          radius=0, number=9,
-                          time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
+                             radius=0, number=9,
+                             time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
 
         # Check that 6 elements are scheduled, but none seeded
         self.assertEqual(self.o.num_elements_scheduled(), 9)
