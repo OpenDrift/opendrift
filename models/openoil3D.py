@@ -56,6 +56,11 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                           #'upward_sea_water_velocity'
                           ]
 
+    required_profiles = ['sea_water_temperature',
+                         'ocean_vertical_diffusivity']
+    required_profiles_z_range = [-50, 0]  # The depth range (in m) which
+                                          # profiles shall cover
+
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
