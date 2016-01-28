@@ -29,6 +29,8 @@ from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
+sys.path.append("..")
+
 try:
     from readers import reader_netCDF_CF_generic
     from readers import reader_ROMS_native

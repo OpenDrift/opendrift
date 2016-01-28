@@ -16,8 +16,11 @@
 # 
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import sys
 import argparse
 import numpy as np
+sys.path.append("..")
+
 from models.openoil import OpenOil
 
 if __name__ == '__main__':
