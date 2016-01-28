@@ -18,26 +18,20 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=3, llcrnrlat=59.7,
-                    urcrnrlon=7, urcrnrlat=61.5,
+                    llcrnrlon=10, llcrnrlat=67.,
+                    urcrnrlon=16, urcrnrlat=69.,
                     resolution='h', projection='merc')
 
 o.add_reader([reader_norkyst, reader_basemap, reader_arome])
 
-# Experiment with constant wind instead of arome
-#o.add_reader([reader_norkyst, reader_basemap])
-#o.fallback_values['x_wind'] = 20
-#o.fallback_values['y_wind'] = 20
-
-# Seeding some particles
-lon = 4.5; lat = 60.0; # Outside Bergen
-
-#time = [reader_arome.start_time,
-#        reader_arome.start_time + timedelta(hours=30)]
 time = reader_arome.start_time
 
-# Seed oil elements at defined position and time
-o.seed_elements(lon, lat, z=-0.5, radius=3000, number=1000, time=time)
+# spawn NEA cod eggs at defined position and time
+o.seed_elements(14. , 68.1, z=-40, radius=2000, number=1000,
+                time=time, diameter=0.0014, neutral_buoyancy_salinity=31.25)
+o.seed_elements(12.5, 68.5, z=-40, radius=2000, number=1000,
+                time=time, diameter=0.0014, neutral_buoyancy_salinity=31.25)
+
 
 # Adjusting some configuration
 o.config['drift']['wind_drift_factor'] = .0
