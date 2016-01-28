@@ -79,8 +79,10 @@ class PelagicEggDrift(OpenDrift3DSimulation):
     # The vertical levels are available as
     # self.environment_profiles['z'] or
     # self.environment_profiles['sigma'] (not yet implemented)
-    required_profiles = ['sea_water_temperature', 'sea_water_salinity']
-    required_profiles_z_range = [-50, 0]  # The depth range (in m) which
+    required_profiles = ['sea_water_temperature',
+                         'sea_water_salinity',
+                         'ocean_vertical_diffusivity']
+    required_profiles_z_range = [-120, 0]  # The depth range (in m) which
                                           # profiles shall cover
 
     fallback_values = {'x_sea_water_velocity': 0,

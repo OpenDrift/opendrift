@@ -18,7 +18,7 @@ import os
 import numpy as np
 import logging
 from datetime import datetime
-
+from scipy.interpolate import interp1d
 from opendrift import OpenDriftSimulation
 from elements import LagrangianArray
 
@@ -98,6 +98,20 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         bottom = np.where(self.elements.z < Zmin)
         self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
+        # get profile of eddy diffusivity
+        # get vertical eddy diffusivity from environment or specific model
+        if self.config['turbulentmixing']['diffusivitymodel'] == \
+                'environment':
+            Kprofiles = self.environment_profiles['ocean_vertical_diffusivity']
+        else:
+            Kprofiles = getattr(
+                eddydiffusivity,
+                self.config['turbulentmixing']['diffusivitymodel'])(self)
+
+        # prepare vertical interpolation coordinates
+        zi = range(Kprofiles.shape[0])
+        z_index = interp1d(-self.environment_profiles['z'],zi,bounds_error=False)
+    
         # internal loop for fast time step of vertical mixing model
         # binned random walk needs faster time step compared
         # to horizontal advection
@@ -110,21 +124,23 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             # update terminal velocity according to environmental variables
             self.update_terminal_velocity()
             w = self.elements.terminal_velocity
+ 
+            # K at depth z
+            zi = z_index(-self.elements.z)
+            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
+            weight_upper = 1 - (zi - upper)
+            K1 = Kprofiles[upper, range(Kprofiles.shape[1])] * weight_upper + Kprofiles[lower, range(Kprofiles.shape[1])] * (1-weight_upper) 
 
-            # get vertical eddy diffusivity from environment or specific model
-            if self.config['turbulentmixing']['diffusivitymodel'] == \
-                    'environment':
-                K = self.environment.ocean_vertical_diffusivity
-            else:
-                K = getattr(
-                    eddydiffusivity,
-                    self.config['turbulentmixing']['diffusivitymodel'])(self)
-
-            #K1 = K # K at current depth
-            #K2 = K # K at depth z-dz
-
-            p = dt_mix * (2.0*K + dz*w)/(2.0*dz*dz)  # probability to rise
-            q = dt_mix * (2.0*K - dz*w)/(2.0*dz*dz)  # probability to sink
+            # K at depth z-dz ; gradient of K is required for correct solution with random walk scheme
+            zi = z_index(-(self.elements.z-dz))
+            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
+            weight_upper = 1 - (zi - upper)
+            K2 = Kprofiles[upper, range(Kprofiles.shape[1])] * weight_upper + Kprofiles[lower, range(Kprofiles.shape[1])] * (1-weight_upper) 
+            
+            p = dt_mix * (2.0*K1 + dz*w)/(2.0*dz*dz)  # probability to rise
+            q = dt_mix * (2.0*K2 - dz*w)/(2.0*dz*dz)  # probability to sink
 
             # check if probabilities are reasonable or wrong
             wrong = p+q > 1.
