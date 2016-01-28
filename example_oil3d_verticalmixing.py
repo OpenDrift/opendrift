@@ -22,11 +22,13 @@ if import_file is True:
     o.io_import_file(ncfile)
 else:
     # Arome
-    reader_arome = reader_netCDF_CF_generic.Reader('/disk2/data/opendrift_test_data/15jan2016/AROME_MetCoOp_00_DEF.nc')
+    #reader_arome = reader_netCDF_CF_generic.Reader('/disk2/data/opendrift_test_data/15jan2016/AROME_MetCoOp_00_DEF.nc')
+    reader_arome = reader_netCDF_CF_generic.Reader('/disk1/data/opendrift_testdata/15jan2016/AROME_MetCoOp_00_DEF.nc')
     #reader_arome = reader_netCDF_CF_generic.Reader('/opdata/arome2_5_main/AROME_MetCoOp_00_DEF.nc')
 
     # Norkyst
-    reader_norkyst = reader_netCDF_CF_generic.Reader('/disk2/data/opendrift_test_data/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc')
+    #reader_norkyst = reader_netCDF_CF_generic.Reader('/disk2/data/opendrift_test_data/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc')
+    reader_norkyst = reader_netCDF_CF_generic.Reader('/disk1/data/opendrift_testdata/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc')
     #reader_norkyst = reader_netCDF_CF_generic.Reader('/opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc')
 
     # Landmask (Basemap)
