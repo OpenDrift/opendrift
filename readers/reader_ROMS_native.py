@@ -57,11 +57,11 @@ class Reader(Reader):
                              ' with netCDF4 library')
 
         # Read sigma-coordinate parameters
-        Vtransform = self.Dataset.variables['Vtransform'][:]
-        Vstretching = self.Dataset.variables['Vstretching'][:]
-        theta_s = self.Dataset.variables['theta_s'][:]
-        theta_b = self.Dataset.variables['theta_b'][:]
-        Tcline = self.Dataset.variables['Tcline'][:]
+        #Vtransform = self.Dataset.variables['Vtransform'][:]
+        #Vstretching = self.Dataset.variables['Vstretching'][:]
+        #theta_s = self.Dataset.variables['theta_s'][:]
+        #theta_b = self.Dataset.variables['theta_b'][:]
+        #Tcline = self.Dataset.variables['Tcline'][:]
         self.sigma = self.Dataset.variables['s_rho'][:]
         self.num_layers = len(self.sigma)
 
