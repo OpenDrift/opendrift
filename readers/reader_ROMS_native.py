@@ -73,7 +73,7 @@ class Reader(Reader):
         # Get time coverage
         ocean_time = self.Dataset.variables['ocean_time']
         time_units = ocean_time.getncattr('units')
-        self.times = num2date(ocean_time, time_units)
+        self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
         if len(self.times) > 1:
