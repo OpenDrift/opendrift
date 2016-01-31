@@ -42,12 +42,10 @@ lats = lats.ravel()
 o.seed_elements(lons, lats, radius=0, number=10000,
                 time=reader_nordic4.start_time)
 
-print o
-
 # Running model (until end of driver data)
 o.run(steps=16*4, time_step=900)
 
 # Print and plot results
 print o
 o.animation()
-#o.plot()
+o.plot()

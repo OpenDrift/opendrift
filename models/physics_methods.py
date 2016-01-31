@@ -54,3 +54,31 @@ class PhysicsMethods(object):
         SIG = R1 + (R4*S + R3*np.sqrt(S) + R2)*S
         Dens0 = SIG + DR350 + 1000.
         return Dens0
+
+    def advect_ocean_current(self):
+        # Runge-Kutta scheme
+        if self.config['drift']['scheme'] == 'runge-kutta':
+            x_vel = self.environment.x_sea_water_velocity
+            y_vel = self.environment.y_sea_water_velocity
+            # Calculate x,y from lon,lat
+            start_x, start_y = self.lonlat2xy(self.elements.lon,
+                                              self.elements.lat)
+            # Find midpoint
+            mid_x = start_x + x_vel*self.time_step.total_seconds()*.5
+            mid_y = start_y + y_vel*self.time_step.total_seconds()*.5
+            mid_lon, mid_lat = self.xy2lonlat(mid_x, mid_y)
+            # Find current at midpoint, a half timestep later
+            mid_env, profiles, missing = self.get_environment(
+                ['x_sea_water_velocity', 'y_sea_water_velocity'],
+                self.time + self.time_step/2,
+                mid_lon, mid_lat, self.elements.z, profiles=None)
+            # Move particles using runge-kutta velocity
+            self.update_positions(mid_env['x_sea_water_velocity'],
+                                  mid_env['y_sea_water_velocity'])
+        elif self.config['drift']['scheme'] == 'euler':
+            # Euler scheme
+            self.update_positions(self.environment.x_sea_water_velocity,
+                                  self.environment.y_sea_water_velocity)
+        else:
+            raise ValueError('Drift scheme not recognised: ' +
+                              self.config['drift']['scheme'])

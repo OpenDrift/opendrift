@@ -97,6 +97,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
         [drift]
+            scheme = option('euler', 'runge-kutta', default='euler')
             wind_drift_factor = float(min=0, max=1, default=0.02)
             current_uncertainty = float(min=0, max=5, default=.1)
             wind_uncertainty = float(min=0, max=5, default=1)

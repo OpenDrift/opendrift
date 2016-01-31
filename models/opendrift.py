@@ -1001,7 +1001,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return map, plt, x, y, index_of_first, index_of_last
 
     def animation(self, buffer=.2, filename=None, compare=None,
-                  legend=['', '']):
+                  legend=['', ''], markersize=5):
         """Animate last run."""
 
         def plot_timestep(i):
@@ -1031,7 +1031,8 @@ class OpenDriftSimulation(PhysicsMethods):
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
-        points = map.plot([], [], '.k', label=legend[0])[0]
+        points = map.plot([], [], '.k', label=legend[0],
+                          markersize=markersize)[0]
         # Plot deactivated elements, with transparency
         points_deactivated = map.plot([], [], '.k', alpha=.3)[0]
         x_deactive, y_deactive = map(self.elements_deactivated.lon,
@@ -1048,7 +1049,8 @@ class OpenDriftSimulation(PhysicsMethods):
             # Find map coordinates and plot data for comparison
             x_other, y_other = map(other.history['lon'], other.history['lat'])
             points_other = map.plot(x_other[0, 0], y_other[0, 0], '.r',
-                                    label=legend[1])[0]
+                                    label=legend[1],
+                                    markersize=markersize)[0]
             x_other_deactive, y_other_deactive = \
                 map(other.elements_deactivated.lon,
                     other.elements_deactivated.lat)

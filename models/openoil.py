@@ -114,6 +114,7 @@ class OpenOil(OpenDriftSimulation):
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
         [drift]
+            scheme = option('euler', 'runge-kutta', default='euler')
             wind_drift_factor = float(min=0, max=1, default=0.02)
             current_uncertainty = float(min=0, max=5, default=.1)
             wind_uncertainty = float(min=0, max=5, default=1)
@@ -325,8 +326,7 @@ class OpenOil(OpenDriftSimulation):
 
     def advect_oil(self):
         # Simply move particles with ambient current
-        self.update_positions(self.environment.x_sea_water_velocity,
-                              self.environment.y_sea_water_velocity)
+        self.advect_ocean_current()
 
         # Wind drag
         self.wind_drag()
