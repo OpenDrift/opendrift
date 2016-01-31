@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Illustrating the difference Euler and Runge-Kutta propagation
+# Illustrating the difference between Euler and Runge-Kutta propagation
 # schemes, using an idealised (analytical) eddy current field.
 
 from datetime import datetime, timedelta
