@@ -19,6 +19,8 @@ import importlib
 import logging
 from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
+from multiprocessing import Pool
+
 from scipy.interpolate import interp1d, LinearNDInterpolator
 from scipy.spatial import KDTree
 from scipy.ndimage import map_coordinates
@@ -80,6 +82,17 @@ def extrap1d(interpolator):
 
     return ufunclike
 
+def make_interpolator(attr, x,y,z):
+    """Worker function for multiprocessing."""
+    logging.debug('Making intrpolator for ' + attr)
+    i = LinearNDInterpolator((x.ravel(), y.ravel()), 
+                             z.ravel(), fill_value=np.nan)
+    # An interpolator is not 'pickleable' and cannot be returned
+    # from a multiprocess. Hence returning numerical data only,
+    # for later reconstruction
+    d = {'fill_value': i.fill_value,
+         'points': i.points, 'values': i.values, 'attr': attr}
+    return d
 
 class Reader(object):
     """Parent Reader class, to be subclassed by specific readers.
@@ -113,6 +126,7 @@ class Reader(object):
         'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
         'northward_eulerian_current_velocity': 'y_sea_water_velocity'}
 
+
     def __init__(self):
         # Common constructor for all readers
 
@@ -134,21 +148,49 @@ class Reader(object):
                                      'have attributes/arrays "lon", "lat" '
                                      'and "angle_between_x_and_east"')
 
-                logging.info('Making Spline for lon,lat to x,y conversion...')
+                logging.info('Making Splines for lon,lat to x,y conversion...')
                 block_x, block_y = np.meshgrid(
                     np.arange(self.xmin, self.xmax + 1, 1),
                     np.arange(self.ymin, self.ymax + 1, 1))
-                self.spl_x = LinearNDInterpolator((self.lon.ravel(),
-                                                   self.lat.ravel()),
-                                                  block_x.ravel(),
-                                                  fill_value=np.nan)
-                self.spl_y = LinearNDInterpolator((self.lon.ravel(),
-                                                   self.lat.ravel()),
-                                                  block_y.ravel(),
-                                                  fill_value=np.nan)
-                self.spl_angle = LinearNDInterpolator(
-                    (block_x.ravel(), block_y.ravel()),
-                    self.angle_between_x_and_east.ravel(), fill_value=np.nan)
+
+                # Using multiprocessing for speedup
+                pool = Pool(processes=3)
+                processes = [
+                    pool.apply_async(make_interpolator,
+                                     ('spl_x',
+                                     self.lon, self.lat, block_x)),
+                    pool.apply_async(make_interpolator,
+                                     ('spl_y',
+                                     self.lon, self.lat, block_y)),
+                    pool.apply_async(make_interpolator,
+                                     ('spl_angle', block_x, block_y,
+                                     self.angle_between_x_and_east)) ]
+
+                # Get numerical data returned from the processes,
+                # and reconstruct intepolators
+                for process in processes:
+                    template_int = LinearNDInterpolator(
+                        [[0,0],[1,0],[0,1],[1,1]], [0,1,2,4])
+                    result = process.get()
+                    attr = result['attr']
+                    del result['attr']
+                    for key, value in result.iteritems():
+                        template_int.__setattr__(key, value)
+                    setattr(self, attr, template_int)
+
+                # Keeping old single-processing code for reference:
+                #self.spl_x = LinearNDInterpolator((self.lon.ravel(),
+                #                                   self.lat.ravel()),
+                #                                  block_x.ravel(),
+                #                                  fill_value=np.nan)
+                #self.spl_y = LinearNDInterpolator((self.lon.ravel(),
+                #                                   self.lat.ravel()),
+                #                                  block_y.ravel(),
+                #                                  fill_value=np.nan)
+                #self.spl_angle = LinearNDInterpolator(
+                #    (block_x.ravel(), block_y.ravel()),
+                #    self.angle_between_x_and_east.ravel(),
+                #    fill_value=np.nan)
 
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
