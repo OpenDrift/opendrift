@@ -90,8 +90,9 @@ def make_interpolator(attr, x,y,z):
     # An interpolator is not 'pickleable' and cannot be returned
     # from a multiprocess. Hence returning numerical data only,
     # for later reconstruction
-    d = {'fill_value': i.fill_value,
-         'points': i.points, 'values': i.values, 'attr': attr}
+    d = {'fill_value': i.fill_value, 'values_shape': i.values_shape,
+         'points': i.points, 'values': i.values, 'attr': attr,
+         'tri': i.tri}
     return d
 
 class Reader(object):
@@ -178,7 +179,9 @@ class Reader(object):
                         template_int.__setattr__(key, value)
                     setattr(self, attr, template_int)
 
-                # Keeping old single-processing code for reference:
+                # Keeping old single-processing code, as it may be
+                # necessary to revert if above unpickling of interpolators
+                # is broken for future version of scipy
                 #self.spl_x = LinearNDInterpolator((self.lon.ravel(),
                 #                                   self.lat.ravel()),
                 #                                  block_x.ravel(),
