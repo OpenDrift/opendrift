@@ -62,7 +62,15 @@ class Reader(Reader):
         #theta_s = self.Dataset.variables['theta_s'][:]
         #theta_b = self.Dataset.variables['theta_b'][:]
         #Tcline = self.Dataset.variables['Tcline'][:]
-        self.sigma = self.Dataset.variables['s_rho'][:]
+
+        try:
+            self.sigma = self.Dataset.variables['s_rho'][:]
+        except:
+            num_sigma = len(self.Dataset.dimensions['s_rho'])
+            logging.warning('s_rho not available in dataset, constructing from'
+                            ' number of layers (%s).' % num_sigma)
+            self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
+
         self.num_layers = len(self.sigma)
 
         # Horizontal oordinates and directions
