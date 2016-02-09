@@ -12,25 +12,19 @@ from models.openoil import OpenOil
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Nordic 4km
-file = '/disk2/data/roms_curvilinear/tilKnutFrode/ocean_his.nc'
-if not os.path.exists(file):
-    raise ValueError('Native ROMS file not available: ' + file)
-nordic_native = reader_ROMS_native.Reader(file)
+nordic_native = reader_ROMS_native.Reader('test_data/Nordic-4km_SLEVELS_avg_00_subset3Feb2016.nc')
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=10.3, llcrnrlat=59.0,
-                    urcrnrlon=11.0, urcrnrlat=59.7,
-                    resolution='f', projection='merc')
+                    llcrnrlon=10.0, llcrnrlat=67.5,
+                    urcrnrlon=16.0, urcrnrlat=69.0,
+                    resolution='h', projection='merc')
 
 o.add_reader([reader_basemap, nordic_native])
 
 # Seeding some particles
 time = nordic_native.start_time
-#lons, lats = nordic_native.domain_grid()
-#lon = lons.ravel()
-#lat = lats.ravel()
-lon = 10.52; lat = 59.46; # Oslofjord
+lon = 12.0; lat = 68.3;
 
 # Seed oil elements at defined position and time
 o.seed_elements(lon, lat, radius=2000, number=5000, time=time)
@@ -47,7 +41,7 @@ o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model
-o.run(steps=24*4*3, time_step=900)
+o.run(steps=24*2, time_step=3600)
 
 # Print and plot results
 print o

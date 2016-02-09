@@ -19,6 +19,7 @@
 
 import unittest
 import os
+import inspect
 
 import numpy as np
 
@@ -31,11 +32,15 @@ class TestReaders(unittest.TestCase):
 
     def test_reader_netcdf(self):
         """Check reader functionality."""
-        readers = [reader_netCDF_CF_generic.Reader(
-            'test_data/norkyst800_subset_16Nov2015.nc')]
-        if os.path.exists('/disk2/data/roms/ocean_his_0170.nc'):
-            readers.append(reader_ROMS_native.Reader(
-                '/disk2/data/roms/ocean_his_0170.nc'))
+
+        script_folder = os.path.dirname(
+            os.path.abspath(inspect.getfile(inspect.currentframe())))
+        reader1 = reader_netCDF_CF_generic.Reader(script_folder + 
+            '/../test_data/norkyst800_subset_16Nov2015.nc')
+        reader2 = reader_ROMS_native.Reader(script_folder +
+            '/../test_data/Nordic-4km_SLEVELS_avg_00_subset3Feb2016.nc')
+        readers = [reader1, reader2]
+
         for r in readers:
             print r
             # Make four points:
