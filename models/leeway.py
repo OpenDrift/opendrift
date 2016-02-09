@@ -23,7 +23,7 @@ import numpy as np
 
 from opendrift import OpenDriftSimulation
 from elements import LagrangianArray
-from readers.readers import pyproj, Reader
+from readers.reader import pyproj, Reader
 
 RIGHT = 0
 LEFT = 1

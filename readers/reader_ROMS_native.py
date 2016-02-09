@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from netCDF4 import Dataset, num2date
 
-from readers import Reader
+from reader import Reader
 
 
 class Reader(Reader):

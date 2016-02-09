@@ -3,6 +3,10 @@ import numpy as np
 from scipy.ndimage import map_coordinates
 from scipy.interpolate import interp1d, LinearNDInterpolator
 
+
+horizontal_interpolation_methods =  ['nearest', 'linearND', 'ndimage']
+vertical_interpolation_methods =  ['nearest', 'linear']
+
 class ReaderBlock():
 
     def __init__(self, data_dict, interpolation_method='ndimage'):
@@ -18,9 +22,8 @@ class ReaderBlock():
         del self.data_dict['z']
         del self.data_dict['time']
 
-        interpolation_methods =  ['linearND', 'ndimage', 'nearest']
-        if interpolation_method in interpolation_methods:
-            self.interpolation_method = interpolation_method
+        if interpolation_method in horizontal_interpolation_methods:
+            self.horizontal_interpolation_method = interpolation_method
         else:
             raise NotImplementedError('Valid interpolation methods '
                 'are: ' + str(interpolation_methods))
@@ -37,7 +40,7 @@ class ReaderBlock():
         self.element_y = z
 
         # Nearest neighbour
-        if self.interpolation_method == 'nearest':
+        if self.horizontal_interpolation_method == 'nearest':
             xMin = self.x.min()
             xMax = self.x.max()
             yMin = self.y.min()
@@ -53,7 +56,7 @@ class ReaderBlock():
                 return slice2d[self.yi, self.xi]
 
         # scipy.ndimage
-        if self.interpolation_method == 'ndimage':
+        if self.horizontal_interpolation_method == 'ndimage':
             xMin = self.x.min()
             xMax = self.x.max()
             yMin = self.y.min()
@@ -67,7 +70,7 @@ class ReaderBlock():
                                        cval=np.nan, order=0)
 
         # scipy.interpolate.LinearNDInterpolator
-        elif self.interpolation_method == 'linearND':
+        elif self.horizontal_interpolation_method == 'linearND':
             block_x, block_y = np.meshgrid(self.x, self.y)
             self.block_x = block_x.ravel()
             self.block_y = block_y.ravel()

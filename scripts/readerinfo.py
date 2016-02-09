@@ -25,8 +25,6 @@
 import sys
 import argparse
 
-sys.path.append("..")
-
 try:
     from readers import reader_netCDF_CF_generic
     from readers import reader_ROMS_native

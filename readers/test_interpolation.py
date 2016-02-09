@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 
 import reader_netCDF_CF_generic
 import reader_ROMS_native
-from reader_block import ReaderBlock
+from interpolation import ReaderBlock
 
 class TestInterpolation(unittest.TestCase):
     """Tests spatial interpolation"""

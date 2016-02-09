@@ -34,7 +34,7 @@ try:
 except:
     logging.info('Basemap is not available, can not make plots')
 
-from readers.readers import pyproj, Reader
+from readers.reader import pyproj, Reader
 from physics_methods import PhysicsMethods
 
 

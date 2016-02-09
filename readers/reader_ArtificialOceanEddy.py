@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from readers import Reader, pyproj
+from reader import Reader, pyproj
 
 
 class Reader(Reader):

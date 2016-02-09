@@ -27,7 +27,7 @@ except:
     from matplotlib.path import Path
     has_nxutils = False  # For matplotlib version >= 1.2
 
-from readers import Reader
+from reader import Reader
 
 
 class Reader(Reader):
