@@ -17,14 +17,16 @@ o = OpenOil3D(loglevel=0)  # Set loglevel to 0 for debug information
 ncfile = 'oil3Dmixing.nc'
 import_file = False
 
-arome_file = '/disk1/data/opendrift_testdata/15jan2016/AROME_MetCoOp_00_DEF.nc'
-norkyst_file = '/disk1/data/opendrift_testdata/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc'
-if not os.path.isfile(arome_file):
-    arome_file = '/disk2/data/opendrift_test_data/15jan2016/AROME_MetCoOp_00_DEF.nc'
-    norkyst_file = '/disk2/data/opendrift_test_data/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc'
-if not os.path.isfile(arome_file):
-    arome_file = 'http://super-monitor.met.no/thredds/dodsC/lustreMntB/users/knutfd/public/AROME_MetCoOp_00_DEF.nc'
-    norkyst_file = 'http://super-monitor.met.no/thredds/dodsC/lustreMntB/users/knutfd/public/subfolder_test/NorKyst-800m_ZDEPTHS_his_00.nc'
+arome_file = 'test_data/14Jan2016_NorKyst_z_3d/AROME_MetCoOp_00_DEF.nc_20160114_subset'
+norkyst_file = 'test_data/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc'
+#arome_file = '/disk1/data/opendrift_testdata/15jan2016/AROME_MetCoOp_00_DEF.nc'
+#norkyst_file = '/disk1/data/opendrift_testdata/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc'
+#if not os.path.isfile(arome_file):
+#    arome_file = '/disk2/data/opendrift_test_data/15jan2016/AROME_MetCoOp_00_DEF.nc'
+#    norkyst_file = '/disk2/data/opendrift_test_data/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc'
+#if not os.path.isfile(arome_file):
+#    arome_file = 'http://super-monitor.met.no/thredds/dodsC/lustreMntB/users/knutfd/public/AROME_MetCoOp_00_DEF.nc'
+#    norkyst_file = 'http://super-monitor.met.no/thredds/dodsC/lustreMntB/users/knutfd/public/subfolder_test/NorKyst-800m_ZDEPTHS_his_00.nc'
 
 if import_file is True:
     o.io_import_file(ncfile)
@@ -72,7 +74,7 @@ else:
     o.config['processes']['emulsification'] = True
 
     # Running model (until end of driver data)
-    o.run(steps=16*2, time_step=1800, outfile=ncfile)
+    o.run(steps=5*4, time_step=900, outfile=ncfile)
 
 ###########################
 # Print and plot results

@@ -11,7 +11,8 @@ from models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
-reader_norkyst = reader_netCDF_CF_generic.Reader('test_data/norkyst800_subset_16Nov2015.nc')
+reader_norkyst = reader_netCDF_CF_generic.Reader(
+    'test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 time = reader_norkyst.start_time
 reader_norkyst.interpolation = 'linearND'
 

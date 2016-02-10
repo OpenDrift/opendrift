@@ -26,6 +26,8 @@ import numpy as np
 import reader_netCDF_CF_generic
 import reader_ROMS_native
 
+script_folder = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 class TestReaders(unittest.TestCase):
     """Tests for readers"""
@@ -33,12 +35,10 @@ class TestReaders(unittest.TestCase):
     def test_reader_netcdf(self):
         """Check reader functionality."""
 
-        script_folder = os.path.dirname(
-            os.path.abspath(inspect.getfile(inspect.currentframe())))
         reader1 = reader_netCDF_CF_generic.Reader(script_folder + 
-            '/../test_data/norkyst800_subset_16Nov2015.nc')
+            '/../test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         reader2 = reader_ROMS_native.Reader(script_folder +
-            '/../test_data/Nordic-4km_SLEVELS_avg_00_subset3Feb2016.nc')
+            '/../test_data/2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         readers = [reader1, reader2]
 
         for r in readers:
@@ -60,6 +60,25 @@ class TestReaders(unittest.TestCase):
             self.assertFalse(r.covers_time(r.start_time - r.time_step))
             self.assertFalse(r.proj.is_latlong())
 
+
+    def test_vertical_profiles(self):
+
+        norkyst3d = reader_netCDF_CF_generic.Reader(script_folder +
+            '/../test_data/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        print norkyst3d
+        lon = np.array([4.73])
+        lat = np.array([62.35])
+        variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
+                     'sea_water_temperature']
+        x,y = norkyst3d.lonlat2xy(lon, lat)
+        data = norkyst3d.get_variables(variables,
+                                       time=norkyst3d.start_time,
+                                       x=x, y=y, z=[0, -100], block=True)
+        self.assertEqual(data['z'][4], -25)
+        self.assertEqual(data['z'][4], -25)
+        self.assertAlmostEqual(data['sea_water_temperature'][:,0,0][7],
+                         9.220000267028809)
+        #print data
 
 if __name__ == '__main__':
     unittest.main()
