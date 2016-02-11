@@ -27,10 +27,13 @@ import matplotlib.pyplot as plt
 
 import reader_netCDF_CF_generic
 import reader_ROMS_native
-from interpolation import ReaderBlock
+from interpolation import ReaderBlock, LinearND2DInterpolator, \
+                          NDImage2DInterpolator, Nearest2DInterpolator, \
+                          Nearest1DInterpolator, Linear1DInterpolator
 
 script_folder = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
+
 
 class TestInterpolation(unittest.TestCase):
     """Tests spatial interpolation"""
@@ -64,160 +67,96 @@ class TestInterpolation(unittest.TestCase):
         # Generate some points
         x = np.linspace(data_dict['x'].min(), data_dict['x'].max(), 100)
         y = np.linspace(data_dict['y'].min(), data_dict['y'].max(), 100)
+        z = np.linspace(data_dict['z'].min(), data_dict['z'].max(), 100)
 
-        return data_dict, x, y
+        return data_dict, x, y, z
 
-    def test_interpolation_synthetic_data(self):
+    def test_interpolation_horizontal(self):
 
-        data_dict, x, y = self.get_synthetic_data_dict()
+        data_dict, x, y, z = self.get_synthetic_data_dict()
         # Make block from dictionary, and apply tests
-        b = ReaderBlock(data_dict, interpolation_method='ndimage')
+        b = ReaderBlock(data_dict)
         self.assertEqual(b.data_dict['var2d'].shape,
                          (len(b.y), len(b.x)))
         self.assertEqual(b.data_dict['var3d'].shape,
                          (len(b.z), len(b.y), len(b.x)))
         # Make some element positions
-        #plt.pcolor(b.x, b.y, data_dict['var2d'])
-        #plt.scatter(x, y)
-        #plt.show()
-        preparation = b.interpolate(x, y, variables='prepare')
-        values = b.interpolate_horizontal_layers(data_dict['var2d'])
-        # Check that 15 values are masked when using ndimage
+        interpolator2d = b.Interpolator2DClass(b.x, b.y, x, y)
+        values = interpolator2d(data_dict['var2d'])
+        # Checking output is as expected
+        self.assertEqual(values[10], 1.6487979858538129)
         self.assertEqual(sum(values.mask), 15)
-        # 3D interpolation
-        values = b.interpolate_horizontal_layers(data_dict['var3d'])
-        self.assertEqual(values.shape, (len(b.z), len(x)))
-        self.assertEqual(sum(values.ravel().mask), 75)
 
-        b = ReaderBlock(data_dict, interpolation_method='linearND')
-        preparation = b.interpolate(x, y, variables='prepare')
-        # Check that linearND interpolate into 'holes'
-        values = b.interpolate_horizontal_layers(data_dict['var2d'])
-        self.assertEqual(sum(values.mask), 0)
-        values = b.interpolate_horizontal_layers(data_dict['var3d'])
-        self.assertEqual(sum(values.ravel().mask), 0)
+    def test_interpolation_vertical(self):
 
-    def test_interpolation_synthetic_data_main(self):
+        # 3 elements, 4 depths
+        zgrid = np.array([0, 1, 3, 10])
+        z = np.array([.5, 3, 9])
+        data = np.array([[0, 0, 0],
+                         [1, 1, 1],
+                         [2, 2, 2],
+                         [3, 3, 3]])
+        interpolator = Nearest1DInterpolator(zgrid, z)
+        self.assertTrue(np.allclose(interpolator(data), [0, 2, 3]))
+        interpolator = Linear1DInterpolator(zgrid, z)
+        self.assertTrue(np.allclose(interpolator(data),
+                                    [0.5, 2, 2.85714286]))
 
-        data_dict, x, y = self.get_synthetic_data_dict()
+        # And with exatrapolation (~to surface and bottom)
+        zgrid = np.array([1, 3, 5, 10])
+        z = np.array([.5, 6, 12])
+        interpolator = Nearest1DInterpolator(zgrid, z)
+        self.assertTrue(np.allclose(interpolator(data), [0, 2, 3]))
+        interpolator = Linear1DInterpolator(zgrid, z)
+        self.assertTrue(np.allclose(interpolator(data),
+                                    [0.0, 2.2, 3]))
+
+    def test_compare_interpolators(self):
+
+        data_dict, x, y, z = self.get_synthetic_data_dict()
+        arr = data_dict['var2d']
         # Make block from dictionary, and apply tests
-        b = ReaderBlock(data_dict, interpolation_method='ndimage')
-        env = b.interpolate(x, y)
-        self.assertEqual(env['var2d'].shape, (len(x),))
-        self.assertEqual(env['var3d'].shape, (len(data_dict['z']), len(x)))
+        linearData = LinearND2DInterpolator(data_dict['x'], data_dict['y'],
+                                            x, y)(data_dict['var2d'])
+        nearestData = Nearest2DInterpolator(data_dict['x'], data_dict['y'],
+                                            x, y)(data_dict['var2d'])
+        ndimageData = NDImage2DInterpolator(data_dict['x'], data_dict['y'],
+                                            x, y)(data_dict['var2d'])
 
-        # Check values of a vertical transect
-        self.assertTrue(np.allclose(env['var3d'][:,10],
-            [1.64879798585, 1.81367778444, 1.97855758302,
-             4.94639395756, 16.4879798585]))
+        # Check that all interpolator give nearly equal values
+        # for a given position
+        i = 10
+        self.assertAlmostEqual(linearData[i], nearestData[i], places=2)
+        self.assertAlmostEqual(linearData[i], ndimageData[i], places=2)
 
-    def atest_interpolation(self):
+    def test_interpolation_3dArrays(self):
         """Test interpolation."""
-        reader = reader_netCDF_CF_generic.Reader(
-            '../test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-
-        print reader
-        num_points = 1000
-        x = np.random.uniform(reader.xmin, reader.xmax, num_points)
-        y = np.random.uniform(reader.ymin, reader.ymax, num_points)
-        lon, lat = reader.xy2lonlat(x, y)
-        variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
-
-        # Read a block of data
-        data = reader.get_variables(variables, time=reader.start_time,
-                                     x=x, y=y, z=0, block=True)
-        slice2d = data[variables[0]]
-
-        ## Performance test
-        #for i in ['linearND', 'ndimage', 'nearest']:
-        #    print i
-        #    b = ReaderBlock(data, interpolation_method=i)
-        #    preparation = b.interpolate(x, y)
-        #    for num in range(5):
-        #        t = datetime.now()
-        #        values = b.interpolate_horizontal(slice2d)
-        #        print num, np.mean(values[np.isfinite(values)]), datetime.now()-t
-
-        block3d = np.ma.array([slice2d, 1.1*slice2d, 1.2*slice2d,
-                               1.3*slice2d, 1.4*slice2d, 2*slice2d])
-
-        b = ReaderBlock(data, interpolation_method='linearND')
-        preparation = b.interpolate(x, y)
-        #values = b.interpolate_horizontal_layers(slice2d)
-        values = b.interpolate_horizontal_layers(block3d)
-        print values.shape
-        print values
-
-        stop
-        b = ReaderBlock(data, interpolation_method='linearND')
-        preparation = b.interpolate(x, y)
-        values = b.interpolate_horizontal(slice2d)
-
-        b2 = ReaderBlock(data, interpolation_method='ndimage')
-        preparation = b2.interpolate(x, y)
-        values2 = b2.interpolate_horizontal(slice2d)
-
-        plt.scatter(values, values2)
-        plt.grid()
-        plt.show()
-
-        #self.assertEqual(covered.tolist(), [1, 2])
-        #self.assertTrue(r.covers_time(r.start_time))
-        #self.assertFalse(r.covers_time(r.start_time - r.time_step))
-        #self.assertFalse(r.proj.is_latlong())
-
-    def test_vertical_interpolation(self):
-        norkyst3d = reader_netCDF_CF_generic.Reader(script_folder +
+        reader = reader_netCDF_CF_generic.Reader(script_folder + 
             '/../test_data/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        lon = np.array([4.73])
-        lat = np.array([62.35])
-        z = np.array([-33, 0])
-        variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
-                     'sea_water_temperature']
-        # Call get_variables_from_buffer which interpolates both in 
-        # space (horizontally, vertically) and then in time
-        data, profiles = norkyst3d.get_variables_from_buffer(
-                variables, profiles='sea_water_temperature',
-                profiles_depth = [-100, 0],
-                time = norkyst3d.start_time + timedelta(seconds=900),
-                lon=lon, lat=lat, z=z, block=True)
-        # Check surface value
-        self.assertEqual(data['sea_water_temperature'][1],
-                         profiles['sea_water_temperature'][0])
-        # Check interpolated temperature at 33 m depth
-        self.assertAlmostEqual(data['sea_water_temperature'][0],
-                               8.3167563152313)
-                                    
-    def test_vertical_interpolation_sigma(self):
-        norkyst3d = reader_ROMS_native.Reader(script_folder +
-            '/../test_data/2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-        # Default buffer may be changed in future, but this test case
-        # requires that buffer is 25
-        lon = np.array([12.46, 12.46])
-        lat = np.array([68.21, 68.31])
-        z = np.array([-33, 0])
-        variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
-                     'sea_water_temperature']
-        # Call get_variables_from_buffer which interpolates both in 
-        # space (horizontally, vertically) and then in time
-        data, profiles = norkyst3d.get_variables_from_buffer(
-                variables, profiles='sea_water_temperature',
-                profiles_depth = [-100, 0],
-                time = norkyst3d.start_time + timedelta(seconds=900),
-                lon=lon, lat=lat, z=z, block=True)
-        #print data
 
-        # Vertical interpolation of sigma to be implemented soon.
-        # Currently z is simply neglected
-        
-        # Check surface value
-        #print profiles
-        #self.assertEqual(data['sea_water_temperature'][1],
-        #                 profiles['sea_water_temperature'][0])
-        ## Check interpolated temperature at 33 m depth
-        #self.assertAlmostEqual(data['sea_water_temperature'][0],
-        #                       8.3167563152313)
-                                    
+        # 100000 points within 50x50 pixels over sea (corner of domain)
+        num_points = 1000
+        np.random.seed(0)  # To get the same random numbers each time
+        x = np.random.uniform(reader.xmin, reader.xmin+800*50, num_points)
+        y = np.random.uniform(reader.ymax-800*50, reader.ymax, num_points)
+        z = np.random.uniform(-200, 0, num_points)
+        variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
+                     'sea_water_temperature']
+        # Read a block of data covering the points
+        data = reader.get_variables(variables, time=reader.start_time,
+                                    x=x, y=y, z=z, block=True)
+
+        b = ReaderBlock(data, interpolation_horizontal='nearest')
+        env, prof = b.interpolate(x, y, z, variables,
+                                  profiles=['sea_water_temperature'],
+                                  profiles_depth=[-30, 0])
+        self.assertAlmostEqual(env['x_sea_water_velocity'][100],
+                               0.0750191849228)
+        self.assertAlmostEqual(prof['sea_water_temperature'][0,11],
+                               7.5499997138977051)
+        self.assertAlmostEqual(prof['sea_water_temperature'][-1,11],
+                               8.38000011444)
+        self.assertEqual(prof['z'][-1], b.z[-1])
 
 
 if __name__ == '__main__':

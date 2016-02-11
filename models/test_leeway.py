@@ -60,7 +60,7 @@ class TestArray(unittest.TestCase):
                                objectType=self.objectType,
                                time=datetime(2015, 1, 1))
         # Check that 7 out of 100 elements strand towards coast
-        self.lee.run(steps=24, time_step=3600, outfile='leewaytest.nc')
+        self.lee.run(steps=24, time_step=3600)
         self.assertEqual(self.lee.num_elements_scheduled(), 0)
         self.assertEqual(self.lee.num_elements_active(), 98)
         self.assertEqual(self.lee.num_elements_deactivated(), 2)  # stranded
