@@ -158,6 +158,47 @@ class TestInterpolation(unittest.TestCase):
                                8.38000011444)
         self.assertEqual(prof['z'][-1], b.z[-1])
 
+    def test_zNone(self):
+        d = {}
+        d['x'] = np.arange(5)
+        d['y'] = np.arange(7)
+        d['z'] = 0
+        d['time'] = None
+        d['var'] = np.random.rand(5,6)
+        rb = ReaderBlock(d)
+        z = None
+        i,p = rb.interpolate(np.array([1, 2]), np.array([2, 3]), z, 'var')
+        self.assertTrue(i['var'][0] > 0)
+
+    def test_repeated(self):
+        """Check that block can be used for interpolation to several sets of positions"""
+        reader = reader_netCDF_CF_generic.Reader(script_folder + 
+            '/../test_data/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+
+        # 100 points within 50x50 pixels over sea (corner of domain)
+        num_points = 100
+        np.random.seed(0)  # To get the same random numbers each time
+        x = np.random.uniform(reader.xmin, reader.xmin+800*50, num_points)
+        y = np.random.uniform(reader.ymax-800*50, reader.ymax, num_points)
+        z = np.random.uniform(-200, 0, num_points)
+        variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
+                     'sea_water_temperature']
+        # Read a block of data covering the points
+        data = reader.get_variables(variables, time=reader.start_time,
+                                    x=x, y=y, z=z, block=True)
+
+        b = ReaderBlock(data, interpolation_horizontal='nearest')
+
+        env, prof = b.interpolate(x, y, z, 'sea_water_temperature')
+        x2 = x[20:30]
+        y2 = y[20:30]
+        z2 = z[20:30]
+        env2, prof2 = b.interpolate(x2, y2, z2, 'sea_water_temperature')
+        env3, prof3 = b.interpolate(x, y, z, 'sea_water_temperature')
+        self.assertEqual(env['sea_water_temperature'][0],
+                         env3['sea_water_temperature'][0])
+        self.assertEqual(env['sea_water_temperature'][20],
+                         env2['sea_water_temperature'][0])
 
 if __name__ == '__main__':
     unittest.main()

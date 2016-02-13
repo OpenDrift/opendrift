@@ -26,6 +26,7 @@ from scipy.spatial import KDTree
 from scipy.ndimage import map_coordinates
 import numpy as np
 
+from interpolation import ReaderBlock
 
 try:
     import pyproj  # Import pyproj
@@ -63,24 +64,6 @@ class fakeproj():
 
     srs = 'None'
 
-
-def extrap1d(interpolator):
-    # For extrapolation (e.g. towards seafloor), not permitted by interp1d
-    xs = interpolator.x
-    ys = interpolator.y
-
-    def pointwise(x):
-        if x < xs[0]:
-            return ys[0]+(x-xs[0])*(ys[1]-ys[0])/(xs[1]-xs[0])
-        elif x > xs[-1]:
-            return ys[-1]+(x-xs[-1])*(ys[-1]-ys[-2])/(xs[-1]-xs[-2])
-        else:
-            return interpolator(x)
-
-    def ufunclike(xs):
-        return np.array(map(pointwise, np.array(xs)))
-
-    return ufunclike
 
 def make_interpolator(attr, x,y,z):
     """Worker function for multiprocessing."""
@@ -274,116 +257,8 @@ class Reader(object):
                         interpolation in space and time.
         """
 
-    def interpolate_block(self, block, x, y, z=None,
-                          profiles=None, profiles_depth=None):
-        """Interpolating a 2D or 3D block onto given positions."""
 
-        interpolation_methods = ['linearND', 'ndimage', 'KDTree']
-        if self.interpolation not in interpolation_methods:
-            raise ValueError('Interpolation method %s not available, '
-                             ' alternatives are: %s' %
-                             (self.interpolation, interpolation_methods))
-
-        if self.interpolation == 'ndimage':
-            xMin = block['x'].min()
-            xMax = block['x'].max()
-            yMin = block['y'].min()
-            yMax = block['y'].max()
-            xi = (x - xMin)/(xMax-xMin)*len(block['x'])
-            yi = (y - yMin)/(yMax-yMin)*len(block['y'])
-
-        env = {}
-        if profiles is not None:
-            env_profiles = {}
-        else:
-            env_profiles = None
-
-        for var in block.keys():
-            if not hasattr(block[var], 'ndim'):
-                if var not in ['x', 'y', 'z', 'time']:
-                    logging.debug('Not interpolating ' + var)
-                continue
-
-            # If we have a 3D block with a single layer, we remove
-            # singular dimension to omit unnecessary vertical interpolation
-            if block[var].ndim == 3:
-                block[var] = np.squeeze(block[var])
-
-            if block[var].ndim == 2:
-                if self.interpolation == 'linearND':
-                    ## Create spline for interpolation
-                    block_x, block_y = np.meshgrid(block['x'], block['y'])
-                    data = block[var]
-                    data_ravel = data.ravel()
-                    valid = ~data_ravel.mask
-                    #valid = np.arange(len(block_y.ravel()))  # if no interp
-                    # We want to interpolate valid values only,
-                    # to avoid holes, and to get values towards coast
-                    spl = LinearNDInterpolator((block_y.ravel()[valid],
-                                                block_x.ravel()[valid]),
-                                               data.ravel()[valid])
-                    env[var] = spl(y, x)  # Evaluate at positions
-
-                #if self.interpolation == 'KDTree':
-                #    # Make and use KDTree for interpolation
-                #    tree = KDTree(zip(block['x'].ravel(), block['y'].ravel()))
-                #    d,p = tree.query(zip(x,y), k=1) #nearest point, gives
-                #                                    #distance and point index
-                #    ## NB - or transpose array first ?
-                #    env[var] = block[var].ravel()[p]
-
-                if self.interpolation == 'ndimage':
-                    bl = block[var]
-                    bl[bl.mask] = np.nan
-                    env[var] = map_coordinates(bl, [yi, xi],
-                                               cval=np.nan, order=1)
-
-            elif block[var].ndim == 3:
-                # First interpolate each layer horizontally to x,y
-                num_layers = block[var].shape[0]
-                env3D = np.ma.zeros((num_layers, len(x)))
-                env3D[:] = np.ma.masked
-                bl = block[var]
-                bl[bl.mask] = np.nan
-                for zi in range(num_layers):
-                    # Interpolate each layer horizontally
-                    env3D[zi, :] = map_coordinates(bl[zi, :, :], [yi, xi],
-                                                   cval=np.nan, order=1)
-                # Linear interpolation with depth for each element
-                zb = block['z']
-                Z = z
-                zi = range(len(zb))
-                if zb[1] < zb[0]:
-                    # interp1d needs monotonically increasing values
-                    zb = -zb
-                    Z = -Z
-                z_index = interp1d(zb, zi)  # Interpolator depth -> index
-                z_index = extrap1d(z_index)  # Make extrapolator, see above
-                zi = z_index(Z)  # Find decimal indices corresponding to z
-                # Use bottom layer below
-                zi[zi >= num_layers - 1] = num_layers - 2
-                # Calculate weighted average of layers above and below
-                upper = np.floor(zi).astype(np.int)
-                weight_upper = 1 - (zi - upper)
-                env[var] = \
-                    (env3D[upper, range(env3D.shape[1])]*weight_upper +
-                     env3D[upper+1, range(env3D.shape[1])]*(1-weight_upper))
-
-                if profiles is not None and var in profiles:
-                    # Return only profile for the requested depth
-                    profile_layers = \
-                        np.where(np.array(block['z'] >=
-                                          np.min(profiles_depth)) &
-                                 np.array(block['z'] <=
-                                          np.max(profiles_depth)))
-                    profile_layers = np.arange(profile_layers[0][0],
-                                               profile_layers[0][-1] + 1)
-                    env_profiles[var] = env3D[profile_layers, :]
-                    env_profiles['z'] = block['z'][profile_layers]
-
-        return env, env_profiles
-
-    def get_variables_wrapper(self, variables, profiles, profiles_depth,
+    def _get_variables(self, variables, profiles, profiles_depth,
                               time, x, y, z, block):
         """Wrapper around reader-specific function get_variables()
 
@@ -392,6 +267,7 @@ class Reader(object):
         - convert any numpy arrays to masked arrays
         """
 
+        logging.debug('Fetching variables from ' + self.name)
         if profiles is not None and block is True:
             # If profiles are requested for any parameters, we
             # add two fake points at the end of array to make sure that the
@@ -413,25 +289,22 @@ class Reader(object):
 
         return env
 
-    def get_variables_from_buffer(self, variables, profiles=None,
-                                  profiles_depth=None, time=None,
-                                  lon=None, lat=None, z=None,
-                                  block=False, rotate_to_proj=None):
-        """Wrapper around get_variables(), reading from buffer if available.
+    def get_variables_interpolated(self, variables, profiles=None,
+                                   profiles_depth=None, time=None,
+                                   lon=None, lat=None, z=None,
+                                   block=False, rotate_to_proj=None):
 
-        Also performs interpolation in the following order:
-        - horizontally (x-y, bilinear)
-        - vertically (z, TBD)
-        - time (linear)
-        """
 
-        #################################################################
-        # This has become a very long and messy function. Needs cleaning.
-        #################################################################
-
-        # Raise error if not not within time
+        # Raise error if time not not within coverage of reader
         if not self.covers_time(time):
             raise ValueError('Outside time coverage of ' + self.name)
+
+        # Check which particles are covered (indep of time)
+        ind_covered = self.covers_positions(lon, lat, z)
+        if len(ind_covered) == 0:
+            raise ValueError('All particles are outside domain '
+                             'of ' + self.name)
+
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
             self.nearest_time(time)
@@ -439,11 +312,6 @@ class Reader(object):
                       (time_before, time_after))
         if time == time_before:
             time_after = None
-        # Check which particles are covered (indep of time)
-        ind_covered = self.covers_positions(lon, lat, z)
-        if len(ind_covered) == 0:
-            raise ValueError('All particles are outside domain '
-                             'of ' + self.name)
 
         reader_x, reader_y = self.lonlat2xy(lon, lat)
         reader_x_min = reader_x.min()
@@ -452,14 +320,14 @@ class Reader(object):
         reader_y_max = reader_y.max()
 
         if block is False or self.return_block is False:
-            env_before = self.get_variables_wrapper(variables, profiles,
+            env_before = self._get_variables(variables, profiles,
                                                     profiles_depth,
                                                     time_before,
                                                     reader_x, reader_y, z,
                                                     block=block)
             logging.debug('Fetched env-before')
             if time_after is not None:
-                env_after = self.get_variables_wrapper(variables, profiles,
+                env_after = self._get_variables(variables, profiles,
                                                        profiles_depth,
                                                        time_after,
                                                        reader_x, reader_y,
@@ -471,10 +339,10 @@ class Reader(object):
             # Swap before- and after-blocks if matching times
             if str(variables) in self.var_block_before:
                 block_before_time = self.var_block_before[
-                    str(variables)]['time']
+                    str(variables)].time
                 if str(variables) in self.var_block_after:
                     block_after_time = self.var_block_after[
-                        str(variables)]['time']
+                        str(variables)].time
                     if block_before_time != time_before:
                         if block_after_time == time_before:
                             self.var_block_before[str(variables)] = \
@@ -485,50 +353,58 @@ class Reader(object):
                                 self.var_block_before[str(variables)]
             # Fetch data, if no buffer is available
             if (not str(variables) in self.var_block_before) or \
-                    (self.var_block_before[str(variables)]['time']
+                    (self.var_block_before[str(variables)].time
                         != time_before):
-                self.var_block_before[str(variables)] = \
-                    self.get_variables_wrapper(variables, profiles,
+                reader_data_dict = \
+                    self._get_variables(variables, profiles,
                                                profiles_depth, time_before,
                                                reader_x, reader_y, z,
                                                block=block)
+                self.var_block_before[str(variables)] = \
+                    ReaderBlock(reader_data_dict,
+                                interpolation_horizontal=
+                                self.interpolation)
                 try:
-                    len_z = len(self.var_block_before[str(variables)]['z'])
+                    len_z = len(self.var_block_before[str(variables)].z)
                 except:
                     len_z = 1
                 logging.debug(('Fetched env-block (size %ix%ix%i) ' +
                               'for time before (%s)') %
-                              (len(self.var_block_before[str(variables)]['x']),
-                               len(self.var_block_before[str(variables)]['y']),
+                              (len(self.var_block_before[str(variables)].x),
+                               len(self.var_block_before[str(variables)].y),
                                len_z, time_before))
             if not str(variables) in self.var_block_after or \
-                    self.var_block_after[str(variables)]['time'] != time_after:
+                    self.var_block_after[str(variables)].time != time_after:
                 if time_after is None:
                     self.var_block_after[str(variables)] = \
                         self.var_block_before[str(variables)]
                 else:
-                    self.var_block_after[str(variables)] = \
-                        self.get_variables_wrapper(variables, profiles,
+                    reader_data_dict = \
+                        self._get_variables(variables, profiles,
                                                    profiles_depth, time_after,
                                                    reader_x, reader_y, z,
                                                    block=block)
+                    self.var_block_after[str(variables)] = \
+                        ReaderBlock(reader_data_dict,
+                                    interpolation_horizontal=
+                                    self.interpolation)
                     try:
-                        len_z = len(self.var_block_after[str(variables)]['z'])
+                        len_z = len(self.var_block_after[str(variables)].z)
                     except:
                         len_z = 1
 
                     logging.debug(('Fetched env-block (size %ix%ix%i) ' +
                                   'for time after (%s)') %
                                   (len(self.var_block_after[
-                                       str(variables)]['x']),
+                                       str(variables)].x),
                                    len(self.var_block_after[
-                                       str(variables)]['y']),
+                                       str(variables)].y),
                                    len_z, time_after))
-            # check if buffer-block covers these particles
-            x_before = self.var_block_before[str(variables)]['x']
-            y_before = self.var_block_before[str(variables)]['y']
-            x_after = self.var_block_after[str(variables)]['x']
-            y_after = self.var_block_after[str(variables)]['y']
+#            # check if buffer-block covers these particles
+#            x_before = self.var_block_before[str(variables)]['x']
+#            y_before = self.var_block_before[str(variables)]['y']
+#            x_after = self.var_block_after[str(variables)]['x']
+#            y_after = self.var_block_after[str(variables)]['y']
 
             # Debug-plot to check how blocks cover elements
             #import matplotlib.patches as patches
@@ -544,54 +420,54 @@ class Reader(object):
             #ax1.plot(reader_x, reader_y, '.')
             #plt.show()
 
-            if (reader_x_min < x_before.min() or
-                    reader_x_max > x_before.max() or
-                    reader_y_min < y_before.min() or
-                    reader_y_max > y_before.max()):
-                logging.debug('Some elements not covered by before-block')
-                print 'x-block [%s to %s] : elements [%s to %s]' % (
-                    x_before.min(), x_before.max(), reader_x_min, reader_x_max)
-                print 'y-block [%s to %s] : elements [%s to %s]' % (
-                    y_before.min(), y_before.max(), reader_y_min, reader_y_max)
-                print (50*'#' + '\nWARNING: data block from reader '
-                       'not large enough to cover element positions '
-                       ' within timestep. Code must be updated\n' + 50*'#')
-                #update block_before # to be implemented
-            else:
-                logging.debug('All elements covered by before-block')
-            if (reader_x_min < x_after.min() or
-                    reader_x_max > x_after.max() or
-                    reader_y_min < y_after.min() or
-                    reader_y_max > y_after.max()):
-                logging.debug('Some elements not covered by after-block')
-                print 'x-block [%s to %s] : elements [%s to %s]' % (
-                    x_after.min(), x_after.max(), reader_x_min, reader_x_max)
-                print 'y-block [%s to %s] : elements [%s to %s]' % (
-                    y_after.min(), y_after.max(), reader_y_min, reader_y_max)
-                print (50*'#' + '\nWARNING: data block from reader '
-                       'not large enough to cover element positions '
-                       ' within timestep. Code must be updated\n' + 50*'#')
-                #update block_after # to be implemented
-            else:
-                logging.debug('All elements covered by after-block')
+#            if (reader_x_min < x_before.min() or
+#                    reader_x_max > x_before.max() or
+#                    reader_y_min < y_before.min() or
+#                    reader_y_max > y_before.max()):
+#                logging.debug('Some elements not covered by before-block')
+#                print 'x-block [%s to %s] : elements [%s to %s]' % (
+#                    x_before.min(), x_before.max(), reader_x_min, reader_x_max)
+#                print 'y-block [%s to %s] : elements [%s to %s]' % (
+#                    y_before.min(), y_before.max(), reader_y_min, reader_y_max)
+#                print (50*'#' + '\nWARNING: data block from reader '
+#                       'not large enough to cover element positions '
+#                       ' within timestep. Code must be updated\n' + 50*'#')
+#                #update block_before # to be implemented
+#            else:
+#                logging.debug('All elements covered by before-block')
+#            if (reader_x_min < x_after.min() or
+#                    reader_x_max > x_after.max() or
+#                    reader_y_min < y_after.min() or
+#                    reader_y_max > y_after.max()):
+#                logging.debug('Some elements not covered by after-block')
+#                print 'x-block [%s to %s] : elements [%s to %s]' % (
+#                    x_after.min(), x_after.max(), reader_x_min, reader_x_max)
+#                print 'y-block [%s to %s] : elements [%s to %s]' % (
+#                    y_after.min(), y_after.max(), reader_y_min, reader_y_max)
+#                print (50*'#' + '\nWARNING: data block from reader '
+#                       'not large enough to cover element positions '
+#                       ' within timestep. Code must be updated\n' + 50*'#')
+#                #update block_after # to be implemented
+#            else:
+#                logging.debug('All elements covered by after-block')
 
             ############################################################
             # Interpolate before/after blocks onto particles in space
             ############################################################
             logging.debug('Interpolating before (%s) in space' %
-                          (self.var_block_before[str(variables)]['time']))
-            env_before, env_profiles_before = \
-                self.interpolate_block(self.var_block_before[
-                                       str(variables)],
-                                       reader_x, reader_y, z,
-                                       profiles, profiles_depth)
-            logging.debug('Interpolating after (%s) in space' %
-                          (self.var_block_after[str(variables)]['time']))
-            env_after, env_profiles_after = \
-                self.interpolate_block(self.var_block_after[
-                                       str(variables)],
-                                       reader_x, reader_y, z,
-                                       profiles, profiles_depth)
+                          (self.var_block_before[str(variables)].time))
+            env_before, env_profiles_before = self.var_block_after[
+                str(variables)].interpolate(
+                    reader_x, reader_y, z,variables,
+                    profiles, profiles_depth)
+
+            if (time_after is not None) and (time_before != time):
+                logging.debug('Interpolating after (%s) in space' %
+                              (self.var_block_after[str(variables)].time))
+                env_after, env_profiles_after = self.var_block_after[
+                    str(variables)].interpolate(
+                        reader_x, reader_y, z,variables,
+                        profiles, profiles_depth)
 
         #######################
         # Time interpolation
@@ -602,9 +478,9 @@ class Reader(object):
                            (time_after - time_before).total_seconds())
             logging.debug(('Interpolating before (%s, weight %.2f) and'
                            '\n\t\t      after (%s, weight %.2f) in time') %
-                          (self.var_block_before[str(variables)]['time'],
+                          (self.var_block_before[str(variables)].time,
                            1 - weight_after,
-                           self.var_block_after[str(variables)]['time'],
+                           self.var_block_after[str(variables)].time,
                            weight_after))
             env = {}
             for var in variables:

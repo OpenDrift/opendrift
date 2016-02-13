@@ -12,7 +12,7 @@ from models.openoil import OpenOil
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Nordic 4km
-nordic_native = reader_ROMS_native.Reader('test_data/Nordic-4km_SLEVELS_avg_00_subset3Feb2016.nc')
+nordic_native = reader_ROMS_native.Reader('test_data/2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(

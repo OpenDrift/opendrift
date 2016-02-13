@@ -398,7 +398,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     else:
                         profiles_from_reader = None
                     env_tmp, env_profiles_tmp = \
-                        reader.get_variables_from_buffer(
+                        reader.get_variables_interpolated(
                             variable_group, profiles_from_reader,
                             self.required_profiles_z_range, time,
                             lon[missing_indices], lat[missing_indices],

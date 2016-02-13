@@ -1,4 +1,5 @@
-import copy
+import logging
+
 import numpy as np
 from scipy.ndimage import map_coordinates
 from scipy.interpolate import interp1d, LinearNDInterpolator
@@ -33,7 +34,10 @@ class NDImage2DInterpolator():
         self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid) 
 
     def __call__(self, array2d):
-        array2d[array2d.mask] = np.nan  # Gives holes
+        try:
+            array2d[array2d.mask] = np.nan  # Gives holes
+        except:
+            pass
         return np.ma.masked_invalid(
             map_coordinates(array2d, [self.yi, self.xi],
                             cval=np.nan, order=0))
@@ -51,17 +55,24 @@ class LinearND2DInterpolator():
         valid = ~array2d.ravel().mask
 
         if hasattr(self, 'interpolator'):
+            if not np.array_equal(valid, self.interpolator.valid):
+                logging.debug('Cannot reuse interpolator - validity of '
+                             'array is different from original.')
+        if hasattr(self, 'interpolator') and (np.array_equal(
+                 valid, self.interpolator.valid)):
             # Reuse stored interpolator with new data
             self.interpolator.values[:,0] = \
                 (array2d.ravel()[valid])
         else:
             # Make new interpolator for given x,y
             self.interpolator = LinearNDInterpolator(
-                (self.block_x[valid],
-                 self.block_y[valid]),
+                (self.block_y[valid],
+                 self.block_x[valid]),
                 array2d.ravel()[valid])
+            # Store valid array, to determine if can be used again
+            self.interpolator.valid = valid
 
-        return self.interpolator(self.x, self.y)
+        return self.interpolator(self.y, self.x)
 
 horizontal_interpolation_methods =  {
     'nearest': Nearest2DInterpolator,
@@ -157,9 +168,9 @@ class ReaderBlock():
                 'are: ' + str(vertical_interpolation_methods.keys()))
 
     def _initialize_interpolator(self, x, y, z=None):
-        print 'Initialising interpolator'
+        logging.debug('Initialising interpolator.')
         self.interpolator2d = self.Interpolator2DClass(self.x, self.y, x, y)
-        if z is not None:
+        if self.z is not None and len(np.atleast_1d(self.z)) > 1:
             self.interpolator1d = self.Interpolator1DClass(self.z, z)
 
     def interpolate(self, x, y, z=None, variables=None,
@@ -172,9 +183,12 @@ class ReaderBlock():
             profiles_dict = {'z': self.z}
         for varname, data in self.data_dict.iteritems():
             horizontal = self._interpolate_horizontal_layers(data)
-            if varname in profiles:
+            if profiles is not None and varname in profiles:
                 profiles_dict[varname] = horizontal
-            env_dict[varname] = self.interpolator1d(horizontal)
+            if horizontal.ndim > 1:
+                env_dict[varname] = self.interpolator1d(horizontal)
+            else:
+                env_dict[varname] = horizontal
         return env_dict, profiles_dict
 
     def _interpolate_horizontal_layers(self, data):

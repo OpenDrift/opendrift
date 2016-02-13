@@ -79,27 +79,30 @@ class TestReaders(unittest.TestCase):
         self.assertAlmostEqual(data['sea_water_temperature'][:,0,0][7],
                          9.220000267028809)
 
-    def test_vertical_interpolation_from_buffer(self):
+    def test_vertical_interpolation(self):
         norkyst3d = reader_netCDF_CF_generic.Reader(script_folder +
             '/../test_data/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        lon = np.array([4.73])
-        lat = np.array([62.35])
-        z = np.array([-33, 0])
+        lon = np.array([4.73, 4.75])
+        lat = np.array([62.35, 62.30])
+        z = np.array([0, -33])
         variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
                      'sea_water_temperature']
-        # Call get_variables_from_buffer which interpolates both in 
+        # Call get_variables_interpolated which interpolates both in 
         # space (horizontally, vertically) and then in time
-        data, profiles = norkyst3d.get_variables_from_buffer(
-                variables, profiles='sea_water_temperature',
+        data, profiles = norkyst3d.get_variables_interpolated(
+                variables, profiles=['sea_water_temperature'],
                 profiles_depth = [-100, 0],
                 time = norkyst3d.start_time + timedelta(seconds=900),
                 lon=lon, lat=lat, z=z, block=True)
         # Check surface value
-        self.assertEqual(data['sea_water_temperature'][1],
-                         profiles['sea_water_temperature'][0])
+        self.assertEqual(data['sea_water_temperature'][0],
+                         profiles['sea_water_temperature'][0,0])
         # Check interpolated temperature at 33 m depth
-        self.assertAlmostEqual(data['sea_water_temperature'][0],
-                               8.3167563152313)
+        self.assertAlmostEqual(data['sea_water_temperature'][1],
+                               8.2171995544433596)
+        #import matplotlib.pyplot as plt
+        #plt.plot(profiles['sea_water_temperature'][:,0])
+        #plt.show()
 
     def atest_vertical_interpolation_sigma(self):
         norkyst3d = reader_ROMS_native.Reader(script_folder +
@@ -111,9 +114,9 @@ class TestReaders(unittest.TestCase):
         z = np.array([-33, 0])
         variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
                      'sea_water_temperature']
-        # Call get_variables_from_buffer which interpolates both in 
+        # Call get_variables_interpolated which interpolates both in 
         # space (horizontally, vertically) and then in time
-        data, profiles = norkyst3d.get_variables_from_buffer(
+        data, profiles = norkyst3d.get_variables_interpolated(
                 variables, profiles='sea_water_temperature',
                 profiles_depth = [-100, 0],
                 time = norkyst3d.start_time + timedelta(seconds=900),
