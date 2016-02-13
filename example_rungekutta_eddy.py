@@ -9,7 +9,7 @@ from readers import reader_basemap_landmask
 from readers import reader_ArtificialOceanEddy
 from models.oceandrift import OceanDrift
 
-o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
+o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 
 fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
 

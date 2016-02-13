@@ -71,6 +71,24 @@ class TestInterpolation(unittest.TestCase):
 
         return data_dict, x, y, z
 
+    def test_covers_positions(self):
+        
+        data_dict, x, y, z = self.get_synthetic_data_dict()
+        # Make block from dictionary, and apply tests
+        b = ReaderBlock(data_dict)
+
+        xn = np.linspace(-70, 470, 100)
+        yn = np.linspace(10, 340, 100)
+        self.assertTrue(b.covers_positions(xn, yn))
+
+        xn = np.linspace(500, 600, 100)
+        yn = np.linspace(400, 500, 100)
+        self.assertFalse(b.covers_positions(xn, yn))
+
+        xn = np.linspace(400, 500, 100)
+        yn = np.linspace(0, 30, 100)
+        self.assertFalse(b.covers_positions(xn, yn))
+
     def test_interpolation_horizontal(self):
 
         data_dict, x, y, z = self.get_synthetic_data_dict()

@@ -99,9 +99,10 @@ class TestReaders(unittest.TestCase):
                          profiles['sea_water_temperature'][0,0])
         # Check interpolated temperature at 33 m depth
         self.assertAlmostEqual(data['sea_water_temperature'][1],
-                               8.2171995544433596)
+                               8.2648999309539786)
         #import matplotlib.pyplot as plt
         #plt.plot(profiles['sea_water_temperature'][:,0])
+        #plt.plot(profiles['sea_water_temperature'][:,1], 'r')
         #plt.show()
 
     def atest_vertical_interpolation_sigma(self):

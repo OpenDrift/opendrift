@@ -144,13 +144,16 @@ class ReaderBlock():
         # Make pointers to data values, for convenience
         self.x = data_dict['x']
         self.y = data_dict['y']
-        self.z = data_dict['z']
         self.time = data_dict['time']
         self.data_dict = data_dict
         del self.data_dict['x']
         del self.data_dict['y']
-        del self.data_dict['z']
         del self.data_dict['time']
+        try:
+            self.z = data_dict['z']
+            del self.data_dict['z']
+        except:
+            self.z = None
 
         # Set 1D (vertical) and 2D (horizontal) interpolators
         try:
@@ -204,3 +207,13 @@ class ReaderBlock():
                 result[layer,:] = \
                     self.interpolator2d(data[layer,:,:])
             return result
+
+    def covers_positions(self, x, y, z=None):
+        '''Check if given positions are covered by this reader block.'''
+
+        indices = np.where((x >= self.x.min()) & (x <= self.x.max()) &
+                           (y >= self.y.min()) & (y <= self.y.max()))[0]
+        if len(indices) == len(x):
+            return True
+        else:
+            return False

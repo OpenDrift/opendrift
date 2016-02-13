@@ -294,7 +294,6 @@ class Reader(object):
                                    lon=None, lat=None, z=None,
                                    block=False, rotate_to_proj=None):
 
-
         # Raise error if time not not within coverage of reader
         if not self.covers_time(time):
             raise ValueError('Outside time coverage of ' + self.name)
@@ -314,27 +313,16 @@ class Reader(object):
             time_after = None
 
         reader_x, reader_y = self.lonlat2xy(lon, lat)
-        reader_x_min = reader_x.min()
-        reader_x_max = reader_x.max()
-        reader_y_min = reader_y.min()
-        reader_y_max = reader_y.max()
 
         if block is False or self.return_block is False:
+            # Analytical reader, continous in space and time
             env_before = self._get_variables(variables, profiles,
                                                     profiles_depth,
                                                     time_before,
                                                     reader_x, reader_y, z,
                                                     block=block)
             logging.debug('Fetched env-before')
-            if time_after is not None:
-                env_after = self._get_variables(variables, profiles,
-                                                       profiles_depth,
-                                                       time_after,
-                                                       reader_x, reader_y,
-                                                       z, block=block)
-                logging.debug('Fetched env-after')
-            else:
-                env_after = None
+
         else:
             # Swap before- and after-blocks if matching times
             if str(variables) in self.var_block_before:
@@ -357,9 +345,9 @@ class Reader(object):
                         != time_before):
                 reader_data_dict = \
                     self._get_variables(variables, profiles,
-                                               profiles_depth, time_before,
-                                               reader_x, reader_y, z,
-                                               block=block)
+                                        profiles_depth, time_before,
+                                        reader_x, reader_y, z,
+                                        block=block)
                 self.var_block_before[str(variables)] = \
                     ReaderBlock(reader_data_dict,
                                 interpolation_horizontal=
@@ -381,9 +369,9 @@ class Reader(object):
                 else:
                     reader_data_dict = \
                         self._get_variables(variables, profiles,
-                                                   profiles_depth, time_after,
-                                                   reader_x, reader_y, z,
-                                                   block=block)
+                                            profiles_depth, time_after,
+                                            reader_x, reader_y, z,
+                                            block=block)
                     self.var_block_after[str(variables)] = \
                         ReaderBlock(reader_data_dict,
                                     interpolation_horizontal=
@@ -400,63 +388,21 @@ class Reader(object):
                                    len(self.var_block_after[
                                        str(variables)].y),
                                    len_z, time_after))
-#            # check if buffer-block covers these particles
-#            x_before = self.var_block_before[str(variables)]['x']
-#            y_before = self.var_block_before[str(variables)]['y']
-#            x_after = self.var_block_after[str(variables)]['x']
-#            y_after = self.var_block_after[str(variables)]['y']
-
-            # Debug-plot to check how blocks cover elements
-            #import matplotlib.patches as patches
-            #import matplotlib.pyplot as plt
-            #fig = plt.figure()
-            #ax1 = fig.add_subplot(111, aspect='equal')
-            #ax1.add_patch(patches.Rectangle((self.xmin, self.ymin),
-            # self.xmax-self.xmin, self.ymax-self.ymin,
-            # alpha=0.1, color='red'))
-            #ax1.add_patch(patches.Rectangle((x_before.min(), y_before.min()),
-            # x_before.max()-x_before.min(), y_before.max()-y_before.min(),
-            # alpha=0.1))
-            #ax1.plot(reader_x, reader_y, '.')
-            #plt.show()
-
-#            if (reader_x_min < x_before.min() or
-#                    reader_x_max > x_before.max() or
-#                    reader_y_min < y_before.min() or
-#                    reader_y_max > y_before.max()):
-#                logging.debug('Some elements not covered by before-block')
-#                print 'x-block [%s to %s] : elements [%s to %s]' % (
-#                    x_before.min(), x_before.max(), reader_x_min, reader_x_max)
-#                print 'y-block [%s to %s] : elements [%s to %s]' % (
-#                    y_before.min(), y_before.max(), reader_y_min, reader_y_max)
-#                print (50*'#' + '\nWARNING: data block from reader '
-#                       'not large enough to cover element positions '
-#                       ' within timestep. Code must be updated\n' + 50*'#')
-#                #update block_before # to be implemented
-#            else:
-#                logging.debug('All elements covered by before-block')
-#            if (reader_x_min < x_after.min() or
-#                    reader_x_max > x_after.max() or
-#                    reader_y_min < y_after.min() or
-#                    reader_y_max > y_after.max()):
-#                logging.debug('Some elements not covered by after-block')
-#                print 'x-block [%s to %s] : elements [%s to %s]' % (
-#                    x_after.min(), x_after.max(), reader_x_min, reader_x_max)
-#                print 'y-block [%s to %s] : elements [%s to %s]' % (
-#                    y_after.min(), y_after.max(), reader_y_min, reader_y_max)
-#                print (50*'#' + '\nWARNING: data block from reader '
-#                       'not large enough to cover element positions '
-#                       ' within timestep. Code must be updated\n' + 50*'#')
-#                #update block_after # to be implemented
-#            else:
-#                logging.debug('All elements covered by after-block')
+            
+            if self.var_block_before[str(variables)].covers_positions(
+                reader_x, reader_y) is False or \
+                self.var_block_after[str(variables)].covers_positions(
+                    reader_x, reader_y) is False:
+                print (50*'#' + '\nWARNING: data block from reader not '
+                       'large enough to cover element positions within '
+                       'timestep. Buffer size must be increased\n' + 50*'#')
 
             ############################################################
             # Interpolate before/after blocks onto particles in space
             ############################################################
             logging.debug('Interpolating before (%s) in space' %
                           (self.var_block_before[str(variables)].time))
-            env_before, env_profiles_before = self.var_block_after[
+            env_before, env_profiles_before = self.var_block_before[
                 str(variables)].interpolate(
                     reader_x, reader_y, z,variables,
                     profiles, profiles_depth)
@@ -517,6 +463,7 @@ class Reader(object):
         ####################
         # Rotate vectors
         ####################
+        # NB - should rather be done before interpolation 
         if rotate_to_proj is not None:
             if rotate_to_proj.srs == self.proj.srs:
                 logging.debug('Reader SRS is the same as calculation SRS - '
