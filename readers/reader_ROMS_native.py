@@ -16,11 +16,13 @@
 
 import logging
 from datetime import datetime, timedelta
+from bisect import bisect_left
 
 import numpy as np
 from netCDF4 import Dataset, num2date
+import vgrid
 
-from reader import Reader
+from readers import Reader
 
 
 class Reader(Reader):
@@ -28,6 +30,7 @@ class Reader(Reader):
     # Map ROMS variable names to CF standard_name
     ROMS_variable_mapping = {
         'mask_psi': 'land_binary_mask',
+        'h': 'sea_floor_depth',
         'zeta': 'sea_surface_height',
         'u': 'x_sea_water_velocity',
         'v': 'y_sea_water_velocity',
@@ -37,6 +40,8 @@ class Reader(Reader):
         'vice': 'sea_ice_y_velocity',
         'aice': 'sea_ice_area_fraction',
         'hice': 'sea_ice_thickness'}
+
+    zbuffer = 1  # Vertical buffer of block around elements
 
     def __init__(self, filename=None, name=None):
 
@@ -56,13 +61,7 @@ class Reader(Reader):
             raise ValueError('Could not open ' + filename +
                              ' with netCDF4 library')
 
-        # Read sigma-coordinate parameters
-        #Vtransform = self.Dataset.variables['Vtransform'][:]
-        #Vstretching = self.Dataset.variables['Vstretching'][:]
-        #theta_s = self.Dataset.variables['theta_s'][:]
-        #theta_b = self.Dataset.variables['theta_b'][:]
-        #Tcline = self.Dataset.variables['Tcline'][:]
-
+        # Read sigma-coordinate values
         try:
             self.sigma = self.Dataset.variables['s_rho'][:]
         except:
@@ -70,6 +69,38 @@ class Reader(Reader):
             logging.warning('s_rho not available in dataset, constructing from'
                             ' number of layers (%s).' % num_sigma)
             self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
+
+        # Read sigma-coordinate transform parameters
+        try:
+            self.Vtransform = self.Dataset.variables['Vtransform'][:][0]
+            self.Vstretching = self.Dataset.variables['Vstretching'][:][0]
+            if self.Vtransform == 1 and self.Vstretching == 1:
+                self.s_coordinate = vgrid.s_coordinate
+            elif self.Vtransform == 2 and self.Vstretching == 2:
+                self.s_coordinate = vgrid.s_coordinate_2
+            elif self.Vtransform == 2 and self.Vstretching == 4:
+                self.s_coordinate = vgrid.s_coordinate_4
+            else:
+                logging.warning('Sigma-coordinate transformation '
+                    'unknown for\n\tVtransform = %s and Vstretching = %s\n'
+                    'Defaulting to Vtransform = 1, Vstretching = 1' %
+                    (self.Vtransform, self.Vstretching))
+                self.s_coordinate = vgrid.s_coordinate
+        except Exception as e:
+            logging.warning('Sigma-information not available, '
+                             'defaulting to\n Vtransform = 1, Vstretching = 1')
+            self.s_coordinate = vgrid.s_coordinate
+
+        try:
+            self.theta_s = self.Dataset.variables['theta_s'][:][0]
+            self.theta_b = self.Dataset.variables['theta_b'][:][0]
+            self.Tcline = self.Dataset.variables['Tcline'][:][0]
+        except:
+            logging.warning('Missing sigma stretching parameters\n'
+                            ' - using default values')
+            self.theta_b = 0.4
+            self.theta_s = 3
+            self.Tcline = 10
 
         self.num_layers = len(self.sigma)
 
@@ -118,15 +149,40 @@ class Reader(Reader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        try:
-            indz = self.index_of_closest_depths(z)[0]
-        except:
-            indz = 0  # For datasets with no vertical dimension
-        indz = self.num_layers - 1  # Hardcodedd surface layer, to begin with
+        variables = {}
 
-        # Find indices corresponding to requested x and y
+        # Find horizontal indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
+
+        # Find depth levels covering all elements
+        if z.min() == 0:
+            indz = self.num_layers - 1  # surface layer
+            variables['z'] = z
+
+        else:
+            # Find the range of sigma0-values covering given z-values
+            indz = self.num_layers - 1  # surface layer
+            if not hasattr(self, 'sea_floor_depth'):
+                logging.debug('Reading sea floor depth...')
+                self.sea_floor_depth = self.Dataset.variables['h'][:]
+
+            depth_at_elements = self.sea_floor_depth[indy, indx]
+            sigma_transform = self.s_coordinate(
+                depth_at_elements, self.theta_b, self.theta_s,
+                self.Tcline, len(self.sigma))
+            z_profiles = sigma_transform.z_r[:]
+            zmins = np.min(z_profiles, axis=1)
+            zmaxs = np.max(z_profiles, axis=1)
+            # Remember that sigma increases from -1 bottom to 0 surface
+            indz_min = np.max(
+                (0, bisect_left(zmaxs, z.min())-self.zbuffer-1))
+            indz_max = np.min(
+                (len(self.sigma)-1,
+                bisect_left(zmins, z.max())+self.zbuffer+1))
+            indz = np.arange(indz_min, indz_max+1)
+            variables['z'] = z_profiles[indz,:]
+            #variables['z'] = z_profiles[indz,0]  # TEMPORARY!
 
         if block is True:
             # Adding buffer, to cover also future positions of elements
@@ -139,7 +195,6 @@ class Reader(Reader):
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0
 
-        variables = {}
 
         for par in requested_variables:
             varname = [name for name, cf in
@@ -175,10 +230,10 @@ class Reader(Reader):
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
 
         # Store coordinates of returned points
-        try:
-            variables['z'] = self.z[indz]
-        except:
-            variables['z'] = 0
+        #try:
+        #    variables['z'] = self.z[indz]
+        #except:
+        #    variables['z'] = 0
         if block is True:
             variables['x'] = indx
             variables['y'] = indy
@@ -187,4 +242,5 @@ class Reader(Reader):
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
         variables['time'] = nearestTime
+
         return variables
