@@ -17,6 +17,7 @@
 import sys
 import importlib
 import logging
+import copy
 from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
 from multiprocessing import Pool
@@ -65,19 +66,6 @@ class fakeproj():
     srs = 'None'
 
 
-def make_interpolator(attr, x,y,z):
-    """Worker function for multiprocessing."""
-    logging.debug('Making intrpolator for ' + attr)
-    i = LinearNDInterpolator((x.ravel(), y.ravel()), 
-                             z.ravel(), fill_value=np.nan)
-    # An interpolator is not 'pickleable' and cannot be returned
-    # from a multiprocess. Hence returning numerical data only,
-    # for later reconstruction
-    d = {'fill_value': i.fill_value, 'values_shape': i.values_shape,
-         'points': i.points, 'values': i.values, 'attr': attr,
-         'tri': i.tri}
-    return d
-
 class Reader(object):
     """Parent Reader class, to be subclassed by specific readers.
     """
@@ -125,58 +113,20 @@ class Reader(object):
                 self.proj4 = 'None'
                 self.proj = fakeproj()
                 self.projected = False
-                if (not hasattr(self, 'lon') or not hasattr(self, 'lat') or
-                        not hasattr(self, 'angle_between_x_and_east')):
-                    # Note: angle can be calculated from gradient of lat
-                    raise ValueError('Unprojected readers must '
-                                     'have attributes/arrays "lon", "lat" '
-                                     'and "angle_between_x_and_east"')
-
                 logging.info('Making Splines for lon,lat to x,y conversion...')
+
                 block_x, block_y = np.meshgrid(
                     np.arange(self.xmin, self.xmax + 1, 1),
                     np.arange(self.ymin, self.ymax + 1, 1))
 
-                # Using multiprocessing for speedup
-                pool = Pool(processes=3)
-                processes = [
-                    pool.apply_async(make_interpolator,
-                                     ('spl_x',
-                                     self.lon, self.lat, block_x)),
-                    pool.apply_async(make_interpolator,
-                                     ('spl_y',
-                                     self.lon, self.lat, block_y)),
-                    pool.apply_async(make_interpolator,
-                                     ('spl_angle', block_x, block_y,
-                                     self.angle_between_x_and_east)) ]
-
-                # Get numerical data returned from the processes,
-                # and reconstruct intepolators
-                for process in processes:
-                    template_int = LinearNDInterpolator(
-                        [[0,0],[1,0],[0,1],[1,1]], [0,1,2,4])
-                    result = process.get()
-                    attr = result['attr']
-                    del result['attr']
-                    for key, value in result.iteritems():
-                        template_int.__setattr__(key, value)
-                    setattr(self, attr, template_int)
-
-                # Keeping old single-processing code, as it may be
-                # necessary to revert if above unpickling of interpolators
-                # is broken for future version of scipy
-                #self.spl_x = LinearNDInterpolator((self.lon.ravel(),
-                #                                   self.lat.ravel()),
-                #                                  block_x.ravel(),
-                #                                  fill_value=np.nan)
-                #self.spl_y = LinearNDInterpolator((self.lon.ravel(),
-                #                                   self.lat.ravel()),
-                #                                  block_y.ravel(),
-                #                                  fill_value=np.nan)
-                #self.spl_angle = LinearNDInterpolator(
-                #    (block_x.ravel(), block_y.ravel()),
-                #    self.angle_between_x_and_east.ravel(),
-                #    fill_value=np.nan)
+                # Making interpolator (lon, lat) -> x
+                self.spl_x = LinearNDInterpolator((self.lon.ravel(),
+                                                   self.lat.ravel()),
+                                                  block_x.ravel(),
+                                                  fill_value=np.nan)
+                # Reusing x-interpolator (deepcopy) with data for y
+                self.spl_y = copy.deepcopy(self.spl_x)
+                self.spl_y.values[:,0] = block_y.ravel()
 
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
@@ -485,20 +435,13 @@ class Reader(object):
                                 for x in vector_pairs)]
 
                 if len(vector_pairs) > 0:
-                    if self.projected is False:
-                        from_angle_between_x_and_east = \
-                            self.spl_angle(reader_x, reader_y)
-                    else:
-                        from_angle_between_x_and_east = None
 
                     for vector_pair in vector_pairs:
                         env[vector_pair[0]], env[vector_pair[1]] = \
                             self.rotate_vectors(reader_x, reader_y,
                                                 env[vector_pair[0]],
                                                 env[vector_pair[1]],
-                                                self.proj, rotate_to_proj,
-                                                from_angle_between_x_and_east=
-                                                from_angle_between_x_and_east)
+                                                self.proj, rotate_to_proj)
                         if profiles is not None and vector_pair[0] in profiles:
                             sys.exit('Rotating profiles of vectors '
                                      'is not yet implemented')
@@ -507,24 +450,14 @@ class Reader(object):
 
     def rotate_vectors(self, reader_x, reader_y,
                        u_component, v_component,
-                       proj_from, proj_to,
-                       from_angle_between_x_and_east=None):
+                       proj_from, proj_to):
         """Rotate vectors from one srs to another."""
 
         if type(proj_from) is str:
             proj_from = pyproj.Proj(proj_from)
         if type(proj_from) is not pyproj.Proj:
-            # If first coordinate system does not have a proj4 definition,
-            # we need an array of angles to first rotate vectors to east-north
-            rot_angle_cs_rad = from_angle_between_x_and_east
-            logging.debug('Rotating coordinate system between '
-                          '%.1f and %.1f degrees.' %
-                          (np.degrees(from_angle_between_x_and_east).min(),
-                           np.degrees(from_angle_between_x_and_east).max()))
             proj_from = pyproj.Proj('+proj=latlong')
             reader_x, reader_y = self.xy2lonlat(reader_x, reader_y)
-        else:
-            rot_angle_cs_rad = 0
         if type(proj_to) is str:
             proj_to = pyproj.Proj(proj_to)
 
@@ -547,7 +480,7 @@ class Reader(object):
         logging.debug('Rotating vectors between %s and %s degrees.' %
                       (np.degrees(rot_angle_vectors_rad).min(),
                        np.degrees(rot_angle_vectors_rad).max()))
-        rot_angle_rad = rot_angle_cs_rad - rot_angle_vectors_rad
+        rot_angle_rad = - rot_angle_vectors_rad
         u_rot = (u_component*np.cos(rot_angle_rad) -
                  v_component*np.sin(rot_angle_rad))
         v_rot = (u_component*np.sin(rot_angle_rad) +

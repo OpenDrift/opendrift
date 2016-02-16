@@ -112,7 +112,7 @@ class TestReaders(unittest.TestCase):
         lat = np.array([68.21, 69.31, 69.31])
         z = np.array([-33, 0, -2500])
         x, y = nordic3d.lonlat2xy(lon, lat)
-        variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
+        variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                      'sea_water_temperature']
         # Call get_variables_interpolated which interpolates both in 
         data = nordic3d.get_variables(variables,

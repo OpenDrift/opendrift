@@ -80,7 +80,6 @@ class Reader(Reader):
         # Horizontal oordinates and directions
         self.lat = self.Dataset.variables['lat_rho'][:]
         self.lon = self.Dataset.variables['lon_rho'][:]
-        self.angle_between_x_and_east = self.Dataset.variables['angle'][:]
 
         # Get time coverage
         ocean_time = self.Dataset.variables['ocean_time']
@@ -199,10 +198,6 @@ class Reader(Reader):
                 variables[par].mask[outside[0]] = True
 
 
-        # Return coordinate system orientation, for vector rotation
-        variables['angle_between_x_and_east'] = \
-            np.degrees(self.angle_between_x_and_east[np.meshgrid(indy, indx)])
-
         if 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
 
@@ -215,4 +210,27 @@ class Reader(Reader):
 
         variables['time'] = nearestTime
 
+        if 'x_sea_water_velocity' or 'sea_ice_x_velocity' in variables.keys():
+            # We must rotate current vectors
+            if not hasattr(self, 'angle_xi_east'):
+                logging.debug('Reading angle between xi and east...')
+                self.angle_xi_east = self.Dataset.variables['angle'][:]
+            rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
+            if 'x_sea_water_velocity' in variables.keys():
+                variables['x_sea_water_velocity'], \
+                    variables['y_sea_water_velocity'] = rotate_vectors(
+                        variables['x_sea_water_velocity'],
+                        variables['y_sea_water_velocity'], rad)
+            if 'sea_ice_x_velocity' in variables.keys():
+                variables['sea_ice_x_velocity'], \
+                    variables['sea_ice_y_velocity'] = rotate_vectors(
+                        variables['sea_ice_x_velocity'],
+                        variables['sea_ice_y_velocity'], rad)
+
         return variables
+
+
+def rotate_vectors(u, v, radians):
+    u = u*np.cos(radians) - v*np.sin(radians)
+    v = u*np.sin(radians) + v*np.cos(radians)
+    return u, v

@@ -15,7 +15,7 @@ nordic_native = reader_ROMS_native.Reader('test_data/2Feb2016_Nordic_sigma_3d/No
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=10.0, llcrnrlat=67.5,
+                    llcrnrlon=11.0, llcrnrlat=67.5,
                     urcrnrlon=16.0, urcrnrlat=69.0,
                     resolution='h', projection='merc')
 
