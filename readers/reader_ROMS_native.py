@@ -20,9 +20,10 @@ from bisect import bisect_left
 
 import numpy as np
 from netCDF4 import Dataset, num2date
-import vgrid
+#import vgrid
 
-from readers import Reader
+from reader import Reader
+from roppy import depth
 
 
 class Reader(Reader):
@@ -71,36 +72,8 @@ class Reader(Reader):
             self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
 
         # Read sigma-coordinate transform parameters
-        try:
-            self.Vtransform = self.Dataset.variables['Vtransform'][:][0]
-            self.Vstretching = self.Dataset.variables['Vstretching'][:][0]
-            if self.Vtransform == 1 and self.Vstretching == 1:
-                self.s_coordinate = vgrid.s_coordinate
-            elif self.Vtransform == 2 and self.Vstretching == 2:
-                self.s_coordinate = vgrid.s_coordinate_2
-            elif self.Vtransform == 2 and self.Vstretching == 4:
-                self.s_coordinate = vgrid.s_coordinate_4
-            else:
-                logging.warning('Sigma-coordinate transformation '
-                    'unknown for\n\tVtransform = %s and Vstretching = %s\n'
-                    'Defaulting to Vtransform = 1, Vstretching = 1' %
-                    (self.Vtransform, self.Vstretching))
-                self.s_coordinate = vgrid.s_coordinate
-        except Exception as e:
-            logging.warning('Sigma-information not available, '
-                             'defaulting to\n Vtransform = 1, Vstretching = 1')
-            self.s_coordinate = vgrid.s_coordinate
-
-        try:
-            self.theta_s = self.Dataset.variables['theta_s'][:][0]
-            self.theta_b = self.Dataset.variables['theta_b'][:][0]
-            self.Tcline = self.Dataset.variables['Tcline'][:][0]
-        except:
-            logging.warning('Missing sigma stretching parameters\n'
-                            ' - using default values')
-            self.theta_b = 0.4
-            self.theta_s = 3
-            self.Tcline = 10
+        self.Cs_r = self.Dataset.variables['Cs_r'][:]
+        self.hc = self.Dataset.variables['hc'][:]
 
         self.num_layers = len(self.sigma)
 
@@ -154,36 +127,8 @@ class Reader(Reader):
         # Find horizontal indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
-
-        # Find depth levels covering all elements
-        if z.min() == 0:
-            indz = self.num_layers - 1  # surface layer
-            variables['z'] = z
-
-        else:
-            # Find the range of sigma0-values covering given z-values
-            indz = self.num_layers - 1  # surface layer
-            if not hasattr(self, 'sea_floor_depth'):
-                logging.debug('Reading sea floor depth...')
-                self.sea_floor_depth = self.Dataset.variables['h'][:]
-
-            depth_at_elements = self.sea_floor_depth[indy, indx]
-            sigma_transform = self.s_coordinate(
-                depth_at_elements, self.theta_b, self.theta_s,
-                self.Tcline, len(self.sigma))
-            z_profiles = sigma_transform.z_r[:]
-            zmins = np.min(z_profiles, axis=1)
-            zmaxs = np.max(z_profiles, axis=1)
-            # Remember that sigma increases from -1 bottom to 0 surface
-            indz_min = np.max(
-                (0, bisect_left(zmaxs, z.min())-self.zbuffer-1))
-            indz_max = np.min(
-                (len(self.sigma)-1,
-                bisect_left(zmins, z.max())+self.zbuffer+1))
-            indz = np.arange(indz_min, indz_max+1)
-            variables['z'] = z_profiles[indz,:]
-            #variables['z'] = z_profiles[indz,0]  # TEMPORARY!
-
+        indx_el = indx
+        indy_el = indy
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
@@ -195,6 +140,32 @@ class Reader(Reader):
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0
 
+        # Find depth levels covering all elements
+        if z.min() == 0:
+            indz = self.num_layers - 1  # surface layer
+            variables['z'] = 0
+
+        else:
+            # Find the range of indices covering given z-values
+            if not hasattr(self, 'sea_floor_depth'):
+                logging.debug('Reading sea floor depth...')
+                self.sea_floor_depth = self.Dataset.variables['h'][:]
+            indxgrid, indygrid = np.meshgrid(indx, indy)
+            H = self.sea_floor_depth[indygrid, indxgrid]
+            #print H[indy_el, indx_el]  # Seafloor depth below elements
+            z_rho = depth.sdepth(H, self.hc, self.Cs_r)
+
+            # Loop to find the layers covering the requested z-values
+            indz_min = 0
+            for i in range(self.num_layers):
+                if np.min(z-z_rho[i, indy_el, indx_el]) > 0:
+                    indz_min = i
+                if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
+                    indz_max = i
+            indz = range(indz_min, indz_max + 1)
+            z_rho = z_rho[indz, :, :]
+            variables['z'] = np.mean(np.mean(z_rho, axis=1), axis=1)
+            variables['z'] = variables['z'][len(variables['z']):0:-1]
 
         for par in requested_variables:
             varname = [name for name, cf in
@@ -208,6 +179,11 @@ class Reader(Reader):
             elif var.ndim == 4:
                 # Temporarily neglecting depth
                 variables[par] = var[indxTime, indz, indy, indx]  # NB 0 was 1
+                # Regrid from sigma to z levels
+                if len(np.atleast_1d(indz)) > 1:
+                    logging.debug('sigma to z for ' + varname[0])
+                    variables[par] = depth.multi_zslice(variables[par],
+                                                    z_rho, variables['z'])
             else:
                 raise Exception('Wrong dimension of variable: '
                                 + self.variable_mapping[par])
@@ -222,6 +198,7 @@ class Reader(Reader):
             if block is False:
                 variables[par].mask[outside[0]] = True
 
+
         # Return coordinate system orientation, for vector rotation
         variables['angle_between_x_and_east'] = \
             np.degrees(self.angle_between_x_and_east[np.meshgrid(indy, indx)])
@@ -229,11 +206,6 @@ class Reader(Reader):
         if 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
 
-        # Store coordinates of returned points
-        #try:
-        #    variables['z'] = self.z[indz]
-        #except:
-        #    variables['z'] = 0
         if block is True:
             variables['x'] = indx
             variables['y'] = indy

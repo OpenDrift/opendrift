@@ -25,7 +25,7 @@ print 'o.seed_elements(lon=4, lat=60, time=time)'
 print '='*70
 o.seed_elements(lon=4, lat=60, time=time)
 o.run(steps=1)
-o.plot(buffer=.01)
+o.plot(buffer=1)
 
 
 print '\n' + '='*70
@@ -34,7 +34,7 @@ print 'o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time)'
 print '='*70
 o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time)
 o.run(steps=1)
-o.plot(buffer=.01)
+o.plot(buffer=1)
 
 
 print '\n' + '='*70
@@ -45,7 +45,7 @@ z = np.linspace(0, -50, 100)  # Linearly increasing depth
 o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time, z=z)
 o.fallback_values['y_sea_water_velocity'] = 3  # Adding some current to be able to visualise depth as color of trajectories
 o.run(steps=1)
-o.plot(linecolor='z', buffer=.01)
+o.plot(linecolor='z', buffer=1)
 o.fallback_values['y_sea_water_velocity'] = 0
 
 
@@ -59,7 +59,7 @@ lats = np.linspace(60, 61, 100)
 lons = np.linspace(4, 4.8, 100)
 o.seed_elements(lon=lons, lat=lats, time=time)
 o.run(steps=1)
-o.plot(buffer=.1)
+o.plot(buffer=1)
 
 
 print '\n' + '='*70
@@ -91,8 +91,8 @@ o.animation()
 
 print '\n' + '='*70
 print 'Any model/module may provide specialised seeding-functions, such as \n seeding oil within contours read from a GML file:'
-print 'o.seed_from_gml("test_data/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml", num_elements=2000)'
+print 'o.seed_from_gml("test_data/radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml", num_elements=2000)'
 print '='*70
-o.seed_from_gml('test_data/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
+o.seed_from_gml('test_data/radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 o.run(steps=1)
 o.plot(buffer=.03)
