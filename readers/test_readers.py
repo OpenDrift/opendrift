@@ -118,11 +118,10 @@ class TestReaders(unittest.TestCase):
         data = nordic3d.get_variables(variables,
                 time = nordic3d.start_time + timedelta(seconds=900),
                 x=x, y=y, z=z, block=True)
-        #print data
         self.assertAlmostEqual(data['sea_water_temperature'][0,60, 60],
                                3.4470012188)
         self.assertAlmostEqual(data['sea_water_temperature'][-1,60, 60],
-                               -0.297809013466)
+                               -0.2899159987863657)
         
 if __name__ == '__main__':
     unittest.main()
