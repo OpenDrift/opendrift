@@ -105,36 +105,24 @@ class TestReaders(unittest.TestCase):
         #plt.plot(profiles['sea_water_temperature'][:,1], 'r')
         #plt.show()
 
-    def atest_vertical_interpolation_sigma(self):
-        norkyst3d = reader_ROMS_native.Reader(script_folder +
+    def test_vertical_interpolation_sigma(self):
+        nordic3d = reader_ROMS_native.Reader(script_folder +
             '/../test_data/2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-        # Default buffer may be changed in future, but this test case
-        # requires that buffer is 25
-        lon = np.array([12.46, 12.46])
-        lat = np.array([68.21, 68.31])
-        z = np.array([-33, 0])
-        variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
+        lon = np.array([12.46, 12.46, 12.46])
+        lat = np.array([68.21, 69.31, 69.31])
+        z = np.array([-33, 0, -2500])
+        x, y = nordic3d.lonlat2xy(lon, lat)
+        variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                      'sea_water_temperature']
         # Call get_variables_interpolated which interpolates both in 
-        # space (horizontally, vertically) and then in time
-        data, profiles = norkyst3d.get_variables_interpolated(
-                variables, profiles='sea_water_temperature',
-                profiles_depth = [-100, 0],
-                time = norkyst3d.start_time + timedelta(seconds=900),
-                lon=lon, lat=lat, z=z, block=True)
+        data = nordic3d.get_variables(variables,
+                time = nordic3d.start_time + timedelta(seconds=900),
+                x=x, y=y, z=z, block=True)
         #print data
-
-        # Vertical interpolation of sigma to be implemented soon.
-        # Currently z is simply neglected
-
-        # Check surface value
-        #print profiles
-        #self.assertEqual(data['sea_water_temperature'][1],
-        #                 profiles['sea_water_temperature'][0])
-        ## Check interpolated temperature at 33 m depth
-        #self.assertAlmostEqual(data['sea_water_temperature'][0],
-        #                       8.3167563152313)
-
-
+        self.assertAlmostEqual(data['sea_water_temperature'][0,60, 60],
+                               3.4470012188)
+        self.assertAlmostEqual(data['sea_water_temperature'][-1,60, 60],
+                               -0.297809013466)
+        
 if __name__ == '__main__':
     unittest.main()

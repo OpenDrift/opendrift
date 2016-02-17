@@ -16,11 +16,14 @@
 
 import logging
 from datetime import datetime, timedelta
+from bisect import bisect_left
 
 import numpy as np
 from netCDF4 import Dataset, num2date
+#import vgrid
 
 from reader import Reader
+from roppy import depth
 
 
 class Reader(Reader):
@@ -28,6 +31,7 @@ class Reader(Reader):
     # Map ROMS variable names to CF standard_name
     ROMS_variable_mapping = {
         'mask_psi': 'land_binary_mask',
+        'h': 'sea_floor_depth',
         'zeta': 'sea_surface_height',
         'u': 'x_sea_water_velocity',
         'v': 'y_sea_water_velocity',
@@ -37,6 +41,8 @@ class Reader(Reader):
         'vice': 'sea_ice_y_velocity',
         'aice': 'sea_ice_area_fraction',
         'hice': 'sea_ice_thickness'}
+
+    zbuffer = 1  # Vertical buffer of block around elements
 
     def __init__(self, filename=None, name=None):
 
@@ -56,13 +62,7 @@ class Reader(Reader):
             raise ValueError('Could not open ' + filename +
                              ' with netCDF4 library')
 
-        # Read sigma-coordinate parameters
-        #Vtransform = self.Dataset.variables['Vtransform'][:]
-        #Vstretching = self.Dataset.variables['Vstretching'][:]
-        #theta_s = self.Dataset.variables['theta_s'][:]
-        #theta_b = self.Dataset.variables['theta_b'][:]
-        #Tcline = self.Dataset.variables['Tcline'][:]
-
+        # Read sigma-coordinate values
         try:
             self.sigma = self.Dataset.variables['s_rho'][:]
         except:
@@ -71,12 +71,15 @@ class Reader(Reader):
                             ' number of layers (%s).' % num_sigma)
             self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
 
+        # Read sigma-coordinate transform parameters
+        self.Cs_r = self.Dataset.variables['Cs_r'][:]
+        self.hc = self.Dataset.variables['hc'][:]
+
         self.num_layers = len(self.sigma)
 
         # Horizontal oordinates and directions
         self.lat = self.Dataset.variables['lat_rho'][:]
         self.lon = self.Dataset.variables['lon_rho'][:]
-        self.angle_between_x_and_east = self.Dataset.variables['angle'][:]
 
         # Get time coverage
         ocean_time = self.Dataset.variables['ocean_time']
@@ -118,16 +121,13 @@ class Reader(Reader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        try:
-            indz = self.index_of_closest_depths(z)[0]
-        except:
-            indz = 0  # For datasets with no vertical dimension
-        indz = self.num_layers - 1  # Hardcodedd surface layer, to begin with
+        variables = {}
 
-        # Find indices corresponding to requested x and y
+        # Find horizontal indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
-
+        indx_el = indx
+        indy_el = indy
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
@@ -139,7 +139,32 @@ class Reader(Reader):
             indx[outside[0]] = 0  # To be masked later
             indy[outside[0]] = 0
 
-        variables = {}
+        # Find depth levels covering all elements
+        if z.min() == 0:
+            indz = self.num_layers - 1  # surface layer
+            variables['z'] = 0
+
+        else:
+            # Find the range of indices covering given z-values
+            if not hasattr(self, 'sea_floor_depth'):
+                logging.debug('Reading sea floor depth...')
+                self.sea_floor_depth = self.Dataset.variables['h'][:]
+            indxgrid, indygrid = np.meshgrid(indx, indy)
+            H = self.sea_floor_depth[indygrid, indxgrid]
+            #print H[indy_el, indx_el]  # Seafloor depth below elements
+            z_rho = depth.sdepth(H, self.hc, self.Cs_r)
+
+            # Loop to find the layers covering the requested z-values
+            indz_min = 0
+            for i in range(self.num_layers):
+                if np.min(z-z_rho[i, indy_el, indx_el]) > 0:
+                    indz_min = i
+                if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
+                    indz_max = i
+            indz = range(indz_min, indz_max + 1)
+            z_rho = z_rho[indz, :, :]
+            variables['z'] = np.mean(np.mean(z_rho, axis=1), axis=1)
+            variables['z'] = variables['z'][len(variables['z']):0:-1]
 
         for par in requested_variables:
             varname = [name for name, cf in
@@ -153,6 +178,11 @@ class Reader(Reader):
             elif var.ndim == 4:
                 # Temporarily neglecting depth
                 variables[par] = var[indxTime, indz, indy, indx]  # NB 0 was 1
+                # Regrid from sigma to z levels
+                if len(np.atleast_1d(indz)) > 1:
+                    logging.debug('sigma to z for ' + varname[0])
+                    variables[par] = depth.multi_zslice(variables[par],
+                                                    z_rho, variables['z'])
             else:
                 raise Exception('Wrong dimension of variable: '
                                 + self.variable_mapping[par])
@@ -167,18 +197,10 @@ class Reader(Reader):
             if block is False:
                 variables[par].mask[outside[0]] = True
 
-        # Return coordinate system orientation, for vector rotation
-        variables['angle_between_x_and_east'] = \
-            np.degrees(self.angle_between_x_and_east[np.meshgrid(indy, indx)])
 
         if 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
 
-        # Store coordinates of returned points
-        try:
-            variables['z'] = self.z[indz]
-        except:
-            variables['z'] = 0
         if block is True:
             variables['x'] = indx
             variables['y'] = indy
@@ -187,4 +209,28 @@ class Reader(Reader):
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
         variables['time'] = nearestTime
+
+        if 'x_sea_water_velocity' or 'sea_ice_x_velocity' in variables.keys():
+            # We must rotate current vectors
+            if not hasattr(self, 'angle_xi_east'):
+                logging.debug('Reading angle between xi and east...')
+                self.angle_xi_east = self.Dataset.variables['angle'][:]
+            rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
+            if 'x_sea_water_velocity' in variables.keys():
+                variables['x_sea_water_velocity'], \
+                    variables['y_sea_water_velocity'] = rotate_vectors(
+                        variables['x_sea_water_velocity'],
+                        variables['y_sea_water_velocity'], rad)
+            if 'sea_ice_x_velocity' in variables.keys():
+                variables['sea_ice_x_velocity'], \
+                    variables['sea_ice_y_velocity'] = rotate_vectors(
+                        variables['sea_ice_x_velocity'],
+                        variables['sea_ice_y_velocity'], rad)
+
         return variables
+
+
+def rotate_vectors(u, v, radians):
+    u = u*np.cos(radians) - v*np.sin(radians)
+    v = u*np.sin(radians) + v*np.cos(radians)
+    return u, v
