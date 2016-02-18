@@ -16,11 +16,10 @@
 
 import logging
 from datetime import datetime, timedelta
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 
 import numpy as np
 from netCDF4 import Dataset, num2date
-#import vgrid
 
 from reader import Reader
 from roppy import depth
@@ -43,6 +42,12 @@ class Reader(Reader):
         'hice': 'sea_ice_thickness'}
 
     zbuffer = 1  # Vertical buffer of block around elements
+
+    # z-levels to which sigma-layers may be interpolated
+    zlevels = [0, -.5, -1, -3, -5, -10, -25, -50, -75, -100, -150, -200,
+               -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
+               -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
+               -6500, -7000, -7500, -8000]
 
     def __init__(self, filename=None, name=None):
 
@@ -155,6 +160,9 @@ class Reader(Reader):
             H = self.sea_floor_depth[indygrid, indxgrid]
             #print H[indy_el, indx_el]  # Seafloor depth below elements
             z_rho = depth.sdepth(H, self.hc, self.Cs_r)
+            # Element indices must be relative to extracted subset
+            indx_el = indx_el - indx.min()
+            indy_el = indy_el - indy.min()
 
             # Loop to find the layers covering the requested z-values
             indz_min = 0
@@ -163,10 +171,17 @@ class Reader(Reader):
                     indz_min = i
                 if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
                     indz_max = i
-            indz = range(indz_min, indz_max + 1)
+            indz = range(np.maximum(0, indz_min-self.zbuffer),
+                         np.minimum(self.num_layers,
+                                     indz_max + 1 + self.zbuffer))
             z_rho = z_rho[indz, :, :]
-            variables['z'] = np.mean(np.mean(z_rho, axis=1), axis=1)
-            variables['z'] = variables['z'][len(variables['z']):0:-1]
+            # Determine the z-levels to which to interpolate
+            zi1 = np.maximum(0, bisect_left(-np.array(self.zlevels),
+                                            -z.max()) - self.zbuffer)
+            zi2 = np.minimum(len(self.zlevels),
+                             bisect_right(-np.array(self.zlevels),
+                                          -z.min()) + self.zbuffer)
+            variables['z'] = np.array(self.zlevels[zi1:zi2])
 
         for par in requested_variables:
             varname = [name for name, cf in
@@ -199,6 +214,8 @@ class Reader(Reader):
             if block is False:
                 variables[par].mask[outside[0]] = True
 
+            # Masked invalid (land) pixels
+            variables[par].mask[variables[par] > 1e+35] = True
 
         if 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']

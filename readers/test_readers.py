@@ -121,7 +121,7 @@ class TestReaders(unittest.TestCase):
         self.assertAlmostEqual(data['sea_water_temperature'][0,60, 60],
                                3.4470012188)
         self.assertAlmostEqual(data['sea_water_temperature'][-1,60, 60],
-                               -0.2899159987863657)
+                               -0.78304171562194824)
         
 if __name__ == '__main__':
     unittest.main()

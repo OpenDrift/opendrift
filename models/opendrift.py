@@ -441,6 +441,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     missing_indices = missing_indices[combined_mask]
                 else:
                     missing_indices = []  # temporary workaround
+                if type(missing_indices) == np.int64:
+                    missing_indices = []
                 if len(missing_indices) == 0:
                     logging.debug('Obtained data for all elements.')
                     break
