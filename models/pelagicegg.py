@@ -196,7 +196,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         self.elements.age_seconds += self.time_step.total_seconds()
 
         # For illustration: plot vertical profile for a single element
-        if self.steps == 5 and self.environment_profiles is not None:
+        if self.steps_calculation == 5 and self.environment_profiles is not None:
             # We plot profile at a single timestep only
             import matplotlib.pyplot as plt
             param = self.required_profiles[0]  # take the first one

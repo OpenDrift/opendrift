@@ -37,7 +37,8 @@ def init(self, filename, times=None):
     self.outfile.model_url = 'https://github.com/knutfrode/opendrift'
     self.outfile.readers = str(self.readers.keys())
     self.outfile.time_coverage_start = str(self.start_time)
-    self.outfile.time_step = str(self.time_step)
+    self.outfile.time_step_calculation = str(self.time_step)
+    self.outfile.time_step_output = str(self.time_step_output)
 
     # Add all element properties as variables
     for prop in self.history.dtype.fields:
@@ -61,7 +62,7 @@ def init(self, filename, times=None):
 
 
 def write_buffer(self):
-    num_steps_to_export = self.steps + 1 - self.steps_exported
+    num_steps_to_export = self.steps_output - self.steps_exported
     for prop in self.history_metadata:
         if prop in skip_parameters:
             continue
@@ -95,7 +96,8 @@ def close(self):
     # Write timesteps to file
     self.outfile.time_coverage_end = str(self.time)
     timeStr = 'seconds since 1970-01-01 00:00:00'
-    times = [self.start_time + n*self.time_step for n in range(self.steps + 1)]
+    times = [self.start_time + n*self.time_step_output for n in
+             range(self.steps_output)]
     self.outfile.variables['time'][0:len(times)] = date2num(times, timeStr)
     self.outfile.variables['time'].units = timeStr
     self.outfile.variables['time'].standard_name = 'time'
@@ -162,7 +164,7 @@ def import_file(self, filename, time=None):
                                infile.variables['time'].units)
     self.end_time = num2date(infile.variables['time'][-1],
                              infile.variables['time'].units)
-    self.time_step = num2date(infile.variables['time'][1],
+    self.time_step_output = num2date(infile.variables['time'][1],
                               infile.variables['time'].units) - self.start_time
     self.time = self.end_time  # Using end time as default
     self.status_categories = infile.variables['status'].flag_meanings.split()
@@ -174,7 +176,7 @@ def import_file(self, filename, time=None):
 
     num_elements = len(infile.dimensions['trajectory'])
     num_timesteps = len(infile.dimensions['time'])
-    self.steps = num_timesteps - 1  # we do not here count initial state
+    self.steps_output = num_timesteps
     dtype = np.dtype([(var[0], var[1]['dtype'])
                       for var in self.ElementType.variables.items()])
 

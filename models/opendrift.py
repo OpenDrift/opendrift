@@ -156,7 +156,8 @@ class OpenDriftSimulation(PhysicsMethods):
         # Use seed = None to get different random numbers each time
         np.random.seed(seed)
 
-        self.steps = 0  # Increase for each simulation step
+        self.steps_calculation = 0  # Increase for each simulation step
+        self.steps_output = 0
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
 
@@ -737,7 +738,8 @@ class OpenDriftSimulation(PhysicsMethods):
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
-    def run(self, time_step=3600, steps=1000, outfile=None):
+    def run(self, time_step=3600, steps=None, time_step_output=None,
+            duration=None, end_time=None, outfile=None):
         """Start a trajectory simulation, after configuration.
 
         Performs the loop:
@@ -787,8 +789,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                  + str(missing_variables))
 
         # Some cleanup needed if starting from imported state
-        if self.steps >= 1:
-            self.steps = 0
+        if self.steps_calculation >= 1:
+            self.steps_calculation = 0
         if hasattr(self, 'history'):
             # Delete history matrix before new run
             delattr(self, 'history')
@@ -803,10 +805,50 @@ class OpenDriftSimulation(PhysicsMethods):
         self.runtime_environment = timedelta(seconds=0)
         self.runtime_model = timedelta(seconds=0)
 
-        self.time_step = timedelta(seconds=time_step)  # Time step in seconds
+        if type(time_step) is not timedelta:
+            # Time step may be given in seconds, as alternative to timedelta
+            time_step = timedelta(seconds=time_step)
+        self.time_step = time_step
+        if time_step_output is None:
+            self.time_step_output = self.time_step
+        else:
+            self.time_step_output = time_step_output
+
+        time_step_ratio = self.time_step_output.total_seconds() / \
+                          self.time_step.total_seconds()
+        if not time_step_ratio.is_integer():
+            raise ValueError('Ratio of calculation and output time steps '
+                             'must be an integer - given ratio is %s' %
+                             time_step_ratio)
+        if duration is not None and end_time is not None:
+            raise ValueError('Duration and end_time cannot be provided '
+                             'simultaneously')
+        if duration is None and end_time is None:
+            if steps is not None:
+                duration = steps*self.time_step
+            else:
+                for reader in self.readers.values():
+                    if reader.end_time is not None:
+                        if end_time is None:
+                            end_time = reader.end_time
+                        else:
+                            end_time = min(end_time, reader.end_time)
+                    logging.info('Duration or end time not specified, running '
+                                 'until end of first reader: %s' % (end_time))
+        if duration is None:
+            duration = end_time - self.start_time
+        self.expected_steps_output = duration.total_seconds() / \
+            self.time_step_output.total_seconds() + 1  # Includes start and end
+        self.expected_steps_calculation = duration.total_seconds() / \
+            self.time_step.total_seconds()
+        self.expected_steps_calculation = int(self.expected_steps_calculation)
+
+        # Buffer, for later implementation of writing during run, and not
+        # only after completion
+        self.bufferlength = self.expected_steps_output
+
         self.time = self.start_time  # Start time has been set when seeding
 
-        self.bufferlength = steps + 1
         # Initialise array to hold history (element properties and environment)
         # for export to file.
         #history_dtype_fields = [(name, self.elements.dtype[name])
@@ -829,14 +871,14 @@ class OpenDriftSimulation(PhysicsMethods):
         self.steps_exported = 0
 
         if outfile is not None:
-            self.io_init(outfile, times=steps+1)
+            self.io_init(outfile, times=self.expected_steps_output)
         else:
             self.outfile = None
 
         ##########################
         # Main loop
         ##########################
-        for i in range(steps):
+        for i in range(self.expected_steps_calculation):
             try:
                 # Get environment data
                 runtime_start = datetime.now()
@@ -846,8 +888,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.debug('==================================='*2)
                 logging.info('%s - step %i of %i - %i active elements '
                              '(%i deactivated)' %
-                             (self.time, self.steps + 1,
-                              steps, self.num_elements_active(),
+                             (self.time, self.steps_calculation + 1,
+                              self.expected_steps_calculation,
+                              self.num_elements_active(),
                               self.num_elements_deactivated()))
                 logging.debug('%s elements scheduled.' %
                               self.num_elements_scheduled())
@@ -864,16 +907,23 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.runtime_environment += datetime.now() - runtime_start
                 runtime_start = datetime.now()
+
+                self.steps_output = int(np.floor(
+                    self.steps_calculation*
+                    self.time_step.total_seconds() /
+                    self.time_step_output.total_seconds()) + 1)
                 self.state_to_buffer()  # Append status to outfile
                 #if self.steps > 0:
                 self.remove_deactivated_elements()
                 # Propagate one timestep forwards
-                self.steps += 1
+                self.steps_calculation += 1
                 if self.num_elements_active() == 0:
                     raise ValueError('No more active elements, quitting.')
-                logging.debug('Calling module: %s.update()' %
+                #####################################################
+                logging.debug('Calling %s.update()' %
                               type(self).__name__)
                 self.update()
+                #####################################################
                 self.runtime_model += datetime.now() - runtime_start
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
@@ -893,12 +943,17 @@ class OpenDriftSimulation(PhysicsMethods):
 
         logging.debug('Cleaning up')
 
+        self.steps_output = int(np.floor(
+                    self.steps_calculation*
+                    self.time_step.total_seconds() /
+                    self.time_step_output.total_seconds()) + 1) 
         self.state_to_buffer()  # Append final status to buffer
 
         if outfile is not None:
             logging.debug('Writing and closing output file: %s' % outfile)
             # Write buffer to outfile, and close
-            if self.steps > self.steps_exported:  # Write last lines, if needed
+            if self.steps_calculation > self.steps_exported:
+                # Write last lines, if needed
                 self.io_write_buffer()
             self.io_close()
 
@@ -908,10 +963,16 @@ class OpenDriftSimulation(PhysicsMethods):
         # Remove columns for unseeded elements in history array
         self.history = self.history[range(self.num_elements_activated()), :]
         # Remove rows for unreached timsteps in history array
-        self.history = self.history[:, range(self.steps+1)]
+        self.history = self.history[:, range(self.steps_output)]
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
+        steps_calculation_float = (self.steps_calculation*
+                                   self.time_step.total_seconds() /
+                                self.time_step_output.total_seconds()) + 1
+        if not steps_calculation_float.is_integer():
+            print 'Delaying writing: ' + str(self.steps_output)
+            return
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
             # Temporarily assuming elements numbered
@@ -919,17 +980,18 @@ class OpenDriftSimulation(PhysicsMethods):
             # Does not hold when importing ID from a saved file, where
             # some elements have been deactivated
             self.history[var][self.elements.ID - 1,
-                              self.steps - self.steps_exported] = \
+                              self.steps_output - 1 - self.steps_exported] = \
                 getattr(self.elements, var)
         # Copy environment data to history array
         for i, var in enumerate(self.environment.dtype.names):
             self.history[var][self.elements.ID - 1,
-                              self.steps - self.steps_exported] = \
+                              self.steps_output - 1 - self.steps_exported] = \
                 getattr(self.environment, var)
 
         # Call writer if buffer is full
         if (self.outfile is not None) and \
-                ((self.steps - self.steps_exported) == self.bufferlength):
+                ((self.steps_output - self.steps_exported) ==
+                    self.bufferlength):
             self.io_write_buffer()
 
     def index_of_activation_and_deactivation(self):
@@ -1203,7 +1265,8 @@ class OpenDriftSimulation(PhysicsMethods):
             lons, lats = map.makegrid(4, 4)
             reader_x, reader_y = reader.lonlat2xy(lons, lats)
             data = reader.get_variables(
-                background, self.time-self.time_step, reader_x, reader_y,
+                background, self.time-self.time_step_output,
+                reader_x, reader_y,
                 0, block=True)
             reader_x, reader_y = np.meshgrid(data['x'], data['y'])
             if type(background) is list:
@@ -1229,7 +1292,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if hasattr(self, 'time'):
             plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
                       (self.start_time.strftime('%Y-%m-%d %H:%M'),
-                       self.time.strftime('%Y-%m-%d %H:%M'), self.steps))
+                       self.time.strftime('%Y-%m-%d %H:%M'), self.steps_output))
 
         if drifter_file is not None:
             # Format of joubeh.com
@@ -1258,10 +1321,11 @@ class OpenDriftSimulation(PhysicsMethods):
         return map, plt
 
     def get_time_array(self):
-        """Return a list of times of last run."""
-        td = self.time_step
-        time_array = [self.start_time + td*i for i in range(self.steps+1)]
-        time_array_relative = [td*i for i in range(self.steps+1)]
+        """Return a list of output times of last run."""
+        td = self.time_step_output
+        time_array = [self.start_time + td*i for i in
+                        range(self.steps_output+1)]
+        time_array_relative = [td*i for i in range(self.steps_output+1)]
         return time_array, time_array_relative
 
     def plot_environment(self):
@@ -1306,8 +1370,8 @@ class OpenDriftSimulation(PhysicsMethods):
         ax = fig.gca()
         ax.xaxis.set_major_formatter(hfmt)
         plt.xticks(rotation='vertical')
-        times = [self.start_time + n*self.time_step
-                 for n in range(self.steps + 1)]
+        times = [self.start_time + n*self.time_step_output
+                 for n in range(self.steps_output)]
         data = self.history[prop].T[0:len(times), :]
         plt.plot(times, data)
         plt.title(prop)
@@ -1408,8 +1472,11 @@ class OpenDriftSimulation(PhysicsMethods):
             outStr += '\tStart: %s\n' % (self.start_time)
             outStr += '\tPresent: %s\n' % (self.time)
             if hasattr(self, 'time_step'):
-                outStr += '\tSteps: %i * %s - total time: %s\n' % (
-                    self.steps, self.time_step, self.time-self.start_time)
+                outStr += '\tCalculation steps: %i * %s - total time: %s\n' % (
+                    self.steps_calculation, self.time_step,
+                    self.time-self.start_time)
+                outStr += '\tOutput steps: %i * %s\n' % (
+                    self.steps_output, self.time_step_output)
         if hasattr(self, 'runtime_environment'):
             outStr += 'Performance:\n'
             outStr += '\tFetching environment data: %s \n' % (
