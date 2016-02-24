@@ -62,7 +62,8 @@ o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
-o.run(steps=66*2, time_step=1800, outfile='openoil.nc')
+o.run(end_time=reader_norkyst.end_time, time_step=1800,
+      time_step_output=3600, outfile='openoil.nc')
 
 # Print and plot results
 print o

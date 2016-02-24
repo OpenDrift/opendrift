@@ -63,6 +63,8 @@ class OpenDriftSimulation(PhysicsMethods):
             (presently only one implemented: seed_elements).
         elements_deactivated: ElementType object containing particles which
             have been deactivated (and removed from 'elements')
+        elements_scheduled: ElementType object containing particles which
+            have been scheduled, but not yet activated
         required_variables: list of strings of CF standard_names which is
             needed by this model (update function) to update properties of
             particles ('elements') at each time_step. This core class has
@@ -79,6 +81,8 @@ class OpenDriftSimulation(PhysicsMethods):
             coordinate tranformations
         time_step: timedelta object, time interval at which element properties
             are updated (including advection).
+        time_step_output: timedelta object, time interval at which element
+            properties are stored in memory and eventually written to file
         readers: Dictionary where values are Reader objects, and names are
             unique reference keywords used to access a given reader (typically
             filename or URL)
@@ -347,13 +351,11 @@ class OpenDriftSimulation(PhysicsMethods):
             Buffer (raw data blocks) for each reader stored for performace:
                 [readers].var_block_before (last before requested time)
                 [readers].var_block_after (first after requested time)
-                    - lists of one dictionary per group:
+                    - lists of one ReaderBlock per variable group:
                         - time, x, y, [vars]
         Returns:
             environment: recarray with variables as named attributes,
                          interpolated to requested positions/time.
-                         Also includes "reader_number" for reference
-                         to which reader is used for each element.
 
         '''
         # Initialise ndarray to hold environment variables
@@ -415,8 +417,6 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.debug(traceback.format_exc())
                     logging.info('========================')
                     continue
-
-                # TBD: Store reader number for the particles covered
 
                 # Copy retrieved variables to env array, and mask nan-values
                 for var in variable_group:
@@ -516,7 +516,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
         Also assigns a unique ID to each particle, monotonically increasing."""
 
-        ## TODO
         # prepare time
         if type(time) == datetime:
             time = [time]*len(elements)  # Convert to array of same length
@@ -740,9 +739,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def run(self, time_step=3600, steps=None, time_step_output=None,
             duration=None, end_time=None, outfile=None):
-        """Start a trajectory simulation, after configuration.
+        """Start a trajectory simulation, after initial configuration.
 
-        Performs the loop:
+        Performs the main loop:
             - Obtain environment data for positions of all particles.
             - Call method 'update' to update (incl advect) particle properties.
         until one of the following conditions are met:
@@ -754,15 +753,23 @@ class OpenDriftSimulation(PhysicsMethods):
             - Occurance of any error, whose trace will be output to terminal.
 
         Before starting a model run, readers must be added for all
-        required variables, and some particles/elements must be seeded.
-        This function keeps track of the time consumed by obtaining data
-        with readers, and updating their properties, respectively.
+        required variables, unless fallback values have been specified.
+        Some particles/elements must have been scheduled for seeding, and the
+        run will start at the time when the first element has been scheduled..
 
         Arguments:
-            time_step: interval between particles updates, in seconds
-                Default: 3600 (1 hour)
-            steps: integer, maximum number of steps. End of simulation
-                will be self.start_time + steps*self.time_step
+            time_step: interval between particles updates, in seconds or as
+                timedelta. Default: 3600 seconds (1 hour)
+            time_step_output: Time step at which element properties are stored
+                and eventually written to file.
+                Timedelta object or seconds.
+                Default: same as time_step, meaning that all steps are stored
+            The length of the simulation is specified by defining one 
+                (and only one) of the following parameters:
+                - steps: integer, maximum number of steps. End of simulation
+                    will be self.start_time + steps*self.time_step
+                - duration: timedelta defining the length of the simulation
+                - end_time: datetime object defining the end of the simulation
         """
 
         if self.num_elements_scheduled() == 0:
@@ -798,13 +805,13 @@ class OpenDriftSimulation(PhysicsMethods):
             # importing from file, where elements may have been deactivated
             self.elements.ID = np.arange(0, self.num_elements_active())
 
-            # New....
-            self.steps_exported = 0
-
         # Store runtime to report on OpenDrift performance
         self.runtime_environment = timedelta(seconds=0)
         self.runtime_model = timedelta(seconds=0)
 
+        ########################
+        # Simulation time step
+        ########################
         if type(time_step) is not timedelta:
             # Time step may be given in seconds, as alternative to timedelta
             time_step = timedelta(seconds=time_step)
@@ -812,17 +819,28 @@ class OpenDriftSimulation(PhysicsMethods):
         if time_step_output is None:
             self.time_step_output = self.time_step
         else:
-            self.time_step_output = time_step_output
+            if type(time_step_output) is timedelta:
+                self.time_step_output = time_step_output
+            else:
+                self.time_step_output = timedelta(seconds=time_step_output)
 
         time_step_ratio = self.time_step_output.total_seconds() / \
                           self.time_step.total_seconds()
+        if time_step_ratio < 1:
+            raise ValueError('Output time step must be equal or larger '
+                             'than calculation time step.')
         if not time_step_ratio.is_integer():
             raise ValueError('Ratio of calculation and output time steps '
                              'must be an integer - given ratio is %s' %
                              time_step_ratio)
-        if duration is not None and end_time is not None:
-            raise ValueError('Duration and end_time cannot be provided '
-                             'simultaneously')
+        ########################
+        # Simulation duration
+        ########################
+        if (duration is not None and end_time is not None) or \
+            (duration is not None and steps is not None) or \
+            (steps is not None and end_time is not None):
+            raise ValueError('Only one of "steps", "duration" and "end_time" '
+                             'may be provided simultaneously')
         if duration is None and end_time is None:
             if steps is not None:
                 duration = steps*self.time_step
@@ -833,8 +851,9 @@ class OpenDriftSimulation(PhysicsMethods):
                             end_time = reader.end_time
                         else:
                             end_time = min(end_time, reader.end_time)
-                    logging.info('Duration or end time not specified, running '
-                                 'until end of first reader: %s' % (end_time))
+                    logging.info('Duration, steps or end time not specified, '
+                                 'running until end of first reader: %s' %
+                                 (end_time))
         if duration is None:
             duration = end_time - self.start_time
         self.expected_steps_output = duration.total_seconds() / \
@@ -843,8 +862,10 @@ class OpenDriftSimulation(PhysicsMethods):
             self.time_step.total_seconds()
         self.expected_steps_calculation = int(self.expected_steps_calculation)
 
-        # Buffer, for later implementation of writing during run, and not
-        # only after completion
+        ####################################################################
+        # Preparing history array for storage in memory and eventually file
+        ####################################################################
+        # Buffer, for later implementation of sequential writing
         self.bufferlength = self.expected_steps_output
 
         self.time = self.start_time  # Start time has been set when seeding
@@ -908,31 +929,34 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.runtime_environment += datetime.now() - runtime_start
                 runtime_start = datetime.now()
 
-                self.steps_output = int(np.floor(
-                    self.steps_calculation*
-                    self.time_step.total_seconds() /
-                    self.time_step_output.total_seconds()) + 1)
-                self.state_to_buffer()  # Append status to outfile
-                #if self.steps > 0:
+                self.state_to_buffer()  # Append status to history array
+
                 self.remove_deactivated_elements()
+
                 # Propagate one timestep forwards
                 self.steps_calculation += 1
+
                 if self.num_elements_active() == 0:
                     raise ValueError('No more active elements, quitting.')
+
                 #####################################################
                 logging.debug('Calling %s.update()' %
                               type(self).__name__)
                 self.update()
                 #####################################################
+
                 self.runtime_model += datetime.now() - runtime_start
+
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
+
                 logging.debug('%s active elements (%s deactivated)' %
                               (self.num_elements_active(),
                                self.num_elements_deactivated()))
                 # Updating time
                 if self.time is not None:
                     self.time = self.time + self.time_step
+
             except Exception as e:
                 logging.info('========================')
                 logging.info('End of simulation:')
@@ -943,10 +967,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
         logging.debug('Cleaning up')
 
-        self.steps_output = int(np.floor(
-                    self.steps_calculation*
-                    self.time_step.total_seconds() /
-                    self.time_step_output.total_seconds()) + 1) 
         self.state_to_buffer()  # Append final status to buffer
 
         if outfile is not None:
@@ -967,26 +987,40 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
+
         steps_calculation_float = (self.steps_calculation*
                                    self.time_step.total_seconds() /
                                 self.time_step_output.total_seconds()) + 1
-        if not steps_calculation_float.is_integer():
-            print 'Delaying writing: ' + str(self.steps_output)
-            return
+        self.steps_output = int(np.floor(steps_calculation_float))
+
+        ID_ind = self.elements.ID - 1
+        time_ind = self.steps_output - 1 - self.steps_exported
+
+        if steps_calculation_float.is_integer():
+            element_ind = range(len(ID_ind))  # We write all elements
+        else:
+            deactivated = np.where(self.elements.status != 0)[0]
+            if len(deactivated) == 0:
+                    return  # No deactivated elements this sub-timestep
+            # We write history for deactivated elements only:
+            logging.debug('Writing history for %s deactivated elements' %
+                          len(deactivated))
+            ID_ind = ID_ind[deactivated]
+            element_ind = deactivated
+            time_ind = time_ind + 1
+
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
             # Temporarily assuming elements numbered
             # from 0 to num_elements_active()
             # Does not hold when importing ID from a saved file, where
             # some elements have been deactivated
-            self.history[var][self.elements.ID - 1,
-                              self.steps_output - 1 - self.steps_exported] = \
-                getattr(self.elements, var)
+            self.history[var][ID_ind, time_ind] = \
+                getattr(self.elements, var)[element_ind]
         # Copy environment data to history array
         for i, var in enumerate(self.environment.dtype.names):
-            self.history[var][self.elements.ID - 1,
-                              self.steps_output - 1 - self.steps_exported] = \
-                getattr(self.environment, var)
+            self.history[var][ID_ind, time_ind] = \
+                getattr(self.environment, var)[element_ind]
 
         # Call writer if buffer is full
         if (self.outfile is not None) and \
@@ -1324,8 +1358,8 @@ class OpenDriftSimulation(PhysicsMethods):
         """Return a list of output times of last run."""
         td = self.time_step_output
         time_array = [self.start_time + td*i for i in
-                        range(self.steps_output+1)]
-        time_array_relative = [td*i for i in range(self.steps_output+1)]
+                        range(self.steps_output)]
+        time_array_relative = [td*i for i in range(self.steps_output)]
         return time_array, time_array_relative
 
     def plot_environment(self):

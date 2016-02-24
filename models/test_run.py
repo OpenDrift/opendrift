@@ -20,15 +20,19 @@
 import unittest
 from datetime import datetime, timedelta
 import os
+import inspect
 
 import numpy as np
 
 from readers import reader_ArtificialOceanEddy
 from readers import reader_basemap_landmask
+from readers import reader_netCDF_CF_generic
 from models.oceandrift import OceanDrift
 
+script_folder = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
 
-class TestArray(unittest.TestCase):
+class TestRun(unittest.TestCase):
     """Tests for (non-scalar) LagrangianArray"""
 
     def make_OceanDrift_object(self):
@@ -98,6 +102,60 @@ class TestArray(unittest.TestCase):
     def test4_cleaning(self):
         """Cleaning up"""
         os.remove('unittest.nc')
+
+    def test_output_time_step(self):
+        o1 = OceanDrift(loglevel=20)
+        norkyst = reader_netCDF_CF_generic.Reader(script_folder + '/../test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        basemap = reader_basemap_landmask.Reader(
+            llcrnrlon=4, llcrnrlat=59.8, urcrnrlon=6, urcrnrlat=61,
+            resolution='h', projection='merc')
+        o1.add_reader([basemap, norkyst])
+        o1.seed_elements(5.25, 60.2, radius=3000, number=100,
+                        time=norkyst.start_time)
+        o1.run(duration=timedelta(hours=12),
+                   time_step=timedelta(minutes=30),
+                   time_step_output=timedelta(minutes=30),
+                   outfile='test_time_step30.nc')
+        # Check length of time array and output array
+        time = o1.get_time_array()[0]
+        self.assertEqual(o1.history.shape[1], len(time))
+        self.assertEqual(o1.start_time, time[0])
+        self.assertEqual(o1.time, time[-1])
+        # Second run, with larger output time step
+        o2 = OceanDrift(loglevel=20)
+        o2.add_reader([basemap, norkyst])
+        o2.seed_elements(5.25, 60.2, radius=3000, number=100,
+                        time=norkyst.start_time)
+        o2.run(duration=timedelta(hours=12),
+                   time_step=timedelta(minutes=30),
+                   time_step_output=timedelta(minutes=60),
+                   outfile='test_time_step60.nc')
+        self.assertEqual(o1.history.shape, (100,25))
+        self.assertEqual(o2.history.shape, (100,13))
+        # Check that start and end conditions (longitudes) are idential
+        self.assertItemsEqual(o1.history['lon'][:,24], o2.history['lon'][:,12])
+        self.assertItemsEqual(o1.history['lon'][:,0], o2.history['lon'][:,0])
+        # Check that also run imported from file is identical
+        o1i = OceanDrift(loglevel=20)
+        o1i.io_import_file('test_time_step30.nc')
+        o2i = OceanDrift(loglevel=20)
+        o2i.io_import_file('test_time_step60.nc')
+        os.remove('test_time_step30.nc')
+        os.remove('test_time_step60.nc')
+        self.assertItemsEqual(o2i.history['lon'][:,12],
+                              o2.history['lon'][:,12])
+        # Check number of activated elements
+        self.assertEqual(o1.num_elements_total(), o2.num_elements_total())
+        self.assertEqual(o1.num_elements_total(), o1i.num_elements_total())
+        self.assertEqual(o1.num_elements_total(), o2i.num_elements_total())
+        # Check number of deactivated elements
+        self.assertEqual(o1.num_elements_deactivated(),
+                         o2.num_elements_deactivated())
+        self.assertEqual(o1.num_elements_deactivated(),
+                         o1i.num_elements_deactivated())
+        self.assertEqual(o1.num_elements_deactivated(),
+                         o2i.num_elements_deactivated())
+
 
 if __name__ == '__main__':
     unittest.main()
