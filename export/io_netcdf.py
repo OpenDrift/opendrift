@@ -58,8 +58,6 @@ def init(self, filename, times=None):
                 if prop in ['lon', 'lat'] and subprop[0] == 'axis':
                     continue
                 var.setncattr(subprop[0], subprop[1])
-    # list and number all readers
-
 
 def write_buffer(self):
     num_steps_to_export = self.steps_output - self.steps_exported
@@ -74,13 +72,6 @@ def write_buffer(self):
                                                 self.outfile_name))
     #self.history.mask = True  # Reset history array, for new data
     self.steps_exported = self.steps_exported + num_steps_to_export
-
-    # for each element:
-    #   - should be possible to select which to write and not
-    # - properties, including ID
-    # - environment variables, including from which reader
-    # - which reader for which
-
 
 def close(self):
 

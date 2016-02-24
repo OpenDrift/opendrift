@@ -738,7 +738,7 @@ class OpenDriftSimulation(PhysicsMethods):
             #    raise ValueError('No more active elements.')  # End simulation
 
     def run(self, time_step=3600, steps=None, time_step_output=None,
-            duration=None, end_time=None, outfile=None):
+            duration=None, end_time=None, outfile=None, export_variables=None):
         """Start a trajectory simulation, after initial configuration.
 
         Performs the main loop:
@@ -770,6 +770,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     will be self.start_time + steps*self.time_step
                 - duration: timedelta defining the length of the simulation
                 - end_time: datetime object defining the end of the simulation
+            export_variables: list of variables and parameter names to be 
+                saved to file. Default is None (all variables are saved)
         """
 
         if self.num_elements_scheduled() == 0:
@@ -870,21 +872,31 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.time = self.start_time  # Start time has been set when seeding
 
+        # Add the output variables which are always required
+        if export_variables is not None:
+            export_variables = list(set(export_variables +
+                                        ['lon', 'lat', 'ID', 'status']))
+        self.export_variables = export_variables
         # Initialise array to hold history (element properties and environment)
         # for export to file.
-        #history_dtype_fields = [(name, self.elements.dtype[name])
-        # for name in self.elements.dtype.fields]
         history_dtype_fields = [(name,
                                  self.ElementType.variables[name]['dtype'])
                                 for name in self.ElementType.variables]
         # Add environment variables
-        #self.history_metadata = self.elements.variables.copy()
         self.history_metadata = self.ElementType.variables.copy()
         for env_var in self.required_variables:
             history_dtype_fields.append((env_var, np.dtype('float32')))
             self.history_metadata[env_var] = {}
+
+        # Remove variables from output array, if only subset is requested
+        if self.export_variables is not None:
+            history_dtype_fields = [f for f in history_dtype_fields
+                                    if f[0] in self.export_variables]
+            for m in self.history_metadata:
+                if m not in self.export_variables:
+                    del self.history_metadata[m]
+
         history_dtype = np.dtype(history_dtype_fields)
-        #self.history = np.ma.array(np.zeros([self.num_elements_active(),
         self.history = np.ma.array(np.zeros([len(self.elements_scheduled),
                                              self.bufferlength]),
                                    dtype=history_dtype,
@@ -1011,6 +1023,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
+            if self.export_variables is not None and \
+                    var not in self.export_variables:
+                continue
             # Temporarily assuming elements numbered
             # from 0 to num_elements_active()
             # Does not hold when importing ID from a saved file, where
@@ -1019,6 +1034,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 getattr(self.elements, var)[element_ind]
         # Copy environment data to history array
         for i, var in enumerate(self.environment.dtype.names):
+            if self.export_variables is not None and \
+                    var not in self.export_variables:
+                continue
             self.history[var][ID_ind, time_ind] = \
                 getattr(self.environment, var)[element_ind]
 
