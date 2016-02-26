@@ -82,3 +82,13 @@ class PhysicsMethods(object):
         else:
             raise ValueError('Drift scheme not recognised: ' +
                               self.config['drift']['scheme'])
+
+    def advect_wind(self, wind_drift_factor=1):
+        # Elements at ocean surface (z=0) are advected with given percentage
+        # of wind speed. NB: Only basic Euler schema is implemented
+
+        # Submerged elements are not moved
+        wind_drift_factor[self.elements.z < 0] = 0
+
+        self.update_positions(self.environment.x_wind*wind_drift_factor,
+                              self.environment.y_wind*wind_drift_factor)

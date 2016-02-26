@@ -14,9 +14,15 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import numpy as np
 from opendrift import OpenDriftSimulation
 from elements.passivetracer import PassiveTracer
 
+# We add the property 'wind_drift_factor' to the element class
+PassiveTracer.variables = PassiveTracer.add_variables([
+                            ('wind_drift_factor', {'dtype': np.float32,
+                                                   'unit': '%',
+                                                   'default': 0.02})])
 
 class OceanDrift(OpenDriftSimulation):
     """Trajectory model based on the OpenDrift framework.
@@ -28,11 +34,14 @@ class OceanDrift(OpenDriftSimulation):
     """
 
     ElementType = PassiveTracer
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
+    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
+                          'x_wind', 'y_wind']
     required_variables.append('land_binary_mask')
 
     fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0}
+                       'y_sea_water_velocity': 0,
+                       'x_wind': 0,
+                       'y_wind': 0}
 
     configspec = '''
         [drift]
@@ -43,6 +52,9 @@ class OceanDrift(OpenDriftSimulation):
 
         # Simply move particles with ambient current
         self.advect_ocean_current()
+
+        # Simply move particles with ambient current
+        self.advect_wind(self.elements.wind_drift_factor)
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
