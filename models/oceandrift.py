@@ -16,14 +16,14 @@
 
 from opendrift import OpenDriftSimulation
 from elements.passivetracer import PassiveTracer
-import numpy as np
 
 
 class OceanDrift(OpenDriftSimulation):
     """Trajectory model based on the OpenDrift framework.
 
-    Simply propagation with ocean currents.
-    Developed at MET Norway for demonstration purpose.
+    Simply propagation with ocean currents and possibly additional wind drag.
+    Suitable for passive tracers or simple object like ocean drifters.
+    Developed at MET Norway.
 
     """
 
@@ -39,7 +39,7 @@ class OceanDrift(OpenDriftSimulation):
             scheme = option('euler', 'runge-kutta', default='euler')'''
 
     def update(self):
-        """Update positions and properties of oil particles."""
+        """Update positions and properties of elements."""
 
         # Simply move particles with ambient current
         self.advect_ocean_current()

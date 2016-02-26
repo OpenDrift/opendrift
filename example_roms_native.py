@@ -31,7 +31,7 @@ o.seed_elements(lon, lat, radius=0, number=10, z=np.linspace(0, -150, 10), time=
 print o
 
 # Running model
-o.run(steps=24*2, time_step=3600)
+o.run(time_step=3600)
 
 # Print and plot results
 print o

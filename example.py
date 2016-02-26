@@ -46,12 +46,6 @@ o.seed_elements(lon, lat, radius=50, number=3000, time=time)
 
 print o
 
-#o.seed_from_gml('/disk1/data/globoilrisk/ftp3.ksat.no/oilspills/RS2_20150608_171458_0045_SCNA_HH_SGF_401754_5438_11441747_Oil.gml', num_elements=1000)
-#o.start_time = reader_nordic4.start_time
-
-#o.set_projection(reader_arome.proj4)
-#o.set_projection('+proj=latlong')
-
 # Adjusting some configuration
 o.config['drift']['wind_drift_factor'] = .02
 o.config['processes']['diffusion'] = True
@@ -68,7 +62,7 @@ o.run(end_time=reader_norkyst.end_time, time_step=1800,
 
 # Print and plot results
 print o
-#o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
+o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
 o.animation()
 #o.animation(filename='openoil_time_seed.gif')
 o.plot()

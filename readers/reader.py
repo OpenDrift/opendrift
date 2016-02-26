@@ -826,7 +826,7 @@ class Reader(object):
                           corners[0][1], corners[1][1], radians=False)[2]
             d2 = geod.inv(corners[0][2], corners[1][2],
                           corners[0][3], corners[1][3], radians=False)[2]
-            width = np.max((d1, d2))*2
+            width = np.max((d1, d2))*3
             map = Basemap(projection='stere', resolution='i',
                           lat_ts=lat0, lat_0=lat0, lon_0=lon0,
                           width=width, height=width)

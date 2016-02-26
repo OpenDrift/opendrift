@@ -158,7 +158,6 @@ class Reader(Reader):
                 self.sea_floor_depth = self.Dataset.variables['h'][:]
             indxgrid, indygrid = np.meshgrid(indx, indy)
             H = self.sea_floor_depth[indygrid, indxgrid]
-            #print H[indy_el, indx_el]  # Seafloor depth below elements
             z_rho = depth.sdepth(H, self.hc, self.Cs_r)
             # Element indices must be relative to extracted subset
             indx_el = indx_el - indx.min()
@@ -193,13 +192,15 @@ class Reader(Reader):
             elif var.ndim == 3:
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
-                # Temporarily neglecting depth
-                variables[par] = var[indxTime, indz, indy, indx]  # NB 0 was 1
+                variables[par] = var[indxTime, indz, indy, indx]
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
                     logging.debug('sigma to z for ' + varname[0])
+                    variables[par][variables[par].mask] = np.nan
                     variables[par] = depth.multi_zslice(variables[par],
                                                     z_rho, variables['z'])
+                    # Re-adding mask removed by multi_zslice:
+                    variables[par] = np.ma.masked_invalid(variables[par])
             else:
                 raise Exception('Wrong dimension of variable: '
                                 + self.variable_mapping[par])
@@ -213,9 +214,6 @@ class Reader(Reader):
             variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
             if block is False:
                 variables[par].mask[outside[0]] = True
-
-            # Masked invalid (land) pixels
-            variables[par].mask[variables[par] > 1e+35] = True
 
         if 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
