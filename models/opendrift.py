@@ -1019,7 +1019,7 @@ class OpenDriftSimulation(PhysicsMethods):
                           len(deactivated))
             ID_ind = ID_ind[deactivated]
             element_ind = deactivated
-            time_ind = time_ind + 1
+            time_ind = np.minimum(time_ind + 1, self.history.shape[1] - 1)
 
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
