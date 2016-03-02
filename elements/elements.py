@@ -144,15 +144,26 @@ class LagrangianArray(object):
         return variables
 
     def extend(self, other):
-        """Add particles from another object. Scalar values are overwritten"""
+        """Add elements from another object."""
+        len_self = len(self)
+        len_other = len(other)
         for var in self.variables:
             present_data = getattr(self, var)
             new_data = getattr(other, var)
-            if isinstance(new_data, np.ndarray) and \
-               isinstance(present_data, np.ndarray):  # Concatenating arrays
-                setattr(self, var, np.concatenate((present_data, new_data)))
-            else:
-                setattr(self, var, new_data)  # NB: overwriting if scalar
+
+            # If both arrays have an identical scalar, it remains a scalar
+            if (not isinstance(new_data, np.ndarray) and 
+                not isinstance(present_data, np.ndarray) and
+                present_data == new_data):
+                continue
+
+            else:  # Otherwise we create arrays and concatenate
+                if not hasattr(present_data, '__len__'):
+                    present_data = present_data*np.ones(len_self)
+                if not hasattr(new_data, '__len__'):
+                    new_data = new_data*np.ones(len_other)
+                setattr(self, var, np.concatenate((present_data,
+                                                   new_data)))
 
     def move_elements(self, other, indices):
         """Remove elements with given indices, and append to another object.
@@ -169,6 +180,8 @@ class LagrangianArray(object):
             if (not isinstance(self_var, np.ndarray) and
                 not isinstance(other_var, np.ndarray)) and \
                     (other_var == self_var):
+                    if np.sum(indices) == len(self):
+                        setattr(self, var, [])  # Empty if all elements moved
                     continue  # Equal scalars - we do nothing
 
             # Copy elements to other
@@ -200,7 +213,10 @@ class LagrangianArray(object):
             #    setattr(other, var, getattr(self, var))  # Scalar
 
     def __len__(self):
-        return len(np.atleast_1d(self.lon))
+        length = 0
+        for var in self.variables:
+            length = np.maximum(length, len(np.atleast_1d(getattr(self, var))))
+        return length
 
     def __repr__(self):
         outStr = ''

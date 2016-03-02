@@ -1348,19 +1348,19 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if drifter_file is not None:
             # Format of joubeh.com
-            #for dfile in drifter_file:
-            #    data = np.recfromcsv(dfile)
-            #    x, y = map(data['longitude'], data['latitude'])
-            #    map.plot(x, y, '-k', linewidth=2)
-            #    map.plot(x[0], y[0], '*k')
-            #    map.plot(x[-1], y[-1], '*k')
+            for dfile in drifter_file:
+                data = np.recfromcsv(dfile)
+                x, y = map(data['longitude'], data['latitude'])
+                map.plot(x, y, '-k', linewidth=2)
+                map.plot(x[0], y[0], '*k')
+                map.plot(x[-1], y[-1], '*k')
 
             # Format for shell buoy
-            data = np.loadtxt(drifter_file, skiprows=1, usecols=(2, 3))
-            x, y = map(data.T[1], data.T[0])
-            map.plot(x, y, '-r', linewidth=2, zorder=10)
-            map.plot(x[0], y[0], '*r', zorder=10)
-            map.plot(x[-1], y[-1], '*r', zorder=10)
+            #data = np.loadtxt(drifter_file, skiprows=1, usecols=(2, 3))
+            #x, y = map(data.T[1], data.T[0])
+            #map.plot(x, y, '-r', linewidth=2, zorder=10)
+            #map.plot(x[0], y[0], '*r', zorder=10)
+            #map.plot(x[-1], y[-1], '*r', zorder=10)
 
         if filename is not None:
             #plt.savefig(filename, dpi=200)
