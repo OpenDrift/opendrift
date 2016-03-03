@@ -12,19 +12,20 @@ o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 #reader_hycom = reader_netCDF_CF_generic.Reader('http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.1/2010/3hrly')
 #print reader_hycom
 
-reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CLS-L4-CUREUL_HS-ALT_SUM-V01.0_FULL_TIME_SERIE')
-
-# OceanWind
-reader_oceanwind = reader_netCDF_CF_generic.Reader('http://www.ncdc.noaa.gov/thredds/dodsC/oceanwinds6hr')
-#print reader_oceanwind
+reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CLS-L4-CUREUL_HS-ALT_SUM-V02.0_FULL_TIME_SERIE')
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=100, llcrnrlat=5,
                     urcrnrlon=120, urcrnrlat=15, resolution='h')
 
-# Add readers
-print 'adding...'
-o.add_reader([reader_globcurrent, reader_oceanwind, reader_basemap])
+# OceanWind
+try:
+    reader_oceanwind = reader_netCDF_CF_generic.Reader(
+        'http://www.ncdc.noaa.gov/thredds/dodsC/oceanwinds6hr')
+    print reader_oceanwind
+    o.add_reader([reader_globcurrent, reader_oceanwind, reader_basemap])
+except:
+    o.add_reader([reader_globcurrent, reader_basemap])
 
 
 # Seed some particles
@@ -35,7 +36,9 @@ o.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 
 # Run model
 print o
-o.run(steps=200*4, time_step=900)
+o.run(duration=timedelta(days=10),
+      time_step=timedelta(minutes=15),
+      time_step_output=timedelta(hours=3))
 
 # Print and plot results
 print o

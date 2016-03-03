@@ -35,7 +35,6 @@ o.seed_elements(lon, lat, z=z, radius=0, number=1000, time=time)
 print o
 
 # Adjusting some configuration
-o.config['drift']['wind_drift_factor'] = .02
 o.config['processes']['diffusion'] = False
 o.config['processes']['dispersion'] = False
 o.config['processes']['evaporation'] = False

@@ -54,7 +54,7 @@ class OceanDrift(OpenDriftSimulation):
         self.advect_ocean_current()
 
         # Simply move particles with ambient current
-        self.advect_wind(self.elements.wind_drift_factor)
+        self.advect_wind()
 
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,

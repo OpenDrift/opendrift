@@ -38,6 +38,9 @@ class Oil(LagrangianArray):
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 880}),
+        ('wind_drift_factor', {'dtype': np.float32,
+                               'units': '%',
+                               'default': 0.03}),
         ('age_seconds', {'dtype': np.float32,
                          'units': 's',
                          'default': 0}),
@@ -271,19 +274,6 @@ class OpenOil(OpenDriftSimulation):
             #                        1/1.17)
             #self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
 
-    def wind_drag(self):
-        wind_drift_factor = self.config['drift']['wind_drift_factor']
-        if self.config['drift']['relative_wind'] is True:
-            self.update_positions((self.environment.x_wind -
-                                   self.environment.x_sea_water_velocity) *
-                                  wind_drift_factor,
-                                  (self.environment.y_wind -
-                                   self.environment.y_sea_water_velocity) *
-                                  wind_drift_factor)
-        else:
-            self.update_positions(self.environment.x_wind*wind_drift_factor,
-                                  self.environment.y_wind*wind_drift_factor)
-
     def diffusion(self):
         if self.config['processes']['diffusion'] is True:
             # Current
@@ -328,8 +318,8 @@ class OpenOil(OpenDriftSimulation):
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
-        # Wind drag
-        self.wind_drag()
+        # Wind drag for elements at ocean surface
+        self.advect_wind()
 
         # Uncertainty / diffusion
         self.diffusion()

@@ -171,8 +171,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         mainplot = fig.add_axes([.15, .3, .8, .5])
         sliderax = fig.add_axes([.15, .08, .75, .05])
         data = self.history['z'].T[1, :]
-        tslider = Slider(sliderax, 'Timestep', 0, self.steps,
-                         valinit=self.steps, valfmt='%0.0f')
+        tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
+                         valinit=self.steps_output-1, valfmt='%0.0f')
         dz = 1.
         maxrange = -100
 

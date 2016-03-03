@@ -19,14 +19,10 @@ import_file = False
 
 arome_file = 'test_data/14Jan2016_NorKyst_z_3d/AROME_MetCoOp_00_DEF.nc_20160114_subset'
 norkyst_file = 'test_data/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc'
-#arome_file = '/disk1/data/opendrift_testdata/15jan2016/AROME_MetCoOp_00_DEF.nc'
-#norkyst_file = '/disk1/data/opendrift_testdata/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc'
-#if not os.path.isfile(arome_file):
-#    arome_file = '/disk2/data/opendrift_test_data/15jan2016/AROME_MetCoOp_00_DEF.nc'
-#    norkyst_file = '/disk2/data/opendrift_test_data/15jan2016/NorKyst-800m_ZDEPTHS_his_00.nc'
-#if not os.path.isfile(arome_file):
-#    arome_file = 'http://super-monitor.met.no/thredds/dodsC/lustreMntB/users/knutfd/public/AROME_MetCoOp_00_DEF.nc'
-#    norkyst_file = 'http://super-monitor.met.no/thredds/dodsC/lustreMntB/users/knutfd/public/subfolder_test/NorKyst-800m_ZDEPTHS_his_00.nc'
+arome_file = 'gttg'
+if not os.path.isfile(arome_file):
+    arome_file = 'http://super-monitor.met.no/thredds/dodsC/lustreMntB/users/knutfd/public/AROME_MetCoOp_00_DEF.nc'
+    norkyst_file = 'http://super-monitor.met.no/thredds/dodsC/lustreMntB/users/knutfd/public/subfolder_test/NorKyst-800m_ZDEPTHS_his_00.nc'
 
 if import_file is True:
     o.io_import_file(ncfile)
@@ -42,11 +38,6 @@ else:
 
     o.add_reader([reader_norkyst, reader_basemap, reader_arome])
 
-    # Experiment with constant wind instead of arome
-    #o.add_reader([reader_norkyst, reader_basemap])
-    #o.fallback_values['x_wind'] = 20
-    #o.fallback_values['y_wind'] = 20
-
     # Seeding some particles
     lon = 4.9; lat = 62.1; # Stad
 
@@ -59,22 +50,15 @@ else:
                     density=880)
 
     # Adjusting some configuration
-    o.config['drift']['wind_drift_factor'] = .02
-
     o.config['processes']['turbulentmixing'] = True
     o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983'
     #o.config['turbulentmixing']['diffusivitymodel'] = 'stepfunction'
     o.config['turbulentmixing']['timestep'] = 2. # seconds
 
-    o.config['processes']['diffusion'] = False
-    o.config['drift']['current_uncertainty'] = .1
-    o.config['drift']['wind_uncertainty'] = 2
-    o.config['processes']['evaporation'] = True
-    o.config['processes']['dispersion'] = True
-    o.config['processes']['emulsification'] = True
-
     # Running model (until end of driver data)
-    o.run(steps=5*4, time_step=900, outfile=ncfile)
+    o.run(end_time=reader_norkyst.start_time + timedelta(hours=48),
+          time_step=900, time_step_output=timedelta(hours=1),
+          outfile=ncfile)
 
 ###########################
 # Print and plot results

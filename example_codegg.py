@@ -34,19 +34,13 @@ o.seed_elements(12.5, 68.5, z=-40, radius=2000, number=1000,
 
 
 # Adjusting some configuration
-o.config['drift']['wind_drift_factor'] = .0
-
 o.config['processes']['turbulentmixing'] = True
 o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983'
 #o.config['turbulentmixing']['diffusivitymodel'] = 'stepfunction'
 o.config['turbulentmixing']['timestep'] = 2. # seconds
 
-o.config['processes']['diffusion'] = False
-o.config['drift']['current_uncertainty'] = .1
-o.config['drift']['wind_uncertainty'] = 2
-
 # Running model (until end of driver data)
-o.run(steps=66*2, time_step=1800)
+o.run(steps=6*2, time_step=1800)
 
 # Print and plot results
 print o
