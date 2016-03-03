@@ -396,11 +396,17 @@ class Reader(object):
             if profiles is not None:
                 env_profiles = {}
                 logging.info('Interpolating profiles in time')
+                # Truncating layers not present both before and after
+                numlayers = np.minimum(len(env_profiles_before['z']),
+                                       len(env_profiles_after['z']))
+                env_profiles['z'] = env_profiles_before['z'][0:numlayers+1]
                 for var in env_profiles_before.keys():
-                    z = env_profiles_before['z']
-                    env_profiles[var] = (env_profiles_before[var] *
-                                         (1 - weight_after) +
-                                         env_profiles_after[var]*weight_after)
+                    if var == 'z':
+                        continue
+                    env_profiles[var] = (
+                        env_profiles_before[var][0:numlayers,:] *
+                        (1 - weight_after) +
+                        env_profiles_after[var][0:numlayers,:]*weight_after)
             else:
                 env_profiles = None
 
@@ -413,7 +419,6 @@ class Reader(object):
         ####################
         # Rotate vectors
         ####################
-        # NB - should rather be done before interpolation 
         if rotate_to_proj is not None:
             if rotate_to_proj.srs == self.proj.srs:
                 logging.debug('Reader SRS is the same as calculation SRS - '
@@ -435,7 +440,6 @@ class Reader(object):
                                 for x in vector_pairs)]
 
                 if len(vector_pairs) > 0:
-
                     for vector_pair in vector_pairs:
                         env[vector_pair[0]], env[vector_pair[1]] = \
                             self.rotate_vectors(reader_x, reader_y,
