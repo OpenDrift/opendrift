@@ -556,3 +556,28 @@ class OpenOil(OpenDriftSimulation):
         kwargs['ID'] = np.arange(len(lonpoints)) + 1
         kwargs['mass_oil'] = 1
         self.schedule_elements(self.ElementType(**kwargs), oil_time)
+
+    def plot_opv(self, drifter_file=[]):
+        map, plt, x, y, index_of_first, index_of_last = \
+                    self.set_up_map()
+
+        cmap = plt.get_cmap('jet')
+        times = self.get_time_array()[0]
+        timestr = [t.strftime('%H:%M') for t in times]
+        print timestr
+        colornum = np.linspace(1, 0, len(times))
+        for i, time in enumerate(times):
+            map.scatter(x[:,i], y[:,i], color=cmap(colornum[i]),
+                        label=timestr[i])
+
+        for dfile in drifter_file:
+            data = np.recfromcsv(dfile)
+            x, y = map(data['longitude'], data['latitude'])
+            map.plot(x, y, '-k', linewidth=4)
+            map.plot(x[0], y[0], '*k')
+            map.plot(x[-1], y[-1], '*k')
+
+        #map.drawmapscale(2.398400+.0, 60.08, 2.398400, 60.08, length=10,
+        #                 barstyle='fancy')
+        plt.legend()
+        plt.show()
