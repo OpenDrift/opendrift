@@ -562,13 +562,15 @@ class OpenOil(OpenDriftSimulation):
                     self.set_up_map()
 
         cmap = plt.get_cmap('jet')
+        self.plot_uavsar(plt.gca())
+
         times = self.get_time_array()[0]
         timestr = [t.strftime('%H:%M') for t in times]
         print timestr
         colornum = np.linspace(1, 0, len(times))
         for i, time in enumerate(times):
             map.scatter(x[:,i], y[:,i], color=cmap(colornum[i]),
-                        label=timestr[i])
+                        label=timestr[i], zorder=2)
 
         for dfile in drifter_file:
             data = np.recfromcsv(dfile)
@@ -579,5 +581,66 @@ class OpenOil(OpenDriftSimulation):
 
         #map.drawmapscale(2.398400+.0, 60.08, 2.398400, 60.08, length=10,
         #                 barstyle='fancy')
-        plt.legend()
+        l = plt.legend()
+        l.set_zorder(20)
         plt.show()
+
+    def plot_uavsar(self, ax):
+        import time
+        from datetime import datetime
+        from osgeo import osr
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+        import gdal
+        import ogr
+        import numpy as np
+
+        cmap = plt.get_cmap('jet')
+        hours = [5,5,5,6,6,6,6,7,7,7,7,7,8,8,8,8,11,12,12,12,13,13]
+        minutes = [32,46,59,13,26,39,52,05,17,31,44,57,11,24,37,53,45,0,14,29,3,18]
+
+        times = [datetime(2015, 6, 10, hour, minute, 0) for
+                    hour, minute in zip(hours, minutes)]
+
+        seconds = np.array([(t - times[0]).total_seconds() for t in times])
+        seconds = seconds/seconds.max()
+
+        targetSRS = osr.SpatialReference()
+        targetSRS.ImportFromEPSG(4326)
+
+        d = ogr.GetDriverByName('FileGDB')
+        s = d.Open('opv/SlickDevelopment.gdb')
+
+        #plt.ion()
+        #fig = plt.figure()
+        #ax = fig.add_subplot(111)
+        #ax.set_xlim(2.35, 2.45)
+        #ax.set_ylim(60.0, 60.07)
+        #ax.grid()
+
+        for layer in s:
+            name = layer.GetDescription()
+
+            #if name in ['Emulsion40Slicks', 'Emulsion80Slicks']:
+            #if name in ['Emulsion60Slicks', 'PlantSlicks']:
+            #if name in ['Emulsion40Slicks', 'Emulsion60Slicks', 'Emulsion80Slicks']:
+            if name in ['Emulsion40Slicks', 'Emulsion60Slicks', 'PlantSlicks']:
+                continue
+            #else:
+            #    pass
+
+            inSRS = layer.GetSpatialRef()
+            coordTrans = osr.CoordinateTransformation(inSRS, targetSRS)
+
+            j = []
+            for i, feat in enumerate(layer):
+                geom = feat.GetGeometryRef()
+                j = feat.GetFieldAsInteger('DataTake')
+                geom.Transform(coordTrans)
+                b = geom.GetBoundary()
+                for line in b:
+                    points = line.GetPoints()
+                    lons = [p[0] for p in points]
+                    lats = [p[1] for p in points]
+                    xy = np.concatenate([[lons], [lats]]).T
+                    ax.add_patch(Polygon(xy, facecolor=cmap(1-seconds[j])))
