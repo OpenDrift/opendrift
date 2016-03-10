@@ -39,7 +39,9 @@ class Reader(Reader):
         'uice': 'sea_ice_x_velocity',
         'vice': 'sea_ice_y_velocity',
         'aice': 'sea_ice_area_fraction',
-        'hice': 'sea_ice_thickness'}
+        'hice': 'sea_ice_thickness',
+        'Uwind': 'x_wind',
+        'Vwind': 'y_wind'}
 
     zbuffer = 1  # Vertical buffer of block around elements
 
@@ -186,6 +188,7 @@ class Reader(Reader):
             varname = [name for name, cf in
                        self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
+            var.set_auto_maskandscale(True)
 
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
@@ -196,7 +199,11 @@ class Reader(Reader):
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
                     logging.debug('sigma to z for ' + varname[0])
-                    variables[par][variables[par].mask] = np.nan
+                    try:  # Converting masked values to nan, since
+                          # not handled by multi_zslice
+                        variables[par][variables[par].mask] = np.nan
+                    except:
+                        pass
                     variables[par] = depth.multi_zslice(variables[par],
                                                     z_rho, variables['z'])
                     # Re-adding mask removed by multi_zslice:
