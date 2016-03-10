@@ -103,37 +103,25 @@ class PelagicEggDrift(OpenDrift3DSimulation):
                      'hatched': 'red', 'eaten': 'yellow', 'died': 'magenta'}
 
     # Configuration
-
     configspec = '''
-        [input]
-            readers = list(min=1, default=list(''))
-            [[spill]]
-                longitude = float(min=-360, max=360, default=5)
-                latitude = float(min=-90, max=90, default=60)
-                time = string(default='%s')
+        [drift]
+            scheme = string(default='euler')
         [processes]
             turbulentmixing = boolean(default=True)
             verticaladvection = boolean(default=False)
-            dispersion = boolean(default=False)
-            diffusion = boolean(default=False)
-            evaporation = boolean(default=False)
-            emulsification = boolean(default=False)
-        [drift]
-            wind_drift_factor = float(min=0, max=1, default=0.00)
-            current_uncertainty = float(min=0, max=5, default=.1)
-            wind_uncertainty = float(min=0, max=5, default=1)
-            relative_wind = boolean(default=True)
         [turbulentmixing]
             timestep = float(min=0.1, max=3600, default=1.)
             verticalresolution = float(min=0.01, max=10, default = 1.)
             diffusivitymodel = string(default='environment')
 
-    ''' % (datetime.now().strftime('%Y-%d-%m %H:00'))
+    '''
+
 
     def __init__(self, *args, **kwargs):
 
         # Calling general constructor of parent class
         super(PelagicEggDrift, self).__init__(*args, **kwargs)
+
 
     def update_terminal_velocity(self):
         """Calculate terminal velocity for Pelagic Egg
@@ -189,44 +177,28 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W
 
+
     def update(self):
         """Update positions and properties of buoyant particles."""
 
         # Update element age
         self.elements.age_seconds += self.time_step.total_seconds()
 
-        # For illustration: plot vertical profile for a single element
-        if self.steps_calculation == 5 and self.environment_profiles is not None:
-            # We plot profile at a single timestep only
-            import matplotlib.pyplot as plt
-            param = self.required_profiles[0]  # take the first one
-            elem_num = 0
-            plt.plot(self.environment_profiles[param][:, elem_num],
-                     self.environment_profiles['z'], '-*')
-            plt.plot(self.environment[param][elem_num],
-                     self.elements.z[elem_num], 'r*', markersize=15)
-            plt.ylabel('Depth  [m]')
-            plt.xlabel(param)
-            plt.title('%s  (%fN, %fE)' %
-                      (self.time, self.elements.lat[elem_num],
-                       self.elements.lon[elem_num]))
-            plt.gca().set_yticks(self.environment_profiles['z'])
-            plt.grid('on')
-            plt.show()
-
         # Turbulent Mixing
-        if self.config['processes']['turbulentmixing'] is True:
-            self.update_terminal_velocity()
-            self.vertical_mixing()
+        self.update_terminal_velocity()
+        self.vertical_mixing()
+
+        # Horizontal advection
+        self.advect_ocean_current()
 
         # Vertical advection
-        if self.config['processes']['verticaladvection'] is True:
-            self.vertical_advection(self.environment.upward_sea_water_velocity)
+        self.vertical_advection()
+
+        # Biological behaviour
+        # Nonsense example, illustrating how to add behaviour:
+        # Lifting elements 1 m if water temperature is colder than 7 deg
+        #self.elements.z[self.environment.sea_water_temperature<7] += 1
+        #self.elements.z[self.elements.z>0] = 0
 
         # Deactivate elements hitting land
-        self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded')
-
-        # Simply move particles with ambient current
-        self.update_positions(self.environment.x_sea_water_velocity,
-                              self.environment.y_sea_water_velocity)
+        self.deactivate_stranded_elements()
