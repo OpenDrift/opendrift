@@ -101,7 +101,7 @@ class Reader(Reader):
                 y = var[:]*unitfactor
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
-                if var.getncattr('positive') == 'up':
+                if not 'positive' in var.ncattrs() or var.getncattr('positive') == 'up':
                     self.z = var[:]
                 else:
                     self.z = -var[:]
