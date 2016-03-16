@@ -882,6 +882,8 @@ class Reader(object):
             rlon, rlat = self.xy2lonlat(rx, ry)
             map_x, map_y = map(rlon, rlat, inverse=False)
             map.pcolormesh(map_x, map_y, data[variable])
+            cbar = map.colorbar()
+            cbar.set_label(variable)
 
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
