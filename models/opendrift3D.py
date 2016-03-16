@@ -14,7 +14,6 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import os
 import numpy as np
 import logging
 from datetime import datetime
@@ -57,12 +56,14 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         """
         #self.elements.terminal_velocity = 0.00
 
-    def vertical_advection(self, w_vel):
+    def vertical_advection(self):
         """Move particles vertically according to vertical ocean current
 
             Vertical advection by ocean currents is small compared to
             termical velocity
         """
+        if self.config['processes']['verticaladvection'] is True:
+            pass  # Not implemented
 
     def vertical_mixing(self):
         """Mix particles vertically according to eddy diffusivity and buoyancy
@@ -77,6 +78,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             Aadlandsvik, 2007).
             The formulation of this scheme is copied from LADIM (IMR).
         """
+
+        if self.config['processes']['turbulentmixing'] is False:
+            logging.debug('Turbulent mixing deactivated.')
+            return
+
         # if terminal_velocity is None:
         #     w = self.config['drift']['terminal_velocity']
         #else:

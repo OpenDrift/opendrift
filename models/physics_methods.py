@@ -56,6 +56,10 @@ class PhysicsMethods(object):
         return Dens0
 
     def advect_ocean_current(self):
+        try:
+            self.config['drift']['scheme']
+        except:
+            self.config['drift']['scheme'] = 'euler'
         # Runge-Kutta scheme
         if self.config['drift']['scheme'] == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity
@@ -115,3 +119,7 @@ class PhysicsMethods(object):
 
         self.update_positions(x_wind*wind_drift_factor,
                               y_wind*wind_drift_factor)
+
+    def deactivate_stranded_elements(self):
+        self.deactivate_elements(self.environment.land_binary_mask == 1,
+                                 reason='stranded')
