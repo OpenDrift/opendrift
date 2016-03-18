@@ -98,9 +98,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # place particle in center of bin
         self.elements.z = np.round(self.elements.z/dz)*dz
 
-        #avoid that elements are above surface / below bottom
-        surface = np.where(self.elements.z > 0.)
-        self.elements.z[surface] = -dz/2.
+        #avoid that elements are below bottom
         bottom = np.where(self.elements.z < Zmin)
         self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
@@ -156,16 +154,22 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             RandKick = np.random.random(self.num_elements_active())
             up = np.where(RandKick < p)
             down = np.where(RandKick > 1.0 - q)
+            # Modified lines: do not mix particles which have resurfaced
+            up = ((RandKick < p) & (self.elements.z<0))
+            down = ((RandKick > (1.0 - q)) & (self.elements.z<0))
 
             self.elements.z[up] = self.elements.z[up] + dz
             self.elements.z[down] = self.elements.z[down] - dz
 
             #avoid that elements are above surface / below bottom
-            surface = np.where(self.elements.z > 0.)
-            #self.elements.z[surface] = -dz/2.
-            self.elements.z[surface] = 0  # KF testing
+            surface = np.where(self.elements.z == 0.)[0]
+            self.elements.z[surface] = 0
             bottom = np.where(self.elements.z < Zmin)
             self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
+
+            # Call wave mixing, if implemented for this class
+            self.wave_mixing(dt_mix)
+            
 
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""

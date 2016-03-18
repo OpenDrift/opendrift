@@ -47,6 +47,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                           'sea_surface_wave_significant_height',
                           'sea_surface_wave_to_direction',
+                          'sea_surface_wave_stokes_drift_x_velocity',
+                          'sea_surface_wave_stokes_drift_y_velocity',
+                          'sea_surface_wave_period_at_variance_spectral_density_maximum',
                           'sea_ice_area_fraction',
                           'x_wind', 'y_wind', 'land_binary_mask',
                           'sea_floor_depth_below_sea_level',
@@ -65,6 +68,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                        'y_sea_water_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
                        'sea_surface_wave_to_direction': 0,
+                       'sea_surface_wave_stokes_drift_x_velocity': 0,
+                       'sea_surface_wave_stokes_drift_y_velocity': 0,   
+                       'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
                        'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0,
                        'sea_floor_depth_below_sea_level': 100,
@@ -170,6 +176,15 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         W[highRe] = W2[highRe]
         #print W[0:10], 'W after'
         self.elements.terminal_velocity = W
+
+    def wave_mixing(self, time_step_seconds):
+        """Mix surface oil into water columns."""
+
+        surface = np.where(self.elements.z == 0.)[0]
+        prob = 0.01*time_step_seconds  # Should be parameterised with waves
+        mixed = surface[np.where(np.random.uniform(0, 1, len(surface))<prob)]
+        # Mixed elements are moved to a random depth
+        self.elements.z[mixed] = np.random.uniform(-10, -2, len(mixed))
 
     def update(self):
         """Update positions and properties of oil particles."""

@@ -14,6 +14,7 @@
 #
 # Copyright 2016, Knut-Frode Dagestad, MET Norway
 
+import logging
 import numpy as np
 
 
@@ -119,6 +120,29 @@ class PhysicsMethods(object):
 
         self.update_positions(x_wind*wind_drift_factor,
                               y_wind*wind_drift_factor)
+
+    def stokes_drift(self):
+
+        if np.max(np.array(
+            self.environment.sea_surface_wave_stokes_drift_x_velocity)) == 0:
+            logging.debug('No Stokes drift velocity available.')
+            return
+
+        logging.debug('Calculating Stokes drift')
+        # Assuming deep water:
+        wave_peak_period = self.environment.\
+            sea_surface_wave_period_at_variance_spectral_density_maximum
+        wavelength = 9.81/(2*3.14)*np.power(wave_peak_period, 2)
+        depth_reduction_factor = np.exp(4*3.14*self.elements.z/wavelength)
+
+        self.update_positions(
+            self.environment.sea_surface_wave_stokes_drift_x_velocity*
+                depth_reduction_factor,
+            self.environment.sea_surface_wave_stokes_drift_y_velocity*
+                depth_reduction_factor)
+
+    def wave_mixing(self, time_step_seconds):
+        return  # To be implemented by subclasses, e.g. downward mixing of oil
 
     def deactivate_stranded_elements(self):
         self.deactivate_elements(self.environment.land_binary_mask == 1,

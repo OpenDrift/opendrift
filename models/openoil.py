@@ -81,6 +81,8 @@ class OpenOil(OpenDriftSimulation):
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                           'sea_surface_wave_significant_height',
                           'sea_surface_wave_to_direction',
+                          'sea_surface_wave_stokes_drift_x_velocity',
+                          'sea_surface_wave_stokes_drift_y_velocity',
                           'sea_ice_area_fraction',
                           'x_wind', 'y_wind', 'land_binary_mask']
 
@@ -88,6 +90,8 @@ class OpenOil(OpenDriftSimulation):
                        'y_sea_water_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
                        'sea_surface_wave_to_direction': 0,
+                       'sea_surface_wave_stokes_drift_x_velocity': 0,
+                       'sea_surface_wave_stokes_drift_y_velocity': 0,
                        'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0}
 
@@ -320,6 +324,9 @@ class OpenOil(OpenDriftSimulation):
 
         # Wind drag for elements at ocean surface
         self.advect_wind()
+
+        # Stokes drift
+        self.stokes_drift()
 
         # Uncertainty / diffusion
         self.diffusion()
@@ -557,10 +564,15 @@ class OpenOil(OpenDriftSimulation):
         kwargs['mass_oil'] = 1
         self.schedule_elements(self.ElementType(**kwargs), oil_time)
 
-    def plot_opv(self, drifter_file=[]):
+    def plot_opv(self, drifter_file=[], surface_only=True):
+
         map, plt, x, y, index_of_first, index_of_last = \
                     self.set_up_map()
 
+        if surface_only is True:
+            z = self.history['z']
+            x[z<0] = np.nan
+            y[z<0] = np.nan
         cmap = plt.get_cmap('jet')
         self.plot_uavsar(plt.gca())
 
