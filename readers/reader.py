@@ -50,7 +50,10 @@ standard_names = {
 # Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
 vector_pairs_xy = [
     ['x_wind', 'y_wind'],
-    ['x_sea_water_velocity', 'y_sea_water_velocity']]
+    ['x_sea_water_velocity', 'y_sea_water_velocity'],
+    ['sea_surface_wave_stokes_drift_x_velocity',
+     'sea_surface_wave_stokes_drift_y_velocity']
+    ]
 
 
 class fakeproj():
@@ -263,6 +266,7 @@ class Reader(object):
             time_after = None
 
         reader_x, reader_y = self.lonlat2xy(lon, lat)
+        z = z.copy()  # Send values and not reference to avoid modifications
 
         if block is False or self.return_block is False:
             # Analytical reader, continous in space and time
