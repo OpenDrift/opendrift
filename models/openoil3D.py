@@ -181,7 +181,10 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         """Mix surface oil into water column."""
 
         surface = np.where(self.elements.z == 0.)[0]
-        prob = 0.01*time_step_seconds  # Should be parameterised with waves
+        # 0.005 ok for plant oil, much mixing
+        # 0.0005 ok for emulsion, less mixing
+        #prob = 0.005*time_step_seconds  # Should be parameterised with waves
+        prob = 0.0005*time_step_seconds  # Should be parameterised with waves
         mixed = surface[np.where(np.random.uniform(0, 1, len(surface))<prob)]
         # Mixed elements are moved to a random depth
         self.elements.z[mixed] = np.random.uniform(-10, -2, len(mixed))

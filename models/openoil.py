@@ -570,7 +570,7 @@ class OpenOil(OpenDriftSimulation):
                     self.set_up_map()
 
         if surface_only is True:
-            z = self.history['z']
+            z = self.history['z'].copy()
             x[z<0] = np.nan
             y[z<0] = np.nan
         cmap = plt.get_cmap('jet')
@@ -578,7 +578,6 @@ class OpenOil(OpenDriftSimulation):
 
         times = self.get_time_array()[0]
         timestr = [t.strftime('%H:%M') for t in times]
-        print timestr
         colornum = np.linspace(1, 0, len(times))
         for i, time in enumerate(times):
             map.scatter(x[:,i], y[:,i], color=cmap(colornum[i]),
