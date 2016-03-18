@@ -34,8 +34,8 @@ grib_variable_mapping = {
         '34.3': 'y_wind', 
         '49.3': 'x_sea_water_velocity', 
         '50.3': 'y_sea_water_velocity', 
-        '100.3': 'significant_wave_height', 
-        '232.3': 'peak_wave_period',
+        '100.3': 'sea_surface_wave_significant_height', 
+        '232.3': 'sea_surface_wave_period_at_variance_spectral_density_maximum',
         '247.3': 'sea_surface_wave_stokes_drift_x_velocity',
         '248.3': 'sea_surface_wave_stokes_drift_y_velocity'}
      }
@@ -159,5 +159,6 @@ class Reader(Reader):
         variables['x'] = lons[0,:]
         variables['y'] = lats[:,0]
         variables['z'] = None
+        variables['time'] = nearestTime
 
         return variables
