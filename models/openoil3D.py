@@ -178,13 +178,18 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         self.elements.terminal_velocity = W
 
     def wave_mixing(self, time_step_seconds):
-        """Mix surface oil into water columns."""
+        """Mix surface oil into water column."""
 
         surface = np.where(self.elements.z == 0.)[0]
         prob = 0.01*time_step_seconds  # Should be parameterised with waves
         mixed = surface[np.where(np.random.uniform(0, 1, len(surface))<prob)]
         # Mixed elements are moved to a random depth
         self.elements.z[mixed] = np.random.uniform(-10, -2, len(mixed))
+
+    def resurface_elements(self, minimum_depth=None):
+        """Oil elements reaching surface (or above) form slick, not droplet"""
+        surface = np.where(self.elements.z >= 0)[0]
+        self.elements.z[surface] = 0
 
     def update(self):
         """Update positions and properties of oil particles."""

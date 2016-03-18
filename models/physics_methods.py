@@ -144,6 +144,12 @@ class PhysicsMethods(object):
     def wave_mixing(self, time_step_seconds):
         return  # To be implemented by subclasses, e.g. downward mixing of oil
 
+    def resurface_elements(self, minimum_depth):
+        # Keep surfacing elements in water column as default,
+        # i.e. no formation of surface slick
+        surface = np.where(self.elements.z >= 0)[0]
+        self.elements.z[surface] = minimum_depth  
+
     def deactivate_stranded_elements(self):
         self.deactivate_elements(self.environment.land_binary_mask == 1,
                                  reason='stranded')
