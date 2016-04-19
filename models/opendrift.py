@@ -265,17 +265,24 @@ class OpenDriftSimulation(PhysicsMethods):
                                      % (reader.name, list(missingVariables)))
 
             # Finally add new reader to list
-            if reader not in self.readers:
-                self.readers[reader.name] = reader
-                if self.proj is None:
-                    if reader.proj4 is not None and reader.proj4 != 'None':
-                        self.set_projection(reader.proj4)
-                        logging.debug('Using srs for common grid: %s' %
-                                      self.proj4)
-                    else:
-                        logging.debug('%s is unprojected, cannot use '
-                                      'for common grid' % reader.name)
-                logging.debug('Added reader ' + reader.name)
+            if reader.name in self.readers:
+                # Reader names must be unique, adding integer
+                for n in range(99999):
+                    tmp_name = reader.name + '_%d' % n
+                    if tmp_name not in self.readers:
+                        reader.name = tmp_name 
+                        break
+
+            self.readers[reader.name] = reader
+            if self.proj is None:
+                if reader.proj4 is not None and reader.proj4 != 'None':
+                    self.set_projection(reader.proj4)
+                    logging.debug('Using srs for common grid: %s' %
+                                  self.proj4)
+                else:
+                    logging.debug('%s is unprojected, cannot use '
+                                  'for common grid' % reader.name)
+            logging.debug('Added reader ' + reader.name)
 
             # Add this reader for each of the given variables
             for variable in variables if variables else reader.variables:
@@ -1082,8 +1089,10 @@ class OpenDriftSimulation(PhysicsMethods):
         # Adjusting spacing of lon-lat lines dynamically
         latspan = map.latmax - map.latmin
         if latspan > 20:
+            deltalat = 2
+        elif latspan > 10 and latspan <= 20:
             deltalat = 1
-        elif latspan > 1 and latspan < 20:
+        elif latspan > 1 and latspan <= 10:
             deltalat = .5
         else:
             deltalat = .1
