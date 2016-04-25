@@ -698,6 +698,9 @@ class Reader(object):
             return None, None, None, None, None, None
         if hasattr(self, 'times'):  # Time as array, possibly with holes
             indx_before = np.max((0, bisect_left(self.times, time) - 1))
+            if self.times[indx_before + 1] == time:
+                # Correction needed when requested time exists in times
+                indx_before = indx_before + 1
             time_before = self.times[indx_before]
             indx_after = indx_before + 1
             time_after = self.times[indx_after]
