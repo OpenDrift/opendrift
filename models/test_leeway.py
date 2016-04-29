@@ -62,8 +62,8 @@ class TestArray(unittest.TestCase):
         # Check that 7 out of 100 elements strand towards coast
         self.lee.run(steps=24, time_step=3600)
         self.assertEqual(self.lee.num_elements_scheduled(), 0)
-        self.assertEqual(self.lee.num_elements_active(), 98)
-        self.assertEqual(self.lee.num_elements_deactivated(), 2)  # stranded
+        self.assertEqual(self.lee.num_elements_active(), 97)
+        self.assertEqual(self.lee.num_elements_deactivated(), 3)  # stranded
 
 
 if __name__ == '__main__':

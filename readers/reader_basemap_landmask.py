@@ -59,7 +59,7 @@ class Reader(Reader):
 
         # Generate Basemap instane
         self.map = Basemap(llcrnrlon, llcrnrlat,
-                           urcrnrlon, urcrnrlat,
+                           urcrnrlon, urcrnrlat, area_thresh=0,
                            resolution=resolution, projection=projection)
 
         # Store proj4 string
