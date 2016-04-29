@@ -1237,7 +1237,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.set_up_map(buffer=buffer)
 
         # The more elements, the more transparent we make the lines
-        min_alpha = 0.025
+        min_alpha = 0.1
         max_elements = 5000.0
         alpha = min_alpha**(2*(self.num_elements_total()-1)/(max_elements-1))
         alpha = np.max((min_alpha, alpha))
