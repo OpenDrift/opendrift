@@ -90,6 +90,8 @@ class Reader(object):
     # presuming coordinate system then is lon-lat for equivalence
     variable_aliases = {
         'sea_water_potential_temperature': 'sea_water_temperature',
+        'eastward_wind': 'x_wind',
+        'northward_wind': 'y_wind',
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward_tidal_current': 'x_sea_water_velocity',
@@ -702,7 +704,8 @@ class Reader(object):
                 # Correction needed when requested time exists in times
                 indx_before = indx_before + 1
             time_before = self.times[indx_before]
-            indx_after = indx_before + 1
+            indx_after = np.minimum(indx_before + 1,
+                                    len(self.times) - 1)  # At the end
             time_after = self.times[indx_after]
             if (time - time_before) < (time_after - time):
                 indx_nearest = indx_before
