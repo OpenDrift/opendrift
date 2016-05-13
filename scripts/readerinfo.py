@@ -28,8 +28,13 @@ import argparse
 try:
     from readers import reader_netCDF_CF_generic
     from readers import reader_ROMS_native
-    from readers import reader_grib
-    readers = [reader_netCDF_CF_generic, reader_ROMS_native, reader_grib]
+    try:
+        from readers import reader_grib
+        readers = [reader_netCDF_CF_generic, reader_ROMS_native,
+                   reader_grib]
+    except:
+        readers = [reader_netCDF_CF_generic, reader_ROMS_native]
+
 except ImportError: # development
     sys.exit('Please add opendrift folder to your PYTHONPATH.')
 
