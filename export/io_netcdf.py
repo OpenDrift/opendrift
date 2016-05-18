@@ -202,3 +202,5 @@ def import_file(self, filename, time=None):
 
     # Remove elements which are scheduled for deactivation
     self.remove_deactivated_elements()
+
+    infile.close()
