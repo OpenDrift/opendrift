@@ -37,7 +37,10 @@ grib_variable_mapping = {
         '100.3': 'sea_surface_wave_significant_height', 
         '232.3': 'sea_surface_wave_period_at_variance_spectral_density_maximum',
         '247.3': 'sea_surface_wave_stokes_drift_x_velocity',
-        '248.3': 'sea_surface_wave_stokes_drift_y_velocity'}
+        '248.3': 'sea_surface_wave_stokes_drift_y_velocity'},
+     'ecmf': {  # ECMWF GRIB codes
+        '165.128': 'x_wind',
+        '166.128': 'y_wind'}
      }
 
 
@@ -97,6 +100,8 @@ class Reader(Reader):
         self.xmax = x.max()
         self.ymin = y.min()
         self.ymax = y.max()
+        self.delta_x = x[1] - x[0]
+        self.delta_y = y[1] - y[0]
 
         ####################################
         # GRIB source and parameter names
@@ -145,11 +150,11 @@ class Reader(Reader):
             self.nearest_time(time)
 
         variables = {}
-        delta = .3
-        lonmin = x.min() - delta
-        lonmax = x.max() + delta
-        latmin = y.min() - delta
-        latmax = y.max() + delta
+        delta = self.buffer*self.delta_x
+        lonmin = np.maximum(x.min() - delta, self.xmin)
+        lonmax = np.minimum(x.max() + delta, self.xmax)
+        latmin = np.maximum(y.min() - delta, self.ymin)
+        latmax = np.minimum(y.max() + delta, self.ymax)
  
         for var in requested_variables:
             ind = np.int(self.indices[var][indxTime]) + 1
