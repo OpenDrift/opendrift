@@ -133,8 +133,10 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o1.history.shape, (100,25))
         self.assertEqual(o2.history.shape, (100,13))
         # Check that start and end conditions (longitudes) are idential
-        self.assertItemsEqual(o1.history['lon'][:,24], o2.history['lon'][:,12])
-        self.assertItemsEqual(o1.history['lon'][:,0], o2.history['lon'][:,0])
+        self.assertItemsEqual(o1.history['lon'][:,24].compressed(), 
+                              o2.history['lon'][:,12].compressed())
+        self.assertItemsEqual(o1.history['lon'][:,0].compressed(),
+                              o2.history['lon'][:,0].compressed())
         # Check that also run imported from file is identical
         o1i = OceanDrift(loglevel=20)
         o1i.io_import_file('test_time_step30.nc')
@@ -142,8 +144,8 @@ class TestRun(unittest.TestCase):
         o2i.io_import_file('test_time_step60.nc')
         os.remove('test_time_step30.nc')
         os.remove('test_time_step60.nc')
-        self.assertItemsEqual(o2i.history['lon'][:,12],
-                              o2.history['lon'][:,12])
+        self.assertItemsEqual(o2i.history['lon'][:,12].compressed(),
+                              o2.history['lon'][:,12].compressed())
         # Check number of activated elements
         self.assertEqual(o1.num_elements_total(), o2.num_elements_total())
         self.assertEqual(o1.num_elements_total(), o1i.num_elements_total())
