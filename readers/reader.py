@@ -160,6 +160,8 @@ class Reader(object):
         if self.projected is True:
             if hasattr(self, 'delta_x'):
                 typicalsize = self.delta_x
+                if self.proj.is_latlong() is True:
+                    typicalsize = typicalsize*111000  # deg to meters
             else:
                 typicalsize = None  # Pixel size not defined
         else:
