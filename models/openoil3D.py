@@ -27,9 +27,13 @@ class Oil3D(Oil):
     """Extending Oil class with variables relevant for the vertical."""
 
     variables = Oil.add_variables([
-        ('diameter', {'dtype': np.float32,
+        # Entrainment length scale, see Tkalich and Chan (2002)
+        ('entrainment_length_scale', {'dtype': np.float32,
+                                      'units': 'm',
+                                      'default': 0.1}),
+        ('diameter', {'dtype': np.float32,  # Particle diameter
                       'units': 'm',
-                      'default': 0.0001})
+                      'default': 0.00001})
         ])
 
 
@@ -135,6 +139,19 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # Calling general constructor of parent class
         super(OpenOil3D, self).__init__(*args, **kwargs)
 
+    def particle_radius(self):
+        """Calculate radius of entained particles.
+
+        Per now a fixed radius, should later use a distribution.
+        """
+
+        # Delvigne and Sweeney (1988)
+        #rmax = 1818*np.power(self.wave_energy_dissipation(), -0.5)* \
+        #            np.power(self.elements.viscosity, 0.34) / 1000000
+
+        #r = np.random.uniform(0, rmax, self.num_elements_active())
+        return self.elements.diameter/2  # Hardcoded diameter
+
     def update_terminal_velocity(self):
         """Calculate terminal velocity for oil droplets
 
@@ -145,7 +162,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         """
         g = 9.81  # ms-2
 
-        r = self.elements.diameter  # particle radius
+        r = self.particle_radius()*2
         T0 = self.environment.sea_water_temperature
         S0 = self.environment.sea_water_salinity
         rho_oil = self.elements.density
@@ -177,17 +194,33 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         #print W[0:10], 'W after'
         self.elements.terminal_velocity = W
 
-    def wave_mixing(self, time_step_seconds):
+    def oil_wave_entrainment_rate(self):
+        kb = 0.4
+        omega = self.wave_frequency()
+        gamma = self.wave_damping_coefficient()
+        alpha = 1.5
+        Low = self.elements.entrainment_length_scale
+        entrainment_rate = kb*omega*gamma*self.significant_wave_height()/ \
+                (16*alpha*Low)
+        return entrainment_rate
+
+    def wave_mixing(self, time_step_seconds, alpha=1.5):
         """Mix surface oil into water column."""
 
         surface = np.where(self.elements.z == 0.)[0]
-        # 0.005 ok for plant oil, much mixing
-        # 0.0005 ok for emulsion, less mixing
-        #prob = 0.005*time_step_seconds  # Should be parameterised with waves
-        prob = 0.0005*time_step_seconds  # Should be parameterised with waves
+        prob = self.oil_wave_entrainment_rate()[surface]*time_step_seconds
         mixed = surface[np.where(np.random.uniform(0, 1, len(surface))<prob)]
-        # Mixed elements are moved to a random depth
-        self.elements.z[mixed] = np.random.uniform(-10, -2, len(mixed))
+
+        # Mixed elements are moved to a random depth between 0 and 1.5*H
+        # See e.g. Delvigne and Sweeney, 1988
+        mixing_layer_depth = alpha*self.significant_wave_height()
+        self.elements.z[mixed] = -1  # Entrain 1 m, for further random mixing
+        mixing_layer_elements = np.where(
+            (self.elements.z > -mixing_layer_depth) & (self.elements.z < 0))[0]
+        
+        self.elements.z[mixing_layer_elements] = \
+            [np.random.uniform(-m, 0) for m in
+                mixing_layer_depth[mixing_layer_elements]]
 
     def resurface_elements(self, minimum_depth=None):
         """Oil elements reaching surface (or above) form slick, not droplet"""
