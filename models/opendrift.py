@@ -767,9 +767,59 @@ class OpenDriftSimulation(PhysicsMethods):
         # NB: should also repeat some points, if too few
         lonpoints = lonpoints[0:number]
         latpoints = latpoints[0:number]
+        if len(lonpoints) < number:
+            # If number of positions is smaller than requested,
+            # we duplicate the first ones
+            missing = number - len(lonpoints)
+            lonpoints = np.append(lonpoints, lonpoints[0:missing])
+            latpoints = np.append(latpoints, latpoints[0:missing])
 
         # Finally seed at calculated positions
         self.seed_elements(lonpoints, latpoints, **kwargs)
+
+    def seed_from_shapefile(self, shapefile, number, **kwargs):
+        """Seeds elements within contours read from a shapefile"""
+
+        try:
+            import ogr
+            import osr
+        except Exception as e:
+            print e
+            raise ValueError('OGR library is needed to read shapefiles.')
+
+        targetSRS = osr.SpatialReference()
+        targetSRS.ImportFromEPSG(4326)
+        s = ogr.Open(shapefile)
+
+        for layer in s:
+            logging.info('Seeding for layer: ' + layer.GetDescription())
+            coordTrans = osr.CoordinateTransformation(layer.GetSpatialRef(),
+                                                      targetSRS)
+
+            # Loop first through all features to determine total area
+            total_area = 0
+            for i, feature in enumerate(layer):
+                total_area += feature.GetGeometryRef().GetArea()
+            layer.ResetReading()  # Rewind to first layer
+
+            num_seeded = 0
+            for i, feature in enumerate(layer):
+                geom = feature.GetGeometryRef()
+                num_elements = np.int(number*geom.GetArea()/total_area)
+                if i == layer.GetFeatureCount() - 1:
+                    # For the last feature we seed the remaining number,
+                    # avoiding difference due to rounding:
+                    num_elements = number - num_seeded
+                logging.info('\tSeeding %s elements within polygon number %s' %
+                             (num_elements, i+1))
+                geom.Transform(coordTrans)
+                b = geom.GetBoundary()
+                points = b.GetPoints()
+                lons = [p[0] for p in points]
+                lats = [p[1] for p in points]
+
+                self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+                num_seeded += num_elements
 
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
