@@ -162,7 +162,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             self.elements.z[down] = self.elements.z[down] - dz
 
             #avoid that elements are above surface / below bottom
-            self.resurface_elements(minimum_depth=-dz/2)
+            self.resurface_elements(minimum_depth=-dz/10)
             bottom = np.where(self.elements.z < Zmin)
             self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
@@ -206,3 +206,35 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         update(0)  # Plot initial distribution
         tslider.on_changed(update)
         plt.show()
+
+
+    def plotter_vertical_distribution_time(self, ax=None, step=1):
+        """Function to plot vertical distribution of particles"""
+        from pylab import axes, draw
+        from matplotlib import dates, pyplot
+
+        if ax is None:
+            fig = pyplot.figure()
+            ax = fig.gca()
+            show = True
+        else:
+            show = False
+
+        dz = 1.
+        maxrange = -100
+
+        ax.hist(self.history['z'].T[step, :], bins=-maxrange/dz,
+                range=[maxrange, 0], orientation='horizontal')
+        ax.set_ylim([maxrange, 0])
+        ax.grid()
+        ax.set_xlim([0, self.num_elements_total()*.1])
+        ax.set_xlabel('Number of particles')
+        ax.set_ylabel('Depth [m]')
+        x_wind = self.history['x_wind'].T[step, :]
+        print x_wind
+        y_wind = self.history['x_wind'].T[step, :]
+        windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
+        ax.set_title(str(self.get_time_array()[0][step]) +
+                     '   Mean windspeed: %.1f m/s' % windspeed)
+        if show is True:
+            pyplot.show()
