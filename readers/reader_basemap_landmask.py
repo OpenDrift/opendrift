@@ -40,22 +40,23 @@ class Reader(Reader):
     variables = ['land_binary_mask']
 
     def __init__(self, llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat,
-                 resolution='i', projection='cyl'):
+                 resolution='i', projection='cyl', minimise_whitespace=False):
 
         logging.debug('Creating Basemap...')
 
-        ## Calculate aspect ratio, to minimise whitespace on figures
-        ## Drawback is that empty figure is created in interactive mode
-        #meanlat = (llcrnrlat + urcrnrlat)/2
-        #aspect_ratio = np.float(urcrnrlat - llcrnrlat) / \
-        #               (np.float(urcrnrlon-llcrnrlon))
-        #if projection != 'cyl':
-        #    aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
-        #if aspect_ratio > 1:
-        #    plt.figure(figsize=(10./aspect_ratio, 10.))
-        #else:
-        #    plt.figure(figsize=(11., 11.*aspect_ratio))
-        #ax = plt.axes([.05,.05,.85,.9])
+        if minimise_whitespace is True:
+            ## Calculate aspect ratio, to minimise whitespace on figures
+            ## Drawback is that empty figure is created in interactive mode
+            meanlat = (llcrnrlat + urcrnrlat)/2
+            aspect_ratio = np.float(urcrnrlat - llcrnrlat) / \
+                           (np.float(urcrnrlon-llcrnrlon))
+            if projection != 'cyl':
+                aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
+            if aspect_ratio > 1:
+                plt.figure(figsize=(10./aspect_ratio, 10.))
+            else:
+                plt.figure(figsize=(11., 11.*aspect_ratio))
+            ax = plt.axes([.05,.05,.85,.9])
 
         # Generate Basemap instane
         self.map = Basemap(llcrnrlon, llcrnrlat,
