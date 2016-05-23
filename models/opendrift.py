@@ -31,6 +31,13 @@ try:
     from mpl_toolkits.basemap import Basemap
     import matplotlib.pyplot as plt
     from matplotlib import animation
+    from matplotlib.patches import Polygon
+    have_nx=True
+    try:
+        import matplotlib.nxutils as nx
+    except:
+        have_nx=False
+        from matplotlib.path import Path
 except:
     logging.info('Basemap is not available, can not make plots')
 
@@ -705,6 +712,65 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.schedule_elements(elements, time_array)
 
+    def seed_within_polygon(self, lons, lats, number, **kwargs):
+        """Seed a number of elements within given polygon.
+        
+        Arguments:
+            lon: array of longitudes
+            lat: array of latitudes
+            number: int, number of elements to be seeded
+            kwargs: keyword arguments containing properties/attributes and
+                values corresponding to the actual particle type (ElementType).
+                These are forwarded to method seed_elements(). All properties
+                for which there are no default value must be specified.
+
+        """
+        lons = np.asarray(lons)
+        lats = np.asarray(lats)
+        poly = Polygon(zip(lons, lats))
+        # Place N points within the polygons
+        proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f +lon_0=%f'
+                           % (lats.min(), lats.max(),
+                              (lats.min()+lats.max())/2,
+                              (lons.min()+lons.max())/2))
+        lonlat = poly.get_xy()
+        lon = lonlat[:, 0]
+        lat = lonlat[:, 1]
+        x, y = proj(lon, lat)
+        area = 0.0
+        for i in xrange(-1, len(x)-1):
+            area += x[i] * (y[i+1] - y[i-1])
+        area = abs(area) / 2
+
+        # Make points, evenly distributed
+        deltax = np.sqrt(area/number)
+        lonpoints = np.array([])
+        latpoints = np.array([])
+        lonlat = poly.get_xy()
+        lon = lonlat[:, 0]
+        lat = lonlat[:, 1]
+        x, y = proj(lon, lat)
+        xvec = np.arange(x.min(), x.max(), deltax)
+        yvec = np.arange(y.min(), y.max(), deltax)
+        x, y = np.meshgrid(xvec, yvec)
+        lon, lat = proj(x, y, inverse=True)
+        lon = lon.ravel()
+        lat = lat.ravel()
+        points = np.c_[lon, lat]
+        if have_nx:
+            ind = nx.points_inside_poly(points, poly.xy)
+        else:
+            ind = Path(poly.xy).contains_points(points)
+        lonpoints = np.append(lonpoints, lon[ind])
+        latpoints = np.append(latpoints, lat[ind])
+        # Truncate if too many
+        # NB: should also repeat some points, if too few
+        lonpoints = lonpoints[0:number]
+        latpoints = latpoints[0:number]
+
+        # Finally seed at calculated positions
+        self.seed_elements(lonpoints, latpoints, **kwargs)
+
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
         if sum(indices) == 0:
@@ -1268,7 +1334,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     #lc.set_linewidth(3)
                     lc.set_array(param.T[vind, i])
                     plt.gca().add_collection(lc)
-                axcb = plt.colorbar(lc)
+                axcb = map.colorbar(lc, location='bottom', pad='5%')
                 try:  # Add unit to colorbar if available
                     colorbarstring = linecolor + '  [%s]' % \
                         (self.history_metadata[linecolor]['units'])
@@ -1308,7 +1374,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             color=self.status_colors[status],
                             label='%s (%i)' % (status, len(indices[0])))
         try:
-            plt.legend()
+            plt.legend(loc='best')
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
             print traceback.format_exc()
