@@ -153,3 +153,43 @@ class PhysicsMethods(object):
     def deactivate_stranded_elements(self):
         self.deactivate_elements(self.environment.land_binary_mask == 1,
                                  reason='stranded')
+
+    def wind_speed(self):
+        return np.sqrt(self.environment.x_wind**2 +
+                       self.environment.y_wind**2)
+
+    def significant_wave_height(self):
+        # Significant wave height, parameterise from wind if not available
+        if hasattr(self.environment, 'sea_surface_wave_significant_height'):
+            return self.environment.sea_surface_wave_significant_height
+        else:
+            # Neumann and Pierson, 1966
+            return 0.2*np.power(self.wind_speed,2)/9.81
+
+    def wave_frequency(self):
+        return 2*np.pi/self.environment. \
+            sea_surface_wave_period_at_variance_spectral_density_maximum
+
+    def wave_period(self):
+        return self.environment.\
+                sea_surface_wave_period_at_variance_spectral_density_maximum
+
+    def wave_energy(self):
+        return 9.81*1028*np.power(self.significant_wave_height(),2)/16
+    
+    def wave_energy_dissipation(self):
+        # Delvigne and Sweeney
+        return 0.0034*self.sea_water_density()*9.81*\
+            np.power(self.significant_wave_height(), 2)
+
+    def wave_damping_coefficient(self):
+        return (10E-5)*2*np.pi*self.wave_frequency()* \
+            np.power(self.wave_energy(), 0.25)
+
+    #def sea_water_density(self):
+    #    return 1027  # kg/m3
+
+    def sea_surface_wave_breaking_fraction(self):
+        f = 0.032*(self.wind_speed() - 5)/self.wave_period()
+        f[f<0] = 0
+        return f
