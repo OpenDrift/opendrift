@@ -47,13 +47,10 @@ o.seed_elements(lon, lat, radius=[100, 500], number=10000,
 print o
 
 # Adjusting some configuration
-o.config['drift']['wind_drift_factor'] = .02
 o.config['processes']['diffusion'] = True
 o.config['processes']['dispersion'] = True
 o.config['processes']['evaporation'] = False
 o.config['processes']['emulsification'] = True
-o.config['drift']['current_uncertainty'] = .1
-o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
 o.run(steps=66*2, time_step=1800)

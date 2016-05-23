@@ -27,13 +27,12 @@ o.add_reader([reader_basemap, reader_norkyst, reader_arome])
 o.seed_from_gml('test_data/radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 
 # Adjusting some configuration
-o.config['drift']['wind_drift_factor'] = .02
 o.config['processes']['diffusion'] = True
 o.config['processes']['dispersion'] = True
 o.config['processes']['evaporation'] = False
 o.config['processes']['emulsification'] = True
-o.config['drift']['current_uncertainty'] = .3
-o.config['drift']['wind_uncertainty'] = 3
+o.config['drift']['current_uncertainty'] = .3  # Diffusion
+o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
 o.run(steps=66*4, time_step=900, outfile='openoil.nc')

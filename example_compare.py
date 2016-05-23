@@ -29,11 +29,9 @@ time = [reader_arome.start_time,
         reader_arome.start_time + timedelta(hours=30)]
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=50, number=5000, time=time)
-
+o.seed_elements(lon, lat, radius=50, number=5000, time=time, wind_drift_factor=0.03) # 3% wind drift
 
 # Adjusting some configuration
-o.config['drift']['wind_drift_factor'] = .03
 o.config['processes']['diffusion'] = True
 o.config['processes']['dispersion'] = False
 o.config['processes']['evaporation'] = False
@@ -47,8 +45,7 @@ o.run(steps=66*2, time_step=1800)
 # Second run, for comparison
 o2 = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_basemap, reader_norkyst, reader_arome])
-o2.seed_elements(lon, lat, radius=50, number=5000, time=time)
-o2.config['drift']['wind_drift_factor'] = .0  # No wind drift this time
+o2.seed_elements(lon, lat, radius=50, number=5000, time=time, wind_drift_factor=0.0) # No wind drift
 o2.config['processes']['diffusion'] = True
 o2.config['processes']['dispersion'] = False
 o2.config['processes']['evaporation'] = False
