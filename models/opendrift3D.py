@@ -104,14 +104,22 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
         # get profile of eddy diffusivity
         # get vertical eddy diffusivity from environment or specific model
-        if self.config['turbulentmixing']['diffusivitymodel'] == \
-                'environment':
-            Kprofiles = self.environment_profiles['ocean_vertical_diffusivity']
+        if (self.config['turbulentmixing']['diffusivitymodel'] == \
+                'environment'):
+            if 'ocean_vertical_diffusivity' in self.environment_profiles:
+                Kprofiles = self.environment_profiles[
+                    'ocean_vertical_diffusivity']
+            else:
+                # NB: using constant diffusivity, and value from first
+                # element only - this should be checked/improved!
+                Kprofiles = self.environment.ocean_vertical_diffusivity[0]* \
+                                np.ones((len(self.environment_profiles['z']),
+                                         self.num_elements_active()))
         else:
             Kprofiles = getattr(
                 eddydiffusivity,
                 self.config['turbulentmixing']['diffusivitymodel'])(self)
-
+                            
         # prepare vertical interpolation coordinates
         zi = range(Kprofiles.shape[0])
         z_index = interp1d(-self.environment_profiles['z'],zi,bounds_error=False)
