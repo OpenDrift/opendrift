@@ -172,10 +172,14 @@ class Reader(object):
             dist = geod.inv(lons[0], lats[0],
                             lons[1], lats[1], radians=False)[2]
             typicalsize = dist/self.shape[0]
-        if typicalsize is not None and self.time_step is not None:
+        if typicalsize is not None:
+            if self.time_step is not None:
+                time_step_seconds = self.time_step.total_seconds()
+            else:
+                time_step_seconds = 3600 # 1 hour if not given
             max_speed = 5  # Assumed max average speed of any element
             self.buffer = np.int(np.ceil(max_speed *
-                                         self.time_step.total_seconds() /
+                                         time_step_seconds /
                                          typicalsize)) + 2
             logging.debug('Setting buffer size %i for reader %s, assuming '
                           'a maximum average speed of %g m/s.' %
@@ -561,6 +565,11 @@ class Reader(object):
 
     def covers_time(self, time):
 
+        print 'covering'
+        if self.always_valid is True:
+            print 'tru'
+            return True
+        print 'not tru'
         if self.start_time is None:
             return True  # No time limitations of reader
         if (time < self.start_time) or (time > self.end_time):
@@ -699,7 +708,8 @@ class Reader(object):
             indx_before: int
             indx_after: int
         """
-
+        if self.start_time == self.end_time:
+            return self.start_time, self.start_time, self.start_time, 0, 0, 0
         if self.start_time is None:
             return None, None, None, None, None, None
         if hasattr(self, 'times'):  # Time as array, possibly with holes
