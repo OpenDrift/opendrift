@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from bisect import bisect_left, bisect_right
 
 import numpy as np
-from netCDF4 import Dataset, num2date
+from netCDF4 import Dataset, MFDataset, num2date
 
 from reader import Reader
 from roppy import depth
@@ -64,17 +64,20 @@ class Reader(Reader):
         try:
             # Open file, check that everything is ok
             logging.info('Opening dataset: ' + filename)
-            self.Dataset = Dataset(filename, 'r')
+            self.Dataset = MFDataset(filename, 'r')
         except:
-            raise ValueError('Could not open ' + filename +
-                             ' with netCDF4 library')
+            try:
+                logging.info('Could not open with MFDataset, '
+                             'trying with Dataset:')
+                self.Dataset = Dataset(filename, 'r')
+            except:
+                raise ValueError('Could not open ' + filename +
+                                 ' with netCDF4 library')
 
         if 's_rho' not in self.Dataset.variables:
             dimensions = 2
         else:
             dimensions = 3
-
-        print dimensions, 'D'
 
         if dimensions == 3:
             # Read sigma-coordinate values
@@ -114,7 +117,7 @@ class Reader(Reader):
 
         # Get time coverage
         ocean_time = self.Dataset.variables['ocean_time']
-        time_units = ocean_time.getncattr('units')
+        time_units = ocean_time.__dict__['units']
         self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]

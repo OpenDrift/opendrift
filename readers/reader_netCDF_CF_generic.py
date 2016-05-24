@@ -19,7 +19,7 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-from netCDF4 import Dataset, num2date
+from netCDF4 import Dataset, MFDataset, num2date
 
 from reader import Reader
 
@@ -39,10 +39,15 @@ class Reader(Reader):
         try:
             # Open file, check that everything is ok
             logging.info('Opening dataset: ' + filename)
-            self.Dataset = Dataset(filename, 'r')
+            self.Dataset = MFDataset(filename, 'r')
         except:
-            raise ValueError('Could not open ' + filename +
-                             ' with netCDF4 library')
+            try:
+                logging.info('Could not open with MFDataset, '
+                             'trying with Dataset:')
+                self.Dataset = Dataset(filename, 'r')
+            except:
+                raise ValueError('Could not open ' + filename +
+                                 ' with netCDF4 library')
 
         logging.debug('Finding map projection.')
         # Find projection (variable which as proj4 string)
@@ -68,13 +73,13 @@ class Reader(Reader):
             axis = ''
             units = ''
             if 'standard_name' in attributes:
-                standard_name = var.getncattr('standard_name')
+                standard_name = var.__dict__['standard_name']
             if 'long_name' in attributes:
-                long_name = var.getncattr('long_name')
+                long_name = var.__dict__['long_name']
             if 'axis' in attributes:
-                axis = var.getncattr('axis')
+                axis = var.__dict__['axis']
             if 'units' in attributes:
-                units = var.getncattr('units')
+                units = var.__dict__['units']
             if standard_name == 'longitude' or \
                     long_name == 'longitude' or \
                     axis == 'X' or \
@@ -101,7 +106,7 @@ class Reader(Reader):
                 y = var[:]*unitfactor
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
-                if not 'positive' in var.ncattrs() or var.getncattr('positive') == 'up':
+                if not 'positive' in var.ncattrs() or var.__dict__['positive'] == 'up':
                     self.z = var[:]
                 else:
                     self.z = -var[:]
@@ -136,7 +141,7 @@ class Reader(Reader):
             var = self.Dataset.variables[var_name]
             attributes = var.ncattrs()
             if 'standard_name' in attributes:
-                standard_name = str(var.getncattr('standard_name'))
+                standard_name = str(var.__dict__['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
