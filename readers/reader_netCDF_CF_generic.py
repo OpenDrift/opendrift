@@ -31,17 +31,18 @@ class Reader(Reader):
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
 
+        filestr = str(filename)
         if name is None:
-            self.name = filename
+            self.name = filestr
         else:
             self.name = name
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filename)
-            if ('*' in filename) or ('?' in filename) or ('[' in filename):
+            logging.info('Opening dataset: ' + filestr)
+            if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logging.info('Opening files with MFDataset')
-                self.Dataset = MFDataset(filename, 'r')
+                self.Dataset = MFDataset(filename)
             else:
                 logging.info('Opening file with Dataset')
                 self.Dataset = Dataset(filename, 'r')
