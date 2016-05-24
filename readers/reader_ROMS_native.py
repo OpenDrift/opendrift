@@ -51,7 +51,7 @@ class Reader(Reader):
                -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
                -6500, -7000, -7500, -8000]
 
-    def __init__(self, filename=None, name=None):
+    def __init__(self, filename=None, name=None, gridfile=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -69,24 +69,48 @@ class Reader(Reader):
             raise ValueError('Could not open ' + filename +
                              ' with netCDF4 library')
 
-        # Read sigma-coordinate values
-        try:
-            self.sigma = self.Dataset.variables['s_rho'][:]
-        except:
-            num_sigma = len(self.Dataset.dimensions['s_rho'])
-            logging.warning('s_rho not available in dataset, constructing from'
-                            ' number of layers (%s).' % num_sigma)
-            self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
+        if 's_rho' not in self.Dataset.variables:
+            dimensions = 2
+        else:
+            dimensions = 3
 
-        # Read sigma-coordinate transform parameters
-        self.Cs_r = self.Dataset.variables['Cs_r'][:]
-        self.hc = self.Dataset.variables['hc'][:]
+        print dimensions, 'D'
 
-        self.num_layers = len(self.sigma)
+        if dimensions == 3:
+            # Read sigma-coordinate values
+            try:
+                self.sigma = self.Dataset.variables['s_rho'][:]
+            except:
+                num_sigma = len(self.Dataset.dimensions['s_rho'])
+                logging.warning('s_rho not available in dataset, constructing from'
+                                ' number of layers (%s).' % num_sigma)
+                self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
 
-        # Horizontal oordinates and directions
-        self.lat = self.Dataset.variables['lat_rho'][:]
-        self.lon = self.Dataset.variables['lon_rho'][:]
+            # Read sigma-coordinate transform parameters
+            self.Cs_r = self.Dataset.variables['Cs_r'][:]
+            self.hc = self.Dataset.variables['hc'][:]
+
+            self.num_layers = len(self.sigma)
+        else:
+            self.num_layers = 1
+            self.ROMS_variable_mapping['ubar'] = 'x_sea_water_velocity'
+            self.ROMS_variable_mapping['vbar'] = 'y_sea_water_velocity'
+            del self.ROMS_variable_mapping['u']
+            del self.ROMS_variable_mapping['v']
+
+        if 'lat_rho' in self.Dataset.variables:
+            # Horizontal oordinates and directions
+            self.lat = self.Dataset.variables['lat_rho'][:]
+            self.lon = self.Dataset.variables['lon_rho'][:]
+        else:
+            if gridfile is None:
+                raise ValueError(filename + ' does not contain lon/lat '
+                                 'arrays, please supply a grid-file '
+                                 '"gridfile=<grid_file>"')
+            else:
+                gf = Dataset(gridfile)
+                self.lat = gf.variables['lat_rho'][:]
+                self.lon = gf.variables['lon_rho'][:]
 
         # Get time coverage
         ocean_time = self.Dataset.variables['ocean_time']
