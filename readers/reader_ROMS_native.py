@@ -64,15 +64,14 @@ class Reader(Reader):
         try:
             # Open file, check that everything is ok
             logging.info('Opening dataset: ' + filename)
-            self.Dataset = MFDataset(filename, 'r')
-        except:
-            try:
-                logging.info('Could not open with MFDataset, '
-                             'trying with Dataset:')
+            if ('*' in filename) or ('?' in filename) or ('[' in filename):
+                logging.info('Opening files with MFDataset')
+                self.Dataset = MFDataset(filename, 'r')
+            else:
+                logging.info('Opening file with Dataset')
                 self.Dataset = Dataset(filename, 'r')
-            except:
-                raise ValueError('Could not open ' + filename +
-                                 ' with netCDF4 library')
+        except Exception as e:
+            raise ValueError(e)
 
         if 's_rho' not in self.Dataset.variables:
             dimensions = 2
