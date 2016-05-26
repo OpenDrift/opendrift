@@ -16,6 +16,7 @@
 
 import logging
 import numpy as np
+from readers.reader import pyproj
 
 
 class PhysicsMethods(object):
@@ -69,10 +70,15 @@ class PhysicsMethods(object):
             start_x, start_y = self.lonlat2xy(self.elements.lon,
                                               self.elements.lat)
             # Find midpoint
-            mid_x = start_x + x_vel*self.time_step.total_seconds()*.5
-            mid_y = start_y + y_vel*self.time_step.total_seconds()*.5
-            mid_lon, mid_lat = self.xy2lonlat(mid_x, mid_y)
+            az = np.degrees(np.arctan2(x_vel, y_vel))
+            speed = np.sqrt(x_vel*x_vel + y_vel*y_vel)
+            dist = speed*self.time_step.total_seconds()*.5
+            geod = pyproj.Geod(ellps='WGS84')
+            mid_lon, mid_lat, dummy = geod.fwd(self.elements.lon,
+                                               self.elements.lat,
+                                               az, dist, radians=False)
             # Find current at midpoint, a half timestep later
+            logging.debug('Runge-kutta, fetching half time-step later...')
             mid_env, profiles, missing = self.get_environment(
                 ['x_sea_water_velocity', 'y_sea_water_velocity'],
                 self.time + self.time_step/2,
