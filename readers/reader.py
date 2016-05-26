@@ -86,6 +86,9 @@ class Reader(object):
     var_block_before = {}  # Data for last timestep before present
     var_block_after = {}   # Data for first timestep after present
 
+    always_valid = False  # Set to True if a single field should 
+                          # be valid at all times
+
     # Mapping variable names, e.g. from east-north to x-y, temporarily
     # presuming coordinate system then is lon-lat for equivalence
     variable_aliases = {
@@ -565,11 +568,8 @@ class Reader(object):
 
     def covers_time(self, time):
 
-        print 'covering'
         if self.always_valid is True:
-            print 'tru'
             return True
-        print 'not tru'
         if self.start_time is None:
             return True  # No time limitations of reader
         if (time < self.start_time) or (time > self.end_time):
@@ -709,7 +709,7 @@ class Reader(object):
             indx_after: int
         """
         if self.start_time == self.end_time:
-            return self.start_time, self.start_time, self.start_time, 0, 0, 0
+            return self.start_time, self.start_time, None, 0, 0, 0
         if self.start_time is None:
             return None, None, None, None, None, None
         if hasattr(self, 'times'):  # Time as array, possibly with holes
