@@ -394,14 +394,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.debug('Calling reader ' + reader_name)
                 logging.debug('----------------------------------------')
                 reader = self.readers[reader_name]
-                # Continue if not not within time
-                if (reader.start_time is not None) and (
-                    (time < reader.start_time) or
-                        (time > reader.end_time)) and (
-                            reader.always_valid == False):
-                    logging.debug('Outside time coverage of reader '
-                                  '(%s - %s)' %
-                                  (reader.start_time, reader.end_time))
+                if not reader.covers_time(time):
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
