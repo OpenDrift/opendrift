@@ -1242,7 +1242,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return map, plt, x, y, index_of_first, index_of_last
 
     def animation(self, buffer=.2, filename=None, compare=None,
-                  legend=['', ''], markersize=5):
+                  legend=['', ''], markersize=5, fps=20):
         """Animate last run."""
 
         def plot_timestep(i):
@@ -1311,7 +1311,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if filename is not None:
             try:
                 logging.info('Saving animation to ' + filename + '...')
-                anim.save(filename, fps=20, clear_temp=False)
+                anim.save(filename, fps=fps)
             except Exception as e:
                 print 'Could not save animation:'
                 logging.info(e)

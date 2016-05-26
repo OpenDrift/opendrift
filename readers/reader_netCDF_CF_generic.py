@@ -31,23 +31,23 @@ class Reader(Reader):
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
 
+        filestr = str(filename)
         if name is None:
-            self.name = filename
+            self.name = filestr
         else:
             self.name = name
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filename)
-            self.Dataset = MFDataset(filename, 'r')
-        except:
-            try:
-                logging.info('Could not open with MFDataset, '
-                             'trying with Dataset:')
+            logging.info('Opening dataset: ' + filestr)
+            if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
+                logging.info('Opening files with MFDataset')
+                self.Dataset = MFDataset(filename)
+            else:
+                logging.info('Opening file with Dataset')
                 self.Dataset = Dataset(filename, 'r')
-            except:
-                raise ValueError('Could not open ' + filename +
-                                 ' with netCDF4 library')
+        except Exception as e:
+            raise ValueError(e)
 
         logging.debug('Finding map projection.')
         # Find projection (variable which as proj4 string)
