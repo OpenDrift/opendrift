@@ -577,7 +577,7 @@ class Reader(object):
         else:
             return True
 
-    def covers_positions(self, lon, lat, z):
+    def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
 
         # Compensate for wrapping about 0 or 180 longitude
@@ -588,8 +588,30 @@ class Reader(object):
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
+        if hasattr(self, 'zmin'):
+            if self.zmin is not None:
+                zmin = self.zmin
+            else:
+                zmin = -np.inf
+        else:
+            if hasattr(self, 'z') and self.z is not None:
+                zmin = np.min(self.z)
+            else:
+                zmin = -np.inf
+        if hasattr(self, 'zmax'):
+            if self.zmax is not None:
+                zmax = self.zmax
+            else:
+                zmax = np.inf
+        else:
+            if hasattr(self, 'z') and self.z is not None:
+                zmax = np.max(self.z)
+            else:
+                zmax = np.inf
+
         indices = np.where((x >= self.xmin) & (x <= self.xmax) &
-                           (y >= self.ymin) & (y <= self.ymax))[0]
+                           (y >= self.ymin) & (y <= self.ymax) &
+                           (z >= zmin) & (z <= zmax))[0]
 
         return indices
 
