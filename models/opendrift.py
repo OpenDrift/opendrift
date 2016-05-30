@@ -1015,10 +1015,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     del self.history_metadata[m]
 
         history_dtype = np.dtype(history_dtype_fields)
-        self.history = np.ma.array(np.zeros([len(self.elements_scheduled),
-                                             self.bufferlength]),
-                                   dtype=history_dtype,
-                                   mask=[True])
+        self.history = np.ma.array(np.zeros((len(self.elements_scheduled),
+                                             self.bufferlength)),
+                                   dtype=history_dtype)
+        self.history.mask=True
         self.steps_exported = 0
 
         if outfile is not None:
