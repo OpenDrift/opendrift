@@ -467,6 +467,16 @@ class Reader(object):
                             sys.exit('Rotating profiles of vectors '
                                      'is not yet implemented')
 
+        # Masking non-covered pixels
+        if len(ind_covered) != len(lon):
+            mask = np.ones(len(lon), np.bool)
+            mask[ind_covered] = 0
+            logging.debug('Masking %i elements outside coverage' %
+                           np.sum(mask))
+            for var in variables:
+                env[var][mask] = np.nan
+                env[var] = np.ma.masked_invalid(env[var])
+
         return env, env_profiles
 
     def rotate_vectors(self, reader_x, reader_y,

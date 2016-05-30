@@ -413,7 +413,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             variable_group, profiles_from_reader,
                             self.required_profiles_z_range, time,
                             lon[missing_indices], lat[missing_indices],
-                            z, self.use_block, self.proj)
+                            z[missing_indices], self.use_block, self.proj)
 
                     if env_profiles_tmp is not None:
                         env_profiles = env_profiles_tmp
@@ -1172,7 +1172,7 @@ class OpenDriftSimulation(PhysicsMethods):
         index_of_deactivation = firstlast[1][1]
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, buffer=.1):
+    def set_up_map(self, buffer=.1, delta_lat=None):
         """Generate Basemap instance on which trajectories are plotted."""
 
         if hasattr(self, 'history'):
@@ -1197,22 +1197,24 @@ class OpenDriftSimulation(PhysicsMethods):
 
         map.drawcoastlines(color='gray')
         map.fillcontinents(color='#ddaa99')
-        # Adjusting spacing of lon-lat lines dynamically
-        latspan = map.latmax - map.latmin
-        if latspan > 20:
-            deltalat = 2
-        elif latspan > 10 and latspan <= 20:
-            deltalat = 1
-        elif latspan > 1 and latspan <= 10:
-            deltalat = .5
-        else:
-            deltalat = .1
-        map.drawmeridians(np.arange(np.floor(map.lonmin),
-                                    np.ceil(map.lonmax), deltalat),
-                          labels=[0, 0, 0, 1])
-        map.drawparallels(np.arange(np.floor(map.latmin),
-                                    np.ceil(map.latmax), deltalat),
-                          labels=[0, 1, 1, 0])
+        if delta_lat is None:
+            # Adjusting spacing of lon-lat lines dynamically
+            latspan = map.latmax - map.latmin
+            if latspan > 20:
+                delta_lat = 2
+            elif latspan > 10 and latspan <= 20:
+                delta_lat = 1
+            elif latspan > 1 and latspan <= 10:
+                delta_lat = .5
+            else:
+                delta_lat = .1
+        if delta_lat != 0:
+            map.drawmeridians(np.arange(np.floor(map.lonmin),
+                                        np.ceil(map.lonmax), delta_lat),
+                              labels=[0, 0, 0, 1])
+            map.drawparallels(np.arange(np.floor(map.latmin),
+                                        np.ceil(map.latmax), delta_lat),
+                              labels=[0, 1, 1, 0])
 
         x, y = map(lons, lats)
 
@@ -1326,7 +1328,7 @@ class OpenDriftSimulation(PhysicsMethods):
             plt.show()
 
     def plot(self, background=None, buffer=.5, linecolor=None,
-             filename=None, drifter_file=None, show=True):
+             filename=None, drifter_file=None, show=True, **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -1346,7 +1348,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """
 
         map, plt, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer)
+            self.set_up_map(buffer=buffer, **kwargs)
 
         # The more elements, the more transparent we make the lines
         min_alpha = 0.1
