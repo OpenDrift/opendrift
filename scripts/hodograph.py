@@ -83,6 +83,7 @@ if __name__ == '__main__':
     u_comp = uv['x_sea_water_velocity'][:,i,j]
     v_comp = uv['y_sea_water_velocity'][:,i,j]
     depth = uv['sea_floor_depth_below_sea_level'][i,j]
+    print depth, 'depth'
     u_comp = u_comp[0:sum(~u_comp.mask)]
     v_comp = v_comp[0:sum(~v_comp.mask)]
 
@@ -90,11 +91,11 @@ if __name__ == '__main__':
                                     r.proj, '+proj=latlong')
 
     vel = np.sqrt(u_rot**2 + v_rot**2)
-    mx = np.max(vel)
+    mx = np.max((np.abs(u_rot), np.abs(v_rot)))
     fig = plt.figure()
     ax = fig.gca()
     plt.quiver(0, 0, u_rot, v_rot, r.z[0:sum(~u_rot.mask)],
-               scale=mx*2.0, scale_units='x')
+               scale=1.1, scale_units='x')
     plt.axis([-mx, mx, -mx, mx])
     plt.grid('on')
     cb = plt.colorbar(ticks=r.z[0:sum(~u_rot.mask)])
