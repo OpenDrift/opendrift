@@ -720,11 +720,15 @@ class OpenDriftSimulation(PhysicsMethods):
                 for which there are no default value must be specified.
 
         """
+        if number == 0:
+            return
+
         lons = np.asarray(lons)
         lats = np.asarray(lats)
-        poly = Polygon(zip(lons, lats))
+        poly = Polygon(zip(lons, lats), closed=True)
         # Place N points within the polygons
-        proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f +lon_0=%f'
+        proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f '\
+                           '+lon_0=%f +R=6370997.0 +units=m'
                            % (lats.min(), lats.max(),
                               (lats.min()+lats.max())/2,
                               (lons.min()+lons.max())/2))
@@ -745,8 +749,10 @@ class OpenDriftSimulation(PhysicsMethods):
         lon = lonlat[:, 0]
         lat = lonlat[:, 1]
         x, y = proj(lon, lat)
-        xvec = np.arange(x.min(), x.max(), deltax)
-        yvec = np.arange(y.min(), y.max(), deltax)
+        xvec = np.linspace(x.min() + deltax/2, x.max() - deltax/2,
+                            int((x.max()-x.min())/deltax))
+        yvec = np.linspace(y.min() + deltax/2, y.max() - deltax/2,
+                            int((y.max()-y.min())/deltax))
         x, y = np.meshgrid(xvec, yvec)
         lon, lat = proj(x, y, inverse=True)
         lon = lon.ravel()
@@ -758,6 +764,10 @@ class OpenDriftSimulation(PhysicsMethods):
             ind = Path(poly.xy).contains_points(points)
         lonpoints = np.append(lonpoints, lon[ind])
         latpoints = np.append(latpoints, lat[ind])
+        if len(ind) == 0:
+            logging.info('Small or irregular polygon, using center point.')
+            lonpoints = np.atleast_1d(np.mean(lons))
+            latpoints = np.atleast_1d(np.mean(lats))
         # Truncate if too many
         # NB: should also repeat some points, if too few
         lonpoints = lonpoints[0:number]
@@ -1422,6 +1432,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             label='%s (%i)' % (status, len(indices[0])))
         try:
             plt.legend(loc='best')
+            #plt.legend(loc='lower right')
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
             print traceback.format_exc()
