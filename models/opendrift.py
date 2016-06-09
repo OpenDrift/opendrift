@@ -819,9 +819,15 @@ class OpenDriftSimulation(PhysicsMethods):
                              (num_elements, i+1))
                 geom.Transform(coordTrans)
                 b = geom.GetBoundary()
-                points = b.GetPoints()
-                lons = [p[0] for p in points]
-                lats = [p[1] for p in points]
+                if b is not None:
+                    points = b.GetPoints()
+                    lons = [p[0] for p in points]
+                    lats = [p[1] for p in points]
+                else:
+                    # Alternative if OGR is not built with GEOS support
+                    r = geom.GetGeometryRef(0)
+                    lons = [r.GetX(j) for j in xrange(r.GetPointCount())]
+                    lats = [r.GetY(j) for j in xrange(r.GetPointCount())]
 
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
                 num_seeded += num_elements
