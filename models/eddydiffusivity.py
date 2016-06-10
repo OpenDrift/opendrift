@@ -12,6 +12,15 @@ def windspeed_Sundby1983(s):
     Kprofiles, N = sp.meshgrid(K, depths)
     return Kprofiles
 
+def gls_tke(s):
+	stress = sqrt(s.surface_downward_x_stress**2 +
+				  s.surface_downward_y_stress**2)
+
+	phi = 100. * (stress/s.sea_water_density())**(3./2.)
+
+	Kprofiles = 0  # to be updated...
+
+	return Kprofiles
 
 def stepfunction(s):
     ''' eddy diffusivity with discontinuity for testing of mixing scheme'''
