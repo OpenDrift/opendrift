@@ -40,6 +40,8 @@ class Reader(Reader):
         'vice': 'sea_ice_y_velocity',
         'aice': 'sea_ice_area_fraction',
         'hice': 'sea_ice_thickness',
+        'gls': 'turbulent_generic_length_scale',
+        'tke': 'turbulent_kinetic_energy',
         'Uwind': 'x_wind',
         'Vwind': 'y_wind'}
 
