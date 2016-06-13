@@ -639,9 +639,8 @@ class OpenDriftSimulation(PhysicsMethods):
             if type(time) == list and len(time) == 2:
                 td = (time[1]-time[0])/(number-1)  # timestep between points
                 if len(td) == 1:
-                    ts = td[0]
+                    td = td[0]
                 time_array = [time[0] + i*td for i in range(number)]
-                time_array = [t[0] for t in time_array]
                 indx_time_end = np.cumsum(number_array, dtype=int)
                 indx_time_start = np.append([0], indx_time_end[0:-1])
                 time_array2 = [time_array[int(indx_time_start[i]):
