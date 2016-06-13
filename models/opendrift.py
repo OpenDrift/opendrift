@@ -638,6 +638,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
             if type(time) == list and len(time) == 2:
                 td = (time[1]-time[0])/(number-1)  # timestep between points
+                if len(td) == 1:
+                    ts = td[0]
                 time_array = [time[0] + i*td for i in range(number)]
                 time_array = [t[0] for t in time_array]
                 indx_time_end = np.cumsum(number_array, dtype=int)
@@ -725,6 +727,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
         lons = np.asarray(lons)
         lats = np.asarray(lats)
+        if len(lons) < 3:
+            raise ValueError('At least three points needed to make a polygon')
+        if len(lons) != len(lats):
+            raise ValueError('lon and lat arrays must have same length.')
         poly = Polygon(zip(lons, lats), closed=True)
         # Place N points within the polygons
         proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f '\

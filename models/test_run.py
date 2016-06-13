@@ -45,6 +45,47 @@ class TestRun(unittest.TestCase):
             urcrnrlon=7, urcrnrlat=64, resolution='i')
         self.o.add_reader([self.fake_eddy, self.reader_basemap])
 
+    def test_seed(self):
+        """Test seeding"""
+        o = OceanDrift(loglevel=20)
+        number = 3
+        lonvec = np.linspace(2, 5, number)
+        latvec = np.linspace(60, 61, number)
+        o.seed_elements(lonvec, latvec, number=number,
+                        time=datetime(2015, 1, 1, 12, 5, 17))
+                        #time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
+
+        # Check that 6 elements are scheduled, but none seeded
+        self.assertEqual(o.num_elements_scheduled(), number)
+        self.assertEqual(o.num_elements_active(), 0)
+        self.assertEqual(o.num_elements_activated(), 0)
+        self.assertEqual(o.num_elements_deactivated(), 0)
+        self.assertEqual(o.num_elements_total(), number)
+
+    def test_seed_polygon(self):
+        o = OceanDrift(loglevel=20)
+        number = 10
+        lonvec = np.array([2, 3, 3, 2])
+        latvec = np.array([60, 60, 61, 61])
+        time=datetime(2015, 1, 1, 12, 5, 17)
+        o.seed_within_polygon(lonvec, latvec, number=number, time=time,
+                              wind_drift_factor=.09)
+        self.assertEqual(o.num_elements_scheduled(), number)
+        self.assertEqual(o.elements_scheduled_time[0], time)
+        self.assertAlmostEqual(o.elements_scheduled.wind_drift_factor, .09)
+
+    def test_seed_polygon_timespan(self):
+        o = OceanDrift(loglevel=20)
+        number = 10
+        lonvec = np.array([2, 3, 3, 2])
+        latvec = np.array([60, 60, 61, 61])
+        time=[datetime(2015, 1, 1, 12, 5, 17),
+              datetime(2015, 1, 1, 18, 5, 17)]
+        o.seed_within_polygon(lonvec, latvec, number=number, time=time)
+        self.assertEqual(o.num_elements_scheduled(), number)
+        self.assertEqual(o.elements_scheduled_time[0], time[0])
+        self.assertEqual(o.elements_scheduled_time[-1], time[-1])
+
     def test1_seed_single_point_over_time(self):
         """Test a model run"""
         self.make_OceanDrift_object()
