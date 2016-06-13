@@ -265,7 +265,7 @@ class Reader(Reader):
 
         variables['time'] = nearestTime
 
-        if 'x_sea_water_velocity' or 'sea_ice_x_velocity' in variables.keys():
+        if 'x_sea_water_velocity' or 'sea_ice_x_velocity' or 'Uwind' in variables.keys():
             # We must rotate current vectors
             if not hasattr(self, 'angle_xi_east'):
                 logging.debug('Reading angle between xi and east...')
@@ -281,6 +281,11 @@ class Reader(Reader):
                     variables['sea_ice_y_velocity'] = rotate_vectors(
                         variables['sea_ice_x_velocity'],
                         variables['sea_ice_y_velocity'], rad)
+            if 'Uwind' in variables.keys():
+                variables['Uwind'], \
+                    variables['Vwind'] = rotate_vectors(
+                        variables['Uwind'],
+                        variables['Vwind'], rad)
 
         return variables
 
