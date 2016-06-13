@@ -119,6 +119,15 @@ class Reader(Reader):
                 self.lat = gf.variables['lat_rho'][:]
                 self.lon = gf.variables['lon_rho'][:]
 
+        try:  # Check for GLS parameters (diffusivity)
+            self.gls_parameters = {}
+            for gls_param in ['gls_cmu0', 'gls_p', 'gls_m', 'gls_n']:
+                self.gls_parameters[gls_param] = \
+                    self.Dataset.variables[gls_param][0]
+            logging.info('Read GLS parameters from file.')
+        except Exception as e:
+            logging.info('Did not find complete set of GLS parameters')
+
         # Get time coverage
         ocean_time = self.Dataset.variables['ocean_time']
         time_units = ocean_time.__dict__['units']

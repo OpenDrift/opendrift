@@ -68,7 +68,11 @@ class PelagicEggDrift(OpenDrift3DSimulation):
                           'sea_floor_depth_below_sea_level',
                           'ocean_vertical_diffusivity',
                           'sea_water_temperature',
-                          'sea_water_salinity'
+                          'sea_water_salinity',
+                          'surface_downward_x_stress',
+                          'surface_downward_y_stress',
+                          'turbulent_kinetic_energy',
+                          'turbulent_generic_length_scale',
                           #'upward_sea_water_velocity'
                           ]
 
@@ -94,7 +98,11 @@ class PelagicEggDrift(OpenDrift3DSimulation):
                        'sea_floor_depth_below_sea_level': 100,
                        'ocean_vertical_diffusivity': 0.02,  # m2s-1
                        'sea_water_temperature': 10.,
-                       'sea_water_salinity': 34.
+                       'sea_water_salinity': 34.,
+                       'surface_downward_x_stress': 0,
+                       'surface_downward_y_stress': 0,
+                       'turbulent_kinetic_energy': 0,
+                       'turbulent_generic_length_scale': 0
                        #'upward_sea_water_velocity': 0
                        }
 
