@@ -7,6 +7,10 @@ import logging
 def windspeed_Sundby1983(s):
     depths = s.environment_profiles['z']
     windspeed_squared = s.environment.x_wind**2 + s.environment.y_wind**2
+    if np.max(windspeed_squared) == 0:
+        # Wind not available, check if we can invert from wind stress
+        if hasattr(s.environment, 'surface_downward_x_stress'):
+            windspeed_squared = s.windspeed_from_stress()**2
     K = 76.1e-4 + 2.26e-4 * windspeed_squared
     #valid = windspeed_squared < 13**2
     Kprofiles, N = sp.meshgrid(K, depths)

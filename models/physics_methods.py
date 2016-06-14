@@ -199,3 +199,28 @@ class PhysicsMethods(object):
         f = 0.032*(self.wind_speed() - 5)/self.wave_period()
         f[f<0] = 0
         return f
+
+    def air_density(self):
+        return 1.225  # Could calculate from temperature
+
+    def windspeed_from_stress(self):
+        wind_stress = np.sqrt(self.environment.surface_downward_x_stress**2+
+                              self.environment.surface_downward_y_stress**2)
+        return windspeed_from_stress_polyfit(wind_stress)
+
+def wind_drag_coefficient(windspeed):
+    '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''
+    Cd = 0.0012*np.ones(len(windspeed))
+    Cd[windspeed>11] = 0.001*(0.49 + 0.065*windspeed[windspeed>11])
+    return Cd
+
+def windspeed_from_stress_polyfit(wind_stress):
+    '''Inverting Large and Pond (1981) using polyfit'''
+    windspeed = np.linspace(0, 30, 30)
+    rho_air = 1.225
+    stress = wind_drag_coefficient(windspeed)*rho_air*(windspeed**2)
+    z = np.polyfit(stress, windspeed, 3)
+    p = np.poly1d(z)
+    return p(wind_stress)
+
+
