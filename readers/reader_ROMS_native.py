@@ -272,6 +272,8 @@ class Reader(Reader):
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
+        variables['x'] = variables['x'].astype(np.float)
+        variables['y'] = variables['y'].astype(np.float)
         variables['time'] = nearestTime
 
         if 'x_sea_water_velocity' or 'sea_ice_x_velocity' or 'x_wind' in variables.keys():
@@ -282,24 +284,24 @@ class Reader(Reader):
             rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
-                    variables['y_sea_water_velocity'] = rotate_vectors(
+                    variables['y_sea_water_velocity'] = rotate_vectors_angle(
                         variables['x_sea_water_velocity'],
                         variables['y_sea_water_velocity'], rad)
             if 'sea_ice_x_velocity' in variables.keys():
                 variables['sea_ice_x_velocity'], \
-                    variables['sea_ice_y_velocity'] = rotate_vectors(
+                    variables['sea_ice_y_velocity'] = rotate_vectors_angle(
                         variables['sea_ice_x_velocity'],
                         variables['sea_ice_y_velocity'], rad)
             if 'x_wind' in variables.keys():
                 variables['x_wind'], \
-                    variables['y_wind'] = rotate_vectors(
+                    variables['y_wind'] = rotate_vectors_angle(
                         variables['x_wind'],
                         variables['y_wind'], rad)
 
         return variables
 
 
-def rotate_vectors(u, v, radians):
+def rotate_vectors_angle(u, v, radians):
     u = u*np.cos(radians) - v*np.sin(radians)
     v = u*np.sin(radians) + v*np.cos(radians)
     return u, v
