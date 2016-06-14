@@ -1193,7 +1193,7 @@ class OpenDriftSimulation(PhysicsMethods):
         index_of_deactivation = firstlast[1][1]
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, buffer=.1, delta_lat=None):
+    def set_up_map(self, buffer=.1, delta_lat=None, **kwargs):
         """Generate Basemap instance on which trajectories are plotted."""
 
         if hasattr(self, 'history'):
@@ -1348,8 +1348,9 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             plt.show()
 
-    def plot(self, background=None, buffer=.5, linecolor=None,
-             filename=None, drifter_file=None, show=True, **kwargs):
+    def plot(self, background=None, buffer=.5, linecolor=None, filename=None,
+             drifter_file=None, show=True, vmin=None, vmax=None,
+             skip=2, scale=10, show_scalar=True, **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -1473,18 +1474,19 @@ class OpenDriftSimulation(PhysicsMethods):
                 # NB: rotation not completed!
                 u_component, v_component = reader.rotate_vectors(
                     reader_x, reader_y, u_component, v_component,
-                    reader.proj4, map.srs)
+                    reader.proj, map.srs)
             else:
                 scalar = data[background]
             rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
             map_x, map_y = map(rlons, rlats)
-            map.pcolormesh(map_x, map_y, scalar, alpha=1)
+            if show_scalar is True:
+                map.pcolormesh(map_x, map_y, scalar, alpha=1,
+                               vmin=vmin, vmax=vmax)
 
             if type(background) is list:
-                skip = 10
                 map.quiver(map_x[::skip, ::skip], map_y[::skip, ::skip],
                            u_component[::skip, ::skip],
-                           v_component[::skip, ::skip], scale=20)
+                           v_component[::skip, ::skip], scale=scale)
 
         if hasattr(self, 'time'):
             plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
