@@ -19,6 +19,27 @@ import numpy as np
 from readers.reader import pyproj
 
 
+def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
+                                 significant_wave_height, mean_wave_period, z):
+
+    stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
+                                   stokes_v_surface**2)
+
+    fm01 = fm01 = 1. / mean_wave_period
+
+    total_transport = (2.*np.pi/16.)*fm01*np.power(
+                       significant_wave_height, 2)
+
+    k = (stokes_surface_speed/(2*total_transport))
+
+    stokes_speed = stokes_surface_speed*np.exp(2*k*z)
+
+    stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
+    stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+
+    return stokes_u, stokes_v, stokes_speed
+
+
 class PhysicsMethods(object):
     """Physics methods to be inherited by OpenDriftSimulation class"""
 
@@ -135,17 +156,14 @@ class PhysicsMethods(object):
             return
 
         logging.debug('Calculating Stokes drift')
-        # Assuming deep water:
-        wave_peak_period = self.environment.\
-            sea_surface_wave_period_at_variance_spectral_density_maximum
-        wavelength = 9.81/(2*3.14)*np.power(wave_peak_period, 2)
-        depth_reduction_factor = np.exp(4*3.14*self.elements.z/wavelength)
 
-        self.update_positions(
-            self.environment.sea_surface_wave_stokes_drift_x_velocity*
-                depth_reduction_factor,
-            self.environment.sea_surface_wave_stokes_drift_y_velocity*
-                depth_reduction_factor)
+        stokes_u, stokes_v, s = stokes_drift_profile_breivik(
+            self.environment.sea_surface_wave_stokes_drift_x_velocity,
+            self.environment.sea_surface_wave_stokes_drift_y_velocity,
+            self.significant_wave_height(), self.wave_period(),
+            self.elements.z)
+
+        self.update_positions(stokes_u, stokes_v)
 
     def wave_mixing(self, time_step_seconds):
         return  # To be implemented by subclasses, e.g. downward mixing of oil
