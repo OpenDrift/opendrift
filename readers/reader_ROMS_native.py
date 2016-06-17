@@ -129,8 +129,15 @@ class Reader(Reader):
             logging.info('Did not find complete set of GLS parameters')
 
         # Get time coverage
-        ocean_time = self.Dataset.variables['ocean_time']
+        try:
+            ocean_time = self.Dataset.variables['ocean_time']
+        except:
+            ocean_time = self.Dataset.variables['time']
         time_units = ocean_time.__dict__['units']
+        if time_units == 'second':
+            logging.info('Ocean time given as seconds relative to start '
+                         'Setting artifical start time of 1 Jan 2000.')
+            time_units = 'seconds since 2000-01-01 00:00:00'
         self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
