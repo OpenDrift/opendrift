@@ -1233,10 +1233,17 @@ class OpenDriftSimulation(PhysicsMethods):
             map.drawmeridians(np.arange(np.floor(map.lonmin),
                                         np.ceil(map.lonmax), delta_lat),
                               labels=[0, 0, 0, 1])
-            map.drawparallels(np.arange(np.floor(map.latmin),
-                                        np.ceil(map.latmax), delta_lat),
-                              labels=[0, 1, 1, 0])
-
+            try:
+                map.drawparallels(np.arange(np.floor(map.latmin),
+                                            np.ceil(map.latmax), delta_lat),
+                                  labels=[0, 1, 1, 0])
+            except:
+                logging.info('Drawing of parallels failed due to bug in '
+                             'matplotlib, can be fixed as explained here: '
+                'https://sourceforge.net/p/matplotlib/mailman/message/28461289/')
+                map.drawparallels(np.arange(np.floor(map.latmin),
+                                            np.ceil(map.latmax), 1),
+                                            labels=[0, 1, 1, 0]) 
         x, y = map(lons, lats)
 
         try:
