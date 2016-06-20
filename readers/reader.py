@@ -278,8 +278,10 @@ class Reader(object):
         if time == time_before:
             time_after = None
 
-        reader_x, reader_y = self.lonlat2xy(lon, lat)
-        z = z.copy()  # Send values and not reference to avoid modifications
+        reader_x, reader_y = self.lonlat2xy(lon[ind_covered],
+                                            lat[ind_covered])
+        z = z.copy()[ind_covered]  # Send values and not reference
+                                   # to avoid modifications
 
         if block is False or self.return_block is False:
             # Analytical reader, continous in space and time
@@ -469,13 +471,12 @@ class Reader(object):
 
         # Masking non-covered pixels
         if len(ind_covered) != len(lon):
-            mask = np.ones(len(lon), np.bool)
-            mask[ind_covered] = 0
             logging.debug('Masking %i elements outside coverage' %
-                           np.sum(mask))
+                          (len(lon)-len(ind_covered)))
             for var in variables:
-                env[var][mask] = np.nan
-                env[var] = np.ma.masked_invalid(env[var])
+                tmp = np.nan*np.ones(lon.shape)
+                tmp[ind_covered] = np.ma.masked_invalid(env[var])
+                env[var] = tmp.copy()
 
         return env, env_profiles
 
