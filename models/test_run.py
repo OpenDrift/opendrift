@@ -201,12 +201,24 @@ class TestRun(unittest.TestCase):
                          o2i.num_elements_deactivated())
 
     def test_reader_boundary(self):
-        # Check that the element outside reader coverage gets deactivated
+        # Check that the element outside reader coverage is
+        # not deactivated if fallback value exist
         nordic3d = reader_ROMS_native.Reader(script_folder +
             '/../test_data/2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         lon = [12.0, 12.0]
         lat = [70.0, 70.5]
         o = OceanDrift()
+        o.add_reader(nordic3d)
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon, lat, number=2, radius=0,
+                        time=nordic3d.start_time)
+        o.run(steps=2, time_step=3600)
+        self.assertEqual(o.num_elements_active(), 2)
+        self.assertEqual(o.num_elements_deactivated(), 0)
+        # Check that the outside element is deactivated,
+        # if no fallback value exists
+        o = OceanDrift()
+        del o.fallback_values['x_sea_water_velocity']
         o.add_reader(nordic3d)
         o.fallback_values['land_binary_mask'] = 0
         o.seed_elements(lon, lat, number=2, radius=0,
