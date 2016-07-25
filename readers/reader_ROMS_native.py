@@ -27,38 +27,39 @@ from roppy import depth
 
 class Reader(Reader):
 
-    # Map ROMS variable names to CF standard_name
-    ROMS_variable_mapping = {
-        'mask_psi': 'land_binary_mask',
-        'h': 'sea_floor_depth',
-        'zeta': 'sea_surface_height',
-        'u': 'x_sea_water_velocity',
-        'v': 'y_sea_water_velocity',
-        'temp': 'sea_water_temperature',
-        'salt': 'sea_water_salinity',
-        'uice': 'sea_ice_x_velocity',
-        'vice': 'sea_ice_y_velocity',
-        'aice': 'sea_ice_area_fraction',
-        'hice': 'sea_ice_thickness',
-        'gls': 'turbulent_generic_length_scale',
-        'tke': 'turbulent_kinetic_energy',
-        'sustr': 'surface_downward_x_stress',
-        'svstr': 'surface_downward_y_stress',
-        'Uwind': 'x_wind',
-        'Vwind': 'y_wind'}
-
-    zbuffer = 1  # Vertical buffer of block around elements
-
-    # z-levels to which sigma-layers may be interpolated
-    zlevels = [0, -.5, -1, -3, -5, -10, -25, -50, -75, -100, -150, -200,
-               -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
-               -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
-               -6500, -7000, -7500, -8000]
-
     def __init__(self, filename=None, name=None, gridfile=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
+
+        # Map ROMS variable names to CF standard_name
+        self.ROMS_variable_mapping = {
+            'mask_psi': 'land_binary_mask',
+            'h': 'sea_floor_depth',
+            'zeta': 'sea_surface_height',
+            'u': 'x_sea_water_velocity',
+            'v': 'y_sea_water_velocity',
+            'temp': 'sea_water_temperature',
+            'salt': 'sea_water_salinity',
+            'uice': 'sea_ice_x_velocity',
+            'vice': 'sea_ice_y_velocity',
+            'aice': 'sea_ice_area_fraction',
+            'hice': 'sea_ice_thickness',
+            'gls': 'turbulent_generic_length_scale',
+            'tke': 'turbulent_kinetic_energy',
+            'sustr': 'surface_downward_x_stress',
+            'svstr': 'surface_downward_y_stress',
+            'Uwind': 'x_wind',
+            'Vwind': 'y_wind'}
+
+        self.zbuffer = 1  # Vertical buffer of block around elements
+
+        # z-levels to which sigma-layers may be interpolated
+        self.zlevels = [0, -.5, -1, -3, -5, -10, -25, -50, -75, -100, -150, -200,
+                        -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
+                        -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
+                        -6500, -7000, -7500, -8000]
+
 
         filestr = str(filename)
         if name is None:
