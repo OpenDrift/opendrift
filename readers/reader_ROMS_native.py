@@ -35,7 +35,7 @@ class Reader(Reader):
         # Map ROMS variable names to CF standard_name
         self.ROMS_variable_mapping = {
             'mask_psi': 'land_binary_mask',
-            'h': 'sea_floor_depth',
+            'h': 'sea_floor_depth_below_sea_level',
             'zeta': 'sea_surface_height',
             'u': 'x_sea_water_velocity',
             'v': 'y_sea_water_velocity',
@@ -203,11 +203,12 @@ class Reader(Reader):
 
         else:
             # Find the range of indices covering given z-values
-            if not hasattr(self, 'sea_floor_depth'):
+            if not hasattr(self, 'sea_floor_depth_below_sea_level'):
                 logging.debug('Reading sea floor depth...')
-                self.sea_floor_depth = self.Dataset.variables['h'][:]
+                self.sea_floor_depth_below_sea_level = \
+                    self.Dataset.variables['h'][:]
             indxgrid, indygrid = np.meshgrid(indx, indy)
-            H = self.sea_floor_depth[indygrid, indxgrid]
+            H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
             z_rho = depth.sdepth(H, self.hc, self.Cs_r)
             # Element indices must be relative to extracted subset
             indx_el = indx_el - indx.min()
