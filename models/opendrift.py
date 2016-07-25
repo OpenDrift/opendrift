@@ -727,7 +727,8 @@ class OpenDriftSimulation(PhysicsMethods):
         lons = np.asarray(lons)
         lats = np.asarray(lats)
         if len(lons) < 3:
-            raise ValueError('At least three points needed to make a polygon')
+            logging.info('At least three points needed to make a polygon')
+            return
         if len(lons) != len(lats):
             raise ValueError('lon and lat arrays must have same length.')
         poly = Polygon(zip(lons, lats), closed=True)
@@ -1213,6 +1214,18 @@ class OpenDriftSimulation(PhysicsMethods):
             map = self.readers['basemap_landmask'].map
         else:
             # Otherwise create a new Basemap covering the elements
+            ## Calculate aspect ratio, to minimise whitespace on figures
+            ## Drawback is that empty figure is created in interactive mode
+            meanlat = (latmin + latmax)/2
+            aspect_ratio = np.float(latmax-latmin) / \
+                           (np.float(lonmax-lonmin))
+            aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
+            if aspect_ratio > 1:
+                plt.figure(figsize=(10./aspect_ratio, 10.))
+            else:
+                plt.figure(figsize=(11., 11.*aspect_ratio))
+            #ax = plt.axes([.05,.05,.85,.9])
+            ax = plt.axes([.05,.08,.85,.9])  # When colorbar below
             map = Basemap(lonmin, latmin, lonmax, latmax,
                           resolution='h', projection='merc')
 
@@ -1410,13 +1423,16 @@ class OpenDriftSimulation(PhysicsMethods):
                     #lc.set_linewidth(3)
                     lc.set_array(param.T[vind, i])
                     plt.gca().add_collection(lc)
-                axcb = map.colorbar(lc, location='bottom', pad='5%')
+                #axcb = map.colorbar(lc, location='bottom', pad='5%')
+                axcb = map.colorbar(lc, location='bottom', pad='1%')
                 try:  # Add unit to colorbar if available
                     colorbarstring = linecolor + '  [%s]' % \
                         (self.history_metadata[linecolor]['units'])
                 except:
                     colorbarstring = linecolor
-                axcb.set_label(colorbarstring)
+                #axcb.set_label(colorbarstring)
+                axcb.set_label(colorbarstring, size=14)
+                axcb.ax.tick_params(labelsize=14)
 
         map.scatter(x[range(x.shape[0]), index_of_first],
                     y[range(x.shape[0]), index_of_first],
@@ -1515,6 +1531,8 @@ class OpenDriftSimulation(PhysicsMethods):
             #map.plot(x, y, '-r', linewidth=2, zorder=10)
             #map.plot(x[0], y[0], '*r', zorder=10)
             #map.plot(x[-1], y[-1], '*r', zorder=10)
+
+        #plt.gca().tick_params(labelsize=14)
 
         if filename is not None:
             #plt.savefig(filename, dpi=200)
