@@ -1,5 +1,4 @@
 numpy>=1.6.0
 scipy>=0.9.0
 matplotlib>=1.1.1
-basemap>=0.9.0
 netCDF4>=1.0.0
