@@ -8,9 +8,9 @@ addons:
       - libhdf5-serial-dev
       - netcdf-bin
       - libnetcdf-dev
+      - gfortran
       - libblas-dev
       - liblapack-dev
-      - libgfortran
 install:
   - pip install -r requirements.txt
   - sudo ls -l /usr/lib/
