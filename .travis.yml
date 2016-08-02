@@ -1,6 +1,7 @@
 language: python
 python:
   - "2.7"
+sudo: required
 install:
   - ls -l /usr/lib/
   - ln -s /usr/lib/libgeos-3.4.2.so /usr/lib/libgeos.so
