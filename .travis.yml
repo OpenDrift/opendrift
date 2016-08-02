@@ -4,6 +4,6 @@ python:
 sudo: required
 install:
   - sudo ls -l /usr/lib/
-  - sudo ln -s /usr/lib/libgeos-3.4.2.so /usr/lib/libgeos.so
+  - sudo ln -s /usr/lib/libgeos-3.3.8.so /usr/lib/libgeos.so
   - pip install https://github.com/matplotlib/basemap/archive/v1.0.7rel.tar.gz --allow-external basemap --allow-unverified basemap
 script: ./testall
