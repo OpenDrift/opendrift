@@ -72,6 +72,7 @@ class Reader(Reader):
             long_name = ''
             axis = ''
             units = ''
+            CoordinateAxisType = ''
             if 'standard_name' in attributes:
                 standard_name = var.__dict__['standard_name']
             if 'long_name' in attributes:
@@ -80,9 +81,12 @@ class Reader(Reader):
                 axis = var.__dict__['axis']
             if 'units' in attributes:
                 units = var.__dict__['units']
+            if '_CoordinateAxisType' in attributes:
+                CoordinateAxisType = var.__dict__['_CoordinateAxisType']
             if standard_name == 'longitude' or \
                     long_name == 'longitude' or \
                     axis == 'X' or \
+                    CoordinateAxisType == 'Lon' or \
                     standard_name == 'projection_x_coordinate':
                 self.xname = var_name
                 # Fix for units; should ideally use udunits package
@@ -96,6 +100,7 @@ class Reader(Reader):
             if standard_name == 'latitude' or \
                     long_name == 'latitude' or \
                     axis == 'Y' or \
+                    CoordinateAxisType == 'Lat' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
                 # Fix for units; should ideally use udunits package

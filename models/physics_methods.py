@@ -226,6 +226,10 @@ class PhysicsMethods(object):
                               self.environment.surface_downward_y_stress**2)
         return windspeed_from_stress_polyfit(wind_stress)
 
+    def solar_elevation(self):
+        '''Solar elevation at present time and position of active elements.'''
+        return solar_elevation(self.time, self.elements.lon, self.elements.lat)
+
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''
     Cd = 0.0012*np.ones(len(windspeed))
@@ -241,4 +245,47 @@ def windspeed_from_stress_polyfit(wind_stress):
     p = np.poly1d(z)
     return p(wind_stress)
 
+def declination(time):
+    '''Solar declination in degrees.'''
+    try:
+        day_of_year = time.timetuple().tm_yday
+    except:
+        day_of_year = np.asarray([t.timetuple().tm_yday for t in time])
+    declination = \
+        np.arcsin(np.deg2rad(-23.44)*
+                  np.cos(np.radians((360.0/365.24)*(day_of_year+10) +
+                                    (360.0/np.pi)*0.0167*
+                                    np.sin(np.radians((360.0/365.24)*
+                                           (day_of_year-2)))
+                                    )))
+    return np.rad2deg(declination)
+                            
+def equation_of_time(time):
+    '''Equation of time in minutes.'''
+    time = np.atleast_1d(time)
+    day_of_year = np.asarray([t.timetuple().tm_yday for t in time])
+    hour = np.asarray([t.hour for t in time])
+    gamma = 2*np.pi/365.0*(day_of_year - 1. +
+                           (hour - 12.) / 24.) 
+    eqtime = 229.18 * (0.000075 + 0.001868*np.cos(gamma) - 
+                       0.032077*np.sin(gamma) -
+                       0.014615*np.cos(2*gamma) - 0.040849*np.sin(2*gamma))
+    return eqtime
 
+def hour_angle(time, longitude):
+    '''Solar hour angle in degrees.'''
+    time = np.atleast_1d(time)
+    time_offset = equation_of_time(time) + 4*longitude
+    day_minutes = [t.hour*60.0 + t.minute + t.second/60.0 for t in time]
+    true_solar_time = day_minutes + time_offset
+    hour_angle = (true_solar_time/4.0) - 180.0  # degrees
+    return hour_angle
+
+def solar_elevation(time, longitude, latitude):
+    '''Solar elevation in degrees.'''
+    d_rad = np.deg2rad(declination(time))
+    h = hour_angle(time, longitude)
+    solar_elevation = np.rad2deg(np.arcsin(
+        np.sin(np.deg2rad(latitude))*np.sin(d_rad) +
+        np.cos(np.deg2rad(latitude))*np.cos(d_rad)*np.cos(np.deg2rad(h))))
+    return solar_elevation
