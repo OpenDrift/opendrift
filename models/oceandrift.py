@@ -22,7 +22,10 @@ from elements.passivetracer import PassiveTracer
 PassiveTracer.variables = PassiveTracer.add_variables([
                             ('wind_drift_factor', {'dtype': np.float32,
                                                    'unit': '%',
-                                                   'default': 0.02})])
+                                                   'default': 0.02}),
+                            ('age_seconds', {'dtype': np.float32,
+                                                   'units': 's',
+                                                   'default': 0})])
 
 class OceanDrift(OpenDriftSimulation):
     """Trajectory model based on the OpenDrift framework.
@@ -45,10 +48,14 @@ class OceanDrift(OpenDriftSimulation):
 
     configspec = '''
         [drift]
-            scheme = option('euler', 'runge-kutta', default='euler')'''
+            scheme = option('euler', 'runge-kutta', default='euler')
+            max_age_seconds = float(min=0, default=None)
+            '''
 
     def update(self):
         """Update positions and properties of elements."""
+
+        self.elements.age_seconds += self.time_step.total_seconds()
 
         # Simply move particles with ambient current
         self.advect_ocean_current()
@@ -59,3 +66,9 @@ class OceanDrift(OpenDriftSimulation):
         # Deactivate elements on land
         self.deactivate_elements(self.environment.land_binary_mask == 1,
                                  reason='stranded')
+
+        # Deactivate elements that exceed a certain age
+        if self.config['drift']['max_age_seconds'] is not None:
+	        self.deactivate_elements(self.elements.age_seconds >= 
+                                         self.config['drift']['max_age_seconds'], 
+                                         reason='retired')
