@@ -25,10 +25,7 @@ PassiveTracer.variables = PassiveTracer.add_variables([
                                                    'default': 0.02}),
                             ('age_seconds', {'dtype': np.float32,
                                                    'units': 's',
-                                                   'default': 0}),
-                            ('max_age_seconds', {'dtype': np.float32,
-                                                   'units': 's',
-                                                   'default': 3600*24*365})])
+                                                   'default': 0})])
 
 class OceanDrift(OpenDriftSimulation):
     """Trajectory model based on the OpenDrift framework.
@@ -52,7 +49,7 @@ class OceanDrift(OpenDriftSimulation):
     configspec = '''
         [drift]
             scheme = option('euler', 'runge-kutta', default='euler')
-            max_age_seconds = float(min=0, default=31536000)
+            max_age_seconds = float(min=0, default=None)
             '''
 
     def update(self):
@@ -71,6 +68,7 @@ class OceanDrift(OpenDriftSimulation):
                                  reason='stranded')
 
         # Deactivate elements that exceed a certain age
-        self.deactivate_elements(self.elements.age_seconds > 
-                                 self.config['drift']['max_age_seconds'], 
-                                 reason='retired')
+        if self.config['drift']['max_age_seconds'] is not None:
+	        self.deactivate_elements(self.elements.age_seconds >= 
+                                         self.config['drift']['max_age_seconds'], 
+                                         reason='retired')
