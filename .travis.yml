@@ -2,5 +2,7 @@ language: python
 python:
   - "2.7"
 install:
+  - ls -l /usr/lib/
+  - ln -s /usr/lib/libgeos-3.4.2.so /usr/lib/libgeos.so
   - pip install https://github.com/matplotlib/basemap/archive/v1.0.7rel.tar.gz --allow-external basemap --allow-unverified basemap
 script: ./testall
