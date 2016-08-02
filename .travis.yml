@@ -10,6 +10,7 @@ addons:
       - libnetcdf-dev
       - libblas-dev
       - liblapack-dev
+      - libgfortran
 install:
   - pip install -r requirements.txt
   - sudo ls -l /usr/lib/
