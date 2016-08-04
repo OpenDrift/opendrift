@@ -1,7 +1,10 @@
 language: python
 python:
   - "2.7"
-cache: pip
+cache:
+  - pip: true
+  - apt: true
+  - custom_install: true
 sudo: required
 addons:
   apt:
