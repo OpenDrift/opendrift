@@ -15,12 +15,18 @@ addons:
       - gfortran
       - libblas-dev
       - liblapack-dev
-before_iinstall:
+before_install:
     - pip install coveralls
+    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+    - chmod +x miniconda.sh
+    - ./miniconda.sh -b
+    - export PATH=/home/travis/miniconda/bin:$PATH
+    - conda update --yes conda
+    # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
+    - sudo rm -rf /dev/shm
+    - sudo ln -s /run/shm /dev/shm
 install:
-  - travis_wait 40 pip install -r requirements.txt
-  - sudo ln -s /usr/lib/libgeos-3.3.8.so /usr/lib/libgeos.so
-  - pip install https://github.com/matplotlib/basemap/archive/v1.0.7rel.tar.gz --allow-external basemap --allow-unverified basemap
+    - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib basemap netcdf4
 script: ./testall
 after_success:
   - coveralls
