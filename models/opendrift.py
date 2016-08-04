@@ -1514,7 +1514,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         # contourlines is an array of values
                         CS = map.contour(map_x, map_y, scalar, contourlines,
                                          colors='gray')
-                plt.clabel(CS, fmt='%g')
+                    plt.clabel(CS, fmt='%g')
 
             if type(background) is list:
                 map.quiver(map_x[::skip, ::skip], map_y[::skip, ::skip],
