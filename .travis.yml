@@ -11,7 +11,8 @@ before_install:
     - sudo rm -rf /dev/shm
     - sudo ln -s /run/shm /dev/shm
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib basemap netcdf4 python-coveralls
+    - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib basemap netcdf4
+    - conda install -c hargup python-coveralls
 script: ./testall
 after_success:
   - coveralls
