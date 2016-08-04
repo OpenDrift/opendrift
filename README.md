@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/knutfrode/opendrift.svg?branch=master)](https://travis-ci.org/knutfrode/opendrift)
+[![Coverage Status](https://coveralls.io/repos/github/knutfrode/opendrift/badge.svg?branch=master)](https://coveralls.io/github/knutfrode/opendrift?branch=master)
+
 opendrift
 =========
 

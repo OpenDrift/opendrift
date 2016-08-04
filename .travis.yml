@@ -1,6 +1,7 @@
 language: python
 python:
   - "2.7"
+cache: pip
 sudo: required
 addons:
   apt:
@@ -13,7 +14,6 @@ addons:
       - liblapack-dev
 install:
   - travis_wait 40 pip install -r requirements.txt
-  - sudo ls -l /usr/lib/
   - sudo ln -s /usr/lib/libgeos-3.3.8.so /usr/lib/libgeos.so
   - pip install https://github.com/matplotlib/basemap/archive/v1.0.7rel.tar.gz --allow-external basemap --allow-unverified basemap
 script: ./testall
