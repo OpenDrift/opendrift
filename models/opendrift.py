@@ -1370,7 +1370,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def plot(self, background=None, buffer=.5, linecolor=None, filename=None,
              drifter_file=None, show=True, vmin=None, vmax=None,
-             skip=2, scale=10, show_scalar=True, **kwargs):
+             skip=2, scale=10, show_scalar=True, contourlines=False, **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -1503,8 +1503,18 @@ class OpenDriftSimulation(PhysicsMethods):
             rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
             map_x, map_y = map(rlons, rlats)
             if show_scalar is True:
-                map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                               vmin=vmin, vmax=vmax)
+                if contourlines is False:
+                    map.pcolormesh(map_x, map_y, scalar, alpha=1,
+                                   vmin=vmin, vmax=vmax)
+                else:
+                    if contourlines is True:
+                        CS = map.contour(map_x, map_y, scalar,
+                                         colors='gray')
+                    else:
+                        # contourlines is an array of values
+                        CS = map.contour(map_x, map_y, scalar, contourlines,
+                                         colors='gray')
+                plt.clabel(CS, fmt='%g')
 
             if type(background) is list:
                 map.quiver(map_x[::skip, ::skip], map_y[::skip, ::skip],
