@@ -4,7 +4,7 @@ python:
 cache:
   directories:
     - $HOME/download
-    - $HOME/miniconda2
+    - $HOME/travis/miniconda2
 sudo: required
 before_install:
   - if [[ ! -e $HOME/miniconda2/bin ]]; then
