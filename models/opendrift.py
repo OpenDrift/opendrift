@@ -1002,6 +1002,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.time_step_output.total_seconds() + 1  # Includes start and end
         self.expected_steps_calculation = duration.total_seconds() / \
             self.time_step.total_seconds()
+        self.expected_steps_output = int(self.expected_steps_output)
         self.expected_steps_calculation = int(self.expected_steps_calculation)
 
         ####################################################################

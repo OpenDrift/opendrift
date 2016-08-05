@@ -34,12 +34,13 @@ class NDImage2DInterpolator():
         self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid) 
 
     def __call__(self, array2d):
+        a = array2d.copy()  # Make copy to avoid modifications outside
         try:
-            array2d[array2d.mask] = np.nan  # Gives holes
+            a[a.mask] = np.nan  # Gives holes
         except:
             pass
         return np.ma.masked_invalid(
-            map_coordinates(array2d, [self.yi, self.xi],
+            map_coordinates(a, [self.yi, self.xi],
                             cval=np.nan, order=0))
 
 class LinearND2DInterpolator():
