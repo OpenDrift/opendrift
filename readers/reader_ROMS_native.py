@@ -311,6 +311,6 @@ class Reader(Reader):
 
 
 def rotate_vectors_angle(u, v, radians):
-    u = u*np.cos(radians) - v*np.sin(radians)
-    v = u*np.sin(radians) + v*np.cos(radians)
-    return u, v
+    u2 = u*np.cos(radians) - v*np.sin(radians)
+    v2 = u*np.sin(radians) + v*np.cos(radians)
+    return u2, v2
