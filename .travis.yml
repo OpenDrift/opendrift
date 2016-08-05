@@ -7,22 +7,22 @@ cache:
     - $HOME/miniconda2
 sudo: required
 before_install:
-    - if [[ ! -e $HOME/miniconda2/bin ]]; then
-        mkdir -p download
-        cd download
-        wget -c http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-        chmod +x miniconda.sh
-        ./miniconda.sh -b -f
-        cd ..
-      fi
-    - export PATH=/home/travis/miniconda2/bin:$PATH
-    #- conda update --yes conda
-    # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
-    - sudo rm -rf /dev/shm
-    - sudo ln -s /run/shm /dev/shm
+  - if [[ ! -e $HOME/miniconda2/bin ]]; then
+        mkdir -p download;
+        cd download;
+        wget -c http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+        chmod +x miniconda.sh;
+        ./miniconda.sh -b -f;
+        cd ..;
+    fi
+  - export PATH=/home/travis/miniconda2/bin:$PATH
+  #- conda update --yes conda
+  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
+  - sudo rm -rf /dev/shm
+  - sudo ln -s /run/shm /dev/shm
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=1.11 scipy matplotlib basemap netcdf4
-    - conda install --yes -c dan_blanchard python-coveralls
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=1.11 scipy matplotlib basemap netcdf4
+  - conda install --yes -c dan_blanchard python-coveralls
 script: ./testall
 after_success:
   - coveralls
