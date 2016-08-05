@@ -12,7 +12,7 @@ before_install:
     - sudo rm -rf /dev/shm
     - sudo ln -s /run/shm /dev/shm
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib basemap netcdf4
+    - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=1.11 scipy matplotlib basemap netcdf4
     - conda install --yes -c dan_blanchard python-coveralls
 script: ./testall
 after_success:
