@@ -18,7 +18,7 @@
 
 import argparse
 import numpy as np
-from models.openoil3D import OpenOil3D
+from opendrift.models.openoil3D import OpenOil3D
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

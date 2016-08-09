@@ -26,10 +26,10 @@ import sys
 import argparse
 
 try:
-    from readers import reader_netCDF_CF_generic
-    from readers import reader_ROMS_native
+    from opendrift.readers import reader_netCDF_CF_generic
+    from opendrift.readers import reader_ROMS_native
     try:
-        from readers import reader_grib
+        from opendrift.readers import reader_grib
         readers = [reader_netCDF_CF_generic, reader_ROMS_native,
                    reader_grib]
     except:

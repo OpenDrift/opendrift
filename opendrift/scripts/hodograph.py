@@ -32,8 +32,8 @@ import matplotlib.pyplot as plt
 sys.path.append("..")
 
 try:
-    from readers import reader_netCDF_CF_generic
-    from readers import reader_ROMS_native
+    from opendrift.readers import reader_netCDF_CF_generic
+    from opendrift.readers import reader_ROMS_native
     readers = [reader_netCDF_CF_generic, reader_ROMS_native]
 except ImportError: # development
     sys.exit('Please add opendrift folder to your PYTHONPATH.')

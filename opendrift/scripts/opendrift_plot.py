@@ -21,7 +21,7 @@ import argparse
 import numpy as np
 sys.path.append("..")
 
-from models.openoil import OpenOil
+from opendrift.models.openoil import OpenOil
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
