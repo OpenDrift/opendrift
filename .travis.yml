@@ -29,6 +29,6 @@ before_install:
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy matplotlib basemap netcdf4
   - conda install --yes -c dan_blanchard python-coveralls
-script: ./testall
+script: .opendrift/testall
 after_success:
   - coveralls
