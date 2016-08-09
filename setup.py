@@ -19,8 +19,8 @@ config = {
     'include_package_data': True,
     #'use_scm_version': True,
     'setup_requires': ['setuptools_scm'],
-    'scripts': ['scripts/hodograph.py', 'scripts/readerinfo.py',
-                'scripts/opendrift_plot.py', 'scripts/opendrift_animate.py']
+    'scripts': ['opendrift/scripts/hodograph.py', 'opendrift/scripts/readerinfo.py',
+                'opendrift/scripts/opendrift_plot.py', 'opendrift/scripts/opendrift_animate.py']
 }
 
 setup(**config)
