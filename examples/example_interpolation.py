@@ -10,12 +10,12 @@ o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(
-    'test_data/16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+    '../test_data/16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
 
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader(
-    'test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+    '../test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 # Landmask (Basemap)
@@ -33,6 +33,7 @@ time = [reader_arome.start_time,
 # Seed oil elements at defined position and time
 o.seed_elements(lon, lat, radius=50, number=5000, time=time)
 
+
 # Adjusting some configuration
 o.config['processes']['diffusion'] = True
 o.config['processes']['dispersion'] = False
@@ -41,6 +42,9 @@ o.config['processes']['emulsification'] = False
 o.config['drift']['current_uncertainty'] = .1
 o.config['drift']['wind_uncertainty'] = 2
 o.config['drift']['relative_wind'] = False
+
+for r in o.readers:
+    o.readers[r].interpolation = 'ndimage'
 
 # Running model
 o.run(steps=66*2, time_step=1800)
@@ -55,10 +59,14 @@ o2.config['processes']['evaporation'] = False
 o2.config['processes']['emulsification'] = False
 o2.config['drift']['current_uncertainty'] = .1
 o2.config['drift']['wind_uncertainty'] = 2
-o.config['drift']['relative_wind'] = True
+o2.config['drift']['relative_wind'] = False
+
+for r in o.readers:
+    o.readers[r].interpolation = 'linearND'
+
 o2.run(steps=66*2, time_step=1800)
 
 
 # Animate and compare the two runs
-o.animation(compare=o2, legend=['Absolute wind', 'Relative wind'])
+o.animation(compare=o2, legend=['ndimage', 'linearND'])
             
