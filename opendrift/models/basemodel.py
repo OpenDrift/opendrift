@@ -26,7 +26,7 @@ from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
-from opendrift.configobj import configobj, validate
+import configobj, validate
 try:
     from mpl_toolkits.basemap import Basemap
     import matplotlib.pyplot as plt
