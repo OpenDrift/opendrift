@@ -21,7 +21,7 @@ import unittest
 
 import numpy as np
 
-from elements import LagrangianArray
+from opendrift.elements.elements import LagrangianArray
 
 
 class TestElements(unittest.TestCase):

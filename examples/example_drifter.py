@@ -13,8 +13,10 @@ o = OceanDrift()  # Basic drift model suitable for passive tracers or drifters
 # Preparing Readers
 #######################
 
-reader_current = reader_netCDF_CF_generic.Reader('../test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-reader_wind = reader_netCDF_CF_generic.Reader('../test_data/16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+    '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(

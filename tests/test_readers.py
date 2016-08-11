@@ -24,11 +24,11 @@ from datetime import timedelta, datetime
 
 import numpy as np
 
-import reader_netCDF_CF_generic
-import reader_ROMS_native
+from opendrift.models.oceandrift import OceanDrift
+from opendrift.readers import reader_netCDF_CF_generic
+from opendrift.readers import reader_ROMS_native
 
-script_folder = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
+o = OceanDrift()
 
 class TestReaders(unittest.TestCase):
     """Tests for readers"""
@@ -36,10 +36,10 @@ class TestReaders(unittest.TestCase):
     def test_reader_netcdf(self):
         """Check reader functionality."""
 
-        reader1 = reader_netCDF_CF_generic.Reader(script_folder + 
-            '/../test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        reader2 = reader_ROMS_native.Reader(script_folder +
-            '/../test_data/2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        reader1 = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        reader2 = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         readers = [reader1, reader2]
 
         for r in readers:
@@ -78,8 +78,8 @@ class TestReaders(unittest.TestCase):
 
     def test_vertical_profiles(self):
 
-        norkyst3d = reader_netCDF_CF_generic.Reader(script_folder +
-            '/../test_data/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+            '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         lon = np.array([4.73])
         lat = np.array([62.35])
         variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
@@ -94,8 +94,8 @@ class TestReaders(unittest.TestCase):
                          9.220000267028809)
 
     def test_vertical_interpolation(self):
-        norkyst3d = reader_netCDF_CF_generic.Reader(script_folder +
-            '/../test_data/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         lon = np.array([4.73, 4.75])
         lat = np.array([62.35, 62.30])
         z = np.array([0, -33])
@@ -120,8 +120,8 @@ class TestReaders(unittest.TestCase):
         #plt.show()
 
     def test_vertical_interpolation_sigma(self):
-        nordic3d = reader_ROMS_native.Reader(script_folder +
-            '/../test_data/2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        nordic3d = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         lon = np.array([12.46, 12.46, 12.46])
         lat = np.array([68.21, 69.31, 69.31])
         z = np.array([-33, 0, -2500])

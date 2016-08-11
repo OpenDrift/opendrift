@@ -91,8 +91,8 @@ o.animation()
 
 print '\n' + '='*70
 print 'Any model/module may provide specialised seeding-functions, such as \n seeding oil within contours read from a GML file:'
-print 'o.seed_from_gml("../test_data/radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml", num_elements=2000)'
+print 'o.seed_from_gml(o.test_data_folder() + "radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml", num_elements=2000)'
 print '='*70
-o.seed_from_gml('../test_data/radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
+o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 o.run(steps=1)
 o.plot(buffer=.03)

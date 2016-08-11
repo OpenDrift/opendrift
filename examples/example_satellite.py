@@ -9,10 +9,12 @@ from opendrift.models.openoil import OpenOil
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader('../test_data/16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader('../test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+    '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3.5, llcrnrlat=60.4,
@@ -24,7 +26,8 @@ o.add_reader([reader_basemap, reader_norkyst, reader_arome])
 ############################################################
 # Seed oil particles within contour detected from satellite
 ############################################################
-o.seed_from_gml('../test_data/radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
+o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml',
+    num_elements=2000)
 
 # Adjusting some configuration
 o.config['processes']['diffusion'] = True

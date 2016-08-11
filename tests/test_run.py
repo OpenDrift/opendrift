@@ -30,8 +30,6 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
-script_folder = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 class TestRun(unittest.TestCase):
     """Tests for (non-scalar) LagrangianArray"""
@@ -147,7 +145,8 @@ class TestRun(unittest.TestCase):
 
     def test_output_time_step(self):
         o1 = OceanDrift(loglevel=20)
-        norkyst = reader_netCDF_CF_generic.Reader(script_folder + '/../test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         basemap = reader_basemap_landmask.Reader(
             llcrnrlon=4, llcrnrlat=59.8, urcrnrlon=6, urcrnrlat=61,
             resolution='h', projection='merc')
@@ -203,11 +202,11 @@ class TestRun(unittest.TestCase):
     def test_reader_boundary(self):
         # Check that the element outside reader coverage is
         # not deactivated if fallback value exist
-        nordic3d = reader_ROMS_native.Reader(script_folder +
-            '/../test_data/2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        o = OceanDrift()
+        nordic3d = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         lon = [12.0, 12.0]
         lat = [70.0, 70.5]
-        o = OceanDrift()
         o.add_reader(nordic3d)
         o.fallback_values['land_binary_mask'] = 0
         o.seed_elements(lon, lat, number=2, radius=0,

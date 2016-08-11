@@ -205,6 +205,12 @@ class OpenDriftSimulation(PhysicsMethods):
     def required_variables(self):
         """Any trajectory model implementation must list needed variables."""
 
+    def test_data_folder(self):
+        import opendrift
+        return os.path.abspath(
+            os.path.join(os.path.dirname(opendrift.__file__),
+                         '..', 'tests', 'test_data')) + os.path.sep
+
     def set_projection(self, proj4):
         """Set the projection onto which data from readers is reprojected."""
         self.proj4 = proj4
