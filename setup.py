@@ -18,6 +18,7 @@ config = {
     ],
     'packages': find_packages(),
     'include_package_data': True,
+    'test_suite': 'tests',
     #'use_scm_version': True,
     'setup_requires': ['setuptools_scm'],
     'scripts': ['opendrift/scripts/hodograph.py',
