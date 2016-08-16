@@ -474,6 +474,8 @@ class OpenDriftSimulation(PhysicsMethods):
                         logging.debug('    Using fallback value for %s: %s'
                                       % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
+		        if 'env_profiles' in locals():
+                            env_profiles[var][:,missing_indices] = sp.ones_like(env_profiles[:,missing_indices])*self.fallback_values[var]
                     else:
                         logging.debug('\t\t%s values missing for %s' % (
                             len(missing_indices), var))
@@ -495,6 +497,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # Convert dictionary to recarray and return
         if 'env_profiles' not in locals():
             env_profiles = None
+
 
         return env.view(np.recarray), env_profiles, missing
 
@@ -879,6 +882,12 @@ class OpenDriftSimulation(PhysicsMethods):
         if hasattr(self, 'environment'):
             self.environment = self.environment[~indices]
             logging.debug('Removed %i values from environment.' %
+                          (sum(indices)))
+        if hasattr(self, 'environment_profiles'):
+            for varname, profiles in self.environment_profiles.iteritems():
+                if varname is not 'z':
+                    self.environment_profiles[varname] = profiles[:,~indices]
+            logging.debug('Removed %i values from environment_profiles.' %
                           (sum(indices)))
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation

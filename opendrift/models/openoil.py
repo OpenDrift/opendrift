@@ -332,7 +332,7 @@ class OpenOil(OpenDriftSimulation):
         self.diffusion()
 
         # Deactivate elements hitting coast
-        self.deactivate_elements(self.environment.land_binary_mask == 1,
+        self.deactivate_elements(self.environment.land_binary_mask != 0.,
                                  reason='stranded')
 
         # Do not let particles go below seafloor

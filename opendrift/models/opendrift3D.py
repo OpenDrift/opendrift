@@ -49,7 +49,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         Under construction.
     """
 
-    def update_terminal_velocity(self):
+    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,z_index=None):
         """Calculate terminal velocity due to bouyancy from own properties
         and environmental variables
         overload this function to create particle-specific behaviour
@@ -119,10 +119,15 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             Kprofiles = getattr(
                 eddydiffusivity,
                 self.config['turbulentmixing']['diffusivitymodel'])(self)
+
+        # get profiles of salinity and temperature (to save interpolation time in the inner loop)
+        if self.config['turbulentmixing']['TSprofiles']==True:
+	    Sprofiles = self.environment_profiles['sea_water_salinity']
+            Tprofiles = self.environment_profiles['sea_water_temperature']
                             
         # prepare vertical interpolation coordinates
-        zi = range(Kprofiles.shape[0])
-        z_index = interp1d(-self.environment_profiles['z'],zi,bounds_error=False)
+        z_i = range(Kprofiles.shape[0])
+        z_index = interp1d(-self.environment_profiles['z'],z_i,bounds_error=False)
     
         # internal loop for fast time step of vertical mixing model
         # binned random walk needs faster time step compared
@@ -133,8 +138,13 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         logging.debug('using ' + str(ntimes_mix) + ' fast time steps of dt=' +
                       str(dt_mix) + 's')
         for i in range(0, ntimes_mix):
+
             # update terminal velocity according to environmental variables
-            self.update_terminal_velocity()
+            if self.config['turbulentmixing']['TSprofiles']==True:
+                self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index)
+            else:
+                self.update_terminal_velocity() # this is faster, but ignores density gradients in water column for the inner loop
+
             w = self.elements.terminal_velocity
  
             # K at depth z

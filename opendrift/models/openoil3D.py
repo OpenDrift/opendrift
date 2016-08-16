@@ -64,6 +64,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                           ]
 
     required_profiles = ['sea_water_temperature',
+			 'sea_water_salinity',
                          'ocean_vertical_diffusivity']
     required_profiles_z_range = [-120, 0]  # The depth range (in m) which
                                           # profiles shall cover
@@ -116,6 +117,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             timestep = float(min=0.1, max=3600, default=1.)
             verticalresolution = float(min=0.01, max=10, default = 1.)
             diffusivitymodel = string(default='environment')
+            TSprofiles = boolean(default=False)
 
     ''' % (datetime.now().strftime('%Y-%d-%m %H:00'), oil_types, default_oil)
 
@@ -152,19 +154,41 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         #r = np.random.uniform(0, rmax, self.num_elements_active())
         return self.elements.diameter/2  # Hardcoded diameter
 
-    def update_terminal_velocity(self):
+    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
         """Calculate terminal velocity for oil droplets
 
         according to
         Tkalich et al. (2002): Vertical mixing of oil droplets
                                by breaking waves
         Marine Pollution Bulletin 44, 1219-1229
+
+        If profiles of temperature and salt are passed into this function, they will be interpolated from the profiles.
+        if not, T,S will be fetched from reader.
         """
         g = 9.81  # ms-2
 
         r = self.particle_radius()*2
-        T0 = self.environment.sea_water_temperature
-        S0 = self.environment.sea_water_salinity
+
+        # prepare interpolation of temp, salt
+	if not (Tprofiles==None and Sprofiles==None):
+            if z_index==None:
+                z_i = range(Tprofiles.shape[0]) # evtl. move out of loop
+                z_index = interp1d(-self.environment_profiles['z'],z_i,bounds_error=False) # evtl. move out of loop
+            zi = z_index(-self.elements.z)
+            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
+            weight_upper = 1 - (zi - upper)
+
+        # do interpolation of temp, salt if profiles were passed into this function, if not, use reader by calling self.environment
+	if Tprofiles==None:
+            T0 = self.environment.sea_water_temperature
+        else:
+            T0 = Tprofiles[upper, range(Tprofiles.shape[1])] * weight_upper + Tprofiles[lower, range(Tprofiles.shape[1])] * (1-weight_upper) 
+        if Sprofiles==None:
+            S0 = self.environment.sea_water_salinity
+        else:
+            S0 = Sprofiles[upper, range(Sprofiles.shape[1])] * weight_upper + Sprofiles[lower, range(Sprofiles.shape[1])] * (1-weight_upper) 
+
         rho_oil = self.elements.density
         rho_water = self.sea_water_density(T=T0, S=S0)
 
