@@ -474,8 +474,9 @@ class OpenDriftSimulation(PhysicsMethods):
                         logging.debug('    Using fallback value for %s: %s'
                                       % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
-		        if 'env_profiles' in locals():
-                            env_profiles[var][:,missing_indices] = sp.ones_like(env_profiles[:,missing_indices])*self.fallback_values[var]
+		        if 'env_profiles' in locals() and var in self.required_profiles:
+                            logging.debug('Using fallback value for profile')
+                            env_profiles[var][:,missing_indices] = np.ones_like(env_profiles[var][:,missing_indices])*self.fallback_values[var]
                     else:
                         logging.debug('\t\t%s values missing for %s' % (
                             len(missing_indices), var))
@@ -883,8 +884,9 @@ class OpenDriftSimulation(PhysicsMethods):
             self.environment = self.environment[~indices]
             logging.debug('Removed %i values from environment.' %
                           (sum(indices)))
-        if hasattr(self, 'environment_profiles'):
+        if hasattr(self, 'environment_profiles') and self.environment_profiles is not None:
             for varname, profiles in self.environment_profiles.iteritems():
+                logging.debug('remove items from profile for '+varname)
                 if varname is not 'z':
                     self.environment_profiles[varname] = profiles[:,~indices]
             logging.debug('Removed %i values from environment_profiles.' %
@@ -1146,7 +1148,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.io_close()
 
         # Remove any elements scheduled for deactivation during last step
-        self.remove_deactivated_elements()
+        #self.remove_deactivated_elements()
 
         # Remove columns for unseeded elements in history array
         self.history = self.history[range(self.num_elements_activated()), :]
