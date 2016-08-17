@@ -47,6 +47,7 @@ class Reader(Reader):
             'hice': 'sea_ice_thickness',
             'gls': 'turbulent_generic_length_scale',
             'tke': 'turbulent_kinetic_energy',
+            'AKs': 'ocean_vertical_diffusivity',
             'sustr': 'surface_downward_x_stress',
             'svstr': 'surface_downward_y_stress',
             'Uwind': 'x_wind',
