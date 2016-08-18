@@ -73,7 +73,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
                           'surface_downward_y_stress',
                           'turbulent_kinetic_energy',
                           'turbulent_generic_length_scale',
-                          #'upward_sea_water_velocity'
+                          'upward_sea_water_velocity'
                           ]
 
     # Vertical profiles of the following parameters will be available in
@@ -103,7 +103,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
                        'surface_downward_y_stress': 0,
                        'turbulent_kinetic_energy': 0,
                        'turbulent_generic_length_scale': 0
-                       #'upward_sea_water_velocity': 0
+                       'upward_sea_water_velocity': 0
                        }
 
     # Default colors for plotting
@@ -200,7 +200,8 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         self.advect_ocean_current()
 
         # Vertical advection
-        self.vertical_advection()
+        if self.config['processes']['verticaladvection'] is True:
+            self.vertical_advection(self.environment.upward_sea_water_velocity)
 
         # Biological behaviour
         # Nonsense example, illustrating how to add behaviour:

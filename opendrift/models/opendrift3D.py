@@ -62,8 +62,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             Vertical advection by ocean currents is small compared to
             termical velocity
         """
-        if self.config['processes']['verticaladvection'] is True:
-            pass  # Not implemented
+        w = self.environment.upward_sea_water_velocity
+        self.elements.z = self.elements.z + w * self.time_step.total_seconds()
 
     def vertical_mixing(self):
         """Mix particles vertically according to eddy diffusivity and buoyancy
@@ -121,9 +121,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 self.config['turbulentmixing']['diffusivitymodel'])(self)
 
         # get profiles of salinity and temperature (to save interpolation time in the inner loop)
-        if self.config['turbulentmixing']['TSprofiles']==True:
-	    Sprofiles = self.environment_profiles['sea_water_salinity']
-            Tprofiles = self.environment_profiles['sea_water_temperature']
+        if 'TSprofiles' in self.config['turbulentmixing']:
+            if self.config['turbulentmixing']['TSprofiles']==True:
+                Sprofiles = self.environment_profiles['sea_water_salinity']
+                Tprofiles = self.environment_profiles['sea_water_temperature']
                             
         # prepare vertical interpolation coordinates
         z_i = range(Kprofiles.shape[0])
@@ -140,8 +141,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         for i in range(0, ntimes_mix):
 
             # update terminal velocity according to environmental variables
-            if self.config['turbulentmixing']['TSprofiles']==True:
-                self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index)
+            if 'TSprofiles' in self.config['turbulentmixing']:
+                if self.config['turbulentmixing']['TSprofiles']==True:
+                    self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index)
+                else:
+                    self.update_terminal_velocity() 
             else:
                 self.update_terminal_velocity() # this is faster, but ignores density gradients in water column for the inner loop
 
