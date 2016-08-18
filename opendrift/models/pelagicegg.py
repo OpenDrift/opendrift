@@ -102,7 +102,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
                        'surface_downward_x_stress': 0,
                        'surface_downward_y_stress': 0,
                        'turbulent_kinetic_energy': 0,
-                       'turbulent_generic_length_scale': 0
+                       'turbulent_generic_length_scale': 0,
                        'upward_sea_water_velocity': 0
                        }
 
@@ -121,6 +121,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
             timestep = float(min=0.1, max=3600, default=1.)
             verticalresolution = float(min=0.01, max=10, default = 1.)
             diffusivitymodel = string(default='environment')
+            TSprofiles = boolean(default=True)
 
     '''
 
@@ -131,7 +132,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         super(PelagicEggDrift, self).__init__(*args, **kwargs)
 
 
-    def update_terminal_velocity(self):
+    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
         """Calculate terminal velocity for Pelagic Egg
 
         according to
@@ -150,8 +151,26 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         eggsalinity = self.elements.neutral_buoyancy_salinity
         # 31.25 for NEA Cod
 
-        T0 = self.environment.sea_water_temperature
-        S0 = self.environment.sea_water_salinity
+
+        # prepare interpolation of temp, salt
+        if not (Tprofiles==None and Sprofiles==None):
+            if z_index==None:
+                z_i = range(Tprofiles.shape[0]) # evtl. move out of loop
+                z_index = interp1d(-self.environment_profiles['z'],z_i,bounds_error=False) # evtl. move out of loop
+            zi = z_index(-self.elements.z)
+            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
+            weight_upper = 1 - (zi - upper)
+
+        # do interpolation of temp, salt if profiles were passed into this function, if not, use reader by calling self.environment
+        if Tprofiles==None:
+            T0 = self.environment.sea_water_temperature
+        else:
+            T0 = Tprofiles[upper, range(Tprofiles.shape[1])] * weight_upper + Tprofiles[lower, range(Tprofiles.shape[1])] * (1-weight_upper) 
+        if Sprofiles==None:
+            S0 = self.environment.sea_water_salinity
+        else:
+            S0 = Sprofiles[upper, range(Sprofiles.shape[1])] * weight_upper + Sprofiles[lower, range(Sprofiles.shape[1])] * (1-weight_upper) 
 
         # The density difference bettwen a pelagic egg and the ambient water
         # is regulated by their salinity difference through the
@@ -201,7 +220,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
         # Vertical advection
         if self.config['processes']['verticaladvection'] is True:
-            self.vertical_advection(self.environment.upward_sea_water_velocity)
+            self.vertical_advection()
 
         # Biological behaviour
         # Nonsense example, illustrating how to add behaviour:

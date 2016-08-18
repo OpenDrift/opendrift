@@ -64,7 +64,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                           ]
 
     required_profiles = ['sea_water_temperature',
-			 'sea_water_salinity',
+                         'sea_water_salinity',
                          'ocean_vertical_diffusivity']
     required_profiles_z_range = [-120, 0]  # The depth range (in m) which
                                           # profiles shall cover

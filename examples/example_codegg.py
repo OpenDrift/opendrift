@@ -27,16 +27,17 @@ o.add_reader([reader_norkyst, reader_basemap, reader_arome])
 time = reader_arome.start_time
 
 # spawn NEA cod eggs at defined position and time
-o.seed_elements(14. , 68.1, z=-40, radius=2000, number=1000,
+o.seed_elements(14. , 68.1, z=-40, radius=2000, number=500,
                 time=time, diameter=0.0014, neutral_buoyancy_salinity=31.25)
-o.seed_elements(12.5, 68.5, z=-40, radius=2000, number=1000,
+o.seed_elements(12.5, 68.5, z=-40, radius=2000, number=500,
                 time=time, diameter=0.0014, neutral_buoyancy_salinity=31.25)
 
 
 # Adjusting some configuration
 o.config['processes']['turbulentmixing'] = True
-o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983'
-#o.config['turbulentmixing']['diffusivitymodel'] = 'stepfunction'
+o.config['turbulentmixing']['TSprofiles'] = True # update T,S frequently in each inner loop for turbulent
+o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983' # windspeed parameterization for eddy diffusivity
+#o.config['turbulentmixing']['diffusivitymodel'] = 'environment' # use eddy diffusivity from ocean model 
 o.config['turbulentmixing']['timestep'] = 2. # seconds
 
 # Running model (until end of driver data)
