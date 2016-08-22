@@ -1219,8 +1219,12 @@ class OpenDriftSimulation(PhysicsMethods):
             lons = self.history['lon']
             lats = self.history['lat']
         else:
-            lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
-            lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
+            if self.steps_output > 0:
+                lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
+                lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
+            else:
+                lons = np.ma.array(np.reshape(self.elements_scheduled.lon, (1, -1))).T
+                lats = np.ma.array(np.reshape(self.elements_scheduled.lat, (1, -1))).T
 
         # Initialise map
         lonmin = lons.min() - buffer*2
@@ -1543,6 +1547,10 @@ class OpenDriftSimulation(PhysicsMethods):
             plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
                       (self.start_time.strftime('%Y-%m-%d %H:%M'),
                        self.time.strftime('%Y-%m-%d %H:%M'), self.steps_output))
+        else:
+            plt.title(type(self).__name__ + ' - %i elements seeded at %s' %
+                      (self.num_elements_scheduled(),
+                       self.elements_scheduled_time[0].strftime('%Y-%m-%d %H:%M')))
 
         if drifter_file is not None:
             # Format of joubeh.com
