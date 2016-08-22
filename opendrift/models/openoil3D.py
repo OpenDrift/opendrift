@@ -59,12 +59,12 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                           'sea_floor_depth_below_sea_level',
                           'ocean_vertical_diffusivity',
                           'sea_water_temperature',
-                          'sea_water_salinity'
-                          #'upward_sea_water_velocity'
+                          'sea_water_salinity',
+                          'upward_sea_water_velocity'
                           ]
 
     required_profiles = ['sea_water_temperature',
-			 'sea_water_salinity',
+                         'sea_water_salinity',
                          'ocean_vertical_diffusivity']
     required_profiles_z_range = [-120, 0]  # The depth range (in m) which
                                           # profiles shall cover
@@ -81,8 +81,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                        'sea_floor_depth_below_sea_level': 100,
                        'ocean_vertical_diffusivity': 0.02,  # m2s-1
                        'sea_water_temperature': 10.,
-                       'sea_water_salinity': 34.
-                       #'upward_sea_water_velocity': 0
+                       'sea_water_salinity': 34.,
+                       'upward_sea_water_velocity': 0
                        }
 
     # Read oil types from file (presently only for illustrative effect)
@@ -264,8 +264,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         # Vertical advection
         if self.config['processes']['verticaladvection'] is True:
-
-            self.vertical_advection(self.environment.upward_sea_water_velocity)
+            self.vertical_advection()
 
         # Horizontal advection (inherited from OpenOil)
         self.advect_oil()

@@ -39,6 +39,7 @@ class Reader(Reader):
             'zeta': 'sea_surface_height',
             'u': 'x_sea_water_velocity',
             'v': 'y_sea_water_velocity',
+            'w': 'upward_sea_water_velocity',
             'temp': 'sea_water_temperature',
             'salt': 'sea_water_salinity',
             'uice': 'sea_ice_x_velocity',
