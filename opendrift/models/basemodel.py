@@ -808,6 +808,11 @@ class OpenDriftSimulation(PhysicsMethods):
             print e
             raise ValueError('OGR library is needed to read shapefiles.')
 
+        if 'timeformat' in kwargs:
+            # Recondstructing time from filename, where 'timeformat' is forwarded to datetime.strptime()
+            kwargs['time'] = datetime.strptime(os.path.basename(shapefile), kwargs['timeformat'])
+            del kwargs['timeformat']
+
         targetSRS = osr.SpatialReference()
         targetSRS.ImportFromEPSG(4326)
         s = ogr.Open(shapefile)
