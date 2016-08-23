@@ -19,11 +19,21 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 # Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3.3, llcrnrlat=59.5,
+reader_basemap = reader_basemap_landmask.Reader(
+                    llcrnrlon=3.3, llcrnrlat=59.5,
                     urcrnrlon=5.5, urcrnrlat=62.5, resolution='h',
                     projection='merc')
 
-lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
+#lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
+# Adding readers succesively, and specifying which variables they 
+# shall provide. This way, order of adding readers does not matter,
+# except for small rounding differences due to different projection
+lw.add_reader(reader_norkyst,
+              variables=['x_sea_water_velocity', 'y_sea_water_velocity'])
+lw.add_reader(reader_arome,
+              variables=['x_wind', 'y_wind'])
+lw.add_reader(reader_basemap,
+              variables=['land_binary_mask'])
 
 # Seeding some particles
 lon = 4.5; lat = 60.0; # Outside Bergen
@@ -32,6 +42,8 @@ lon = 4.5; lat = 60.0; # Outside Bergen
 objType = 26  # 26 = Life-raft, no ballast
 lw.seed_elements(lon, lat, radius=1000, number=3000,
                  time=reader_arome.start_time, objectType=objType)
+
+lw.set_projection('+proj=merc')
 
 # Running model (until end of driver data)
 lw.run(steps=60*4, time_step=900, outfile='outleeway.nc')

@@ -226,5 +226,38 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
 
+    def test_reader_order(self):
+        # Check that we get the same output indepenently of reader order
+        o = OceanDrift(loglevel=50)
+        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+        basemap = reader_basemap_landmask.Reader(
+            llcrnrlon=2, llcrnrlat=59.8, urcrnrlon=6, urcrnrlat=61,
+            resolution='c', projection='merc')
+        lon=4.; lat=60.
+
+        # First run
+        o.add_reader([basemap, norkyst, arome])
+        o.seed_elements(lon, lat, time=norkyst.start_time)
+        o.run(steps=30)
+        # Second run
+        # Check that we get almost identical results with other projection
+        o1 = OceanDrift(loglevel=50)
+        o1.add_reader([norkyst, arome, basemap])
+        o1.seed_elements(lon, lat, time=norkyst.start_time)
+        o1.run(steps=30)
+        self.assertAlmostEqual(o.elements.lon, o1.elements.lon, 2)
+        self.assertAlmostEqual(o.elements.lat, o1.elements.lat, 2)
+        # Third run
+        # Check that this is identical to run 1 if projection set equal
+        o2 = OceanDrift(loglevel=50)
+        o2.add_reader([norkyst, arome, basemap])
+        o2.seed_elements(lon, lat, time=norkyst.start_time)
+        o2.set_projection(basemap.proj4)
+        o2.run(steps=30)
+        self.assertEqual(o.elements.lon, o2.elements.lon)
+
 if __name__ == '__main__':
     unittest.main()
