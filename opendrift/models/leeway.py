@@ -126,9 +126,7 @@ class Leeway(OpenDriftSimulation):
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
 
-    #def seed_leeway(self, lon, lat, radius=0, number=1, time=None,
     def seed_elements(self, lon, lat, radius=0, number=1, time=None,
-                      radius1=None, lon1=None, lat1=None, time1=None,
                       objectType=1):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own objectType (number),
@@ -153,16 +151,6 @@ class Leeway(OpenDriftSimulation):
             self.start_time = firstReader.start_time
         else:
             self.start_time = time
-
-        if radius1 is None:
-            radius1 = radius
-
-        if time1 is None:
-            time1 = self.start_time
-
-        if lon1 is None:
-            lon1 = lon
-            lat1 = lat
 
         # Drift orientation of particles.  0 is right of downwind,
         # 1 is left of downwind
