@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil import OpenOil
+from opendrift.models.oceandrift3D import OceanDrift3D
 
 o = OceanDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 

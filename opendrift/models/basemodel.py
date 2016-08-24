@@ -1397,7 +1397,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def plot(self, background=None, buffer=.5, linecolor=None, filename=None,
              drifter_file=None, show=True, vmin=None, vmax=None,
-             skip=2, scale=10, show_scalar=True, contourlines=False, **kwargs):
+             lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
+             contourlines=False, **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -1414,6 +1415,12 @@ class OpenDriftSimulation(PhysicsMethods):
                 can be read with one of the available readers.
             buffer: float; spatial buffer of plot in degrees of
                 longitude/latitude around particle collection.
+            background: name of variable to be plotted as background field.
+                        Use two element list for vector fields, e.g.
+                        ['x_wind', 'y_wind']
+            vmin, vmax: minimum and maximum values for colors of background.
+            linecolor: name of variable to be used for coloring trajectories.
+            lvmin, lvmax: minimum and maximum values for colors of trajectories.
         """
 
         map, plt, x, y, index_of_first, index_of_last = \
@@ -1443,10 +1450,12 @@ class OpenDriftSimulation(PhysicsMethods):
                         [x[i, vind].T, y[i, vind].T]).T.reshape(-1, 1, 2)
                     segments = np.concatenate([points[:-1], points[1:]],
                                               axis=1)
+                    if lvmin is None:
+                        lvmin = param.min()
+                        lvmax = param.max()
                     lc = LineCollection(segments,
                                         cmap=plt.get_cmap('Spectral'),
-                                        norm=plt.Normalize(param.min(),
-                                                           param.max()))
+                                        norm=plt.Normalize(lvmin, lvmax))
                     #lc.set_linewidth(3)
                     lc.set_array(param.T[vind, i])
                     plt.gca().add_collection(lc)
