@@ -435,7 +435,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Copy retrieved variables to env array, and mask nan-values
                 for var in variable_group:
                     env[var][missing_indices] = np.ma.masked_invalid(
-                        env_tmp[var])
+                        env_tmp[var]).astype('float32')
 
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
