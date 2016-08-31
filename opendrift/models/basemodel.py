@@ -728,7 +728,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.get_environment(['sea_floor_depth_below_sea_level'],
                                       t, kwargs['lon'], kwargs['lat'],
                                       0.*ones, None)
-            kwargs['z'] = -env['sea_floor_depth_below_sea_level']
+            kwargs['z'] = -env['sea_floor_depth_below_sea_level'].astype('float32')
 
         elements = self.ElementType(**kwargs)
 
