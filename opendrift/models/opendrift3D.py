@@ -90,6 +90,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         from opendrift.models import eddydiffusivity
 
         dz = self.config['turbulentmixing']['verticalresolution']
+        dz = np.float32(dz)  # Convert to avoid error for older numpy
         dt_mix = self.config['turbulentmixing']['timestep']
 
         # minimum height/maximum depth for each particle
