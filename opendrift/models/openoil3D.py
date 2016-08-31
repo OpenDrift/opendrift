@@ -78,7 +78,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                        'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
                        'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0,
-                       'sea_floor_depth_below_sea_level': 100,
+                       'sea_floor_depth_below_sea_level': 10000,
                        'ocean_vertical_diffusivity': 0.02,  # m2s-1
                        'sea_water_temperature': 10.,
                        'sea_water_salinity': 34.,

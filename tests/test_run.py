@@ -29,6 +29,7 @@ from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
+from opendrift.models.openoil3D import OpenOil3D
 
 
 class TestRun(unittest.TestCase):
@@ -258,6 +259,27 @@ class TestRun(unittest.TestCase):
         o2.set_projection(basemap.proj4)
         o2.run(steps=30)
         self.assertEqual(o.elements.lon, o2.elements.lon)
+
+    def test_seed_seafloor(self):
+        o = OpenOil3D(loglevel=0)
+        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+# Landmask (Basemap)
+        reader_basemap = reader_basemap_landmask.Reader(
+                            llcrnrlon=4, llcrnrlat=61.0,
+                            urcrnrlon=7, urcrnrlat=64,
+                            resolution='h', projection='merc')
+        o.add_reader([reader_basemap, reader_norkyst])
+        lon = 4.5; lat = 62.0
+        print o.priority_list.keys()
+        o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
+                        density=1000)
+        o.config['processes']['turbulentmixing'] = True
+        o.run(steps=3, time_step=900, time_step_output=900)
+        #o.plot_property('z')
+        z, status = o.get_property('z')
+        self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,0], -143, 2)  # After some rising
+
 
 if __name__ == '__main__':
     unittest.main()

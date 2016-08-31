@@ -714,6 +714,22 @@ class OpenDriftSimulation(PhysicsMethods):
         kwargs['lon'], kwargs['lat'], az = \
             geod.fwd(lon*ones, lat*ones, az, dist, radians=False)
 
+        if 'z' in kwargs and kwargs['z'] == 'seafloor':
+            # We need to fetch seafloor depth from reader
+            if not 'sea_floor_depth_below_sea_level' in self.priority_list:
+                raise ValueError('A reader providing the variable '
+                                 'sea_floor_depth_below_sea_level must be '
+                                 'added before seeding elements at seafloor.')
+            if type(time) is list:
+                t = time[0]
+            else:
+                t = time
+            env, env_profiles, missing = \
+                self.get_environment(['sea_floor_depth_below_sea_level'],
+                                      t, kwargs['lon'], kwargs['lat'],
+                                      0.*ones, None)
+            kwargs['z'] = -env['sea_floor_depth_below_sea_level']
+
         elements = self.ElementType(**kwargs)
 
         self.schedule_elements(elements, time_array)

@@ -84,6 +84,7 @@ class OpenOil(OpenDriftSimulation):
                           'sea_surface_wave_stokes_drift_x_velocity',
                           'sea_surface_wave_stokes_drift_y_velocity',
                           'sea_ice_area_fraction',
+                          'sea_floor_depth_below_sea_level',
                           'x_wind', 'y_wind', 'land_binary_mask']
 
     fallback_values = {'x_sea_water_velocity': 0,
@@ -92,6 +93,7 @@ class OpenOil(OpenDriftSimulation):
                        'sea_surface_wave_to_direction': 0,
                        'sea_surface_wave_stokes_drift_x_velocity': 0,
                        'sea_surface_wave_stokes_drift_y_velocity': 0,
+                       'sea_floor_depth_below_sea_level': 0,
                        'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0}
 
