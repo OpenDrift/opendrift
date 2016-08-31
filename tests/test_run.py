@@ -270,7 +270,6 @@ class TestRun(unittest.TestCase):
                             resolution='h', projection='merc')
         o.add_reader([reader_basemap, reader_norkyst])
         lon = 4.5; lat = 62.0
-        print o.priority_list.keys()
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000)
         o.config['processes']['turbulentmixing'] = True

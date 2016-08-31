@@ -379,7 +379,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         '''
         # Initialise ndarray to hold environment variables
-        dtype = [(var, np.float) for var in variables]
+        dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon)), dtype=dtype)
 
         # For each variable/reader group:
