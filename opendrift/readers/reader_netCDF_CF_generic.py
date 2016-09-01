@@ -165,7 +165,7 @@ class Reader(Reader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        if hasattr(self, 'z'):
+        if hasattr(self, 'z') and (z is not None):
             # Find z-index range
             # NB: may need to flip if self.z is ascending
             indices = np.searchsorted(-self.z, [-z.min(), -z.max()])

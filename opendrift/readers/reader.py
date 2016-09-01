@@ -710,7 +710,8 @@ class Reader(object):
             variables = [variables]
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
-        z = np.asarray(z)
+        if z is not None:
+            z = np.asarray(z)
 
         for variable in variables:
             if variable not in self.variables:
@@ -937,7 +938,7 @@ class Reader(object):
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
             data = self.get_variables(variable, self.start_time,
-                                      rx, ry, z=None, block=True)
+                                      rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)
             map_x, map_y = map(rlon, rlat, inverse=False)
