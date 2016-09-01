@@ -1,14 +1,15 @@
 language: python
 python:
   - "2.7"
-env:
-  - NUMPY_VERSION=1.7
-  - NUMPY_VERSION=1.9.2  # Hexagon
+global:
   - NUMPY_VERSION=1.11
   - SCIPY_VERSION=0.9
-  - SCIPY_VERSION=0.15.1  # Hexagon
   - BASEMAP_VERSION=1.0.2
-  - BASEMAP_VERSION=1.0.7  # Hexagon
+env:
+  - NUMPY_VERSION=1.7
+  - NUMPY_VERSION=1.11
+  - SCIPY_VERSION=0.15.1 NUMPY_VERSION=1.9.2 BASEMAP_VERSION=1.0.7 # Hexagon
+  - BASEMAP_VERSION=1.0.2
 cache:
   directories:
     - $HOME/download
