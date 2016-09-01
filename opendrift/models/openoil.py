@@ -337,14 +337,7 @@ class OpenOil(OpenDriftSimulation):
         self.deactivate_elements(self.environment.land_binary_mask != 0.,
                                  reason='stranded')
 
-        # Do not let particles go below seafloor
-        if hasattr(self.environment, 'sea_floor_depth_below_sea_level'):
-            self.elements.z[np.where(
-                self.elements.z <
-                -self.environment.sea_floor_depth_below_sea_level)] = \
-                -self.environment.sea_floor_depth_below_sea_level
-
-        ## Deactivate elements hitting sea ice
+        # Deactivate elements hitting sea ice
         self.deactivate_elements(self.environment.sea_ice_area_fraction > 0.6,
                                  reason='oil-in-ice')
 

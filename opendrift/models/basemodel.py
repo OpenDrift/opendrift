@@ -401,6 +401,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.debug('----------------------------------------')
                 reader = self.readers[reader_name]
                 if not reader.covers_time(time):
+                    logging.debug('\tOutside time coverage of reader.')
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
@@ -1121,6 +1122,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.deactivate_elements(missing, reason='missing_data')
 
+                self.lift_elements_to_seafloor() # If seafloor is penetrated
+
                 self.runtime_environment += datetime.now() - runtime_start
                 runtime_start = datetime.now()
 
@@ -1139,6 +1142,8 @@ class OpenDriftSimulation(PhysicsMethods):
                               type(self).__name__)
                 self.update()
                 #####################################################
+
+                self.lift_elements_to_seafloor() # If seafloor is penetrated
 
                 self.runtime_model += datetime.now() - runtime_start
 

@@ -29,6 +29,7 @@ from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
+from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
 
 
@@ -279,6 +280,33 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
         self.assertAlmostEqual(z[-1,0], -143, 2)  # After some rising
 
+    def test_lift_above_seafloor(self):
+        # See an element at some depth, and progapate towards coast
+        # (shallower water) and check that it is not penetrating seafloor
+        o = OceanDrift3D(loglevel=0, proj4='+proj=merc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        reader_norkyst.buffer = 200
+        o.add_reader([reader_norkyst],
+                     variables='sea_floor_depth_below_sea_level')
+        o.fallback_values['x_sea_water_velocity'] = 100 # Pure eastward motion
+        o.fallback_values['y_sea_water_velocity'] = 0   
+        o.fallback_values['land_binary_mask'] = 0   
+        o.seed_elements(3.0, 62.0, z=-200, time=reader_norkyst.start_time)
+        o.config['processes']['turbulentmixing'] = False
+        o.run(steps=26, time_step=30)
+        seafloor_depth, status = o.get_property('sea_floor_depth_below_sea_level')
+        z, status = o.get_property('z')
+
+        # Uncomment to plot
+        #import matplotlib.pyplot as plt
+        #plt.plot(-seafloor_depth, label='Seafloor depth')
+        #plt.plot(z, label='Element depth')
+        #plt.legend(loc='best')
+        #plt.show()
+
+        # Check that element has not penetrated seafloor
+        self.assertFalse(o.elements.z <
+                         -o.environment.sea_floor_depth_below_sea_level)
 
 if __name__ == '__main__':
     unittest.main()

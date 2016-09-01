@@ -230,6 +230,15 @@ class PhysicsMethods(object):
         '''Solar elevation at present time and position of active elements.'''
         return solar_elevation(self.time, self.elements.lon, self.elements.lat)
 
+    def lift_elements_to_seafloor(self):
+        # Lift any elements which are below seafloor
+        if hasattr(self.environment, 'sea_floor_depth_below_sea_level'):
+            self.elements.z[np.where(self.elements.z <
+                -self.environment.sea_floor_depth_below_sea_level)] = \
+                -self.environment.sea_floor_depth_below_sea_level[
+                np.where(self.elements.z <
+                         -self.environment.sea_floor_depth_below_sea_level)]
+
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''
     Cd = 0.0012*np.ones(len(windspeed))
