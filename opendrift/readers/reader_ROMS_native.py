@@ -195,8 +195,8 @@ class Reader(Reader):
             indy = np.arange(np.max([0, indy.min()-buffer]),
                              np.min([indy.max()+buffer, self.lon.shape[0]-1]))
         else:
-            indx[outside[0]] = 0  # To be masked later
-            indy[outside[0]] = 0
+            indx[outside] = 0  # To be masked later
+            indy[outside] = 0
 
         # Find depth levels covering all elements
         if z.min() == 0:
@@ -271,7 +271,7 @@ class Reader(Reader):
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
             if block is False:
-                variables[par].mask[outside[0]] = True
+                variables[par].mask[outside] = True
 
         if 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']

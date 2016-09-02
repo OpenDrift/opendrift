@@ -51,7 +51,7 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(x, x2)
         self.assertEqual(y, y2)
         self.assertEqual(0, z2)
-        self.assertEqual(len(outside[0]), 0)
+        self.assertEqual(len(outside), 0)
 
     def test_reader_netcdf(self):
         """Check reader functionality."""

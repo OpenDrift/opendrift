@@ -194,8 +194,8 @@ class Reader(Reader):
             indy = np.arange(np.max([0, indy.min()-buffer]),
                              np.min([indy.max()+buffer, self.numy]))
         else:
-            indx[outside[0]] = 0  # To be masked later
-            indy[outside[0]] = 0
+            indx[outside] = 0  # To be masked later
+            indy[outside] = 0
 
         variables = {}
 
@@ -220,7 +220,7 @@ class Reader(Reader):
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
             if block is False:
-                variables[par].mask[outside[0]] = True
+                variables[par].mask[outside] = True
 
         # Store coordinates of returned points
         try:
