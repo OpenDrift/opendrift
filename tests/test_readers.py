@@ -33,6 +33,26 @@ o = OceanDrift()
 class TestReaders(unittest.TestCase):
     """Tests for readers"""
 
+    def test_reader_coverage(self):
+        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        # Element outside reader domain
+        self.assertRaises(ValueError, r.check_coverage, r.start_time, 5, 80)
+        x, y = r.lonlat2xy(5, 80)
+        self.assertRaises(ValueError, r.check_arguments,
+                          'y_sea_water_velocity', r.start_time, x, y, 0)
+        # Element inside reader domain
+        x, y, ind = r.check_coverage(r.start_time, 5, 60)  # inside
+        self.assertEqual(ind, 0)
+        var, time, x2, y2, z2, outside = \
+            r.check_arguments('y_sea_water_velocity', r.start_time, x, y, 0)
+        self.assertEqual(var, ['y_sea_water_velocity'])
+        self.assertEqual(time, r.start_time)
+        self.assertEqual(x, x2)
+        self.assertEqual(y, y2)
+        self.assertEqual(0, z2)
+        self.assertEqual(len(outside[0]), 0)
+
     def test_reader_netcdf(self):
         """Check reader functionality."""
 

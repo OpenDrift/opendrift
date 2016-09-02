@@ -262,13 +262,16 @@ class Reader(object):
 
         # Raise error if time not not within coverage of reader
         if not self.covers_time(time):
-            raise ValueError('Outside time coverage of ' + self.name)
+            raise ValueError('%s is outside time coverage (%s - %s) of %s' %
+                             (time, self.start_time, self.end_time, self.name))
 
         # Check which particles are covered (indep of time)
         ind_covered = self.covers_positions(lon, lat, z)
         if len(ind_covered) == 0:
-            raise ValueError('All particles are outside domain '
-                             'of ' + self.name)
+            raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
+                              'are outside domain of %s (%s)') %
+                             (len(lon), lon.min(), lon.max(), lat.min(),
+                              lat.max(), self.name, self.coverage_string()))
 
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
@@ -629,6 +632,14 @@ class Reader(object):
 
         return indices
 
+    def coverage_string(self):
+        """Coverage of reader to be reported as string for debug output"""
+        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                 [self.ymax, self.ymin, self.ymax, self.ymin])
+        return '%.2f-%.2fE, %.2f-%.2fN' % (
+                    np.min(corners[0]), np.max(corners[0]),
+                    np.min(corners[1]), np.max(corners[1]))
+
     def check_coverage(self, time, lon, lat):
         """Check which points are within coverage of reader.
 
@@ -648,6 +659,9 @@ class Reader(object):
                 - if requested time is outside coverage of reader.
                 - if all requested positions are outside coverage of reader.
         """
+
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
 
         # Check time
         if self.start_time is not None and (time is not None and
@@ -672,8 +686,10 @@ class Reader(object):
         indices = np.where((x > self.xmin) & (x < self.xmax) &
                            (y > self.ymin) & (y < self.ymax))[0]
         if len(indices) == 0:
-            raise ValueError('All particles are outside domain '
-                             'of ' + self.name)
+            raise ValueError(('Coverage: all %s particles (%.2f-%.2fE, ' +
+                              '%.2f-%.2fN) are outside domain of %s (%s)') %
+                             (len(lon), lon.min(), lon.max(), lat.min(),
+                              lat.max(), self.name, self.coverage_string()))
 
         return x[indices], y[indices], indices
 
@@ -729,8 +745,11 @@ class Reader(object):
         outside = np.where((x < self.xmin) | (x > self.xmax) |
                            (y < self.ymin) | (y > self.ymax))
         if np.size(outside) == np.size(x):
-            raise ValueError('All particles are outside domain '
-                             'of ' + self.name)
+            lon, lat = self.xy2lonlat(x, y)
+            raise ValueError(('Argcheck: all %s particles (%.2f-%.2fE, ' +
+                              '%.2f-%.2fN) are outside domain of %s (%s)') %
+                             (len(lon), lon.min(), lon.max(), lat.min(),
+                              lat.max(), self.name, self.coverage_string()))
 
         return variables, time, x, y, z, outside
 
