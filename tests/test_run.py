@@ -32,6 +32,12 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
 
+try:
+    import ogr
+    import osr
+    has_ogr = True
+except:
+    has_ogr = False
 
 class TestRun(unittest.TestCase):
     """Tests for (non-scalar) LagrangianArray"""
@@ -86,6 +92,20 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_scheduled(), number)
         self.assertEqual(o.elements_scheduled_time[0], time[0])
         self.assertEqual(o.elements_scheduled_time[-1], time[-1])
+
+    @unittest.skipIf(has_ogr is False, 'OGR library needed to read shapefiles')
+    def test_seed_shapefile(self):
+        o = OceanDrift(loglevel=20)
+        o.seed_from_shapefile(o.test_data_folder() +
+                                  'shapefile_spawning_areas/Torsk.shp',
+                                  number=100, layername=None,
+                                  featurenum=[2, 4], time=datetime.now())
+        self.assertEqual(len(o.elements_scheduled), 100)
+        o.seed_from_shapefile(o.test_data_folder() +
+                                  'shapefile_spawning_areas/Torsk.shp',
+                                  number=300, layername=None,
+                                  featurenum=None, time=datetime.now())
+        self.assertEqual(len(o.elements_scheduled), 400)
 
     def test1_seed_single_point_over_time(self):
         """Test a model run"""

@@ -815,7 +815,8 @@ class OpenDriftSimulation(PhysicsMethods):
         # Finally seed at calculated positions
         self.seed_elements(lonpoints, latpoints, **kwargs)
 
-    def seed_from_shapefile(self, shapefile, number, **kwargs):
+    def seed_from_shapefile(self, shapefile, number,
+                            layername=None, featurenum=None, **kwargs):
         """Seeds elements within contours read from a shapefile"""
 
         try:
@@ -826,8 +827,10 @@ class OpenDriftSimulation(PhysicsMethods):
             raise ValueError('OGR library is needed to read shapefiles.')
 
         if 'timeformat' in kwargs:
-            # Recondstructing time from filename, where 'timeformat' is forwarded to datetime.strptime()
-            kwargs['time'] = datetime.strptime(os.path.basename(shapefile), kwargs['timeformat'])
+            # Recondstructing time from filename, where 'timeformat'
+            # is forwarded to datetime.strptime()
+            kwargs['time'] = datetime.strptime(os.path.basename(shapefile),
+                                               kwargs['timeformat'])
             del kwargs['timeformat']
 
         targetSRS = osr.SpatialReference()
@@ -835,26 +838,43 @@ class OpenDriftSimulation(PhysicsMethods):
         s = ogr.Open(shapefile)
 
         for layer in s:
-            logging.info('Seeding for layer: ' + layer.GetDescription())
+            if layername is not None and layer.GetName() != layername:
+                logging.info('Skipping layer: ' + layer.GetName())
+                continue
+            else:
+                logging.info('Seeding for layer: %s (%s features)' %
+                             (layer.GetDescription(), layer.GetFeatureCount()))
+
             coordTrans = osr.CoordinateTransformation(layer.GetSpatialRef(),
                                                       targetSRS)
 
+            if featurenum is None:
+                featurenum = range(1, layer.GetFeatureCount() + 1)
+            else:
+                featurenum = np.atleast_1d(featurenum)
+            if max(featurenum) > layer.GetFeatureCount():
+                raise ValueError('Only %s features in layer.' %
+                                 layer.GetFeatureCount())
+
             # Loop first through all features to determine total area
             total_area = 0
-            for i, feature in enumerate(layer):
+            for f in featurenum:
+                feature = layer.GetFeature(f - 1)  # Note 1-indexing, not 0
                 total_area += feature.GetGeometryRef().GetArea()
             layer.ResetReading()  # Rewind to first layer
+            logging.info('Total area of all polygons: %s m2' % total_area)
 
             num_seeded = 0
-            for i, feature in enumerate(layer):
+            for i, f in enumerate(featurenum):
+                feature = layer.GetFeature(f - 1)
                 geom = feature.GetGeometryRef()
                 num_elements = np.int(number*geom.GetArea()/total_area)
-                if i == layer.GetFeatureCount() - 1:
+                if f == featurenum[-1]:
                     # For the last feature we seed the remaining number,
                     # avoiding difference due to rounding:
                     num_elements = number - num_seeded
                 logging.info('\tSeeding %s elements within polygon number %s' %
-                             (num_elements, i+1))
+                             (num_elements, featurenum[i]))
                 geom.Transform(coordTrans)
                 b = geom.GetBoundary()
                 if b is not None:
