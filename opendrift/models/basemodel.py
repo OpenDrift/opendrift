@@ -135,6 +135,7 @@ class OpenDriftSimulation(PhysicsMethods):
             outfile: file where output from simulation is stored
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
+                Use the string 'custom' to configure logging from outside.
         """
 
         # Set default configuration
@@ -172,9 +173,10 @@ class OpenDriftSimulation(PhysicsMethods):
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
 
-        logging.getLogger('').handlers = []
-        logging.basicConfig(level=loglevel,
-                            format='%(levelname)s: %(message)s')
+        if loglevel != 'custom':
+            logging.getLogger('').handlers = []
+            logging.basicConfig(level=loglevel,
+                                format='%(levelname)s: %(message)s')
 
         # Prepare outfile
         try:
