@@ -22,7 +22,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 reader_basemap = reader_basemap_landmask.Reader(
                     llcrnrlon=4, llcrnrlat=59.7,
                     urcrnrlon=7, urcrnrlat=61.5,
-                    resolution='h', projection='merc')
+                    resolution='c', projection='merc')
 
 o.add_reader([reader_basemap, reader_norkyst, reader_arome])
 
@@ -34,8 +34,9 @@ lon = 4.9; lat = 60.0; # Outside Bergen
 time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=3000, number=2000, time=time,
-                oiltype='GULLFAKS AB')
+o.config['processes']['oil_weathering'] = 'noaa'
+o.seed_elements(lon, lat, radius=3000, number=10, time=time,
+                oiltype='EKOFISK')
 
 # Adjusting some configuration
 o.config['processes']['diffusion'] = True
@@ -44,9 +45,10 @@ o.config['processes']['evaporation'] = True
 o.config['processes']['emulsification'] = True
 
 # Running model (until end of driver data)
-o.run(steps=66*4, time_step=900, outfile='openoil.nc')
+o.run(steps=4, time_step=3600)
 
 # Print and plot results
+stop
 print o
 
 o.plot_oil_budget()

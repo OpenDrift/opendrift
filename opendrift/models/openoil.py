@@ -84,6 +84,7 @@ class OpenOil(OpenDriftSimulation):
                           'sea_surface_wave_stokes_drift_x_velocity',
                           'sea_surface_wave_stokes_drift_y_velocity',
                           'sea_ice_area_fraction',
+                          'sea_water_temperature',
                           'sea_floor_depth_below_sea_level',
                           'x_wind', 'y_wind', 'land_binary_mask']
 
@@ -95,6 +96,7 @@ class OpenOil(OpenDriftSimulation):
                        'sea_surface_wave_stokes_drift_y_velocity': 0,
                        'sea_floor_depth_below_sea_level': 0,
                        'sea_ice_area_fraction': 0,
+                       'sea_water_temperature': 273.15 + 12,
                        'x_wind': 0, 'y_wind': 0}
 
     # Default colors for plotting
@@ -118,6 +120,7 @@ class OpenOil(OpenDriftSimulation):
                 time = string(default='%s')
                 oil_type = option(%s, default=%s)
         [processes]
+            oil_weathering = string(default='default')
             dispersion = boolean(default=True)
             diffusion = boolean(default=True)
             evaporation = boolean(default=True)
@@ -308,7 +311,14 @@ class OpenOil(OpenDriftSimulation):
             self.update_positions(sigma_u, sigma_v)
 
     def oil_weathering(self):
+        if self.config['processes']['oil_weathering'] == 'noaa':
+            self.oil_weathering_noaa()
+        else:
+            self.oil_weathering_default()
 
+    def oil_weathering_default(self):
+
+        print 'Default oil weathering'
         self.elements.age_seconds += self.time_step.total_seconds()
 
         ## Evaporation
@@ -319,6 +329,50 @@ class OpenOil(OpenDriftSimulation):
 
         # Dispersion
         self.disperse()
+
+    def oil_weathering_noaa(self):
+        '''Oil weathering scheme adopted from NOAA PyGNOME model'''
+        print 'NOAA oil weathering'
+
+        #########################################################
+        # Update density and viscosity according to temperature
+        #########################################################
+        self.elements.viscosity = np.array(
+            [self.oiltype.get_viscosity(t) for t in
+             self.environment.sea_water_temperature])
+        self.elements.density = np.array(
+            [self.oiltype.get_density(t) for t in
+             self.environment.sea_water_temperature])
+
+        #############################################
+        # Evaporation, for elements at surface only
+        #############################################
+        surface = np.where(self.elements.z == 0)[0]
+        print surface, 'SUR'
+        wind_speed = self.wind_speed()[surface]
+        c_evap = 0.0025
+        mass_transport_coeff = c_evap*np.power(wind_speed, 0.78)
+        mass_transport_coeff[wind_speed >= 10] = \
+            0.06*c_evap*np.power(wind_speed[wind_speed >= 10], 2)
+        print mass_transport_coeff, 'mass'
+        vapor_pressure = [self.oiltype.vapor_pressure(t) for t in
+                          self.environment.sea_water_temperature[surface]]
+        volume = (self.elements.mass_oil[surface] /
+                  self.elements.density[surface])
+        thickness = 0.001  # constant 1 mm thickness
+        area = volume/thickness
+        print area, 'AREA'
+        ################################
+        # For each pseudocomponent:
+        ################################
+        print vapor_pressure, 'VAPOR'
+        print len(vapor_pressure), 'VAPORshape'
+        print self.oiltype.num_components, 'NUMCOMP'
+        print dir(self.oiltype)
+        print self.oiltype.molecular_weight, 'MOLWEIGHT'
+        print len(self.oiltype.molecular_weight), 'MOLWEIGHT'
+
+        stop
 
     def advect_oil(self):
         # Simply move particles with ambient current
@@ -416,6 +470,21 @@ class OpenOil(OpenDriftSimulation):
         plt.show()
 
     def set_oiltype(self, oiltype):
+        if self.config['processes']['oil_weathering'] == 'noaa':
+            try:
+                from oil_library import get_oil_props
+            except:
+                raise ImportError(
+                    'NOAA oil library must be installed from: '
+                    'https://github.com/NOAA-ORR-ERD/OilLibrary')
+            try:
+                self.oiltype = get_oil_props(oiltype)
+            except Exception as e:
+                print e
+                raise ValueError('Oil type "%s" not found in NOAA database'
+                                 % oiltype)
+            return
+            
         if oiltype not in self.oiltypes:
             raise ValueError('The following oiltypes are available: %s' %
                              str(self.oiltypes))
