@@ -160,10 +160,6 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self.o.num_elements_activated(), 5)
         self.assertEqual(self.o.num_elements_deactivated(), 1)
         self.assertEqual(self.o.num_elements_total(), 5)
-        print self.o.history
-        import time
-        time.sleep(40)
-        import sys; sys.exit('jalla')
 
     def test4_cleaning(self):
         """Cleaning up"""
