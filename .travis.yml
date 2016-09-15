@@ -17,8 +17,8 @@ matrix:
 sudo: required
 before_install:
   - ls -al $HOME
-  - ls -al $HOME/download
-  - ls -al $HOME/miniconda2
+#  - ls -al $HOME/download
+#  - ls -al $HOME/miniconda2
   - if [[ ! -e $HOME/miniconda2/bin ]]; then
         mkdir -p download;
         cd download;
