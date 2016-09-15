@@ -388,9 +388,9 @@ class OpenOil(OpenDriftSimulation):
         volume = (self.elements.mass_oil[surface] /
                   self.elements.density[surface])
         thickness = 0.001  # constant 1 mm thickness
+        # Area for each element, repeated for each component
         area = volume/thickness
-        print area, 'AREA'
-        area = (volume/thickness).T.repeat(self.oiltype.num_components, axis=1)
+        area = np.tile(area, (self.oiltype.num_components,1))
         print area, 'AREA'
         print area.shape, 'asha'
         import sys; sys.exit('vasja?')
@@ -409,7 +409,6 @@ class OpenOil(OpenDriftSimulation):
         print self.oiltype.num_components, 'NUMCOMP'
         print dir(self.oiltype)
         print self.oiltype.molecular_weight, 'MOLWEIGHT'
-        print len(self.oiltype.molecular_weight), 'MOLWEIGHT'
         import sys; sys.exit('sys')
 
     def advect_oil(self):
