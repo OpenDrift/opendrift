@@ -334,6 +334,23 @@ class OpenOil(OpenDriftSimulation):
         '''Oil weathering scheme adopted from NOAA PyGNOME model'''
         print 'NOAA oil weathering'
 
+        if self.steps_calculation == 1:
+            # At first time step, we initialise array to hold
+            # oil data for each pseudocomponent for each element
+            s = (self.num_elements_total(), self.oiltype.num_components)
+            self.noaa_mass_balance = {}
+            # Populate with seeded mass spread on oiltype.mass_fraction?
+            self.noaa_mass_balance['mass_components'] = \
+                np.ma.array(np.ones(s), dtype=np.float32)
+            self.noaa_mass_balance['evap_decay_constant'] = \
+                np.ma.array(np.zeros(s), dtype=np.float32)
+            self.noaa_mass_balance['mass_evaporated'] = \
+                np.ma.array(np.zeros(s), dtype=np.float32)
+            print self.noaa_mass_balance
+            print self.steps_calculation
+            #import sys; sys.exit('stop')
+            #stop
+
         #########################################################
         # Update density and viscosity according to temperature
         #########################################################
@@ -347,21 +364,43 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Evaporation, for elements at surface only
         #############################################
+        #print dir(self.oiltype), 'oiltype'
         surface = np.where(self.elements.z == 0)[0]
-        print surface, 'SUR'
+        # Mass transport coefficient for each element
         wind_speed = self.wind_speed()[surface]
         c_evap = 0.0025
         mass_transport_coeff = c_evap*np.power(wind_speed, 0.78)
         mass_transport_coeff[wind_speed >= 10] = \
             0.06*c_evap*np.power(wind_speed[wind_speed >= 10], 2)
         print mass_transport_coeff, 'mass'
+        # Vapor pressure for each element and component
         vapor_pressure = [self.oiltype.vapor_pressure(t) for t in
                           self.environment.sea_water_temperature[surface]]
+        print vapor_pressure, 'vapor press'
+        # 
+        # Molecular weight in kg/mol, database is in g/mol
+        molecular_weight = self.oiltype.molecular_weight / 1000.
+        print molecular_weight, 'MW'
+        sum_mi_mw = (self.noaa_mass_balance['mass_components'][:, :].sum(0)
+                     / molecular_weight).sum()
+        print sum_mi_mw, 'mimw'
+
         volume = (self.elements.mass_oil[surface] /
                   self.elements.density[surface])
         thickness = 0.001  # constant 1 mm thickness
         area = volume/thickness
         print area, 'AREA'
+        area = (volume/thickness).T.repeat(self.oiltype.num_components, axis=1)
+        print area, 'AREA'
+        print area.shape, 'asha'
+        import sys; sys.exit('vasja?')
+        f_diff = 1.0
+        gas_constant = 8.314
+        decay = (area*f_diff*mass_transport_coeff) / (gas_constant*
+                 self.environment.sea_water_temperature[surface]*
+                 sum_mi_mw).reshape(-1,1) * vapor_pressure
+        print decay, 'DECAY'
+        import sys; sys.exit('stop')
         ################################
         # For each pseudocomponent:
         ################################
@@ -371,8 +410,7 @@ class OpenOil(OpenDriftSimulation):
         print dir(self.oiltype)
         print self.oiltype.molecular_weight, 'MOLWEIGHT'
         print len(self.oiltype.molecular_weight), 'MOLWEIGHT'
-
-        stop
+        import sys; sys.exit('sys')
 
     def advect_oil(self):
         # Simply move particles with ambient current

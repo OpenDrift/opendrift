@@ -48,8 +48,8 @@ o.config['processes']['emulsification'] = True
 o.run(steps=4, time_step=3600)
 
 # Print and plot results
-stop
 print o
+stop
 
 o.plot_oil_budget()
 o.plot_environment()
