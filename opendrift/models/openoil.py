@@ -333,6 +333,7 @@ class OpenOil(OpenDriftSimulation):
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model'''
         print 'NOAA oil weathering'
+        import noaa_oil_weathering as noaa
 
         if self.steps_calculation == 1:
             # At first time step, we initialise array to hold
@@ -368,16 +369,14 @@ class OpenOil(OpenDriftSimulation):
         surface = np.where(self.elements.z == 0)[0]
         # Mass transport coefficient for each element
         wind_speed = self.wind_speed()[surface]
-        c_evap = 0.0025
-        mass_transport_coeff = c_evap*np.power(wind_speed, 0.78)
-        mass_transport_coeff[wind_speed >= 10] = \
-            0.06*c_evap*np.power(wind_speed[wind_speed >= 10], 2)
-        print mass_transport_coeff, 'mass'
+        mass_transport_coeff = noaa.mass_transport_coeff(wind_speed)
         # Vapor pressure for each element and component
+        evap_decay_constant = noaa.evap_decay_constant(
+            self.oiltype, wind_speed, self.environment.sea_water_temperature)
+
         vapor_pressure = [self.oiltype.vapor_pressure(t) for t in
                           self.environment.sea_water_temperature[surface]]
         print vapor_pressure, 'vapor press'
-        # 
         # Molecular weight in kg/mol, database is in g/mol
         molecular_weight = self.oiltype.molecular_weight / 1000.
         print molecular_weight, 'MW'
