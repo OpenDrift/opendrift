@@ -32,6 +32,7 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
 install:
+  - conda install --yes mock
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
   - conda install --yes -c dan_blanchard python-coveralls
 script: coverage run --source=opendrift setup.py test
