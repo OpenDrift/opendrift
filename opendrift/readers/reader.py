@@ -20,7 +20,6 @@ import logging
 import copy
 from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
-from multiprocessing import Pool
 
 from scipy.interpolate import interp1d, LinearNDInterpolator
 from scipy.spatial import KDTree

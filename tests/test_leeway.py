@@ -21,7 +21,6 @@ import unittest
 from datetime import datetime, timedelta
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.models.leeway import Leeway

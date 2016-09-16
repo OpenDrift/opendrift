@@ -23,7 +23,6 @@ from datetime import datetime, timedelta
 import inspect
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers import reader_netCDF_CF_generic
@@ -250,32 +249,6 @@ class TestInterpolation(unittest.TestCase):
         self.assertAlmostEqual(prof['x_sea_water_velocity'][5,48],
                                -0.0949447782936)
 
-
-    def atest_interpolation_coast(self):
-        """Test interpolation."""
-        reader = reader_ROMS_native.Reader('/disk2/data/SVIM/ocean_avg_20081201.nc')
-        num_points = 50
-        np.random.seed(0)  # To get the same random numbers each time
-        lons = np.random.uniform(12, 16, num_points)
-        lats = np.random.uniform(68.3, 68.3, num_points)
-        z = np.random.uniform(-100, 0, num_points)
-        x, y = reader.lonlat2xy(lons, lats)
-
-        variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                     'sea_water_temperature']
-        # Read a block of data covering the points
-        data = reader.get_variables(variables, time=reader.start_time,
-                                    x=x, y=y, z=z, block=True)
-        import matplotlib.pyplot as plt
-        plt.imshow(data['x_sea_water_velocity'][0,:,:])
-        plt.colorbar()
-        plt.show()
-
-        b = ReaderBlock(data, interpolation_horizontal='nearest')
-
-        env, prof = b.interpolate(x, y, z, variables,
-                                  profiles=['x_sea_water_velocity'],
-                                  profiles_depth=[-30, 0])
 
 if __name__ == '__main__':
     unittest.main()
