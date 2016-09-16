@@ -16,7 +16,6 @@
 
 import os
 import logging
-from datetime import datetime
 from collections import OrderedDict
 
 import numpy as np

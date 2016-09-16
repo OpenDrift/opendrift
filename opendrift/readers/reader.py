@@ -15,14 +15,12 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import sys
-import importlib
 import logging
 import copy
 from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
 
-from scipy.interpolate import interp1d, LinearNDInterpolator
-from scipy.spatial import KDTree
+from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
 import numpy as np
 

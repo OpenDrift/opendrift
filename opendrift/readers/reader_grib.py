@@ -16,7 +16,7 @@
 
 from sets import Set
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 try:

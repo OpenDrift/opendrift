@@ -19,7 +19,7 @@ import numpy as np
 from datetime import datetime
 
 from opendrift.models.openoil import OpenOil, Oil
-from opendrift.models.opendrift3D import OpenDrift3DSimulation, Lagrangian3DArray
+from opendrift.models.opendrift3D import OpenDrift3DSimulation
 
 
 # Defining the oil element properties

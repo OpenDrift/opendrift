@@ -18,9 +18,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
-from datetime import datetime, timedelta
-
-import numpy as np
+from datetime import datetime
 
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.models.openoil import OpenOil

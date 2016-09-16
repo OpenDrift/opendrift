@@ -15,7 +15,6 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import logging
-from datetime import datetime, timedelta
 from bisect import bisect_left, bisect_right
 
 import numpy as np
