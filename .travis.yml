@@ -9,7 +9,6 @@ env:
 matrix:
   allow_failures:
     - env: NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1
-    - env: NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.18.0 NETCDF_VERSION=1.2.4
 #cache:
 #  directories:
 #    - $HOME/download

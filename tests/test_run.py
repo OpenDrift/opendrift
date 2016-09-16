@@ -167,7 +167,7 @@ class TestRun(unittest.TestCase):
 
     def test_temporal_seed(self):
         self.o = OceanDrift(loglevel=20)
-        self.o.fallback_values['sea_surface_x_velocity'] = 1
+        self.o.fallback_values['x_sea_water_velocity'] = 1
         self.o.fallback_values['land_binary_mask'] = 0
         # Seed elements on a grid at regular time interval
         start_time = datetime(2016,9,16)
@@ -187,6 +187,7 @@ class TestRun(unittest.TestCase):
         self.assertTrue(self.o.history['lon'].min() > -1000)
         self.assertTrue(self.o.history['lon'].mask[5,5])
         self.assertFalse(self.o.history['lon'].mask[1,1])
+        os.remove('temporal_seed.nc')
 
     def test_output_time_step(self):
         o1 = OceanDrift(loglevel=20)
