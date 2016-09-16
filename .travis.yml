@@ -4,8 +4,8 @@ python:
 env:
   - NUMPY_VERSION=1.7   SCIPY_VERSION=0.11 NETCDF_VERSION=1
   - NUMPY_VERSION=1.11  SCIPY_VERSION=0.17 NETCDF_VERSION=1.2
-  - NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1
-  - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.18.0 NETCDF_VERSION=1.2.4
+  - NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1 # Hexagon
+  - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.18.0 NETCDF_VERSION=1.2.4 # Marta
 matrix:
   allow_failures:
     - env: NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1
@@ -32,6 +32,7 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
 install:
+  - pip install -e ".[test]"
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
   - conda install --yes -c dan_blanchard python-coveralls
 script: coverage run --source=opendrift setup.py test
