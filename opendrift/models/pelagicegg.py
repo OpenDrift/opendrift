@@ -14,9 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import os
 import numpy as np
-from datetime import datetime
 
 from opendrift.models.opendrift3D import OpenDrift3DSimulation, Lagrangian3DArray
 from opendrift.elements import LagrangianArray

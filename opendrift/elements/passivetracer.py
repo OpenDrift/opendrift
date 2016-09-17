@@ -14,8 +14,6 @@
 # 
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import numpy as np
-
 from elements import LagrangianArray
 
 

@@ -18,14 +18,10 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
-from datetime import datetime, timedelta
-
-import numpy as np
-import matplotlib.pyplot as plt
+from datetime import datetime
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.models.leeway import Leeway
-from opendrift.models.windblow import WindBlow
 
 
 class TestArray(unittest.TestCase):

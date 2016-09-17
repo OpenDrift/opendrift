@@ -14,9 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import os
 import logging
-from datetime import datetime, timedelta
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date

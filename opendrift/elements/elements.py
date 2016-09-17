@@ -15,7 +15,6 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 from collections import OrderedDict
-import logging
 
 import numpy as np
 

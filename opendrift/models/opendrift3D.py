@@ -16,7 +16,6 @@
 
 import numpy as np
 import logging
-from datetime import datetime
 from scipy.interpolate import interp1d
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray

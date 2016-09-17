@@ -165,6 +165,30 @@ class TestRun(unittest.TestCase):
         """Cleaning up"""
         os.remove('unittest.nc')
 
+    def test_temporal_seed(self):
+        self.o = OceanDrift(loglevel=20)
+        self.o.fallback_values['x_sea_water_velocity'] = 1
+        self.o.fallback_values['land_binary_mask'] = 0
+        # Seed elements on a grid at regular time interval
+        start_time = datetime(2016,9,16)
+        time_step = timedelta(hours=6)
+        num_steps = 10
+        lon = 4.4
+        lat = 60.0
+        for i in range(num_steps+1):
+            self.o.seed_elements(lon, lat, radius=0, number=2,
+                                 time=start_time + i*time_step)
+        # Running model
+        self.o.run(steps=20, time_step=3600, outfile='temporal_seed.nc')
+        self.o = OceanDrift(loglevel=20)
+        # Check that data imported is properly masked
+        self.o.io_import_file('temporal_seed.nc')
+        self.assertTrue(self.o.history['lon'].max() < 1000)
+        self.assertTrue(self.o.history['lon'].min() > -1000)
+        self.assertTrue(self.o.history['lon'].mask[5,5])
+        self.assertFalse(self.o.history['lon'].mask[1,1])
+        os.remove('temporal_seed.nc')
+
     def test_output_time_step(self):
         o1 = OceanDrift(loglevel=20)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
