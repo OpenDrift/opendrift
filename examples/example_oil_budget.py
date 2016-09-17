@@ -24,10 +24,12 @@ reader_basemap = reader_basemap_landmask.Reader(
                     urcrnrlon=7, urcrnrlat=61.5,
                     resolution='c', projection='merc')
 
-o.add_reader([reader_basemap, reader_norkyst, reader_arome])
+#o.add_reader([reader_basemap, reader_norkyst, reader_arome])
+o.fallback_values['x_wind'] = 7
+o.add_reader([reader_basemap, reader_norkyst])
 
 # Seeding some particles
-lon = 4.9; lat = 60.0; # Outside Bergen
+lon = 5.1; lat = 60.0; # Outside Bergen
 
 #time = [reader_arome.start_time,
 #        reader_arome.start_time + timedelta(hours=30)]
@@ -35,7 +37,7 @@ time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
 o.config['processes']['oil_weathering'] = 'noaa'
-o.seed_elements(lon, lat, radius=3000, number=10, time=time,
+o.seed_elements(lon, lat, radius=6000, number=10, time=time,
                 oiltype='EKOFISK')
 
 # Adjusting some configuration
@@ -45,13 +47,15 @@ o.config['processes']['evaporation'] = True
 o.config['processes']['emulsification'] = True
 
 # Running model (until end of driver data)
-o.run(steps=4, time_step=3600)
+o.run(steps=4*50, time_step=900)
 
 # Print and plot results
 print o
+o.plot()
+o.plot_property('mass_oil')
+o.plot_oil_budget()
 stop
 
-o.plot_oil_budget()
 o.plot_environment()
 
 o.plot()

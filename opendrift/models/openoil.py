@@ -336,21 +336,16 @@ class OpenOil(OpenDriftSimulation):
         import noaa_oil_weathering as noaa
 
         if self.steps_calculation == 1:
-            # At first time step, we initialise array to hold
+            # At first time step, we initialise arrays to hold
             # oil data for each pseudocomponent for each element
-            s = (self.num_elements_total(), self.oiltype.num_components)
             self.noaa_mass_balance = {}
-            # Populate with seeded mass spread on oiltype.mass_fraction?
+            # Populate with seeded mass spread on oiltype.mass_fraction
             self.noaa_mass_balance['mass_components'] = \
-                np.ma.array(np.ones(s), dtype=np.float32)
-            self.noaa_mass_balance['evap_decay_constant'] = \
-                np.ma.array(np.zeros(s), dtype=np.float32)
+                np.asarray(self.oiltype.mass_fraction)*(
+                self.elements.mass_oil.reshape(len(self.elements.mass_oil),
+                                               -1))
             self.noaa_mass_balance['mass_evaporated'] = \
-                np.ma.array(np.zeros(s), dtype=np.float32)
-            print self.noaa_mass_balance
-            print self.steps_calculation
-            #import sys; sys.exit('stop')
-            #stop
+                self.noaa_mass_balance['mass_components']*0
 
         #########################################################
         # Update density and viscosity according to temperature
@@ -365,56 +360,36 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Evaporation, for elements at surface only
         #############################################
-        #print dir(self.oiltype), 'oiltype'
-        surface = np.where(self.elements.z == 0)[0]
-        # Mass transport coefficient for each element
-        wind_speed = self.wind_speed()[surface]
-        mass_transport_coeff = noaa.mass_transport_coeff(wind_speed)
-        # Vapor pressure for each element and component
-        evap_decay_constant = noaa.evap_decay_constant(
-            self.oiltype, wind_speed, self.environment.sea_water_temperature)
-
-        vapor_pressure = [self.oiltype.vapor_pressure(t) for t in
-                          self.environment.sea_water_temperature[surface]]
-        print vapor_pressure, 'vapor press'
-        # Molecular weight in kg/mol, database is in g/mol
-        molecular_weight = self.oiltype.molecular_weight / 1000.
-        print molecular_weight, 'MW'
-        sum_mi_mw = (self.noaa_mass_balance['mass_components'][:, :].sum(0)
-                     / molecular_weight).sum()
-        print sum_mi_mw, 'mimw'
-
+        surface = np.where(self.elements.z == 0)[0]  # of active elements
+        surfaceID = self.elements.ID[surface] - 1    # of any elements
+        print surface, surfaceID, 'SURF'
+        # Area for each element, repeated for each component
         volume = (self.elements.mass_oil[surface] /
                   self.elements.density[surface])
-        thickness = 0.001  # constant 1 mm thickness
-        # Area for each element, repeated for each component
+        thickness = 0.001  # constant 1 mm thickness, by now
         area = volume/thickness
-        area = np.tile(area, (self.oiltype.num_components,1))
-        print area, 'AREA'
-        print area.shape, 'asha'
-        import sys; sys.exit('vasja?')
-        f_diff = 1.0
-        gas_constant = 8.314
-        decay = (area*f_diff*mass_transport_coeff) / (gas_constant*
-                 self.environment.sea_water_temperature[surface]*
-                 sum_mi_mw).reshape(-1,1) * vapor_pressure
-        print decay, 'DECAY'
-        import sys; sys.exit('stop')
-        ################################
-        # For each pseudocomponent:
-        ################################
-        print vapor_pressure, 'VAPOR'
-        print len(vapor_pressure), 'VAPORshape'
-        print self.oiltype.num_components, 'NUMCOMP'
-        print dir(self.oiltype)
-        print self.oiltype.molecular_weight, 'MOLWEIGHT'
-        import sys; sys.exit('sys')
+        evap_decay_constant = noaa.evap_decay_constant(
+            self.oiltype, self.wind_speed()[surface],
+            self.environment.sea_water_temperature[surface], area,
+            self.noaa_mass_balance['mass_components'][surfaceID, :])
+        mass_remain = \
+            (self.noaa_mass_balance['mass_components'][surfaceID, :]*
+             np.exp(evap_decay_constant*self.time_step.total_seconds()))
+        self.elements.mass_evaporated[surface] += \
+            np.sum(self.noaa_mass_balance['mass_components'][surfaceID, :]
+                - mass_remain, 1)
+        self.noaa_mass_balance['mass_components'][surfaceID, :] = \
+            mass_remain
+        self.elements.mass_oil = np.sum(mass_remain, 1)
+        print self.elements.mass_oil, 'mass_oil'
+        print self.elements.mass_evaporated, 'evap'
+        print self.elements.ID
 
     def advect_oil(self):
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
-        # Wind drag for elements at ocean surface
+        8# Wind drag for elements at ocean surface
         self.advect_wind()
 
         # Stokes drift
@@ -492,7 +467,7 @@ class OpenOil(OpenDriftSimulation):
         ax2.set_ylim([0, 100])
         ax2.set_ylabel('Percent')
         plt.title('%s - %s to %s' %
-                  (self.model.oiltype,
+                  (self.oil_name,
                    self.start_time.strftime('%Y-%m-%d %H:%M'),
                    self.time.strftime('%Y-%m-%d %H:%M')))
         # Shrink current axis's height by 10% on the bottom
@@ -506,6 +481,7 @@ class OpenOil(OpenDriftSimulation):
         plt.show()
 
     def set_oiltype(self, oiltype):
+        self.oil_name = oiltype
         if self.config['processes']['oil_weathering'] == 'noaa':
             try:
                 from oil_library import get_oil_props
