@@ -391,7 +391,7 @@ class OpenOil(OpenDriftSimulation):
                                                self.wind_speed())
         emul_time = self.oiltype.bulltime 
         emul_constant = self.oiltype.bullwinkle
-        print emul_time, emul_constant, 'wmuls'
+        print emul_time, emul_constant, 'emul_time, emul_constant'
         # max water content fraction - get from database
         Y_max = self.oiltype.get('emulsion_water_fraction_max')
         print Y_max, 'Ymax'
@@ -403,7 +403,9 @@ class OpenOil(OpenDriftSimulation):
         # Emulsify...
         # f ((le_age >= emul_time && emul_time >= 0.) || frac_evap[i] >= emul_C && emul_C > 0.)
 
-        em = np.where(self.elements.age_seconds 
+        start_emulsion = np.where(
+            (self.elements.age_seconds >= emul_time) & ()
+            )
         print self.elements.age_seconds, 'age_seconds'
         print S_max, 'Smax'
         import sys; sys.exit('stop')
