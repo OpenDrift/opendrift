@@ -38,7 +38,8 @@ time = reader_arome.start_time
 # Seed oil elements at defined position and time
 o.config['processes']['oil_weathering'] = 'noaa'
 o.seed_elements(lon, lat, radius=6000, number=10, time=time,
-                oiltype='EKOFISK')
+                oiltype='ALGERIAN CONDENSATE')
+                #oiltype='EKOFISK')
 
 # Adjusting some configuration
 o.config['processes']['diffusion'] = True
@@ -48,6 +49,7 @@ o.config['processes']['emulsification'] = True
 
 # Running model (until end of driver data)
 o.run(steps=4*50, time_step=900)
+stop
 
 # Print and plot results
 print o

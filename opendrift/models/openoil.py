@@ -50,6 +50,9 @@ class Oil(LagrangianArray):
         ('age_emulsion_seconds', {'dtype': np.float32,
                                   'units': 's',
                                   'default': 0}),
+        ('interfacial_area', {'dtype': np.float32,
+                              'units': 'm2',
+                              'default': 0}),
         ('mass_emulsion', {'dtype': np.float32,
                            'units': 'kg',
                            'default': 0}),
@@ -362,7 +365,6 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         surface = np.where(self.elements.z == 0)[0]  # of active elements
         surfaceID = self.elements.ID[surface] - 1    # of any elements
-        print surface, surfaceID, 'SURF'
         # Area for each element, repeated for each component
         volume = (self.elements.mass_oil[surface] /
                   self.elements.density[surface])
@@ -381,15 +383,36 @@ class OpenOil(OpenDriftSimulation):
         self.noaa_mass_balance['mass_components'][surfaceID, :] = \
             mass_remain
         self.elements.mass_oil = np.sum(mass_remain, 1)
-        print self.elements.mass_oil, 'mass_oil'
-        print self.elements.mass_evaporated, 'evap'
-        print self.elements.ID
+
+        #############################################
+        # Emulsification (surface only?)
+        #############################################
+        k_emul = noaa.water_uptake_coefficient(self.oiltype,
+                                               self.wind_speed())
+        emul_time = self.oiltype.bulltime 
+        emul_constant = self.oiltype.bullwinkle
+        print emul_time, emul_constant, 'wmuls'
+        # max water content fraction - get from database
+        Y_max = self.oiltype.get('emulsion_water_fraction_max')
+        print Y_max, 'Ymax'
+        if Y_max <= 0:
+            logging.debug('Oil does not emulsify, returning.')
+            #return
+        drop_min = 1.0e-6
+        S_max = (6. / drop_min) * (Y_max / (1.0 - Y_max))
+        # Emulsify...
+        # f ((le_age >= emul_time && emul_time >= 0.) || frac_evap[i] >= emul_C && emul_C > 0.)
+
+        em = np.where(self.elements.age_seconds 
+        print self.elements.age_seconds, 'age_seconds'
+        print S_max, 'Smax'
+        import sys; sys.exit('stop')
 
     def advect_oil(self):
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
-        8# Wind drag for elements at ocean surface
+        # Wind drag for elements at ocean surface
         self.advect_wind()
 
         # Stokes drift
