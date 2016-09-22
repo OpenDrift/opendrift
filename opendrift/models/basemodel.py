@@ -939,7 +939,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def run(self, time_step=3600, steps=None, time_step_output=None,
             duration=None, end_time=None, outfile=None, export_variables=None,
-            export_step_interval=None):
+            export_buffer_length=100):
         """Start a trajectory simulation, after initial configuration.
 
         Performs the main loop:
@@ -978,6 +978,11 @@ class OpenDriftSimulation(PhysicsMethods):
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
         self.elements = self.ElementType()
+
+        if outfile is None and export_buffer_length is not None:
+            logging.debug('No output file is specified, '
+                          'neglecting export_buffer_length')
+            export_buffer_length = None
 
         # Set projection to latlong if not taken from any of the readers
         if self.proj is None:
@@ -1069,11 +1074,10 @@ class OpenDriftSimulation(PhysicsMethods):
         ####################################################################
         # Preparing history array for storage in memory and eventually file
         ####################################################################
-        # Buffer, for later implementation of sequential writing
-        if export_step_interval is None:
-            self.export_step_interval = self.expected_steps_output
+        if export_buffer_length is None:
+            self.export_buffer_length = self.expected_steps_output
         else:
-            self.export_step_interval = export_step_interval
+            self.export_buffer_length = export_buffer_length
 
         self.time = self.start_time  # Start time has been set when seeding
 
@@ -1103,7 +1107,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         history_dtype = np.dtype(history_dtype_fields)
         self.history = np.ma.array(np.zeros((len(self.elements_scheduled),
-                                             self.export_step_interval)),
+                                             self.export_buffer_length)),
                                    dtype=history_dtype)
         self.history.mask=True
         self.steps_exported = 0
@@ -1201,13 +1205,14 @@ class OpenDriftSimulation(PhysicsMethods):
         # Remove any elements scheduled for deactivation during last step
         #self.remove_deactivated_elements()
 
-        if export_step_interval is None:
+        if export_buffer_length is None:
             # Remove columns for unseeded elements in history array
             self.history = self.history[range(self.num_elements_activated()), :]
             # Remove rows for unreached timsteps in history array
             self.history = self.history[:, range(self.steps_output)]
         else:  # If output has been flushed to file during run, we
                # need to reimport from file to get all data in memory
+            del self.environment
             self.io_import_file(outfile)
 
     def state_to_buffer(self):
@@ -1256,7 +1261,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # Call writer if buffer is full
         if (self.outfile is not None) and \
                 ((self.steps_output - self.steps_exported) ==
-                    self.export_step_interval):
+                    self.export_buffer_length):
             self.io_write_buffer()
 
     def index_of_activation_and_deactivation(self):

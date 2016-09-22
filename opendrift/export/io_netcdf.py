@@ -200,6 +200,7 @@ def import_file(self, filename, time=None):
     # Import element IDs, which are named 'trajectory' in netCDF CF convention
     kwargs['ID'] = infile.variables['trajectory'][:]
     self.elements = self.ElementType(**kwargs)
+    self.elements_deactivated = self.ElementType()
 
     # Remove elements which are scheduled for deactivation
     self.remove_deactivated_elements()
