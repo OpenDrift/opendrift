@@ -216,7 +216,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """Set the projection onto which data from readers is reprojected."""
         self.proj4 = proj4
         if proj4 is not None:
-            self.proj = pyproj.Proj(self.proj4)
+            self.proj = pyproj.Proj(self.proj4 + ' +ellps=WGS84')
             logging.info('Calculation SRS set to: ' + self.proj.srs)
         else:
             self.proj = None
@@ -762,7 +762,7 @@ class OpenDriftSimulation(PhysicsMethods):
         poly = Polygon(zip(lons, lats), closed=True)
         # Place N points within the polygons
         proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f '\
-                           '+lon_0=%f +R=6370997.0 +units=m'
+                           '+lon_0=%f +R=6370997.0 +units=m +ellps=WGS84'
                            % (lats.min(), lats.max(),
                               (lats.min()+lats.max())/2,
                               (lons.min()+lons.max())/2))

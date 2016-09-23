@@ -491,7 +491,7 @@ class Reader(object):
         if type(proj_from) is str:
             proj_from = pyproj.Proj(proj_from)
         if type(proj_from) is not pyproj.Proj:
-            proj_from = pyproj.Proj('+proj=latlong +R=6370997.0')
+            proj_from = pyproj.Proj('+proj=latlong +R=6370997.0 +ellps=WGS84')
             reader_x, reader_y = self.xy2lonlat(reader_x, reader_y)
         if type(proj_to) is str:
             proj_to = pyproj.Proj(proj_to)
