@@ -25,7 +25,7 @@ reader_basemap = reader_basemap_landmask.Reader(
                     resolution='c', projection='merc')
 
 #o.add_reader([reader_basemap, reader_norkyst, reader_arome])
-o.fallback_values['x_wind'] = 7
+o.fallback_values['x_wind'] = 5
 o.add_reader([reader_basemap, reader_norkyst])
 
 # Seeding some particles
@@ -37,24 +37,27 @@ time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
 o.config['processes']['oil_weathering'] = 'noaa'
-o.seed_elements(lon, lat, radius=6000, number=10, time=time,
-                oiltype='ALGERIAN CONDENSATE')
+o.seed_elements(lon, lat, radius=6000, number=1000, time=time,
+                oiltype='GULLFAKS, EXXON')
+                #oiltype='ALGERIAN CONDENSATE')
                 #oiltype='EKOFISK')
 
 # Adjusting some configuration
-o.config['processes']['diffusion'] = True
-o.config['processes']['dispersion'] = True
+o.config['processes']['diffusion'] = False
+o.config['processes']['dispersion'] = False
 o.config['processes']['evaporation'] = True
 o.config['processes']['emulsification'] = True
 
 # Running model (until end of driver data)
 o.run(steps=4*50, time_step=900)
-stop
 
 # Print and plot results
 print o
-o.plot()
 o.plot_property('mass_oil')
+o.plot_property('water_fraction')
+o.plot_property('fraction_evaporated')
+o.plot_property('interfacial_area')
+o.plot()
 o.plot_oil_budget()
 stop
 

@@ -21,6 +21,7 @@ import logging
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
+import noaa_oil_weathering as noaa
 
 
 # Defining the oil element properties
@@ -50,6 +51,9 @@ class Oil(LagrangianArray):
         ('age_emulsion_seconds', {'dtype': np.float32,
                                   'units': 's',
                                   'default': 0}),
+        ('bulltime', {'dtype': np.float32,
+                      'units': 's',
+                      'default': 0}),
         ('interfacial_area', {'dtype': np.float32,
                               'units': 'm2',
                               'default': 0}),
@@ -65,7 +69,7 @@ class Oil(LagrangianArray):
         ('fraction_evaporated', {'dtype': np.float32,
                                  'units': '%',
                                  'default': 0}),
-        ('water_content', {'dtype': np.float32,
+        ('water_fraction', {'dtype': np.float32,
                            'units': '%',
                            'default': 0})])
 
@@ -222,7 +226,7 @@ class OpenOil(OpenDriftSimulation):
                 self.elements.age_emulsion_seconds += \
                     Urel*self.time_step.total_seconds()
 
-                self.elements.water_content = np.interp(
+                self.elements.water_fraction = np.interp(
                     self.elements.age_emulsion_seconds,
                     self.model.tref, self.model.wmax)
 
@@ -314,6 +318,7 @@ class OpenOil(OpenDriftSimulation):
             self.update_positions(sigma_u, sigma_v)
 
     def oil_weathering(self):
+        self.elements.age_seconds += self.time_step.total_seconds()
         if self.config['processes']['oil_weathering'] == 'noaa':
             self.oil_weathering_noaa()
         else:
@@ -322,7 +327,6 @@ class OpenOil(OpenDriftSimulation):
     def oil_weathering_default(self):
 
         print 'Default oil weathering'
-        self.elements.age_seconds += self.time_step.total_seconds()
 
         ## Evaporation
         self.evaporate()
@@ -334,9 +338,10 @@ class OpenOil(OpenDriftSimulation):
         self.disperse()
 
     def oil_weathering_noaa(self):
-        '''Oil weathering scheme adopted from NOAA PyGNOME model'''
-        print 'NOAA oil weathering'
-        import noaa_oil_weathering as noaa
+        '''Oil weathering scheme adopted from NOAA PyGNOME model:
+        https://github.com/NOAA-ORR-ERD/PyGnome
+        '''
+        logging.debug('NOAA oil weathering')
 
         if self.steps_calculation == 1:
             # At first time step, we initialise arrays to hold
@@ -359,7 +364,14 @@ class OpenOil(OpenDriftSimulation):
         self.elements.density = np.array(
             [self.oiltype.get_density(t) for t in
              self.environment.sea_water_temperature])
+    
+        if self.config['processes']['evaporation'] is True:
+            self.evaporation_noaa()
 
+        if self.config['processes']['emulsification'] is True:
+            self.emulsification_noaa()
+
+    def evaporation_noaa(self):
         #############################################
         # Evaporation, for elements at surface only
         #############################################
@@ -384,6 +396,7 @@ class OpenOil(OpenDriftSimulation):
             mass_remain
         self.elements.mass_oil = np.sum(mass_remain, 1)
 
+    def emulsification_noaa(self):
         #############################################
         # Emulsification (surface only?)
         #############################################
@@ -397,18 +410,60 @@ class OpenOil(OpenDriftSimulation):
         print Y_max, 'Ymax'
         if Y_max <= 0:
             logging.debug('Oil does not emulsify, returning.')
-            #return
+            return
+        # Constants for droplets
         drop_min = 1.0e-6
+        drop_max = 1.0e-5
+        print drop_min, drop_max, Y_max, 'all'
         S_max = (6. / drop_min) * (Y_max / (1.0 - Y_max))
+        S_min = (6. / drop_max) * (Y_max / (1.0 - Y_max))
         # Emulsify...
+        fraction_evaporated = self.elements.mass_evaporated / (
+            self.elements.mass_evaporated + self.elements.mass_oil)
         # f ((le_age >= emul_time && emul_time >= 0.) || frac_evap[i] >= emul_C && emul_C > 0.)
 
         start_emulsion = np.where(
-            (self.elements.age_seconds >= emul_time) & ()
-            )
+            ((self.elements.age_seconds >= emul_time) & (emul_time >= 0)) | 
+            ((fraction_evaporated >= emul_constant) & (emul_constant > 0))
+            )[0]
+        if len(start_emulsion) == 0:
+            logging.debug('Emulsification not yet started')
+            print fraction_evaporated
+            return
+
+        logging.debug('Calculating emulsification')
+        if self.oiltype.bulltime > 0:  # User has set value
+            start_time = self.oiltype.bulltime*np.ones(len(start_emulsion))
+        else:
+            start_time = self.elements.age_seconds[start_emulsion]
+            start_time[self.elements.age_emulsion_seconds[start_emulsion]
+                       >= 0] = self.elements.bulltime[start_emulsion]
+        # Update droplet interfacial area
+        self.elements.interfacial_area[start_emulsion] = \
+            self.elements.interfacial_area[start_emulsion] + \
+            (k_emul*self.time_step.total_seconds()*
+             np.exp((-k_emul/S_max)*(
+                self.elements.age_seconds[start_emulsion] - start_time)))
+        self.elements.interfacial_area[self.elements.interfacial_area >
+                                       S_max] = S_max
+        # Update water fraction
+        self.elements.water_fraction = (self.elements.interfacial_area[
+            start_emulsion]*drop_max/ (6.0 +
+            (self.elements.interfacial_area[start_emulsion]*drop_max)))
+        self.elements.water_fraction[self.elements.interfacial_area[
+            start_emulsion] >= ((6.0 / drop_max)*(Y_max/(1.0 - Y_max)))] \
+                = Y_max
+        print 'emulsifying'
+        print self.elements.age_seconds, 'age sec'
+        print emul_time, 'emul_time'
+        print fraction_evaporated, 'frac_evap'
+        print emul_constant, 'emul_const'
+        print start_emulsion, 'start_emulsion indices'
+        print self.elements.interfacial_area, 'interf area'
+        print self.elements.water_fraction, 'water_fraction'
+        print S_max, 'S_max'
         print self.elements.age_seconds, 'age_seconds'
         print S_max, 'Smax'
-        import sys; sys.exit('stop')
 
     def advect_oil(self):
         # Simply move particles with ambient current
