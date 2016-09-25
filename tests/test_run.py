@@ -189,8 +189,29 @@ class TestRun(unittest.TestCase):
         self.assertFalse(self.o.history['lon'].mask[1,1])
         os.remove('temporal_seed.nc')
 
-    def test_output_time_step(self):
+    def test_export_step_interval(self):
+        # Export to file only at end
         o1 = OceanDrift(loglevel=20)
+        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        o1.add_reader(norkyst)
+        o1.fallback_values['land_binary_mask'] = 0
+        o1.seed_elements(4.25, 60.2, radius=1000, number=10,
+                        time=norkyst.start_time)
+        o1.run(steps=40)
+        # Export to file during simulation
+        o2 = OceanDrift(loglevel=20)
+        o2.add_reader(norkyst)
+        o2.fallback_values['land_binary_mask'] = 0
+        o2.seed_elements(4.25, 60.2, radius=1000, number=10,
+                        time=norkyst.start_time)
+        o2.run(steps=40, export_buffer_length=6)#,
+               #outfile='export_step_interval.nc')
+        self.assertItemsEqual(o1.history['lon'].compressed(),
+                              o2.history['lon'].compressed())
+
+    def test_output_time_step(self):
+        o1 = OceanDrift(loglevel=0)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         basemap = reader_basemap_landmask.Reader(
