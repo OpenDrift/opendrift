@@ -127,7 +127,6 @@ class OpenOil(OpenDriftSimulation):
                 time = string(default='%s')
                 oil_type = option(%s, default=%s)
         [processes]
-            oil_weathering = string(default='default')
             dispersion = boolean(default=True)
             diffusion = boolean(default=True)
             evaporation = boolean(default=True)
@@ -140,23 +139,37 @@ class OpenOil(OpenDriftSimulation):
             relative_wind = boolean(default=True)
     ''' % (datetime.now().strftime('%Y-%d-%m %H:00'), oil_types, default_oil)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, weathering_model='default', *args, **kwargs):
 
-        # Read oil properties from file
-        self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
-            '/oilprop.dat'
-        oilprop = open(self.oiltype_file)
-        oiltypes = []
-        linenumbers = []
-        for i, line in enumerate(oilprop.readlines()):
-            if line[0].isalpha():
-                oiltype = line.strip()[:-2].strip()
-                oiltypes.append(oiltype)
-                linenumbers.append(i)
-        oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
-        self.oiltypes = oiltypes
-        self.oiltypes_linenumbers = linenumbers
+        if weathering_model == 'noaa':
+            try:
+                from oil_library import _get_db_session
+                from oil_library.models import Oil
+            except:
+                raise ImportError(
+                    'NOAA oil library must be installed from: '
+                    'https://github.com/NOAA-ORR-ERD/OilLibrary')
+            # Get list of all oiltypes in NOAA database
+            session = _get_db_session()
+            self.oiltypes = session.query(Oil.name).all()
+            self.oiltypes = [o[0] for o in self.oiltypes]
+        else:
+            # Read oil properties from file
+            self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
+                '/oilprop.dat'
+            oilprop = open(self.oiltype_file)
+            oiltypes = []
+            linenumbers = []
+            for i, line in enumerate(oilprop.readlines()):
+                if line[0].isalpha():
+                    oiltype = line.strip()[:-2].strip()
+                    oiltypes.append(oiltype)
+                    linenumbers.append(i)
+            oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
+            self.oiltypes = oiltypes
+            self.oiltypes_linenumbers = linenumbers
 
+        self.oil_weathering_model = weathering_model
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
 
@@ -319,7 +332,7 @@ class OpenOil(OpenDriftSimulation):
 
     def oil_weathering(self):
         self.elements.age_seconds += self.time_step.total_seconds()
-        if self.config['processes']['oil_weathering'] == 'noaa':
+        if self.oil_weathering_model == 'noaa':
             self.oil_weathering_noaa()
         else:
             self.oil_weathering_default()
@@ -562,14 +575,9 @@ class OpenOil(OpenDriftSimulation):
 
     def set_oiltype(self, oiltype):
         self.oil_name = oiltype
-        if self.config['processes']['oil_weathering'] == 'noaa':
+        if self.oil_weathering_model == 'noaa':
             try:
                 from oil_library import get_oil_props
-            except:
-                raise ImportError(
-                    'NOAA oil library must be installed from: '
-                    'https://github.com/NOAA-ORR-ERD/OilLibrary')
-            try:
                 self.oiltype = get_oil_props(oiltype)
             except Exception as e:
                 print e
