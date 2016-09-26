@@ -205,10 +205,29 @@ class TestRun(unittest.TestCase):
         o2.fallback_values['land_binary_mask'] = 0
         o2.seed_elements(4.25, 60.2, radius=1000, number=10,
                         time=norkyst.start_time)
-        o2.run(steps=40, export_buffer_length=6)#,
-               #outfile='export_step_interval.nc')
+        o2.run(steps=40, export_buffer_length=6,
+               outfile='export_step_interval.nc')
         self.assertItemsEqual(o1.history['lon'].compressed(),
                               o2.history['lon'].compressed())
+        # Finally check when steps is multiple of export_buffer_length
+        o3 = OceanDrift(loglevel=20)
+        o3.add_reader(norkyst)
+        o3.fallback_values['land_binary_mask'] = 0
+        o3.seed_elements(4.25, 60.2, radius=1000, number=10,
+                        time=norkyst.start_time)
+        o3.run(steps=42)
+        # Export to file during simulation
+        o4 = OceanDrift(loglevel=20)
+        o4.add_reader(norkyst)
+        o4.fallback_values['land_binary_mask'] = 0
+        o4.seed_elements(4.25, 60.2, radius=1000, number=10,
+                        time=norkyst.start_time)
+        o4.run(steps=42, export_buffer_length=6,
+               outfile='export_step_interval.nc')
+        self.assertItemsEqual(o3.history['lon'].compressed(),
+                              o4.history['lon'].compressed())
+        os.remove('export_step_interval.nc')
+
 
     def test_output_time_step(self):
         o1 = OceanDrift(loglevel=0)
