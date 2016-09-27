@@ -31,6 +31,7 @@ from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.pelagicegg import PelagicEggDrift
 
 try:
     import ogr
@@ -188,6 +189,23 @@ class TestRun(unittest.TestCase):
         self.assertTrue(self.o.history['lon'].mask[5,5])
         self.assertFalse(self.o.history['lon'].mask[1,1])
         os.remove('temporal_seed.nc')
+
+    def test_vertical_mixing(self):
+        # Export to file only at end
+        o1 = PelagicEggDrift(loglevel=20)  # Profiles and vertical mixing
+        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+          '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o1.add_reader([norkyst])
+        o1.fallback_values['x_wind'] = 8
+        o1.fallback_values['land_binary_mask'] = 0
+        o1.seed_elements(3.9, 63.3, radius=1000, number=100,
+                        time=norkyst.start_time)
+        o1.config['turbulentmixing']['timestep'] = 20. # seconds
+        o1.run(steps=20, time_step=300, time_step_output=1800,
+               export_buffer_length=10, outfile='verticalmixing.nc')
+        self.assertAlmostEqual(o1.history['z'].min(), -13.0)
+        self.assertAlmostEqual(o1.history['z'].max(), 0.0)
+        os.remove('verticalmixing.nc')
 
     def test_export_step_interval(self):
         # Export to file only at end

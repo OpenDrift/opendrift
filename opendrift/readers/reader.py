@@ -477,9 +477,12 @@ class Reader(object):
                 tmp = np.nan*np.ones(lon.shape)
                 tmp[ind_covered] = env[var].copy()
                 env[var] = np.ma.masked_invalid(tmp)
-                # NB:
-                # Must also fill in missing columns
-                # for env_profiles outside coverage!
+                # Filling also fin missing columns
+                # for env_profiles outside coverage
+                if var in env_profiles.keys():
+                    tmp = np.nan*np.ones((env_profiles[var].shape[0], len(lon)))
+                    tmp[:, ind_covered] = env_profiles[var].copy()
+                    env_profiles[var] = np.ma.masked_invalid(tmp)
 
         return env, env_profiles
 
