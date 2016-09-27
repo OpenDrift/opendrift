@@ -1213,6 +1213,8 @@ class OpenDriftSimulation(PhysicsMethods):
         else:  # If output has been flushed to file during run, we
                # need to reimport from file to get all data in memory
             del self.environment
+            if hasattr(self, 'environment_profiles'):
+                del self.environment_profiles
             self.io_import_file(outfile)
 
     def state_to_buffer(self):
