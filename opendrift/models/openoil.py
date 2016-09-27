@@ -355,6 +355,8 @@ class OpenOil(OpenDriftSimulation):
         https://github.com/NOAA-ORR-ERD/PyGnome
         '''
         logging.debug('NOAA oil weathering')
+        self.environment.sea_water_temperature[
+            self.environment.sea_water_temperature < 100] += 273.15 # C to K
 
         if self.steps_calculation == 1:
             # At first time step, we initialise arrays to hold
@@ -377,7 +379,7 @@ class OpenOil(OpenDriftSimulation):
         self.elements.density = np.array(
             [self.oiltype.get_density(t) for t in
              self.environment.sea_water_temperature])
-    
+
         if self.config['processes']['evaporation'] is True:
             self.evaporation_noaa()
 
@@ -388,7 +390,11 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Evaporation, for elements at surface only
         #############################################
+        logging.debug('Evaporation')
         surface = np.where(self.elements.z == 0)[0]  # of active elements
+        if len(surface) == 0:
+            logging.debug('All elements submerged, no evaporation')
+            return
         surfaceID = self.elements.ID[surface] - 1    # of any elements
         # Area for each element, repeated for each component
         volume = (self.elements.mass_oil[surface] /
@@ -407,12 +413,13 @@ class OpenOil(OpenDriftSimulation):
                 - mass_remain, 1)
         self.noaa_mass_balance['mass_components'][surfaceID, :] = \
             mass_remain
-        self.elements.mass_oil = np.sum(mass_remain, 1)
+        self.elements.mass_oil[surface] = np.sum(mass_remain, 1)
 
     def emulsification_noaa(self):
         #############################################
         # Emulsification (surface only?)
         #############################################
+        logging.debug('Emulsification')
         k_emul = noaa.water_uptake_coefficient(self.oiltype,
                                                self.wind_speed())
         emul_time = self.oiltype.bulltime 
