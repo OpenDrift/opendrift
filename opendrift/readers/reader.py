@@ -479,7 +479,7 @@ class Reader(object):
                 env[var] = np.ma.masked_invalid(tmp)
                 # Filling also fin missing columns
                 # for env_profiles outside coverage
-                if var in env_profiles.keys():
+                if env_profiles is not None and var in env_profiles.keys():
                     tmp = np.nan*np.ones((env_profiles[var].shape[0], len(lon)))
                     tmp[:, ind_covered] = env_profiles[var].copy()
                     env_profiles[var] = np.ma.masked_invalid(tmp)
