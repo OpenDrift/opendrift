@@ -46,6 +46,12 @@ if __name__ == '__main__':
     parser.add_argument('-p', dest='variable',
                         default='noplot', nargs='?',
                         help='Plot domain (or variable if given)')
+    parser.add_argument('-vmin', dest='vmin',
+                        default=None, nargs='?',
+                        help='Minimum value for colorbar')
+    parser.add_argument('-vmax', dest='vmax',
+                        default=None, nargs='?',
+                        help='Maximum value for colorbar')
     parser.add_argument('-e', action='store_true',
                         help='Report errors on failure.')
 
@@ -72,4 +78,4 @@ if __name__ == '__main__':
         if args.variable is None:
             r.plot()
         else:
-            r.plot(args.variable)
+            r.plot(args.variable, vmin=args.vmin, vmax=args.vmax)
