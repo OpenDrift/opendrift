@@ -31,6 +31,7 @@ from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.pelagicegg import PelagicEggDrift
 
 try:
     import ogr
@@ -189,6 +190,23 @@ class TestRun(unittest.TestCase):
         self.assertFalse(self.o.history['lon'].mask[1,1])
         os.remove('temporal_seed.nc')
 
+    def test_vertical_mixing(self):
+        # Export to file only at end
+        o1 = PelagicEggDrift(loglevel=20)  # Profiles and vertical mixing
+        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+          '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o1.add_reader([norkyst])
+        o1.fallback_values['x_wind'] = 8
+        o1.fallback_values['land_binary_mask'] = 0
+        o1.seed_elements(3.9, 63.3, radius=1000, number=100,
+                        time=norkyst.start_time)
+        o1.config['turbulentmixing']['timestep'] = 20. # seconds
+        o1.run(steps=20, time_step=300, time_step_output=1800,
+               export_buffer_length=10, outfile='verticalmixing.nc')
+        self.assertAlmostEqual(o1.history['z'].min(), -13.0)
+        self.assertAlmostEqual(o1.history['z'].max(), 0.0)
+        os.remove('verticalmixing.nc')
+
     def test_export_step_interval(self):
         # Export to file only at end
         o1 = OceanDrift(loglevel=20)
@@ -205,10 +223,29 @@ class TestRun(unittest.TestCase):
         o2.fallback_values['land_binary_mask'] = 0
         o2.seed_elements(4.25, 60.2, radius=1000, number=10,
                         time=norkyst.start_time)
-        o2.run(steps=40, export_buffer_length=6)#,
-               #outfile='export_step_interval.nc')
+        o2.run(steps=40, export_buffer_length=6,
+               outfile='export_step_interval.nc')
         self.assertItemsEqual(o1.history['lon'].compressed(),
                               o2.history['lon'].compressed())
+        # Finally check when steps is multiple of export_buffer_length
+        o3 = OceanDrift(loglevel=20)
+        o3.add_reader(norkyst)
+        o3.fallback_values['land_binary_mask'] = 0
+        o3.seed_elements(4.25, 60.2, radius=1000, number=10,
+                        time=norkyst.start_time)
+        o3.run(steps=42)
+        # Export to file during simulation
+        o4 = OceanDrift(loglevel=20)
+        o4.add_reader(norkyst)
+        o4.fallback_values['land_binary_mask'] = 0
+        o4.seed_elements(4.25, 60.2, radius=1000, number=10,
+                        time=norkyst.start_time)
+        o4.run(steps=42, export_buffer_length=6,
+               outfile='export_step_interval.nc')
+        self.assertItemsEqual(o3.history['lon'].compressed(),
+                              o4.history['lon'].compressed())
+        os.remove('export_step_interval.nc')
+
 
     def test_output_time_step(self):
         o1 = OceanDrift(loglevel=0)
