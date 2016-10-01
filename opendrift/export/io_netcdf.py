@@ -70,7 +70,7 @@ def write_buffer(self):
 
     logging.info('Wrote %s steps to file %s' % (num_steps_to_export,
                                                 self.outfile_name))
-    #self.history.mask = True  # Reset history array, for new data
+    self.history.mask = True  # Reset history array, for new data
     self.steps_exported = self.steps_exported + num_steps_to_export
     self.outfile.sync()  # Flush from memory to disk
 

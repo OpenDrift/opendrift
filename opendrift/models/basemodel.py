@@ -1197,7 +1197,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if outfile is not None:
             logging.debug('Writing and closing output file: %s' % outfile)
             # Write buffer to outfile, and close
-            if self.steps_calculation >= self.steps_exported:
+            if self.steps_output >= self.steps_exported:
                 # Write last lines, if needed
                 self.io_write_buffer()
             self.io_close()

@@ -246,6 +246,36 @@ class TestRun(unittest.TestCase):
                               o4.history['lon'].compressed())
         os.remove('export_step_interval.nc')
 
+    def test_buffer_length_stranding(self):
+        o1 = OceanDrift(loglevel=0)
+        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        basemap = reader_basemap_landmask.Reader(
+            llcrnrlon=1, llcrnrlat=59.8, urcrnrlon=6, urcrnrlat=61,
+            resolution='i', projection='merc')
+        o1.add_reader([basemap])
+        o1.fallback_values['x_sea_water_velocity'] = 1.0  # onshore drift
+        o1.seed_elements(4.8, 60.2, radius=5000, number=100,
+                        time=norkyst.start_time)
+        o1.run(steps=100,
+               time_step=900,
+               time_step_output=3600,
+               export_buffer_length=10,
+               outfile='test_buffer_length_stranding.nc')
+        # Without buffer
+        o2 = OceanDrift(loglevel=0)
+        o2.add_reader([basemap])
+        o2.fallback_values['x_sea_water_velocity'] = 1.0  # onshore drift
+        o2.seed_elements(4.8, 60.2, radius=5000, number=100,
+                        time=norkyst.start_time)
+        o2.run(steps=100,
+               time_step=900,
+               time_step_output=3600,
+               outfile='test_buffer_length_stranding2.nc')
+        self.assertItemsEqual(o1.history['lon'].compressed(),
+                              o2.history['lon'].compressed())
+        self.assertItemsEqual(o1.history['status'].compressed(),
+                              o2.history['status'].compressed())
 
     def test_output_time_step(self):
         o1 = OceanDrift(loglevel=0)
