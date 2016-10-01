@@ -260,8 +260,7 @@ class TestRun(unittest.TestCase):
         o1.run(steps=100,
                time_step=900,
                time_step_output=3600,
-               export_buffer_length=10,
-               outfile='test_buffer_length_stranding.nc')
+               export_buffer_length=10)
         # Without buffer
         o2 = OceanDrift(loglevel=0)
         o2.add_reader([basemap])
@@ -271,11 +270,12 @@ class TestRun(unittest.TestCase):
         o2.run(steps=100,
                time_step=900,
                time_step_output=3600,
-               outfile='test_buffer_length_stranding2.nc')
+               outfile='test_buffer_length_stranding.nc')
         self.assertItemsEqual(o1.history['lon'].compressed(),
                               o2.history['lon'].compressed())
         self.assertItemsEqual(o1.history['status'].compressed(),
                               o2.history['status'].compressed())
+        os.remove('test_buffer_length_stranding.nc')
 
     def test_output_time_step(self):
         o1 = OceanDrift(loglevel=0)
