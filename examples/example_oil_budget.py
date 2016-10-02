@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
+from opendrift.models.openoil3D import OpenOil3D
 
-o = OpenOil(loglevel=0, weathering_model='noaa')
-#o = OpenOil(loglevel=0)
+o = OpenOil3D(loglevel=0, weathering_model='noaa')
+#o = OpenOil3D(loglevel=0)
 print o.oiltypes
 print len(o.oiltypes)
 
@@ -33,14 +34,14 @@ o.add_reader([reader_basemap, reader_norkyst, reader_arome])
 #o.add_reader([reader_basemap, reader_norkyst])
 
 # Seeding some particles
-lon = 4.1; lat = 60.0; # Outside Bergen
+lon = 4.8; lat = 60.0; # Outside Bergen
 
 #time = [reader_arome.start_time,
 #        reader_arome.start_time + timedelta(hours=30)]
 time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=6000, number=5, time=time,
+o.seed_elements(lon, lat, radius=1000, number=1000, time=time, z=0,
                 #oiltype='GULLFAKS, EXXON')
                 oiltype='ARABIAN MEDIUM, API')
                 #oiltype='ALGERIAN CONDENSATE')
@@ -48,18 +49,25 @@ o.seed_elements(lon, lat, radius=6000, number=5, time=time,
 
 # Adjusting some configuration
 o.config['processes']['diffusion'] = False
-o.config['processes']['dispersion'] = False
+o.config['processes']['dispersion'] = True
 o.config['processes']['evaporation'] = True
 o.config['processes']['emulsification'] = True
+o.config['processes']['turbulentmixing'] = True
+o.config['turbulentmixing']['TSprofiles'] = False
+o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983'
+o.config['turbulentmixing']['timestep'] = 5. # seconds
+o.config['turbulentmixing']['verticalresolution'] = 1
 
 # Running model (until end of driver data)
-o.run(steps=4*50, time_step=900, export_buffer_length=10,
+o.run(steps=4*20, time_step=900, export_buffer_length=10,
       outfile='oil_budget.nc')
 
 # Print and plot results
 print o
 o.plot()
 o.plot_property('mass_oil')
+o.plot_property('z')
+o.plot_vertical_distribution()
 o.plot_property('mass_evaporated')
 o.plot_property('water_fraction')
 o.plot_property('interfacial_area')

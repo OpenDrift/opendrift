@@ -184,13 +184,16 @@ class PhysicsMethods(object):
 
     def significant_wave_height(self):
         # Significant wave height, parameterise from wind if not available
-        if hasattr(self.environment, 'sea_surface_wave_significant_height'):
+        if hasattr(self.environment, 'sea_surface_wave_significant_height') and self.environment.sea_surface_wave_significant_height.max() > 0:
             return self.environment.sea_surface_wave_significant_height
         else:
             # Neumann and Pierson, 1966
-            return 0.2*np.power(self.wind_speed,2)/9.81
+            return 0.2*np.power(self.wind_speed(),2)/9.81
 
     def wave_frequency(self):
+        if self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() == 0:
+            # Using Pierson-Moskowitz if period not available from readers
+            return 0.877*9.81/(1.17*self.wind_speed())
         return 2*np.pi/self.environment. \
             sea_surface_wave_period_at_variance_spectral_density_maximum
 

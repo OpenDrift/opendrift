@@ -363,6 +363,7 @@ class OpenOil(OpenDriftSimulation):
             # oil data for each pseudocomponent for each element
             self.noaa_mass_balance = {}
             # Populate with seeded mass spread on oiltype.mass_fraction
+            # TODO: fix problem if elements have been deactivated before this
             self.noaa_mass_balance['mass_components'] = \
                 np.asarray(self.oiltype.mass_fraction)*(
                 self.elements.mass_oil.reshape(len(self.elements.mass_oil),
@@ -443,7 +444,6 @@ class OpenOil(OpenDriftSimulation):
             )[0]
         if len(start_emulsion) == 0:
             logging.debug('Emulsification not yet started')
-            print fraction_evaporated
             return
 
         logging.debug('Calculating emulsification')
