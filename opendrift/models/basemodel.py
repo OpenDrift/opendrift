@@ -469,14 +469,22 @@ class OpenDriftSimulation(PhysicsMethods):
                                   (len(missing_indices)))
 
             # Perform default action for particles missing env data
-            if len(missing_indices) > 0:
-                for var in variable_group:
+            if hasattr(self, 'required_profiles') and \
+                self.required_profiles is not None and \
+                'env_profiles' not in locals():
+                logging.debug('Filling profiles with fallback values')
+                env_profiles = {}
+                env_profiles['z'] = np.array(self.required_profiles_z_range)
+            for var in variable_group:
+                if len(missing_indices) > 0:
                     if var in self.fallback_values:
                         # Setting fallback value, presently only numeric
                         logging.debug('    Using fallback value for %s: %s'
                                       % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
-		        if 'env_profiles' in locals() and var in self.required_profiles:
+		        if hasattr(self, 'required_profiles') and \
+                    self.required_profiles is not None and \
+                    var in self.required_profiles:
                             logging.debug('Using fallback value for profile')
                             env_profiles[var][:,missing_indices] = np.ones_like(env_profiles[var][:,missing_indices])*self.fallback_values[var]
                     else:

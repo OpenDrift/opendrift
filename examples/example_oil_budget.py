@@ -28,10 +28,11 @@ reader_basemap = reader_basemap_landmask.Reader(
                     urcrnrlon=7, urcrnrlat=61.5,
                     resolution='c', projection='merc')
 
-o.add_reader([reader_basemap, reader_norkyst, reader_arome])
-#o.fallback_values['x_wind'] = 7
+#o.add_reader([reader_basemap, reader_norkyst, reader_arome])
+o.fallback_values['x_wind'] = 7
 #o.fallback_values['land_binary_mask'] = 0
 #o.add_reader([reader_basemap, reader_norkyst])
+o.add_reader([reader_basemap])
 
 # Seeding some particles
 lon = 4.8; lat = 60.0; # Outside Bergen
