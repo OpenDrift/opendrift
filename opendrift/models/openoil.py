@@ -420,21 +420,16 @@ class OpenOil(OpenDriftSimulation):
         # Emulsification (surface only?)
         #############################################
         logging.debug('Emulsification')
-        k_emul = noaa.water_uptake_coefficient(self.oiltype,
-                                               self.wind_speed())
         emul_time = self.oiltype.bulltime 
         emul_constant = self.oiltype.bullwinkle
-        print emul_time, emul_constant, 'emul_time, emul_constant'
         # max water content fraction - get from database
         Y_max = self.oiltype.get('emulsion_water_fraction_max')
-        print Y_max, 'Ymax'
         if Y_max <= 0:
             logging.debug('Oil does not emulsify, returning.')
             return
         # Constants for droplets
         drop_min = 1.0e-6
         drop_max = 1.0e-5
-        print drop_min, drop_max, Y_max, 'all'
         S_max = (6. / drop_min) * (Y_max / (1.0 - Y_max))
         S_min = (6. / drop_max) * (Y_max / (1.0 - Y_max))
         # Emulsify...
@@ -459,6 +454,8 @@ class OpenOil(OpenDriftSimulation):
             start_time[self.elements.age_emulsion_seconds[start_emulsion]
                        >= 0] = self.elements.bulltime[start_emulsion]
         # Update droplet interfacial area
+        k_emul = noaa.water_uptake_coefficient(
+                    self.oiltype, self.wind_speed()[start_emulsion])
         self.elements.interfacial_area[start_emulsion] = \
             self.elements.interfacial_area[start_emulsion] + \
             (k_emul*self.time_step.total_seconds()*
@@ -467,23 +464,13 @@ class OpenOil(OpenDriftSimulation):
         self.elements.interfacial_area[self.elements.interfacial_area >
                                        S_max] = S_max
         # Update water fraction
-        self.elements.water_fraction = (self.elements.interfacial_area[
-            start_emulsion]*drop_max/ (6.0 +
-            (self.elements.interfacial_area[start_emulsion]*drop_max)))
+        self.elements.water_fraction[start_emulsion] = (
+            self.elements.interfacial_area[start_emulsion]*drop_max/
+            (6.0 + (self.elements.interfacial_area[start_emulsion]
+             *drop_max)))
         self.elements.water_fraction[self.elements.interfacial_area[
             start_emulsion] >= ((6.0 / drop_max)*(Y_max/(1.0 - Y_max)))] \
                 = Y_max
-        print 'emulsifying'
-        print self.elements.age_seconds, 'age sec'
-        print emul_time, 'emul_time'
-        print fraction_evaporated, 'frac_evap'
-        print emul_constant, 'emul_const'
-        print start_emulsion, 'start_emulsion indices'
-        print self.elements.interfacial_area, 'interf area'
-        print self.elements.water_fraction, 'water_fraction'
-        print S_max, 'S_max'
-        print self.elements.age_seconds, 'age_seconds'
-        print S_max, 'Smax'
 
     def advect_oil(self):
         # Simply move particles with ambient current
