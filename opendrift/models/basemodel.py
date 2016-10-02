@@ -1699,7 +1699,7 @@ class OpenDriftSimulation(PhysicsMethods):
         ax1.set_xlabel('Time  [hours]')
         plt.show()
 
-    def plot_property(self, prop):
+    def plot_property(self, prop, mean=False):
         """Basic function to plot time series of any element properties."""
         import matplotlib.pyplot as plt
         from matplotlib import dates
@@ -1712,6 +1712,8 @@ class OpenDriftSimulation(PhysicsMethods):
         times = [self.start_time + n*self.time_step_output
                  for n in range(self.steps_output)]
         data = self.history[prop].T[0:len(times), :]
+        if mean is True:  # Taking average over elements
+            data = np.mean(data, axis=1)
         plt.plot(times, data)
         plt.title(prop)
         plt.xlabel('Time  [UTC]')

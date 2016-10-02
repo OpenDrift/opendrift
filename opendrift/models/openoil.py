@@ -502,14 +502,23 @@ class OpenOil(OpenDriftSimulation):
         # Horizontal advection
         self.advect_oil()
 
-    def plot_oil_budget(self):
+    def plot_oil_budget(self, filename=None):
         import matplotlib.pyplot as plt
+        z, dummy = self.get_property('z')
         mass_oil, status = self.get_property('mass_oil')
+
         if 'stranded' not in self.status_categories:
             self.status_categories.append('stranded')
-        mass_active = np.ma.sum(np.ma.masked_where(
-            status == self.status_categories.index('stranded'),
-            mass_oil), axis=1)
+        mass_submerged = np.ma.masked_where(
+            ((status == self.status_categories.index('stranded')) |
+            (z == 0.0)), mass_oil)
+        mass_submerged = np.ma.sum(mass_submerged, axis=1)
+
+        mass_surface = np.ma.masked_where(
+            ((status == self.status_categories.index('stranded')) |
+            (z < 0.0)), mass_oil)
+        mass_surface = np.ma.sum(mass_surface, axis=1)
+
         mass_stranded = np.ma.sum(np.ma.masked_where(
             status != self.status_categories.index('stranded'),
             mass_oil), axis=1)
@@ -517,9 +526,12 @@ class OpenOil(OpenDriftSimulation):
         mass_evaporated = np.sum(mass_evaporated, axis=1)
         mass_dispersed, status = self.get_property('mass_dispersed')
         mass_dispersed = np.sum(mass_dispersed, axis=1)
+        # If something is 'dispersed', we add it to category 'submerged'
+        mass_submerged = mass_submerged + mass_dispersed
 
-        budget = np.row_stack((mass_dispersed, mass_active,
-                               mass_stranded, mass_evaporated))
+        budget = np.row_stack((mass_submerged,
+                               mass_surface, mass_stranded,
+                               mass_evaporated))
         budget = np.cumsum(budget, axis=0)
 
         time, time_relative = self.get_time_array()
@@ -529,9 +541,9 @@ class OpenOil(OpenDriftSimulation):
         ax1 = fig.add_subplot(111)
         # Hack: make some emply plots since fill_between does not support label
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='salmon', label='dispersed'))
+                      color='salmon', label='submerged'))
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='royalblue', label='in water'))
+                      color='royalblue', label='surface'))
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
                       color='black', label='stranded'))
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
@@ -565,6 +577,10 @@ class OpenOil(OpenDriftSimulation):
                          box.width, box.height * 0.9])
         ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
                    ncol=4, mode="expand", borderaxespad=0.)
+        if filename is not None:
+            plt.gcf().set_size_inches(10, 6)  # Suitable aspect ratio
+            plt.savefig(filename)
+            plt.close()
         plt.show()
 
     def set_oiltype(self, oiltype):
