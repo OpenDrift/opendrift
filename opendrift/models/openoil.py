@@ -57,9 +57,6 @@ class Oil(LagrangianArray):
         ('interfacial_area', {'dtype': np.float32,
                               'units': 'm2',
                               'default': 0}),
-        ('mass_emulsion', {'dtype': np.float32,
-                           'units': 'kg',
-                           'default': 0}),
         ('mass_dispersed', {'dtype': np.float32,
                             'units': 'kg',
                             'default': 0}),
@@ -468,8 +465,8 @@ class OpenOil(OpenDriftSimulation):
             self.elements.interfacial_area[start_emulsion]*drop_max/
             (6.0 + (self.elements.interfacial_area[start_emulsion]
              *drop_max)))
-        self.elements.water_fraction[self.elements.interfacial_area[
-            start_emulsion] >= ((6.0 / drop_max)*(Y_max/(1.0 - Y_max)))] \
+        self.elements.water_fraction[self.elements.interfacial_area
+             >= ((6.0 / drop_max)*(Y_max/(1.0 - Y_max)))] \
                 = Y_max
 
     def advect_oil(self):
