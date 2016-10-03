@@ -281,11 +281,13 @@ class TestRun(unittest.TestCase):
         o1 = OceanDrift(loglevel=0)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        # For some reason, this test gives different results 
+        # when run alone than when running all tests! (9 vs 1 stranded el)
         basemap = reader_basemap_landmask.Reader(
             llcrnrlon=4, llcrnrlat=59.8, urcrnrlon=6, urcrnrlat=61,
-            resolution='h', projection='merc')
+            resolution='i', projection='merc')
         o1.add_reader([basemap, norkyst])
-        o1.seed_elements(5.25, 60.2, radius=3000, number=100,
+        o1.seed_elements(4.95, 60.1, radius=3000, number=100,
                         time=norkyst.start_time)
         o1.run(duration=timedelta(hours=12),
                    time_step=timedelta(minutes=30),
@@ -299,7 +301,7 @@ class TestRun(unittest.TestCase):
         # Second run, with larger output time step
         o2 = OceanDrift(loglevel=20)
         o2.add_reader([basemap, norkyst])
-        o2.seed_elements(5.25, 60.2, radius=3000, number=100,
+        o2.seed_elements(4.95, 60.1, radius=3000, number=100,
                         time=norkyst.start_time)
         o2.run(duration=timedelta(hours=12),
                    time_step=timedelta(minutes=30),
@@ -400,7 +402,7 @@ class TestRun(unittest.TestCase):
         reader_basemap = reader_basemap_landmask.Reader(
                             llcrnrlon=4, llcrnrlat=61.0,
                             urcrnrlon=7, urcrnrlat=64,
-                            resolution='h', projection='merc')
+                            resolution='c', projection='merc')
         o.add_reader([reader_basemap, reader_norkyst])
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
