@@ -533,7 +533,8 @@ class OpenOil(OpenDriftSimulation):
 
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds()/3600. for t in time_relative])
-        fig = plt.figure()
+        fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
+
         # Left axis showing oil mass
         ax1 = fig.add_subplot(111)
         # Hack: make some emply plots since fill_between does not support label
@@ -575,7 +576,6 @@ class OpenOil(OpenDriftSimulation):
         ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
                    ncol=4, mode="expand", borderaxespad=0.)
         if filename is not None:
-            plt.gcf().set_size_inches(10, 6)  # Suitable aspect ratio
             plt.savefig(filename)
             plt.close()
         plt.show()

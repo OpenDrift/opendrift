@@ -219,7 +219,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             mainplot.set_xlabel('number of particles')
             mainplot.set_ylabel('depth [m]')
             x_wind = self.history['x_wind'].T[tindex, :]
-            y_wind = self.history['x_wind'].T[tindex, :]
+            y_wind = self.history['y_wind'].T[tindex, :]
             windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
             mainplot.set_title(str(self.get_time_array()[0][tindex]) +
                                '   Mean windspeed: %.1f m/s' % windspeed)
