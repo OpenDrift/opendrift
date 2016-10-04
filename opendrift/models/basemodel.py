@@ -189,6 +189,9 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_close = types.MethodType(io_module.close, self)
         self.io_import_file = types.MethodType(io_module.import_file, self)
 
+        self.basemap_resolution = 'h'  # High resolution coastline by default
+        self.max_speed = 3  # Assumed max average speed of any element
+
         logging.info('OpenDriftSimulation initialised')
 
     @abstractmethod
@@ -998,6 +1001,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.set_projection('+proj=latlong')
 
         missing_variables = self.missing_variables()
+        missing_variables = [m for m in missing_variables if m != 'land_binary_mask']
         if len(missing_variables) > 0:
             has_fallback = [var for var in missing_variables
                             if var in self.fallback_values]
@@ -1078,6 +1082,27 @@ class OpenDriftSimulation(PhysicsMethods):
             self.time_step.total_seconds()
         self.expected_steps_output = int(self.expected_steps_output)
         self.expected_steps_calculation = int(self.expected_steps_calculation)
+
+        ##############################################################
+        # If no basemap has been added, we determine it dynamically
+        ##############################################################
+        # TODO: some more error checking here
+        if 'land_binary_mask' not in self.priority_list \
+            and 'land_binary_mask' not in self.fallback_values:
+            logging.info('Adding a dynamical landmask, since none has been added.'
+                         ' Adding a customised landmask may be faster...')
+            max_distance = self.max_speed*self.expected_steps_calculation*\
+                            self.time_step.total_seconds()
+            deltalat = max_distance/111000.
+            deltalon = deltalat/np.cos(np.radians(np.mean(self.elements_scheduled.lat)))
+            from opendrift.readers import reader_basemap_landmask
+            reader_basemap = reader_basemap_landmask.Reader(
+                llcrnrlon=self.elements_scheduled.lon.min() - deltalon,
+                urcrnrlon=self.elements_scheduled.lon.max() + deltalon,
+                llcrnrlat=self.elements_scheduled.lat.min() - deltalat,
+                urcrnrlat=self.elements_scheduled.lat.max() + deltalat,
+                resolution=self.basemap_resolution)
+            self.add_reader(reader_basemap)
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file

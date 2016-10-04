@@ -18,18 +18,45 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
+from opendrift.readers import reader_basemap_landmask
 
 o = OceanDrift()
+basemap = reader_basemap_landmask.Reader(
+            llcrnrlon=-1.5, llcrnrlat=59,
+            urcrnrlon=7, urcrnrlat=64, resolution='c')
 
 class TestReaders(unittest.TestCase):
     """Tests for readers"""
+
+    def test_adding_readers(self):
+        o = OceanDrift()
+        r = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        o.add_reader([r, basemap])
+        self.assertEqual(o.priority_list['land_binary_mask'],
+                         ['roms native', 'basemap_landmask'])
+        self.assertEqual(o.priority_list['x_sea_water_velocity'],
+                         ['roms native'])
+        # Switch order
+        o = OceanDrift()
+        o.add_reader([basemap, r])
+        self.assertEqual(o.priority_list['land_binary_mask'],
+                         ['basemap_landmask', 'roms native'])
+        self.assertEqual(o.priority_list['x_sea_water_velocity'],
+                         ['roms native'])
+
+    def test_automatic_basemap(self):
+        self.assertRaises(ValueError, o.run)
+        o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
+        o.basemap_resolution = 'c'  # To make test fast
+        o.run(steps=2)
 
     def test_reader_coverage(self):
         r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
