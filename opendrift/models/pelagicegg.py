@@ -16,7 +16,8 @@
 
 import numpy as np
 
-from opendrift.models.opendrift3D import OpenDrift3DSimulation, Lagrangian3DArray
+from opendrift.models.opendrift3D import \
+    OpenDrift3DSimulation, Lagrangian3DArray
 from opendrift.elements import LagrangianArray
 
 
@@ -84,8 +85,8 @@ class PelagicEggDrift(OpenDrift3DSimulation):
     required_profiles = ['sea_water_temperature',
                          'sea_water_salinity',
                          'ocean_vertical_diffusivity']
-    required_profiles_z_range = [-120, 0]  # The depth range (in m) which
-                                          # profiles shall cover
+    # The depth range (in m) which profiles shall cover
+    required_profiles_z_range = [-120, 0]
 
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
@@ -123,19 +124,18 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
     '''
 
-
     def __init__(self, *args, **kwargs):
 
         # Calling general constructor of parent class
         super(PelagicEggDrift, self).__init__(*args, **kwargs)
 
-
-    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
+    def update_terminal_velocity(self, Tprofiles=None,
+                                 Sprofiles=None, z_index=None):
         """Calculate terminal velocity for Pelagic Egg
 
         according to
-        S. Sundby (1983): A one-dimensional model for the vertical distribution
-        of pelagic fish eggs in the mixed layer
+        S. Sundby (1983): A one-dimensional model for the vertical
+        distribution of pelagic fish eggs in the mixed layer
         Deep Sea Research (30) pp. 645-661
 
         Method copied from ibm.f90 module of LADIM:
@@ -149,26 +149,34 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         eggsalinity = self.elements.neutral_buoyancy_salinity
         # 31.25 for NEA Cod
 
-
         # prepare interpolation of temp, salt
-        if not (Tprofiles==None and Sprofiles==None):
-            if z_index==None:
-                z_i = range(Tprofiles.shape[0]) # evtl. move out of loop
-                z_index = interp1d(-self.environment_profiles['z'],z_i,bounds_error=False) # evtl. move out of loop
+        if not (Tprofiles is None and Sprofiles is None):
+            if z_index is None:
+                z_i = range(Tprofiles.shape[0])  # evtl. move out of loop
+                # evtl. move out of loop
+                z_index = interp1d(-self.environment_profiles['z'],
+                                   z_i, bounds_error=False)
             zi = z_index(-self.elements.z)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
 
-        # do interpolation of temp, salt if profiles were passed into this function, if not, use reader by calling self.environment
-        if Tprofiles==None:
+        # do interpolation of temp, salt if profiles were passed into
+        # this function, if not, use reader by calling self.environment
+        if Tprofiles is None:
             T0 = self.environment.sea_water_temperature
         else:
-            T0 = Tprofiles[upper, range(Tprofiles.shape[1])] * weight_upper + Tprofiles[lower, range(Tprofiles.shape[1])] * (1-weight_upper) 
-        if Sprofiles==None:
+            T0 = Tprofiles[upper, range(Tprofiles.shape[1])] * \
+                weight_upper + \
+                Tprofiles[lower, range(Tprofiles.shape[1])] * \
+                (1-weight_upper)
+        if Sprofiles is None:
             S0 = self.environment.sea_water_salinity
         else:
-            S0 = Sprofiles[upper, range(Sprofiles.shape[1])] * weight_upper + Sprofiles[lower, range(Sprofiles.shape[1])] * (1-weight_upper) 
+            S0 = Sprofiles[upper, range(Sprofiles.shape[1])] * \
+                weight_upper + \
+                Sprofiles[lower, range(Sprofiles.shape[1])] * \
+                (1-weight_upper)
 
         # The density difference bettwen a pelagic egg and the ambient water
         # is regulated by their salinity difference through the
@@ -186,7 +194,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         # terminal velocity for low Reynolds numbers
         W = (1.0/my_w)*(1.0/18.0)*g*eggsize**2 * dr
 
-        #check if we are in a Reynolds regime where Re > 0.5
+        # check if we are in a Reynolds regime where Re > 0.5
         highRe = np.where(W*1000*eggsize/my_w > 0.5)
 
         # Use empirical equations for terminal velocity in
@@ -201,7 +209,6 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
         W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W
-
 
     def update(self):
         """Update positions and properties of buoyant particles."""
@@ -223,8 +230,8 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         # Biological behaviour
         # Nonsense example, illustrating how to add behaviour:
         # Lifting elements 1 m if water temperature is colder than 7 deg
-        #self.elements.z[self.environment.sea_water_temperature<7] += 1
-        #self.elements.z[self.elements.z>0] = 0
+        # self.elements.z[self.environment.sea_water_temperature<7] += 1
+        # self.elements.z[self.elements.z>0] = 0
 
         # Deactivate elements hitting land
         self.deactivate_stranded_elements()

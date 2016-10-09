@@ -31,11 +31,11 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
-    have_nx=True
+    have_nx = True
     try:
         import matplotlib.nxutils as nx
     except:
-        have_nx=False
+        have_nx = False
         from matplotlib.path import Path
 except:
     logging.info('Basemap is not available, can not make plots')
@@ -180,8 +180,8 @@ class OpenDriftSimulation(PhysicsMethods):
         # Prepare outfile
         try:
             io_module = __import__('opendrift.export.io_' + iomodule,
-                                   fromlist= ['init', 'write_buffer',
-                                              'close', 'import_file'])
+                                   fromlist=['init', 'write_buffer',
+                                             'close', 'import_file'])
         except ImportError:
             logging.info('Could not import iomodule ' + iomodule)
         self.io_init = types.MethodType(io_module.init, self)
@@ -287,7 +287,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 for n in range(99999):
                     tmp_name = reader.name + '_%d' % n
                     if tmp_name not in self.readers:
-                        reader.name = tmp_name 
+                        reader.name = tmp_name
                         break
 
             self.readers[reader.name] = reader
@@ -474,7 +474,7 @@ class OpenDriftSimulation(PhysicsMethods):
             # Perform default action for particles missing env data
             if hasattr(self, 'required_profiles') and \
                 self.required_profiles is not None and \
-                'env_profiles' not in locals():
+                    'env_profiles' not in locals():
                 logging.debug('Filling profiles with fallback values')
                 env_profiles = {}
                 env_profiles['z'] = np.array(self.required_profiles_z_range)
@@ -485,11 +485,13 @@ class OpenDriftSimulation(PhysicsMethods):
                         logging.debug('    Using fallback value for %s: %s'
                                       % (var, self.fallback_values[var]))
                         env[var][missing_indices] = self.fallback_values[var]
-		        if hasattr(self, 'required_profiles') and \
-                    self.required_profiles is not None and \
-                    var in self.required_profiles:
-                            logging.debug('Using fallback value for profile')
-                            env_profiles[var][:,missing_indices] = np.ones_like(env_profiles[var][:,missing_indices])*self.fallback_values[var]
+                    if hasattr(self, 'required_profiles') and \
+                        self.required_profiles is not None and \
+                            var in self.required_profiles:
+                                logging.debug(
+                                    'Using fallback value for profile')
+                                env_profiles[var][:, missing_indices] = \
+                                    np.ones_like(env_profiles[var][:, missing_indices])*self.fallback_values[var]
                     else:
                         logging.debug('\t\t%s values missing for %s' % (
                             len(missing_indices), var))
@@ -511,7 +513,6 @@ class OpenDriftSimulation(PhysicsMethods):
         # Convert dictionary to recarray and return
         if 'env_profiles' not in locals():
             env_profiles = None
-
 
         return env.view(np.recarray), env_profiles, missing
 
@@ -729,7 +730,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if 'z' in kwargs and kwargs['z'] == 'seafloor':
             # We need to fetch seafloor depth from reader
-            if not 'sea_floor_depth_below_sea_level' in self.priority_list:
+            if 'sea_floor_depth_below_sea_level' not in self.priority_list:
                 raise ValueError('A reader providing the variable '
                                  'sea_floor_depth_below_sea_level must be '
                                  'added before seeding elements at seafloor.')
@@ -739,9 +740,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 t = time
             env, env_profiles, missing = \
                 self.get_environment(['sea_floor_depth_below_sea_level'],
-                                      t, kwargs['lon'], kwargs['lat'],
-                                      0.*ones, None)
-            kwargs['z'] = -env['sea_floor_depth_below_sea_level'].astype('float32')
+                                     t, kwargs['lon'], kwargs['lat'],
+                                     0.*ones, None)
+            kwargs['z'] = \
+                -env['sea_floor_depth_below_sea_level'].astype('float32')
 
         elements = self.ElementType(**kwargs)
 
@@ -749,7 +751,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def seed_within_polygon(self, lons, lats, number, **kwargs):
         """Seed a number of elements within given polygon.
-        
+
         Arguments:
             lon: array of longitudes
             lat: array of latitudes
@@ -772,7 +774,7 @@ class OpenDriftSimulation(PhysicsMethods):
             raise ValueError('lon and lat arrays must have same length.')
         poly = Polygon(zip(lons, lats), closed=True)
         # Place N points within the polygons
-        proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f '\
+        proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f '
                            '+lon_0=%f +R=6370997.0 +units=m +ellps=WGS84'
                            % (lats.min(), lats.max(),
                               (lats.min()+lats.max())/2,
@@ -795,9 +797,9 @@ class OpenDriftSimulation(PhysicsMethods):
         lat = lonlat[:, 1]
         x, y = proj(lon, lat)
         xvec = np.linspace(x.min() + deltax/2, x.max() - deltax/2,
-                            int((x.max()-x.min())/deltax))
+                           int((x.max()-x.min())/deltax))
         yvec = np.linspace(y.min() + deltax/2, y.max() - deltax/2,
-                            int((y.max()-y.min())/deltax))
+                           int((y.max()-y.min())/deltax))
         x, y = np.meshgrid(xvec, yvec)
         lon, lat = proj(x, y, inverse=True)
         lon = lon.ravel()
@@ -938,11 +940,13 @@ class OpenDriftSimulation(PhysicsMethods):
             self.environment = self.environment[~indices]
             logging.debug('Removed %i values from environment.' %
                           (sum(indices)))
-        if hasattr(self, 'environment_profiles') and self.environment_profiles is not None:
+        if hasattr(self, 'environment_profiles') and \
+                self.environment_profiles is not None:
             for varname, profiles in self.environment_profiles.iteritems():
                 logging.debug('remove items from profile for '+varname)
                 if varname is not 'z':
-                    self.environment_profiles[varname] = profiles[:,~indices]
+                    self.environment_profiles[varname] = \
+                        profiles[:, ~indices]
             logging.debug('Removed %i values from environment_profiles.' %
                           (sum(indices)))
             #if self.num_elements_active() == 0:
@@ -1001,7 +1005,8 @@ class OpenDriftSimulation(PhysicsMethods):
             self.set_projection('+proj=latlong')
 
         missing_variables = self.missing_variables()
-        missing_variables = [m for m in missing_variables if m != 'land_binary_mask']
+        missing_variables = [m for m in missing_variables if
+                             m != 'land_binary_mask']
         if len(missing_variables) > 0:
             has_fallback = [var for var in missing_variables
                             if var in self.fallback_values]
@@ -1012,8 +1017,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.info('\t%s: %f' % (var, self.fallback_values[var]))
             else:
                 raise ValueError('Readers must be added for the '
-                                 'following required variables: '
-                                 + str(missing_variables))
+                                 'following required variables: ' +
+                                 str(missing_variables))
 
         # Some cleanup needed if starting from imported state
         if self.steps_calculation >= 1:
@@ -1045,7 +1050,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.time_step_output = timedelta(seconds=time_step_output)
 
         time_step_ratio = self.time_step_output.total_seconds() / \
-                          self.time_step.total_seconds()
+            self.time_step.total_seconds()
         if time_step_ratio < 1:
             raise ValueError('Output time step must be equal or larger '
                              'than calculation time step.')
@@ -1058,7 +1063,7 @@ class OpenDriftSimulation(PhysicsMethods):
         ########################
         if (duration is not None and end_time is not None) or \
             (duration is not None and steps is not None) or \
-            (steps is not None and end_time is not None):
+                (steps is not None and end_time is not None):
             raise ValueError('Only one of "steps", "duration" and "end_time" '
                              'may be provided simultaneously')
         if duration is None and end_time is None:
@@ -1088,13 +1093,16 @@ class OpenDriftSimulation(PhysicsMethods):
         ##############################################################
         # TODO: some more error checking here
         if 'land_binary_mask' not in self.priority_list \
-            and 'land_binary_mask' not in self.fallback_values:
-            logging.info('Adding a dynamical landmask, since none has been added.'
-                         ' Adding a customised landmask may be faster...')
-            max_distance = self.max_speed*self.expected_steps_calculation*\
-                            self.time_step.total_seconds()
+                and 'land_binary_mask' not in self.fallback_values:
+            logging.info(
+                'Adding a dynamical landmask, since none has been added.'
+                ' Adding a customised landmask may be faster...')
+            max_distance = \
+                self.max_speed*self.expected_steps_calculation * \
+                self.time_step.total_seconds()
             deltalat = max_distance/111000.
-            deltalon = deltalat/np.cos(np.radians(np.mean(self.elements_scheduled.lat)))
+            deltalon = deltalat/np.cos(
+                np.radians(np.mean(self.elements_scheduled.lat)))
             from opendrift.readers import reader_basemap_landmask
             reader_basemap = reader_basemap_landmask.Reader(
                 llcrnrlon=self.elements_scheduled.lon.min() - deltalon,
@@ -1142,7 +1150,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.history = np.ma.array(np.zeros((len(self.elements_scheduled),
                                              self.export_buffer_length)),
                                    dtype=history_dtype)
-        self.history.mask=True
+        self.history.mask = True
         self.steps_exported = 0
 
         if outfile is not None:
@@ -1180,7 +1188,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.deactivate_elements(missing, reason='missing_data')
 
-                self.lift_elements_to_seafloor() # If seafloor is penetrated
+                self.lift_elements_to_seafloor()  # If seafloor is penetrated
 
                 self.runtime_environment += datetime.now() - runtime_start
                 runtime_start = datetime.now()
@@ -1201,7 +1209,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.update()
                 #####################################################
 
-                self.lift_elements_to_seafloor() # If seafloor is penetrated
+                self.lift_elements_to_seafloor()  # If seafloor is penetrated
 
                 self.runtime_model += datetime.now() - runtime_start
 
@@ -1240,7 +1248,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if export_buffer_length is None:
             # Remove columns for unseeded elements in history array
-            self.history = self.history[range(self.num_elements_activated()), :]
+            self.history = self.history[
+                range(self.num_elements_activated()), :]
             # Remove rows for unreached timsteps in history array
             self.history = self.history[:, range(self.steps_output)]
         else:  # If output has been flushed to file during run, we
@@ -1253,9 +1262,9 @@ class OpenDriftSimulation(PhysicsMethods):
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
 
-        steps_calculation_float = (self.steps_calculation*
-                                   self.time_step.total_seconds() /
-                                self.time_step_output.total_seconds()) + 1
+        steps_calculation_float = \
+            (self.steps_calculation * self.time_step.total_seconds() /
+             self.time_step_output.total_seconds()) + 1
         self.steps_output = int(np.floor(steps_calculation_float))
 
         ID_ind = self.elements.ID - 1
@@ -1318,8 +1327,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
                 lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
             else:
-                lons = np.ma.array(np.reshape(self.elements_scheduled.lon, (1, -1))).T
-                lats = np.ma.array(np.reshape(self.elements_scheduled.lat, (1, -1))).T
+                lons = np.ma.array(
+                    np.reshape(self.elements_scheduled.lon, (1, -1))).T
+                lats = np.ma.array(
+                    np.reshape(self.elements_scheduled.lat, (1, -1))).T
 
         # Initialise map
         lonmin = lons.min() - buffer*2
@@ -1334,15 +1345,15 @@ class OpenDriftSimulation(PhysicsMethods):
             ## Calculate aspect ratio, to minimise whitespace on figures
             ## Drawback is that empty figure is created in interactive mode
             meanlat = (latmin + latmax)/2
-            aspect_ratio = np.float(latmax-latmin) / \
-                           (np.float(lonmax-lonmin))
+            aspect_ratio = \
+                np.float(latmax-latmin) / (np.float(lonmax-lonmin))
             aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
             if aspect_ratio > 1:
                 plt.figure(figsize=(10./aspect_ratio, 10.))
             else:
                 plt.figure(figsize=(11., 11.*aspect_ratio))
             #ax = plt.axes([.05,.05,.85,.9])
-            ax = plt.axes([.05,.08,.85,.9])  # When colorbar below
+            ax = plt.axes([.05, .08, .85, .9])  # When colorbar below
             map = Basemap(lonmin, latmin, lonmax, latmax,
                           resolution='h', projection='merc')
 
@@ -1373,7 +1384,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 'https://sourceforge.net/p/matplotlib/mailman/message/28461289/')
                 map.drawparallels(np.arange(np.floor(map.latmin),
                                             np.ceil(map.latmax), 1),
-                                            labels=[0, 1, 1, 0]) 
+                                  labels=[0, 1, 1, 0])
         x, y = map(lons, lats)
 
         try:
@@ -1650,11 +1661,13 @@ class OpenDriftSimulation(PhysicsMethods):
         if hasattr(self, 'time'):
             plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
                       (self.start_time.strftime('%Y-%m-%d %H:%M'),
-                       self.time.strftime('%Y-%m-%d %H:%M'), self.steps_output))
+                       self.time.strftime('%Y-%m-%d %H:%M'),
+                       self.steps_output))
         else:
             plt.title(type(self).__name__ + ' - %i elements seeded at %s' %
                       (self.num_elements_scheduled(),
-                       self.elements_scheduled_time[0].strftime('%Y-%m-%d %H:%M')))
+                       self.elements_scheduled_time[0].strftime(
+                       '%Y-%m-%d %H:%M')))
 
         if drifter_file is not None:
             # Format of joubeh.com
@@ -1688,7 +1701,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """Return a list of output times of last run."""
         td = self.time_step_output
         time_array = [self.start_time + td*i for i in
-                        range(self.steps_output)]
+                      range(self.steps_output)]
         time_array_relative = [td*i for i in range(self.steps_output)]
         return time_array, time_array_relative
 

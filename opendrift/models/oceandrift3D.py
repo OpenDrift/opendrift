@@ -24,13 +24,14 @@ PassiveTracer.variables = PassiveTracer.add_variables([
                                                    'unit': '%',
                                                    'default': 0.0}),
                             ('age_seconds', {'dtype': np.float32,
-                                                   'units': 's',
-                                                   'default': 0})])
+                                             'units': 's',
+                                             'default': 0})])
+
 
 class OceanDrift3D(OpenDrift3DSimulation):
     """Trajectory model based on the OpenDrift framework.
 
-    Simply propagation with horizontal and vertical ocean currents 
+    Simply propagation with horizontal and vertical ocean currents
     and possibly additional wind drag.
     Suitable for passive tracers, e.g. for tracking water particles.
     Developed at MET Norway.
@@ -44,14 +45,13 @@ class OceanDrift3D(OpenDrift3DSimulation):
                           'upward_sea_water_velocity',
                           'ocean_vertical_diffusivity',
                           'sea_floor_depth_below_sea_level'
-                         ]
+                          ]
 
     required_variables.append('land_binary_mask')
 
     required_profiles = ['ocean_vertical_diffusivity']
-    required_profiles_z_range = [-120, 0]  # The depth range (in m) which
-                                           # profiles shall cover
-
+    # The depth range (in m) which profiles shall cover
+    required_profiles_z_range = [-120, 0]
 
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
@@ -60,7 +60,7 @@ class OceanDrift3D(OpenDrift3DSimulation):
                        'upward_sea_water_velocity': 0,
                        'ocean_vertical_diffusivity': 0.02,
                        'sea_floor_depth_below_sea_level': 10000
-                      }
+                       }
 
     configspec = '''
         [drift]
@@ -74,6 +74,7 @@ class OceanDrift3D(OpenDrift3DSimulation):
             verticalresolution = float(min=0.01, max=10, default = 1.)
             diffusivitymodel = string(default='environment')
             '''
+
     def update_terminal_velocity(self):
         '''
         Terminal velocity due to buoyancy or sedimentation rate,
@@ -81,7 +82,6 @@ class OceanDrift3D(OpenDrift3DSimulation):
         Using zero for passive particles, i.e. following water particles
         '''
         self.elements.terminal_velocity = 0.
-
 
     def update(self):
         """Update positions and properties of elements."""
@@ -91,7 +91,8 @@ class OceanDrift3D(OpenDrift3DSimulation):
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
-        # Advect particles due to wind drag (according to specified wind_drift_factor)
+        # Advect particles due to wind drag
+        # (according to specified wind_drift_factor)
         self.advect_wind()
 
         # Turbulent Mixing
@@ -109,6 +110,6 @@ class OceanDrift3D(OpenDrift3DSimulation):
 
         # Deactivate elements that exceed a certain age
         if self.config['drift']['max_age_seconds'] is not None:
-	        self.deactivate_elements(self.elements.age_seconds >= 
-                                         self.config['drift']['max_age_seconds'], 
-                                         reason='retired')
+            self.deactivate_elements(self.elements.age_seconds >=
+                                     self.config['drift']
+                                     ['max_age_seconds'], reason='retired')

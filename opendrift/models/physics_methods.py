@@ -64,15 +64,15 @@ class PhysicsMethods(object):
         R1 = ((((6.536332E-09 * T - 1.120083E-06) * T + 1.001685E-04) *
               T - 9.095290E-03) * T + 6.793952E-02) * T - 28.263737
 
-        #Seawater density at atmospheric pressure
-        #coefficients involving salinity :
+        # Seawater density at atmospheric pressure
+        # coefficients involving salinity :
 
         R2 = (((5.3875E-09 * T - 8.2467E-07) * T + 7.6438E-05) *
               T - 4.0899E-03) * T + 8.24493E-01
 
         R3 = (-1.6546E-06*T+1.0227E-04)*T-5.72466E-03
 
-        #International one-atmosphere equation of state of seawater :
+        # International one-atmosphere equation of state of seawater :
 
         SIG = R1 + (R4*S + R3*np.sqrt(S) + R2)*S
         Dens0 = SIG + DR350 + 1000.
@@ -113,13 +113,13 @@ class PhysicsMethods(object):
                                   self.environment.y_sea_water_velocity)
         else:
             raise ValueError('Drift scheme not recognised: ' +
-                              self.config['drift']['scheme'])
+                             self.config['drift']['scheme'])
 
     def advect_wind(self, wind_drift_factor=None):
         # Elements at ocean surface (z=0) are advected with given percentage
         # of wind speed. NB: Only basic Euler schema is implemented
 
-        if wind_drift_factor == None:
+        if wind_drift_factor is None:
             wind_drift_factor = self.elements.wind_drift_factor
 
         # Convert wind_drift_factor to array
@@ -138,7 +138,7 @@ class PhysicsMethods(object):
         x_wind = self.environment.x_wind
         y_wind = self.environment.y_wind
         try:
-            if self.config['drift']['relative_wind'] == True:
+            if self.config['drift']['relative_wind'] is True:
                 # Use wind relative to (subtracted) ocean current
                 x_wind = x_wind - self.environment.x_sea_water_velocity
                 y_wind = y_wind - self.environment.y_sea_water_velocity
@@ -151,7 +151,8 @@ class PhysicsMethods(object):
     def stokes_drift(self):
 
         if np.max(np.array(
-            self.environment.sea_surface_wave_stokes_drift_x_velocity)) == 0:
+            self.environment.sea_surface_wave_stokes_drift_x_velocity)) \
+                == 0:
             logging.debug('No Stokes drift velocity available.')
             return
 
@@ -172,7 +173,7 @@ class PhysicsMethods(object):
         # Keep surfacing elements in water column as default,
         # i.e. no formation of surface slick
         surface = np.where(self.elements.z >= 0)[0]
-        self.elements.z[surface] = minimum_depth  
+        self.elements.z[surface] = minimum_depth
 
     def deactivate_stranded_elements(self):
         self.deactivate_elements(self.environment.land_binary_mask == 1,
@@ -184,11 +185,13 @@ class PhysicsMethods(object):
 
     def significant_wave_height(self):
         # Significant wave height, parameterise from wind if not available
-        if hasattr(self.environment, 'sea_surface_wave_significant_height') and self.environment.sea_surface_wave_significant_height.max() > 0:
+        if hasattr(self.environment,
+                   'sea_surface_wave_significant_height') and \
+                self.environment.sea_surface_wave_significant_height.max() > 0:
             return self.environment.sea_surface_wave_significant_height
         else:
             # Neumann and Pierson, 1966
-            return 0.2*np.power(self.wind_speed(),2)/9.81
+            return 0.2*np.power(self.wind_speed(), 2)/9.81
 
     def wave_frequency(self):
         if self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() == 0:
@@ -202,31 +205,32 @@ class PhysicsMethods(object):
                 sea_surface_wave_period_at_variance_spectral_density_maximum
 
     def wave_energy(self):
-        return 9.81*1028*np.power(self.significant_wave_height(),2)/16
-    
+        return 9.81*1028*np.power(self.significant_wave_height(), 2)/16
+
     def wave_energy_dissipation(self):
         # Delvigne and Sweeney
-        return 0.0034*self.sea_water_density()*9.81*\
+        return 0.0034*self.sea_water_density()*9.81 * \
             np.power(self.significant_wave_height(), 2)
 
     def wave_damping_coefficient(self):
-        return (10E-5)*2*np.pi*self.wave_frequency()* \
+        return (10E-5)*2*np.pi*self.wave_frequency() * \
             np.power(self.wave_energy(), 0.25)
 
-    #def sea_water_density(self):
+    # def sea_water_density(self):
     #    return 1027  # kg/m3
 
     def sea_surface_wave_breaking_fraction(self):
         f = 0.032*(self.wind_speed() - 5)/self.wave_period()
-        f[f<0] = 0
+        f[f < 0] = 0
         return f
 
     def air_density(self):
         return 1.225  # Could calculate from temperature
 
     def windspeed_from_stress(self):
-        wind_stress = np.sqrt(self.environment.surface_downward_x_stress**2+
-                              self.environment.surface_downward_y_stress**2)
+        wind_stress = np.sqrt(
+            self.environment.surface_downward_x_stress**2 +
+            self.environment.surface_downward_y_stress**2)
         return windspeed_from_stress_polyfit(wind_stress)
 
     def solar_elevation(self):
@@ -240,13 +244,15 @@ class PhysicsMethods(object):
                 -self.environment.sea_floor_depth_below_sea_level)] = \
                 -self.environment.sea_floor_depth_below_sea_level[
                 np.where(self.elements.z <
-                         -self.environment.sea_floor_depth_below_sea_level)]
+                -self.environment.sea_floor_depth_below_sea_level)]
+
 
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''
     Cd = 0.0012*np.ones(len(windspeed))
-    Cd[windspeed>11] = 0.001*(0.49 + 0.065*windspeed[windspeed>11])
+    Cd[windspeed > 11] = 0.001*(0.49 + 0.065*windspeed[windspeed > 11])
     return Cd
+
 
 def windspeed_from_stress_polyfit(wind_stress):
     '''Inverting Large and Pond (1981) using polyfit'''
@@ -257,6 +263,7 @@ def windspeed_from_stress_polyfit(wind_stress):
     p = np.poly1d(z)
     return p(wind_stress)
 
+
 def declination(time):
     '''Solar declination in degrees.'''
     try:
@@ -265,24 +272,26 @@ def declination(time):
         day_of_year = np.asarray([t.timetuple().tm_yday for t in time])
     declination = \
         np.arcsin(np.deg2rad(-23.44)*
-                  np.cos(np.radians((360.0/365.24)*(day_of_year+10) +
+                  np.cos(np.radians((360.0/365.24)*(day_of_year + 10) +
                                     (360.0/np.pi)*0.0167*
                                     np.sin(np.radians((360.0/365.24)*
-                                           (day_of_year-2)))
+                                           (day_of_year - 2)))
                                     )))
     return np.rad2deg(declination)
-                            
+
+
 def equation_of_time(time):
     '''Equation of time in minutes.'''
     time = np.atleast_1d(time)
     day_of_year = np.asarray([t.timetuple().tm_yday for t in time])
     hour = np.asarray([t.hour for t in time])
     gamma = 2*np.pi/365.0*(day_of_year - 1. +
-                           (hour - 12.) / 24.) 
-    eqtime = 229.18 * (0.000075 + 0.001868*np.cos(gamma) - 
+                           (hour - 12.) / 24.)
+    eqtime = 229.18 * (0.000075 + 0.001868*np.cos(gamma) -
                        0.032077*np.sin(gamma) -
                        0.014615*np.cos(2*gamma) - 0.040849*np.sin(2*gamma))
     return eqtime
+
 
 def hour_angle(time, longitude):
     '''Solar hour angle in degrees.'''
@@ -292,6 +301,7 @@ def hour_angle(time, longitude):
     true_solar_time = day_minutes + time_offset
     hour_angle = (true_solar_time/4.0) - 180.0  # degrees
     return hour_angle
+
 
 def solar_elevation(time, longitude, latitude):
     '''Solar elevation in degrees.'''

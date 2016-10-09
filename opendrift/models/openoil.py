@@ -67,8 +67,8 @@ class Oil(LagrangianArray):
                                  'units': '%',
                                  'default': 0}),
         ('water_fraction', {'dtype': np.float32,
-                           'units': '%',
-                           'default': 0})])
+                            'units': '%',
+                            'default': 0})])
 
 
 class OpenOil(OpenDriftSimulation):
@@ -110,8 +110,8 @@ class OpenOil(OpenDriftSimulation):
 
     # Read oil types from file (presently only for illustrative effect)
     oil_types = str([str(l.strip()) for l in open(
-                    os.path.dirname(os.path.realpath(__file__))
-                    + '/oil_types.txt').readlines()])[1:-1]
+                    os.path.dirname(os.path.realpath(__file__)) + \
+                    '/oil_types.txt').readlines()])[1:-1]
     default_oil = oil_types.split(',')[0].strip()
 
     # Configuration
@@ -352,8 +352,9 @@ class OpenOil(OpenDriftSimulation):
         https://github.com/NOAA-ORR-ERD/PyGnome
         '''
         logging.debug('NOAA oil weathering')
+        # C to K
         self.environment.sea_water_temperature[
-            self.environment.sea_water_temperature < 100] += 273.15 # C to K
+            self.environment.sea_water_temperature < 100] += 273.15
 
         if self.steps_calculation == 1:
             # At first time step, we initialise arrays to hold
@@ -404,11 +405,11 @@ class OpenOil(OpenDriftSimulation):
             self.environment.sea_water_temperature[surface], area,
             self.noaa_mass_balance['mass_components'][surfaceID, :])
         mass_remain = \
-            (self.noaa_mass_balance['mass_components'][surfaceID, :]*
+            (self.noaa_mass_balance['mass_components'][surfaceID, :] *
              np.exp(evap_decay_constant*self.time_step.total_seconds()))
         self.elements.mass_evaporated[surface] += \
-            np.sum(self.noaa_mass_balance['mass_components'][surfaceID, :]
-                - mass_remain, 1)
+            np.sum(self.noaa_mass_balance[
+                    'mass_components'][surfaceID, :] - mass_remain, 1)
         self.noaa_mass_balance['mass_components'][surfaceID, :] = \
             mass_remain
         self.elements.mass_oil[surface] = np.sum(mass_remain, 1)
@@ -418,7 +419,7 @@ class OpenOil(OpenDriftSimulation):
         # Emulsification (surface only?)
         #############################################
         logging.debug('Emulsification')
-        emul_time = self.oiltype.bulltime 
+        emul_time = self.oiltype.bulltime
         emul_constant = self.oiltype.bullwinkle
         # max water content fraction - get from database
         Y_max = self.oiltype.get('emulsion_water_fraction_max')
@@ -436,7 +437,7 @@ class OpenOil(OpenDriftSimulation):
         # f ((le_age >= emul_time && emul_time >= 0.) || frac_evap[i] >= emul_C && emul_C > 0.)
 
         start_emulsion = np.where(
-            ((self.elements.age_seconds >= emul_time) & (emul_time >= 0)) | 
+            ((self.elements.age_seconds >= emul_time) & (emul_time >= 0)) |
             ((fraction_evaporated >= emul_constant) & (emul_constant > 0))
             )[0]
         if len(start_emulsion) == 0:
@@ -465,9 +466,8 @@ class OpenOil(OpenDriftSimulation):
             self.elements.interfacial_area[start_emulsion]*drop_max/
             (6.0 + (self.elements.interfacial_area[start_emulsion]
              *drop_max)))
-        self.elements.water_fraction[self.elements.interfacial_area
-             >= ((6.0 / drop_max)*(Y_max/(1.0 - Y_max)))] \
-                = Y_max
+        self.elements.water_fraction[self.elements.interfacial_area >=
+            ((6.0 / drop_max)*(Y_max/(1.0 - Y_max)))] = Y_max
 
     def advect_oil(self):
         # Simply move particles with ambient current
@@ -508,12 +508,12 @@ class OpenOil(OpenDriftSimulation):
             self.status_categories.append('stranded')
         mass_submerged = np.ma.masked_where(
             ((status == self.status_categories.index('stranded')) |
-            (z == 0.0)), mass_oil)
+                (z == 0.0)), mass_oil)
         mass_submerged = np.ma.sum(mass_submerged, axis=1)
 
         mass_surface = np.ma.masked_where(
             ((status == self.status_categories.index('stranded')) |
-            (z < 0.0)), mass_oil)
+                (z < 0.0)), mass_oil)
         mass_surface = np.ma.sum(mass_surface, axis=1)
 
         mass_stranded = np.ma.sum(np.ma.masked_where(
@@ -591,7 +591,7 @@ class OpenOil(OpenDriftSimulation):
                 raise ValueError('Oil type "%s" not found in NOAA database'
                                  % oiltype)
             return
-            
+
         if oiltype not in self.oiltypes:
             raise ValueError('The following oiltypes are available: %s' %
                              str(self.oiltypes))
@@ -634,12 +634,13 @@ class OpenOil(OpenDriftSimulation):
 
         # Specific imports
         import datetime
-        # nxutils: Deprecated since version 1.2.0: Use contains_points() instead.
-        have_nx=True
+        # nxutils: Deprecated since version 1.2.0:
+        # Use contains_points() instead.
+        have_nx = True
         try:
             import matplotlib.nxutils as nx
         except:
-            have_nx=False
+            have_nx = False
             from matplotlib.path import Path
         from xml.etree import ElementTree
         from matplotlib.patches import Polygon

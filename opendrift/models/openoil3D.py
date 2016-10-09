@@ -48,47 +48,49 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
     ElementType = Oil3D
 
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_surface_wave_to_direction',
-                          'sea_surface_wave_stokes_drift_x_velocity',
-                          'sea_surface_wave_stokes_drift_y_velocity',
-                          'sea_surface_wave_period_at_variance_spectral_density_maximum',
-                          'sea_ice_area_fraction',
-                          'x_wind', 'y_wind', 'land_binary_mask',
-                          'sea_floor_depth_below_sea_level',
-                          'ocean_vertical_diffusivity',
-                          'sea_water_temperature',
-                          'sea_water_salinity',
-                          'upward_sea_water_velocity'
-                          ]
+    required_variables = [
+        'x_sea_water_velocity', 'y_sea_water_velocity',
+        'sea_surface_wave_significant_height',
+        'sea_surface_wave_to_direction',
+        'sea_surface_wave_stokes_drift_x_velocity',
+        'sea_surface_wave_stokes_drift_y_velocity',
+        'sea_surface_wave_period_at_variance_spectral_density_maximum',
+        'sea_ice_area_fraction',
+        'x_wind', 'y_wind', 'land_binary_mask',
+        'sea_floor_depth_below_sea_level',
+        'ocean_vertical_diffusivity',
+        'sea_water_temperature',
+        'sea_water_salinity',
+        'upward_sea_water_velocity'
+        ]
 
     required_profiles = ['sea_water_temperature',
                          'sea_water_salinity',
                          'ocean_vertical_diffusivity']
-    required_profiles_z_range = [-120, 0]  # The depth range (in m) which
-                                          # profiles shall cover
+    # The depth range (in m) which profiles shall cover
+    required_profiles_z_range = [-120, 0]
 
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_to_direction': 0,
-                       'sea_surface_wave_stokes_drift_x_velocity': 0,
-                       'sea_surface_wave_stokes_drift_y_velocity': 0,   
-                       'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
-                       'sea_ice_area_fraction': 0,
-                       'x_wind': 0, 'y_wind': 0,
-                       'sea_floor_depth_below_sea_level': 10000,
-                       'ocean_vertical_diffusivity': 0.02,  # m2s-1
-                       'sea_water_temperature': 10.,
-                       'sea_water_salinity': 34.,
-                       'upward_sea_water_velocity': 0
-                       }
+    fallback_values = {
+        'x_sea_water_velocity': 0,
+        'y_sea_water_velocity': 0,
+        'sea_surface_wave_significant_height': 0,
+        'sea_surface_wave_to_direction': 0,
+        'sea_surface_wave_stokes_drift_x_velocity': 0,
+        'sea_surface_wave_stokes_drift_y_velocity': 0,
+        'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
+        'sea_ice_area_fraction': 0,
+        'x_wind': 0, 'y_wind': 0,
+        'sea_floor_depth_below_sea_level': 10000,
+        'ocean_vertical_diffusivity': 0.02,  # m2s-1
+        'sea_water_temperature': 10.,
+        'sea_water_salinity': 34.,
+        'upward_sea_water_velocity': 0
+        }
 
     # Read oil types from file (presently only for illustrative effect)
     oil_types = str([str(l.strip()) for l in open(
-                    os.path.dirname(os.path.realpath(__file__))
-                    + '/oil_types.txt').readlines()])[1:-1]
+                    os.path.dirname(os.path.realpath(__file__)) +
+                    '/oil_types.txt').readlines()])[1:-1]
     default_oil = oil_types.split(',')[0].strip()
 
     # Configuration
@@ -148,13 +150,14 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         """
 
         # Delvigne and Sweeney (1988)
-        #rmax = 1818*np.power(self.wave_energy_dissipation(), -0.5)* \
-        #            np.power(self.elements.viscosity, 0.34) / 1000000
+        # rmax = 1818*np.power(self.wave_energy_dissipation(), -0.5)* \
+        #             np.power(self.elements.viscosity, 0.34) / 1000000
 
-        #r = np.random.uniform(0, rmax, self.num_elements_active())
+        # r = np.random.uniform(0, rmax, self.num_elements_active())
         return self.elements.diameter/2  # Hardcoded diameter
 
-    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
+    def update_terminal_velocity(self, Tprofiles=None,
+                                 Sprofiles=None, z_index=None):
         """Calculate terminal velocity for oil droplets
 
         according to
@@ -162,7 +165,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                                by breaking waves
         Marine Pollution Bulletin 44, 1219-1229
 
-        If profiles of temperature and salt are passed into this function, they will be interpolated from the profiles.
+        If profiles of temperature and salt are passed into this function,
+        they will be interpolated from the profiles.
         if not, T,S will be fetched from reader.
         """
         g = 9.81  # ms-2
@@ -170,24 +174,34 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         r = self.particle_radius()*2
 
         # prepare interpolation of temp, salt
-	if not (Tprofiles==None and Sprofiles==None):
-            if z_index==None:
-                z_i = range(Tprofiles.shape[0]) # evtl. move out of loop
-                z_index = interp1d(-self.environment_profiles['z'],z_i,bounds_error=False) # evtl. move out of loop
+
+        if not (Tprofiles is None and Sprofiles is None):
+            if z_index is None:
+                z_i = range(Tprofiles.shape[0])  # evtl. move out of loop
+                # evtl. move out of loop
+                z_index = interp1d(-self.environment_profiles['z'],
+                                   z_i, bounds_error=False)
             zi = z_index(-self.elements.z)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
 
-        # do interpolation of temp, salt if profiles were passed into this function, if not, use reader by calling self.environment
-	if Tprofiles==None:
+        # do interpolation of temp, salt if profiles were passed into
+        # this function, if not, use reader by calling self.environment
+        if Tprofiles is None:
             T0 = self.environment.sea_water_temperature
         else:
-            T0 = Tprofiles[upper, range(Tprofiles.shape[1])] * weight_upper + Tprofiles[lower, range(Tprofiles.shape[1])] * (1-weight_upper) 
-        if Sprofiles==None:
+            T0 = Tprofiles[upper, range(Tprofiles.shape[1])] * \
+                weight_upper + \
+                Tprofiles[lower, range(Tprofiles.shape[1])] * \
+                (1-weight_upper)
+        if Sprofiles is None:
             S0 = self.environment.sea_water_salinity
         else:
-            S0 = Sprofiles[upper, range(Sprofiles.shape[1])] * weight_upper + Sprofiles[lower, range(Sprofiles.shape[1])] * (1-weight_upper) 
+            S0 = Sprofiles[upper, range(Sprofiles.shape[1])] * \
+                weight_upper + \
+                Sprofiles[lower, range(Sprofiles.shape[1])] * \
+                (1-weight_upper)
 
         rho_oil = self.elements.density
         rho_water = self.sea_water_density(T=T0, S=S0)
@@ -202,11 +216,11 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # terminal velocity for low Reynolds numbers
         kw = 2*g*(1-rhopr)/(9*ny_w)
         W = kw * r**2
-        #print r[0:10], 'r'
-        #print ny_w[0:10], 'ny_w'
-        #print W[0:10], 'W before'
+        # print r[0:10], 'r'
+        # print ny_w[0:10], 'ny_w'
+        # print W[0:10], 'W before'
 
-        #check if we are in a high Reynolds number regime
+        # check if we are in a high Reynolds number regime
         Re = 2*r*W/ny_w
         highRe = np.where(Re > 50)
 
@@ -215,7 +229,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         W2 = kw*r**0.5
 
         W[highRe] = W2[highRe]
-        #print W[0:10], 'W after'
+        # print W[0:10], 'W after'
         self.elements.terminal_velocity = W
 
     def oil_wave_entrainment_rate(self):
@@ -224,8 +238,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         gamma = self.wave_damping_coefficient()
         alpha = 1.5
         Low = self.elements.entrainment_length_scale
-        entrainment_rate = kb*omega*gamma*self.significant_wave_height()/ \
-                (16*alpha*Low)
+        entrainment_rate = \
+            kb*omega*gamma*self.significant_wave_height() / \
+            (16*alpha*Low)
         return entrainment_rate
 
     def wave_mixing(self, time_step_seconds, alpha=1.5):
@@ -233,7 +248,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         surface = np.where(self.elements.z == 0.)[0]
         prob = self.oil_wave_entrainment_rate()[surface]*time_step_seconds
-        mixed = surface[np.where(np.random.uniform(0, 1, len(surface))<prob)]
+        mixed = surface[np.where(np.random.uniform(0, 1,
+                                                   len(surface)) < prob)]
 
         # Mixed elements are moved to a random depth between 0 and 1.5*H
         # See e.g. Delvigne and Sweeney, 1988
@@ -241,7 +257,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         self.elements.z[mixed] = -1  # Entrain 1 m, for further random mixing
         mixing_layer_elements = np.where(
             (self.elements.z > -mixing_layer_depth) & (self.elements.z < 0))[0]
-        
+
         self.elements.z[mixing_layer_elements] = \
             [np.random.uniform(-m, 0) for m in
                 mixing_layer_depth[mixing_layer_elements]]

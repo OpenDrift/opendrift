@@ -109,7 +109,8 @@ class Reader(Reader):
                 y = var[:]*unitfactor
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
-                if not 'positive' in var.ncattrs() or var.__dict__['positive'] == 'up':
+                if 'positive' not in var.ncattrs() or \
+                        var.__dict__['positive'] == 'up':
                     self.z = var[:]
                 else:
                     self.z = -var[:]
@@ -125,9 +126,9 @@ class Reader(Reader):
                 else:
                     self.time_step = None
 
-        if not 'x' in locals():
+        if 'x' not in locals():
             raise ValueError('Did not find x-coordinate variable')
-        if not 'y' in locals():
+        if 'y' not in locals():
             raise ValueError('Did not find y-coordinate variable')
         self.xmin, self.xmax = x.min(), x.max()
         self.ymin, self.ymax = y.min(), y.max()
@@ -167,10 +168,10 @@ class Reader(Reader):
             # Find z-index range
             # NB: may need to flip if self.z is ascending
             indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
-            indz = np.arange(np.maximum(0, indices.min() - 1
-                                        - self.verticalbuffer),
-                             np.minimum(len(self.z), indices.max() + 1
-                                        + self.verticalbuffer))
+            indz = np.arange(np.maximum(0, indices.min() - 1 -
+                                        self.verticalbuffer),
+                             np.minimum(len(self.z), indices.max() + 1 +
+                                        self.verticalbuffer))
             if len(indz) == 1:
                 indz = indz[0]  # Extract integer to read only one layer
         else:
@@ -207,8 +208,8 @@ class Reader(Reader):
             elif var.ndim == 4:
                 variables[par] = var[indxTime, indz, indy, indx]
             else:
-                raise Exception('Wrong dimension of variable: '
-                                + self.variable_mapping[par])
+                raise Exception('Wrong dimension of variable: ' +
+                                self.variable_mapping[par])
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal

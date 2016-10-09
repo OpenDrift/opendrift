@@ -56,11 +56,11 @@ class Reader(Reader):
         self.zbuffer = 1  # Vertical buffer of block around elements
 
         # z-levels to which sigma-layers may be interpolated
-        self.zlevels = [0, -.5, -1, -3, -5, -10, -25, -50, -75, -100, -150, -200,
-                        -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
-                        -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
-                        -6500, -7000, -7500, -8000]
-
+        self.zlevels = [
+            0, -.5, -1, -3, -5, -10, -25, -50, -75, -100, -150, -200,
+            -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
+            -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
+            -6500, -7000, -7500, -8000]
 
         filestr = str(filename)
         if name is None:
@@ -91,8 +91,9 @@ class Reader(Reader):
                 self.sigma = self.Dataset.variables['s_rho'][:]
             except:
                 num_sigma = len(self.Dataset.dimensions['s_rho'])
-                logging.warning('s_rho not available in dataset, constructing from'
-                                ' number of layers (%s).' % num_sigma)
+                logging.warning(
+                    's_rho not available in dataset, constructing from'
+                    ' number of layers (%s).' % num_sigma)
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
 
             # Read sigma-coordinate transform parameters
@@ -224,7 +225,7 @@ class Reader(Reader):
                     indz_max = i
             indz = range(np.maximum(0, indz_min-self.zbuffer),
                          np.minimum(self.num_layers,
-                                     indz_max + 1 + self.zbuffer))
+                                    indz_max + 1 + self.zbuffer))
             z_rho = z_rho[indz, :, :]
             # Determine the z-levels to which to interpolate
             zi1 = np.maximum(0, bisect_left(-np.array(self.zlevels),
@@ -254,13 +255,13 @@ class Reader(Reader):
                         variables[par][variables[par].mask] = np.nan
                     except:
                         pass
-                    variables[par] = depth.multi_zslice(variables[par],
-                                                    z_rho, variables['z'])
+                    variables[par] = depth.multi_zslice(
+                        variables[par], z_rho, variables['z'])
                     # Re-adding mask removed by multi_zslice:
                     variables[par] = np.ma.masked_invalid(variables[par])
             else:
-                raise Exception('Wrong dimension of variable: '
-                                + self.variable_mapping[par])
+                raise Exception('Wrong dimension of variable: ' +
+                                self.variable_mapping[par])
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
@@ -286,7 +287,8 @@ class Reader(Reader):
         variables['y'] = variables['y'].astype(np.float)
         variables['time'] = nearestTime
 
-        if 'x_sea_water_velocity' or 'sea_ice_x_velocity' or 'x_wind' in variables.keys():
+        if 'x_sea_water_velocity' or 'sea_ice_x_velocity' \
+                or 'x_wind' in variables.keys():
             # We must rotate current vectors
             if not hasattr(self, 'angle_xi_east'):
                 logging.debug('Reading angle between xi and east...')

@@ -83,7 +83,7 @@ class Reader(object):
     var_block_before = {}  # Data for last timestep before present
     var_block_after = {}   # Data for first timestep after present
 
-    always_valid = False  # Set to True if a single field should 
+    always_valid = False  # Set to True if a single field should
                           # be valid at all times
 
     # Mapping variable names, e.g. from east-north to x-y, temporarily
@@ -104,7 +104,6 @@ class Reader(object):
         'northward_eulerian_current_velocity': 'y_sea_water_velocity',
         'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'x_sea_water_velocity',
         'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity'}
-
 
     def __init__(self):
         # Common constructor for all readers
@@ -133,7 +132,7 @@ class Reader(object):
                                                   fill_value=np.nan)
                 # Reusing x-interpolator (deepcopy) with data for y
                 self.spl_y = copy.deepcopy(self.spl_x)
-                self.spl_y.values[:,0] = block_y.ravel()
+                self.spl_y.values[:, 0] = block_y.ravel()
 
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
@@ -176,7 +175,7 @@ class Reader(object):
             if self.time_step is not None:
                 time_step_seconds = self.time_step.total_seconds()
             else:
-                time_step_seconds = 3600 # 1 hour if not given
+                time_step_seconds = 3600  # 1 hour if not given
             max_speed = 5  # Assumed max average speed of any element
             self.buffer = np.int(np.ceil(max_speed *
                                          time_step_seconds /
@@ -220,9 +219,8 @@ class Reader(object):
                         interpolation in space and time.
         """
 
-
     def _get_variables(self, variables, profiles, profiles_depth,
-                              time, x, y, z, block):
+                       time, x, y, z, block):
         """Wrapper around reader-specific function get_variables()
 
         Performs some common operations which should not be duplicated:
@@ -286,10 +284,10 @@ class Reader(object):
         if block is False or self.return_block is False:
             # Analytical reader, continous in space and time
             env_before = self._get_variables(variables, profiles,
-                                                    profiles_depth,
-                                                    time_before,
-                                                    reader_x, reader_y, z,
-                                                    block=block)
+                                             profiles_depth,
+                                             time_before,
+                                             reader_x, reader_y, z,
+                                             block=block)
             logging.debug('Fetched env-before')
 
         else:
@@ -310,8 +308,8 @@ class Reader(object):
                                 self.var_block_before[str(variables)]
             # Fetch data, if no buffer is available
             if (not str(variables) in self.var_block_before) or \
-                    (self.var_block_before[str(variables)].time
-                        != time_before):
+                    (self.var_block_before[str(variables)].time !=
+                     time_before):
                 reader_data_dict = \
                     self._get_variables(variables, profiles,
                                         profiles_depth, time_before,
@@ -319,8 +317,7 @@ class Reader(object):
                                         block=block)
                 self.var_block_before[str(variables)] = \
                     ReaderBlock(reader_data_dict,
-                                interpolation_horizontal=
-                                self.interpolation)
+                                interpolation_horizontal=self.interpolation)
                 try:
                     len_z = len(self.var_block_before[str(variables)].z)
                 except:
@@ -342,9 +339,9 @@ class Reader(object):
                                             reader_x, reader_y, z,
                                             block=block)
                     self.var_block_after[str(variables)] = \
-                        ReaderBlock(reader_data_dict,
-                                    interpolation_horizontal=
-                                    self.interpolation)
+                        ReaderBlock(
+                            reader_data_dict,
+                            interpolation_horizontal=self.interpolation)
                     try:
                         len_z = len(self.var_block_after[str(variables)].z)
                     except:
@@ -357,7 +354,7 @@ class Reader(object):
                                    len(self.var_block_after[
                                        str(variables)].y),
                                    len_z, time_after))
-            
+
             if self.var_block_before[str(variables)].covers_positions(
                 reader_x, reader_y) is False or \
                 self.var_block_after[str(variables)].covers_positions(
@@ -373,7 +370,7 @@ class Reader(object):
                           (self.var_block_before[str(variables)].time))
             env_before, env_profiles_before = self.var_block_before[
                 str(variables)].interpolate(
-                    reader_x, reader_y, z,variables,
+                    reader_x, reader_y, z, variables,
                     profiles, profiles_depth)
 
             if (time_after is not None) and (time_before != time):
@@ -381,7 +378,7 @@ class Reader(object):
                               (self.var_block_after[str(variables)].time))
                 env_after, env_profiles_after = self.var_block_after[
                     str(variables)].interpolate(
-                        reader_x, reader_y, z,variables,
+                        reader_x, reader_y, z, variables,
                         profiles, profiles_depth)
 
         #######################
@@ -390,7 +387,7 @@ class Reader(object):
         env_profiles = None
         if (time_after is not None) and (time_before != time):
             weight_after = ((time - time_before).total_seconds() /
-                           (time_after - time_before).total_seconds())
+                            (time_after - time_before).total_seconds())
             logging.debug(('Interpolating before (%s, weight %.2f) and'
                            '\n\t\t      after (%s, weight %.2f) in time') %
                           (self.var_block_before[str(variables)].time,
@@ -423,9 +420,9 @@ class Reader(object):
                     if var == 'z':
                         continue
                     env_profiles[var] = (
-                        env_profiles_before[var][0:numlayers,:] *
+                        env_profiles_before[var][0:numlayers, :] *
                         (1 - weight_after) +
-                        env_profiles_after[var][0:numlayers,:]*weight_after)
+                        env_profiles_after[var][0:numlayers, :]*weight_after)
             else:
                 env_profiles = None
 
@@ -480,7 +477,8 @@ class Reader(object):
                 # Filling also fin missing columns
                 # for env_profiles outside coverage
                 if env_profiles is not None and var in env_profiles.keys():
-                    tmp = np.nan*np.ones((env_profiles[var].shape[0], len(lon)))
+                    tmp = np.nan*np.ones((env_profiles[var].shape[0],
+                                          len(lon)))
                     tmp[:, ind_covered] = env_profiles[var].copy()
                     env_profiles[var] = np.ma.masked_invalid(tmp)
 

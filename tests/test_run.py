@@ -36,6 +36,7 @@ from opendrift.models.pelagicegg import PelagicEggDrift
 try:
     import ogr
     import osr
+    import gdal
     has_ogr = True
 except:
     has_ogr = False
@@ -94,7 +95,8 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.elements_scheduled_time[0], time[0])
         self.assertEqual(o.elements_scheduled_time[-1], time[-1])
 
-    @unittest.skipIf(has_ogr is False, 'OGR library needed to read shapefiles')
+    @unittest.skipIf(has_ogr is False,
+                     'OGR library needed to read shapefiles')
     def test_seed_shapefile(self):
         o = OceanDrift(loglevel=20)
         o.seed_from_shapefile(o.test_data_folder() +
@@ -107,6 +109,14 @@ class TestRun(unittest.TestCase):
                                   number=300, layername=None,
                                   featurenum=None, time=datetime.now())
         self.assertEqual(len(o.elements_scheduled), 400)
+
+    @unittest.skipIf(has_ogr is False,
+                     'GDAL library needed to read shapefiles')
+    def test_write_geotiff(self):
+        o = OceanDrift(loglevel=20)
+        o.seed_elements(lon=4, lat=60, time=datetime(2016, 1, 1))
+        o.run(steps=3)
+        o.write_geotiff('geotiff.tif')
 
     def test1_seed_single_point_over_time(self):
         """Test a model run"""

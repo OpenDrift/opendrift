@@ -48,7 +48,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         Under construction.
     """
 
-    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,z_index=None):
+    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
+                                 z_index=None):
         """Calculate terminal velocity due to bouyancy from own properties
         and environmental variables
         overload this function to create particle-specific behaviour
@@ -104,7 +105,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
         # get profile of eddy diffusivity
         # get vertical eddy diffusivity from environment or specific model
-        if (self.config['turbulentmixing']['diffusivitymodel'] == \
+        if (self.config['turbulentmixing']['diffusivitymodel'] ==
                 'environment'):
             if 'ocean_vertical_diffusivity' in self.environment_profiles:
                 Kprofiles = self.environment_profiles[
@@ -112,24 +113,28 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             else:
                 # NB: using constant diffusivity, and value from first
                 # element only - this should be checked/improved!
-                Kprofiles = self.environment.ocean_vertical_diffusivity[0]* \
-                                np.ones((len(self.environment_profiles['z']),
-                                         self.num_elements_active()))
+                Kprofiles = \
+                    self.environment.ocean_vertical_diffusivity[0] * \
+                    np.ones((len(self.environment_profiles['z']),
+                             self.num_elements_active()))
         else:
             Kprofiles = getattr(
                 eddydiffusivity,
                 self.config['turbulentmixing']['diffusivitymodel'])(self)
 
-        # get profiles of salinity and temperature (to save interpolation time in the inner loop)
+        # get profiles of salinity and temperature
+        # (to save interpolation time in the inner loop)
         if 'TSprofiles' in self.config['turbulentmixing']:
-            if self.config['turbulentmixing']['TSprofiles']==True:
+            if self.config['turbulentmixing']['TSprofiles'] is True:
                 Sprofiles = self.environment_profiles['sea_water_salinity']
-                Tprofiles = self.environment_profiles['sea_water_temperature']
-                            
+                Tprofiles = \
+                    self.environment_profiles['sea_water_temperature']
+
         # prepare vertical interpolation coordinates
         z_i = range(Kprofiles.shape[0])
-        z_index = interp1d(-self.environment_profiles['z'],z_i,bounds_error=False)
-    
+        z_index = interp1d(-self.environment_profiles['z'],
+                           z_i, bounds_error=False)
+
         # internal loop for fast time step of vertical mixing model
         # binned random walk needs faster time step compared
         # to horizontal advection
@@ -142,29 +147,40 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
             # update terminal velocity according to environmental variables
             if 'TSprofiles' in self.config['turbulentmixing']:
-                if self.config['turbulentmixing']['TSprofiles']==True:
-                    self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index)
+                if self.config['turbulentmixing']['TSprofiles'] is True:
+                    self.update_terminal_velocity(Tprofiles=Tprofiles,
+                                                  Sprofiles=Sprofiles,
+                                                  z_index=z_index)
                 else:
-                    self.update_terminal_velocity() 
+                    self.update_terminal_velocity()
             else:
-                self.update_terminal_velocity() # this is faster, but ignores density gradients in water column for the inner loop
+                # this is faster, but ignores density gradients in
+                # water column for the inner loop
+                self.update_terminal_velocity()
 
             w = self.elements.terminal_velocity
- 
+
             # K at depth z
             zi = z_index(-self.elements.z)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
-            K1 = Kprofiles[upper, range(Kprofiles.shape[1])] * weight_upper + Kprofiles[lower, range(Kprofiles.shape[1])] * (1-weight_upper) 
+            K1 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
+                weight_upper + \
+                Kprofiles[lower, range(Kprofiles.shape[1])] * \
+                (1-weight_upper)
 
-            # K at depth z-dz ; gradient of K is required for correct solution with random walk scheme
+            # K at depth z-dz ; gradient of K is required for correct
+            # solution with random walk scheme
             zi = z_index(-(self.elements.z-dz))
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
-            K2 = Kprofiles[upper, range(Kprofiles.shape[1])] * weight_upper + Kprofiles[lower, range(Kprofiles.shape[1])] * (1-weight_upper) 
-            
+            K2 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
+                weight_upper + \
+                Kprofiles[lower, range(Kprofiles.shape[1])] * \
+                (1-weight_upper)
+
             p = dt_mix * (2.0*K1 + dz*w)/(2.0*dz*dz)  # probability to rise
             q = dt_mix * (2.0*K2 - dz*w)/(2.0*dz*dz)  # probability to sink
 
@@ -177,8 +193,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             up = np.where(RandKick < p)
             down = np.where(RandKick > 1.0 - q)
             # Modified lines: do not mix particles which have resurfaced
-            up = ((RandKick < p) & (self.elements.z<0))
-            down = ((RandKick > (1.0 - q)) & (self.elements.z<0))
+            up = ((RandKick < p) & (self.elements.z < 0))
+            down = ((RandKick > (1.0 - q)) & (self.elements.z < 0))
 
             self.elements.z[up] = self.elements.z[up] + dz
             self.elements.z[down] = self.elements.z[down] - dz
@@ -190,7 +206,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
             # Call wave mixing, if implemented for this class
             self.wave_mixing(dt_mix)
-            
 
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""
@@ -228,7 +243,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         update(0)  # Plot initial distribution
         tslider.on_changed(update)
         plt.show()
-
 
     def plotter_vertical_distribution_time(self, ax=None, step=1):
         """Function to plot vertical distribution of particles"""

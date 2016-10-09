@@ -15,11 +15,11 @@ class Nearest2DInterpolator():
         self.x = x
         self.y = y
         self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
-        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid) 
+        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
         self.xi = np.round(self.xi).astype(np.int)
         self.yi = np.round(self.yi).astype(np.int)
-        self.xi[self.xi>=len(xgrid)] = len(xgrid)-1
-        self.yi[self.yi>=len(ygrid)] = len(ygrid)-1
+        self.xi[self.xi >= len(xgrid)] = len(xgrid)-1
+        self.yi[self.yi >= len(ygrid)] = len(ygrid)-1
 
     def __call__(self, array2d):
         return array2d[self.yi, self.xi]
@@ -31,7 +31,7 @@ class NDImage2DInterpolator():
         self.x = x
         self.y = y
         self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
-        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid) 
+        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
 
     def __call__(self, array2d):
         try:
@@ -41,6 +41,7 @@ class NDImage2DInterpolator():
         return np.ma.masked_invalid(
             map_coordinates(array2d, [self.yi, self.xi],
                             cval=np.nan, order=0))
+
 
 class LinearND2DInterpolator():
 
@@ -57,11 +58,11 @@ class LinearND2DInterpolator():
         if hasattr(self, 'interpolator'):
             if not np.array_equal(valid, self.interpolator.valid):
                 logging.debug('Cannot reuse interpolator - validity of '
-                             'array is different from original.')
+                              'array is different from original.')
         if hasattr(self, 'interpolator') and (np.array_equal(
                  valid, self.interpolator.valid)):
             # Reuse stored interpolator with new data
-            self.interpolator.values[:,0] = \
+            self.interpolator.values[:, 0] = \
                 (array2d.ravel()[valid])
         else:
             # Make new interpolator for given x,y
@@ -74,10 +75,11 @@ class LinearND2DInterpolator():
 
         return self.interpolator(self.y, self.x)
 
-horizontal_interpolation_methods =  {
+horizontal_interpolation_methods = {
     'nearest': Nearest2DInterpolator,
     'ndimage': NDImage2DInterpolator,
     'linearND': LinearND2DInterpolator}
+
 
 ###########################
 # 1D interpolator classes
@@ -88,8 +90,8 @@ class Nearest1DInterpolator():
     def __init__(self, zgrid, z):
 
         # Truncating above and below
-        z[z<zgrid.min()] = zgrid.min()
-        z[z>zgrid.max()] = zgrid.max()
+        z[z < zgrid.min()] = zgrid.min()
+        z[z > zgrid.max()] = zgrid.max()
         # Interpolator zgrid -> index
         if zgrid[1] > zgrid[0]:  # increasing
             z_interpolator = interp1d(zgrid, range(len(zgrid)))
@@ -97,19 +99,20 @@ class Nearest1DInterpolator():
             z_interpolator = interp1d(zgrid[::-1], range(len(zgrid))[::-1])
         # Indices corresponding to nearest value in zgrid
         self.zi = np.round(z_interpolator(z)).astype(np.int)
-        self.zi[self.zi<0] = 0
-        self.zi[self.zi>=len(zgrid)] = len(zgrid) - 1
+        self.zi[self.zi < 0] = 0
+        self.zi[self.zi >= len(zgrid)] = len(zgrid) - 1
 
     def __call__(self, array2d):
         return array2d[self.zi, range(len(self.zi))]
+
 
 class Linear1DInterpolator():
 
     def __init__(self, zgrid, z):
 
         # Truncating above and below
-        z[z<zgrid.min()] = zgrid.min()
-        z[z>zgrid.max()] = zgrid.max()
+        z[z < zgrid.min()] = zgrid.min()
+        z[z > zgrid.max()] = zgrid.max()
         # Interpolator zgrid -> index
         if zgrid[1] > zgrid[0]:  # increasing
             z_interpolator = interp1d(zgrid, range(len(zgrid)))
@@ -118,7 +121,7 @@ class Linear1DInterpolator():
         # Indices corresponding to layers above and below
         interp_zi = z_interpolator(z)
         self.index_above = np.floor(interp_zi).astype(np.int)
-        self.index_above[self.index_above<0] = 0
+        self.index_above[self.index_above < 0] = 0
         self.index_below = np.minimum(self.index_above + 1, len(zgrid) - 1)
         self.weight_above = 1 - (interp_zi - self.index_above)
         self.xi = range(len(z))
@@ -127,9 +130,10 @@ class Linear1DInterpolator():
         return array2d[self.index_above, self.xi]*self.weight_above + \
                array2d[self.index_below, self.xi]*(1 - self.weight_above)
 
-vertical_interpolation_methods =  {
+vertical_interpolation_methods = {
     'nearest': Nearest1DInterpolator,
     'linear': Linear1DInterpolator}
+
 
 ###########################
 # ReaderBlock
@@ -138,8 +142,9 @@ vertical_interpolation_methods =  {
 class ReaderBlock():
     """Class to store and interpolate the output from a reader."""
 
-    def __init__(self, data_dict, interpolation_horizontal='ndimage',
-                                  interpolation_vertical='linear'):
+    def __init__(self, data_dict,
+                 interpolation_horizontal='ndimage',
+                 interpolation_vertical='linear'):
 
         # Make pointers to data values, for convenience
         self.x = data_dict['x']
@@ -160,15 +165,17 @@ class ReaderBlock():
             self.Interpolator2DClass = \
                 horizontal_interpolation_methods[interpolation_horizontal]
         except Exception:
-            raise NotImplementedError('Valid interpolation methods '
-                'are: ' + str(horizontal_interpolation_methods.keys()))
+            raise NotImplementedError(
+                'Valid interpolation methods are: ' +
+                str(horizontal_interpolation_methods.keys()))
 
         try:
             self.Interpolator1DClass = \
                 vertical_interpolation_methods[interpolation_vertical]
         except Exception:
-            raise NotImplementedError('Valid interpolation methods '
-                'are: ' + str(vertical_interpolation_methods.keys()))
+            raise NotImplementedError(
+                'Valid interpolation methods are: ' +
+                str(vertical_interpolation_methods.keys()))
 
     def _initialize_interpolator(self, x, y, z=None):
         logging.debug('Initialising interpolator.')
@@ -204,8 +211,7 @@ class ReaderBlock():
             # Allocate output array
             result = np.ma.empty((num_layers, len(self.interpolator2d.x)))
             for layer in range(num_layers):
-                result[layer,:] = \
-                    self.interpolator2d(data[layer,:,:])
+                result[layer, :] = self.interpolator2d(data[layer, :, :])
             return result
 
     def covers_positions(self, x, y, z=None):

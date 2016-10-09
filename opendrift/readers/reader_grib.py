@@ -27,18 +27,19 @@ except:
 
 from reader import Reader
 
-# Hardcoded "GRIB-tables" for now. 
+# Hardcoded "GRIB-tables" for now.
 grib_variable_mapping = {
     'enmi': {  # MET Norway (enmi) GRIB codes (marsParam)
-        '33.3': 'x_wind', 
-        '34.3': 'y_wind', 
-        '49.3': 'x_sea_water_velocity', 
-        '50.3': 'y_sea_water_velocity', 
-        '100.3': 'sea_surface_wave_significant_height', 
-        '232.3': 'sea_surface_wave_period_at_variance_spectral_density_maximum',
+        '33.3': 'x_wind',
+        '34.3': 'y_wind',
+        '49.3': 'x_sea_water_velocity',
+        '50.3': 'y_sea_water_velocity',
+        '100.3': 'sea_surface_wave_significant_height',
+        '232.3':
+            'sea_surface_wave_period_at_variance_spectral_density_maximum',
         '247.3': 'sea_surface_wave_stokes_drift_x_velocity',
         '248.3': 'sea_surface_wave_stokes_drift_y_velocity'},
-     'ecmf': {  # ECMWF GRIB codes
+    'ecmf': {  # ECMWF GRIB codes
         '165.128': 'x_wind',
         '166.128': 'y_wind'}
      }
@@ -108,17 +109,17 @@ class Reader(Reader):
         ####################################
         centre = list(Set(centre))
         if len(centre) > 1:
-            raise ValueError('File contains data from several centres: '
-                             + str(centre))
+            raise ValueError('File contains data from several centres: ' +
+                             str(centre))
         else:
             centre = centre[0]
         if centre in grib_variable_mapping:
             self.grib_mapping = grib_variable_mapping[centre]
         else:
-            raise ValueError('No GRIB variable mapping defined for centre '
-                             + centre)
+            raise ValueError(
+                'No GRIB variable mapping defined for centre ' + centre)
         self.marsParams = list(Set(self.grib_mapping) &
-                                   Set(marsParams))
+                               Set(marsParams))
         self.variables = [self.grib_mapping[v] for v in self.marsParams]
 
         ####################################
@@ -139,10 +140,9 @@ class Reader(Reader):
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
-
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False):
-        
+
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
@@ -155,14 +155,14 @@ class Reader(Reader):
         lonmax = np.minimum(x.max() + delta, self.xmax)
         latmin = np.maximum(y.min() - delta, self.ymin)
         latmax = np.minimum(y.max() + delta, self.ymax)
- 
+
         for var in requested_variables:
             ind = np.int(self.indices[var][indxTime]) + 1
             msg = self.grib[ind]
             variables[var], lats, lons = msg.data(lat1=latmin, lat2=latmax,
                                                   lon1=lonmin, lon2=lonmax)
-        variables['x'] = lons[0,:]
-        variables['y'] = lats[:,0]
+        variables['x'] = lons[0, :]
+        variables['y'] = lats[:, 0]
         variables['z'] = None
         variables['time'] = nearestTime
 

@@ -97,7 +97,7 @@ class Leeway(OpenDriftSimulation):
         else:
             objprop_file = open(d, 'r')
 
-        #objprop_file=open('/home/oyvindb/Pro/opendrift/OBJECTPROP.DAT','r')
+        # objprop_file=open('/home/oyvindb/Pro/opendrift/OBJECTPROP.DAT','r')
         objproptxt = objprop_file.readlines()
         objprop_file.close()
         self.leewayprop = OrderedDict({})
@@ -177,7 +177,7 @@ class Leeway(OpenDriftSimulation):
                 epsdw[i] = rdw[i]*dwstd
         downwindEps = epsdw
         # NB
-        #downwindEps = np.zeros(number)
+        # downwindEps = np.zeros(number)
 
         # Crosswind leeway properties
         rcw = np.random.randn(number)
@@ -200,7 +200,7 @@ class Leeway(OpenDriftSimulation):
             self.leewayprop[objectType]['CWLSTD']
 
         # NB
-        #crosswindEps = np.zeros(number)
+        # crosswindEps = np.zeros(number)
 
         # Jibe probability
         jibeProbability = ones*pjibe

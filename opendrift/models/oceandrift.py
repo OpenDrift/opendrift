@@ -24,8 +24,9 @@ PassiveTracer.variables = PassiveTracer.add_variables([
                                                    'unit': '%',
                                                    'default': 0.02}),
                             ('age_seconds', {'dtype': np.float32,
-                                                   'units': 's',
-                                                   'default': 0})])
+                                             'units': 's',
+                                             'default': 0})])
+
 
 class OceanDrift(OpenDriftSimulation):
     """Trajectory model based on the OpenDrift framework.
@@ -60,7 +61,8 @@ class OceanDrift(OpenDriftSimulation):
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
-        # Advect particles due to wind drag (according to specified wind_drift_factor)
+        # Advect particles due to wind drag (according to specified
+        #                                    wind_drift_factor)
         self.advect_wind()
 
         # Deactivate elements on land
@@ -69,6 +71,6 @@ class OceanDrift(OpenDriftSimulation):
 
         # Deactivate elements that exceed a certain age
         if self.config['drift']['max_age_seconds'] is not None:
-	        self.deactivate_elements(self.elements.age_seconds >= 
-                                         self.config['drift']['max_age_seconds'], 
-                                         reason='retired')
+            self.deactivate_elements(self.elements.age_seconds >=
+                                     self.config['drift']
+                                     ['max_age_seconds'], reason='retired')
