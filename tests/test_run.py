@@ -54,6 +54,14 @@ class TestRun(unittest.TestCase):
             urcrnrlon=7, urcrnrlat=64, resolution='i')
         self.o.add_reader([self.fake_eddy, self.reader_basemap])
 
+    def test_config(self):
+        """Test invalid configuration"""
+        o = OceanDrift(loglevel=20)
+        o.config['drift']['max_age_seconds'] = -1  # invalid value
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(5, 60, time=datetime(2016,1,1))
+        self.assertRaises(ValueError, o.run, steps=3)
+
     def test_seed(self):
         """Test seeding"""
         o = OceanDrift(loglevel=20)

@@ -990,6 +990,13 @@ class OpenDriftSimulation(PhysicsMethods):
                 saved to file. Default is None (all variables are saved)
         """
 
+        # Check that configuration is proper
+        validation = self.config.validate(validate.Validator())
+        if validation is True:
+            logging.info('Config validation OK')
+        else:
+            raise ValueError('Configuration error: ' + str(validation))
+
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
         self.elements = self.ElementType()
