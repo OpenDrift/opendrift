@@ -44,7 +44,7 @@ o.config['drift']['wind_uncertainty'] = 2
 
 # Running model (until end of driver data)
 o.run(steps=66*2, time_step=1800, outfile='openoil.nc',
-      export_step_interval=5)  # Writing to netCDF file every 5 time steps
+      export_buffer_length=5)  # Writing to netCDF file every 5 time steps
 
 # Print and plot results
 print o
