@@ -477,7 +477,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     'env_profiles' not in locals():
                 logging.debug('Filling profiles with fallback values')
                 env_profiles = {}
-                env_profiles['z'] = np.array(self.required_profiles_z_range)
+                env_profiles['z'] = \
+                    np.array(self.required_profiles_z_range)[::-1]
             for var in variable_group:
                 if len(missing_indices) > 0:
                     if var in self.fallback_values:
