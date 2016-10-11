@@ -490,7 +490,12 @@ class OpenDriftSimulation(PhysicsMethods):
                             var in self.required_profiles:
                                 logging.debug(
                                     'Using fallback value for profile')
-                                env_profiles[var][:, missing_indices] = \
+                                if len(missing_indices) == self.num_elements_active():
+                                    logging.info('\tprofile missing for all elements')
+                                    env_profiles[var] = np.ones((len(env_profiles['z']), len(missing_indices)))*self.fallback_values[var]
+                                else:
+                                    logging.info('\tprofile missing for %s of %s elements' % (len(missing_indices), self.num_elements_active()))
+                                    env_profiles[var][:, missing_indices] = \
                                     np.ones_like(env_profiles[var][:, missing_indices])*self.fallback_values[var]
                     else:
                         logging.debug('\t\t%s values missing for %s' % (

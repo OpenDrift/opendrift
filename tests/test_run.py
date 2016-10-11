@@ -79,6 +79,18 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertEqual(o.num_elements_total(), number)
 
+    def test_seed_outside_coverage(self):
+        """Test seeding"""
+        o = OpenOil3D(loglevel=0)
+        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        basemap = reader_basemap_landmask.Reader(
+            llcrnrlon=4, llcrnrlat=60, urcrnrlon=6, urcrnrlat=64,
+            resolution='c', projection='merc')
+        o.add_reader([basemap, norkyst])
+        o.seed_elements(5, 63, number=5,
+                        time=norkyst.start_time - 24*timedelta(hours=24))
+        o.run(steps=3, time_step=timedelta(minutes=15))
+
     def test_seed_polygon(self):
         o = OceanDrift(loglevel=20)
         number = 10
@@ -216,12 +228,13 @@ class TestRun(unittest.TestCase):
         o1.add_reader([norkyst])
         o1.fallback_values['x_wind'] = 8
         o1.fallback_values['land_binary_mask'] = 0
-        o1.seed_elements(3.9, 63.3, radius=1000, number=100,
-                        time=norkyst.start_time)
+        o1.seed_elements(4.1, 63.3, radius=1000, number=100,
+                         time=norkyst.start_time)
         o1.config['turbulentmixing']['timestep'] = 20. # seconds
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -13.0)
+        # Strangely, this is -24 m when running this test alone(!)
+        self.assertAlmostEqual(o1.history['z'].min(), -25.0)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0)
         os.remove('verticalmixing.nc')
 
