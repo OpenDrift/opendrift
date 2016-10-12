@@ -4,6 +4,7 @@ import logging
 
 
 def windspeed_Sundby1983(s):
+    logging.debug('use wind speed parameterizatoin for diffusivity')
     depths = s.environment_profiles['z']
     windspeed_squared = s.environment.x_wind**2 + s.environment.y_wind**2
     if np.max(windspeed_squared) == 0:
