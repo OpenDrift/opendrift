@@ -110,6 +110,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             if 'ocean_vertical_diffusivity' in self.environment_profiles:
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
+                logging.debug('use diffusivity from ocean model')
             else:
                 # NB: using constant diffusivity, and value from first
                 # element only - this should be checked/improved!
@@ -117,7 +118,9 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                     self.environment.ocean_vertical_diffusivity[0] * \
                     np.ones((len(self.environment_profiles['z']),
                              self.num_elements_active()))
+                logging.debug('use constant diffusivity')
         else:
+            logging.debug('use functional expression for diffusivity')
             Kprofiles = getattr(
                 eddydiffusivity,
                 self.config['turbulentmixing']['diffusivitymodel'])(self)
@@ -184,14 +187,22 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             p = dt_mix * (2.0*K1 + dz*w)/(2.0*dz*dz)  # probability to rise
             q = dt_mix * (2.0*K2 - dz*w)/(2.0*dz*dz)  # probability to sink
 
-            # check if probabilities are reasonable or wrong
-            wrong = p+q > 1.
+            # check if probabilities are reasonable or wrong; which can happen if K is very high (K>0.1)
+            wrong = p+q > 1.00002
             if wrong.sum() > 0:
-                logging.debug('WARNING! some elements have p+q>1.')
+                if i==0:
+                    logging.info('WARNING! '+str(wrong.sum())+' elements have p+q>1; you might need a smaller mixing time step')
+                else: 
+                    logging.debug('WARNING! '+str(wrong.sum())+' elements have p+q>1;step')
+		# fixing p and q by scaling them to match p+q=1:
+		norm = p+q
+		p[wrong] = p[wrong]/norm[wrong]
+		q[wrong] = q[wrong]/norm[wrong]
 
             RandKick = np.random.random(self.num_elements_active())
-            up = np.where(RandKick < p)
-            down = np.where(RandKick > 1.0 - q)
+            
+            #up = np.where(RandKick < p)
+            #down = np.where(RandKick > 1.0 - q)
             # Modified lines: do not mix particles which have resurfaced
             up = ((RandKick < p) & (self.elements.z < 0))
             down = ((RandKick > (1.0 - q)) & (self.elements.z < 0))
@@ -244,8 +255,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         tslider.on_changed(update)
         plt.show()
 
-    def plotter_vertical_distribution_time(self, ax=None, step=1):
-        """Function to plot vertical distribution of particles"""
+    def plotter_vertical_distribution_time(self, ax=None, mask=None, dz=1., maxrange=-100, bins=None, step=1):
+        """Function to plot vertical distribution of particles
+	
+	use mask to plot any selection of particles
+	"""
         from pylab import axes, draw
         from matplotlib import dates, pyplot
 
@@ -256,14 +270,17 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         else:
             show = False
 
-        dz = 1.
-        maxrange = -100
+        if mask is None: # create a mask that is True for all particles
+            mask = self.history['z'].T[0] == self.history['z'].T[0] 
 
-        ax.hist(self.history['z'].T[step, :], bins=-maxrange/dz,
+        if bins is None:
+            bins=-maxrange/dz
+
+        ax.hist(self.history['z'].T[step,mask], bins=bins,
                 range=[maxrange, 0], orientation='horizontal')
         ax.set_ylim([maxrange, 0])
         ax.grid()
-        ax.set_xlim([0, self.num_elements_total()*.1])
+        #ax.set_xlim([0, mask.sum()*.15])
         ax.set_xlabel('Number of particles')
         ax.set_ylabel('Depth [m]')
         x_wind = self.history['x_wind'].T[step, :]
