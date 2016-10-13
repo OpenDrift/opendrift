@@ -452,8 +452,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     except:
                         pass
                     for var in variable_group:
-                        #tmp_var = np.ma.masked_invalid(env_tmp[var])
-                        tmp_var = env_tmp[var]
+                        tmp_var = np.ma.masked_invalid(env_tmp[var])
+                        # Changed 13 Oct 2016, but uncertain of effect
+                        # TODO: to be checked 
+                        #tmp_var = env_tmp[var]
                         if 'combined_mask' not in locals():
                             combined_mask = np.ma.getmask(tmp_var)
                         else:
@@ -1717,6 +1719,36 @@ class OpenDriftSimulation(PhysicsMethods):
                 plt.show()
 
         return map, plt
+
+    def write_geotiff(self, filename, pixelsize_km=1):
+        lon = self.get_property('lon')[0]
+        lat = self.get_property('lat')[0]
+        status = self.get_property('status')[0]
+        times = self.get_time_array()[0]
+        deltalat = pixelsize_km/111.0  # km to degrees
+        deltalon = deltalat*np.cos(np.radians((lat.min() + lat.max())/2))
+        print deltalat, deltalon
+        lat_array = np.arange(lat.min()-deltalat, lat.max()+deltalat, deltalat)
+        lon_array = np.arange(lon.min()-deltalat, lon.max()+deltalon, deltalon)
+        ix = (np.round((lon-lon.min())/deltalon)).astype(int)
+        print ix
+        print ix.shape
+        print len(lon_array)
+        print ix.min()
+        print ix.max()
+        print lon.shape
+        stop
+        print lon_array
+        print lat_array
+        print lon
+        print status
+        print times
+        print len(times)
+        print lon.shape
+        for t in times:
+            print t
+
+        
 
     def get_time_array(self):
         """Return a list of output times of last run."""
