@@ -194,6 +194,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
         logging.info('OpenDriftSimulation initialised')
 
+    def prepare_run(self):
+        pass  # to be overloaded when needed
+
     @abstractmethod
     def update(self):
         """Any trajectory model implementation must define an update method.
@@ -1170,6 +1173,11 @@ class OpenDriftSimulation(PhysicsMethods):
             self.io_init(outfile, times=self.expected_steps_output)
         else:
             self.outfile = None
+
+        #############################
+        # Model specific preparation
+        #############################
+        self.prepare_run()
 
         ##########################
         # Main loop

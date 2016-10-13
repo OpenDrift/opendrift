@@ -347,6 +347,20 @@ class OpenOil(OpenDriftSimulation):
         # Dispersion
         self.disperse()
 
+    def prepare_run(self):
+
+        if self.oil_weathering_model == 'noaa':
+            self.noaa_mass_balance = {}
+            # Populate with seeded mass spread on oiltype.mass_fraction
+            mass_oil = np.atleast_1d(self.elements_scheduled.mass_oil)
+            if len(mass_oil) == 1:
+                mass_oil = mass_oil*np.ones(self.num_elements_total())
+            self.noaa_mass_balance['mass_components'] = \
+                np.asarray(self.oiltype.mass_fraction)*(mass_oil.reshape(
+                    (self.num_elements_total(), -1)))
+            self.noaa_mass_balance['mass_evaporated'] = \
+                self.noaa_mass_balance['mass_components']*0
+
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:
         https://github.com/NOAA-ORR-ERD/PyGnome
@@ -355,19 +369,6 @@ class OpenOil(OpenDriftSimulation):
         # C to K
         self.environment.sea_water_temperature[
             self.environment.sea_water_temperature < 100] += 273.15
-
-        if self.steps_calculation == 1:
-            # At first time step, we initialise arrays to hold
-            # oil data for each pseudocomponent for each element
-            self.noaa_mass_balance = {}
-            # Populate with seeded mass spread on oiltype.mass_fraction
-            # TODO: fix problem if elements have been deactivated before this
-            self.noaa_mass_balance['mass_components'] = \
-                np.asarray(self.oiltype.mass_fraction)*(
-                self.elements.mass_oil.reshape(len(self.elements.mass_oil),
-                                               -1))
-            self.noaa_mass_balance['mass_evaporated'] = \
-                self.noaa_mass_balance['mass_components']*0
 
         #########################################################
         # Update density and viscosity according to temperature
