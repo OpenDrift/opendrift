@@ -63,7 +63,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             termical velocity
         """
         w = self.environment.upward_sea_water_velocity
-        self.elements.z = self.elements.z + w * self.time_step.total_seconds()
+        self.elements.z = np.minimum(0,
+            self.elements.z + w * self.time_step.total_seconds())
 
     def vertical_mixing(self):
         """Mix particles vertically according to eddy diffusivity and buoyancy
