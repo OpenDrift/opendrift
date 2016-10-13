@@ -1721,8 +1721,17 @@ class OpenDriftSimulation(PhysicsMethods):
         return map, plt
 
     def write_geotiff(self, filename, pixelsize_km=.2):
-        import gdal
-        import osr
+        '''Write one GeoTiff image per timestep.
+
+        filename should contain date identifiers, e.g. 'img_%Y%m%d_%H%M.tif'
+        https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior
+        '''
+
+        try:
+            import gdal
+            import osr
+        except:
+            raise ValueError('GDAL is needed to write geotiff images.')
         import matplotlib.pyplot as plt
         driver = gdal.GetDriverByName('GTiff')
         srs = osr.SpatialReference()
@@ -1739,7 +1748,7 @@ class OpenDriftSimulation(PhysicsMethods):
         status = self.get_property('status')[0]
         times = self.get_time_array()[0]
         deltalat = pixelsize_km/111.0  # km to degrees
-        deltalon = deltalat*np.cos(np.radians((lat.min() + lat.max())/2))
+        deltalon = deltalat/np.cos(np.radians((lat.min() + lat.max())/2))
         lat_array = np.arange(lat.min()-deltalat, lat.max()+deltalat, deltalat)
         lon_array = np.arange(lon.min()-deltalat, lon.max()+deltalon, deltalon)
         ilon = (np.round((lon-lon.min())/deltalon)).astype(int)
@@ -1747,16 +1756,17 @@ class OpenDriftSimulation(PhysicsMethods):
         image = np.zeros((len(times), len(lon_array),
                           len(lat_array))).astype(int)
         geotransform = [lon_array.min(), deltalon, 0,
-                        lat_array.max(), 0, deltalat]
+                        lat_array.max(), 0, -deltalat]
         for i, t in enumerate(times):
             image[i, ilon[i,:], ilat[i,:]] = status[i, :] + 1
-            ds = driver.Create('output.tif', len(lon_array), len(lat_array),
+            filename_i = t.strftime(filename)
+            ds = driver.Create(filename_i, len(lon_array), len(lat_array),
                                1, gdal.GDT_Byte, )
             ds.SetProjection(srs.ExportToWkt())
             ds.SetGeoTransform(geotransform)
             outband=ds.GetRasterBand(1)
             outband.SetNoDataValue(0)
-            outband.WriteArray(image[i, :, :].transpose())
+            outband.WriteArray(np.fliplr(image[i, :, :]).transpose())
             outband.SetColorTable(colortable)
             ds = None
 
