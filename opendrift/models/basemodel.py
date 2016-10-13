@@ -1720,35 +1720,45 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return map, plt
 
-    def write_geotiff(self, filename, pixelsize_km=1):
+    def write_geotiff(self, filename, pixelsize_km=.2):
+        import gdal
+        import osr
+        import matplotlib.pyplot as plt
+        driver = gdal.GetDriverByName('GTiff')
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(4326)
+        colortable = gdal.ColorTable()
+        colortable.SetColorEntry(0,(255,255,255, 0))
+        colortable.SetColorEntry(1,(0,0,0, 255))
+        colortable.SetColorEntry(2,(255,0,0, 255))
+        colortable.SetColorEntry(3,(0,255,0, 255))
+        colortable.SetColorEntry(4,(0,0,255, 255))
+
         lon = self.get_property('lon')[0]
         lat = self.get_property('lat')[0]
         status = self.get_property('status')[0]
         times = self.get_time_array()[0]
         deltalat = pixelsize_km/111.0  # km to degrees
         deltalon = deltalat*np.cos(np.radians((lat.min() + lat.max())/2))
-        print deltalat, deltalon
         lat_array = np.arange(lat.min()-deltalat, lat.max()+deltalat, deltalat)
         lon_array = np.arange(lon.min()-deltalat, lon.max()+deltalon, deltalon)
-        ix = (np.round((lon-lon.min())/deltalon)).astype(int)
-        print ix
-        print ix.shape
-        print len(lon_array)
-        print ix.min()
-        print ix.max()
-        print lon.shape
-        stop
-        print lon_array
-        print lat_array
-        print lon
-        print status
-        print times
-        print len(times)
-        print lon.shape
-        for t in times:
-            print t
-
-        
+        ilon = (np.round((lon-lon.min())/deltalon)).astype(int)
+        ilat = (np.round((lat-lat.min())/deltalat)).astype(int)
+        image = np.zeros((len(times), len(lon_array),
+                          len(lat_array))).astype(int)
+        geotransform = [lon_array.min(), deltalon, 0,
+                        lat_array.max(), 0, deltalat]
+        for i, t in enumerate(times):
+            image[i, ilon[i,:], ilat[i,:]] = status[i, :] + 1
+            ds = driver.Create('output.tif', len(lon_array), len(lat_array),
+                               1, gdal.GDT_Byte, )
+            ds.SetProjection(srs.ExportToWkt())
+            ds.SetGeoTransform(geotransform)
+            outband=ds.GetRasterBand(1)
+            outband.SetNoDataValue(0)
+            outband.WriteArray(image[i, :, :].transpose())
+            outband.SetColorTable(colortable)
+            ds = None
 
     def get_time_array(self):
         """Return a list of output times of last run."""
@@ -1819,8 +1829,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def get_property(self, propname):
         """Get property from history, sorted by status."""
-        prop = self.history[propname]
-        status = self.history['status']
+        prop = self.history[propname].copy()
+        status = self.history['status'].copy()
         #for stat in self.status_categories:
         #    print '\t%s' % stat
         index_of_first, index_of_last = \
