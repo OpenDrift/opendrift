@@ -73,18 +73,12 @@ class Reader(object):
     __metaclass__ = ABCMeta
 
     return_block = True  # By default, all readers should be
-                         # cabable of returning blocks of data
+                         # capable of returning blocks of data
 
     # Default interpolation method, see function interpolate_block()
     interpolation = 'ndimage'
 
     start_time = None
-    # Dictionaries to store blocks of data for reuse (buffering)
-    var_block_before = {}  # Data for last timestep before present
-    var_block_after = {}   # Data for first timestep after present
-
-    always_valid = False  # Set to True if a single field should
-                          # be valid at all times
 
     # Mapping variable names, e.g. from east-north to x-y, temporarily
     # presuming coordinate system then is lon-lat for equivalence
@@ -107,6 +101,13 @@ class Reader(object):
 
     def __init__(self):
         # Common constructor for all readers
+
+        # Dictionaries to store blocks of data for reuse (buffering)
+        self.var_block_before = {}  # Data for last timestep before present
+        self.var_block_after = {}   # Data for first timestep after present
+
+        self.always_valid = False  # Set to True if a single field should
+                                   # be valid at all times
 
         # Set projection for coordinate transformations
         if hasattr(self, 'proj'):
