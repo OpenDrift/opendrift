@@ -1784,6 +1784,10 @@ class OpenDriftSimulation(PhysicsMethods):
         lon_array = np.arange(lon.min()-deltalat, lon.max()+deltalon, deltalon)
         ilon = (np.round((lon-lon.min())/deltalon)).astype(int)
         ilat = (np.round((lat-lat.min())/deltalat)).astype(int)
+        # Setting masked values to zero, for use as indices
+        ilon[ilon.mask] = 0
+        ilat[ilat.mask] = 0
+        status[ilon.mask] = 0
         image = np.zeros((len(times), len(lon_array),
                           len(lat_array))).astype(int)
         geotransform = [lon_array.min(), deltalon, 0,
