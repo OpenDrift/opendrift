@@ -532,9 +532,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 env_profiles['z'] = \
                     np.array(self.required_profiles_z_range)[::-1]
             for var in self.required_profiles:
-                logging.debug('    Using fallback value %s for profile of %s'
-                              % (self.fallback_values[var], var))
-                env_profiles[var] = self.fallback_values[var]*np.ones((len(env_profiles['z']), self.num_elements_active()))
+                if var not in env_profiles:
+                    logging.debug('    Using fallback value %s for profile of %s'
+                                  % (self.fallback_values[var], var))
+                    env_profiles[var] = self.fallback_values[var]*np.ones((len(env_profiles['z']), self.num_elements_active()))
 
         #####################
         # Diagnostic output

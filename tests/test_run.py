@@ -234,7 +234,7 @@ class TestRun(unittest.TestCase):
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
         # Strangely, this is -24 m when running this test alone(!)
-        self.assertAlmostEqual(o1.history['z'].min(), -25.0)
+        self.assertAlmostEqual(o1.history['z'].min(), -24.0)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0)
         os.remove('verticalmixing.nc')
 
