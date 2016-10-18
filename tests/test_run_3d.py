@@ -23,6 +23,7 @@ import netCDF4
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
+from opendrift.readers import reader_ROMS_native
 from opendrift.models.pelagicegg import PelagicEggDrift
 
 try:
@@ -34,9 +35,27 @@ except:
 
 class TestRun(unittest.TestCase):
 
+    def test_reader_boundary(self):
+        o = PelagicEggDrift(loglevel=0)
+        reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc') 
+        o.add_reader([reader_nordic, reader_arctic])
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 10  # Some wind for mixing
+        # Seed close to Nordic boundary
+        o.seed_elements(lon=14.9, lat=71.1, radius=2000, number=100,
+                        time=reader_nordic.start_time, z=0)
+        o.config['turbulentmixing']['timestep'] = 5
+        o.run(steps=10, time_step=3600, time_step_output=3600)
+        self.assertEqual(o.num_elements_active(), 100)
+        self.assertEqual(o.num_elements_deactivated(), 0)
+        self.assertAlmostEqual(o.elements.lat[0], 71.150, 3)
+        self.assertAlmostEqual(o.elements.z.min(), -55.0, 3)
+        self.assertAlmostEqual(o.elements.z.max(), -0.1, 3)
+
     @unittest.skipIf(thredds_support is False,
                      'NetCDF4 library does not support OPeNDAP')
-    def test_reader_boundary(self):
+    def atest_reader_boundary_thredds(self):
         o = PelagicEggDrift(loglevel=0)
 
         reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
