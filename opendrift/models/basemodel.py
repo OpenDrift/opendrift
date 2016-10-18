@@ -1164,14 +1164,13 @@ class OpenDriftSimulation(PhysicsMethods):
             deltalon = deltalat/np.cos(
                 np.radians(np.mean(self.elements_scheduled.lat)))
             from opendrift.readers import reader_basemap_landmask
-            print self.elements_scheduled.lat.max(), deltalat, 'LAT'
             reader_basemap = reader_basemap_landmask.Reader(
                 llcrnrlon=self.elements_scheduled.lon.min() - deltalon,
                 urcrnrlon=self.elements_scheduled.lon.max() + deltalon,
                 llcrnrlat=self.elements_scheduled.lat.min() - deltalat,
                 urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
                                      deltalat),
-                resolution=self.basemap_resolution)
+                resolution=self.basemap_resolution, projection='merc')
             self.add_reader(reader_basemap)
 
         ####################################################################
