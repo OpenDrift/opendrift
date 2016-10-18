@@ -40,7 +40,7 @@ try:
 except:
     logging.info('Basemap is not available, can not make plots')
 
-from opendrift.readers.reader import pyproj, Reader
+from opendrift.readers.reader import pyproj, Reader, vector_pairs_xy
 from opendrift.models.physics_methods import PhysicsMethods
 
 
@@ -191,7 +191,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_import_file = types.MethodType(io_module.import_file, self)
 
         self.basemap_resolution = basemap_resolution
-        self.max_speed = 3  # Assumed max average speed of any element
+        self.max_speed = 2  # Assumed max average speed of any element
 
         logging.info('OpenDriftSimulation initialised')
 
@@ -1050,6 +1050,16 @@ class OpenDriftSimulation(PhysicsMethods):
             export_buffer_length = None
 
         # Set projection to latlong if not taken from any of the readers
+        if self.proj is not None and not (self.proj.is_latlong() or
+            'proj=merc' in self.proj.srs): 
+            for vector_component in vector_pairs_xy:
+                for component in vector_component:
+                    if component in self.fallback_values and \
+                            self.fallback_values[component] != 0:
+                        logging.info('Setting SRS to latlong, since non-zero '
+                                     'value used for fallback vectors (%s)' %
+                                     component)
+                        self.set_projection('+proj=latlong')
         if self.proj is None:
             logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
@@ -1154,11 +1164,13 @@ class OpenDriftSimulation(PhysicsMethods):
             deltalon = deltalat/np.cos(
                 np.radians(np.mean(self.elements_scheduled.lat)))
             from opendrift.readers import reader_basemap_landmask
+            print self.elements_scheduled.lat.max(), deltalat, 'LAT'
             reader_basemap = reader_basemap_landmask.Reader(
                 llcrnrlon=self.elements_scheduled.lon.min() - deltalon,
                 urcrnrlon=self.elements_scheduled.lon.max() + deltalon,
                 llcrnrlat=self.elements_scheduled.lat.min() - deltalat,
-                urcrnrlat=self.elements_scheduled.lat.max() + deltalat,
+                urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
+                                     deltalat),
                 resolution=self.basemap_resolution)
             self.add_reader(reader_basemap)
 
