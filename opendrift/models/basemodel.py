@@ -430,9 +430,6 @@ class OpenDriftSimulation(PhysicsMethods):
                             lon[missing_indices], lat[missing_indices],
                             z[missing_indices], self.use_block, self.proj)
 
-                    if env_profiles_tmp is not None:
-                        env_profiles = env_profiles_tmp
-
                 except Exception as e:
                     logging.info('========================')
                     logging.info('Exception:')
@@ -445,6 +442,12 @@ class OpenDriftSimulation(PhysicsMethods):
                 for var in variable_group:
                     env[var][missing_indices] = np.ma.masked_invalid(
                         env_tmp[var]).astype('float32')
+                    if profiles_from_reader is not None and var in profiles_from_reader:
+                        if 'env_profiles' not in locals():
+                            env_profiles = env_profiles_tmp
+                        else:
+                            env_profiles[var][:,missing_indices] = \
+                                np.ma.masked_invalid(env_profiles_tmp[var]).astype('float32')
 
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
@@ -521,6 +524,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         logging.debug('    %s values missing for %s' % (
                                       len(missing_indices), var))
 
+        logging.debug('---------------------------------------')
         logging.debug('Finished processing all variable groups')
 
         # Check if profiles are requested, but not provided by any readers
@@ -536,7 +540,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.debug('    Using fallback value %s for profile of %s'
                                   % (self.fallback_values[var], var))
                     env_profiles[var] = self.fallback_values[var]*np.ones((len(env_profiles['z']), self.num_elements_active()))
-
+        
         #####################
         # Diagnostic output
         #####################
@@ -974,7 +978,7 @@ class OpenDriftSimulation(PhysicsMethods):
         #try:
         #    len(indices)
         #except:
-        if indices == [] or len(indices) == 0:
+        if indices == [] or len(indices) == 0 or sum(indices) == 0:
             logging.debug('No elements to deactivate')
             return  # No elements scheduled for deactivation
         # Basic, but some more housekeeping will be required later

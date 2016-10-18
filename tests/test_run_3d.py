@@ -39,18 +39,22 @@ class TestRun(unittest.TestCase):
         o = PelagicEggDrift(loglevel=0)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc') 
+        ######################################################
+        # Vertical interpolation is another issue to be fixed:
+        reader_nordic.zlevels = reader_arctic.z
+        ######################################################
         o.add_reader([reader_nordic, reader_arctic])
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 10  # Some wind for mixing
         # Seed close to Nordic boundary
         o.seed_elements(lon=14.9, lat=71.1, radius=2000, number=100,
                         time=reader_nordic.start_time, z=0)
-        o.config['turbulentmixing']['timestep'] = 5
-        o.run(steps=10, time_step=3600, time_step_output=3600)
+        o.config['turbulentmixing']['timestep'] = 20
+        o.run(steps=5, time_step=3600, time_step_output=3600)
         self.assertEqual(o.num_elements_active(), 100)
         self.assertEqual(o.num_elements_deactivated(), 0)
-        self.assertAlmostEqual(o.elements.lat[0], 71.150, 3)
-        self.assertAlmostEqual(o.elements.z.min(), -55.0, 3)
+        self.assertAlmostEqual(o.elements.lat[0], 71.15, 2)
+        self.assertAlmostEqual(o.elements.z.min(), -35.0, 3)
         self.assertAlmostEqual(o.elements.z.max(), -0.1, 3)
 
     @unittest.skipIf(thredds_support is False,
