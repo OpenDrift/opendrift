@@ -1157,7 +1157,8 @@ class OpenDriftSimulation(PhysicsMethods):
         # If no basemap has been added, we determine it dynamically
         ##############################################################
         # TODO: some more error checking here
-        if 'land_binary_mask' not in self.priority_list \
+        if 'land_binary_mask' in self.required_variables and \
+                'land_binary_mask' not in self.priority_list \
                 and 'land_binary_mask' not in self.fallback_values:
             logging.info(
                 'Adding a dynamical landmask, since none has been added.'

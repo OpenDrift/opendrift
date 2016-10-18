@@ -21,11 +21,13 @@ import unittest
 from datetime import datetime
 
 from opendrift.readers import reader_ArtificialOceanEddy
+from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
+from opendrift.models.windblow import WindBlow
 
 
 class TestArray(unittest.TestCase):
-    """Tests for (non-scalar) LagrangianArray"""
+    """Tests for OpenDrift models"""
 
     def setUp(self):
         self.o = OpenOil()
@@ -40,6 +42,16 @@ class TestArray(unittest.TestCase):
         self.assertEqual(len(self.o.elements), 0)
         self.assertEqual(len(self.o.elements_deactivated), 0)
         self.assertEqual(len(self.o.elements_scheduled), 100)
+
+    def test_windblow(self):
+        o = WindBlow(loglevel=20)
+        reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
+        o.add_reader([reader_arome])
+        lat = 67.711251; lon = 13.556971  # Lofoten
+        o.seed_elements(lon, lat, radius=5000, number=1000,
+                        time=reader_arome.start_time)
+        o.run(steps=48*4, time_step=900)
+        self.assertAlmostEqual(o.elements.lon.max(), 17.64, 2)
 
 
 if __name__ == '__main__':
