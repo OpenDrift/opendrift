@@ -19,14 +19,23 @@
 
 import unittest
 from datetime import datetime, timedelta
+import netCDF4
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.pelagicegg import PelagicEggDrift
 
+try:
+    netCDF4.Dataset('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+    thredds_support = True
+except:
+    thredds_support = False
+
 
 class TestRun(unittest.TestCase):
 
+    @unittest.skipIf(thredds_support is False,
+                     'NetCDF4 library does not support OPeNDAP')
     def test_reader_boundary(self):
         o = PelagicEggDrift(loglevel=0)
 

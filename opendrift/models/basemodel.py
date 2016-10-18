@@ -115,7 +115,7 @@ class OpenDriftSimulation(PhysicsMethods):
     required_profiles_z_range = None  # [min_depth, max_depth]
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
-                 outfile=None, loglevel=logging.DEBUG):
+                 basemap_resolution='h', loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
 
         Args:
@@ -131,7 +131,8 @@ class OpenDriftSimulation(PhysicsMethods):
             iomodule: name of module used to export data
                 default: netcdf, see folder 'io' for more alternatives.
                 'iomodule' is module/filename without preceeding 'io_'
-            outfile: file where output from simulation is stored
+            basemap_resolution: 'f' (full), 'h' (high, default),
+                                'i' (intermediate), or 'c' (crude)
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
                 Use the string 'custom' to configure logging from outside.
@@ -189,7 +190,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_close = types.MethodType(io_module.close, self)
         self.io_import_file = types.MethodType(io_module.import_file, self)
 
-        self.basemap_resolution = 'h'  # High resolution coastline by default
+        self.basemap_resolution = basemap_resolution
         self.max_speed = 3  # Assumed max average speed of any element
 
         logging.info('OpenDriftSimulation initialised')
@@ -1409,7 +1410,8 @@ class OpenDriftSimulation(PhysicsMethods):
             #ax = plt.axes([.05,.05,.85,.9])
             ax = plt.axes([.05, .08, .85, .9])  # When colorbar below
             map = Basemap(lonmin, latmin, lonmax, latmax,
-                          resolution='h', projection='merc')
+                          resolution=self.basemap_resolution,
+                          projection='merc')
 
         map.drawcoastlines(color='gray')
         map.fillcontinents(color='#ddaa99')
