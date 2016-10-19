@@ -268,7 +268,6 @@ class TestRun(unittest.TestCase):
         o1.config['turbulentmixing']['timestep'] = 20. # seconds
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        # Strangely, this is -24 m when running this test alone(!)
         self.assertAlmostEqual(o1.history['z'].min(), -24.0)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0)
         os.remove('verticalmixing.nc')
@@ -347,8 +346,6 @@ class TestRun(unittest.TestCase):
         o1 = OceanDrift(loglevel=0)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        # For some reason, this test gives different results 
-        # when run alone than when running all tests! (9 vs 1 stranded el)
         basemap = reader_basemap_landmask.Reader(
             llcrnrlon=4, llcrnrlat=59.8, urcrnrlon=6, urcrnrlat=61,
             resolution='i', projection='merc')
