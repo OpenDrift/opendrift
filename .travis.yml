@@ -32,9 +32,9 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
 install:
-  - sudo ln -s /usr/lib/libgeos-3.4.2.so /usr/lib/libgeos.so
+  - sudo ln -s /usr/lib/libgeos-3.3.3.so /usr/lib/libgeos.so
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
-  - conda install --yes gdal=2.0.0
+  - conda install --yes gdal=2.0.0 libgdal=2.0.0=0
   - conda install --yes -c dan_blanchard python-coveralls
 script: coverage run --source=opendrift setup.py test
 after_success:
