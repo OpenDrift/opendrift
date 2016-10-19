@@ -336,7 +336,7 @@ class OpenOil(OpenDriftSimulation):
 
     def oil_weathering_default(self):
 
-        print 'Default oil weathering'
+        logging.debug('Default oil weathering')
 
         ## Evaporation
         self.evaporate()

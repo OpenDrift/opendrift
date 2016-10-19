@@ -161,11 +161,6 @@ def import_file(self, filename, time=None):
     self.time = self.end_time  # Using end time as default
     self.status_categories = infile.variables['status'].flag_meanings.split()
 
-    for var in infile.variables:
-        if var not in self.ElementType.variables:
-            print '%s does not contain %s - skipping.' % \
-                    (type(self).__name__, var)
-
     num_elements = len(infile.dimensions['trajectory'])
     num_timesteps = len(infile.dimensions['time'])
     self.steps_output = num_timesteps
