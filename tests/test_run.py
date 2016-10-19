@@ -152,12 +152,9 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.elements_scheduled_time[0], time[0])
         self.assertEqual(o.elements_scheduled_time[-1], time[-1])
 
-    #@unittest.skipIf(has_ogr is False,
-    #                 'OGR library needed to read shapefiles')
+    @unittest.skipIf(has_ogr is False,
+                     'OGR library needed to read shapefiles')
     def test_seed_shapefile(self):
-        import ogr
-        import osr
-        import gdal
         o = OceanDrift(loglevel=20)
         o.seed_from_shapefile(o.test_data_folder() +
                                   'shapefile_spawning_areas/Torsk.shp',
