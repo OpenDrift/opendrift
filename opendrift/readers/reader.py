@@ -610,7 +610,10 @@ class Reader(object):
             else:
                 zmin = -np.inf
         else:
-            if hasattr(self, 'z') and self.z is not None:
+            # If there is only one vertical layer (len(z) = 1),
+            # we assume this is valid at any depths/heights
+            if hasattr(self, 'z') and self.z is not None \
+                    and len(self.z) > 1:
                 zmin = np.min(self.z)
             else:
                 zmin = -np.inf
@@ -620,7 +623,8 @@ class Reader(object):
             else:
                 zmax = np.inf
         else:
-            if hasattr(self, 'z') and self.z is not None:
+            if hasattr(self, 'z') and self.z is not None \
+                    and len(self.z) > 1:
                 zmax = np.max(self.z)
             else:
                 zmax = np.inf
