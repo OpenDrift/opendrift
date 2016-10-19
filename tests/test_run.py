@@ -38,7 +38,9 @@ try:
     import osr
     import gdal
     has_ogr = True
-except:
+except Exception as e:
+    print 'GDAL is not available:'
+    print e
     has_ogr = False
 
 class TestRun(unittest.TestCase):
