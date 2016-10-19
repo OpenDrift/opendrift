@@ -50,12 +50,14 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon=14.9, lat=71.1, radius=2000, number=100,
                         time=reader_nordic.start_time, z=0)
         o.config['turbulentmixing']['timestep'] = 20
+        o.config['drift']['scheme'] = 'runge-kutta'
         o.run(steps=5, time_step=3600, time_step_output=3600)
         self.assertEqual(o.num_elements_active(), 100)
         self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertAlmostEqual(o.elements.lat[0], 71.15, 2)
         self.assertAlmostEqual(o.elements.z.min(), -35.0, 3)
         self.assertAlmostEqual(o.elements.z.max(), -0.1, 3)
+        self.assertAlmostEqual(o.elements.lon.max(), 14.8689, 3)
 
     @unittest.skipIf(thredds_support is False,
                      'NetCDF4 library does not support OPeNDAP')
