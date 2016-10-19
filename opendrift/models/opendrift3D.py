@@ -285,7 +285,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         ax.set_xlabel('Number of particles')
         ax.set_ylabel('Depth [m]')
         x_wind = self.history['x_wind'].T[step, :]
-        print x_wind
         y_wind = self.history['x_wind'].T[step, :]
         windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
         ax.set_title(str(self.get_time_array()[0][step]) +
