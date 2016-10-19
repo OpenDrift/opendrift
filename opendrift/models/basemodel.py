@@ -153,6 +153,10 @@ class OpenDriftSimulation(PhysicsMethods):
         if not hasattr(self, 'fallback_values'):
             self.fallback_values = {}
 
+        # Make copies of dictionaries so that they are private to each instance
+        self.fallback_values = self.fallback_values.copy()
+        self.status_colors_default = self.status_colors_default.copy()
+
         if hasattr(self, 'status_colors'):
             # Append model specific colors to (and override) default colors
             self.status_colors_default.update(self.status_colors)
