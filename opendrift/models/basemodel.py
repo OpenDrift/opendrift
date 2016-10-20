@@ -1556,7 +1556,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if filename is not None:
             try:
                 logging.info('Saving animation to ' + filename + '...')
-                anim.save(filename, fps=fps)
+                anim.save(filename, fps=fps, clear_temp=False)
             except Exception as e:
                 print 'Could not save animation:'
                 logging.info(e)
@@ -1565,8 +1565,8 @@ class OpenDriftSimulation(PhysicsMethods):
             if filename[-4:] == '.gif':
                 logging.info('Making animated gif...')
                 os.system('convert -delay %i _tmp*.png %s' %
-                          (self.time_step_output.total_seconds()/3600.*24.,
-                           filename))
+                          (np.abs(self.time_step_output.total_seconds())/
+                           3600.*24., filename))
 
             logging.info('Deleting temporary figures...')
             tmp = glob.glob('_tmp*.png')
