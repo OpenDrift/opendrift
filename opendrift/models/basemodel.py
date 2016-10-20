@@ -450,8 +450,10 @@ class OpenDriftSimulation(PhysicsMethods):
                         if 'env_profiles' not in locals():
                             env_profiles = env_profiles_tmp
                         else:
-                            env_profiles[var][:,missing_indices] = \
-                                np.ma.masked_invalid(env_profiles_tmp[var]).astype('float32')
+                            # TODO: fix to be checked
+                            if var in env_profiles and var in env_profiles_tmp:
+                                env_profiles[var][:,missing_indices] = \
+                                    np.ma.masked_invalid(env_profiles_tmp[var]).astype('float32')
 
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
