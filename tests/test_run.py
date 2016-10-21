@@ -259,7 +259,7 @@ class TestRun(unittest.TestCase):
 
     def test_vertical_mixing(self):
         # Export to file only at end
-        o1 = PelagicEggDrift(loglevel=20)  # Profiles and vertical mixing
+        o1 = PelagicEggDrift(loglevel=0)  # Profiles and vertical mixing
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
           '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o1.add_reader([norkyst])
@@ -463,7 +463,7 @@ class TestRun(unittest.TestCase):
     def test_seed_seafloor(self):
         o = OpenOil3D(loglevel=0)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-# Landmask (Basemap)
+        # Landmask (Basemap)
         reader_basemap = reader_basemap_landmask.Reader(
                             llcrnrlon=4, llcrnrlat=61.0,
                             urcrnrlon=7, urcrnrlat=64,

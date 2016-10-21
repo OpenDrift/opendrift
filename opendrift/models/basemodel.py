@@ -420,9 +420,9 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.debug('Data needed for %i elements' %
                                   len(missing_indices))
                     # Check if vertical profiles are requested from reader
-                    if self.required_profiles is not None:
+                    if profiles is not None:
                         profiles_from_reader = list(
-                            set(variable_group) & set(self.required_profiles))
+                            set(variable_group) & set(profiles))
                         if profiles_from_reader == []:
                             profiles_from_reader = None
                     else:
@@ -486,67 +486,42 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.debug('Data missing for %i elements.' %
                                   (len(missing_indices)))
 
-            #################################################################
-            # All readers have been checked for data for this variable_group
-            # Performing default action for particles missing env data
-            #################################################################
-            logging.debug('Checked all readers for variable group ' +
-                          str(variable_group))
-            for var in variable_group:
-                if len(missing_indices) > 0:
-                    ###############################
-                    # Filling missing data
-                    ###############################
-                    if var in self.fallback_values:
-                        #######################################
-                        # Setting fallback value for elements
-                        #######################################
-                        logging.debug('    Using fallback value %s for %s'
-                                      % (self.fallback_values[var], var))
-                        env[var][missing_indices] = self.fallback_values[var]
-                        ###############################################
-                        # Filling missing profiles with fallback value
-                        ###############################################
-                        if hasattr(self, 'required_profiles') and \
-                                self.required_profiles is not None:
-                            if var in self.required_profiles:
-                                if 'env_profiles' not in locals():
-                                    logging.debug(
-                                        '    Creating empty dictionary for profiles with '
-                                        'fallback values: ' + str(self.required_profiles))                   
-                                    env_profiles = {}
-                                    env_profiles['z'] = np.array(
-                                    self.required_profiles_z_range)[::-1]
-                                logging.debug('      Using fallback value %s for profile of %s ' %
-                                              (self.fallback_values[var], var))
-                                if len(missing_indices) == self.num_elements_active():
-                                    logging.debug('        Profile missing for all elements')
-                                    env_profiles[var] = np.ones((len(env_profiles['z']), len(missing_indices)))*self.fallback_values[var]
-                                else:
-                                    logging.debug('        Profile missing for %s of %s elements' % (len(missing_indices), self.num_elements_active()))
-                                    env_profiles[var][:, missing_indices] = \
-                                    np.ones_like(env_profiles[var][:, missing_indices])*self.fallback_values[var]
-                    else:  # No fallback value for this variable
-                        logging.debug('    %s values missing for %s' % (
-                                      len(missing_indices), var))
-
         logging.debug('---------------------------------------')
         logging.debug('Finished processing all variable groups')
 
-        # Check if profiles are requested, but not provided by any readers
-        if hasattr(self, 'required_profiles') and self.required_profiles is not None:
-            if 'env_profiles' not in locals():
-                logging.debug('Creating empty dictionary for profiles not '
-                              'profided by any reader: ' + str(self.required_profiles))
-                env_profiles = {}
-                env_profiles['z'] = \
+        for var in self.fallback_values:
+            if (var not in variables) and (profiles is None or var not in profiles):
+                continue
+            mask = env[var].mask
+            if sum(mask==True) > 0:
+                logging.debug('    Using fallback value %s for %s for %s elements' %
+                              (self.fallback_values[var], var, sum(mask==True)))
+                env[var][mask] = self.fallback_values[var]
+            # Profiles
+            if profiles is not None and var in profiles:
+                if 'env_profiles' not in locals():
+                    logging.debug('Creating empty dictionary for profiles not '
+                                  'profided by any reader: ' + str(self.required_profiles))
+                    env_profiles = {}
+                    env_profiles['z'] = \
                     np.array(self.required_profiles_z_range)[::-1]
-            for var in self.required_profiles:
                 if var not in env_profiles:
-                    logging.debug('    Using fallback value %s for profile of %s'
-                                  % (self.fallback_values[var], var))
-                    env_profiles[var] = self.fallback_values[var]*np.ones((len(env_profiles['z']), self.num_elements_active()))
-        
+                    logging.debug('      Using fallback value %s for %s for all profiles' %
+                                  (self.fallback_values[var], var))
+                    env_profiles[var] = self.fallback_values[var]*\
+                        np.ma.ones((len(env_profiles['z']), self.num_elements_active()))
+                else:
+                    mask = env_profiles[var].mask
+                    num_masked_values_per_element = sum(mask==True)
+                    num_missing_profiles = sum(num_masked_values_per_element == len(env_profiles['z']))
+                    env_profiles[var][mask] = self.fallback_values[var]
+                    logging.debug('      Using fallback value %s for %s for %s profiles' %
+                                  (self.fallback_values[var], var, num_missing_profiles,))
+                    num_missing_individual = sum(num_masked_values_per_element > 0) - num_missing_profiles
+                    if num_missing_individual > 0:
+                        logging.debug('        ...plus %s individual points in other profiles' %
+                                      num_missing_individual)
+       
         #####################
         # Diagnostic output
         #####################

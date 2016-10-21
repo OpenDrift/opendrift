@@ -26,6 +26,8 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_basemap_landmask
+from opendrift.models.pelagicegg import PelagicEggDrift
+
 
 o = OceanDrift()
 basemap = reader_basemap_landmask.Reader(
@@ -181,6 +183,45 @@ class TestReaders(unittest.TestCase):
                                3.4470012188)
         self.assertAlmostEqual(data['sea_water_temperature'][-1,60, 60],
                                -0.78304171562194824)
-        
+
+    def test_get_environment(self):
+        o = PelagicEggDrift(loglevel=0)
+        reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc', name='Nordic')
+        reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc', name='Arctic')
+        #reader_nordic.plot()
+        #reader_arctic.plot()
+        ######################################################
+        # Vertical interpolation is another issue to be fixed:
+        reader_nordic.zlevels = reader_arctic.z
+        ######################################################
+        o.add_reader([reader_nordic, reader_arctic])
+        # One point covered only by Nordic, two points coverd
+        # by both readers, and two points covered by none of the readers
+        testlon = np.array((14.0, 20.0, 20.1, 4, 5))
+        testlat = np.array((70.1, 76.0, 76.1, 60, 60))
+        testz = np.random.uniform(0, 0, len(testlon))
+        self.assertItemsEqual([0], reader_nordic.covers_positions(
+                                    testlon, testlat, testz))
+        self.assertItemsEqual([0, 1, 2], reader_arctic.covers_positions(
+                                    testlon, testlat, testz))
+        o.seed_elements(testlon, testlat, testz, time=reader_nordic.start_time)
+        o.fallback_values['land_binary_mask'] = 0
+        env, env_profiles, missing = \
+            o.get_environment(o.required_variables,
+                              reader_nordic.start_time,
+                              testlon, testlat, testz,
+                              o.required_profiles)
+        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.2849, 3)
+        self.assertAlmostEqual(env['sea_water_temperature'][1], 0.6282, 3)
+        self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
+        self.assertItemsEqual(missing, [False,False,False,False,False])
+        self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,0],
+                               4.284938, 3)
+        self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,4], 10)
+        self.assertAlmostEqual(env_profiles['sea_water_temperature'][8,2], 10)
+        self.assertAlmostEqual(env_profiles['sea_water_temperature'][7,2],
+                               2.252265, 3)
+
+
 if __name__ == '__main__':
     unittest.main()
