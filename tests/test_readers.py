@@ -188,8 +188,6 @@ class TestReaders(unittest.TestCase):
         o = PelagicEggDrift(loglevel=0)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc', name='Nordic')
         reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc', name='Arctic')
-        #reader_nordic.plot()
-        #reader_arctic.plot()
         ######################################################
         # Vertical interpolation is another issue to be fixed:
         reader_nordic.zlevels = reader_arctic.z
@@ -221,6 +219,41 @@ class TestReaders(unittest.TestCase):
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][8,2], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][7,2],
                                2.252265, 3)
+        # Get separate data
+        env2, env_profiles2, missing2 = \
+            o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
+                               'sea_water_temperature'],
+                              reader_nordic.start_time,
+                              testlon, testlat, testz,
+                              ['sea_water_temperature'])
+        self.assertTrue(env_profiles2 is not None)
+        self.assertEqual(env_profiles2.keys(), ['z', 'sea_water_temperature'])
+        # Get separate data, without profile
+        env3, env_profiles3, missing3 = \
+            o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
+                               'sea_water_temperature'],
+                              reader_nordic.start_time,
+                              testlon, testlat, testz,
+                              profiles=None)
+        self.assertTrue(env_profiles3 is None)
+        # Get separate data
+        env4, env_profiles4, missing4 = \
+            o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
+                               'sea_water_temperature'],
+                              reader_nordic.start_time,
+                              testlon, testlat, testz,
+                              ['sea_water_temperature'])
+
+        self.assertItemsEqual(env['x_sea_water_velocity'],
+                              env2['x_sea_water_velocity'])
+        #print env_profiles['sea_water_temperature'], '1'*50
+        #print env_profiles2['sea_water_temperature'], '2'*50
+        #print env_profiles4['sea_water_temperature'], '4'*50
+        # Test below should also pass, To be fixed
+        #self.assertItemsEqual(env_profiles['sea_water_temperature'].ravel(),
+        #                      env_profiles2['sea_water_temperature'].ravel())
+        self.assertItemsEqual(env_profiles2['sea_water_temperature'].ravel(),
+                              env_profiles4['sea_water_temperature'].ravel())
 
 
 if __name__ == '__main__':
