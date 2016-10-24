@@ -78,6 +78,8 @@ class Reader(object):
     # Default interpolation method, see function interpolate_block()
     interpolation = 'ndimage'
 
+    verticalbuffer = 1  # To be overridden by application as needed
+
     start_time = None
 
     # Mapping variable names, e.g. from east-north to x-y, temporarily
@@ -184,8 +186,6 @@ class Reader(object):
             logging.debug('Setting buffer size %i for reader %s, assuming '
                           'a maximum average speed of %g m/s.' %
                           (self.buffer, self.name, max_speed))
-
-        self.verticalbuffer = 0  # To be overridden by application as needed
 
     @abstractmethod
     def get_variables(self, variables, time=None,

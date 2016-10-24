@@ -449,11 +449,21 @@ class OpenDriftSimulation(PhysicsMethods):
                     if profiles_from_reader is not None and var in profiles_from_reader:
                         if 'env_profiles' not in locals():
                             env_profiles = env_profiles_tmp
-                        else:
-                            # TODO: fix to be checked
-                            if var in env_profiles and var in env_profiles_tmp:
-                                env_profiles[var][:,missing_indices] = \
-                                    np.ma.masked_invalid(env_profiles_tmp[var]).astype('float32')
+                        # TODO: fix to be checked
+                        if var in env_profiles and var in env_profiles_tmp:
+                            # If one profile has fewer vertical layers than
+                            # the other, we use only the overlapping part
+                            if len(env_profiles['z']) != len(
+                                env_profiles_tmp['z']):
+                                logging.debug('Warning: different number of '
+                                    ' vertical layers: %s and %s' % (
+                                        len(env_profiles['z']),
+                                        len( env_profiles_tmp['z'])))
+                            z_ind = np.arange(np.minimum(
+                                len(env_profiles['z'])-1,
+                                len(env_profiles_tmp['z'])-1))
+                            env_profiles[var][np.ix_(z_ind, missing_indices)] = \
+                                np.ma.masked_invalid(env_profiles_tmp[var][z_ind,:]).astype('float32')
 
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):

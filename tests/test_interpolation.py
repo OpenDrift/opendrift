@@ -167,11 +167,11 @@ class TestInterpolation(unittest.TestCase):
                                   profiles=['sea_water_temperature'],
                                   profiles_depth=[-30, 0])
         self.assertAlmostEqual(env['x_sea_water_velocity'][100],
-                               0.0750191849228)
+                               0.075019, 3)
         self.assertAlmostEqual(prof['sea_water_temperature'][0,11],
-                               7.5499997138977051)
+                               7.549999, 3)
         self.assertAlmostEqual(prof['sea_water_temperature'][-1,11],
-                               8.38000011444)
+                               8.389999, 3)
         self.assertEqual(prof['z'][-1], b.z[-1])
 
     def test_zNone(self):

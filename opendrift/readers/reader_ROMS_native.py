@@ -53,8 +53,6 @@ class Reader(Reader):
             'Uwind': 'x_wind',
             'Vwind': 'y_wind'}
 
-        self.zbuffer = 1  # Vertical buffer of block around elements
-
         # z-levels to which sigma-layers may be interpolated
         self.zlevels = [
             0, -.5, -1, -3, -5, -10, -25, -50, -75, -100, -150, -200,
@@ -223,16 +221,16 @@ class Reader(Reader):
                     indz_min = i
                 if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
                     indz_max = i
-            indz = range(np.maximum(0, indz_min-self.zbuffer),
+            indz = range(np.maximum(0, indz_min-self.verticalbuffer),
                          np.minimum(self.num_layers,
-                                    indz_max + 1 + self.zbuffer))
+                                    indz_max + 1 + self.verticalbuffer))
             z_rho = z_rho[indz, :, :]
             # Determine the z-levels to which to interpolate
             zi1 = np.maximum(0, bisect_left(-np.array(self.zlevels),
-                                            -z.max()) - self.zbuffer)
+                                            -z.max()) - self.verticalbuffer)
             zi2 = np.minimum(len(self.zlevels),
                              bisect_right(-np.array(self.zlevels),
-                                          -z.min()) + self.zbuffer)
+                                          -z.min()) + self.verticalbuffer)
             variables['z'] = np.array(self.zlevels[zi1:zi2])
 
         for par in requested_variables:
