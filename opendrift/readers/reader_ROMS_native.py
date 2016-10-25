@@ -197,7 +197,7 @@ class Reader(Reader):
             indy[outside] = 0
 
         # Find depth levels covering all elements
-        if z.min() == 0:
+        if z.min() == 0 or not hasattr(self, 'hc'):
             indz = self.num_layers - 1  # surface layer
             variables['z'] = 0
 
