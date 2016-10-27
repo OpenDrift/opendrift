@@ -195,10 +195,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                     logging.info('WARNING! '+str(wrong.sum())+' elements have p+q>1; you might need a smaller mixing time step')
                 else: 
                     logging.debug('WARNING! '+str(wrong.sum())+' elements have p+q>1;step')
-		# fixing p and q by scaling them to match p+q=1:
-		norm = p+q
-		p[wrong] = p[wrong]/norm[wrong]
-		q[wrong] = q[wrong]/norm[wrong]
+                # fixing p and q by scaling them to match p+q=1:
+                norm = p+q
+                p[wrong] = p[wrong]/norm[wrong]
+                q[wrong] = q[wrong]/norm[wrong]
 
             RandKick = np.random.random(self.num_elements_active())
             
