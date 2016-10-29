@@ -1541,7 +1541,114 @@ class OpenDriftSimulation(PhysicsMethods):
         if filename is not None:
             try:
                 logging.info('Saving animation to ' + filename + '...')
-                anim.save(filename, fps=fps, clear_temp=False)
+                try:
+                    anim.save(filename, fps=fps, clear_temp=False)
+                except:
+                    anim.save(filename, fps=fps)
+            except Exception as e:
+                print 'Could not save animation:'
+                logging.info(e)
+                logging.debug(traceback.format_exc())
+
+            if filename[-4:] == '.gif':
+                logging.info('Making animated gif...')
+                os.system('convert -delay %i _tmp*.png %s' %
+                          (np.abs(self.time_step_output.total_seconds())/
+                           3600.*24., filename))
+
+            logging.info('Deleting temporary figures...')
+            tmp = glob.glob('_tmp*.png')
+            for tfile in tmp:
+                os.remove(tfile)
+        else:
+            plt.show()
+
+    def animation_profile(self, filename=None, compare=None,
+                          legend=['', ''], markersize=5, fps=20):
+        """Animate vertical profile of the last run."""
+
+        def plot_timestep(i):
+            """Sub function needed for matplotlib animation."""
+            #plt.gcf().gca().set_title(str(i))
+            ax.set_title(times[i])
+            points.set_data(x[range(x.shape[0]), i],
+                            z[range(x.shape[0]), i])
+            points_deactivated.set_data(
+                x_deactive[index_of_last_deactivated < i],
+                z_deactive[index_of_last_deactivated < i])
+
+            if compare is not None:
+                points_other.set_data(x_other[range(x_other.shape[0]), i],
+                                      z_other[range(x_other.shape[0]), i])
+                points_other_deactivated.set_data(
+                    x_other_deactive[index_of_last_deactivated_other < i],
+                    z_other_deactive[index_of_last_deactivated_other < i])
+                return points, points_other
+            else:
+                return points
+
+        # Set up plot
+        index_of_first, index_of_last = \
+            self.index_of_activation_and_deactivation()
+        z = self.get_property('z')[0].T
+        x = self.get_property('lon')[0].T
+        #seafloor_depth = \
+        #    -self.get_property('sea_floor_depth_below_sea_level')[0].T
+        plt.xlim([x.min(), x.max()])
+        plt.ylim([z.min(), 30])
+        ax = plt.gcf().gca()
+        ax.add_patch(plt.Rectangle((x.min(), 0), x.max()-x.min(), 30,
+                     color='lightsteelblue'))
+        ax.add_patch(plt.Rectangle((x.min(), z.min()), x.max()-x.min(),
+                     -z.min(), color='cornflowerblue'))
+        times = self.get_time_array()[0]
+        index_of_last_deactivated = \
+            index_of_last[self.elements_deactivated.ID-1]
+        points = plt.plot([], [], '.k', label=legend[0],
+                          markersize=markersize)[0]
+        # Plot deactivated elements, with transparency
+        points_deactivated = plt.plot([], [], '.k', alpha=.3)[0]
+        x_deactive = self.elements_deactivated.lon
+        z_deactive = self.elements_deactivated.z
+
+        #if compare is not None:
+        #    if type(compare) is str:
+        #        # Other is given as filename
+        #        other = self.__class__(loglevel=0)
+        #        other.io_import_file(compare)
+        #    else:
+        #        # Other is given as an OpenDrift object
+        #        other = compare
+        #    # Find map coordinates and plot data for comparison
+        #    x_other, y_other = map(other.history['lon'], other.history['lat'])
+        #    #points_other = map.plot(x_other[0, 0], y_other[0, 0], '.r',
+        #    points_other = plot.plot(x_other[0, 0], y_other[0, 0], '.r',
+        #                            label=legend[1],
+        #                            markersize=markersize)[0]
+        #    x_other_deactive, y_other_deactive = \
+        #        map(other.elements_deactivated.lon,
+        #            other.elements_deactivated.lat)
+        #    # Plot deactivated elements, with transparency
+        #    #points_other_deactivated = map.plot([], [], '.r', alpha=.3)[0]
+        #    points_other_deactivated = plt.plot([], [], '.r', alpha=.3)[0]
+        #    firstlast = np.ma.notmasked_edges(x_other, axis=1)
+        #    index_of_last_other = firstlast[1][1]
+        #    index_of_last_deactivated_other = \
+        #        index_of_last_other[other.elements_deactivated.ID-1]
+
+        if legend != ['', '']:
+            plt.legend()
+
+        anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
+                                       frames=x.shape[1], interval=150)
+
+        if filename is not None:
+            try:
+                logging.info('Saving animation to ' + filename + '...')
+                try:
+                    anim.save(filename, fps=fps, clear_temp=False)
+                except:
+                    anim.save(filename, fps=fps)
             except Exception as e:
                 print 'Could not save animation:'
                 logging.info(e)
