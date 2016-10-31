@@ -232,7 +232,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         data = self.history['z'].T[1, :]
         tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
                          valinit=self.steps_output-1, valfmt='%0.0f')
-        dz = 1.
+        try:
+            dz = self.config['turbulentmixing']['verticalresolution'] = 2
+        except:
+            dz = 1.
         maxrange = -100
 
         def update(val):
