@@ -182,7 +182,10 @@ def import_file(self, filename, time=None):
     for var in infile.variables:
         if var in ['time', 'trajectory']:
             continue
-        self.history[var] = infile.variables[var][:, :]
+        try:
+            self.history[var] = infile.variables[var][:, :]
+        except:
+            pass
 
     # Initialise elements from given (or last) state/time
     firstlast = np.ma.notmasked_edges(self.history['status'], axis=1)

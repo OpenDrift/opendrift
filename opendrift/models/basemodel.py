@@ -1598,17 +1598,11 @@ class OpenDriftSimulation(PhysicsMethods):
         ax = fig.gca()
         plt.xlabel('Longitude [degrees]')
         plt.ylabel('Depth [m]')
-        ax.add_patch(plt.Rectangle((x.min(), 0), x.max()-x.min(), 30,
-                     color='lightsteelblue'))
-        ax.add_patch(plt.Rectangle((x.min(), z.min()), x.max()-x.min(),
-                     -z.min(), color='cornflowerblue'))
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
         points = plt.plot([], [], '.k', label=legend[0],
                           markersize=markersize)[0]
-        plt.xlim([x.min(), x.max()])
-        plt.ylim([z.min(), 30])
         # Plot deactivated elements, with transparency
         points_deactivated = plt.plot([], [], '.k', alpha=.3)[0]
         x_deactive = self.elements_deactivated.lon
@@ -1635,6 +1629,25 @@ class OpenDriftSimulation(PhysicsMethods):
             index_of_last_other = firstlast[1][1]
             index_of_last_deactivated_other = \
                 index_of_last_other[other.elements_deactivated.ID-1]
+            xmax = np.maximum(x.max(), x_other.max())
+            xmin = np.minimum(x.min(), x_other.min())
+            zmax = np.maximum(z.max(), z_other.max())
+            zmin = np.minimum(z.min(), z_other.min())
+        else:
+            xmin = x.min()
+            ymax = y.max()
+            zmin = z.min()
+            zmax = z.max()
+
+        # Set figure limits
+        sky = (zmax-zmin)*.1  # Sky height is 10% of water depth
+        plt.xlim([np.minimum(x.min(), x_other.min()),
+                  np.maximum(x.max(), x_other.max())])
+        plt.ylim([zmin, sky])
+        ax.add_patch(plt.Rectangle((xmin, 0), xmax-xmin, sky,
+                     color='lightsteelblue'))
+        ax.add_patch(plt.Rectangle((xmin, zmin), xmax-xmin,
+                     -zmin, color='cornflowerblue'))
 
         if legend != ['', '']:
             plt.legend(loc=4)
