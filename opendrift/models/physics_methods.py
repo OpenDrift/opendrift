@@ -190,19 +190,25 @@ class PhysicsMethods(object):
                 self.environment.sea_surface_wave_significant_height.max() > 0:
             return self.environment.sea_surface_wave_significant_height
         else:
-            # Neumann and Pierson, 1966
-            return 0.2*np.power(self.wind_speed(), 2)/9.81
+            ## Neumann and Pierson, 1966
+            #return 0.2*np.power(self.wind_speed(), 2)/9.81
+            # WMO 1998
+            return 0.0246*np.power(self.wind_speed(), 2)
 
     def wave_frequency(self):
-        if self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() == 0:
-            # Using Pierson-Moskowitz if period not available from readers
+        # Pierson-Moskowitz if period not available from readers
             return 0.877*9.81/(1.17*self.wind_speed())
-        return 2*np.pi/self.environment. \
-            sea_surface_wave_period_at_variance_spectral_density_maximum
 
     def wave_period(self):
-        return self.environment.\
-                sea_surface_wave_period_at_variance_spectral_density_maximum
+        # Tm02
+        if self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() == 0:
+            T = self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.copy()
+        elif self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
+            T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
+        else:
+            T = 1./(2*np.pi*self.wave_frequency())
+
+        return T
 
     def wave_energy(self):
         return 9.81*1028*np.power(self.significant_wave_height(), 2)/16
