@@ -1594,9 +1594,10 @@ class OpenDriftSimulation(PhysicsMethods):
         x = self.get_property('lon')[0].T
         #seafloor_depth = \
         #    -self.get_property('sea_floor_depth_below_sea_level')[0].T
-        plt.xlim([x.min(), x.max()])
-        plt.ylim([z.min(), 30])
-        ax = plt.gcf().gca()
+        fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
+        ax = fig.gca()
+        plt.xlabel('Longitude [degrees]')
+        plt.ylabel('Depth [m]')
         ax.add_patch(plt.Rectangle((x.min(), 0), x.max()-x.min(), 30,
                      color='lightsteelblue'))
         ax.add_patch(plt.Rectangle((x.min(), z.min()), x.max()-x.min(),
@@ -1606,38 +1607,37 @@ class OpenDriftSimulation(PhysicsMethods):
             index_of_last[self.elements_deactivated.ID-1]
         points = plt.plot([], [], '.k', label=legend[0],
                           markersize=markersize)[0]
+        plt.xlim([x.min(), x.max()])
+        plt.ylim([z.min(), 30])
         # Plot deactivated elements, with transparency
         points_deactivated = plt.plot([], [], '.k', alpha=.3)[0]
         x_deactive = self.elements_deactivated.lon
         z_deactive = self.elements_deactivated.z
 
-        #if compare is not None:
-        #    if type(compare) is str:
-        #        # Other is given as filename
-        #        other = self.__class__(loglevel=0)
-        #        other.io_import_file(compare)
-        #    else:
-        #        # Other is given as an OpenDrift object
-        #        other = compare
-        #    # Find map coordinates and plot data for comparison
-        #    x_other, y_other = map(other.history['lon'], other.history['lat'])
-        #    #points_other = map.plot(x_other[0, 0], y_other[0, 0], '.r',
-        #    points_other = plot.plot(x_other[0, 0], y_other[0, 0], '.r',
-        #                            label=legend[1],
-        #                            markersize=markersize)[0]
-        #    x_other_deactive, y_other_deactive = \
-        #        map(other.elements_deactivated.lon,
-        #            other.elements_deactivated.lat)
-        #    # Plot deactivated elements, with transparency
-        #    #points_other_deactivated = map.plot([], [], '.r', alpha=.3)[0]
-        #    points_other_deactivated = plt.plot([], [], '.r', alpha=.3)[0]
-        #    firstlast = np.ma.notmasked_edges(x_other, axis=1)
-        #    index_of_last_other = firstlast[1][1]
-        #    index_of_last_deactivated_other = \
-        #        index_of_last_other[other.elements_deactivated.ID-1]
+        if compare is not None:
+            if type(compare) is str:
+                # Other is given as filename
+                other = self.__class__(loglevel=0)
+                other.io_import_file(compare)
+            else:
+                # Other is given as an OpenDrift object
+                other = compare
+            z_other = other.get_property('z')[0].T
+            x_other = self.get_property('lon')[0].T
+            points_other = plt.plot(x_other[0, 0], z_other[0, 0], '.r',
+                                    label=legend[1],
+                                    markersize=markersize)[0]
+            # Plot deactivated elements, with transparency
+            points_other_deactivated = plt.plot([], [], '.r', alpha=.3)[0]
+            x_other_deactive = other.elements_deactivated.lon
+            z_other_deactive = other.elements_deactivated.z
+            firstlast = np.ma.notmasked_edges(x_other, axis=1)
+            index_of_last_other = firstlast[1][1]
+            index_of_last_deactivated_other = \
+                index_of_last_other[other.elements_deactivated.ID-1]
 
         if legend != ['', '']:
-            plt.legend()
+            plt.legend(loc=4)
 
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
                                        frames=x.shape[1], interval=150)
