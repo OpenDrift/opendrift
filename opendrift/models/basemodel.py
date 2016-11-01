@@ -1635,14 +1635,13 @@ class OpenDriftSimulation(PhysicsMethods):
             zmin = np.minimum(z.min(), z_other.min())
         else:
             xmin = x.min()
-            ymax = y.max()
+            xmax = x.max()
             zmin = z.min()
             zmax = z.max()
 
         # Set figure limits
         sky = (zmax-zmin)*.1  # Sky height is 10% of water depth
-        plt.xlim([np.minimum(x.min(), x_other.min()),
-                  np.maximum(x.max(), x_other.max())])
+        plt.xlim([xmin, xmax])
         plt.ylim([zmin, sky])
         ax.add_patch(plt.Rectangle((xmin, 0), xmax-xmin, sky,
                      color='lightsteelblue'))
