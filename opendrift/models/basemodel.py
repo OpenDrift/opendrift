@@ -195,7 +195,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_import_file = types.MethodType(io_module.import_file, self)
 
         self.basemap_resolution = basemap_resolution
-        self.max_speed = 2  # Assumed max average speed of any element
+        self.max_speed = 1  # Assumed max average speed of any element
 
         logging.info('OpenDriftSimulation initialised')
 
