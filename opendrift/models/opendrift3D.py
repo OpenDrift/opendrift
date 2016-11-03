@@ -84,10 +84,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             logging.debug('Turbulent mixing deactivated.')
             return
 
-        # if terminal_velocity is None:
-        #     w = self.config['drift']['terminal_velocity']
-        #else:
-        #    w = terminal_velocity
         from opendrift.models import eddydiffusivity
 
         dz = self.config['turbulentmixing']['verticalresolution']
@@ -167,7 +163,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
             w = self.elements.terminal_velocity
 
-            # K at depth z
+            # diffusivity K at depth z
             zi = z_index(-self.elements.z)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
@@ -188,41 +184,35 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 Kprofiles[lower, range(Kprofiles.shape[1])] * \
                 (1-weight_upper)
 
+            # calculate rise/sink probability dependent on K and w
             p = dt_mix * (2.0*K1 + dz*w)/(2.0*dz*dz)  # probability to rise
             q = dt_mix * (2.0*K2 - dz*w)/(2.0*dz*dz)  # probability to sink
 
             # check if probabilities are reasonable or wrong; which can happen if K is very high (K>0.1)
             wrong = p+q > 1.00002
             if wrong.sum() > 0:
-                if i==0:
-                    logging.info('WARNING! '+str(wrong.sum())+' elements have p+q>1; you might need a smaller mixing time step')
-                else: 
-                    logging.debug('WARNING! '+str(wrong.sum())+' elements have p+q>1;step')
-                # fixing p and q by scaling them to match p+q=1:
+                logging.info('WARNING! '+str(wrong.sum())+' elements have p+q>1; you might need a smaller mixing time step')
+                # fixing p and q by scaling them to assure p+q<1:
                 norm = p+q
-                p[wrong] = p[wrong]/norm[wrong]
+                p[wrong] = p[wrong]/norm[wrong] 
                 q[wrong] = q[wrong]/norm[wrong]
 
-            RandKick = np.random.random(self.num_elements_active())
-            
-            #up = np.where(RandKick < p)
-            #down = np.where(RandKick > 1.0 - q)
-            # Modified lines: do not mix particles which have resurfaced
-            up = ((RandKick < p) & (self.elements.z < 0))
-            down = ((RandKick > (1.0 - q)) & (self.elements.z < 0))
+            # use probabilities to mix some particles up or down
+            RandKick = np.random.random(self.num_elements_active())           
+            up = np.where(RandKick < p)
+            down = np.where(RandKick > 1.0 - q)           
+            self.elements.z[up] = self.elements.z[up] + dz # move to layer above
+            self.elements.z[down] = self.elements.z[down] - dz # move to layer underneath
 
-            self.elements.z[up] = self.elements.z[up] + dz
-            self.elements.z[down] = self.elements.z[down] - dz
-            #put the particles that belong to the surface back to the surface
-            self.elements.z[surface] = 0
+            # put the particles that belong to the surface slick (if present) back to the surface
+            self.elements.z[surface] = 0.
 
             #avoid that elements are below bottom
-            #self.resurface_elements(minimum_depth=-dz/10)
             bottom = np.where(self.elements.z < Zmin)
             self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
-            # Call wave mixing, if implemented for this class
-            #self.wave_mixing(dt_mix)
+            # Call surface interaction:
+            # reflection at surface or formation of slick and wave mixing if implemented for this class
             self.surface_interaction(dt_mix)
 
     def plot_vertical_distribution(self):
@@ -256,9 +246,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             x_wind = self.history['x_wind'].T[tindex, :]
             y_wind = self.history['y_wind'].T[tindex, :]
             windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
-            print self.history['z'].T[tindex, :]
-            #percent_at_surface = np.sum(self.history['z'].T[tindex, :]==0)
-            #print percent_at_surface
             mainplot.set_title(str(self.get_time_array()[0][tindex]) +
                                #'   Percent at surface: %.1f %' % percent_at_surface)
                                '   Mean windspeed: %.1f m/s' % windspeed)

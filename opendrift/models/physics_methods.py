@@ -169,7 +169,7 @@ class PhysicsMethods(object):
     def surface_interaction(self, time_step_seconds):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
 
-        # Place particles above surface to exactly 0
+        # Place particles above surface into the uppermost layer
         surface = self.elements.z >= 0
         self.elements.z[surface] = \
             -self.config['turbulentmixing']['verticalresolution']/2.

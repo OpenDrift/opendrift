@@ -218,9 +218,6 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # terminal velocity for low Reynolds numbers
         kw = 2*g*(1-rhopr)/(9*ny_w)
         W = kw * r**2
-        # print r[0:10], 'r'
-        # print ny_w[0:10], 'ny_w'
-        # print W[0:10], 'W before'
 
         # check if we are in a high Reynolds number regime
         Re = 2*r*W/ny_w
@@ -231,7 +228,6 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         W2 = kw*r**0.5
 
         W[highRe] = W2[highRe]
-        # print W[0:10], 'W after'
         self.elements.terminal_velocity = W
 
     def oil_wave_entrainment_rate(self):
@@ -252,7 +248,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         surface = self.elements.z >= 0
         self.elements.z[surface] = 0
 
-        # Entrain oil into uppermost layer
+        # Entrain oil into uppermost layer (whitecapping from waves)
         # TODO: optimise this by only calculate for surface elements
         prob = self.oil_wave_entrainment_rate()*time_step_seconds
         random_number = np.random.uniform(0, 1, len(self.elements.z))
