@@ -166,8 +166,13 @@ class PhysicsMethods(object):
 
         self.update_positions(stokes_u, stokes_v)
 
-    def wave_mixing(self, time_step_seconds):
-        return  # To be implemented by subclasses, e.g. downward mixing of oil
+    def surface_interaction(self, time_step_seconds):
+        '''To be overloaded by subclasses, e.g. downward mixing of oil'''
+
+        # Place particles above surface to exactly 0
+        surface = self.elements.z >= 0
+        self.elements.z[surface] = \
+            -self.config['turbulentmixing']['verticalresolution']/2.
 
     def resurface_elements(self, minimum_depth):
         # Keep surfacing elements in water column as default,
@@ -195,18 +200,18 @@ class PhysicsMethods(object):
             # WMO 1998
             return 0.0246*np.power(self.wind_speed(), 2)
 
-    def wave_frequency(self):
+    def _wave_frequency(self):
         # Pierson-Moskowitz if period not available from readers
             return 0.877*9.81/(1.17*self.wind_speed())
 
     def wave_period(self):
         # Tm02
-        if self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() == 0:
+        if self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
             T = self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.copy()
         elif self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
             T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
         else:
-            T = 1./(2*np.pi*self.wave_frequency())
+            T = 1./(2*np.pi*self._wave_frequency())
 
         return T
 
@@ -219,7 +224,8 @@ class PhysicsMethods(object):
             np.power(self.significant_wave_height(), 2)
 
     def wave_damping_coefficient(self):
-        return (10E-5)*2*np.pi*self.wave_frequency() * \
+        omega = 2*np.pi / self.wave_period()
+        return (10E-5)*omega * \
             np.power(self.wave_energy(), 0.25)
 
     # def sea_water_density(self):

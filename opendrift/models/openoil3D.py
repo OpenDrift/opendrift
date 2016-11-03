@@ -236,7 +236,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
     def oil_wave_entrainment_rate(self):
         kb = 0.4
-        omega = self.wave_frequency()
+        omega = (2.*np.pi)/self.wave_period()
         gamma = self.wave_damping_coefficient()
         alpha = 1.5
         Low = self.elements.entrainment_length_scale
@@ -245,24 +245,20 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             (16*alpha*Low)
         return entrainment_rate
 
-    def wave_mixing(self, time_step_seconds, alpha=1.5):
+    def surface_interaction(self, time_step_seconds, alpha=1.5):
         """Mix surface oil into water column."""
 
-        surface = np.where(self.elements.z == 0.)[0]
-        prob = self.oil_wave_entrainment_rate()[surface]*time_step_seconds
-        mixed = surface[np.where(np.random.uniform(0, 1,
-                                                   len(surface)) < prob)]
+        # Place particles above surface to exactly 0
+        surface = self.elements.z >= 0
+        self.elements.z[surface] = 0
 
-        # Mixed elements are moved to a random depth between 0 and 1.5*H
-        # See e.g. Delvigne and Sweeney, 1988
-        mixing_layer_depth = alpha*self.significant_wave_height()
-        self.elements.z[mixed] = -1  # Entrain 1 m, for further random mixing
-        mixing_layer_elements = np.where(
-            (self.elements.z > -mixing_layer_depth) & (self.elements.z < 0))[0]
-
-        self.elements.z[mixing_layer_elements] = \
-            [np.random.uniform(-m, 0) for m in
-                mixing_layer_depth[mixing_layer_elements]]
+        # Entrain oil into uppermost layer
+        # TODO: optimise this by only calculate for surface elements
+        prob = self.oil_wave_entrainment_rate()*time_step_seconds
+        random_number = np.random.uniform(0, 1, len(self.elements.z))
+        entrained = np.logical_and(surface, random_number<prob)
+        self.elements.z[entrained] = \
+            -self.config['turbulentmixing']['verticalresolution']/2.
 
     def resurface_elements(self, minimum_depth=None):
         """Oil elements reaching surface (or above) form slick, not droplet"""

@@ -270,7 +270,7 @@ class TestRun(unittest.TestCase):
         o1.config['turbulentmixing']['timestep'] = 20. # seconds
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -24.0)
+        self.assertAlmostEqual(o1.history['z'].min(), -25.0)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0)
         os.remove('verticalmixing.nc')
 
@@ -477,7 +477,7 @@ class TestRun(unittest.TestCase):
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -143, 2)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -144, 2)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast

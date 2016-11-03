@@ -98,7 +98,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
 
         # place particle in center of bin
-        self.elements.z = np.round(self.elements.z/dz)*dz
+        surface = self.elements.z == 0
+        self.elements.z[~surface] = np.round(self.elements.z[~surface]/dz)*dz
 
         #avoid that elements are below bottom
         bottom = np.where(self.elements.z < Zmin)
@@ -148,6 +149,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         logging.debug('using ' + str(ntimes_mix) + ' fast time steps of dt=' +
                       str(dt_mix) + 's')
         for i in range(0, ntimes_mix):
+            #remember which particles belong to the exact surface
+            surface = self.elements.z == 0
 
             # update terminal velocity according to environmental variables
             if 'TSprofiles' in self.config['turbulentmixing']:
@@ -210,14 +213,17 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
             self.elements.z[up] = self.elements.z[up] + dz
             self.elements.z[down] = self.elements.z[down] - dz
+            #put the particles that belong to the surface back to the surface
+            self.elements.z[surface] = 0
 
-            #avoid that elements are above surface / below bottom
-            self.resurface_elements(minimum_depth=-dz/10)
+            #avoid that elements are below bottom
+            #self.resurface_elements(minimum_depth=-dz/10)
             bottom = np.where(self.elements.z < Zmin)
             self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
             # Call wave mixing, if implemented for this class
-            self.wave_mixing(dt_mix)
+            #self.wave_mixing(dt_mix)
+            self.surface_interaction(dt_mix)
 
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""
@@ -245,13 +251,16 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             mainplot.hist(self.history['z'].T[tindex, :], bins=-maxrange/dz,
                           range=[maxrange, 0], orientation='horizontal')
             mainplot.set_ylim([maxrange, 0])
-            mainplot.set_xlim([0, self.num_elements_total()*.1])
             mainplot.set_xlabel('number of particles')
             mainplot.set_ylabel('depth [m]')
             x_wind = self.history['x_wind'].T[tindex, :]
             y_wind = self.history['y_wind'].T[tindex, :]
             windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
+            print self.history['z'].T[tindex, :]
+            #percent_at_surface = np.sum(self.history['z'].T[tindex, :]==0)
+            #print percent_at_surface
             mainplot.set_title(str(self.get_time_array()[0][tindex]) +
+                               #'   Percent at surface: %.1f %' % percent_at_surface)
                                '   Mean windspeed: %.1f m/s' % windspeed)
             draw()
 

@@ -56,7 +56,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertAlmostEqual(o.elements.lat[0], 71.15, 2)
         self.assertAlmostEqual(o.elements.z.min(), -35.0, 3)
-        self.assertAlmostEqual(o.elements.z.max(), -0.1, 3)
+        self.assertAlmostEqual(o.elements.z.max(), -0.5, 3)
         self.assertAlmostEqual(o.elements.lon.max(), 14.8689, 3)
 
     @unittest.skipIf(thredds_support is False,
