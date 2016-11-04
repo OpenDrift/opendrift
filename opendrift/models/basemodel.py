@@ -1556,8 +1556,14 @@ class OpenDriftSimulation(PhysicsMethods):
                         anim.save(filename, fps=fps, bitrate=1500,
                                   extra_args=['-pix_fmt', 'yuv420p'])
                     except:
-                        logging.warning('Animation might not be HTML5 compatible.')
-                        anim.save(filename, fps=fps)
+                        try:
+                            logging.debug('Trying with codec libx264')
+                            anim.save(filename, fps=fps, bitrate=1500,
+                                      extra_args=['-pix_fmt', 'yuv420p',
+                                                  '-vcodec', 'libx264'])
+                        except:
+                            anim.save(filename, fps=fps)
+                            logging.warning('Animation might not be HTML5 compatible.')
             except Exception as e:
                 print 'Could not save animation:'
                 logging.info(e)
