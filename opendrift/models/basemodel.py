@@ -1472,7 +1472,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return map, plt, x, y, index_of_first, index_of_last
 
     def animation(self, buffer=.2, filename=None, compare=None,
-                  legend=['', ''], markersize=5, fps=20):
+                  legend=['', ''], markersize=5, fps=10):
         """Animate last run."""
 
         def plot_timestep(i):
@@ -1539,27 +1539,29 @@ class OpenDriftSimulation(PhysicsMethods):
                                        frames=x.shape[1], interval=50)
 
         if filename is not None:
+            logging.info('Saving animation to ' + filename + '...')
             try:
-                logging.info('Saving animation to ' + filename + '...')
-                try:
+                if filename[-4:] == '.gif':  # GIF
+                    logging.info('Making animated gif...')
                     anim.save(filename, fps=fps, clear_temp=False)
-                except:
-                    anim.save(filename, fps=fps)
+                    os.system('convert -delay %i _tmp*.png %s' %
+                            (np.abs(self.time_step_output.total_seconds())/
+                             3600.*24., filename))
+                    logging.info('Deleting temporary figures...')
+                    tmp = glob.glob('_tmp*.png')
+                    for tfile in tmp:
+                        os.remove(tfile)
+                else:  # MP4
+                    try:
+                        anim.save(filename, fps=fps, bitrate=1500,
+                                  extra_args=['-pix_fmt', 'yuv420p'])
+                    except:
+                        logging.warning('Animation might not be HTML5 compatible.')
+                        anim.save(filename, fps=fps)
             except Exception as e:
                 print 'Could not save animation:'
                 logging.info(e)
                 logging.debug(traceback.format_exc())
-
-            if filename[-4:] == '.gif':
-                logging.info('Making animated gif...')
-                os.system('convert -delay %i _tmp*.png %s' %
-                          (np.abs(self.time_step_output.total_seconds())/
-                           3600.*24., filename))
-
-            logging.info('Deleting temporary figures...')
-            tmp = glob.glob('_tmp*.png')
-            for tfile in tmp:
-                os.remove(tfile)
         else:
             plt.show()
 
