@@ -41,7 +41,10 @@ grib_variable_mapping = {
         '248.3': 'sea_surface_wave_stokes_drift_y_velocity'},
     'ecmf': {  # ECMWF GRIB codes
         '165.128': 'x_wind',
-        '166.128': 'y_wind'}
+        '166.128': 'y_wind'},
+    'kwbc': {  # 
+        '49.2': 'x_sea_water_velocity',
+        '50.2': 'y_sea_water_velocity'}
      }
 
 
