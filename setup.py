@@ -1,4 +1,10 @@
 from setuptools import setup, find_packages 
+import unittest
+
+def opendrift_tests():
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover('tests', pattern='test_*.py')
+    return test_suite
 
 config = {
     'name': 'OpenDrift',
@@ -18,7 +24,7 @@ config = {
     ],
     'packages': find_packages(),
     'include_package_data': True,
-    'test_suite': 'tests',
+    'test_suite': 'setup.opendrift_tests',
     #'use_scm_version': True,
     'setup_requires': ['setuptools_scm'],
     'scripts': ['opendrift/scripts/hodograph.py',
