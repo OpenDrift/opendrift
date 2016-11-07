@@ -3,7 +3,11 @@
 import os
 import sys
 from datetime import datetime
-from psutil import virtual_memory
+try:
+    from psutil import virtual_memory
+    ram = virtual_memory().total/(1024**3)
+except:
+    ram = 'unknown'
 import multiprocessing
 import numpy as np
 import scipy
@@ -32,7 +36,7 @@ print '    01:00.0 VGA compatible controller: NVIDIA Corporation GT218 [NVS 300]
 
 print '------------------------------------------------'
 print 'This machine:'
-print '  %s GB memory' % (virtual_memory().total/(1024**3))
+print '  %s GB memory' % ram
 print '  %s processors (%s)' % (multiprocessing.cpu_count(),
                                 platform.processor())
 print '  Basemap version %s' % basemap.__version__
