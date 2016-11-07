@@ -43,6 +43,8 @@ grib_variable_mapping = {
         '165.128': 'x_wind',
         '166.128': 'y_wind'},
     'kwbc': {  # 
+        '33.2': 'x_wind',
+        '34.2': 'y_wind',
         '49.2': 'x_sea_water_velocity',
         '50.2': 'y_sea_water_velocity'}
      }
