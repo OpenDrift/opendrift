@@ -473,6 +473,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000)
         o.config['processes']['turbulentmixing'] = True
+        o.config['turbulentmixing']['verticalresolution'] = 1  # m
+        o.config['turbulentmixing']['timestep'] = 1  # s
         o.run(steps=3, time_step=900, time_step_output=900)
         #o.plot_property('z')
         z, status = o.get_property('z')

@@ -118,8 +118,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             wind_uncertainty = float(min=0, max=5, default=1)
             relative_wind = boolean(default=True)
         [turbulentmixing]
-            timestep = float(min=0.1, max=3600, default=1.)
-            verticalresolution = float(min=0.01, max=10, default = 1.)
+            timestep = float(min=0.1, max=3600, default=4.)
+            verticalresolution = float(min=0.01, max=10, default = 2.)
             diffusivitymodel = string(default='environment')
             TSprofiles = boolean(default=False)
 
