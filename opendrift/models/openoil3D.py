@@ -241,6 +241,12 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             (16*alpha*Low)
         return entrainment_rate
 
+    def prepare_vertical_mixing(self):
+        '''Calculate entrainment probability before main loop'''
+        self.oil_entrainment_probability = \
+            self.oil_wave_entrainment_rate()*\
+                self.config['turbulentmixing']['timestep']
+
     def surface_interaction(self, time_step_seconds, alpha=1.5):
         """Mix surface oil into water column."""
 
@@ -250,9 +256,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         # Entrain oil into uppermost layer (whitecapping from waves)
         # TODO: optimise this by only calculate for surface elements
-        prob = self.oil_wave_entrainment_rate()*time_step_seconds
         random_number = np.random.uniform(0, 1, len(self.elements.z))
-        entrained = np.logical_and(surface, random_number<prob)
+        entrained = np.logical_and(surface,
+                        random_number<self.oil_entrainment_probability)
         self.elements.z[entrained] = \
             -self.config['turbulentmixing']['verticalresolution']/2.
 

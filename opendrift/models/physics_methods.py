@@ -166,14 +166,6 @@ class PhysicsMethods(object):
 
         self.update_positions(stokes_u, stokes_v)
 
-    def surface_interaction(self, time_step_seconds):
-        '''To be overloaded by subclasses, e.g. downward mixing of oil'''
-
-        # Place particles above surface into the uppermost layer
-        surface = self.elements.z >= 0
-        self.elements.z[surface] = \
-            -self.config['turbulentmixing']['verticalresolution']/2.
-
     def resurface_elements(self, minimum_depth):
         # Keep surfacing elements in water column as default,
         # i.e. no formation of surface slick

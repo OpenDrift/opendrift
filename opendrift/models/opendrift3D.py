@@ -66,6 +66,17 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         self.elements.z = np.minimum(0,
             self.elements.z + w * self.time_step.total_seconds())
 
+    def prepare_vertical_mixing(self):
+        pass  # To be implemented by subclasses as needed
+
+    def surface_interaction(self, time_step_seconds):
+        '''To be overloaded by subclasses, e.g. downward mixing of oil'''
+
+        # Place particles above surface into the uppermost layer
+        surface = self.elements.z >= 0
+        self.elements.z[surface] = \
+            -self.config['turbulentmixing']['verticalresolution']/2.
+
     def vertical_mixing(self):
         """Mix particles vertically according to eddy diffusivity and buoyancy
 
@@ -100,6 +111,9 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         #avoid that elements are below bottom
         bottom = np.where(self.elements.z < Zmin)
         self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
+
+        # Eventual model specific preparions
+        self.prepare_vertical_mixing()
 
         # get profile of eddy diffusivity
         # get vertical eddy diffusivity from environment or specific model
