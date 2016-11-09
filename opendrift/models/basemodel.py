@@ -416,7 +416,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 reader = self.readers[reader_name]
                 if not reader.covers_time(time):
                     logging.debug('\tOutside time coverage of reader.')
-                    print missing_indices
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
