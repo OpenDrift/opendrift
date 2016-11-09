@@ -10,6 +10,7 @@ except:
     ram = 'unknown'
 import multiprocessing
 import numpy as np
+import matplotlib
 import scipy
 import platform
 import netCDF4
@@ -29,6 +30,7 @@ print '  8 processors (Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz)'
 print '  Basemap version 1.0.7'
 print '  NumPy version 1.11.2'
 print '  SciPy version 0.9.0'
+print '  Matplotlib version 2.0.0'
 print '  NetCDF4 version 1.0.7'
 print '  Python version 2.7.3 (default, Jun 22 2015, 19:33:41) [GCC 4.6.3]'
 print '  Graphics card:'
@@ -42,6 +44,7 @@ print '  %s processors (%s)' % (multiprocessing.cpu_count(),
 print '  Basemap version %s' % basemap.__version__
 print '  NumPy version %s' % np.__version__
 print '  SciPy version %s' % scipy.__version__
+print '  Matplotlib version %s' % matplotlib.__version__
 print '  NetCDF4 version %s' % netCDF4.__version__
 print '  Python version %s' % sys.version.replace('\n', '')
 print '  Graphics card:'
