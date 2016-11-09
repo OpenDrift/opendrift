@@ -397,9 +397,11 @@ class OpenDriftSimulation(PhysicsMethods):
         # For each variable/reader group:
         variable_groups, reader_groups, missing_variables = \
             self.get_reader_groups(variables)
-        for variable in missing_variables:  # Use fallback value, if no reader
-            env[variable] = np.ma.ones(env[variable].shape)\
-                * self.fallback_values[variable]
+        for variable in variables:  # Fill with fallback value if no reader
+            if (self.fallback_values is not None
+                    and variable in self.fallback_values):
+                env[variable] = np.ma.ones(env[variable].shape)\
+                    * self.fallback_values[variable]
 
         for i, variable_group in enumerate(variable_groups):
             logging.debug('----------------------------------------')
@@ -414,6 +416,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 reader = self.readers[reader_name]
                 if not reader.covers_time(time):
                     logging.debug('\tOutside time coverage of reader.')
+                    print missing_indices
                     continue
                 # Fetch given variables at given positions from current reader
                 try:

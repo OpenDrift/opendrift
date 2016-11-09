@@ -80,6 +80,19 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(0, z2)
         self.assertEqual(len(outside), 0)
 
+    def test_outside_reader_time_coverage(self):
+        o = PelagicEggDrift()
+        reader = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        o.add_reader(reader)
+        o.fallback_values['x_sea_water_velocity'] = 1
+        o.fallback_values['land_binary_mask'] = 0
+        o.config['processes']['turbulentmixing'] = False
+        o.seed_elements(lon=4.8, lat=60, number=1, time=reader.end_time)
+        o.run(steps=2)
+        # Check that fallback value is used when outside time coverage
+        self.assertEqual(o.history['x_sea_water_velocity'][0][-1], 1.0)
+
     def test_reader_netcdf(self):
         """Check reader functionality."""
 
