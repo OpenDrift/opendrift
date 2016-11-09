@@ -160,6 +160,13 @@ class ReaderBlock():
         except:
             self.z = None
 
+        # Mask any extremely large values, e.g. if missing netCDF _Fill_value
+        for var in self.data_dict:
+            logging.debug('Masking extremely large values of ' + var)
+            if isinstance(self.data_dict[var], np.ma.core.MaskedArray):
+                self.data_dict[var] = np.ma.masked_greater(self.data_dict[var],
+                                                           1E+20)
+
         # Set 1D (vertical) and 2D (horizontal) interpolators
         try:
             self.Interpolator2DClass = \
