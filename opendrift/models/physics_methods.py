@@ -21,13 +21,15 @@ from opendrift.readers.reader import pyproj
 
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
                                  significant_wave_height, mean_wave_period, z):
-
+    # calculate vertical Stokes drift profile from
+    # Breivik et al. 2016, A Stokes drift approximation 
+    # based on the Phillips spectrum, Ocean Mod. 100
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
 
-    fm01 = fm01 = 1. / mean_wave_period
+    fm02 = fm02 = 1. / mean_wave_period
 
-    total_transport = (2.*np.pi/16.)*fm01*np.power(
+    total_transport = (2.*np.pi/16.)*fm02*np.power(
                        significant_wave_height, 2)
 
     k = (stokes_surface_speed/(2*total_transport))
@@ -196,21 +198,24 @@ class PhysicsMethods(object):
             return 0.0246*np.power(self.wind_speed(), 2)
 
     def _wave_frequency(self):
-        # Note: this is angular frequency, 2*pi*f
+        # Note: this is angular frequency, 2*pi*fp
         # Pierson-Moskowitz if period not available from readers
-            windspeed = self.wind_speed()
-            omega = 0.877*9.81/(1.17*windspeed)
-            omega[windspeed==0] = 5  # fallback value if no wind speed or Hs
+        # WMO guide to wave analysis and forecasting pp. 14, WMO (1998)
+        windspeed = self.wind_speed()
+        omega = 0.877*9.81/(1.17*windspeed)
+        omega[windspeed==0] = 5  # fallback value if no wind speed or Hs
                                      # just to avoid division by zero
             return omega
 
     def wave_period(self):
-        # Tm02
         if self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
+            # prefer using Tm02:
             T = self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.copy()
         elif self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
+            # alternatively use Tp
             T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
         else:
+            # calculate Tp from wind speed:
             T = (2*np.pi)/self._wave_frequency()
 
         return T
