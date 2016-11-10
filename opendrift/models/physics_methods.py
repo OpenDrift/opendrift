@@ -193,8 +193,13 @@ class PhysicsMethods(object):
             return 0.0246*np.power(self.wind_speed(), 2)
 
     def _wave_frequency(self):
+        # Note: this is angular frequency, 2*pi*f
         # Pierson-Moskowitz if period not available from readers
-            return 0.877*9.81/(1.17*self.wind_speed())
+            windspeed = self.wind_speed()
+            omega = 0.877*9.81/(1.17*windspeed)
+            omega[windspeed==0] = 5  # fallback value if no wind speed or Hs
+                                     # just to avoid division by zero
+            return omega
 
     def wave_period(self):
         # Tm02
@@ -203,7 +208,7 @@ class PhysicsMethods(object):
         elif self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
             T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
         else:
-            T = 1./(2*np.pi*self._wave_frequency())
+            T = (2*np.pi)/self._wave_frequency()
 
         return T
 
