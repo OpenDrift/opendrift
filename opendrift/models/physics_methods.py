@@ -34,8 +34,11 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
 
     stokes_speed = stokes_surface_speed*np.exp(2*k*z)
 
+    zeromask = stokes_surface_speed == 0
     stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
     stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    stokes_u[zeromask] = 0
+    stokes_v[zeromask] = 0
 
     return stokes_u, stokes_v, stokes_speed
 
