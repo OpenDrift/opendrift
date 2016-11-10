@@ -205,7 +205,7 @@ class PhysicsMethods(object):
         omega = 0.877*9.81/(1.17*windspeed)
         omega[windspeed==0] = 5  # fallback value if no wind speed or Hs
                                      # just to avoid division by zero
-            return omega
+        return omega
 
     def wave_period(self):
         if self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
