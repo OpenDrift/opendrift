@@ -726,12 +726,31 @@ class OpenDriftSimulation(PhysicsMethods):
                                         number, radians=False)
                 # Seed cone recursively
                 lon, lat = zip(*conelonlats)
+                lon = np.atleast_1d(lon)
+                lat = np.atleast_1d(lat)
                 if len(radius_array) == 1:
                     radius_array = [radius, radius]
                 radius_array = np.linspace(radius_array[0], radius_array[1],
                                            number)
                 number_array = np.ones(number)
                 time_array = [time[0] + i*td for i in range(number)]
+
+            if 'z' in kwargs and kwargs['z'] == 'seafloor':
+                # We need to fetch seafloor depth from reader
+                if 'sea_floor_depth_below_sea_level' not in self.priority_list:
+                    raise ValueError('A reader providing the variable '
+                                     'sea_floor_depth_below_sea_level must be '
+                                     'added before seeding elements at seafloor.')
+                if type(time) is list:
+                    t = time[0]
+                else:
+                    t = time
+                env, env_profiles, missing = \
+                    self.get_environment(['sea_floor_depth_below_sea_level'],
+                                         time=t, lon=lon, lat=lat,
+                                         z=0*lon, profiles=None)
+                kwargs['z'] = \
+                    -env['sea_floor_depth_below_sea_level'].astype('float32')
 
             # Recursively seeding elements around each point
             scalarargs = {}
@@ -771,6 +790,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if 'z' in kwargs and kwargs['z'] == 'seafloor':
             # We need to fetch seafloor depth from reader
+            # Unfortunately, this is duplication of code above
             if 'sea_floor_depth_below_sea_level' not in self.priority_list:
                 raise ValueError('A reader providing the variable '
                                  'sea_floor_depth_below_sea_level must be '
