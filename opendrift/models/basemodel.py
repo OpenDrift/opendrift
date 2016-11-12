@@ -1178,7 +1178,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 ' Adding a customised landmask may be faster...')
             max_distance = \
                 self.max_speed*self.expected_steps_calculation * \
-                self.time_step.total_seconds()
+                np.abs(self.time_step.total_seconds())
             deltalat = max_distance/111000.
             deltalon = deltalat/np.cos(
                 np.radians(np.mean(self.elements_scheduled.lat)))
