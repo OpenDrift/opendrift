@@ -87,6 +87,8 @@ class Leeway(OpenDriftSimulation):
                      'missing_data': 'gray', 'stranded': 'red',
                      'evaporated': 'yellow', 'dispersed': 'magenta'}
 
+    max_speed = 1.5  # Assumed max average speed of any element
+
     # Configuration
     def __init__(self, d=None, *args, **kwargs):
 
@@ -251,7 +253,7 @@ class Leeway(OpenDriftSimulation):
 
         # Jibe elements randomly according to given probability
         jp_per_timestep = self.elements.jibeProbability * \
-            self.time_step.total_seconds() / 3600.0
+            np.abs(self.time_step.total_seconds()) / 3600.0
         jib = jp_per_timestep > np.random.random(self.num_elements_active())
         self.elements.crosswindSlope[jib] = - self.elements.crosswindSlope[jib]
         logging.debug('Jibing %i out of %i elements.' %

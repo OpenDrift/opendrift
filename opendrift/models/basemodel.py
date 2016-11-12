@@ -111,6 +111,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     configspec = ''  # Default (empty) configuration options, to be overriden
 
+    max_speed = 1  # Assumed max average speed of any element
     required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
 
@@ -195,7 +196,6 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_import_file = types.MethodType(io_module.import_file, self)
 
         self.basemap_resolution = basemap_resolution
-        self.max_speed = 1  # Assumed max average speed of any element
 
         logging.info('OpenDriftSimulation initialised')
 
@@ -1200,7 +1200,14 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             self.export_buffer_length = export_buffer_length
 
-        self.time = self.start_time  # Start time has been set when seeding
+        if self.time_step.days < 0:
+            # For backwards simulation, we start at last seeded element
+            logging.info('Backwards simulation, starting at '
+                         'time of last seeded element')
+            self.time = self.elements_scheduled_time.max()
+        else:
+            # Forward simulation, start time has been set when seeding
+            self.time = self.start_time
 
         # Add the output variables which are always required
         if export_variables is not None:
