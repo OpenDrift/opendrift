@@ -89,6 +89,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         'upward_sea_water_velocity': 0
         }
 
+    max_speed = 1.0  # m/s
+
     # Read oil types from file (presently only for illustrative effect)
     oil_types = str([str(l.strip()) for l in open(
                     os.path.dirname(os.path.realpath(__file__)) +

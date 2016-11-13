@@ -1126,6 +1126,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.time_step_output = time_step_output
             else:
                 self.time_step_output = timedelta(seconds=time_step_output)
+            if self.time_step_output.days >= 0 and self.time_step.days < 0:
+                self.time_step_output = -self.time_step_output
 
         time_step_ratio = self.time_step_output.total_seconds() / \
             self.time_step.total_seconds()
@@ -1159,6 +1161,9 @@ class OpenDriftSimulation(PhysicsMethods):
                                  (end_time))
         if duration is None:
             duration = end_time - self.start_time
+        if time_step.days < 0 and duration.days >= 0:
+            # Duration shall also be negative for backwards run
+            duration = -duration
         self.expected_steps_output = duration.total_seconds() / \
             self.time_step_output.total_seconds() + 1  # Includes start and end
         self.expected_steps_calculation = duration.total_seconds() / \
@@ -1174,8 +1179,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 'land_binary_mask' not in self.priority_list \
                 and 'land_binary_mask' not in self.fallback_values:
             logging.info(
-                'Adding a dynamical landmask, since none has been added.'
-                ' Adding a customised landmask may be faster...')
+                'Adding a dynamical landmask (resolution "%s") based on '
+                'assumed maximum speed of %s m/s. '
+                'Adding a customised landmask may be faster...' %
+                (self.basemap_resolution, self.max_speed))
             max_distance = \
                 self.max_speed*self.expected_steps_calculation * \
                 np.abs(self.time_step.total_seconds())
@@ -1205,6 +1212,9 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Backwards simulation, starting at '
                          'time of last seeded element')
             self.time = self.elements_scheduled_time.max()
+            # Flipping ID array, so that lowest IDs are released first
+            self.elements_scheduled.ID = \
+                np.flipud(self.elements_scheduled.ID)
         else:
             # Forward simulation, start time has been set when seeding
             self.time = self.start_time

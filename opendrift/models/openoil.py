@@ -329,6 +329,9 @@ class OpenOil(OpenDriftSimulation):
 
     def oil_weathering(self):
         self.elements.age_seconds += self.time_step.total_seconds()
+        if self.time_step.days < 0:
+            logging.debug('Skipping oil weathering for backwards run')
+            return
         if self.oil_weathering_model == 'noaa':
             self.oil_weathering_noaa()
         else:
@@ -390,7 +393,7 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Evaporation, for elements at surface only
         #############################################
-        logging.debug('Evaporation')
+        logging.debug('    Calculating evaporation')
         surface = np.where(self.elements.z == 0)[0]  # of active elements
         if len(surface) == 0:
             logging.debug('All elements submerged, no evaporation')
@@ -419,7 +422,7 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Emulsification (surface only?)
         #############################################
-        logging.debug('Emulsification')
+        logging.debug('    Calculating emulsification')
         emul_time = self.oiltype.bulltime
         emul_constant = self.oiltype.bullwinkle
         # max water content fraction - get from database
@@ -442,10 +445,9 @@ class OpenOil(OpenDriftSimulation):
             ((fraction_evaporated >= emul_constant) & (emul_constant > 0))
             )[0]
         if len(start_emulsion) == 0:
-            logging.debug('Emulsification not yet started')
+            logging.debug('        Emulsification not yet started')
             return
 
-        logging.debug('Calculating emulsification')
         if self.oiltype.bulltime > 0:  # User has set value
             start_time = self.oiltype.bulltime*np.ones(len(start_emulsion))
         else:
@@ -502,6 +504,17 @@ class OpenOil(OpenDriftSimulation):
 
     def plot_oil_budget(self, filename=None):
         import matplotlib.pyplot as plt
+
+        if self.time_step.days < 0:  # Backwards simulation
+            plt.text(0.1, 0.5, 'Oil weathering deactivated for '
+                                'backwards simulations')
+            plt.axis('off')
+            if filename is not None:
+                plt.savefig(filename)
+                plt.close()
+            plt.show()
+            return
+
         z, dummy = self.get_property('z')
         mass_oil, status = self.get_property('mass_oil')
 
