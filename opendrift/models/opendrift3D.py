@@ -95,6 +95,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             logging.debug('Turbulent mixing deactivated.')
             return
 
+        self.timer_start('main_loop:updating elements:vertical mixing')
         from opendrift.models import eddydiffusivity
 
         dz = self.config['turbulentmixing']['verticalresolution']
@@ -153,7 +154,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # internal loop for fast time step of vertical mixing model
         # binned random walk needs faster time step compared
         # to horizontal advection
-        ntimes_mix = int(self.time_step.total_seconds()/dt_mix)
+        ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
         logging.debug('Vertical mixing module:')
         logging.debug('turbulent diffusion with binned random walk scheme')
         logging.debug('using ' + str(ntimes_mix) + ' fast time steps of dt=' +
@@ -228,6 +229,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             # Call surface interaction:
             # reflection at surface or formation of slick and wave mixing if implemented for this class
             self.surface_interaction(dt_mix)
+
+        self.timer_end('main_loop:updating elements:vertical mixing')
 
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""

@@ -197,6 +197,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.basemap_resolution = basemap_resolution
 
+        self.timer_start('total time')
+        self.timer_start('configuration')
         logging.info('OpenDriftSimulation initialised')
 
     def prepare_run(self):
@@ -258,6 +260,37 @@ class OpenDriftSimulation(PhysicsMethods):
                 x = np.radians(np.array(x))
                 y = np.radians(np.array(y))
             return self.proj(x, y, inverse=True)
+
+    def timer_start(self, category):
+        if not hasattr(self, 'timers'):
+            self.timers = OrderedDict()
+        if not hasattr(self, 'timing'):
+            self.timing = OrderedDict()
+        if category not in self.timing:
+            self.timing[category] = timedelta(0)
+        self.timers[category] = datetime.now()
+
+    def timer_end(self, category):
+        if self.timers[category] is not None:
+            self.timing[category] += datetime.now() - self.timers[category]
+        self.timers[category] = None
+
+    def performance(self):
+        '''Print the time spent on various tasks'''
+        for category, time in self.timing.iteritems():
+            timestr = str(time)[0:str(time).find('.') + 2]
+            for i, c in enumerate(timestr):
+                if c in '123456789.':
+                    timestr = timestr[i:]  # Strip leading 0 and :
+                    if c == '.':
+                        timestr = '0' + timestr
+                    break
+            parts = category.split(':')
+            indent = '  '*(len(parts) - 1)
+            category = parts[-1]
+            category = category.replace('<colon>', ':')
+            print '%s%7s %s' % (indent, timestr, category)
+
 
     def add_reader(self, readers, variables=None):
         """Add one or more readers providing variables used by this model.
@@ -390,6 +423,7 @@ class OpenDriftSimulation(PhysicsMethods):
                          interpolated to requested positions/time.
 
         '''
+        self.timer_start('main loop:readers')
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon)), dtype=dtype)
@@ -413,6 +447,8 @@ class OpenDriftSimulation(PhysicsMethods):
             for reader_name in reader_group:
                 logging.debug('Calling reader ' + reader_name)
                 logging.debug('----------------------------------------')
+                self.timer_start('main loop:readers:' +
+                                 reader_name.replace(':', '<colon>'))
                 reader = self.readers[reader_name]
                 if not reader.covers_time(time):
                     logging.debug('\tOutside time coverage of reader.')
@@ -442,6 +478,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.info(e)
                     logging.debug(traceback.format_exc())
                     logging.info('========================')
+                    self.timer_end('main loop:readers:' +
+                                   reader_name.replace(':', '<colon>'))
                     continue
 
                 # Copy retrieved variables to env array, and mask nan-values
@@ -491,6 +529,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 if (type(missing_indices) == np.int64) or (
                         type(missing_indices) == np.int32):
                     missing_indices = []
+                self.timer_end('main loop:readers:' +
+                               reader_name.replace(':', '<colon>'))
                 if len(missing_indices) == 0:
                     logging.debug('Obtained data for all elements.')
                     break
@@ -554,6 +594,8 @@ class OpenDriftSimulation(PhysicsMethods):
         # Convert dictionary to recarray and return
         if 'env_profiles' not in locals():
             env_profiles = None
+
+        self.timer_end('main loop:readers')
 
         return env.view(np.recarray), env_profiles, missing
 
@@ -1051,6 +1093,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 saved to file. Default is None (all variables are saved)
         """
 
+        self.timer_end('configuration')
+        self.timer_start('preparing main loop')
         # Check that configuration is proper
         validation = self.config.validate(validate.Validator())
         if validation is True:
@@ -1183,6 +1227,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 'assumed maximum speed of %s m/s. '
                 'Adding a customised landmask may be faster...' %
                 (self.basemap_resolution, self.max_speed))
+            self.timer_start('preparing main loop:making dynamical landmask')
             max_distance = \
                 self.max_speed*self.expected_steps_calculation * \
                 np.abs(self.time_step.total_seconds())
@@ -1198,6 +1243,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                      deltalat),
                 resolution=self.basemap_resolution, projection='merc')
             self.add_reader(reader_basemap)
+            self.timer_end('preparing main loop:making dynamical landmask')
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file
@@ -1263,6 +1309,8 @@ class OpenDriftSimulation(PhysicsMethods):
         ##########################
         # Main loop
         ##########################
+        self.timer_end('preparing main loop')
+        self.timer_start('main loop')
         for i in range(self.expected_steps_calculation):
             try:
                 # Get environment data
@@ -1308,7 +1356,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 #####################################################
                 logging.debug('Calling %s.update()' %
                               type(self).__name__)
+                self.timer_start('main loop:updating elements')
                 self.update()
+                self.timer_end('main loop:updating elements')
                 #####################################################
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
@@ -1333,6 +1383,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.info('========================')
                 break
 
+        self.timer_end('main loop')
+        self.timer_start('cleaning up')
         logging.debug('Cleaning up')
 
         self.state_to_buffer()  # Append final status to buffer
@@ -1360,6 +1412,9 @@ class OpenDriftSimulation(PhysicsMethods):
             if hasattr(self, 'environment_profiles'):
                 del self.environment_profiles
             self.io_import_file(outfile)
+
+        self.timer_end('cleaning up')
+        self.timer_end('total time')
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
