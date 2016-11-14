@@ -158,14 +158,33 @@ class Reader(object):
         except:
             self.shape = None
 
+        self.set_buffer_size(max_speed=5)  # To be overriden by user/model
+
+    def set_buffer_size(self, max_speed, max_vertical_speed=None):
+        '''Adjust buffer to minimise data block size needed to cover elements'''
+        self.buffer = 0
+        pixelsize = self.pixel_size()
+        if pixelsize is not None:
+            if self.time_step is not None:
+                time_step_seconds = self.time_step.total_seconds()
+            else:
+                time_step_seconds = 3600  # 1 hour if not given
+            self.buffer = np.int(np.ceil(max_speed *
+                                         time_step_seconds /
+                                         pixelsize)) + 2
+            logging.debug('Setting buffer size %i for reader %s, assuming '
+                          'a maximum average speed of %g m/s.' %
+                          (self.buffer, self.name, max_speed))
+                
+    def pixel_size(self):
         # Find typical pixel size (e.g. for calculating size of buffer)
         if self.projected is True:
             if hasattr(self, 'delta_x'):
-                typicalsize = self.delta_x
+                pixelsize = self.delta_x
                 if self.proj.is_latlong() is True:
-                    typicalsize = typicalsize*111000  # deg to meters
+                    pixelsize = pixelsize*111000  # deg to meters
             else:
-                typicalsize = None  # Pixel size not defined
+                pixelsize = None  # Pixel size not defined
         else:
             lons, lats = self.xy2lonlat([self.xmin, self.xmax],
                                         [self.ymin, self.ymin])
@@ -173,19 +192,8 @@ class Reader(object):
             geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
             dist = geod.inv(lons[0], lats[0],
                             lons[1], lats[1], radians=False)[2]
-            typicalsize = dist/self.shape[0]
-        if typicalsize is not None:
-            if self.time_step is not None:
-                time_step_seconds = self.time_step.total_seconds()
-            else:
-                time_step_seconds = 3600  # 1 hour if not given
-            max_speed = 5  # Assumed max average speed of any element
-            self.buffer = np.int(np.ceil(max_speed *
-                                         time_step_seconds /
-                                         typicalsize)) + 2
-            logging.debug('Setting buffer size %i for reader %s, assuming '
-                          'a maximum average speed of %g m/s.' %
-                          (self.buffer, self.name, max_speed))
+            pixelsize = dist/self.shape[0]
+        return pixelsize
 
     @abstractmethod
     def get_variables(self, variables, time=None,

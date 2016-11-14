@@ -29,14 +29,12 @@ from opendrift.models.windblow import WindBlow
 class TestArray(unittest.TestCase):
     """Tests for OpenDrift models"""
 
-    def setUp(self):
+    def test_seed(self):
+        """Test seeding"""
         self.o = OpenOil()
         self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
         self.fake_eddy.start_time = datetime(2015, 1, 1)
         self.o.add_reader([self.fake_eddy])
-
-    def test_seed(self):
-        """Test seeding"""
         self.o.seed_elements(lon=4, lat=60, number=100,
                              time=self.fake_eddy.start_time)
         self.assertEqual(len(self.o.elements), 0)
@@ -44,14 +42,14 @@ class TestArray(unittest.TestCase):
         self.assertEqual(len(self.o.elements_scheduled), 100)
 
     def test_windblow(self):
-        o = WindBlow(loglevel=20)
+        o = WindBlow(loglevel=0)
         reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
         o.add_reader([reader_arome])
         lat = 67.711251; lon = 13.556971  # Lofoten
         o.seed_elements(lon, lat, radius=5000, number=1000,
                         time=reader_arome.start_time)
         o.run(steps=48*4, time_step=900)
-        self.assertAlmostEqual(o.elements.lon.max(), 17.64, 2)
+        self.assertAlmostEqual(o.elements.lon.max(), 17.54, 2)
 
 
 if __name__ == '__main__':

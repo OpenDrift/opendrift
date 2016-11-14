@@ -30,6 +30,8 @@ class WindBlow(OpenDriftSimulation):
     fallback_values = {'x_wind': 0,
                        'y_wind': 0}
 
+    max_speed = 12  # m/s
+
     def update(self):
 
         # Simply move particles with ambient wind

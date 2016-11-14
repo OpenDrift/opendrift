@@ -48,6 +48,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         Under construction.
     """
 
+    max_speed = 1  # m/s
+
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
                                  z_index=None):
         """Calculate terminal velocity due to bouyancy from own properties
@@ -95,7 +97,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             logging.debug('Turbulent mixing deactivated.')
             return
 
-        self.timer_start('main_loop:updating elements:vertical mixing')
+        self.timer_start('main loop:updating elements:vertical mixing')
         from opendrift.models import eddydiffusivity
 
         dz = self.config['turbulentmixing']['verticalresolution']
@@ -230,7 +232,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             # reflection at surface or formation of slick and wave mixing if implemented for this class
             self.surface_interaction(dt_mix)
 
-        self.timer_end('main_loop:updating elements:vertical mixing')
+        self.timer_end('main loop:updating elements:vertical mixing')
 
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""

@@ -332,10 +332,12 @@ class OpenOil(OpenDriftSimulation):
         if self.time_step.days < 0:
             logging.debug('Skipping oil weathering for backwards run')
             return
+        self.timer_start('main loop:updating elements:oil weathering')
         if self.oil_weathering_model == 'noaa':
             self.oil_weathering_noaa()
         else:
             self.oil_weathering_default()
+        self.timer_end('main loop:updating elements:oil weathering')
 
     def oil_weathering_default(self):
 

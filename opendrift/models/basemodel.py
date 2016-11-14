@@ -334,6 +334,10 @@ class OpenDriftSimulation(PhysicsMethods):
                         reader.name = tmp_name
                         break
 
+            # Horizontal buffer of reader must be large enough to cover
+            # the distance possibly covered by elements within a time step
+            reader.set_buffer_size(max_speed=self.max_speed)
+
             self.readers[reader.name] = reader
             if self.proj is None:
                 if reader.proj4 is not None and reader.proj4 != 'None':
