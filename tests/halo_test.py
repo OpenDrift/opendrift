@@ -10,7 +10,7 @@ for case in ['oil', 'leeway']:
     for timestep in [900, -900]:
         if case == 'oil':
             o = OpenOil3D(weathering_model='noaa', basemap_resolution=b)
-            args = {'oiltype': 'SLEIPNER KONDENSAT'}
+            args = {'oiltype': 'HEIDRUN, STATOIL'}
         else:
             o = Leeway(basemap_resolution=b)
             args = {'objectType': 32}
