@@ -181,7 +181,10 @@ class Reader(object):
         if self.projected is True:
             if hasattr(self, 'delta_x'):
                 pixelsize = self.delta_x
-                if self.proj.is_latlong() is True:
+                if self.proj.is_latlong() is True or \
+                        ('ob_tran' in self.proj4) or \
+                        ('longlat' in self.proj4) or \
+                        ('latlon' in self.proj4):
                     pixelsize = pixelsize*111000  # deg to meters
             else:
                 pixelsize = None  # Pixel size not defined
@@ -368,9 +371,10 @@ class Reader(object):
                 reader_x, reader_y) is False or \
                 self.var_block_after[str(variables)].covers_positions(
                     reader_x, reader_y) is False:
-                print (50*'#' + '\nWARNING: data block from reader not '
-                       'large enough to cover element positions within '
-                       'timestep. Buffer size must be increased\n' + 50*'#')
+                logging.warning('Data block from %s not large enough to '
+                                'cover element positions within timestep. '
+                                'Buffer size (%s) must be increased.' %
+                                (self.name, str(self.buffer)))
 
             ############################################################
             # Interpolate before/after blocks onto particles in space
