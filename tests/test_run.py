@@ -485,6 +485,7 @@ class TestRun(unittest.TestCase):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
         o = OceanDrift3D(loglevel=0, proj4='+proj=merc')
+        o.max_speed = 100
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         reader_norkyst.buffer = 200
         o.add_reader([reader_norkyst],
@@ -508,6 +509,7 @@ class TestRun(unittest.TestCase):
         # Check that element has not penetrated seafloor
         self.assertFalse(o.elements.z <
                          -o.environment.sea_floor_depth_below_sea_level)
+        self.assertAlmostEqual(o.elements.z, -159.6, 1)
 
 if __name__ == '__main__':
     unittest.main()
