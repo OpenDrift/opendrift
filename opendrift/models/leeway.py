@@ -128,11 +128,12 @@ class Leeway(OpenDriftSimulation):
         super(Leeway, self).__init__(*args, **kwargs)
 
     def seed_elements(self, lon, lat, radius=0, number=1, time=None,
-                      objectType=1):
+                      objectType=1, cone=None):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own objectType (number),
         # but so far we only use one for each sim
         # objtype = np.ones(number)*objectType
+        # Note: cone is not used, simply to provide same interface as others
 
         # Probability of jibing (4 % per hour)
         pjibe = 0.04

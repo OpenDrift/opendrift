@@ -492,8 +492,10 @@ class OpenOil(OpenDriftSimulation):
                                  reason='stranded')
 
         # Deactivate elements hitting sea ice
-        self.deactivate_elements(self.environment.sea_ice_area_fraction > 0.6,
-                                 reason='oil-in-ice')
+        if hasattr(self.environment, 'sea_ice_area_fraction'):
+            self.deactivate_elements(
+                self.environment.sea_ice_area_fraction > 0.6,
+                reason='oil-in-ice')
 
     def update(self):
         """Update positions and properties of oil particles."""
