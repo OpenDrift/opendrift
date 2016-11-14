@@ -276,7 +276,10 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timers[category] = None
 
     def performance(self):
-        '''Print the time spent on various tasks'''
+        '''Report the time spent on various tasks'''
+
+        outStr = '---------------------------\n'
+        outStr += 'Performance:\n'
         for category, time in self.timing.iteritems():
             timestr = str(time)[0:str(time).find('.') + 2]
             for i, c in enumerate(timestr):
@@ -289,8 +292,8 @@ class OpenDriftSimulation(PhysicsMethods):
             indent = '  '*(len(parts) - 1)
             category = parts[-1]
             category = category.replace('<colon>', ':')
-            print '%s%7s %s' % (indent, timestr, category)
-
+            outStr += '%s%7s %s\n' % (indent, timestr, category)
+        return outStr
 
     def add_reader(self, readers, variables=None):
         """Add one or more readers providing variables used by this model.
@@ -413,7 +416,7 @@ class OpenDriftSimulation(PhysicsMethods):
         '''Retrieve environmental variables at requested positions.
 
         Updates:
-            Buffer (raw data blocks) for each reader stored for performace:
+            Buffer (raw data blocks) for each reader stored for performance:
                 [readers].var_block_before (last before requested time)
                 [readers].var_block_after (first after requested time)
                     - lists of one ReaderBlock per variable group:
@@ -1152,10 +1155,6 @@ class OpenDriftSimulation(PhysicsMethods):
             # importing from file, where elements may have been deactivated
             self.elements.ID = np.arange(0, self.num_elements_active())
 
-        # Store runtime to report on OpenDrift performance
-        self.runtime_environment = timedelta(seconds=0)
-        self.runtime_model = timedelta(seconds=0)
-
         ########################
         # Simulation time step
         ########################
@@ -1313,8 +1312,6 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timer_start('main loop')
         for i in range(self.expected_steps_calculation):
             try:
-                # Get environment data
-                runtime_start = datetime.now()
                 # Release elements
                 self.release_elements()
                 # Display time to terminal
@@ -1340,9 +1337,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
 
-                self.runtime_environment += datetime.now() - runtime_start
-                runtime_start = datetime.now()
-
                 self.state_to_buffer()  # Append status to history array
 
                 self.remove_deactivated_elements()
@@ -1362,8 +1356,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 #####################################################
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
-
-                self.runtime_model += datetime.now() - runtime_start
 
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
@@ -2195,10 +2187,9 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time-self.start_time)
                 outStr += '\tOutput steps: %i * %s\n' % (
                     self.steps_output, self.time_step_output)
-        if hasattr(self, 'runtime_environment'):
-            outStr += 'Performance:\n'
-            outStr += '\tFetching environment data: %s \n' % (
-                self.runtime_environment)
-            outStr += '\tUpdating elements: %s \n' % self.runtime_model
+        try:
+            outStr += self.performance()
+        except:
+            pass
         outStr += '===========================\n'
         return outStr

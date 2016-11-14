@@ -35,6 +35,8 @@ def init(self, filename, times=None):
     self.outfile.history = 'Created ' + str(datetime.datetime.now())
     self.outfile.source = 'Output from simulation with OpenDrift'
     self.outfile.model_url = 'https://github.com/knutfrode/opendrift'
+    self.outfile.opendrift_class = self.__class__.__name__
+    self.outfile.opendrift_module = self.__class__.__module__
     self.outfile.readers = str(self.readers.keys())
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step_calculation = str(self.time_step)
@@ -106,7 +108,8 @@ def close(self):
     self.outfile.geospatial_lon_max = self.history['lon'].max()
     self.outfile.geospatial_lon_units = 'degrees_east'
     self.outfile.geospatial_lon_resolution = 'point'
-    self.outfile.runtime = str(self.runtime_environment + self.runtime_model)
+    self.outfile.runtime = str(datetime.datetime.now() -
+                               self.timers['total time'])
 
     self.outfile.close()  # Finally close file
 
