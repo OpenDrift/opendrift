@@ -1318,6 +1318,9 @@ class OpenDriftSimulation(PhysicsMethods):
             try:
                 # Release elements
                 self.release_elements()
+
+                self.lift_elements_to_seafloor()  # If seafloor is penetrated
+
                 # Display time to terminal
                 logging.debug('==================================='*2)
                 logging.info('%s - step %i of %i - %i active elements '
@@ -1339,8 +1342,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.deactivate_elements(missing, reason='missing_data')
 
-                self.lift_elements_to_seafloor()  # If seafloor is penetrated
-
                 self.state_to_buffer()  # Append status to history array
 
                 self.remove_deactivated_elements()
@@ -1359,7 +1360,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.timer_end('main loop:updating elements')
                 #####################################################
 
-                self.lift_elements_to_seafloor()  # If seafloor is penetrated
+                #self.lift_elements_to_seafloor()  # If seafloor is penetrated
 
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')

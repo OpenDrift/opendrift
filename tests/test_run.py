@@ -463,23 +463,35 @@ class TestRun(unittest.TestCase):
     def test_seed_seafloor(self):
         o = OpenOil3D(loglevel=0)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        # Landmask (Basemap)
-        reader_basemap = reader_basemap_landmask.Reader(
-                            llcrnrlon=4, llcrnrlat=61.0,
-                            urcrnrlon=7, urcrnrlat=64,
-                            resolution='c', projection='merc')
-        o.add_reader([reader_basemap, reader_norkyst])
+        o.fallback_values['land_binary_mask'] = 0
+        o.add_reader([reader_norkyst])
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000)
         o.config['processes']['turbulentmixing'] = True
         o.config['turbulentmixing']['verticalresolution'] = 1  # m
         o.config['turbulentmixing']['timestep'] = 1  # s
-        o.run(steps=3, time_step=900, time_step_output=900)
+        o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -144, 2)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -147.5, 2)  # After some rising
+
+    def test_seed_below_seafloor(self):
+        o = OpenOil3D(loglevel=0)
+        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o.add_reader([reader_norkyst])
+        o.fallback_values['land_binary_mask'] = 0
+        lon = 4.5; lat = 62.0
+        o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
+                        density=1000)
+        o.config['processes']['turbulentmixing'] = True
+        o.config['turbulentmixing']['verticalresolution'] = 1  # m
+        o.config['turbulentmixing']['timestep'] = 1  # s
+        o.run(steps=3, time_step=300, time_step_output=300)
+        z, status = o.get_property('z')
+        self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,0], -147.5, 2)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast

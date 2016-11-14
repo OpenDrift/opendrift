@@ -254,15 +254,33 @@ class PhysicsMethods(object):
         '''Solar elevation at present time and position of active elements.'''
         return solar_elevation(self.time, self.elements.lon, self.elements.lat)
 
-    def lift_elements_to_seafloor(self):
-        # Lift any elements which are below seafloor
-        if hasattr(self.environment, 'sea_floor_depth_below_sea_level'):
-            self.elements.z[np.where(self.elements.z <
-                -self.environment.sea_floor_depth_below_sea_level)] = \
-                -self.environment.sea_floor_depth_below_sea_level[
-                np.where(self.elements.z <
-                -self.environment.sea_floor_depth_below_sea_level)]
+    def sea_floor_depth(self):
+        '''Sea floor depth for presently active elements'''
 
+        if hasattr(self, 'environment') and \
+                hasattr(self.environment, 'sea_floor_depth_below_sea_level'):
+            if len(self.environment.sea_floor_depth_below_sea_level) == \
+                    self.num_elements_active():
+                sea_floor_depth = \
+                    self.environment.sea_floor_depth_below_sea_level
+        if 'sea_floor_depth' not in locals():
+            env, env_profiles, missing = \
+                self.get_environment(['sea_floor_depth_below_sea_level'],
+                                     time=self.time, lon=self.elements.lon,
+                                     lat=self.elements.lat,
+                                     z=0*self.elements.lon, profiles=None)
+            sea_floor_depth = \
+                env['sea_floor_depth_below_sea_level'].astype('float32') 
+        return sea_floor_depth
+
+    def lift_elements_to_seafloor(self):
+        '''Lift any elements which are below seafloor'''
+
+        if 'sea_floor_depth_below_sea_level' not in self.priority_list:
+            return
+        sea_floor_depth = self.sea_floor_depth()
+        self.elements.z[np.where(self.elements.z < -sea_floor_depth)] = \
+            -sea_floor_depth[np.where(self.elements.z < -sea_floor_depth)]
 
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''

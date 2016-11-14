@@ -26,7 +26,7 @@ from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 
 
-class TestArray(unittest.TestCase):
+class TestModels(unittest.TestCase):
     """Tests for OpenDrift models"""
 
     def test_seed(self):
