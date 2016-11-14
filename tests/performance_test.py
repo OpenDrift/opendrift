@@ -102,7 +102,7 @@ print '%6.1f seconds on this machine' % time_spent.total_seconds()
 
 print '--------------------------------------------------------'
 print 'Test 4: Vertical mixing with 50 elements and 7200 cycles (CPU-heavy)'
-print '  19.0 seconds on reference machine.'
+print '  10.0 seconds on reference machine.'
 reader_arctic.buffer=10
 reader_arctic.verticalbuffer=1
 o = OpenOil3D(loglevel=50) # Quiet
