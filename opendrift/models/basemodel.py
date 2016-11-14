@@ -602,6 +602,12 @@ class OpenDriftSimulation(PhysicsMethods):
         if 'env_profiles' not in locals():
             env_profiles = None
 
+        # Convert masked arrays to regular arrays for increased performance
+        env = np.array(env)
+        if env_profiles is not None:
+            for var in env_profiles:
+                env_profiles[var] = np.array(env_profiles[var])
+
         self.timer_end('main loop:readers')
 
         return env.view(np.recarray), env_profiles, missing
@@ -2192,9 +2198,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time-self.start_time)
                 outStr += '\tOutput steps: %i * %s\n' % (
                     self.steps_output, self.time_step_output)
-        try:
+        if hasattr(self, 'history'):
             outStr += self.performance()
-        except:
-            pass
         outStr += '===========================\n'
         return outStr

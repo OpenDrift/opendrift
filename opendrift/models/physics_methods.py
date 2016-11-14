@@ -255,7 +255,7 @@ class PhysicsMethods(object):
         return solar_elevation(self.time, self.elements.lon, self.elements.lat)
 
     def sea_floor_depth(self):
-        '''Sea floor depth for presently active elements'''
+        '''Sea floor depth (positive) for presently active elements'''
 
         if hasattr(self, 'environment') and \
                 hasattr(self.environment, 'sea_floor_depth_below_sea_level'):
