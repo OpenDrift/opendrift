@@ -17,6 +17,7 @@
 import os
 import numpy as np
 from datetime import datetime
+import logging
 
 from opendrift.models.openoil import OpenOil, Oil
 from opendrift.models.opendrift3D import OpenDrift3DSimulation
@@ -56,7 +57,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         'sea_surface_wave_stokes_drift_y_velocity',
         'sea_surface_wave_period_at_variance_spectral_density_maximum',
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-        #'sea_ice_area_fraction',
+        'sea_ice_area_fraction',
         'x_wind', 'y_wind', 'land_binary_mask',
         'sea_floor_depth_below_sea_level',
         'ocean_vertical_diffusivity',
@@ -80,7 +81,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         'sea_surface_wave_stokes_drift_y_velocity': 0,
         'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-        #'sea_ice_area_fraction': 0,
+        'sea_ice_area_fraction': 0,
         'x_wind': 0, 'y_wind': 0,
         'sea_floor_depth_below_sea_level': 10000,
         'ocean_vertical_diffusivity': 0.02,  # m2s-1
@@ -106,6 +107,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 latitude = float(min=-90, max=90, default=60)
                 time = string(default='%s')
                 oil_type = option(%s, default=%s)
+                subsea_diameter = float(min=0.00000001, max=1, default=0.0005)
         [processes]
             turbulentmixing = boolean(default=True)
             verticaladvection = boolean(default=False)
@@ -146,6 +148,37 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         # Calling general constructor of parent class
         super(OpenOil3D, self).__init__(*args, **kwargs)
+
+    def seed_elements(self, *args, **kwargs):
+
+        if 'number' not in kwargs:
+            number = 1
+        else:
+            number = kwargs['number']
+        if 'z' not in kwargs:
+            kwargs['z'] = 0
+        subsea_diameter = self.config['input']['spill']['subsea_diameter']
+        if kwargs['z'] == 'seafloor':
+            z = -np.ones(number)
+        else:
+            z = np.atleast_1d(kwargs['z'])
+        if len(z) == 1:
+            z = z*np.ones(number)  # Convert scalar z to array
+        subsea = z < 0
+        if np.sum(subsea) > 0:
+            logging.info('Setting particle diameter to %s m for elements '
+                         'seeded below sea surface.' % subsea_diameter)
+            if 'diameter' not in kwargs:
+                kwargs['diameter'] = subsea_diameter
+            else:
+                logging.warning('Oil droplet diameter is provided, but will be'
+                                ' overridden by elements seeded below surface')
+                given_diameter = np.atleast_1d(kwargs['diameter'])
+                if len(given_diameter) == 1:  # Convert scalar z to array
+                    given_diameter = given_diameter*np.ones(number)
+                kwargs['diameter'] = given_diameter
+                kwargs['diameter'][z<0] = subsea_diameter
+        super(OpenOil3D, self).seed_elements(*args, **kwargs)
 
     def particle_radius(self):
         """Calculate radius of entained particles.
