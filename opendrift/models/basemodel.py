@@ -367,6 +367,36 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
 
+    def add_readers_from_list(self, urls, timeout=10):
+        '''Make readers from a list of URLs or paths to netCDF datasets'''
+
+        for u in urls:
+            print '-'*50
+            files = glob.glob(u)
+            for f in files:  # Regular file
+                from opendrift.readers.reader_netCDF_CF_generic import Reader
+                try:
+                    r = Reader(f)
+                    self.add_reader(r)
+                except:
+                    logging.warning('%s is not a netCDF file recognised by '
+                                    'OpenDrift' % f)
+            if files == []:  # Try with OPeNDAP URL
+                try:
+                    import urllib2
+                    urllib2.urlopen(u, timeout=timeout)
+                except Exception as e:
+                    # Error code 400 is expected!
+                    if not isinstance(e, urllib2.HTTPError) or e.code != 400:
+                        logging.warning('ULR %s not accessible: ' % u + str(e))
+                        continue
+                    try:
+                        r = Reader(u)
+                        self.add_reader(r)
+                    except:
+                        logging.warning('%s is not a netCDF file recognised '
+                                        'by OpenDrift' % u)
+
     def list_environment_variables(self):
         """Return list of all variables provided by the added readers."""
         variables = []
