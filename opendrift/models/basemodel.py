@@ -370,11 +370,10 @@ class OpenDriftSimulation(PhysicsMethods):
     def add_readers_from_list(self, urls, timeout=10):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
+        from opendrift.readers.reader_netCDF_CF_generic import Reader
         for u in urls:
-            print '-'*50
             files = glob.glob(u)
             for f in files:  # Regular file
-                from opendrift.readers.reader_netCDF_CF_generic import Reader
                 try:
                     r = Reader(f)
                     self.add_reader(r)
@@ -393,9 +392,9 @@ class OpenDriftSimulation(PhysicsMethods):
                     try:
                         r = Reader(u)
                         self.add_reader(r)
-                    except:
+                    except Exception as e:
                         logging.warning('%s is not a netCDF file recognised '
-                                        'by OpenDrift' % u)
+                                        'by OpenDrift: %s' % (u, str(e)))
 
     def list_environment_variables(self):
         """Return list of all variables provided by the added readers."""

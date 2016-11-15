@@ -43,8 +43,8 @@ for case in ['oil', 'leeway']:  # test two models
                             number=1000, radius = [0, 1000], cone=True, **args)
 
             print o
-            o.run(duration=timedelta(hours=72), time_step=timestep,
-                  outfile='halo_test.nc')
+            o.run(duration=timedelta(hours=24), time_step=timestep,
+                  time_step_output=1800, outfile='halo_test.nc')
 
             print o
             o.animation()
