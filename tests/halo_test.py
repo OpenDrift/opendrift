@@ -22,7 +22,8 @@ for case in ['oil', 'leeway']:  # test two models
         for z in [0, -200]:  # seeding at sea surface and at 200 m depth
             if case == 'oil':
                 o = OpenOil3D(weathering_model='noaa')
-                args = {'oiltype': 'HEIDRUN, STATOIL'}
+                args = {'oiltype': 'HEIDRUN, STATOIL',
+                        'z': z}
             else:
                 if z < 0:
                     continue  # Only surface seeding for Leeway
@@ -38,8 +39,9 @@ for case in ['oil', 'leeway']:  # test two models
             #lons=[19.37, 19.33]; lats=[70.32, 70.34] # Troms
             #lons=[3.8, 3.82]; lats=[59.6, 59.61] # North Sea
 
-            o.seed_elements(lon=lons, lat=lats, z=z,
-                            time=datetime.now() - timedelta(hours=3),
+            o.seed_elements(lon=lons, lat=lats,
+                            time=[datetime.now() - timedelta(hours=3),
+                                  datetime.now()],
                             number=1000, radius = [0, 1000], cone=True, **args)
 
             print o
