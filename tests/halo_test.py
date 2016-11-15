@@ -18,10 +18,11 @@ for case in ['oil', 'leeway']:
         norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
         nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
         arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
+        meps = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc')
         wam = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be')  
         print wam
         #norkyst.interpolation = 'linearND'
-        o.add_reader([norkyst, nordic, arome, wam])
+        o.add_reader([norkyst, nordic, meps, wam])
         #o.add_reader([nordic, arome])
 
         #o.seed_elements(lon=[-0.8, 0.4], lat=[59.9, 59.95],

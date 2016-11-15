@@ -645,6 +645,12 @@ class OpenOil(OpenDriftSimulation):
             oiltype = 'BALDER'  # Default
         self.set_oiltype(oiltype)
 
+        if self.oil_weathering_model == 'noaa':
+            oil_density = self.oiltype.get_density(283)  # 10 degrees
+            logging.info('Using density %s of oiltype %s' %
+                         (oil_density, oiltype))
+            kwargs['density'] = oil_density
+
         super(OpenOil, self).seed_elements(*args, **kwargs)
 
     def seed_from_gml(self, gmlfile, num_elements=1000):
