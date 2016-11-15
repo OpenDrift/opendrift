@@ -52,7 +52,6 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     required_variables = [
         'x_sea_water_velocity', 'y_sea_water_velocity',
         'sea_surface_wave_significant_height',
-        'sea_surface_wave_to_direction',
         'sea_surface_wave_stokes_drift_x_velocity',
         'sea_surface_wave_stokes_drift_y_velocity',
         'sea_surface_wave_period_at_variance_spectral_density_maximum',
@@ -76,7 +75,6 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         'x_sea_water_velocity': 0,
         'y_sea_water_velocity': 0,
         'sea_surface_wave_significant_height': 0,
-        'sea_surface_wave_to_direction': 0,
         'sea_surface_wave_stokes_drift_x_velocity': 0,
         'sea_surface_wave_stokes_drift_y_velocity': 0,
         'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,

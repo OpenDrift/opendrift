@@ -61,7 +61,6 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                           'sea_surface_wave_significant_height',
-                          'sea_surface_wave_to_direction',
                           'sea_ice_area_fraction',
                           'x_wind', 'y_wind', 'land_binary_mask',
                           'sea_floor_depth_below_sea_level',
@@ -91,7 +90,6 @@ class PelagicEggDrift(OpenDrift3DSimulation):
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_to_direction': 0,
                        'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0,
                        'sea_floor_depth_below_sea_level': 100,
