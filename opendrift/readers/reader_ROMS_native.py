@@ -178,6 +178,9 @@ class Reader(Reader):
 
         variables = {}
 
+        if z is None:
+            z = np.atleast_1d(0)
+
         # Find horizontal indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
