@@ -1281,7 +1281,10 @@ class OpenDriftSimulation(PhysicsMethods):
                                      deltalat),
                 resolution=self.basemap_resolution, projection='merc')
             self.add_reader(reader_basemap)
+            self.dynamical_landmask = True
             self.timer_end('preparing main loop:making dynamical landmask')
+        else:
+            self.dynamical_landmask = False
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file
@@ -1445,6 +1448,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 del self.environment_profiles
             self.io_import_file(outfile)
 
+        if self.dynamical_landmask is True:
+            self.zoom_map(buffer=.2)  # Zooming to extent of trajectories
+
         self.timer_end('cleaning up')
         self.timer_end('total time')
 
@@ -1508,18 +1514,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def set_up_map(self, buffer=.1, delta_lat=None, **kwargs):
         """Generate Basemap instance on which trajectories are plotted."""
 
-        if hasattr(self, 'history'):
-            lons = self.history['lon']
-            lats = self.history['lat']
-        else:
-            if self.steps_output > 0:
-                lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
-                lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
-            else:
-                lons = np.ma.array(
-                    np.reshape(self.elements_scheduled.lon, (1, -1))).T
-                lats = np.ma.array(
-                    np.reshape(self.elements_scheduled.lat, (1, -1))).T
+        lons, lats = self.get_lonlats()
 
         # Initialise map
         lonmin = lons.min() - buffer*2
@@ -1554,15 +1549,19 @@ class OpenDriftSimulation(PhysicsMethods):
             latspan = map.latmax - map.latmin
             if latspan > 20:
                 delta_lat = 2
+                delta_lon = 2
             elif latspan > 10 and latspan <= 20:
                 delta_lat = 1
+                delta_lon = 1
             elif latspan > 1 and latspan <= 10:
                 delta_lat = .5
+                delta_lon = .5
             else:
                 delta_lat = .1
+                delta_lon = .2
         if delta_lat != 0:
             map.drawmeridians(np.arange(np.floor(map.lonmin),
-                                        np.ceil(map.lonmax), delta_lat),
+                                        np.ceil(map.lonmax), delta_lon),
                               labels=[0, 0, 0, 1])
             try:
                 map.drawparallels(np.arange(np.floor(map.latmin),
@@ -1596,6 +1595,71 @@ class OpenDriftSimulation(PhysicsMethods):
             pass
 
         return map, plt, x, y, index_of_first, index_of_last
+
+    def zoom_map(self, buffer=0.5,
+                 lonmin=None, lonmax=None, latmin=None, latmax=None):
+        """Zoom Basemap to defined limits, or defined buffer in degrees"""
+
+        if lonmin is None:
+            lons, lats = self.get_lonlats()
+            lonmin = lons.min() - buffer*2
+            lonmax = lons.max() + buffer*2
+            latmin = lats.min() - buffer
+            latmax = lats.max() + buffer
+
+        logging.info('Zooming basemap to (%s to %s E), (%s to %s N)' %
+                     (lonmin, lonmax, latmin, latmax) )
+        if 'basemap_landmask' in self.readers:
+            self.readers['basemap_landmask'].map_orig = \
+                self.readers['basemap_landmask'].map
+        else:
+            raise ValueError('No basemap readers added.')
+        map = Basemap(lonmin, latmin, lonmax, latmax,
+                      resolution=None, projection='merc')
+        map_orig = self.readers['basemap_landmask'].map_orig  # pointer
+
+        # Find Basemap offset between new and old maps
+        xo, yo = map(lonmin, latmin, inverse=False)
+        xoo, yoo = map_orig(lonmin, latmin, inverse=False)
+        xoff = xoo-xo
+        yoff = yoo-yo
+
+        # Copy polygons and adjust for offsets
+        map.coastpolygons = [
+            (tuple(np.subtract(pol[0], xoff)),
+            tuple(np.subtract(pol[1], yoff))) for pol in
+            map_orig.coastpolygons]
+
+        coastsegs_new = []
+        for c in map_orig.coastsegs:
+            xc, yc = zip(*c)
+            newxc = tuple(xce - xoff for xce in xc)
+            newyc = tuple(yce - yoff for yce in yc)
+            coastsegs_new.append(zip(newxc, newyc))
+        map.coastsegs = coastsegs_new
+
+        map.coastpolygontypes = map_orig.coastpolygontypes
+        #map.landpolygons = map_orig.landpolygons
+        #map.lakepolygons = map_orig.lakepolygons
+        #map.boundarylons = map_orig.boundarylons
+        map.resolution = map_orig.resolution
+
+        self.readers['basemap_landmask'].map = map
+
+    def get_lonlats(self):
+        if hasattr(self, 'history'):
+            lons = self.history['lon']
+            lats = self.history['lat']
+        else:
+            if self.steps_output > 0:
+                lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
+                lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
+            else:
+                lons = np.ma.array(
+                    np.reshape(self.elements_scheduled.lon, (1, -1))).T
+                lats = np.ma.array(
+                    np.reshape(self.elements_scheduled.lat, (1, -1))).T
+        return lons, lats
 
     def animation(self, buffer=.2, filename=None, compare=None,
                   legend=['', ''], markersize=5, fps=10):

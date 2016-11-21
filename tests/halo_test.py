@@ -51,6 +51,7 @@ for case in ['oil', 'leeway']:  # test two models
             print o
             o.animation()
             if case == 'oil':
+                o.plot()
                 o.plot_oil_budget()
                 o.plot_property('water_fraction')
                 o.animation_profile()
