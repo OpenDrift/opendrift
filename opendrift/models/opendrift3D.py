@@ -185,6 +185,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
+            weight_upper[np.isnan(weight_upper)] = 1
             K1 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
                 weight_upper + \
                 Kprofiles[lower, range(Kprofiles.shape[1])] * \
@@ -196,6 +197,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
+            weight_upper[np.isnan(weight_upper)] = 1
             K2 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
                 weight_upper + \
                 Kprofiles[lower, range(Kprofiles.shape[1])] * \
