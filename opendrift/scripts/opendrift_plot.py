@@ -21,12 +21,12 @@ import argparse
 import numpy as np
 sys.path.append("..")
 
-from opendrift.models.openoil import OpenOil
+import opendrift
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('filename',
-                        help='<OpenDriftaoutput filename (netCDF)>')
+                        help='<OpenDrift output filename (netCDF)>')
     parser.add_argument('-b', dest='buffer',
                         default=1.0,
                         help='Buffer around plot in degrees lon/lat.')
@@ -34,9 +34,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
-    o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
-
+    o = opendrift.open(args.filename)
     print o
-    print type(np.array(args.buffer))
-    o.io_import_file(args.filename)
     o.plot(buffer=np.float(args.buffer))

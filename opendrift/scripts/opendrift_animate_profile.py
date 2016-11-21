@@ -37,10 +37,11 @@ if __name__ == '__main__':
     print o1
 
     if args.filename2 is None:
-        o1.animation()
+        o1.animation_profile()
     else:
         o2 = opendrift.open(args.filename2)
         print o2
 
         # Animate and compare the two runs
-        o1.animation(compare=o2, legend=[args.filename1, args.filename2])
+        o1.animation_profile(compare=o2,
+                             legend=[args.filename1, args.filename2])
