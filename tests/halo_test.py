@@ -24,6 +24,7 @@ for case in ['oil', 'leeway']:  # test two models
             if case == 'oil':
                 o = OpenOil3D(weathering_model='noaa')
                 args = {'oiltype': 'HEIDRUN, STATOIL',
+                #args = {'oiltype': 'WISTING',
                         'z': z}
             else:
                 if z < 0:

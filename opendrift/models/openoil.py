@@ -376,12 +376,20 @@ class OpenOil(OpenDriftSimulation):
         #########################################################
         # Update density and viscosity according to temperature
         #########################################################
-        self.elements.viscosity = np.array(
-            [self.oiltype.get_viscosity(t) for t in
-             self.environment.sea_water_temperature])
-        self.elements.density = np.array(
-            [self.oiltype.get_density(t) for t in
-             self.environment.sea_water_temperature])
+        try:  # Old version of OilLibrary
+            self.elements.viscosity = np.array(
+                [self.oiltype.get_viscosity(t) for t in
+                 self.environment.sea_water_temperature])
+            self.elements.density = np.array(
+                [self.oiltype.get_density(t) for t in
+                 self.environment.sea_water_temperature])
+        except:  # New version of OilLibrary
+            self.elements.viscosity = \
+                self.oiltype.kvis_at_temp(
+                    self.environment.sea_water_temperature)
+            self.elements.density = \
+                self.oiltype.density_at_temp(
+                    self.environment.sea_water_temperature)
 
         if self.config['processes']['evaporation'] is True:
             self.evaporation_noaa()
@@ -644,7 +652,10 @@ class OpenOil(OpenDriftSimulation):
         self.set_oiltype(oiltype)
 
         if self.oil_weathering_model == 'noaa':
-            oil_density = self.oiltype.get_density(283)  # 10 degrees
+            try:  # Older version of OilLibrary
+                oil_density = self.oiltype.get_density(283)  # 10 degrees
+            except:  # Newer version of OilLibrary
+                oil_density = self.oiltype.density_at_temp(283)
             logging.info('Using density %s of oiltype %s' %
                          (oil_density, oiltype))
             kwargs['density'] = oil_density
