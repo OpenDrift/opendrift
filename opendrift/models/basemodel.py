@@ -2295,3 +2295,19 @@ class OpenDriftSimulation(PhysicsMethods):
             outStr += self.performance()
         outStr += '===========================\n'
         return outStr
+
+    def add_halo_readers(self, path='/lustre/storeB/project/copernicus/sea/'):
+        """Adding some Thredds and file readers in prioritised order"""
+
+        readers = [  # Note that order (priority) is important!
+            path + '/romsnorkyst/zdepths1h/NorKyst-800m_ZDEPTHS_his.fc*.nc',
+            path + '/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc*.nc',
+            path + '/mywavewam4/mywavewam4.fc*.nc',
+            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+            'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
+            'http://thredds.met.no/thredds/dodsC/atmos/hirlam/hirlam12_be',
+            'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be']
+
+        self.add_readers_from_list(readers, timeout=5)
+            

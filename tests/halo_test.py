@@ -6,16 +6,17 @@ from opendrift.models.leeway import Leeway
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.readers import reader_netCDF_CF_generic
 
-readers = [  # Note that order (priority) is important!
-    '/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/NorKyst-800m_ZDEPTHS_his.fc*.nc',
-    '/lustre/storeB/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc*.nc',
-    '/lustre/storeB/project/copernicus/sea/mywavewam4/mywavewam4.fc*.nc',
-    'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-    'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-    'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
-    'http://thredds.met.no/example_of_nonexisting_url.nc',
-    'example_of_nonexisting_file',
-    ]
+#readers = [  # Note that order (priority) is important!
+#    '/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/NorKyst-800m_ZDEPTHS_his.fc*.nc',
+#    '/lustre/storeB/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc*.nc',
+#    '/lustre/storeB/project/copernicus/sea/mywavewam4/mywavewam4.fc*.nc',
+#    'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+#    'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+#    'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
+#    'http://thredds.met.no/thredds/dodsC/atmos/hirlam/hirlam12_be',
+#    'http://thredds.met.no/example_of_nonexisting_url.nc',
+#    'example_of_nonexisting_file',
+#    ]
 
 for case in ['oil', 'leeway']:  # test two models
     for timestep in [900, -900]:  # forwards and backwards
@@ -30,14 +31,15 @@ for case in ['oil', 'leeway']:  # test two models
                 o = Leeway()
                 args = {'objectType': 32}
 
-            o.add_readers_from_list(readers, timeout=5)
+            #o.add_readers_from_list(readers, timeout=5)
+            o.add_halo_readers()
             print o
 
             #lons=[-0.8, 0.4]; lats=[59.9, 59.95] # NorKyst border
-            lons=[4.8, 5.1]; lats=[59.9, 59.95] # Western Norway coast
+            #lons=[4.8, 5.1]; lats=[59.9, 59.95] # Western Norway coast
             #lons=[13.11, 13.13]; lats=[67.81, 67.80] # Lofoten
             #lons=[19.37, 19.33]; lats=[70.32, 70.34] # Troms
-            #lons=[3.8, 3.82]; lats=[59.6, 59.61] # North Sea
+            lons=[3.8, 3.82]; lats=[59.6, 59.61] # North Sea
 
             o.seed_elements(lon=lons, lat=lats,
                             time=[datetime.now() - timedelta(hours=3),
