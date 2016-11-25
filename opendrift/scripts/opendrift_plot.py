@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('filename',
                         help='<OpenDrift output filename (netCDF)>')
     parser.add_argument('-b', dest='buffer',
-                        default=1.0,
+                        default=0.1,
                         help='Buffer around plot in degrees lon/lat.')
 
     args = parser.parse_args()

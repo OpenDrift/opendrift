@@ -1596,7 +1596,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return map, plt, x, y, index_of_first, index_of_last
 
-    def zoom_map(self, buffer=0.5,
+    def zoom_map(self, buffer=0.2,
                  lonmin=None, lonmax=None, latmin=None, latmax=None):
         """Zoom Basemap to defined limits, or defined buffer in degrees"""
 
@@ -1877,7 +1877,7 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             plt.show()
 
-    def plot(self, background=None, buffer=.5, linecolor=None, filename=None,
+    def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
              drifter_file=None, show=True, vmin=None, vmax=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, **kwargs):
