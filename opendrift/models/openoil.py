@@ -139,15 +139,21 @@ class OpenOil(OpenDriftSimulation):
         if weathering_model == 'noaa':
             try:
                 from oil_library import _get_db_session
-                from oil_library.models import Oil
+                from oil_library.models import Oil, ImportedRecord
             except:
                 raise ImportError(
                     'NOAA oil library must be installed from: '
                     'https://github.com/NOAA-ORR-ERD/OilLibrary')
             # Get list of all oiltypes in NOAA database
             session = _get_db_session()
-            self.oiltypes = session.query(Oil.name).all()
-            self.oiltypes = [o[0] for o in self.oiltypes]
+            if 'location' in kwargs:
+                self.oiltypes = session.query(Oil.name).join(
+                                ImportedRecord).filter(ImportedRecord.
+                                location==kwargs['location']).all()
+                del kwargs['location']
+            else:
+                self.oiltypes = session.query(Oil.name).all()
+            self.oiltypes = sorted([o[0] for o in self.oiltypes])
         else:
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
