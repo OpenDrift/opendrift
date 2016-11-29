@@ -10,8 +10,8 @@ config = {
     'name': 'OpenDrift',
     'description': 'OpenDrift - framework for ocean trajectory modeling',
     'author': 'Knut-Frode Dagestad / MET Norway',
-    'url': 'https://github.com/knutfrode/opendrift',
-    'download_url': 'https://github.com/knutfrode/opendrift',
+    'url': 'https://github.com/OpenDrift/opendrift',
+    'download_url': 'https://github.com/OpenDrift/opendrift',
     'version': '1.0.0',
     'license': 'GPLv2',
     'install_requires': [

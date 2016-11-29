@@ -25,7 +25,7 @@ from opendrift.models.basemodel import OpenDriftSimulation
 # modify the class names and details below, according to the comments.
 # See e.g. module windblow.py for a minimalistic example.
 #
-# For more help, see https://github.com/knutfrode/opendrift/wiki
+# For more help, see https://github.com/OpenDrift/opendrift/wiki
 # or contact Knut-Frode Dagestad (knutfd@met.no)
 # For usage of the new model, see example scripts (e.g. example.py)
 
