@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from opendrift.readers import reader_basemap_landmask
-from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
 try:

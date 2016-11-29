@@ -16,16 +16,9 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# WAM10
-#reader_wam10 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/wam/wam10_be')  # 6 hourly aggregates two months back
-#reader_wam10 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/wam10h/g10kmwave.nc')
-
-# GlobCurrent
-#reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CLS-L4-CUREUL_HS-ALT_SUM-V01.0_FULL_TIME_SERIE')  # Total
-#reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/GC_MOD_TIDE_GLO_010_FES2012_FULL_TIME_SERIE') # FES Tidal
-
 # Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=4, llcrnrlat=59.8,
+reader_basemap = reader_basemap_landmask.Reader(
+                    llcrnrlon=4, llcrnrlat=59.8,
                     urcrnrlon=6, urcrnrlat=61,
                     resolution='h', projection='merc')
 

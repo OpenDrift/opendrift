@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
-
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
@@ -46,7 +44,7 @@ lw.seed_elements(lon, lat, radius=1000, number=3000,
 lw.set_projection('+proj=merc')
 
 # Running model (until end of driver data)
-lw.run(steps=60*4, time_step=900, outfile='outleeway.nc')
+lw.run(steps=60*4, time_step=900)
 
 # Print and plot results
 print lw

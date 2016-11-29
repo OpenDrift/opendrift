@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information

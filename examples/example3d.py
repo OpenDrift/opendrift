@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
-
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift3D import OceanDrift3D

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
@@ -20,7 +20,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=2.5, llcrnrlat=59.3,
-                    urcrnrlon=5.8, urcrnrlat=62.5, resolution='h')
+                    urcrnrlon=5.8, urcrnrlat=62.5, resolution='i')
 
 lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
 
@@ -35,7 +35,7 @@ lw.seed_elements(lon, lat, radius=[1000, 10000], number=5000,
                  time=time, objectType=objType)
 
 # Running model (until end of driver data)
-lw.run(steps=66*4, time_step=900, outfile='outleeway.nc')
+lw.run(steps=66*4, time_step=900)
 
 # Print and plot results
 print lw

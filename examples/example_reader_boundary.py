@@ -4,16 +4,12 @@
 # to demonstrate autmatic transition back and forth with another model
 # covering a larger domain (Nordic)
 
-from datetime import datetime, timedelta
-
 import numpy as np
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil import OpenOil
 from opendrift.models.oceandrift import OceanDrift
 
-#o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Norkyst

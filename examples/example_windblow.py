@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
-
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 
 from opendrift.models.windblow import WindBlow
@@ -20,7 +17,7 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 o.add_reader([reader_arome])
 
 # Seeding some particles
-lat = 67.711251; lon = 13.556971  # Lofoten
+lat = 68.5; lon = 16.0  # Lofoten
 o.seed_elements(lon, lat, radius=5000, number=1000,
                 time=reader_arome.start_time)
 

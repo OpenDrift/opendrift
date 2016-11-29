@@ -3,7 +3,7 @@
 # Illustrating the difference between Euler and Runge-Kutta propagation
 # schemes, using an idealised (analytical) eddy current field.
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_ArtificialOceanEddy

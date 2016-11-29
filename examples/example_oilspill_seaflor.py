@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil3D import OpenOil3D
 
@@ -20,18 +19,14 @@ time = [reader_norkyst.start_time,
         reader_norkyst.start_time + timedelta(hours=1)]
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, z='seafloor', radius=50, number=3000, time=time,
-                diameter=0.0004, wind_drift_factor=.02, density=730)
+o.seed_elements(lon, lat, z='seafloor', radius=5, number=3000, time=time)
 
 o.config['processes']['diffusion'] = False
 o.config['processes']['turbulentmixing'] = True  # Otherwise also no updrift
 
 # Running model
-o.run(steps=12*2, time_step=300,
-      time_step_output=300, outfile='test.nc')
+o.run(steps=12*2, time_step=300, time_step_output=300)
 
 # Print and plot results
 print o
 o.animation_profile()
-#o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
-o.plot(linecolor='z')

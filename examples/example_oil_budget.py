@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil import OpenOil
 from opendrift.models.openoil3D import OpenOil3D
 
 o = OpenOil3D(loglevel=0)
@@ -59,6 +58,7 @@ o.run(steps=4*20, time_step=900, export_buffer_length=10,
 
 # Print and plot results
 print o
+o.plot_vertical_distribution()
 o.plot_oil_budget()
 o.plot_property('water_fraction')
 o.plot_property('water_fraction', mean=True)
@@ -68,5 +68,4 @@ o.plot_property('z')
 o.plot_property('mass_evaporated')
 o.plot_property('water_fraction')
 o.plot_property('interfacial_area')
-o.plot_vertical_distribution()
 o.animation()

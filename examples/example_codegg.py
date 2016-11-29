@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
-
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.pelagicegg import PelagicEggDrift
@@ -35,14 +33,14 @@ o.seed_elements(12.5, 68.5, z=-40, radius=2000, number=500,
 
 # Adjusting some configuration
 o.config['processes']['turbulentmixing'] = True
-o.config['turbulentmixing']['TSprofiles'] = True # update T,S frequently in each inner loop for turbulent
 o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983' # windspeed parameterization for eddy diffusivity
 #o.config['turbulentmixing']['diffusivitymodel'] = 'environment' # use eddy diffusivity from ocean model 
 
 # Vertical resolution and time step should be adjusted so to avoid getting
 # output warnings like 'DEBUG: WARNING! some elements have p+q>1.'
-o.config['turbulentmixing']['timestep'] = 100. # seconds
+o.config['turbulentmixing']['timestep'] = 10. # seconds
 o.config['turbulentmixing']['verticalresolution'] = 2. # m
+o.config['turbulentmixing']['TSprofiles'] = True # update T,S frequently in each inner loop for turbulent
 o.config['turbulentmixing']['TSprofiles'] = False  # False is faster
 
 # Running model (until end of driver data)

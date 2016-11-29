@@ -1,21 +1,16 @@
 #!/usr/bin/env python
 
 import os
-from datetime import datetime, timedelta
 
-from opendrift.readers import reader_basemap_landmask
-from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil import OpenOil
+import opendrift
 
-o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 if not os.path.exists('openoil.nc'):
     raise ValueError('Please run example.py first to generate a '
                      'netCDF file to be imported.')
 
-o.io_import_file('openoil.nc')
-
+o = opendrift.open('openoil.nc')
 print o
 
-o.plot(buffer=.1)
+o.plot()
 o.plot_property('mass_oil')

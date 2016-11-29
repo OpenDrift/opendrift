@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
@@ -13,12 +12,6 @@ o.max_speed = 1
 #reader_nordic4 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
 reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
 reader_arctic.interpolation = 'linearND'
-
-# Landmask (Basemap)
-#reader_basemap = reader_basemap_landmask.Reader(
-#                    llcrnrlon=20, llcrnrlat=78,
-#                    urcrnrlon=28, urcrnrlat=82.3,
-#                    resolution='i', projection='merc')
 
 #o.add_reader([reader_basemap, reader_arctic])
 #o.add_reader([reader_arctic, reader_basemap])

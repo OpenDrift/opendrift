@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import os
-from datetime import datetime, timedelta
 import numpy as np
 
 from opendrift.readers import reader_basemap_landmask

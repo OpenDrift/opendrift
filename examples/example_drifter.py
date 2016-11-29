@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 import numpy as np
 
 from opendrift.readers import reader_basemap_landmask
