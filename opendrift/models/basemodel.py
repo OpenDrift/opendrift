@@ -40,7 +40,7 @@ try:
 except:
     logging.info('Basemap is not available, can not make plots')
 
-from opendrift.readers.reader import pyproj, Reader, vector_pairs_xy
+from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
 from opendrift.models.physics_methods import PhysicsMethods
 
 
@@ -310,12 +310,12 @@ class OpenDriftSimulation(PhysicsMethods):
         # Convert any strings to lists, for looping
         if isinstance(variables, str):
             variables = [variables]
-        if isinstance(readers, Reader):
+        if isinstance(readers, BaseReader):
             readers = [readers]
 
         for reader in readers:
             # Check if input class is of correct type
-            if not isinstance(reader, Reader):
+            if not isinstance(reader, BaseReader):
                 raise TypeError('Please provide Reader object')
 
             # Check that reader class contains the requested variables

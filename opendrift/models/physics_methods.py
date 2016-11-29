@@ -16,7 +16,7 @@
 
 import logging
 import numpy as np
-from opendrift.readers.reader import pyproj
+from opendrift.readers.basereader import pyproj
 
 
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,

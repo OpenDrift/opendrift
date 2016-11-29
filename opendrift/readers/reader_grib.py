@@ -25,7 +25,7 @@ except:
     raise ImportError('PyGrib library is needed for GRIB files: '
                       'http://jswhit.github.io/pygrib/docs/index.html')
 
-from reader import Reader
+from basereader import BaseReader
 
 # Hardcoded "GRIB-tables" for now.
 grib_variable_mapping = {
@@ -50,7 +50,7 @@ grib_variable_mapping = {
      }
 
 
-class Reader(Reader):
+class Reader(BaseReader):
 
     def __init__(self, filename=None, name=None):
 

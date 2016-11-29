@@ -19,10 +19,10 @@ import logging
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
-from reader import Reader
+from basereader import BaseReader
 
 
-class Reader(Reader):
+class Reader(BaseReader):
 
     def __init__(self, filename=None, name=None):
 

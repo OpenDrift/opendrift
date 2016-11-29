@@ -66,7 +66,7 @@ class fakeproj():
     srs = 'None'
 
 
-class Reader(object):
+class BaseReader(object):
     """Parent Reader class, to be subclassed by specific readers.
     """
 

@@ -26,10 +26,10 @@ except:
     from matplotlib.path import Path
     has_nxutils = False  # For matplotlib version >= 1.2
 
-from reader import Reader
+from basereader import BaseReader
 
 
-class Reader(Reader):
+class Reader(BaseReader):
 
     name = 'basemap_landmask'
     return_block = False  # Vector based, so checks only individual points

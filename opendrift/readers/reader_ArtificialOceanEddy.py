@@ -16,10 +16,10 @@
 
 import numpy as np
 
-from reader import Reader, pyproj
+from basereader import BaseReader, pyproj
 
 
-class Reader(Reader):
+class Reader(BaseReader):
     """Artificial reader, with cyclonic surface current around selected centre.
 
     Purpose is demonstration and testing (unittest).
