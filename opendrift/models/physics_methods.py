@@ -208,7 +208,7 @@ class PhysicsMethods(object):
         return omega
 
     def wave_period(self):
-        if self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
+        if hasattr(self, 'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment') and self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
             # prefer using Tm02:
             T = self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.copy()
         elif self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
@@ -216,6 +216,7 @@ class PhysicsMethods(object):
             T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
         else:
             # calculate Tp from wind speed:
+            logging.debug('Calculating wave period from wind')
             T = (2*np.pi)/self._wave_frequency()
 
         return T

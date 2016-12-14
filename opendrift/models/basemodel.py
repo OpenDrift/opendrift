@@ -1099,7 +1099,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def run(self, time_step=3600, steps=None, time_step_output=None,
             duration=None, end_time=None, outfile=None, export_variables=None,
-            export_buffer_length=100):
+            export_buffer_length=100, stop_on_error=False):
         """Start a trajectory simulation, after initial configuration.
 
         Performs the main loop:
@@ -1416,6 +1416,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.info(e)
                 logging.info(traceback.format_exc())
                 logging.info('========================')
+                if stop_on_error is True:
+                    import sys; sys.exit('Stopping on error')
                 break
 
         self.timer_end('main loop')
