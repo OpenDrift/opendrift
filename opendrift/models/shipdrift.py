@@ -1,0 +1,261 @@
+# This file is part of OpenDrift.
+#
+# OpenDrift is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 2
+#
+# OpenDrift is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright 2015, Knut-Frode Dagestad, MET Norway
+
+# This ShipDrift model is based on
+# Soergaard, E and T Vada (1998);
+# Observations and modelling of drifting ships. Report DnV 96-2011
+# Reprogrammed in Python for OpenDrift by Knut-Frode Dagestad Dec 2016
+
+import os
+import numpy as np
+
+from opendrift.models.basemodel import OpenDriftSimulation
+from opendrift.elements import LagrangianArray
+
+
+class ShipObject(LagrangianArray):
+    """Extending LagrangianArray with variables relevant for leeway objects.
+
+    """
+    variables = LagrangianArray.add_variables([
+        ('orientation', {'dtype': np.int16,
+                         'unit': '1',
+                         'default': 1}),
+        ('length', {'dtype': np.float32,
+                         'unit': 'm',
+                         'default': 80}),
+        ('height', {'dtype': np.float32,
+                         'unit': 'm',
+                         'default': 9}),
+        ('draft', {'dtype': np.float32,  # wet part of ship [m]
+                         'unit': 'm',
+                         'default': 4.0}),
+        ('beam', {'dtype': np.float32,  # width of ship
+                         'unit': 'm',
+                         'default': 10}),
+        ('wind_drag_coeff', {'dtype': np.float32,  # Cf
+                             'unit': '1',
+                             'default': 1}),
+        ('water_drag_coeff', {'dtype': np.float32,  # Cd
+                              'unit': '1',
+                              'default': 1}),
+        ('jibeProbability', {'dtype': np.float32,
+                             'unit': '1/h',
+                             'default': 0.04}),
+       ])
+
+
+class ShipDrift(OpenDriftSimulation):
+    """Demonstration trajectory model based on OpenDrift framework.
+
+    Simply advects a particle (passive tracer with
+    no properties except for position) with the ambient wind.
+    """
+
+    ElementType = ShipObject 
+
+    required_variables = ['x_wind', 'y_wind', 'land_binary_mask',
+                          'x_sea_water_velocity', 'y_sea_water_velocity',
+                          'sea_surface_wave_significant_height',
+                          'sea_surface_wave_period_at_variance_spectral_density_maximum',
+                          'sea_surface_wave_to_direction']
+
+    fallback_values = {'x_wind': 0,
+                       'y_wind': 0,
+                       'x_sea_water_velocity': 0,
+                       'y_sea_water_velocity': 0,
+                       'sea_surface_wave_significant_height': 0,
+                       'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
+                       'sea_surface_wave_to_direction': -1  # Undefined
+                       }
+
+    max_speed = 2  # m/s
+
+    def __init__(self, *args, **kwargs):
+
+        # Read ship properties
+        d = os.path.dirname(os.path.realpath(__file__))
+        w = open(d + '/wforce.dat', 'r')
+        self.wforce = {}
+        w.readline()
+        nbeam = np.int(w.readline().split()[0])
+        self.wforce['nbeam'] = nbeam
+        self.wforce['BL'] = w.readline().split()[0:nbeam]
+        ndraft = np.int(w.readline().split()[0])
+        self.wforce['ndraft'] = ndraft
+        self.wforce['DL'] = w.readline().split()[0:ndraft]
+        nomega = np.int(w.readline().split()[0])
+        self.wforce['nomega'] = nomega
+        self.wforce['omega'] = np.zeros((nomega))
+        self.wforce['F'] = np.zeros((nomega, nbeam, ndraft))
+        self.wforce['D'] = np.zeros((nomega, nbeam, ndraft))
+        for o in range(nomega):
+            self.wforce['omega'][o] = np.float(w.readline().split()[0])
+            for i in range(ndraft):
+                l = w.readline()
+                self.wforce['F'][o, i, :] = l.split()[0:nbeam]
+            for i in range(ndraft):
+                l = w.readline()
+                self.wforce['D'][o, i, :] = l.split()[0:nbeam]
+                
+        super(ShipDrift, self).__init__(*args, **kwargs)
+
+    def seed_elements(self, *args, **kwargs):
+        
+        num = kwargs['number']
+        for var in ['length', 'height', 'draft', 'beam']:
+            if var not in kwargs:
+                kwargs[var] = self.ElementType.variables[var]['default']
+            kwargs[var] = np.atleast_1d(kwargs[var])
+            if len(kwargs[var] == 1):
+                kwargs[var] = kwargs[var]*np.ones(num)
+
+        # Check that beam and height vs length are within expected range
+        dl = kwargs['draft']/kwargs['length']
+        if dl.min() < 0.025 or dl.max() > 0.07:
+            raise ValueError('Ratio of draft to length should be in range '
+                             '0.025 to 0.07, given range is %s-%s' %
+                             (dl.min(), dl.max()))
+        bl = kwargs['beam']/kwargs['length']
+        if bl.min() < 0.12 or bl.max() > 0.18:
+            raise ValueError('Ratio of beam to length should be in range '
+                             '0.12 to 0.18, given range is %s-%s' %
+                             (bl.min(), bl.max()))
+
+        # Calculate drag coefficients based on given ship dimensions
+        # Wind drag coefficient
+        exposed = kwargs['height'] - kwargs['draft']
+        print exposed
+        Cf = np.zeros(num)
+        Cf[exposed>37.2] = 1.4
+        Cf[exposed<=37.2] = 1.045 + 0.016*(exposed[exposed<=37.2] - 15.)
+        Cf[exposed<=15] = 0.700 + 0.023*exposed[exposed<=15]
+        kwargs['wind_drag_coeff'] = Cf
+
+        # Water drag coefficient
+        beta = 2.0*kwargs['draft']/kwargs['length']
+        Cd = np.zeros(num)
+        Cd[beta>.12] = 1.27
+        Cd[beta<=.12] =  1.32 + (1.27-1.32)/0.02 * (beta[beta<=.12]-0.10)
+        Cd[beta<=.10] =  1.38 + (1.32-1.38)/0.02 * (beta[beta<=.10]-0.08)
+        Cd[beta<=.08] =  1.44 + (1.38-1.44)/0.02 * (beta[beta<=.08]-0.06)
+        Cd[beta<=.06] =  1.50 + (1.44-1.50)/0.01 * (beta[beta<=.06]-0.05)
+        kwargs['water_drag_coeff'] = Cd
+
+        # Calling general constructor with calculated values
+        super(ShipDrift, self).seed_elements(*args, **kwargs)
+
+    def update(self):
+
+        Tm = self.wave_period()
+        Hs = self.significant_wave_height()
+
+        # Simply move particles with ambient current
+        self.update_positions(self.environment.x_sea_water_velocity,
+                              self.environment.y_sea_water_velocity)
+
+        # Wind force
+        rho_air = 1.25  # to be checked
+        area_dry = self.elements.length*(self.elements.height -
+                                         self.elements.draft)
+        area_wet = self.elements.length*self.elements.draft
+
+        F_wind = (0.5*rho_air*self.elements.wind_drag_coeff*
+                  area_dry*np.power(self.wind_speed(), 2))
+
+        F_wind_x = F_wind*self.environment.x_wind/self.wind_speed()
+        F_wind_y = F_wind*self.environment.y_wind/self.wind_speed()
+
+        # Wave force
+        rho_water = 1000  # to be checked
+        NSPEC = 100
+        ommin2 = 2.25
+        ommin3 = 7.0
+        ommax = 12.0
+        dom = (ommax-ommin2)/(NSPEC-1)
+        F_wave = np.zeros(self.num_elements_active())  # For each ship
+        scale1 = np.sqrt(9.81/self.elements.length)
+
+        tmp = np.power(2.0*np.pi/Tm, 4)
+        d = tmp*Hs*Hs/(4*np.pi)
+        b = tmp/np.pi
+        s = np.zeros((NSPEC, self.num_elements_active()))
+        for i in range(NSPEC):
+            omi = ommin2 + i*dom
+            omi = omi*scale1
+            s[i, :] = d * np.exp(-b/np.power(omi, 4)) / np.power(omi, 5)  # m2s
+
+        f2 = 0.0
+        d2 = 0.0
+        for i in range(NSPEC):
+            omi = ommin2 + i*dom
+            f1 = f2
+            d1 = d2
+            # Interval 3
+            f2 = 0.5
+            d2 = 4.0*omi*f2
+
+            F_wave = F_wave + 0.5*(f1+f2)*dom*scale1*np.power(s[i,:], 2)
+
+        F_wave = F_wave*rho_water*9.81*self.elements.length
+        beta2 = rho_water*np.sqrt(9.81*self.elements.length)
+
+        # Add calculated wave and wind drift
+        longperiod = Tm > 8.55
+        F_wave[longperiod] = F_wave[longperiod]*.66
+        beta2[longperiod] = beta2[longperiod]*.60
+        medperiod = ((Tm >= 5.7) & (Tm <= 8.55))
+        F_wave[medperiod] = F_wave[medperiod]*(1.0 - 0.34*(Tm[medperiod]-5.7)/2.85)
+        beta2[medperiod] = beta2[medperiod]*(1.0 - 0.34*(Tm[medperiod]-5.7)/2.85)
+
+        # Form drag (water resistance)
+        beta1 = 0.5*rho_water*self.elements.water_drag_coeff*area_wet
+
+        # NB: using wind direction also for waves
+        # TODO: update to use wave direction from model
+        F_wave_x = F_wave*self.environment.x_wind/self.wind_speed()
+        F_wave_y = F_wave*self.environment.y_wind/self.wind_speed()
+
+        # From C-version, but this looks wrong!
+        F_total = np.sqrt(np.power(F_wind_x + F_wind_y, 2) +
+                          np.power(F_wave_x + F_wave_y, 2))
+
+        # Iterate 4 times in order to estimate the effect of
+        # wave damping and form drag 
+        uw_tot = 0
+        uw_dir = 0
+        wave_dir = np.arctan2(self.environment.y_wind, self.environment.x_wind)
+        for i in range(4):
+            # Calc wave damping force in x and y (Ref (1), eq. 6.6.4)
+            f2x = beta2*uw_tot*self.environment.x_wind/self.wind_speed()
+            f2y = beta2*uw_tot*self.environment.y_wind/self.wind_speed()
+            # Calc new drift direction, including effect of
+            # wave damping (Ref (1), eq. 6.6.1)
+            uw_dir = np.arctan2(F_wind_y+F_wave_y-f2y, F_wind_x+F_wave_x-f2x)
+            # Ref (1), eq. 6.6.3 
+            bet2c = beta2*np.cos((wave_dir-uw_dir))
+            # Ref (1), eq. 6.4.3
+            uw_tot = -bet2c/(2.*beta1) + np.sqrt(bet2c*bet2c +
+                                                 4.*beta1*F_total)/(2.*beta1)
+
+        # Finally advect according to wind-wave forces
+        velocity_u = uw_tot*np.cos(uw_dir)
+        velocity_v = uw_tot*np.sin(uw_dir)
+        self.update_positions(velocity_u, velocity_v)
+
+        # Stranding
+        self.deactivate_elements(self.environment.land_binary_mask == 1,
+                                 reason='ship stranded')
