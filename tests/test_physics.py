@@ -90,7 +90,7 @@ class TestRun(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -56, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -66, 1)
         #######################################################
 
         #######################################################
