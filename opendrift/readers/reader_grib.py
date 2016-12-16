@@ -35,13 +35,23 @@ grib_variable_mapping = {
         '49.3': 'x_sea_water_velocity',
         '50.3': 'y_sea_water_velocity',
         '100.3': 'sea_surface_wave_significant_height',
-        '232.3':
+        '231.3':
             'sea_surface_wave_period_at_variance_spectral_density_maximum',
+        '232.3':
+            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
         '247.3': 'sea_surface_wave_stokes_drift_x_velocity',
         '248.3': 'sea_surface_wave_stokes_drift_y_velocity'},
     'ecmf': {  # ECMWF GRIB codes
         '165.128': 'x_wind',
-        '166.128': 'y_wind'},
+        '166.128': 'y_wind',
+        '215.140': 'sea_surface_wave_stokes_drift_x_velocity',
+        '216.140': 'sea_surface_wave_stokes_drift_y_velocity',
+        '229.140': 'sea_surface_wave_significant_height',
+        '231.140':
+            'sea_surface_wave_period_at_variance_spectral_density_maximum',
+        '232.140':
+            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
+        },
     'kwbc': {  # 
         '33.2': 'x_wind',
         '34.2': 'y_wind',
@@ -120,6 +130,8 @@ class Reader(BaseReader):
             centre = centre[0]
         if centre in grib_variable_mapping:
             self.grib_mapping = grib_variable_mapping[centre]
+            logging.info('Parameter codes not defined in mapper: ' +
+                         str(set(marsParams) - set(self.grib_mapping)))
         else:
             raise ValueError(
                 'No GRIB variable mapping defined for centre ' + centre)
@@ -137,10 +149,32 @@ class Reader(BaseReader):
             m = self.grib_mapping.keys()[self.grib_mapping.values().index(var)]
             self.indices[var] = np.where(np.array(marsParams) == m)[0]
             self.levels[var] = levels[self.indices[var]]
-        self.times = [times[k] for k in self.indices[var]]
-        self.start_time = self.times[0]
-        self.end_time = self.times[-1]
-        self.time_step = self.times[-1] - self.times[-2]
+        if len(self.variables) > 0:
+            self.times = [times[k] for k in self.indices[var]]
+            if self.times[0] == self.times[1]:  # Duplicate times
+                logging.info('Duplicate times for variables, using '
+                             'only first occurance.')
+                lasttime = None
+                for i, tim in enumerate(self.times):
+                    if 'newind' not in locals():
+                        newind = [i]
+                        lasttime = tim
+                    else:
+                        if tim != lasttime:
+                            newind.append(i)
+                            lasttime = tim
+                newind = np.array(newind, dtype=np.int32)
+                self.times = [self.times[i] for i in newind]
+                for i, var in enumerate(self.variables):  # Updating indices
+                    self.indices[var] = self.indices[var][newind]
+                    self.levels[var] = levels[self.indices[var]]
+            self.start_time = self.times[0]
+            self.end_time = self.times[-1]
+            self.time_step = self.times[-1] - self.times[-2]
+        else:
+            self.start_time = None
+            self.end_time = None
+            self.time_step = 0
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
