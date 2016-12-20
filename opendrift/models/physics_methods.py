@@ -190,18 +190,23 @@ class PhysicsMethods(object):
         if hasattr(self.environment,
                    'sea_surface_wave_significant_height') and \
                 self.environment.sea_surface_wave_significant_height.max() > 0:
-            return self.environment.sea_surface_wave_significant_height
+            Hs = self.environment.sea_surface_wave_significant_height
         else:
             ## Neumann and Pierson, 1966
             #return 0.2*np.power(self.wind_speed(), 2)/9.81
             # WMO 1998
-            return 0.0246*np.power(self.wind_speed(), 2)
+            Hs = 0.0246*np.power(self.wind_speed(), 2)
+
+        #print '\n Hs %s \n' % str(Hs.mean())
+        return Hs
 
     def _wave_frequency(self):
         # Note: this is angular frequency, 2*pi*fp
         # Pierson-Moskowitz if period not available from readers
         # WMO guide to wave analysis and forecasting pp. 14, WMO (1998)
         windspeed = self.wind_speed()
+        #print '\n windspeed %s \n' % str(windspeed.mean())
+      
         omega = 0.877*9.81/(1.17*windspeed)
         omega[windspeed==0] = 5  # fallback value if no wind speed or Hs
                                      # just to avoid division by zero
@@ -212,15 +217,18 @@ class PhysicsMethods(object):
                 ) and self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
             # prefer using Tm02:
             T = self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.copy()
-        elif hasattr(self.environment, 'self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum'
+            logging.debug('use mean period Tm02 as wave period')
+        elif hasattr(self.environment, 'sea_surface_wave_period_at_variance_spectral_density_maximum'
                 ) and self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
             # alternatively use Tp
             T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
+            logging.debug('use peak period Tp as wave period')
         else:
             # calculate Tp from wind speed:
-            logging.debug('Calculating wave period from wind')
+            logging.debug('Calculating wave period Tm02 from wind')
             T = (2*np.pi)/self._wave_frequency()
 
+        #print '\n T %s \n' % str(T.mean())
         return T
 
     def wave_energy(self):

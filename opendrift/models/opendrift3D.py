@@ -250,7 +250,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
                          valinit=self.steps_output-1, valfmt='%0.0f')
         try:
-            dz = self.config['turbulentmixing']['verticalresolution'] = 2
+            dz = self.config['turbulentmixing']['verticalresolution']
         except:
             dz = 1.
         maxrange = -100
