@@ -21,6 +21,7 @@
 
 import os
 import numpy as np
+import scipy
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
@@ -70,19 +71,19 @@ class ShipDrift(OpenDriftSimulation):
     required_variables = ['x_wind', 'y_wind', 'land_binary_mask',
                           'x_sea_water_velocity', 'y_sea_water_velocity',
                           'sea_surface_wave_significant_height',
-                          'sea_surface_wave_period_at_variance_spectral_density_maximum',
-                          'sea_surface_wave_to_direction']
+                          'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
+                         ]
 
     fallback_values = {'x_wind': 0,
                        'y_wind': 0,
                        'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
-                       'sea_surface_wave_to_direction': -1  # Undefined
+                       'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
                        }
 
     max_speed = 2  # m/s
+    winwav_angle = 20  # Angular offset in degrees
 
     def __init__(self, *args, **kwargs):
 
@@ -93,10 +94,12 @@ class ShipDrift(OpenDriftSimulation):
         w.readline()
         nbeam = np.int(w.readline().split()[0])
         self.wforce['nbeam'] = nbeam
-        self.wforce['BL'] = w.readline().split()[0:nbeam]
+        self.wforce['BL'] = np.array(w.readline().split()[0:nbeam],
+                                     dtype=np.float)
         ndraft = np.int(w.readline().split()[0])
         self.wforce['ndraft'] = ndraft
-        self.wforce['DL'] = w.readline().split()[0:ndraft]
+        self.wforce['DL'] = np.array(w.readline().split()[0:ndraft],
+                                     dtype=np.float)
         nomega = np.int(w.readline().split()[0])
         self.wforce['nomega'] = nomega
         self.wforce['omega'] = np.zeros((nomega))
@@ -111,6 +114,16 @@ class ShipDrift(OpenDriftSimulation):
                 l = w.readline()
                 self.wforce['D'][o, i, :] = l.split()[0:nbeam]
                 
+        wi_omega, wi_BL, wi_DL = \
+            np.meshgrid(self.wforce['omega'],
+                        self.wforce['BL'], self.wforce['DL'], indexing='ij')
+        self.wforce_interpolator_F = scipy.interpolate.LinearNDInterpolator(
+            (wi_omega.ravel(), wi_BL.ravel(), wi_DL.ravel()),
+             self.wforce['F'].ravel())
+        self.wforce_interpolator_D = scipy.interpolate.LinearNDInterpolator(
+            (wi_omega.ravel(), wi_BL.ravel(), wi_DL.ravel()),
+             self.wforce['D'].ravel())
+
         super(ShipDrift, self).__init__(*args, **kwargs)
 
     def seed_elements(self, *args, **kwargs):
@@ -138,7 +151,6 @@ class ShipDrift(OpenDriftSimulation):
         # Calculate drag coefficients based on given ship dimensions
         # Wind drag coefficient
         exposed = kwargs['height'] - kwargs['draft']
-        print exposed
         Cf = np.zeros(num)
         Cf[exposed>37.2] = 1.4
         Cf[exposed<=37.2] = 1.045 + 0.016*(exposed[exposed<=37.2] - 15.)
@@ -155,6 +167,9 @@ class ShipDrift(OpenDriftSimulation):
         Cd[beta<=.06] =  1.50 + (1.44-1.50)/0.01 * (beta[beta<=.06]-0.05)
         kwargs['water_drag_coeff'] = Cd
 
+        if 'orientation' not in kwargs:
+            kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
+
         # Calling general constructor with calculated values
         super(ShipDrift, self).seed_elements(*args, **kwargs)
 
@@ -162,6 +177,8 @@ class ShipDrift(OpenDriftSimulation):
 
         Tm = self.wave_period()
         Hs = self.significant_wave_height()
+        dl = self.elements.draft/self.elements.length
+        bl = self.elements.beam/self.elements.length
 
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
@@ -172,15 +189,17 @@ class ShipDrift(OpenDriftSimulation):
         area_dry = self.elements.length*(self.elements.height -
                                          self.elements.draft)
         area_wet = self.elements.length*self.elements.draft
-
+        # Wind force
         F_wind = (0.5*rho_air*self.elements.wind_drag_coeff*
                   area_dry*np.power(self.wind_speed(), 2))
-
+        # Decompose wind
         F_wind_x = F_wind*self.environment.x_wind/self.wind_speed()
         F_wind_y = F_wind*self.environment.y_wind/self.wind_speed()
+        F_wind_x[self.wind_speed()==0] = 0
+        F_wind_y[self.wind_speed()==0] = 0
 
         # Wave force
-        rho_water = 1000  # to be checked
+        rho_water = 1025
         NSPEC = 100
         ommin2 = 2.25
         ommin3 = 7.0
@@ -204,17 +223,29 @@ class ShipDrift(OpenDriftSimulation):
             omi = ommin2 + i*dom
             f1 = f2
             d1 = d2
-            # Interval 3
-            f2 = 0.5
-            d2 = 4.0*omi*f2
+            #print omi - ommin3, 'should be positive'
+            #print omi
+            if (omi < ommin3):
+                f2 = self.wforce_interpolator_F(omi, bl, dl)
+                d2 = self.wforce_interpolator_D(omi, bl, dl)
+                print 'Interpolator'
+            else:
+                # Interval 3
+                f2 = 0.5
+                d2 = 4.0*omi*f2
+            print f2, 'f2'
+            print d2, 'd2'
 
             F_wave = F_wave + 0.5*(f1+f2)*dom*scale1*np.power(s[i,:], 2)
 
         F_wave = F_wave*rho_water*9.81*self.elements.length
         beta2 = rho_water*np.sqrt(9.81*self.elements.length)
+        print F_wave, 'F_wave'
+        print F_wind, 'F_wind'
 
         # Add calculated wave and wind drift
         longperiod = Tm > 8.55
+        F_wave_b = F_wave.copy()
         F_wave[longperiod] = F_wave[longperiod]*.66
         beta2[longperiod] = beta2[longperiod]*.60
         medperiod = ((Tm >= 5.7) & (Tm <= 8.55))
@@ -224,24 +255,23 @@ class ShipDrift(OpenDriftSimulation):
         # Form drag (water resistance)
         beta1 = 0.5*rho_water*self.elements.water_drag_coeff*area_wet
 
-        # NB: using wind direction also for waves
-        # TODO: update to use wave direction from model
-        F_wave_x = F_wave*self.environment.x_wind/self.wind_speed()
-        F_wave_y = F_wave*self.environment.y_wind/self.wind_speed()
-
-        # From C-version, but this looks wrong!
-        F_total = np.sqrt(np.power(F_wind_x + F_wind_y, 2) +
-                          np.power(F_wave_x + F_wave_y, 2))
+        # Wave direction is taken as wind direction plus offset +/- 20 degrees
+        offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
+        wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
+                                                   self.environment.x_wind)
+        F_wave_x = F_wave*np.cos(wave_dir)
+        F_wave_y = F_wave*np.sin(wave_dir)
+        F_total = np.sqrt(np.power(F_wind_x + F_wave_x, 2) +
+                          np.power(F_wind_y + F_wave_y, 2))
 
         # Iterate 4 times in order to estimate the effect of
         # wave damping and form drag 
         uw_tot = 0
         uw_dir = 0
-        wave_dir = np.arctan2(self.environment.y_wind, self.environment.x_wind)
         for i in range(4):
             # Calc wave damping force in x and y (Ref (1), eq. 6.6.4)
-            f2x = beta2*uw_tot*self.environment.x_wind/self.wind_speed()
-            f2y = beta2*uw_tot*self.environment.y_wind/self.wind_speed()
+            f2x = beta2*uw_tot*np.cos(wave_dir)
+            f2y = beta2*uw_tot*np.sin(wave_dir)
             # Calc new drift direction, including effect of
             # wave damping (Ref (1), eq. 6.6.1)
             uw_dir = np.arctan2(F_wind_y+F_wave_y-f2y, F_wind_x+F_wave_x-f2x)
