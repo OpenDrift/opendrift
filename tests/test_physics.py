@@ -87,7 +87,7 @@ class TestRun(unittest.TestCase):
         o.config['turbulentmixing']['timestep'] = 4
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_property('z')
-        o.plot_vertical_distribution()
+        #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
         self.assertAlmostEqual(o.elements.z.min(), -56, 1)
@@ -104,7 +104,7 @@ class TestRun(unittest.TestCase):
         o.config['turbulentmixing']['verticalresolution'] = 2
         o.config['turbulentmixing']['timestep'] = 4
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
-        o.plot_vertical_distribution()
+        #o.plot_vertical_distribution()
         self.assertAlmostEqual(o.elements.z.min(), -62.0, 1)
         #######################################################
 
