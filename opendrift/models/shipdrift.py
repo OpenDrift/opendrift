@@ -228,20 +228,15 @@ class ShipDrift(OpenDriftSimulation):
             if (omi < ommin3):
                 f2 = self.wforce_interpolator_F(omi, bl, dl)
                 d2 = self.wforce_interpolator_D(omi, bl, dl)
-                print 'Interpolator'
             else:
                 # Interval 3
                 f2 = 0.5
                 d2 = 4.0*omi*f2
-            print f2, 'f2'
-            print d2, 'd2'
 
             F_wave = F_wave + 0.5*(f1+f2)*dom*scale1*np.power(s[i,:], 2)
 
         F_wave = F_wave*rho_water*9.81*self.elements.length
         beta2 = rho_water*np.sqrt(9.81*self.elements.length)
-        print F_wave, 'F_wave'
-        print F_wind, 'F_wind'
 
         # Add calculated wave and wind drift
         longperiod = Tm > 8.55

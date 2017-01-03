@@ -19,11 +19,12 @@ o.add_readers_from_list([
 lon = 5.0; lat = 63.0; # Outside Bergen
 
 #time = reader_arome.start_time
-time = datetime(2016, 12, 20, 17, 0)
-#time = datetime.now()
+#time = datetime(2016, 12, 20, 17, 0)
+time = datetime.now()
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=1000, number=5, time=time)
+o.seed_elements(lon, lat, radius=1000, number=1000, time=time,
+                length=80.0, beam=10.0, height=9.0, draft=4.0)
 
 print o.elements_scheduled
 print o
