@@ -180,7 +180,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                          (sub_dmin, sub_dmax))
             kwargs['diameter'] = np.random.uniform(sub_dmin, sub_dmax, number)
 
-       super(OpenOil3D, self).seed_elements(*args, **kwargs)
+        super(OpenOil3D, self).seed_elements(*args, **kwargs)
 
     def particle_radius(self):
         """Calculate radius of entained particles.
