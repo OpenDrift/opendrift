@@ -34,7 +34,7 @@ class Oil3D(Oil):
                                       'default': 0.1}),
         ('diameter', {'dtype': np.float32,  # Particle diameter
                       'units': 'm',
-                      'default': 0.00001})
+                      'default': 1e-5})
         ])
 
 
@@ -105,7 +105,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 latitude = float(min=-90, max=90, default=60)
                 time = string(default='%s')
                 oil_type = option(%s, default=%s)
-                subsea_diameter = float(min=0.00000001, max=1, default=0.0005)
+                droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
+                droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
         [processes]
             turbulentmixing = boolean(default=True)
             verticaladvection = boolean(default=False)
@@ -124,6 +125,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             verticalresolution = float(min=0.01, max=10, default = 2.)
             diffusivitymodel = string(default='environment')
             TSprofiles = boolean(default=False)
+            droplet_diameter_min_wavebreaking = float(default=1e-6, min=1e-8, max=1)
+            droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
 
     ''' % (datetime.now().strftime('%Y-%d-%m %H:00'), oil_types, default_oil)
 
@@ -153,9 +156,14 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             number = 1
         else:
             number = kwargs['number']
+        if 'diameter' in kwargs:
+            logging.info('Droplet diameter is provided, and will '
+                         'be kept constant during simulation')
+            self.keep_droplet_diameter = True
+        else:
+            self.keep_droplet_diameter = False
         if 'z' not in kwargs:
             kwargs['z'] = 0
-        subsea_diameter = self.config['input']['spill']['subsea_diameter']
         if kwargs['z'] == 'seafloor':
             z = -np.ones(number)
         else:
@@ -163,20 +171,16 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         if len(z) == 1:
             z = z*np.ones(number)  # Convert scalar z to array
         subsea = z < 0
-        if np.sum(subsea) > 0:
-            logging.info('Setting particle diameter to %s m for elements '
-                         'seeded below sea surface.' % subsea_diameter)
-            if 'diameter' not in kwargs:
-                kwargs['diameter'] = subsea_diameter
-            else:
-                logging.warning('Oil droplet diameter is provided, but will be'
-                                ' overridden by elements seeded below surface')
-                given_diameter = np.atleast_1d(kwargs['diameter'])
-                if len(given_diameter) == 1:  # Convert scalar z to array
-                    given_diameter = given_diameter*np.ones(number)
-                kwargs['diameter'] = given_diameter
-                kwargs['diameter'][z<0] = subsea_diameter
-        super(OpenOil3D, self).seed_elements(*args, **kwargs)
+        if np.sum(subsea) > 0 and 'diameter' not in kwargs:
+            # Droplet min and max for particles seeded below sea surface
+            sub_dmin = self.config['input']['spill']['droplet_diameter_min_subsea']
+            sub_dmax = self.config['input']['spill']['droplet_diameter_max_subsea']
+            logging.info('Using particle diameters between %s and %s m for '
+                         'elements seeded below sea surface.' %
+                         (sub_dmin, sub_dmax))
+            kwargs['diameter'] = np.random.uniform(sub_dmin, sub_dmax, number)
+
+       super(OpenOil3D, self).seed_elements(*args, **kwargs)
 
     def particle_radius(self):
         """Calculate radius of entained particles.
@@ -279,6 +283,10 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         self.oil_entrainment_probability = \
             self.oil_wave_entrainment_rate()*\
                 self.config['turbulentmixing']['timestep']
+        # Calculate a random droplet diameter for each particle,
+        # to be used if this particle gets entrained
+        self.droplet_diamenter_if_entrained = \
+            self.get_wave_breaking_droplet_diameter(self.num_elements_active())
 
     def surface_interaction(self, time_step_seconds, alpha=1.5):
         """Mix surface oil into water column."""
@@ -294,6 +302,25 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                         random_number<self.oil_entrainment_probability)
         self.elements.z[entrained] = \
             -self.config['turbulentmixing']['verticalresolution']/2.
+        if self.keep_droplet_diameter is False:
+            # Give newly entrained droplets a random diameter
+            self.elements.diameter[entrained] = \
+                self.droplet_diamenter_if_entrained[entrained]
+
+    def get_wave_breaking_droplet_diameter(self, number):
+        if not hasattr(self, 'droplet_spectrum'):
+            # Generate droplet spectrum, if not already done
+            logging.info('Generating wave breaking droplet size spectrum')
+            logstep = 0.9
+            self.droplet_spectrum = \
+                [self.config['turbulentmixing']['droplet_diameter_max_wavebreaking']]
+            while self.droplet_spectrum[-1] > \
+                    self.config['turbulentmixing']['droplet_diameter_min_wavebreaking']/logstep:
+                self.droplet_spectrum.append(logstep*self.droplet_spectrum[-1])
+            self.droplet_spectrum = np.array(self.droplet_spectrum)
+
+        return self.droplet_spectrum[np.array(np.random.randint(0, len(
+                                     self.droplet_spectrum), size=number))]
 
     def resurface_elements(self, minimum_depth=None):
         """Oil elements reaching surface (or above) form slick, not droplet"""

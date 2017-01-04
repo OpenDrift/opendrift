@@ -476,7 +476,7 @@ class TestRun(unittest.TestCase):
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -146.0, 2)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -107.0, 2)  # After some rising
 
     def test_seed_below_reader_coverage(self):
         o = OpenOil3D(loglevel=0)
@@ -492,7 +492,7 @@ class TestRun(unittest.TestCase):
         o.config['input']['spill']['subsea_diameter'] = 0.005
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0], -346.0, 2)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -306.0, 2)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil3D(loglevel=0)
@@ -509,7 +509,7 @@ class TestRun(unittest.TestCase):
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -146.0, 2)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -107.0, 2)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
