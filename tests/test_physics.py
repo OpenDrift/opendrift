@@ -34,30 +34,32 @@ class TestRun(unittest.TestCase):
     """Tests for some physical parameterisations"""
 
     def test_droplet_diameters(self):
-        o = OpenOil3D(loglevel=50, weathering_model='default')
+        o = OpenOil3D(loglevel=0, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
-        o.fallback_values['sea_surface_wave_significant_height'] = 5.5
+        o.fallback_values['sea_surface_wave_significant_height'] = 3
         o.config['turbulentmixing']['verticalresolution'] = 2
         o.config['turbulentmixing']['timestep'] = 4
         # Setting droplet size range for subsea blowout
         o.config['input']['spill']['droplet_diameter_min_subsea'] = 0.0005
         o.config['input']['spill']['droplet_diameter_max_subsea'] = 0.005
         # Setting droplet size range for wave breaking
-        o.config['turbulentmixing']['droplet_diameter_min_wavebreaking'] = 1e-6
+        o.config['turbulentmixing']['droplet_diameter_min_wavebreaking'] = 1e-5
         o.config['turbulentmixing']['droplet_diameter_max_wavebreaking'] = 1e-3
-        o.seed_elements(4, 60, number=100, time=datetime.now(), z=-200)
-        o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
-
+        # Number distribution frm Delvigne & Sweeney (s=-2.3):
+        o.config['turbulentmixing']['droplet_size_exponent'] = -2.3
+        o.seed_elements(4, 60, number=100, time=datetime.now(), z=-100)
+        o.run(duration=timedelta(hours=3), time_step_output=900, time_step=900,
+              stop_on_error=True)
         d_start = o.history['diameter'][:,0]
         d_end = o.history['diameter'][:,-1]
-        # Check droplet sizes before wavebreaking
+        # Check initial droplet sizes (expect range 0.0005 to 0.005)
         self.assertTrue(d_start.min() > o.config['input']['spill']\
                                     ['droplet_diameter_min_subsea'])
         self.assertTrue(d_start.max() < o.config['input']['spill']\
                                     ['droplet_diameter_max_subsea'])
         self.assertTrue(d_end.min() > o.config['turbulentmixing']\
-        # Check droplet sizes after wavebreaking
+        # Check final droplet sizes (expect 1e-5 to 1e-3 after wavebreaking)
                                     ['droplet_diameter_min_wavebreaking'])
         self.assertTrue(d_end.max() < o.config['turbulentmixing']\
                                     ['droplet_diameter_max_wavebreaking'])
@@ -72,6 +74,7 @@ class TestRun(unittest.TestCase):
         # Setting droplet size range for subsea blowout
         o.config['input']['spill']['droplet_diameter_min_subsea'] = 0.0005
         o.config['input']['spill']['droplet_diameter_max_subsea'] = 0.005
+        o.config['turbulentmixing']['droplet_size_exponent'] = -2.3
         # Setting droplet size range for wave breaking
         o.config['turbulentmixing']['droplet_diameter_min_wavebreaking'] = 1e-6
         o.config['turbulentmixing']['droplet_diameter_max_wavebreaking'] = 1e-3
@@ -145,7 +148,7 @@ class TestRun(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -62, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -58, 1)
         #######################################################
 
         #######################################################
@@ -160,7 +163,7 @@ class TestRun(unittest.TestCase):
         o.config['turbulentmixing']['timestep'] = 4
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -54.0, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -52.0, 1)
         #######################################################
 
 
@@ -179,7 +182,7 @@ class TestRun(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -48.0, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -60.0, 1)
         ########################################################
 
 

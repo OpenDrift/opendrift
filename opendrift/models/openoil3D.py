@@ -125,9 +125,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             verticalresolution = float(min=0.01, max=10, default = 2.)
             diffusivitymodel = string(default='environment')
             TSprofiles = boolean(default=False)
-            droplet_diameter_min_wavebreaking = float(default=1e-6, min=1e-8, max=1)
+            droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
             droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
-
+            droplet_size_exponent = float(default=0, min=-10, max=10)
     ''' % (datetime.now().strftime('%Y-%d-%m %H:00'), oil_types, default_oil)
 
     def __init__(self, *args, **kwargs):
@@ -287,6 +287,12 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # to be used if this particle gets entrained
         self.droplet_diamenter_if_entrained = \
             self.get_wave_breaking_droplet_diameter(self.num_elements_active())
+        # Uncomment lines below to plot droplet size distribution at each step
+        #import matplotlib.pyplot as plt
+        #plt.hist(self.droplet_diamenter_if_entrained, 200)
+        #plt.gca().set_xscale("log")
+        #plt.gca().set_yscale("log")
+        #plt.show()
 
     def surface_interaction(self, time_step_seconds, alpha=1.5):
         """Mix surface oil into water column."""
@@ -308,19 +314,21 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 self.droplet_diamenter_if_entrained[entrained]
 
     def get_wave_breaking_droplet_diameter(self, number):
-        if not hasattr(self, 'droplet_spectrum'):
+        if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum, if not already done
             logging.info('Generating wave breaking droplet size spectrum')
-            logstep = 0.9
-            self.droplet_spectrum = \
-                [self.config['turbulentmixing']['droplet_diameter_max_wavebreaking']]
-            while self.droplet_spectrum[-1] > \
-                    self.config['turbulentmixing']['droplet_diameter_min_wavebreaking']/logstep:
-                self.droplet_spectrum.append(logstep*self.droplet_spectrum[-1])
-            self.droplet_spectrum = np.array(self.droplet_spectrum)
+            s = self.config['turbulentmixing']['droplet_size_exponent']
+            dmax = self.config['turbulentmixing']['droplet_diameter_max_wavebreaking']
+            dmin = self.config['turbulentmixing']['droplet_diameter_min_wavebreaking']
+            # Note: a long array of diameters is required for 
+            # sufficient resolution at both ends of logarithmic scale.
+            # Could perhaps use logspace instead of linspace(?)
+            self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
+            spectrum = self.droplet_spectrum_diameter**s
+            self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
 
-        return self.droplet_spectrum[np.array(np.random.randint(0, len(
-                                     self.droplet_spectrum), size=number))]
+        return np.random.choice(self.droplet_spectrum_diameter, size=number,
+                                p=self.droplet_spectrum_pdf)
 
     def resurface_elements(self, minimum_depth=None):
         """Oil elements reaching surface (or above) form slick, not droplet"""
