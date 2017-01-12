@@ -199,7 +199,41 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.timer_start('total time')
         self.timer_start('configuration')
+        self.add_config('input:spill:lon',
+                        'float(min=-360, max=360, default=5)',
+                        comment='Longitude of the spill')
+        self.add_config('input:spill:lat',
+                        'float(min=-90, max=90, default=60)',
+                        comment='Latitude of the spill')
+        #self.add_config('[processes]\nevaporation',
+        self.add_config('processes:evaporation',
+                        'boolean(default=True)',
+                        comment='Turn evaporation on or off')
         logging.info('OpenDriftSimulation initialised')
+
+    def add_config(self, key, value, comment):
+        cs = ''  # configstring
+        for i, s in enumerate(key.split(':')):
+            if i < len(key.split(':')) - 1:
+                cs += '\n' + '['*(i+1) + s + ']'*(i+1)
+            else:
+                cs += '\n\t' + s + ' = ' + value
+        newconf = configobj.ConfigObj(configspec=cs.split('\n'))
+        newconf.validate(validate.Validator())
+        if not hasattr(self, 'config2'):
+            self.config2 = newconf
+        else:
+            self.config2.merge(newconf)
+            self.config2.configspec.merge(newconf.configspec)
+
+    def set_config(self, key, value):
+        cs = ''  # configstring
+        for i, s in enumerate(key.split(':')):
+            if i < len(key.split(':')) - 1:
+                cs += '['*(i+1) + s + ']'*(i+1)
+            else:
+                cs += '\n\t' + s + ' = ' + value
+ 
 
     def prepare_run(self):
         pass  # to be overloaded when needed

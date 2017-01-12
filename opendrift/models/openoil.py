@@ -114,8 +114,8 @@ class OpenOil(OpenDriftSimulation):
 
     # Configuration
     configspec = '''
-        [input]
-            readers = list(min=1, default=list(''))
+        [input]  # inp-comment
+            readers = list(min=1, default=list(''))  # List of readers
             [[spill]]
                 longitude = float(min=-360, max=360, default=5)
                 latitude = float(min=-90, max=90, default=60)
