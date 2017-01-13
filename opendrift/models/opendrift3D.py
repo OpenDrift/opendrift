@@ -61,7 +61,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             [turbulentmixing]
                 timestep = float(min=0.1, max=3600, default=4.)
                 verticalresolution = float(min=0.01, max=10, default = 2.)
-                diffusivitymodel = string(default='environment')
+                diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'gls_tke', default='environment')
                 TSprofiles = boolean(default=True)
                 '''
         self._add_configstring(configspec_oceandrift3D)
