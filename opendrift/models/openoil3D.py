@@ -103,14 +103,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 oil_type = option(%s, default=%s)
                 droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
                 droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
-        [processes]
-            turbulentmixing = boolean(default=True)
-            verticaladvection = boolean(default=False)
         [turbulentmixing]
-            timestep = float(min=0.1, max=3600, default=4.)
-            verticalresolution = float(min=0.01, max=10, default = 2.)
-            diffusivitymodel = string(default='environment')
-            TSprofiles = boolean(default=False)
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
             droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
             droplet_size_exponent = float(default=0, min=-10, max=10)
@@ -133,7 +126,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         self.oiltypes = oiltypes
         self.oiltypes_linenumbers = linenumbers
 
-        self.add_configstring(self.configspecOO3D)
+        self._add_configstring(self.configspecOO3D)
 
         # Calling general constructor of parent class
         super(OpenOil3D, self).__init__(*args, **kwargs)

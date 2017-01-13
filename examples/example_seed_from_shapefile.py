@@ -23,7 +23,7 @@ o.seed_from_shapefile(o.test_data_folder() +
 
 o.fallback_values['x_wind'] = -4  # Constant wind drift
 o.fallback_values['y_wind'] = 8
-o.config['drift']['wind_uncertainty'] = 4 # Adding some diffusion
+o.set_config('drift:wind_uncertainty', 4) # Adding some diffusion
 
 # Running model
 o.run(steps=50, time_step=3600)

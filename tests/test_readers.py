@@ -57,7 +57,7 @@ class TestReaders(unittest.TestCase):
     def test_automatic_basemap(self):
         self.assertRaises(ValueError, o.run)
         o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
-        o.basemap_resolution = 'c'  # To make test fast
+        o.set_config('general:basemap_resolution', 'c')  # To make test fast
         o.run(steps=2)
 
     def test_reader_coverage(self):

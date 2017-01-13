@@ -126,7 +126,7 @@ class OpenOil(OpenDriftSimulation):
 
     def __init__(self, weathering_model='default', *args, **kwargs):
 
-        self.add_configstring(self.configspec)
+        self._add_configstring(self.configspec)
 
         if weathering_model == 'noaa':
             try:

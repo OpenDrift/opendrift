@@ -62,7 +62,7 @@ class OceanDrift3D(OpenDrift3DSimulation):
                        'sea_floor_depth_below_sea_level': 10000
                        }
 
-    def update_terminal_velocity(self):
+    def update_terminal_velocity(self, *args, **kwargs):
         '''
         Terminal velocity due to buoyancy or sedimentation rate,
         to be used in turbulent mixing module.

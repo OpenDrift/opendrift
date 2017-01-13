@@ -44,13 +44,13 @@ o.seed_elements(lon, lat, radius=3000, number=1000, time=time, z=0,
                 oiltype='EKOFISK')
 
 # Adjusting some configuration
-o.config['processes']['dispersion'] = True
-o.config['processes']['evaporation'] = True
-o.config['processes']['emulsification'] = True
-o.config['processes']['turbulentmixing'] = True
-o.config['turbulentmixing']['TSprofiles'] = False
-o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983'
-o.config['turbulentmixing']['timestep'] = 2. # seconds
+o.set_config('processes:dispersion', True)
+o.set_config('processes:evaporation', True)
+o.set_config('processes:emulsification', True)
+o.set_config('processes:turbulentmixing', True)
+o.set_config('turbulentmixing:TSprofiles', False)
+o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983')
+o.set_config('turbulentmixing:timestep', 2.) # seconds
 
 # Running model (until end of driver data)
 o.run(steps=4*20, time_step=900, export_buffer_length=10,
@@ -58,7 +58,6 @@ o.run(steps=4*20, time_step=900, export_buffer_length=10,
 
 # Print and plot results
 print o
-o.plot_vertical_distribution()
 o.plot_oil_budget()
 o.plot_property('water_fraction')
 o.plot_property('water_fraction', mean=True)

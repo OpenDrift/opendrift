@@ -39,14 +39,15 @@ o.seed_elements(lon, lat, radius=50, number=3000, time=time,
                 wind_drift_factor=.02)
 
 print o
+print o.list_configspec()  # Show configuration values and options
 
 # Adjusting some configuration
-o.config['processes']['diffusion'] = True
-o.config['processes']['dispersion'] = True
-o.config['processes']['evaporation'] = True
-o.config['processes']['emulsification'] = True
-o.config['drift']['current_uncertainty'] = .1
-o.config['drift']['wind_uncertainty'] = 2
+o.set_config('processes:diffusion', True)
+o.set_config('processes:dispersion', True)
+o.set_config('processes:evaporation', True)
+o.set_config('processes:emulsification', True)
+o.set_config('drift:current_uncertainty', .1)
+o.set_config('drift:wind_uncertainty', 1)
 
 # Running model (until end of driver data)
 o.run(end_time=reader_norkyst.end_time, time_step=1800,

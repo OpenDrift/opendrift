@@ -59,12 +59,12 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 turbulentmixing = boolean(default=True)
                 verticaladvection = boolean(default=True)
             [turbulentmixing]
-                timestep = float(min=0.1, max=3600, default=1.)
-                verticalresolution = float(min=0.01, max=10, default = 1.)
+                timestep = float(min=0.1, max=3600, default=4.)
+                verticalresolution = float(min=0.01, max=10, default = 2.)
                 diffusivitymodel = string(default='environment')
                 TSprofiles = boolean(default=True)
                 '''
-        self.add_configstring(configspec_oceandrift3D)
+        self._add_configstring(configspec_oceandrift3D)
 
         # Calling general constructor of parent class
         super(OpenDrift3DSimulation, self).__init__(*args, **kwargs) 
@@ -161,16 +161,25 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
         # get profiles of salinity and temperature
         # (to save interpolation time in the inner loop)
-        if self.get_config('turbulentmixing:TSprofiles') is True:
+        if (self.get_config('turbulentmixing:TSprofiles') is True 
+            and 'sea_water_salinity' in self.required_variables):
             Sprofiles = self.environment_profiles['sea_water_salinity']
             Tprofiles = \
                 self.environment_profiles['sea_water_temperature']
+            if ('sea_water_salinity' in self.fallback_values and
+                Sprofiles.min() == Sprofiles.max()):
+                logging.debug('Salinity and temperature are fallback values, '
+                              'skipping TSprofile')
+                Sprofiles = None
+                Tprofiles = None
+        else:
+            Sprofiles = None
+            Tprofiles = None
 
         # prepare vertical interpolation coordinates
         z_i = range(Kprofiles.shape[0])
         z_index = interp1d(-self.environment_profiles['z'],
                            z_i, bounds_error=False)
-
         # internal loop for fast time step of vertical mixing model
         # binned random walk needs faster time step compared
         # to horizontal advection

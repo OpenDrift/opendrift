@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 from opendrift.readers import reader_basemap_landmask
 from opendrift.models.shipdrift import ShipDrift
 
-o = ShipDrift(loglevel=0, basemap_resolution='i')
+o = ShipDrift(loglevel=0)
+o.set_config('general:basemap_resolution', 'h')
 
 o.add_readers_from_list([
     #'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',

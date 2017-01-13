@@ -44,10 +44,10 @@ o.seed_elements(lon, lat, radius=3000, number=500, time=time, z=0,
                 #oiltype='ALGERIAN CONDENSATE')
 
 # Adjusting some configuration
-o.config['processes']['evaporation'] = True
-o.config['processes']['emulsification'] = True
-o.config['processes']['turbulentmixing'] = True
-o.config['turbulentmixing']['timestep'] = 5
+o.set_config('processes:evaporation',  True)
+o.set_config('processes:emulsification',  True)
+o.set_config('processes:turbulentmixing',  True)
+o.set_config('turbulentmixing:timestep',  5)
 
 # Running model (until end of driver data)
 o.run(steps=4*40, time_step=900,

@@ -21,8 +21,8 @@ time = [reader_norkyst.start_time,
 # Seed oil elements at defined position and time
 o.seed_elements(lon, lat, z='seafloor', radius=5, number=3000, time=time)
 
-o.config['processes']['diffusion'] = False
-o.config['processes']['turbulentmixing'] = True  # Otherwise also no updrift
+o.set_config('processes:diffusion', False)
+o.set_config('processes:turbulentmixing', True)  # Otherwise also no updrift
 
 # Running model
 o.run(steps=12*2, time_step=300, time_step_output=300)

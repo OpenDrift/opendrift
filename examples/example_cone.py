@@ -41,10 +41,10 @@ o.seed_elements(lon, lat, radius=[1000, 10000], number=5000,
 print o
 
 # Adjusting some configuration
-o.config['processes']['diffusion'] = True
-o.config['processes']['dispersion'] = True
-o.config['processes']['evaporation'] = True
-o.config['processes']['emulsification'] = True
+o.set_config('processes:diffusion', True)
+o.set_config('processes:dispersion', True)
+o.set_config('processes:evaporation', True)
+o.set_config('processes:emulsification', True)
 
 # Running model (until end of driver data)
 o.run(steps=66*2, time_step=1800)

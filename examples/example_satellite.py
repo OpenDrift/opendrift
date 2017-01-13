@@ -28,12 +28,12 @@ o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_2
     num_elements=2000)
 
 # Adjusting some configuration
-o.config['processes']['diffusion'] = True
-o.config['processes']['dispersion'] = True
-o.config['processes']['evaporation'] = False
-o.config['processes']['emulsification'] = True
-o.config['drift']['current_uncertainty'] = .3  # Diffusion
-o.config['drift']['wind_uncertainty'] = 2
+o.set_config('processes:diffusion', True)
+o.set_config('processes:dispersion', True)
+o.set_config('processes:evaporation', False)
+o.set_config('processes:emulsification', True)
+o.set_config('drift:current_uncertainty', .3)  # Diffusion
+o.set_config('drift:wind_uncertainty', 2)
 
 # Running model (until end of driver data)
 o.run(steps=66*4, time_step=900, outfile='openoil.nc')

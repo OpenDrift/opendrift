@@ -107,18 +107,6 @@ class PelagicEggDrift(OpenDrift3DSimulation):
     status_colors = {'initial': 'green', 'active': 'blue',
                      'hatched': 'red', 'eaten': 'yellow', 'died': 'magenta'}
 
-    # Configuration
-    configspec = '''
-        [processes]
-            turbulentmixing = boolean(default=True)
-            verticaladvection = boolean(default=False)
-        [turbulentmixing]
-            timestep = float(min=0.1, max=3600, default=1.)
-            verticalresolution = float(min=0.01, max=10, default = 1.)
-            diffusivitymodel = string(default='environment')
-            TSprofiles = boolean(default=True)
-
-    '''
 
     def __init__(self, *args, **kwargs):
 
@@ -220,7 +208,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         self.advect_ocean_current()
 
         # Vertical advection
-        if self.config['processes']['verticaladvection'] is True:
+        if self.get_config('processes:verticaladvection') is True:
             self.vertical_advection()
 
         # Biological behaviour

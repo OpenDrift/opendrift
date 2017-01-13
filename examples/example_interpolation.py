@@ -35,13 +35,13 @@ o.seed_elements(lon, lat, radius=50, number=5000, time=time)
 
 
 # Adjusting some configuration
-o.config['processes']['diffusion'] = True
-o.config['processes']['dispersion'] = False
-o.config['processes']['evaporation'] = False
-o.config['processes']['emulsification'] = False
-o.config['drift']['current_uncertainty'] = .1
-o.config['drift']['wind_uncertainty'] = 2
-o.config['drift']['relative_wind'] = False
+o.set_config('processes:diffusion',  True)
+o.set_config('processes:dispersion',  False)
+o.set_config('processes:evaporation',  False)
+o.set_config('processes:emulsification',  False)
+o.set_config('drift:current_uncertainty',  .1)
+o.set_config('drift:wind_uncertainty',  2)
+o.set_config('drift:relative_wind',  False)
 
 for r in o.readers:
     o.readers[r].interpolation = 'ndimage'
@@ -53,13 +53,13 @@ o.run(steps=66*2, time_step=1800)
 o2 = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_basemap, reader_norkyst, reader_arome])
 o2.seed_elements(lon, lat, radius=50, number=5000, time=time)
-o2.config['processes']['diffusion'] = True
-o2.config['processes']['dispersion'] = False
-o2.config['processes']['evaporation'] = False
-o2.config['processes']['emulsification'] = False
-o2.config['drift']['current_uncertainty'] = .1
-o2.config['drift']['wind_uncertainty'] = 2
-o2.config['drift']['relative_wind'] = False
+o2.set_config('processes:diffusion',  True)
+o2.set_config('processes:dispersion',  False)
+o2.set_config('processes:evaporation',  False)
+o2.set_config('processes:emulsification',  False)
+o2.set_config('drift:current_uncertainty',  .1)
+o2.set_config('drift:wind_uncertainty',  2)
+o2.set_config('drift:relative_wind',  False)
 
 for r in o.readers:
     o.readers[r].interpolation = 'linearND'

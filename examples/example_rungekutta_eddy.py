@@ -21,14 +21,14 @@ o.add_reader([fake_eddy, reader_basemap])
 lon = 2.0; lat = 63.0; # Close to Station M
 
 # First run, with Euler scheme:
-o.config['drift']['scheme'] = 'euler'
+o.set_config('drift:scheme', 'euler')
 o.seed_elements(lon, lat, radius=0, number=1, time=datetime(2015,1,1))
 o.run(steps=300, time_step=3600)
 
 # Second run, with Runge-Kutta scheme:
 o2 = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([fake_eddy, reader_basemap])
-o2.config['drift']['scheme'] = 'runge-kutta'
+o2.set_config('drift:scheme', 'runge-kutta')
 o2.seed_elements(lon, lat, radius=0, number=1, time=datetime(2015,1,1))
 o2.run(steps=300, time_step=3600)
 

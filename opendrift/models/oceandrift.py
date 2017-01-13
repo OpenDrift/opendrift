@@ -55,11 +55,11 @@ class OceanDrift(OpenDriftSimulation):
 
     def __init__(self, *args, **kwargs):
 
-        self.add_config('drift:max_age_seconds', 'float(min=0, default=None)',
-                        'Time after which particles will be deactivated.')
-        self.add_config('drift:scheme',
-                        "option('euler', 'runge-kutta', default='euler')",
-                        'Time after which particles will be deactivated.')
+        self._add_config('drift:max_age_seconds', 'float(min=0, default=None)',
+                         'Time after which particles will be deactivated.')
+        self._add_config('drift:scheme',
+                         "option('euler', 'runge-kutta', default='euler')",
+                         'Time after which particles will be deactivated.')
 
         super(OceanDrift, self).__init__(*args, **kwargs)
 

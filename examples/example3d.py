@@ -33,12 +33,8 @@ o.seed_elements(lon, lat, z=z, radius=0, number=1000, time=time)
 print o
 
 # Adjusting some configuration
-o.config['processes']['diffusion'] = False
-o.config['processes']['dispersion'] = False
-o.config['processes']['evaporation'] = False
-o.config['processes']['emulsification'] = False
-o.config['drift']['current_uncertainty'] = .1
-o.config['drift']['wind_uncertainty'] = 2
+o.set_config('drift:current_uncertainty', .1)
+o.set_config('drift:wind_uncertainty', 2)
 
 # Running model (until end of driver data)
 o.run(steps=66*2, time_step=1800, outfile='openoil.nc',

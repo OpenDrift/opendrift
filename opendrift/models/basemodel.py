@@ -109,14 +109,22 @@ class OpenDriftSimulation(PhysicsMethods):
 
     model = ModelSettings  # To store model specific information
 
-    configspec = ''  # Default (empty) configuration options, to be overriden
+    configspec_basemodel = '''
+            [general]
+                basemap_resolution = option('f', 'h', 'i', 'c', default='h')
+            [drift]
+                scheme = option('euler', 'runge-kutta', default='euler')
+                wind_drift_factor = float(min=0, max=1, default=0.02)
+                current_uncertainty = float(min=0, max=5, default=.1)
+                wind_uncertainty = float(min=0, max=5, default=1)
+                relative_wind = boolean(default=False)'''
 
     max_speed = 1  # Assumed max average speed of any element
     required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
-                 basemap_resolution='h', loglevel=logging.DEBUG):
+                 loglevel=logging.DEBUG):
         """Initialise OpenDriftSimulation
 
         Args:
@@ -132,19 +140,13 @@ class OpenDriftSimulation(PhysicsMethods):
             iomodule: name of module used to export data
                 default: netcdf, see folder 'io' for more alternatives.
                 'iomodule' is module/filename without preceeding 'io_'
-            basemap_resolution: 'f' (full), 'h' (high, default),
-                                'i' (intermediate), or 'c' (crude)
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
                 Use the string 'custom' to configure logging from outside.
         """
 
         # Set default configuration
-        self.config = configobj.ConfigObj(
-            configspec=self.configspec.split('\n'), raise_errors=True)
-        validation = self.config.validate(validate.Validator())
-        if not isinstance(validation, bool) or validation is False:
-            raise ValueError('Wrong configuration: "%s"' % (validation))
+        self._add_configstring(self.configspec_basemodel)
 
         # Dict to store readers
         self.readers = {}  # Dictionary, key=name, value=reader object
@@ -195,24 +197,13 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_close = types.MethodType(io_module.close, self)
         self.io_import_file = types.MethodType(io_module.import_file, self)
 
-        self.basemap_resolution = basemap_resolution
-
         self.timer_start('total time')
         self.timer_start('configuration')
-        self.add_configstring('''
-            [general]
-                basemap_resolution = option('f', 'h', 'i', 'c', default='h')
-            [drift]
-                scheme = option('euler', 'runge-kutta', default='euler')
-                wind_drift_factor = float(min=0, max=1, default=0.3)
-                current_uncertainty = float(min=0, max=5, default=.1)
-                wind_uncertainty = float(min=0, max=5, default=1)
-                relative_wind = boolean(default=True)''')
 
         logging.info('OpenDriftSimulation initialised')
 
-    def add_config(self, key, value, comment, overwrite=False):
-
+    def _add_config(self, key, value, comment, overwrite=False):
+        """Add a configuration item to the current model."""
         cs = ''  # configstring
         for i, s in enumerate(key.split(':')):
             if i < len(key.split(':')) - 1:
@@ -221,46 +212,49 @@ class OpenDriftSimulation(PhysicsMethods):
                 cs += '\n\t' + s + ' = ' + value
         newconf = configobj.ConfigObj(configspec=cs.split('\n'))
         newconf.validate(validate.Validator())
-        if not hasattr(self, 'config2'):
-            self.config2 = newconf
+        if not hasattr(self, 'configobj'):
+            self.configobj = newconf
         else:
-            self.merge_config(newconf, overwrite=True)
+            self._merge_config(newconf, overwrite=True)
 
-    def merge_config(self, newconf, overwrite=False):
+    def _merge_config(self, newconf, overwrite=False):
         if overwrite is True:
-            self.config2.merge(newconf)
-            self.config2.configspec.merge(newconf.configspec)
+            self.configobj.merge(newconf)
+            self.configobj.configspec.merge(newconf.configspec)
         else:
-            newconf.configspec.merge(self.config2.configspec)
-            self.config2.configspec = newconf.configspec
-            newconf.merge(self.config2)
-            self.config2 = newconf
+            newconf.configspec.merge(self.configobj.configspec)
+            self.configobj.configspec = newconf.configspec
+            newconf.merge(self.configobj)
+            self.configobj = newconf
         
-    def add_configstring(self, configstring):
+    def _add_configstring(self, configstring):
+        """Add several configuration items from string (INI-format)."""
         newconf = configobj.ConfigObj(configspec=configstring.split('\n'))
         newconf.validate(validate.Validator())
-        if not hasattr(self, 'config2'):
-            self.config2 = newconf
+        if not hasattr(self, 'configobj'):
+            self.configobj = newconf
         else:
-            self.config2.merge(newconf)
-            self.config2.configspec.merge(newconf.configspec)
+            self.configobj.merge(newconf)
+            self.configobj.configspec.merge(newconf.configspec)
 
     def set_config(self, key, value):
-        d = self.config2
-        ds = self.config2.configspec
+        """Provide a value for a configuration setting"""
+        d = self.configobj
+        ds = self.configobj.configspec
         for i, s in enumerate(key.split(':')):
             if not isinstance(d[s], dict):
                 d[s] = value
             else:
                 d = d[s]
                 ds = ds[s]
-        valid = self.config2.validate(validate.Validator())
-        if self.config2.validate(validate.Validator()) is not True:
+        valid = self.configobj.validate(validate.Validator())
+        if self.configobj.validate(validate.Validator()) is not True:
             raise ValueError('Wrong configuration:\n\t%s = %s' % (s, ds[s]))
 
     def _config_hash_to_dict(self, hashstring):
-        c = self.config2
-        cs = self.config2.configspec
+        """Return configobj-dict from section:section:key format"""
+        c = self.configobj
+        cs = self.configobj.configspec
         for i, s in enumerate(hashstring.split(':')):
             if isinstance(c[s], dict):
                 c = c[s]
@@ -268,28 +262,33 @@ class OpenDriftSimulation(PhysicsMethods):
         return c, cs, s
 
     def get_config(self, key):
+        """Get value of a configuration setting"""
         c, cs, s = self._config_hash_to_dict(key)
         return c[s]
 
     def get_configspec(self, key):
+        """Get configuration specification of a configuration setting"""
         c, cs, s = self._config_hash_to_dict(key)
         return cs[s]
 
     def _config_hashstrings(self):
+        """Get list of strings section:section:key for all config items"""
         def fun(k, d, pre):
             path = '%s:%s' % (pre, k) if pre else k
             return path if type(d[k]) is not configobj.Section else \
                 ",".join([fun(i,d[k], path) for i in d[k]])
-        return ",".join([fun(k,self.config2, '') for
-                         k in self.config2]).split(',')
+        return ",".join([fun(k,self.configobj, '') for
+                         k in self.configobj]).split(',')
 
     def list_configspec(self):
+        """List all possible configuration settings with specifications"""
         keys = self._config_hashstrings()
         for key in keys:
             print '%s [%s] %s' % (key, self.get_config(key),
                                   self.get_configspec(key))
 
     def list_config(self):
+        """List all possible configuration settings with values"""
         keys = self._config_hashstrings()
         for key in keys:
             print '%s [%s]' % (key, self.get_config(key))
@@ -1231,7 +1230,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timer_end('configuration')
         self.timer_start('preparing main loop')
         # Check that configuration is proper
-        validation = self.config.validate(validate.Validator())
+        validation = self.configobj.validate(validate.Validator())
         if validation is True:
             logging.info('Config validation OK')
         else:
@@ -1357,7 +1356,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 'Adding a dynamical landmask (resolution "%s") based on '
                 'assumed maximum speed of %s m/s. '
                 'Adding a customised landmask may be faster...' %
-                (self.basemap_resolution, self.max_speed))
+                (self.get_config('general:basemap_resolution'), self.max_speed))
             self.timer_start('preparing main loop:making dynamical landmask')
             max_distance = \
                 self.max_speed*self.expected_steps_calculation * \
@@ -1372,7 +1371,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 llcrnrlat=self.elements_scheduled.lat.min() - deltalat,
                 urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
                                      deltalat),
-                resolution=self.basemap_resolution, projection='merc')
+                resolution=self.get_config('general:basemap_resolution'),
+                                    projection='merc')
             self.add_reader(reader_basemap)
             self.dynamical_landmask = True
             self.timer_end('preparing main loop:making dynamical landmask')
@@ -1634,7 +1634,8 @@ class OpenDriftSimulation(PhysicsMethods):
             #ax = plt.axes([.05,.05,.85,.9])
             ax = plt.axes([.05, .08, .85, .9])  # When colorbar below
             map = Basemap(lonmin, latmin, lonmax, latmax,
-                          resolution=self.basemap_resolution,
+                          resolution=
+                            self.get_config('general:basemap_resolution'),
                           projection='merc')
 
         map.drawcoastlines(color='gray')

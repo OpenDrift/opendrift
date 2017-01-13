@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
-o = OpenOil(loglevel=0, basemap_resolution='i')
+o = OpenOil(loglevel=0)
 o.max_speed = 1
 
 # Nordc4
@@ -32,12 +32,13 @@ o.fallback_values['y_wind'] = 4  # Adding some northwards wind
 print o
 
 # Adjusting some configuration
-o.config['processes']['diffusion'] = False
-o.config['processes']['dispersion'] = False
-o.config['processes']['evaporation'] = False
-o.config['processes']['emulsification'] = False
-o.config['drift']['current_uncertainty'] = .5
-o.config['drift']['wind_uncertainty'] = 5
+o.set_config('general:basemap_resolution',  'i')
+o.set_config('processes:diffusion',  False)
+o.set_config('processes:dispersion',  False)
+o.set_config('processes:evaporation',  False)
+o.set_config('processes:emulsification',  False)
+o.set_config('drift:current_uncertainty',  .5)
+o.set_config('drift:wind_uncertainty',  5)
 
 # Running model (until end of driver data)
 o.run(duration=timedelta(days=4), time_step=3600)

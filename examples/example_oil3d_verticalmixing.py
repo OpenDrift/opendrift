@@ -29,11 +29,11 @@ else:
     o.seed_elements(lon, lat, z=0, radius=1000, number=2000, time=time)
 
     # Adjusting some configuration
-    #o.config['processes']['turbulentmixing'] = True
-    #o.config['processes']['dispersion'] = False
-    #o.config['turbulentmixing']['diffusivitymodel'] = 'windspeed_Sundby1983'
-    ##o.config['turbulentmixing']['diffusivitymodel'] = 'stepfunction'
-    #o.config['turbulentmixing']['timestep'] = 2. # seconds
+    #o.set_config('processes:turbulentmixing', True)
+    #o.set_config('processes:dispersion', False)
+    #o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983')
+    ##o.set_config('turbulentmixing:diffusivitymodel', 'stepfunction')
+    #o.set_config('turbulentmixing:timestep', 2.) # seconds
 
     # Running model
     o.run(end_time=reader_arome.start_time + timedelta(hours=12),
@@ -48,5 +48,3 @@ o.plot(linecolor='z')
 o.plot_oil_budget()
 o.animation()
 o.plot_property('z')
-o.plot_vertical_distribution()  # Note the interactive slider at the bottom
-
