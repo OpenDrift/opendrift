@@ -114,27 +114,19 @@ class OpenOil(OpenDriftSimulation):
 
     # Configuration
     configspec = '''
-        [input]  # inp-comment
-            readers = list(min=1, default=list(''))  # List of readers
-            [[spill]]
-                longitude = float(min=-360, max=360, default=5)
-                latitude = float(min=-90, max=90, default=60)
-                time = string(default='%s')
-                oil_type = option(%s, default=%s)
+        [oil]
+            oil_type = option(%s, default=%s)
         [processes]
             dispersion = boolean(default=True)
             diffusion = boolean(default=True)
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
-        [drift]
-            scheme = option('euler', 'runge-kutta', default='euler')
-            wind_drift_factor = float(min=0, max=1, default=0.02)
-            current_uncertainty = float(min=0, max=5, default=.1)
-            wind_uncertainty = float(min=0, max=5, default=1)
-            relative_wind = boolean(default=True)
-    ''' % (datetime.now().strftime('%Y-%d-%m %H:00'), oil_types, default_oil)
+    ''' % (oil_types, default_oil)
+
 
     def __init__(self, weathering_model='default', *args, **kwargs):
+
+        self.add_configstring(self.configspec)
 
         if weathering_model == 'noaa':
             try:
@@ -175,7 +167,7 @@ class OpenOil(OpenDriftSimulation):
         super(OpenOil, self).__init__(*args, **kwargs)
 
     def evaporate(self):
-        if self.config['processes']['evaporation'] is True:
+        if self.get_config('processes:evaporation') is True:
             logging.debug('   Calculating: evaporation')
             windspeed = np.sqrt(self.environment.x_wind**2 +
                                 self.environment.y_wind**2)
@@ -227,7 +219,7 @@ class OpenOil(OpenDriftSimulation):
             self.deactivate_elements(evaporated_indices, reason='evaporated')
 
     def emulsification(self):
-        if self.config['processes']['emulsification'] is True:
+        if self.get_config('processes:emulsification') is True:
             logging.debug('   Calculating: emulsification')
             if not hasattr(self.model, 'reference_wind'):
                 logging.debug('Emulsification is currently only possible when'
@@ -245,7 +237,7 @@ class OpenOil(OpenDriftSimulation):
                     self.model.tref, self.model.wmax)
 
     def disperse(self):
-        if self.config['processes']['dispersion'] is True:
+        if self.get_config('processes:dispersion') is True:
 
             logging.debug('   Calculating: dispersion')
             windspeed = np.sqrt(self.environment.x_wind**2 +
@@ -305,9 +297,9 @@ class OpenOil(OpenDriftSimulation):
             #self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
 
     def diffusion(self):
-        if self.config['processes']['diffusion'] is True:
+        if self.get_config('processes:diffusion') is True:
             # Current
-            std_current_comp = self.config['drift']['current_uncertainty']
+            std_current_comp = self.get_config('drift:current_uncertainty')
             if std_current_comp > 0:
                 sigma_u = np.random.normal(0, std_current_comp,
                                            self.num_elements_active())
@@ -319,8 +311,8 @@ class OpenOil(OpenDriftSimulation):
             self.update_positions(sigma_u, sigma_v)
 
             # Wind
-            wind_drift_factor = self.config['drift']['wind_drift_factor']
-            std_wind_comp = self.config['drift']['wind_uncertainty']
+            wind_drift_factor = self.get_config('drift:wind_drift_factor')
+            std_wind_comp = self.get_config('drift:wind_uncertainty')
             if wind_drift_factor > 0 and std_wind_comp > 0:
                 sigma_u = np.random.normal(0, std_wind_comp*wind_drift_factor,
                                            self.num_elements_active())
@@ -397,10 +389,10 @@ class OpenOil(OpenDriftSimulation):
                 self.oiltype.density_at_temp(
                     self.environment.sea_water_temperature)
 
-        if self.config['processes']['evaporation'] is True:
+        if self.get_config('processes:evaporation') is True:
             self.evaporation_noaa()
 
-        if self.config['processes']['emulsification'] is True:
+        if self.get_config('processes:emulsification') is True:
             self.emulsification_noaa()
 
     def evaporation_noaa(self):

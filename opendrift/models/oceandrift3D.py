@@ -62,19 +62,6 @@ class OceanDrift3D(OpenDrift3DSimulation):
                        'sea_floor_depth_below_sea_level': 10000
                        }
 
-    configspec = '''
-        [drift]
-            scheme = option('euler', 'runge-kutta', default='euler')
-            max_age_seconds = float(min=0, default=None)
-        [processes]
-            turbulentmixing = boolean(default=False)
-            verticaladvection = boolean(default=True)
-        [turbulentmixing]
-            timestep = float(min=0.1, max=3600, default=1.)
-            verticalresolution = float(min=0.01, max=10, default = 1.)
-            diffusivitymodel = string(default='environment')
-            '''
-
     def update_terminal_velocity(self):
         '''
         Terminal velocity due to buoyancy or sedimentation rate,
@@ -96,12 +83,12 @@ class OceanDrift3D(OpenDrift3DSimulation):
         self.advect_wind()
 
         # Turbulent Mixing
-        if self.config['processes']['turbulentmixing'] is True:
+        if self.get_config('processes:turbulentmixing') is True:
             self.update_terminal_velocity()
             self.vertical_mixing()
 
         # Vertical advection
-        if self.config['processes']['verticaladvection'] is True:
+        if self.get_config('processes:verticaladvection') is True:
             self.vertical_advection()
 
         # Deactivate elements on land
@@ -109,7 +96,7 @@ class OceanDrift3D(OpenDrift3DSimulation):
                                  reason='stranded')
 
         # Deactivate elements that exceed a certain age
-        if self.config['drift']['max_age_seconds'] is not None:
+        if self.get_config('drift:max_age_seconds') is not None:
             self.deactivate_elements(self.elements.age_seconds >=
-                                     self.config['drift']
-                                     ['max_age_seconds'], reason='retired')
+                                     self.get_config('drift:max_age_seconds'),
+                                     reason='retired')

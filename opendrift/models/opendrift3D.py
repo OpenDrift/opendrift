@@ -50,6 +50,25 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
     max_speed = 1  # m/s
 
+    def __init__(self, *args, **kwargs):
+
+        configspec_oceandrift3D = '''
+            [drift]
+                max_age_seconds = float(min=0, default=None)
+            [processes]
+                turbulentmixing = boolean(default=True)
+                verticaladvection = boolean(default=True)
+            [turbulentmixing]
+                timestep = float(min=0.1, max=3600, default=1.)
+                verticalresolution = float(min=0.01, max=10, default = 1.)
+                diffusivitymodel = string(default='environment')
+                TSprofiles = boolean(default=True)
+                '''
+        self.add_configstring(configspec_oceandrift3D)
+
+        # Calling general constructor of parent class
+        super(OpenDrift3DSimulation, self).__init__(*args, **kwargs) 
+
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
                                  z_index=None):
         """Calculate terminal velocity due to bouyancy from own properties
@@ -77,7 +96,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # Place particles above surface into the uppermost layer
         surface = self.elements.z >= 0
         self.elements.z[surface] = \
-            -self.config['turbulentmixing']['verticalresolution']/2.
+            -self.get_config('turbulentmixing:verticalresolution')/2.
 
     def vertical_mixing(self):
         """Mix particles vertically according to eddy diffusivity and buoyancy
@@ -93,16 +112,16 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             The formulation of this scheme is copied from LADIM (IMR).
         """
 
-        if self.config['processes']['turbulentmixing'] is False:
+        if self.get_config('processes:turbulentmixing') is False:
             logging.debug('Turbulent mixing deactivated.')
             return
 
         self.timer_start('main loop:updating elements:vertical mixing')
         from opendrift.models import eddydiffusivity
 
-        dz = self.config['turbulentmixing']['verticalresolution']
+        dz = self.get_config('turbulentmixing:verticalresolution')
         dz = np.float32(dz)  # Convert to avoid error for older numpy
-        dt_mix = self.config['turbulentmixing']['timestep']
+        dt_mix = self.get_config('turbulentmixing:timestep')
 
         # minimum height/maximum depth for each particle
         Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
@@ -120,7 +139,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
         # get profile of eddy diffusivity
         # get vertical eddy diffusivity from environment or specific model
-        if (self.config['turbulentmixing']['diffusivitymodel'] ==
+        if (self.get_config('turbulentmixing:diffusivitymodel') ==
                 'environment'):
             if 'ocean_vertical_diffusivity' in self.environment_profiles:
                 Kprofiles = self.environment_profiles[
@@ -138,15 +157,14 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             logging.debug('use functional expression for diffusivity')
             Kprofiles = getattr(
                 eddydiffusivity,
-                self.config['turbulentmixing']['diffusivitymodel'])(self)
+                self.get_config('turbulentmixing:diffusivitymodel'))(self)
 
         # get profiles of salinity and temperature
         # (to save interpolation time in the inner loop)
-        if 'TSprofiles' in self.config['turbulentmixing']:
-            if self.config['turbulentmixing']['TSprofiles'] is True:
-                Sprofiles = self.environment_profiles['sea_water_salinity']
-                Tprofiles = \
-                    self.environment_profiles['sea_water_temperature']
+        if self.get_config('turbulentmixing:TSprofiles') is True:
+            Sprofiles = self.environment_profiles['sea_water_salinity']
+            Tprofiles = \
+                self.environment_profiles['sea_water_temperature']
 
         # prepare vertical interpolation coordinates
         z_i = range(Kprofiles.shape[0])
@@ -166,13 +184,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             surface = self.elements.z == 0
 
             # update terminal velocity according to environmental variables
-            if 'TSprofiles' in self.config['turbulentmixing']:
-                if self.config['turbulentmixing']['TSprofiles'] is True:
-                    self.update_terminal_velocity(Tprofiles=Tprofiles,
-                                                  Sprofiles=Sprofiles,
-                                                  z_index=z_index)
-                else:
-                    self.update_terminal_velocity()
+            if self.get_config('turbulentmixing:TSprofiles') is True:
+                self.update_terminal_velocity(Tprofiles=Tprofiles,
+                                              Sprofiles=Sprofiles,
+                                              z_index=z_index)
             else:
                 # this is faster, but ignores density gradients in
                 # water column for the inner loop
@@ -250,7 +265,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
                          valinit=self.steps_output-1, valfmt='%0.0f')
         try:
-            dz = self.config['turbulentmixing']['verticalresolution']
+            dz = self.get_config('turbulentmixing:verticalresolution')
         except:
             dz = 1.
         maxrange = -100

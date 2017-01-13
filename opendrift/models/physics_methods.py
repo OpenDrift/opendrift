@@ -84,12 +84,8 @@ class PhysicsMethods(object):
         return Dens0
 
     def advect_ocean_current(self):
-        try:
-            self.config['drift']['scheme']
-        except:
-            self.config['drift']['scheme'] = 'euler'
         # Runge-Kutta scheme
-        if self.config['drift']['scheme'] == 'runge-kutta':
+        if self.get_config('drift:scheme') == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity
             y_vel = self.environment.y_sea_water_velocity
             # Calculate x,y from lon,lat
@@ -112,13 +108,13 @@ class PhysicsMethods(object):
             # Move particles using runge-kutta velocity
             self.update_positions(mid_env['x_sea_water_velocity'],
                                   mid_env['y_sea_water_velocity'])
-        elif self.config['drift']['scheme'] == 'euler':
+        elif self.get_config('drift:scheme') == 'euler':
             # Euler scheme
             self.update_positions(self.environment.x_sea_water_velocity,
                                   self.environment.y_sea_water_velocity)
         else:
             raise ValueError('Drift scheme not recognised: ' +
-                             self.config['drift']['scheme'])
+                             self.get_config('drift:scheme'))
 
     def advect_wind(self, wind_drift_factor=None):
         # Elements at ocean surface (z=0) are advected with given percentage
@@ -143,7 +139,7 @@ class PhysicsMethods(object):
         x_wind = self.environment.x_wind
         y_wind = self.environment.y_wind
         try:
-            if self.config['drift']['relative_wind'] is True:
+            if self.get_config('drift:relative_wind') is True:
                 # Use wind relative to (subtracted) ocean current
                 x_wind = x_wind - self.environment.x_sea_water_velocity
                 y_wind = y_wind - self.environment.y_sea_water_velocity

@@ -87,7 +87,7 @@ class TestReaders(unittest.TestCase):
         o.add_reader(reader)
         o.fallback_values['x_sea_water_velocity'] = 1
         o.fallback_values['land_binary_mask'] = 0
-        o.config['processes']['turbulentmixing'] = False
+        o.set_config('processes:turbulentmixing', False)
         o.seed_elements(lon=4.8, lat=60, number=1, time=reader.end_time)
         o.run(steps=2)
         # Check that fallback value is used when outside time coverage

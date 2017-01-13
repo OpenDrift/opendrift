@@ -47,11 +47,21 @@ class OceanDrift(OpenDriftSimulation):
                        'x_wind': 0,
                        'y_wind': 0}
 
-    configspec = '''
-        [drift]
-            scheme = option('euler', 'runge-kutta', default='euler')
-            max_age_seconds = float(min=0, default=None)
-            '''
+    #configspec = '''
+    #    [drift]
+    #        scheme = option('euler', 'runge-kutta', default='euler')
+    #        max_age_seconds = float(min=0, default=None)
+    #        '''
+
+    def __init__(self, *args, **kwargs):
+
+        self.add_config('drift:max_age_seconds', 'float(min=0, default=None)',
+                        'Time after which particles will be deactivated.')
+        self.add_config('drift:scheme',
+                        "option('euler', 'runge-kutta', default='euler')",
+                        'Time after which particles will be deactivated.')
+
+        super(OceanDrift, self).__init__(*args, **kwargs)
 
     def update(self):
         """Update positions and properties of elements."""
@@ -70,7 +80,7 @@ class OceanDrift(OpenDriftSimulation):
                                  reason='stranded')
 
         # Deactivate elements that exceed a certain age
-        if self.config['drift']['max_age_seconds'] is not None:
+        if self.get_config('drift:max_age_seconds') is not None:
             self.deactivate_elements(self.elements.age_seconds >=
-                                     self.config['drift']
-                                     ['max_age_seconds'], reason='retired')
+                                     self.get_config('drift:max_age_seconds'),
+                                     reason='retired')

@@ -199,19 +199,20 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.timer_start('total time')
         self.timer_start('configuration')
-        self.add_config('input:spill:lon',
-                        'float(min=-360, max=360, default=5)',
-                        comment='Longitude of the spill')
-        self.add_config('input:spill:lat',
-                        'float(min=-90, max=90, default=60)',
-                        comment='Latitude of the spill')
-        #self.add_config('[processes]\nevaporation',
-        self.add_config('processes:evaporation',
-                        'boolean(default=True)',
-                        comment='Turn evaporation on or off')
+        self.add_configstring('''
+            [general]
+                basemap_resolution = option('f', 'h', 'i', 'c', default='h')
+            [drift]
+                scheme = option('euler', 'runge-kutta', default='euler')
+                wind_drift_factor = float(min=0, max=1, default=0.3)
+                current_uncertainty = float(min=0, max=5, default=.1)
+                wind_uncertainty = float(min=0, max=5, default=1)
+                relative_wind = boolean(default=True)''')
+
         logging.info('OpenDriftSimulation initialised')
 
-    def add_config(self, key, value, comment):
+    def add_config(self, key, value, comment, overwrite=False):
+
         cs = ''  # configstring
         for i, s in enumerate(key.split(':')):
             if i < len(key.split(':')) - 1:
@@ -223,17 +224,75 @@ class OpenDriftSimulation(PhysicsMethods):
         if not hasattr(self, 'config2'):
             self.config2 = newconf
         else:
+            self.merge_config(newconf, overwrite=True)
+
+    def merge_config(self, newconf, overwrite=False):
+        if overwrite is True:
+            self.config2.merge(newconf)
+            self.config2.configspec.merge(newconf.configspec)
+        else:
+            newconf.configspec.merge(self.config2.configspec)
+            self.config2.configspec = newconf.configspec
+            newconf.merge(self.config2)
+            self.config2 = newconf
+        
+    def add_configstring(self, configstring):
+        newconf = configobj.ConfigObj(configspec=configstring.split('\n'))
+        newconf.validate(validate.Validator())
+        if not hasattr(self, 'config2'):
+            self.config2 = newconf
+        else:
             self.config2.merge(newconf)
             self.config2.configspec.merge(newconf.configspec)
 
     def set_config(self, key, value):
-        cs = ''  # configstring
+        d = self.config2
+        ds = self.config2.configspec
         for i, s in enumerate(key.split(':')):
-            if i < len(key.split(':')) - 1:
-                cs += '['*(i+1) + s + ']'*(i+1)
+            if not isinstance(d[s], dict):
+                d[s] = value
             else:
-                cs += '\n\t' + s + ' = ' + value
- 
+                d = d[s]
+                ds = ds[s]
+        valid = self.config2.validate(validate.Validator())
+        if self.config2.validate(validate.Validator()) is not True:
+            raise ValueError('Wrong configuration:\n\t%s = %s' % (s, ds[s]))
+
+    def _config_hash_to_dict(self, hashstring):
+        c = self.config2
+        cs = self.config2.configspec
+        for i, s in enumerate(hashstring.split(':')):
+            if isinstance(c[s], dict):
+                c = c[s]
+                cs = cs[s] 
+        return c, cs, s
+
+    def get_config(self, key):
+        c, cs, s = self._config_hash_to_dict(key)
+        return c[s]
+
+    def get_configspec(self, key):
+        c, cs, s = self._config_hash_to_dict(key)
+        return cs[s]
+
+    def _config_hashstrings(self):
+        def fun(k, d, pre):
+            path = '%s:%s' % (pre, k) if pre else k
+            return path if type(d[k]) is not configobj.Section else \
+                ",".join([fun(i,d[k], path) for i in d[k]])
+        return ",".join([fun(k,self.config2, '') for
+                         k in self.config2]).split(',')
+
+    def list_configspec(self):
+        keys = self._config_hashstrings()
+        for key in keys:
+            print '%s [%s] %s' % (key, self.get_config(key),
+                                  self.get_configspec(key))
+
+    def list_config(self):
+        keys = self._config_hashstrings()
+        for key in keys:
+            print '%s [%s]' % (key, self.get_config(key))
 
     def prepare_run(self):
         pass  # to be overloaded when needed

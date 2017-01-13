@@ -109,8 +109,6 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
     # Configuration
     configspec = '''
-        [drift]
-            scheme = string(default='euler')
         [processes]
             turbulentmixing = boolean(default=True)
             verticaladvection = boolean(default=False)

@@ -50,19 +50,10 @@ class TestRun(unittest.TestCase):
         self.o = OceanDrift(loglevel=20)
         self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
         self.o.use_block = False
-        self.o.config['runge_kutta'] = False
         self.reader_basemap = reader_basemap_landmask.Reader(
             llcrnrlon=-1.5, llcrnrlat=59,
             urcrnrlon=7, urcrnrlat=64, resolution='i')
         self.o.add_reader([self.fake_eddy, self.reader_basemap])
-
-    def test_config(self):
-        """Test invalid configuration"""
-        o = OceanDrift(loglevel=20)
-        o.config['drift']['max_age_seconds'] = -1  # invalid value
-        o.fallback_values['land_binary_mask'] = 0
-        o.seed_elements(5, 60, time=datetime(2016,1,1))
-        self.assertRaises(ValueError, o.run, steps=3)
 
     def test_seed(self):
         """Test seeding"""
@@ -111,7 +102,7 @@ class TestRun(unittest.TestCase):
         z=-40*np.random.rand(number)
         o2.seed_elements(5, 62.5, number=number, radius=5000, z=z,
                         time=norkyst.start_time)
-        o2.config['drift']['scheme'] = 'runge-kutta'
+        o2.set_config('drift:scheme', 'runge-kutta')
         o2.run(steps=4*3, time_step=timedelta(minutes=15))
         # And finally repeating the initial run to check that indetical
         o3 = OceanDrift3D(loglevel=20, seed=0)
@@ -267,7 +258,7 @@ class TestRun(unittest.TestCase):
         o1.fallback_values['land_binary_mask'] = 0
         o1.seed_elements(4.1, 63.3, radius=1000, number=100,
                          time=norkyst.start_time)
-        o1.config['turbulentmixing']['timestep'] = 20. # seconds
+        o1.set_config('turbulentmixing:timestep', 20.) # seconds
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
         self.assertAlmostEqual(o1.history['z'].min(), -25.0)
@@ -468,10 +459,9 @@ class TestRun(unittest.TestCase):
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000)
-        o.config['processes']['turbulentmixing'] = True
-        o.config['turbulentmixing']['verticalresolution'] = 1  # m
-        o.config['turbulentmixing']['timestep'] = 1  # s
-        o.config['input']['spill']['subsea_diameter'] = 0.005
+        o.set_config('processes:turbulentmixing', True)
+        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+        o.set_config('turbulentmixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
         z, status = o.get_property('z')
@@ -486,10 +476,11 @@ class TestRun(unittest.TestCase):
         lon = 5.0; lat = 64.0
         o.seed_elements(lon, lat, z=-350, time=reader_norkyst.start_time,
                         density=1000)
-        o.config['processes']['turbulentmixing'] = True
-        o.config['turbulentmixing']['verticalresolution'] = 1  # m
-        o.config['turbulentmixing']['timestep'] = 1  # s
-        o.config['input']['spill']['subsea_diameter'] = 0.005
+        o.set_config('processes:turbulentmixing', True)
+        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
+        o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[-1,0], -307.0, 2)  # After some rising
@@ -502,10 +493,11 @@ class TestRun(unittest.TestCase):
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
                         density=1000)
-        o.config['processes']['turbulentmixing'] = True
-        o.config['turbulentmixing']['verticalresolution'] = 1  # m
-        o.config['turbulentmixing']['timestep'] = 1  # s
-        o.config['input']['spill']['subsea_diameter'] = 0.005
+        o.set_config('processes:turbulentmixing', True)
+        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
+        o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
@@ -524,7 +516,7 @@ class TestRun(unittest.TestCase):
         o.fallback_values['y_sea_water_velocity'] = 0   
         o.fallback_values['land_binary_mask'] = 0   
         o.seed_elements(3.0, 62.0, z=-200, time=reader_norkyst.start_time)
-        o.config['processes']['turbulentmixing'] = False
+        o.set_config('processes:turbulentmixing', False)
         o.run(steps=26, time_step=30)
         seafloor_depth, status = o.get_property('sea_floor_depth_below_sea_level')
         z, status = o.get_property('z')

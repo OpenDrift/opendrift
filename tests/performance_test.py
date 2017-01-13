@@ -108,7 +108,7 @@ reader_arctic.verticalbuffer=1
 o = OpenOil3D(loglevel=50) # Quiet
 o.add_reader(reader_arctic)
 o.fallback_values['x_wind'] = 10
-o.config['turbulentmixing']['timestep'] = 1
+o.set_config('turbulentmixing:timestep', 1)
 o.seed_elements(lon=15, lat=72, number=50, radius=10000,
                 time=reader_arctic.start_time)
 start_time = datetime.now()
@@ -123,8 +123,8 @@ print '  38.0 seconds on reference machine.'
 o = OpenOil3D(loglevel=50) # Quiet
 o.add_reader(reader_arctic)
 o.fallback_values['x_wind'] = 10
-o.config['turbulentmixing']['verticalresolution'] = 3
-o.config['turbulentmixing']['timestep'] = 50
+o.set_config('turbulentmixing:verticalresolution', 3)
+o.set_config('turbulentmixing:timestep', 50)
 o.seed_elements(lon=15, lat=72, number=500000, radius=10000,
                 time=reader_arctic.start_time)
 start_time = datetime.now()

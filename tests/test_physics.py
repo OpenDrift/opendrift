@@ -38,46 +38,42 @@ class TestRun(unittest.TestCase):
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 3
-        o.config['turbulentmixing']['verticalresolution'] = 2
-        o.config['turbulentmixing']['timestep'] = 4
+        o.set_config('turbulentmixing:verticalresolution', 2)
+        o.set_config('turbulentmixing:timestep', 4)
         # Setting droplet size range for subsea blowout
-        o.config['input']['spill']['droplet_diameter_min_subsea'] = 0.0005
-        o.config['input']['spill']['droplet_diameter_max_subsea'] = 0.005
+        o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)
+        o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         # Setting droplet size range for wave breaking
-        o.config['turbulentmixing']['droplet_diameter_min_wavebreaking'] = 1e-5
-        o.config['turbulentmixing']['droplet_diameter_max_wavebreaking'] = 1e-3
+        o.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-5)
+        o.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
         # Number distribution frm Delvigne & Sweeney (s=-2.3):
-        o.config['turbulentmixing']['droplet_size_exponent'] = -2.3
+        o.set_config('turbulentmixing:droplet_size_exponent', -2.3)
         o.seed_elements(4, 60, number=100, time=datetime.now(), z=-100)
         o.run(duration=timedelta(hours=3), time_step_output=900, time_step=900,
               stop_on_error=True)
         d_start = o.history['diameter'][:,0]
         d_end = o.history['diameter'][:,-1]
         # Check initial droplet sizes (expect range 0.0005 to 0.005)
-        self.assertTrue(d_start.min() > o.config['input']['spill']\
-                                    ['droplet_diameter_min_subsea'])
-        self.assertTrue(d_start.max() < o.config['input']['spill']\
-                                    ['droplet_diameter_max_subsea'])
-        self.assertTrue(d_end.min() > o.config['turbulentmixing']\
+        self.assertTrue(d_start.min() > o.get_config('input:spill:droplet_diameter_min_subsea'))
+        self.assertTrue(d_start.max() < o.get_config('input:spill:droplet_diameter_max_subsea'))
         # Check final droplet sizes (expect 1e-5 to 1e-3 after wavebreaking)
-                                    ['droplet_diameter_min_wavebreaking'])
-        self.assertTrue(d_end.max() < o.config['turbulentmixing']\
-                                    ['droplet_diameter_max_wavebreaking'])
+        self.assertTrue(d_end.min() > o.get_config('turbulentmixing:droplet_diameter_min_wavebreaking'))
+        self.assertTrue(d_end.max() < o.get_config('turbulentmixing:droplet_diameter_max_wavebreaking'))
 
     def test_constant_droplet_diameters(self):
         o = OpenOil3D(loglevel=50, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 2.5
-        o.config['turbulentmixing']['verticalresolution'] = 2
-        o.config['turbulentmixing']['timestep'] = 4
+        o.set_config('turbulentmixing:verticalresolution', 2)
+        o.set_config('turbulentmixing:timestep', 4)
         # Setting droplet size range for subsea blowout
-        o.config['input']['spill']['droplet_diameter_min_subsea'] = 0.0005
-        o.config['input']['spill']['droplet_diameter_max_subsea'] = 0.005
-        o.config['turbulentmixing']['droplet_size_exponent'] = -2.3
+        o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)
+        o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
+        o.set_config('turbulentmixing:droplet_size_exponent', -2.3)
         # Setting droplet size range for wave breaking
-        o.config['turbulentmixing']['droplet_diameter_min_wavebreaking'] = 1e-6
-        o.config['turbulentmixing']['droplet_diameter_max_wavebreaking'] = 1e-3
+        o.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
+        o.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
         diameter = 1e-4
         o.seed_elements(4, 60, number=100, time=datetime.now(),
                         diameter=diameter, z=-200)
@@ -103,7 +99,7 @@ class TestRun(unittest.TestCase):
         o = OpenOil3D(loglevel=0, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.seed_elements(4, 60, number=100, time=datetime.now())
-        o.config['turbulentmixing']['timestep'] = 5
+        o.set_config('turbulentmixing:timestep', 5)
         o.run(steps=4*2, time_step_output=3600, time_step=900)
         self.assertEqual(o.elements.z.min(), 0)  # No entrainment
         ########################################################
@@ -120,8 +116,8 @@ class TestRun(unittest.TestCase):
         #o.fallback_values['sea_surface_wave_significant_height'] = 2.5
         #o.seed_elements(4, 60, number=1000, diameter=0.0001, # r = 50 micron
         #                density=865, time=datetime.now())
-        #o.config['turbulentmixing']['verticalresolution'] = 2
-        #o.config['turbulentmixing']['timestep'] = 4
+        #o.set_config('turbulentmixing:verticalresolution', 2)
+        #o.set_config('turbulentmixing:timestep', 4)
         #o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         ##o.plot_property('z')
         ##o.plot_vertical_distribution()
@@ -141,8 +137,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
-        o.config['turbulentmixing']['verticalresolution'] = 2
-        o.config['turbulentmixing']['timestep'] = 4
+        o.set_config('turbulentmixing:verticalresolution', 2)
+        o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_property('z')
         #o.plot_vertical_distribution()
@@ -159,8 +155,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
-        o.config['turbulentmixing']['verticalresolution'] = 2
-        o.config['turbulentmixing']['timestep'] = 4
+        o.set_config('turbulentmixing:verticalresolution', 2)
+        o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
         self.assertAlmostEqual(o.elements.z.min(), -52.0, 1)
@@ -177,8 +173,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
-        o.config['turbulentmixing']['verticalresolution'] = 2
-        o.config['turbulentmixing']['timestep'] = 4
+        o.set_config('turbulentmixing:verticalresolution', 2)
+        o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
