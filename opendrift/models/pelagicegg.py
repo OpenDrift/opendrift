@@ -113,6 +113,9 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         # Calling general constructor of parent class
         super(PelagicEggDrift, self).__init__(*args, **kwargs)
 
+        # By default, eggs do not strand towards coastline
+        self.set_config('general:coastline_action', 'previous')
+
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
         """Calculate terminal velocity for Pelagic Egg
@@ -210,12 +213,3 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         # Vertical advection
         if self.get_config('processes:verticaladvection') is True:
             self.vertical_advection()
-
-        # Biological behaviour
-        # Nonsense example, illustrating how to add behaviour:
-        # Lifting elements 1 m if water temperature is colder than 7 deg
-        # self.elements.z[self.environment.sea_water_temperature<7] += 1
-        # self.elements.z[self.elements.z>0] = 0
-
-        # Deactivate elements hitting land
-        self.deactivate_stranded_elements()

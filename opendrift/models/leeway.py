@@ -244,10 +244,6 @@ class Leeway(OpenDriftSimulation):
         x_leeway = -downwind_leeway*sinth+crosswind_leeway*costh
         self.update_positions(-x_leeway, y_leeway)
 
-        # Deactivate elements on land
-        self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded')
-
         # Move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
                               self.environment.y_sea_water_velocity)

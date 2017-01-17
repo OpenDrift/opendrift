@@ -91,10 +91,6 @@ class OceanDrift3D(OpenDrift3DSimulation):
         if self.get_config('processes:verticaladvection') is True:
             self.vertical_advection()
 
-        # Deactivate elements on land
-        self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded')
-
         # Deactivate elements that exceed a certain age
         if self.get_config('drift:max_age_seconds') is not None:
             self.deactivate_elements(self.elements.age_seconds >=

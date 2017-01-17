@@ -491,10 +491,6 @@ class OpenOil(OpenDriftSimulation):
         # Uncertainty / diffusion
         self.diffusion()
 
-        # Deactivate elements hitting coast
-        self.deactivate_elements(self.environment.land_binary_mask != 0.,
-                                 reason='stranded')
-
         # Deactivate elements hitting sea ice
         if hasattr(self.environment, 'sea_ice_area_fraction'):
             self.deactivate_elements(

@@ -112,6 +112,7 @@ class OpenDriftSimulation(PhysicsMethods):
     configspec_basemodel = '''
             [general]
                 basemap_resolution = option('f', 'h', 'i', 'c', default='h')
+                coastline_action = option('none', 'stranding', 'previous', default='stranding')
             [drift]
                 scheme = option('euler', 'runge-kutta', default='euler')
                 wind_drift_factor = float(min=0, max=1, default=0.02)
@@ -295,6 +296,21 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def prepare_run(self):
         pass  # to be overloaded when needed
+
+    def interact_with_coastline(self):
+        i = self.get_config('general:coastline_action')
+        if not hasattr(self.environment, 'land_binary_mask'):
+            return
+        on_land = self.environment.land_binary_mask == 1
+
+        if i == 'none':  # Do nothing
+            return
+        if i == 'stranding':  # Deactivate elements on land
+            self.deactivate_elements(
+                self.environment.land_binary_mask == 1, reason='stranded')
+        elif i == 'previous':  # Go back to previous position (in water)
+            self.elements.lon[on_land] = self.previous_lon[on_land]
+            self.elements.lat[on_land] = self.previous_lat[on_land]
 
     @abstractmethod
     def update(self):
@@ -1483,6 +1499,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 if self.num_elements_active() == 0:
                     raise ValueError('No more active elements, quitting.')
 
+                # Store location, in case elements shall be moved back
+                self.previous_lon = self.elements.lon.copy()
+                self.previous_lat = self.elements.lat.copy()
+
                 #####################################################
                 logging.debug('Calling %s.update()' %
                               type(self).__name__)
@@ -1492,6 +1512,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 #####################################################
 
                 #self.lift_elements_to_seafloor()  # If seafloor is penetrated
+
+                self.interact_with_coastline()
 
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')

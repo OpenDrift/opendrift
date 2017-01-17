@@ -173,10 +173,6 @@ class PhysicsMethods(object):
         surface = np.where(self.elements.z >= 0)[0]
         self.elements.z[surface] = minimum_depth
 
-    def deactivate_stranded_elements(self):
-        self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded')
-
     def wind_speed(self):
         return np.sqrt(self.environment.x_wind**2 +
                        self.environment.y_wind**2)

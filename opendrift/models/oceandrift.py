@@ -75,10 +75,6 @@ class OceanDrift(OpenDriftSimulation):
         #                                    wind_drift_factor)
         self.advect_wind()
 
-        # Deactivate elements on land
-        self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded')
-
         # Deactivate elements that exceed a certain age
         if self.get_config('drift:max_age_seconds') is not None:
             self.deactivate_elements(self.elements.age_seconds >=
