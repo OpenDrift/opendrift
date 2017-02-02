@@ -20,7 +20,7 @@ from bisect import bisect_left, bisect_right
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
-from basereader import BaseReader
+from basereader import BaseReader, vector_pairs_xy
 from roppy import depth
 
 
@@ -173,6 +173,16 @@ class Reader(BaseReader):
 
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
+
+        # If one vector component is requested, but not the other
+        # we must add the other for correct rotation
+        for vector_pair in vector_pairs_xy:
+            if (vector_pair[0] in requested_variables and 
+                vector_pair[1] not in requested_variables):
+                requested_variables.extend([vector_pair[1]])
+            if (vector_pair[1] in requested_variables and 
+                vector_pair[0] not in requested_variables):
+                requested_variables.extend([vector_pair[0]])
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
