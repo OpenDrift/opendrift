@@ -47,12 +47,6 @@ class OceanDrift(OpenDriftSimulation):
                        'x_wind': 0,
                        'y_wind': 0}
 
-    #configspec = '''
-    #    [drift]
-    #        scheme = option('euler', 'runge-kutta', default='euler')
-    #        max_age_seconds = float(min=0, default=None)
-    #        '''
-
     def __init__(self, *args, **kwargs):
 
         self._add_config('drift:max_age_seconds', 'float(min=0, default=None)',

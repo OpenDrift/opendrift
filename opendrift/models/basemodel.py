@@ -297,18 +297,34 @@ class OpenDriftSimulation(PhysicsMethods):
     def prepare_run(self):
         pass  # to be overloaded when needed
 
+    def store_present_positions(self):
+        """Store present element positions, in case they shall be moved back"""
+        if self.get_config('general:coastline_action') == 'previous':
+            self.previous_lon = np.copy(self.elements.lon)
+            self.previous_lat = np.copy(self.elements.lat)
+            self.previous_land = np.copy(self.environment.land_binary_mask)
+
     def interact_with_coastline(self):
+        """Coastline interaction according to configuration setting"""
         i = self.get_config('general:coastline_action')
         if not hasattr(self.environment, 'land_binary_mask'):
             return
-        on_land = self.environment.land_binary_mask == 1
-
         if i == 'none':  # Do nothing
             return
         if i == 'stranding':  # Deactivate elements on land
             self.deactivate_elements(
                 self.environment.land_binary_mask == 1, reason='stranded')
         elif i == 'previous':  # Go back to previous position (in water)
+            if not hasattr(self, 'previous_lon'):
+                self.deactivate_elements(
+                    self.environment.land_binary_mask == 1,
+                    reason='seeded_on_land')
+                return
+            on_land = np.where(self.environment.land_binary_mask == 1)[0]
+            if len(on_land) == 0:
+                logging.info('No elements hit coastline.')
+            logging.info('%s elements hit coastline, moving back to water' % 
+                         len(on_land))
             self.elements.lon[on_land] = self.previous_lon[on_land]
             self.elements.lat[on_land] = self.previous_lat[on_land]
 
@@ -1479,6 +1495,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.debug('%s elements scheduled.' %
                               self.num_elements_scheduled())
                 logging.debug('==================================='*2)
+
                 self.environment, self.environment_profiles, missing = \
                     self.get_environment(self.required_variables,
                                          self.time,
@@ -1486,6 +1503,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                          self.elements.lat,
                                          self.elements.z,
                                          self.required_profiles)
+
+                self.interact_with_coastline()
 
                 self.deactivate_elements(missing, reason='missing_data')
 
@@ -1500,8 +1519,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     raise ValueError('No more active elements, quitting.')
 
                 # Store location, in case elements shall be moved back
-                self.previous_lon = self.elements.lon.copy()
-                self.previous_lat = self.elements.lat.copy()
+                self.store_present_positions()
 
                 #####################################################
                 logging.debug('Calling %s.update()' %
@@ -1512,8 +1530,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 #####################################################
 
                 #self.lift_elements_to_seafloor()  # If seafloor is penetrated
-
-                self.interact_with_coastline()
 
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
