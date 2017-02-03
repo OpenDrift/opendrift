@@ -14,15 +14,16 @@ o.max_speed = 3
 
 # This example works better using hourly input from Thredds than the daily data from test folder
 #reader_nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
+#reader_nordic = reader_ROMS_native.Reader('/disk1/data/svim/ocean_avg_uv_20110501.nc4')
 reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
     '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
-# We do not want landmask from ocean model
-reader_nordic.variables = [v for v in reader_nordic.variables
-                           if v != 'land_binary_mask']
+# To force using basemap landmask
+#reader_nordic.variables = [v for v in reader_nordic.variables
+#                           if v != 'land_binary_mask']
 
 # linearND interpolates data towards coast; uncomment for nearest interpolation
-reader_nordic.interpolation='linearND'
+#reader_nordic.interpolation='linearND'
 
 print reader_nordic
 

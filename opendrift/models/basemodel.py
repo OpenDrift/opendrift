@@ -304,6 +304,9 @@ class OpenDriftSimulation(PhysicsMethods):
             self.previous_lat = np.copy(self.elements.lat)
             self.previous_land = np.copy(self.environment.land_binary_mask)
 
+    def previous_position_if(self):
+        return None
+
     def interact_with_coastline(self):
         """Coastline interaction according to configuration setting"""
         i = self.get_config('general:coastline_action')
@@ -315,12 +318,21 @@ class OpenDriftSimulation(PhysicsMethods):
             self.deactivate_elements(
                 self.environment.land_binary_mask == 1, reason='stranded')
         elif i == 'previous':  # Go back to previous position (in water)
+            previous_position_if = self.previous_position_if()
             if not hasattr(self, 'previous_lon'):
                 self.deactivate_elements(
                     self.environment.land_binary_mask == 1,
                     reason='seeded_on_land')
+                if previous_position_if is not None:
+                    self.deactivate_elements((previous_position_if*1 == 1) & (
+                                     self.environment.land_binary_mask == 0),
+                                         reason='seeded_at_nodata_position')
                 return
-            on_land = np.where(self.environment.land_binary_mask == 1)[0]
+            if previous_position_if is None:
+                on_land = np.where(self.environment.land_binary_mask == 1)[0]
+            else:
+                on_land = np.where((self.environment.land_binary_mask == 1) |
+                                   (previous_position_if == 1))[0]
             if len(on_land) == 0:
                 logging.info('No elements hit coastline.')
             logging.info('%s elements hit coastline, moving back to water' % 
@@ -1555,6 +1567,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timer_start('cleaning up')
         logging.debug('Cleaning up')
 
+        self.interact_with_coastline()
         self.state_to_buffer()  # Append final status to buffer
 
         if outfile is not None:
@@ -2113,8 +2126,13 @@ class OpenDriftSimulation(PhysicsMethods):
                         break
             indices = np.where(self.elements_deactivated.status == statusnum)
             if len(indices[0]) > 0:
+                if (status == 'seeded_on_land' or
+                    status == 'seeded_at_nodata_position'):
+                    zorder = 11
+                else:
+                    zorder = 3
                 map.scatter(x_deactivated[indices], y_deactivated[indices],
-                            zorder=3, edgecolor='k', linewidths=.1,
+                            zorder=zorder, edgecolor='k', linewidths=.1,
                             color=self.status_colors[status],
                             label='%s (%i)' % (status, len(indices[0])))
         try:
