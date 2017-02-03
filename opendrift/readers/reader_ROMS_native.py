@@ -285,9 +285,6 @@ class Reader(BaseReader):
             if block is False:
                 variables[par].mask[outside] = True
 
-        if 'land_binary_mask' in variables.keys():
-            variables['land_binary_mask'] = 1 - variables['land_binary_mask']
-
         if block is True:
             variables['x'] = indx
             variables['y'] = indy
@@ -321,6 +318,16 @@ class Reader(BaseReader):
                     variables['y_wind'] = rotate_vectors_angle(
                         variables['x_wind'],
                         variables['y_wind'], rad)
+
+        # Mask land where current is masked
+        if ('x_sea_water_velocity' in variables.keys()) and (
+            'land_binary_mask' in variables.keys()):
+            logging.info('Masking land where current is masked')
+            variables['land_binary_mask'] = \
+                variables['x_sea_water_velocity'].mask*1
+        elif 'land_binary_mask' in variables.keys():
+            variables['land_binary_mask'] = 1 - variables['land_binary_mask']
+
 
         return variables
 
