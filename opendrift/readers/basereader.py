@@ -297,7 +297,8 @@ class BaseReader(object):
             # Analytical reader, continous in space and time
             env_before = self._get_variables(variables, profiles,
                                              profiles_depth,
-                                             time_before,
+                                             time,
+                                             #time_before,
                                              reader_x, reader_y, z,
                                              block=block)
             logging.debug('Fetched env-before')
@@ -449,7 +450,9 @@ class BaseReader(object):
         # Rotate vectors
         ####################
         if rotate_to_proj is not None:
-            if rotate_to_proj.srs == self.proj.srs:
+            if (rotate_to_proj.srs == self.proj.srs) or (
+                rotate_to_proj.is_latlong() is True and
+                self.proj.is_latlong() is True):
                 logging.debug('Reader SRS is the same as calculation SRS - '
                               'rotation of vectors is not needed.')
             else:

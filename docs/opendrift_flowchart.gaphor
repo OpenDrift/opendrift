@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<gaphor xmlns="http://gaphor.sourceforge.net/model" version="3.0" gaphor-version="0.15.0">
+<gaphor xmlns="http://gaphor.sourceforge.net/model" version="3.0" gaphor-version="0.17.2">
 <Package id="f8060bd8-7d24-11e3-a873-7446a09191b6">
 <name>
-<val><![CDATA[New model]]></val>
+<val>New model</val>
 </name>
 <ownedDiagram>
 <reflist>
@@ -12,7 +12,7 @@
 </Package>
 <Diagram id="f8066a2e-7d24-11e3-a873-7446a09191b6">
 <name>
-<val><![CDATA[main]]></val>
+<val>main</val>
 </name>
 <package>
 <ref refid="f8060bd8-7d24-11e3-a873-7446a09191b6"/>
@@ -20,10 +20,10 @@
 <canvas>
 <item type="ActionItem" id="f9b10d70-7d24-11e3-a873-7446a09191b6">
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 322.0, 149.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 282.0, 152.0)</val>
 </matrix>
 <width>
-<val>301.0</val>
+<val>388.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -37,10 +37,10 @@
 </item>
 <item type="ActionItem" id="1f66cf22-7d26-11e3-a873-7446a09191b6">
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 402.0, 280.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 386.0, 278.0)</val>
 </matrix>
 <width>
-<val>138.0</val>
+<val>174.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -71,10 +71,10 @@
 </item>
 <item type="ActionItem" id="5bd75f62-7d26-11e3-a873-7446a09191b6">
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 402.0, 772.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 386.0, 772.0)</val>
 </matrix>
 <width>
-<val>162.0</val>
+<val>206.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -103,7 +103,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (0.05263157894739834, 57.0)]</val>
+<val>[(0.0, 0.0), (0.0, 57.0)]</val>
 </points>
 <head-connection>
 <ref refid="55aa996a-7d26-11e3-a873-7446a09191b6"/>
@@ -120,7 +120,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 465.5538461538461, 179.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 472.0, 182.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -129,7 +129,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (0.022730422730489863, 34.0)]</val>
+<val>[(0.0, 0.0), (0.0, 31.0)]</val>
 </points>
 <head-connection>
 <ref refid="f9b10d70-7d24-11e3-a873-7446a09191b6"/>
@@ -146,7 +146,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 469.4666666666667, 310.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 472.0, 308.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -155,7 +155,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (0.533333333333303, 36.0)]</val>
+<val>[(0.0, 0.0), (0.0, 38.0)]</val>
 </points>
 <head-connection>
 <ref refid="1f66cf22-7d26-11e3-a873-7446a09191b6"/>
@@ -189,7 +189,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 468.1081081081081, 243.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 471.0, 243.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -198,7 +198,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (-0.17477477477478942, 37.0)]</val>
+<val>[(0.0, 0.0), (0.0, 35.0)]</val>
 </points>
 <head-connection>
 <ref refid="f71257e6-7d28-11e3-a5cb-7446a09191b6"/>
@@ -246,7 +246,7 @@
 <val>(1.0, 0.0, 0.0, 1.0, 524.0, 466.0)</val>
 </matrix>
 <width>
-<val>280.0</val>
+<val>362.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -260,7 +260,7 @@
 </item>
 <item type="InitialNodeItem" id="73860de2-b712-11e6-bc1c-7446a09191b6">
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 456.0, 101.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 463.0, 102.0)</val>
 </matrix>
 <width>
 <val>20.0</val>
@@ -283,7 +283,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 466.0, 121.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 473.0, 122.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -292,7 +292,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (0.0, 28.0)]</val>
+<val>[(0.0, 0.0), (0.0, 30.0)]</val>
 </points>
 <head-connection>
 <ref refid="73860de2-b712-11e6-bc1c-7446a09191b6"/>
@@ -344,7 +344,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (113.0, 0.0)]</val>
+<val>[(0.0, 0.0), (137.0, -2.0)]</val>
 </points>
 <head-connection>
 <ref refid="0bbaf8da-b712-11e6-bc1c-7446a09191b6"/>
@@ -355,10 +355,10 @@
 </item>
 <item type="ActionItem" id="b9636b0c-b712-11e6-bc1c-7446a09191b6">
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 596.0, 405.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 620.0, 403.0)</val>
 </matrix>
 <width>
-<val>131.0</val>
+<val>166.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -378,7 +378,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 664.0, 435.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 706.1679389312977, 433.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -387,7 +387,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (1.0, 31.0)]</val>
+<val>[(0.0, 0.0), (0.12491821155947491, 33.0)]</val>
 </points>
 <head-connection>
 <ref refid="b9636b0c-b712-11e6-bc1c-7446a09191b6"/>
@@ -401,7 +401,7 @@
 <val>(1.0, 0.0, 0.0, 1.0, 528.0, 523.0)</val>
 </matrix>
 <width>
-<val>284.0</val>
+<val>368.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -418,7 +418,7 @@
 <val>(1.0, 0.0, 0.0, 1.0, 527.0, 578.0)</val>
 </matrix>
 <width>
-<val>427.0</val>
+<val>554.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -438,7 +438,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 668.0, 496.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 710.1714285714286, 496.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -447,7 +447,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (1.0, 27.0)]</val>
+<val>[(0.0, 0.0), (0.5327967806840661, 27.0)]</val>
 </points>
 <head-connection>
 <ref refid="1aa8716a-b712-11e6-bc1c-7446a09191b6"/>
@@ -464,7 +464,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 669.0, 553.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 710.7042253521126, 553.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -473,7 +473,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (0.0, 25.0)]</val>
+<val>[(0.0, 0.0), (0.5299666853580902, 25.0)]</val>
 </points>
 <head-connection>
 <ref refid="4ef6a9e0-b713-11e6-bc1c-7446a09191b6"/>
@@ -487,7 +487,7 @@
 <val>(1.0, 0.0, 0.0, 1.0, 529.0, 631.0)</val>
 </matrix>
 <width>
-<val>245.0</val>
+<val>315.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -507,7 +507,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 669.0, 608.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 711.0, 608.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -516,7 +516,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (0.0, 23.0)]</val>
+<val>[(0.0, 0.0), (1.0, 23.0)]</val>
 </points>
 <head-connection>
 <ref refid="8b05e072-b713-11e6-bc1c-7446a09191b6"/>
@@ -530,7 +530,7 @@
 <val>(1.0, 0.0, 0.0, 1.0, 531.0, 684.0)</val>
 </matrix>
 <width>
-<val>390.0</val>
+<val>507.0</val>
 </width>
 <height>
 <val>30.0</val>
@@ -602,7 +602,7 @@
 <val>0</val>
 </show_stereotypes_attrs>
 <matrix>
-<val>(1.0, 0.0, 0.0, 1.0, 669.0, 661.0)</val>
+<val>(1.0, 0.0, 0.0, 1.0, 711.0, 661.0)</val>
 </matrix>
 <orthogonal>
 <val>0</val>
@@ -611,7 +611,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (0.0, 23.0)]</val>
+<val>[(0.0, 0.0), (1.0, 23.0)]</val>
 </points>
 <head-connection>
 <ref refid="3103f95a-b714-11e6-bc1c-7446a09191b6"/>
@@ -654,7 +654,7 @@
 <val>0</val>
 </horizontal>
 <points>
-<val>[(0.0, 0.0), (0.0, 23.0)]</val>
+<val>[(0.0, 0.0), (1.0, 23.0)]</val>
 </points>
 <head-connection>
 <ref refid="5bd75f62-7d26-11e3-a873-7446a09191b6"/>
@@ -672,7 +672,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Import and initialise a specific OpenDrift model/subclass]]></val>
+<val>Import and initialise a specific OpenDrift model/subclass</val>
 </name>
 <outgoing>
 <reflist>
@@ -692,7 +692,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Model run configuration]]></val>
+<val>Model run configuration</val>
 </name>
 <outgoing>
 <reflist>
@@ -712,7 +712,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Simulation finished?]]></val>
+<val>Simulation finished?</val>
 </name>
 <outgoing>
 <reflist>
@@ -733,7 +733,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Finalise and close output file]]></val>
+<val>Finalise and close output file</val>
 </name>
 <outgoing>
 <reflist>
@@ -748,7 +748,7 @@
 </Action>
 <ControlFlow id="5f45e646-7d26-11e3-a873-7446a09191b6">
 <guard>
-<ref refid="5f45f37a-7d26-11e3-a873-7446a09191b6"/>
+<val>Yes</val>
 </guard>
 <presentation>
 <reflist>
@@ -762,11 +762,6 @@
 <ref refid="5bd75aee-7d26-11e3-a873-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="5f45f37a-7d26-11e3-a873-7446a09191b6">
-<value>
-<val><![CDATA[Yes]]></val>
-</value>
-</LiteralSpecification>
 <Action id="0cabc4fe-7d27-11e3-ba57-7446a09191b6">
 <incoming>
 <reflist>
@@ -774,7 +769,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Seed elements]]></val>
+<val>Seed elements</val>
 </name>
 <outgoing>
 <reflist>
@@ -794,7 +789,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Import, initialise and add Readers]]></val>
+<val>Import, initialise and add Readers</val>
 </name>
 <outgoing>
 <reflist>
@@ -808,9 +803,6 @@
 </presentation>
 </Action>
 <ControlFlow id="0a314314-7d29-11e3-a5cb-7446a09191b6">
-<guard>
-<ref refid="0a314fbc-7d29-11e3-a5cb-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="099a9bf8-7d29-11e3-a5cb-7446a09191b6"/>
@@ -823,11 +815,7 @@
 <ref refid="1f66cafe-7d26-11e3-a873-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="0a314fbc-7d29-11e3-a5cb-7446a09191b6"/>
 <ControlFlow id="27c8b7bc-b901-11e4-bff2-7446a09191b6">
-<guard>
-<ref refid="27c8d922-b901-11e4-bff2-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="496df834-7d28-11e3-a5cb-7446a09191b6"/>
@@ -840,7 +828,6 @@
 <ref refid="f7125430-7d28-11e3-a5cb-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="27c8d922-b901-11e4-bff2-7446a09191b6"/>
 <MergeNode id="0bbaefde-b712-11e6-bc1c-7446a09191b6">
 <incoming>
 <reflist>
@@ -849,7 +836,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Main loop]]></val>
+<val>Main loop</val>
 </name>
 <outgoing>
 <reflist>
@@ -869,7 +856,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Release elements scheduled within current timestep]]></val>
+<val>Release elements scheduled within current timestep</val>
 </name>
 <outgoing>
 <reflist>
@@ -895,9 +882,6 @@
 </presentation>
 </InitialNode>
 <ControlFlow id="7701e63a-b712-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="7701fbfc-b712-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="76522204-b712-11e6-bc1c-7446a09191b6"/>
@@ -910,11 +894,7 @@
 <ref refid="f9b0cb08-7d24-11e3-a873-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="7701fbfc-b712-11e6-bc1c-7446a09191b6"/>
 <ControlFlow id="b0cecacc-b712-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="b0cee052-b712-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="afe3dd00-b712-11e6-bc1c-7446a09191b6"/>
@@ -927,7 +907,6 @@
 <ref refid="0bbaefde-b712-11e6-bc1c-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="b0cee052-b712-11e6-bc1c-7446a09191b6"/>
 <Action id="b96363b4-b712-11e6-bc1c-7446a09191b6">
 <incoming>
 <reflist>
@@ -935,7 +914,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Advance one timestep]]></val>
+<val>Advance one timestep</val>
 </name>
 <outgoing>
 <reflist>
@@ -949,9 +928,6 @@
 </presentation>
 </Action>
 <ControlFlow id="c1449c88-b712-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="c144b16e-b712-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="b566f7da-b712-11e6-bc1c-7446a09191b6"/>
@@ -964,11 +940,7 @@
 <ref refid="b96363b4-b712-11e6-bc1c-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="c144b16e-b712-11e6-bc1c-7446a09191b6"/>
 <ControlFlow id="cf3bbb5a-b712-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="cf3bd0e0-b712-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="ce13bd0e-b712-11e6-bc1c-7446a09191b6"/>
@@ -981,7 +953,6 @@
 <ref refid="1aa868be-b712-11e6-bc1c-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="cf3bd0e0-b712-11e6-bc1c-7446a09191b6"/>
 <Action id="4ef6a2a6-b713-11e6-bc1c-7446a09191b6">
 <incoming>
 <reflist>
@@ -989,7 +960,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Call Readers in order to obtain environment variables]]></val>
+<val>Call Readers in order to obtain environment variables</val>
 </name>
 <outgoing>
 <reflist>
@@ -1009,7 +980,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Call model specific "update()" method to modify element positions and properties]]></val>
+<val>Call model specific "update()" method to modify element positions and properties</val>
 </name>
 <outgoing>
 <reflist>
@@ -1023,9 +994,6 @@
 </presentation>
 </Action>
 <ControlFlow id="a26b867c-b713-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="a26b9ba8-b713-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="a1864cce-b713-11e6-bc1c-7446a09191b6"/>
@@ -1038,11 +1006,7 @@
 <ref refid="4ef6a2a6-b713-11e6-bc1c-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="a26b9ba8-b713-11e6-bc1c-7446a09191b6"/>
 <ControlFlow id="21acbe4c-b714-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="21acd3f0-b714-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="1ff5d764-b714-11e6-bc1c-7446a09191b6"/>
@@ -1055,7 +1019,6 @@
 <ref refid="8b05d956-b713-11e6-bc1c-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="21acd3f0-b714-11e6-bc1c-7446a09191b6"/>
 <Action id="3103f2d4-b714-11e6-bc1c-7446a09191b6">
 <incoming>
 <reflist>
@@ -1063,7 +1026,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Remove elements scheduled for deactivation]]></val>
+<val>Remove elements scheduled for deactivation</val>
 </name>
 <outgoing>
 <reflist>
@@ -1077,9 +1040,6 @@
 </presentation>
 </Action>
 <ControlFlow id="40b2d326-b714-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="40b2e852-b714-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="3f8d39d2-b714-11e6-bc1c-7446a09191b6"/>
@@ -1092,7 +1052,6 @@
 <ref refid="3103f2d4-b714-11e6-bc1c-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="40b2e852-b714-11e6-bc1c-7446a09191b6"/>
 <Action id="5a8eec3a-b714-11e6-bc1c-7446a09191b6">
 <incoming>
 <reflist>
@@ -1100,7 +1059,7 @@
 </reflist>
 </incoming>
 <name>
-<val><![CDATA[Store element properties and environmental variables for current timestep]]></val>
+<val>Store element properties and environmental variables for current timestep</val>
 </name>
 <outgoing>
 <reflist>
@@ -1115,7 +1074,7 @@
 </Action>
 <ControlFlow id="a404f81e-b714-11e6-bc1c-7446a09191b6">
 <guard>
-<ref refid="a4050cdc-b714-11e6-bc1c-7446a09191b6"/>
+<val>No</val>
 </guard>
 <presentation>
 <reflist>
@@ -1129,15 +1088,7 @@
 <ref refid="0bbaefde-b712-11e6-bc1c-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="a4050cdc-b714-11e6-bc1c-7446a09191b6">
-<value>
-<val><![CDATA[No]]></val>
-</value>
-</LiteralSpecification>
 <ControlFlow id="bd4088de-b714-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="bd409ea0-b714-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="bcac2bda-b714-11e6-bc1c-7446a09191b6"/>
@@ -1150,11 +1101,7 @@
 <ref refid="55aa8f06-7d26-11e3-a873-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="bd409ea0-b714-11e6-bc1c-7446a09191b6"/>
 <ControlFlow id="5883bdec-b711-11e6-bc1c-7446a09191b6">
-<guard>
-<ref refid="5883de12-b711-11e6-bc1c-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="539e0a24-7d28-11e3-a5cb-7446a09191b6"/>
@@ -1167,11 +1114,7 @@
 <ref refid="0cabc4fe-7d27-11e3-ba57-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="5883de12-b711-11e6-bc1c-7446a09191b6"/>
 <ControlFlow id="564ebff4-b716-11e6-95d2-7446a09191b6">
-<guard>
-<ref refid="564ef2da-b716-11e6-95d2-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="55ac5c64-b716-11e6-95d2-7446a09191b6"/>
@@ -1184,7 +1127,6 @@
 <ref refid="5a8eec3a-b714-11e6-bc1c-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="564ef2da-b716-11e6-95d2-7446a09191b6"/>
 <ActivityFinalNode id="708a9370-b716-11e6-95d2-7446a09191b6">
 <incoming>
 <reflist>
@@ -1198,9 +1140,6 @@
 </presentation>
 </ActivityFinalNode>
 <ControlFlow id="75232906-b716-11e6-95d2-7446a09191b6">
-<guard>
-<ref refid="752343be-b716-11e6-95d2-7446a09191b6"/>
-</guard>
 <presentation>
 <reflist>
 <ref refid="748a46c8-b716-11e6-95d2-7446a09191b6"/>
@@ -1213,5 +1152,4 @@
 <ref refid="708a9370-b716-11e6-95d2-7446a09191b6"/>
 </target>
 </ControlFlow>
-<LiteralSpecification id="752343be-b716-11e6-95d2-7446a09191b6"/>
 </gaphor>
