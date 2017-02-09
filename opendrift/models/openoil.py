@@ -654,6 +654,18 @@ class OpenOil(OpenDriftSimulation):
                          (oil_density, oiltype))
             kwargs['density'] = oil_density
 
+        if 'm3_per_hour' in kwargs:
+            # From given volume rate, we calculate the mass per element
+            num_elements = kwargs['number']
+            time = kwargs['time']
+            if type(time) is list:
+                duration_hours = ((time[1] - time[0]).total_seconds())/3600
+            else:
+                duration_hours = 1  # For instantaneous spill, we use 1h
+            kwargs['mass_oil'] = (kwargs['m3_per_hour']*duration_hours/
+                                  num_elements*kwargs['density'])
+            del kwargs['m3_per_hour']
+
         super(OpenOil, self).seed_elements(*args, **kwargs)
 
     def seed_from_gml(self, gmlfile, num_elements=1000):
