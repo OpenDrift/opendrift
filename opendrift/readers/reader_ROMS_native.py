@@ -297,19 +297,23 @@ class Reader(BaseReader):
                 # Unstagger grid
                 print 'Unstaggering ', par
                 if 'eta_v' in var.dimensions:
-                    variables[par] = np.concatenate(
+                    variables[par][variables[par].mask] = 0
+                    variables[par] = \
                         (variables[par][0:-1,0:-1] +
-                         variables[par][1:,0:-1])/2,
-                        (variables[par][0:-1,0:-1] +
-                         variables[par][1:,0:-1])/2)
+                         variables[par][1:,0:-1])/2
                 if 'eta_u' in var.dimensions:
-                    variables[par] = (variables[par][0:-1,0:-1] +
-                                      variables[par][0:-1,1:])/2
+                    variables[par][variables[par].mask] = 0
+                    variables[par] = \
+                        (variables[par][0:-1,0:-1] +
+                         variables[par][0:-1,1:])/2
                 if 'eta_rho' in var.dimensions:
                     variables[par] = variables[par][1::, 1::]
+                print variables[par].shape
             ################################
 
         if block is True:
+            indx = indx[0:-1]
+            indy = indy[0:-1]
             variables['x'] = indx
             variables['y'] = indy
         else:
@@ -319,24 +323,6 @@ class Reader(BaseReader):
         variables['x'] = variables['x'].astype(np.float)
         variables['y'] = variables['y'].astype(np.float)
         variables['time'] = nearestTime
-
-        ###############################
-        import matplotlib.pyplot as plt
-        plt.subplot(2,3,1)
-        plt.imshow(variables['x_sea_water_velocity'], interpolation='nearest')
-        plt.subplot(2,3,2)
-        plt.imshow(variables['y_sea_water_velocity'], interpolation='nearest')
-        plt.subplot(2,3,3)
-        plt.imshow(variables['land_binary_mask'], interpolation='nearest')
-
-        plt.subplot(2,3,4)
-        plt.imshow(u, interpolation='nearest')
-
-        plt.subplot(2,3,5)
-        plt.imshow(v, interpolation='nearest')
-        plt.show()
-        stop
-        ###############################
 
         if 'x_sea_water_velocity' or 'sea_ice_x_velocity' \
                 or 'x_wind' in variables.keys():
@@ -366,10 +352,29 @@ class Reader(BaseReader):
             'land_binary_mask' in variables.keys()):
             logging.info('Masking land where current is masked')
             variables['land_binary_mask'] = \
-                variables['x_sea_water_velocity'].mask*1
+                (variables['x_sea_water_velocity']**2 +
+                 variables['y_sea_water_velocity']**2) == 0
+                #variables['x_sea_water_velocity'].mask*1
         elif 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
 
+        ###############################
+        #import matplotlib.pyplot as plt
+        #plt.subplot(2,3,1)
+        #plt.imshow(variables['x_sea_water_velocity'], interpolation='nearest')
+        #plt.subplot(2,3,2)
+        #plt.imshow(variables['y_sea_water_velocity'], interpolation='nearest')
+        #plt.subplot(2,3,3)
+        #plt.imshow(variables['land_binary_mask'], interpolation='nearest')
+
+        #plt.subplot(2,3,4)
+        #plt.imshow(u, interpolation='nearest')
+
+        #plt.subplot(2,3,5)
+        #plt.imshow(v, interpolation='nearest')
+        #plt.show()
+        #stop
+        ###############################
 
         return variables
 
