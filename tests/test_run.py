@@ -37,7 +37,12 @@ try:
     import ogr
     import osr
     import gdal
-    has_ogr = True
+    version_num = int(gdal.VersionInfo('VERSION_NUM'))
+    if version_num >= 2000000:
+        has_ogr = True
+    else:
+        print 'GDAL version >= 2.0 is required:'
+        has_ogr = False
 except Exception as e:
     print 'GDAL is not available:'
     print e
