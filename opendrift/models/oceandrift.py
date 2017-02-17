@@ -57,10 +57,10 @@ class OceanDrift(OpenDriftSimulation):
 
         super(OceanDrift, self).__init__(*args, **kwargs)
 
-    def previous_position_if(self):
-        """Elements shall return to previous position if current is 0"""
-        return ((self.environment.x_sea_water_velocity == 0) &
-                (self.environment.y_sea_water_velocity == 0))
+    #def previous_position_if(self):
+    #    """Elements shall return to previous position if current is 0"""
+    #    return ((self.environment.x_sea_water_velocity == 0) &
+    #            (self.environment.y_sea_water_velocity == 0))
 
     def update(self):
         """Update positions and properties of elements."""

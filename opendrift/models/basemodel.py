@@ -335,8 +335,9 @@ class OpenDriftSimulation(PhysicsMethods):
                                    (previous_position_if == 1))[0]
             if len(on_land) == 0:
                 logging.info('No elements hit coastline.')
-            logging.info('%s elements hit coastline, moving back to water' % 
-                         len(on_land))
+            else:
+                logging.info('%s elements hit coastline, moving back to water' % 
+                             len(on_land))
             self.elements.lon[on_land] = self.previous_lon[on_land]
             self.elements.lat[on_land] = self.previous_lat[on_land]
 
