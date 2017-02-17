@@ -97,7 +97,10 @@ class Reader(BaseReader):
 
             # Read sigma-coordinate transform parameters
             self.Cs_r = self.Dataset.variables['Cs_r'][:]
-            self.hc = self.Dataset.variables['hc'][0]
+            try:
+                self.hc = self.Dataset.variables['hc'][:]
+            except:
+                self.hc = self.Dataset.variables['hc'][0]
 
             self.num_layers = len(self.sigma)
         else:
