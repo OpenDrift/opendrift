@@ -243,9 +243,9 @@ class TestInterpolation(unittest.TestCase):
                                   profiles=['x_sea_water_velocity'],
                                   profiles_depth=[-30, 0])
         self.assertAlmostEqual(env['x_sea_water_velocity'][10],
-                               0.0567555511984)
+                               0.053, 2)
         self.assertAlmostEqual(prof['x_sea_water_velocity'][5,48],
-                               -0.0949447782936)
+                               -0.104, 2)
 
 
 if __name__ == '__main__':

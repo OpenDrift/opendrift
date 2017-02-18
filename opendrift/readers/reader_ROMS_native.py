@@ -288,28 +288,34 @@ class Reader(BaseReader):
             if block is False:
                 variables[par].mask[outside] = True
 
-            ################################
-            if par == 'x_sea_water_velocity':
-                u = variables[par].copy()
-            if par == 'y_sea_water_velocity':
-                v = variables[par].copy()
             if block is True:
-                # Unstagger grid
-                print 'Unstaggering ', par
-                if 'eta_v' in var.dimensions:
-                    variables[par][variables[par].mask] = 0
-                    variables[par] = \
-                        (variables[par][0:-1,0:-1] +
-                         variables[par][1:,0:-1])/2
+                # Unstagger grid for vectors
+                logging.debug('Unstaggering ' + par)
                 if 'eta_u' in var.dimensions:
                     variables[par][variables[par].mask] = 0
-                    variables[par] = \
-                        (variables[par][0:-1,0:-1] +
-                         variables[par][0:-1,1:])/2
-                if 'eta_rho' in var.dimensions:
-                    variables[par] = variables[par][1::, 1::]
-                print variables[par].shape
-            ################################
+                    if variables[par].ndim == 2:
+                        variables[par] = \
+                            (variables[par][0:-1,0:-1] +
+                            variables[par][0:-1,1::])/2
+                    elif variables[par].ndim == 3:
+                        variables[par] = \
+                            (variables[par][:,0:-1,0:-1] +
+                            variables[par][:,0:-1,1::])/2
+                elif 'eta_v' in var.dimensions:
+                    variables[par][variables[par].mask] = 0
+                    if variables[par].ndim == 2:
+                        variables[par] = \
+                            (variables[par][0:-1,0:-1] +
+                             variables[par][1::,0:-1])/2
+                    elif variables[par].ndim == 3:
+                        variables[par] = \
+                            (variables[par][:,0:-1,0:-1] +
+                             variables[par][:,1::,0:-1])/2
+                else:
+                    if variables[par].ndim == 2:
+                        variables[par] = variables[par][1::, 1::]
+                    elif variables[par].ndim == 3:
+                        variables[par] = variables[par][:,1::, 1::]
 
         if block is True:
             indx = indx[0:-1]
@@ -357,24 +363,6 @@ class Reader(BaseReader):
                 #variables['x_sea_water_velocity'].mask*1
         elif 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
-
-        ###############################
-        #import matplotlib.pyplot as plt
-        #plt.subplot(2,3,1)
-        #plt.imshow(variables['x_sea_water_velocity'], interpolation='nearest')
-        #plt.subplot(2,3,2)
-        #plt.imshow(variables['y_sea_water_velocity'], interpolation='nearest')
-        #plt.subplot(2,3,3)
-        #plt.imshow(variables['land_binary_mask'], interpolation='nearest')
-
-        #plt.subplot(2,3,4)
-        #plt.imshow(u, interpolation='nearest')
-
-        #plt.subplot(2,3,5)
-        #plt.imshow(v, interpolation='nearest')
-        #plt.show()
-        #stop
-        ###############################
 
         return variables
 
