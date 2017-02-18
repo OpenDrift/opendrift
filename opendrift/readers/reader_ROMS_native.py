@@ -354,13 +354,18 @@ class Reader(BaseReader):
                         variables['y_wind'], rad)
 
         # Mask land where current is masked
-        if ('x_sea_water_velocity' in variables.keys()) and (
-            'land_binary_mask' in variables.keys()):
-            logging.info('Masking land where current is masked')
-            variables['land_binary_mask'] = \
-                (variables['x_sea_water_velocity']**2 +
-                 variables['y_sea_water_velocity']**2) == 0
-                #variables['x_sea_water_velocity'].mask*1
+        if 'x_sea_water_velocity' in variables.keys() and (
+            'y_sea_water_velocity' in variables.keys()):
+            mask = (variables['x_sea_water_velocity']**2 +
+                    variables['y_sea_water_velocity']**2) == 0
+            if 'land_binary_mask' in variables.keys():
+                logging.info('Masking land where current is masked')
+                variables['land_binary_mask'] = mask
+            # Masking u and v on land
+            variables['x_sea_water_velocity'] = \
+                np.ma.masked_where(mask, variables['x_sea_water_velocity'])
+            variables['y_sea_water_velocity'] = \
+                np.ma.masked_where(mask, variables['y_sea_water_velocity'])
         elif 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
 
