@@ -291,6 +291,14 @@ class Reader(BaseReader):
             if block is True:
                 # Unstagger grid for vectors
                 logging.debug('Unstaggering ' + par)
+                if par == 'x_sea_water_velocity':
+                    mask_u = variables[par].mask.copy()
+                    if mask_u.ndim == 3:
+                        mask_u = mask_u[-1,:,:]  # Upper layer
+                if par == 'y_sea_water_velocity':
+                    mask_v = variables[par].mask.copy()
+                    if mask_v.ndim == 3:
+                        mask_v = mask_v[-1,:,:]  # Upper layer
                 if 'eta_u' in var.dimensions:
                     variables[par][variables[par].mask] = 0
                     if variables[par].ndim == 2:
@@ -318,8 +326,8 @@ class Reader(BaseReader):
                         variables[par] = variables[par][:,1::, 1::]
 
         if block is True:
+            indy = indy[1::]
             indx = indx[0:-1]
-            indy = indy[0:-1]
             variables['x'] = indx
             variables['y'] = indy
         else:
@@ -356,16 +364,18 @@ class Reader(BaseReader):
         # Mask land where current is masked
         if 'x_sea_water_velocity' in variables.keys() and (
             'y_sea_water_velocity' in variables.keys()):
-            mask = (variables['x_sea_water_velocity']**2 +
-                    variables['y_sea_water_velocity']**2) == 0
+            mask = (mask_u*1 + mask_v*1)/2
+            mask = (mask[0:-1,0:-1] + mask[1::,0:-1])/2
             if 'land_binary_mask' in variables.keys():
                 logging.info('Masking land where current is masked')
                 variables['land_binary_mask'] = mask
-            # Masking u and v on land
-            variables['x_sea_water_velocity'] = \
-                np.ma.masked_where(mask, variables['x_sea_water_velocity'])
-            variables['y_sea_water_velocity'] = \
-                np.ma.masked_where(mask, variables['y_sea_water_velocity'])
+                if variables['x_sea_water_velocity'].ndim == 2:
+                    variables['x_sea_water_velocity'].mask = mask
+                    variables['y_sea_water_velocity'].mask = mask
+                else:
+                    for i in range(variables['x_sea_water_velocity'].shape[0]):
+                        variables['x_sea_water_velocity'].mask[i,:,:] = mask
+                        variables['y_sea_water_velocity'].mask[i,:,:] = mask
         elif 'land_binary_mask' in variables.keys():
             variables['land_binary_mask'] = 1 - variables['land_binary_mask']
 

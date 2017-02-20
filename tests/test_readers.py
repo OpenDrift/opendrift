@@ -222,12 +222,12 @@ class TestReaders(unittest.TestCase):
                               reader_nordic.start_time,
                               testlon, testlat, testz,
                               o.required_profiles)
-        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.306, 2)
+        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.338, 2)
         self.assertAlmostEqual(env['sea_water_temperature'][1], 0.6282, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
         self.assertItemsEqual(missing, [False,False,False,False,False])
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,0],
-                               4.306, 2)
+                               4.338, 2)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,4], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][8,2], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][7,2],
