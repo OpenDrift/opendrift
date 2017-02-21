@@ -299,7 +299,7 @@ class Reader(BaseReader):
                     mask_v = variables[par].mask.copy()
                     if mask_v.ndim == 3:
                         mask_v = mask_v[-1,:,:]  # Upper layer
-                if 'eta_u' in var.dimensions:
+                if 'eta_v' in var.dimensions:
                     variables[par][variables[par].mask] = 0
                     if variables[par].ndim == 2:
                         variables[par] = \
@@ -309,7 +309,9 @@ class Reader(BaseReader):
                         variables[par] = \
                             (variables[par][:,0:-1,0:-1] +
                             variables[par][:,0:-1,1::])/2
-                elif 'eta_v' in var.dimensions:
+                    variables[par] = np.ma.masked_where(variables[par]==0,
+                                                        variables[par])
+                elif 'eta_u' in var.dimensions:
                     variables[par][variables[par].mask] = 0
                     if variables[par].ndim == 2:
                         variables[par] = \
@@ -319,6 +321,8 @@ class Reader(BaseReader):
                         variables[par] = \
                             (variables[par][:,0:-1,0:-1] +
                              variables[par][:,1::,0:-1])/2
+                    variables[par] = np.ma.masked_where(variables[par]==0,
+                                                        variables[par])
                 else:
                     if variables[par].ndim == 2:
                         variables[par] = variables[par][1::, 1::]
@@ -326,8 +330,9 @@ class Reader(BaseReader):
                         variables[par] = variables[par][:,1::, 1::]
 
         if block is True:
-            indy = indy[1::]
+            # TODO: should be midpoints, but angle array below needs integer
             indx = indx[0:-1]
+            indy = indy[1::]
             variables['x'] = indx
             variables['y'] = indy
         else:
@@ -361,23 +366,21 @@ class Reader(BaseReader):
                         variables['x_wind'],
                         variables['y_wind'], rad)
 
-        # Mask land where current is masked
-        if 'x_sea_water_velocity' in variables.keys() and (
-            'y_sea_water_velocity' in variables.keys()):
-            mask = (mask_u*1 + mask_v*1)/2
-            mask = (mask[0:-1,0:-1] + mask[1::,0:-1])/2
-            if 'land_binary_mask' in variables.keys():
-                logging.info('Masking land where current is masked')
-                variables['land_binary_mask'] = mask
+        if 'land_binary_mask' in variables.keys():
+            if 'x_sea_water_velocity' in variables.keys() and (
+                    'y_sea_water_velocity' in variables.keys()):
+                logging.debug('Masking land where current is masked')
                 if variables['x_sea_water_velocity'].ndim == 2:
-                    variables['x_sea_water_velocity'].mask = mask
-                    variables['y_sea_water_velocity'].mask = mask
-                else:
-                    for i in range(variables['x_sea_water_velocity'].shape[0]):
-                        variables['x_sea_water_velocity'].mask[i,:,:] = mask
-                        variables['y_sea_water_velocity'].mask[i,:,:] = mask
-        elif 'land_binary_mask' in variables.keys():
-            variables['land_binary_mask'] = 1 - variables['land_binary_mask']
+                    variables['land_binary_mask'] = \
+                        variables['x_sea_water_velocity'].mask
+                elif variables['x_sea_water_velocity'].ndim == 3:
+                    # Using upper current level to mask land
+                    # TODO 0 instead of -1 for upper level?
+                    variables['land_binary_mask'] = \
+                        variables['x_sea_water_velocity'].mask[-1,:,:] 
+            else:
+                variables['land_binary_mask'] = \
+                    1 - variables['land_binary_mask']
 
         return variables
 

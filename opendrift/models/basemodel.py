@@ -300,9 +300,11 @@ class OpenDriftSimulation(PhysicsMethods):
     def store_present_positions(self):
         """Store present element positions, in case they shall be moved back"""
         if self.get_config('general:coastline_action') == 'previous':
-            self.previous_lon = np.copy(self.elements.lon)
-            self.previous_lat = np.copy(self.elements.lat)
-            self.previous_land = np.copy(self.environment.land_binary_mask)
+            if not hasattr(self, 'previous_lon'):
+                self.previous_lon = np.ma.masked_all(self.num_elements_total())
+                self.previous_lat = np.ma.masked_all(self.num_elements_total())
+            self.previous_lon[self.elements.ID-1] = np.copy(self.elements.lon)
+            self.previous_lat[self.elements.ID-1] = np.copy(self.elements.lat)
 
     def previous_position_if(self):
         return None
@@ -328,18 +330,23 @@ class OpenDriftSimulation(PhysicsMethods):
                                      self.environment.land_binary_mask == 0),
                                          reason='seeded_at_nodata_position')
                 return
+
             if previous_position_if is None:
                 on_land = np.where(self.environment.land_binary_mask == 1)[0]
             else:
                 on_land = np.where((self.environment.land_binary_mask == 1) |
                                    (previous_position_if == 1))[0]
             if len(on_land) == 0:
-                logging.info('No elements hit coastline.')
+                logging.debug('No elements hit coastline.')
             else:
-                logging.info('%s elements hit coastline, moving back to water' % 
-                             len(on_land))
-            self.elements.lon[on_land] = self.previous_lon[on_land]
-            self.elements.lat[on_land] = self.previous_lat[on_land]
+                logging.debug('%s elements hit coastline, '
+                              'moving back to water' % len(on_land))
+                on_land_ID = self.elements.ID[on_land] 
+                self.elements.lon[on_land] = \
+                    np.copy(self.previous_lon[on_land_ID - 1])
+                self.elements.lat[on_land] = \
+                    np.copy(self.previous_lat[on_land_ID - 1])
+                self.environment.land_binary_mask[on_land] = 0
 
     @abstractmethod
     def update(self):
@@ -1329,6 +1336,7 @@ class OpenDriftSimulation(PhysicsMethods):
             delattr(self, 'history')
             # Renumbering elements from 0 to num_elements, necessary fix when
             # importing from file, where elements may have been deactivated
+            # TODO: should start from 1?
             self.elements.ID = np.arange(0, self.num_elements_active())
 
         ########################

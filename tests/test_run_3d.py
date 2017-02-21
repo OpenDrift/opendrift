@@ -58,7 +58,7 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(o.elements.lat[0], 71.148, 2)
         self.assertAlmostEqual(o.elements.z.min(), -35.0, 3)
         self.assertAlmostEqual(o.elements.z.max(), -0.5, 3)
-        self.assertAlmostEqual(o.elements.lon.max(), 14.887, 2)
+        self.assertAlmostEqual(o.elements.lon.max(), 14.871, 2)
 
     @unittest.skipIf(thredds_support is False,
                      'NetCDF4 library does not support OPeNDAP')
