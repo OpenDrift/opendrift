@@ -366,7 +366,7 @@ class Reader(BaseReader):
                         variables['x_wind'],
                         variables['y_wind'], rad)
 
-        if 'land_binary_mask' in variables.keys():
+        if 'land_binary_mask' in requested_variables:
             if 'x_sea_water_velocity' in variables.keys() and (
                     'y_sea_water_velocity' in variables.keys()):
                 logging.debug('Masking land where current is masked')
@@ -379,7 +379,7 @@ class Reader(BaseReader):
                     mask = np.ma.getmask(
                         variables['x_sea_water_velocity'])[-1,:,:]
                 # Convert to masked array
-                landmask = np.ma.zeros(mask.shape)
+                landmask = np.ma.zeros(variables['x_sea_water_velocity'].shape)
                 try:
                     landmask[mask] = 1
                 except:
@@ -388,7 +388,14 @@ class Reader(BaseReader):
             else:
                 variables['land_binary_mask'] = \
                     1 - variables['land_binary_mask']
-
+        
+        for var in variables.keys():
+            print var
+            try:
+                print variables[var].shape
+            except:
+                pass
+            print type(variables[var])
         return variables
 
 

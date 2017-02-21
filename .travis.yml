@@ -34,6 +34,6 @@ before_install:
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
   - conda install --yes -c dan_blanchard python-coveralls
-script: coverage run --source=opendrift setup.py test
+script: coverage run --source=opendrift tests/test_run.py TestRun.test_reader_boundary
 after_success:
   - coveralls
