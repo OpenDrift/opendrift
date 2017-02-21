@@ -372,12 +372,12 @@ class Reader(BaseReader):
                 logging.debug('Masking land where current is masked')
                 if variables['x_sea_water_velocity'].ndim == 2:
                     variables['land_binary_mask'] = \
-                        variables['x_sea_water_velocity'].mask
+                        variables['x_sea_water_velocity'].mask*1
                 elif variables['x_sea_water_velocity'].ndim == 3:
                     # Using upper current level to mask land
                     # TODO 0 instead of -1 for upper level?
                     variables['land_binary_mask'] = \
-                        variables['x_sea_water_velocity'].mask[-1,:,:] 
+                        variables['x_sea_water_velocity'].mask[-1,:,:]*1
             else:
                 variables['land_binary_mask'] = \
                     1 - variables['land_binary_mask']
