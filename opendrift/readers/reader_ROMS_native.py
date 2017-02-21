@@ -379,7 +379,7 @@ class Reader(BaseReader):
                     mask = np.ma.getmask(
                         variables['x_sea_water_velocity'])[-1,:,:]
                 # Convert to masked array
-                landmask = np.ma.zeros(variables['x_sea_water_velocity'].shape)
+                landmask = np.ma.zeros((len(indy), len(indx)))
                 try:
                     landmask[mask] = 1
                 except:
