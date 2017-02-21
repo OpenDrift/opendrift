@@ -371,16 +371,15 @@ class Reader(BaseReader):
                     'y_sea_water_velocity' in variables.keys()):
                 logging.debug('Masking land where current is masked')
                 if variables['x_sea_water_velocity'].ndim == 2:
-                    variables['land_binary_mask'] = \
-                        variables['x_sea_water_velocity'].mask*1
+                    mask = variables['x_sea_water_velocity'].mask
                 elif variables['x_sea_water_velocity'].ndim == 3:
                     # Using upper current level to mask land
                     # TODO 0 instead of -1 for upper level?
-                    variables['land_binary_mask'] = \
-                        variables['x_sea_water_velocity'].mask[-1,:,:]*1
+                    mask = variables['x_sea_water_velocity'].mask[-1,:,:]
                 # Convert to masked array
-                variables['land_binary_mask'] = np.ma.masked_array(
-                    variables['land_binary_mask'])
+                landmask = np.ma.zeros(mask.shape)
+                landmask[mask] = 1
+                variables['land_binary_mask'] = landmask
             else:
                 variables['land_binary_mask'] = \
                     1 - variables['land_binary_mask']
