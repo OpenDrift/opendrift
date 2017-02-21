@@ -198,6 +198,8 @@ class ReaderBlock():
         if profiles is not []:
             profiles_dict = {'z': self.z}
         for varname, data in self.data_dict.iteritems():
+            logging.info(varname)
+            print data, 'DATA'
             horizontal = self._interpolate_horizontal_layers(data)
             if profiles is not None and varname in profiles:
                 profiles_dict[varname] = horizontal
