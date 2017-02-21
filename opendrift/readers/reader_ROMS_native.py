@@ -378,6 +378,9 @@ class Reader(BaseReader):
                     # TODO 0 instead of -1 for upper level?
                     variables['land_binary_mask'] = \
                         variables['x_sea_water_velocity'].mask[-1,:,:]*1
+                # Convert to masked array
+                variables['land_binary_mask'] = np.ma.masked_array(
+                    variables['land_binary_mask'])
             else:
                 variables['land_binary_mask'] = \
                     1 - variables['land_binary_mask']
