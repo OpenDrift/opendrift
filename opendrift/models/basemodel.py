@@ -1889,14 +1889,16 @@ class OpenDriftSimulation(PhysicsMethods):
             try:
                 if filename[-4:] == '.gif':  # GIF
                     logging.info('Making animated gif...')
-                    anim.save(filename, fps=fps, clear_temp=False)
-                    os.system('convert -delay %i _tmp*.png %s' %
-                            (np.abs(self.time_step_output.total_seconds())/
-                             3600.*24., filename))
-                    logging.info('Deleting temporary figures...')
-                    tmp = glob.glob('_tmp*.png')
-                    for tfile in tmp:
-                        os.remove(tfile)
+                    anim.save(filename, fps=fps, writer='imagemagick')
+                    # Keeping old code for reference
+                    #anim.save(filename, fps=fps, clear_temp=False)
+                    #os.system('convert -delay %i _tmp*.png %s' %
+                    #        (np.abs(self.time_step_output.total_seconds())/
+                    #         3600.*24., filename))
+                    #logging.info('Deleting temporary figures...')
+                    #tmp = glob.glob('_tmp*.png')
+                    #for tfile in tmp:
+                    #    os.remove(tfile)
                 else:  # MP4
                     try:
                         anim.save(filename, fps=fps, bitrate=1500,
