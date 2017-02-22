@@ -389,13 +389,6 @@ class Reader(BaseReader):
                 variables['land_binary_mask'] = \
                     1 - variables['land_binary_mask']
         
-        for var in variables.keys():
-            print var
-            try:
-                print variables[var].shape
-            except:
-                pass
-            print type(variables[var])
         return variables
 
 
