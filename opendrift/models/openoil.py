@@ -668,7 +668,7 @@ class OpenOil(OpenDriftSimulation):
 
         super(OpenOil, self).seed_elements(*args, **kwargs)
 
-    def seed_from_gml(self, gmlfile, num_elements=1000):
+    def seed_from_gml(self, gmlfile, num_elements=1000, *args, **kwargs):
         """Read oil slick contours from GML file, and seed particles within."""
 
         # Specific imports
@@ -768,9 +768,6 @@ class OpenOil(OpenDriftSimulation):
             latpoints = np.append(latpoints, lat[ind])
 
         # Finally seed at found positions
-        kwargs = {}
         kwargs['lon'] = lonpoints
         kwargs['lat'] = latpoints
-        kwargs['ID'] = np.arange(len(lonpoints)) + 1
-        kwargs['mass_oil'] = 1
-        self.schedule_elements(self.ElementType(**kwargs), oil_time)
+        self.seed_elements(time=oil_time, **kwargs)
