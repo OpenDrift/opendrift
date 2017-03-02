@@ -32,34 +32,34 @@ if __name__ == '__main__':
 
 
     if mode == 'slow':
-        o.add_readers_from_list(readers_thredds, timeout=5)
+        readers = readers_thredds
         start_time = datetime(2017, 3, 1, 0)
-        number = 10000
+        number = 20000
         hours = 60
         source = 'thredds'
+        o.set_config('general:basemap_resolution', 'f')
     elif mode == 'fast':
-        o.add_readers_from_list(readers_local, timeout=5)
+        readers = readers_local
         start_time = datetime(2015, 11, 16, 0)
-        number = 1000
+        number = 2000
         hours = 24
         source = 'file'
+        o.set_config('general:basemap_resolution', 'h')
 
     print '#'*40
     print 'Running %s test:\n %s elements\n %s hours\n input data from %s' % (
                 mode, number, hours, source)
     print '#'*40
 
+    o.add_readers_from_list(readers, timeout=5)
     o.seed_elements(lon=4.6, lat=59.7, time=start_time,
-                    number=1000, radius=3000)
-
-    # Configuration
-    o.set_config('general:basemap_resolution', 'h')
+                    number=number, radius=3000)
 
     print o
     o.run(duration=timedelta(hours=hours), time_step=900,
           time_step_output=3600, outfile='performance_test_oil.nc')
 
     print o
-    o.plot()
+    #o.plot()
     #o.animation()
     #o.animation_profile()
