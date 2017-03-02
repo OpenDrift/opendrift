@@ -1818,6 +1818,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return lons, lats
 
     def animation(self, buffer=.2, filename=None, compare=None,
+                  background=None, vmin=None, vmax=None, skip=5, scale=10,
                   legend=['', ''], markersize=5, fps=10):
         """Animate last run."""
 
@@ -1825,6 +1826,17 @@ class OpenDriftSimulation(PhysicsMethods):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
             ax.set_title(times[i])
+            if background is not None:
+                map_x, map_y, scalar, u_component, v_component = \
+                    self.get_map_background(map, background,
+                                            time=times[i])
+                map.pcolormesh(map_x, map_y, scalar, alpha=1,
+                               vmin=vmin, vmax=vmax)
+                if type(background) is list:
+                    map.quiver(map_x[::skip, ::skip],
+                               map_y[::skip, ::skip],
+                               u_component[::skip, ::skip],
+                               v_component[::skip, ::skip], scale=scale)
             points.set_data(x[range(x.shape[0]), i],
                             y[range(x.shape[0]), i])
             points_deactivated.set_data(
@@ -1845,6 +1857,14 @@ class OpenDriftSimulation(PhysicsMethods):
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
         ax = plt.gcf().gca()
+
+        if background is not None:
+            map_x, map_y, scalar, u_component, v_component = \
+                self.get_map_background(map, background,
+                                        time=self.start_time)
+            map.pcolormesh(map_x, map_y, scalar, alpha=1,
+                           vmin=vmin, vmax=vmax)
+
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
@@ -2154,36 +2174,11 @@ class OpenDriftSimulation(PhysicsMethods):
             print 'Cannot plot legend, due to bug in matplotlib:'
             print traceback.format_exc()
 
-        if background is not None:  # Disabled
-            # Plot background field, if requested
-            if type(background) is list:
-                variable = background[0]  # A vector is requested
-            else:
-                variable = background  # A scalar is requested
-            for readerName in self.readers:
-                reader = self.readers[readerName]
-                if variable in reader.variables:
-                    break
-            # Get lat/lons of ny by nx evenly space grid.
-            lons, lats = map.makegrid(4, 4)
-            reader_x, reader_y = reader.lonlat2xy(lons, lats)
-            data = reader.get_variables(
-                background, self.time-self.time_step_output,
-                reader_x, reader_y,
-                0, block=True)
-            reader_x, reader_y = np.meshgrid(data['x'], data['y'])
-            if type(background) is list:
-                u_component = data[background[0]]
-                v_component = data[background[1]]
-                scalar = np.sqrt(u_component**2 + v_component**2)
-                # NB: rotation not completed!
-                u_component, v_component = reader.rotate_vectors(
-                    reader_x, reader_y, u_component, v_component,
-                    reader.proj, map.srs)
-            else:
-                scalar = data[background]
-            rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
-            map_x, map_y = map(rlons, rlats)
+        if background is not None:
+            map_x, map_y, scalar, u_component, v_component = \
+                self.get_map_background(map, background, time=self.time -
+                                        self.time_step_output)
+
             if show_scalar is True:
                 if contourlines is False:
                     map.pcolormesh(map_x, map_y, scalar, alpha=1,
@@ -2241,6 +2236,40 @@ class OpenDriftSimulation(PhysicsMethods):
                 plt.show()
 
         return map, plt
+
+    def get_map_background(self, map, background, time=None):
+        # Get background field for plotting on map or animation
+        if time is None:
+            time = self.time - self.time_step_output
+        if type(background) is list:
+            variable = background[0]  # A vector is requested
+        else:
+            variable = background  # A scalar is requested
+        for readerName in self.readers:
+            reader = self.readers[readerName]
+            if variable in reader.variables:
+                break
+        # Get lat/lons of ny by nx evenly space grid.
+        lons, lats = map.makegrid(4, 4)
+        reader_x, reader_y = reader.lonlat2xy(lons, lats)
+        data = reader.get_variables(
+            background, time, reader_x, reader_y, 0, block=True)
+        reader_x, reader_y = np.meshgrid(data['x'], data['y'])
+        if type(background) is list:
+            u_component = data[background[0]]
+            v_component = data[background[1]]
+            scalar = np.sqrt(u_component**2 + v_component**2)
+            # NB: rotation not completed!
+            u_component, v_component = reader.rotate_vectors(
+                reader_x, reader_y, u_component, v_component,
+                reader.proj, map.srs)
+        else:
+            scalar = data[background]
+            u_component = v_component = None
+        rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
+        map_x, map_y = map(rlons, rlats)
+
+        return map_x, map_y, scalar, u_component, v_component
 
     def write_geotiff(self, filename, pixelsize_km=.2):
         '''Write one GeoTiff image per timestep.
