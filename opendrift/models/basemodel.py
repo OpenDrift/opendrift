@@ -1921,20 +1921,23 @@ class OpenDriftSimulation(PhysicsMethods):
                         for tfile in tmp:
                             os.remove(tfile)
                 else:  # MP4
+                    logging.info('Saving MP4 animation...')
                     try:
-                        anim.save(filename, fps=fps, bitrate=1500,
+                        anim.save(filename, fps=fps, bitrate=1800,
                                   extra_args=['-pix_fmt', 'yuv420p'])
-                    except:
+                    except Exception as e:
+                        logging.info(e)
                         try:
-                            logging.debug('Trying with codec libx264')
-                            anim.save(filename, fps=fps, bitrate=1500,
+                            logging.info('Trying with codec libx264')
+                            anim.save(filename, fps=fps, bitrate=1800,
                                       extra_args=['-pix_fmt', 'yuv420p',
                                                   '-vcodec', 'libx264'])
-                        except:
+                        except Exception as e:
+                            logging.info(e)
                             anim.save(filename, fps=fps)
                             logging.warning('Animation might not be HTML5 compatible.')
             except Exception as e:
-                print 'Could not save animation:'
+                logging.info('Could not save animation:')
                 logging.info(e)
                 logging.debug(traceback.format_exc())
         else:
