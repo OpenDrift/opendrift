@@ -41,7 +41,7 @@ if __name__ == '__main__':
     elif mode == 'fast':
         readers = readers_local
         start_time = datetime(2015, 11, 16, 0)
-        number = 2000
+        number = 10000
         hours = 24
         source = 'file'
         o.set_config('general:basemap_resolution', 'h')
