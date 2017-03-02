@@ -51,9 +51,6 @@ class OceanDrift(OpenDriftSimulation):
 
         self._add_config('drift:max_age_seconds', 'float(min=0, default=None)',
                          'Time after which particles will be deactivated.')
-        self._add_config('drift:scheme',
-                         "option('euler', 'runge-kutta', default='euler')",
-                         'Time after which particles will be deactivated.')
 
         super(OceanDrift, self).__init__(*args, **kwargs)
 
@@ -79,3 +76,11 @@ class OceanDrift(OpenDriftSimulation):
             self.deactivate_elements(self.elements.age_seconds >=
                                      self.get_config('drift:max_age_seconds'),
                                      reason='retired')
+
+    def simulate_trajectory(self, lon, lat, time,
+                            max_age_seconds=None, release_interval=None):
+        self.set_config('drift:max_age_seconds', 3600*6)
+        ind = np.arange(0, 200, 20)
+        for i in ind:
+            self.seed_elements(lon[i], lat[i], time=time[i])
+        self.run(steps=200)

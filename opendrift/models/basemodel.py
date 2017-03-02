@@ -2062,7 +2062,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
              drifter_file=None, show=True, vmin=None, vmax=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
-             contourlines=False, **kwargs):
+             contourlines=False, trajectory_dict=None, **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -2228,6 +2228,9 @@ class OpenDriftSimulation(PhysicsMethods):
             #map.plot(x[0], y[0], '*r', zorder=10)
             #map.plot(x[-1], y[-1], '*r', zorder=10)
 
+        if trajectory_dict is not None:
+            self._plot_trajectory_dict(map, trajectory_dict)
+
         #plt.gca().tick_params(labelsize=14)
 
         if filename is not None:
@@ -2239,6 +2242,17 @@ class OpenDriftSimulation(PhysicsMethods):
                 plt.show()
 
         return map, plt
+
+    def _plot_trajectory_dict(self, map, trajectory_dict):
+        '''Plot provided trajectory along with simulated'''
+        time = trajectory_dict['time']
+        time = np.array(time)
+        i = np.where((time>=self.start_time) & (time<=self.time))[0]
+        x, y = map(trajectory_dict['lon'][i], trajectory_dict['lat'][i])
+        ls = trajectory_dict['linestyle']
+        map.plot(x, y, ls, linewidth=2)
+        map.plot(x[0], y[0], '*k')
+        map.plot(x[-1], y[-1], '*k')
 
     def get_map_background(self, map, background, time=None):
         # Get background field for plotting on map or animation
