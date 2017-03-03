@@ -14,6 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import logging
 import numpy as np
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.passivetracer import PassiveTracer
@@ -77,10 +78,21 @@ class OceanDrift(OpenDriftSimulation):
                                      self.get_config('drift:max_age_seconds'),
                                      reason='retired')
 
-    def simulate_trajectory(self, lon, lat, time,
-                            max_age_seconds=None, release_interval=None):
-        self.set_config('drift:max_age_seconds', 3600*6)
-        ind = np.arange(0, 200, 20)
+    def seed_along_trajectory(self, lon, lat, time,
+                              release_time_interval=None):
+        '''Seed elements along given trajectory, at given time interval'''
+
+        if release_time_interval is not None:
+            # At first assuming constant time interval:
+            timestep = time[1] - time[0]
+            index_step = np.round(release_time_interval.total_seconds() /
+                                  timestep.total_seconds())
+            index_step = np.int(index_step)
+            ind = np.arange(0, len(lon), index_step)
+        else:
+            ind = [0]  # Seed only one element at start of trajectory
+
+        # Seed elements at given intervals
+        logging.info('Seeding %s elements along trajectory' % len(ind))
         for i in ind:
             self.seed_elements(lon[i], lat[i], time=time[i])
-        self.run(steps=200)

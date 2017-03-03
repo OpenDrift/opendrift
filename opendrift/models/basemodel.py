@@ -2251,8 +2251,8 @@ class OpenDriftSimulation(PhysicsMethods):
         x, y = map(trajectory_dict['lon'][i], trajectory_dict['lat'][i])
         ls = trajectory_dict['linestyle']
         map.plot(x, y, ls, linewidth=2)
-        map.plot(x[0], y[0], '*k')
-        map.plot(x[-1], y[-1], '*k')
+        map.plot(x[0], y[0], 'ok')
+        map.plot(x[-1], y[-1], 'xk')
 
     def get_map_background(self, map, background, time=None):
         # Get background field for plotting on map or animation
