@@ -1905,41 +1905,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                        frames=x.shape[1], interval=50)
 
         if filename is not None:
-            logging.info('Saving animation to ' + filename + '...')
-            try:
-                if filename[-4:] == '.gif':  # GIF
-                    logging.info('Making animated gif...')
-                    try:
-                        anim.save(filename, fps=fps, writer='imagemagick')
-                    except:  # For old version of matplotlib
-                        anim.save(filename, fps=fps, clear_temp=False)
-                        os.system('convert -delay %i _tmp*.png %s' %
-                                (np.abs(self.time_step_output.total_seconds())/
-                                 3600.*24., filename))
-                        logging.info('Deleting temporary figures...')
-                        tmp = glob.glob('_tmp*.png')
-                        for tfile in tmp:
-                            os.remove(tfile)
-                else:  # MP4
-                    logging.info('Saving MP4 animation...')
-                    try:
-                        anim.save(filename, fps=fps, bitrate=1800,
-                                  extra_args=['-pix_fmt', 'yuv420p'])
-                    except Exception as e:
-                        logging.info(e)
-                        try:
-                            logging.info('Trying with codec libx264')
-                            anim.save(filename, fps=fps, bitrate=1800,
-                                      extra_args=['-pix_fmt', 'yuv420p',
-                                                  '-vcodec', 'libx264'])
-                        except Exception as e:
-                            logging.info(e)
-                            anim.save(filename, fps=fps)
-                            logging.warning('Animation might not be HTML5 compatible.')
-            except Exception as e:
-                logging.info('Could not save animation:')
-                logging.info(e)
-                logging.debug(traceback.format_exc())
+            self._save_animation(anim, filename, fps)
         else:
             plt.show()
 
@@ -2035,27 +2001,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                        frames=x.shape[1], interval=150)
 
         if filename is not None:
-            try:
-                logging.info('Saving animation to ' + filename + '...')
-                try:
-                    anim.save(filename, fps=fps, clear_temp=False)
-                except:
-                    anim.save(filename, fps=fps)
-            except Exception as e:
-                print 'Could not save animation:'
-                logging.info(e)
-                logging.debug(traceback.format_exc())
-
-            if filename[-4:] == '.gif':
-                logging.info('Making animated gif...')
-                os.system('convert -delay %i _tmp*.png %s' %
-                          (np.abs(self.time_step_output.total_seconds())/
-                           3600.*24., filename))
-
-            logging.info('Deleting temporary figures...')
-            tmp = glob.glob('_tmp*.png')
-            for tfile in tmp:
-                os.remove(tfile)
+            self._save_animation(anim, filename, fps)
         else:
             plt.show()
 
@@ -2520,4 +2466,41 @@ class OpenDriftSimulation(PhysicsMethods):
             'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be']
 
         self.add_readers_from_list(readers, timeout=5)
-            
+
+    def _save_animation(self, anim, filename, fps):
+        logging.info('Saving animation to ' + filename + '...')
+        try:
+            if filename[-4:] == '.gif':  # GIF
+                logging.info('Making animated gif...')
+                try:
+                    anim.save(filename, fps=fps, writer='imagemagick')
+                except:  # For old version of matplotlib
+                    anim.save(filename, fps=fps, clear_temp=False)
+                    os.system('convert -delay %i _tmp*.png %s' %
+                            (np.abs(self.time_step_output.total_seconds())/
+                             3600.*24., filename))
+                    logging.info('Deleting temporary figures...')
+                    tmp = glob.glob('_tmp*.png')
+                    for tfile in tmp:
+                        os.remove(tfile)
+            else:  # MP4
+                logging.info('Saving MP4 animation...')
+                try:
+                    anim.save(filename, fps=fps, bitrate=1800,
+                              extra_args=['-pix_fmt', 'yuv420p'])
+                except Exception as e:
+                    logging.info(e)
+                    try:
+                        logging.info('Trying with codec libx264')
+                        anim.save(filename, fps=fps, bitrate=1800,
+                                  extra_args=['-pix_fmt', 'yuv420p',
+                                              '-vcodec', 'libx264'])
+                    except Exception as e:
+                        logging.info(e)
+                        anim.save(filename, fps=fps)
+                        logging.warning('Animation might not be HTML5 compatible.')
+        except Exception as e:
+            logging.info('Could not save animation:')
+            logging.info(e)
+            logging.debug(traceback.format_exc())
+                
