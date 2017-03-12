@@ -116,6 +116,7 @@ class OpenDriftSimulation(PhysicsMethods):
             [drift]
                 scheme = option('euler', 'runge-kutta', default='euler')
                 wind_drift_factor = float(min=0, max=1, default=0.02)
+                stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=.1)
                 wind_uncertainty = float(min=0, max=5, default=1)
                 relative_wind = boolean(default=False)'''

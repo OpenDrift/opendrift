@@ -79,7 +79,7 @@ class OceanDrift(OpenDriftSimulation):
                                      reason='retired')
 
     def seed_along_trajectory(self, lon, lat, time,
-                              release_time_interval=None):
+                              release_time_interval=None, **kwargs):
         '''Seed elements along given trajectory, at given time interval'''
 
         if release_time_interval is not None:
@@ -95,4 +95,4 @@ class OceanDrift(OpenDriftSimulation):
         # Seed elements at given intervals
         logging.info('Seeding %s elements along trajectory' % len(ind))
         for i in ind:
-            self.seed_elements(lon[i], lat[i], time=time[i])
+            self.seed_elements(lon[i], lat[i], time=time[i], **kwargs)

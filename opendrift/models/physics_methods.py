@@ -135,6 +135,14 @@ class PhysicsMethods(object):
             z = z*np.ones(len(self.elements))
 
         wind_drift_factor[self.elements.z < 0] = 0
+        wdfmin = wind_drift_factor.min()
+        wdfmax = wind_drift_factor.min()
+        if wdfmin == wdfmax:
+            logging.debug(
+                'Applying wind drift factor of %s to elements at surface'
+                % wdfmin)
+        else:
+            logging.debug('Applying wind drift factor between %s and %s to elements at surface' % (wdfmin, wdfmax))
 
         x_wind = self.environment.x_wind
         y_wind = self.environment.y_wind
@@ -151,13 +159,15 @@ class PhysicsMethods(object):
 
     def stokes_drift(self):
 
+        if self.get_config('drift:stokes_drift') is False:
+            logging.debug('Stokes drift not activated')
+            return
+
         if np.max(np.array(
             self.environment.sea_surface_wave_stokes_drift_x_velocity)) \
                 == 0:
             logging.debug('No Stokes drift velocity available.')
             return
-
-        logging.debug('Calculating Stokes drift')
 
         stokes_u, stokes_v, s = stokes_drift_profile_breivik(
             self.environment.sea_surface_wave_stokes_drift_x_velocity,
@@ -166,6 +176,11 @@ class PhysicsMethods(object):
             self.elements.z)
 
         self.update_positions(stokes_u, stokes_v)
+        if s.min() == s.max():
+            logging.debug('Advecting with Stokes drift (%s m/s)' % s.min())
+        else:
+            logging.debug('Advecting with Stokes drift (%s to %s m/s)' %
+                      (s.min(), s.max()))
 
     def resurface_elements(self, minimum_depth):
         # Keep surfacing elements in water column as default,

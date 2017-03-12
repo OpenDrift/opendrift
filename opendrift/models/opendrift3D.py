@@ -83,6 +83,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             Vertical advection by ocean currents is small compared to
             termical velocity
         """
+        if self.get_config('processes:verticaladvection') is False:
+            logging.debug('Vertical advection deactivated.')
+            return
+
         w = self.environment.upward_sea_water_velocity
         self.elements.z = np.minimum(0,
             self.elements.z + w * self.time_step.total_seconds())
