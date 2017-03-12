@@ -39,7 +39,7 @@ class Reader(BaseReader):
     variables = ['land_binary_mask']
 
     def __init__(self, llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat,
-                 resolution='i', projection='cyl', minimise_whitespace=False):
+                 resolution='i', projection='cyl', minimise_whitespace=True):
 
         logging.debug('Creating Basemap...')
 
