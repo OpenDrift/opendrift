@@ -764,6 +764,27 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.debug('    %s: %g (min) %g (max)' %
                               (var, env[var].min(), env[var].max()))
             logging.debug('---------------------------------')
+            logging.debug('\t\t%s active elements' % self.num_elements_active())
+            if self.num_elements_active() > 0:
+                lonmin = self.elements.lon.min()
+                lonmax = self.elements.lon.max()
+                latmin = self.elements.lat.min()
+                latmax = self.elements.lat.max()
+                zmin = self.elements.z.min()
+                zmax = self.elements.z.max()
+                if latmin == latmax:
+                    logging.debug('\t\tlatitude =  %s' % (latmin))
+                else:
+                    logging.debug('\t\t%s <- latitude  -> %s' % (latmin, latmax))
+                if lonmin == lonmax:
+                    logging.debug('\t\tlongitude = %s' % (lonmin))
+                else:
+                    logging.debug('\t\t%s <- longitude -> %s' % (lonmin, lonmax))
+                if zmin == zmax:
+                    logging.debug('\t\tz = %s' % (zmin))
+                else:
+                    logging.debug('\t\t%s   <- z ->   %s' % (zmin, zmax))
+                logging.debug('---------------------------------')
 
         # Prepare array indiciating which elements contain any invalid values
         missing = np.ma.masked_invalid(env[variables[0]]).mask
