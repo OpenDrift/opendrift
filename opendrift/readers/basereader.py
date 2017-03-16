@@ -382,16 +382,18 @@ class BaseReader(object):
             ############################################################
             # Interpolate before/after blocks onto particles in space
             ############################################################
-            logging.debug('Interpolating before (%s) in space' %
-                          (self.var_block_before[str(variables)].time))
+            logging.debug('Interpolating before (%s) in space  (%s)' %
+                          (self.var_block_before[str(variables)].time,
+                           self.interpolation))
             env_before, env_profiles_before = self.var_block_before[
                 str(variables)].interpolate(
                     reader_x, reader_y, z, variables,
                     profiles, profiles_depth)
 
             if (time_after is not None) and (time_before != time):
-                logging.debug('Interpolating after (%s) in space' %
-                              (self.var_block_after[str(variables)].time))
+                logging.debug('Interpolating after (%s) in space  (%s)' %
+                              (self.var_block_after[str(variables)].time,
+                               self.interpolation))
                 env_after, env_profiles_after = self.var_block_after[
                     str(variables)].interpolate(
                         reader_x, reader_y, z, variables,

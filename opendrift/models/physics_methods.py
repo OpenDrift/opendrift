@@ -136,7 +136,7 @@ class PhysicsMethods(object):
 
         wind_drift_factor[self.elements.z < 0] = 0
         wdfmin = wind_drift_factor.min()
-        wdfmax = wind_drift_factor.min()
+        wdfmax = wind_drift_factor.max()
         if wdfmin == wdfmax:
             logging.debug(
                 'Applying wind drift factor of %s to elements at surface'
