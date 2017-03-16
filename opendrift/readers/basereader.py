@@ -88,6 +88,8 @@ class BaseReader(object):
         'sea_water_potential_temperature': 'sea_water_temperature',
         'eastward_wind': 'x_wind',
         'northward_wind': 'y_wind',
+        'eastward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_x_velocity',
+        'northward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_y_velocity',
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward_tidal_current': 'x_sea_water_velocity',
