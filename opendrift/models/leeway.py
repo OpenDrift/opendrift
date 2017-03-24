@@ -221,6 +221,19 @@ class Leeway(OpenDriftSimulation):
             downwindEps=downwindEps, crosswindEps=crosswindEps,
             jibeProbability=jibeProbability)
 
+    def list_object_categories(self, substr=None):
+        '''Display leeway categories to screen
+
+        Print only objects containing 'substr', if specified'''
+
+        for i, p in enumerate(self.leewayprop):
+            description = self.leewayprop[p]['Description'].strip()
+            objkey = self.leewayprop[p]['OBJKEY'].strip()
+            if substr is not None:
+                if substr.lower() not in description.lower() + objkey.lower():
+                    continue
+            print '%i %s %s' % (i+1, objkey, description)
+
     def update(self):
         """Update positions and properties of leeway particles."""
 
