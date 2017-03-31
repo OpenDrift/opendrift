@@ -2261,6 +2261,72 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return map_x, map_y, scalar, u_component, v_component
 
+    def get_density_array(self, pixelsize_m):
+        lon = self.get_property('lon')[0]
+        lat = self.get_property('lat')[0]
+        status = self.get_property('status')[0]
+        times = self.get_time_array()[0]
+        deltalat = pixelsize_m/111000.0  # m to degrees
+        deltalon = deltalat/np.cos(np.radians((lat.min() +
+                                               lat.max())/2))
+        lat_array = np.arange(lat.min()-deltalat,
+                              lat.max()+deltalat, deltalat)
+        lon_array = np.arange(lon.min()-deltalat,
+                              lon.max()+deltalon, deltalon)
+        H = np.zeros((len(times), len(lon_array) - 1,
+                      len(lat_array) - 1)).astype(int)
+        for i, t in enumerate(times):
+            H[i,:,:], lon_array, lat_array = \
+                np.histogram2d(lon[i,:],
+                               lat[i,:], bins=(lon_array, lat_array))
+
+        return H, lon_array, lat_array
+
+    def write_netcdf_density_map(self, filename, pixelsize_m=200):
+        '''Write netCDF file with map of particles densities'''
+        H, lon_array, lat_array = self.get_density_array(pixelsize_m)
+        lon_array = (lon_array[0:-1] + lon_array[1::])/2
+        lat_array = (lat_array[0:-1] + lat_array[1::])/2
+
+        from netCDF4 import Dataset, date2num
+        nc = Dataset(filename, 'w')
+        nc.createDimension('lon', len(lon_array))
+        nc.createDimension('lat', len(lat_array))
+        nc.createDimension('time', H.shape[0])
+        times = self.get_time_array()[0]
+        timestr = 'seconds since 1970-01-01 00:00:00'
+        nc.createVariable('time', 'f8', ('time',))
+        nc.variables['time'][:] = date2num(times, timestr)
+        nc.variables['time'].units = timestr
+        nc.variables['time'].standard_name = 'time'
+        # Projection
+        nc.createVariable('projection_lonlat', 'i8')
+        nc.variables['projection_lonlat'].grid_mapping_name = \
+            'latitude_longitude'
+        nc.variables['projection_lonlat'].earth_radius = 6371229.
+        nc.variables['projection_lonlat'].proj4 = \
+            '+proj=longlat +a=6371229 +no_defs'
+        # Coordinates
+        nc.createVariable('lon', 'f8', ('lon',))
+        nc.createVariable('lat', 'f8', ('lat',))
+        nc.variables['lon'][:] = lon_array
+        nc.variables['lon'].long_name = 'longitude'
+        nc.variables['lon'].short_name = 'longitude'
+        nc.variables['lon'].units = 'degrees_east'
+        nc.variables['lat'][:] = lat_array
+        nc.variables['lat'].long_name = 'latitude'
+        nc.variables['lat'].short_name = 'latitude'
+        nc.variables['lat'].units = 'degrees_north'
+        # Density
+        nc.createVariable('density', 'u1', ('time','lat', 'lon'))
+        H = np.swapaxes(H, 1, 2).astype('uint8')
+        H = np.ma.masked_where(H==0, H)
+        nc.variables['density'][:] = H
+        nc.variables['density'].long_name = 'Detection probability'
+        nc.variables['density'].grid_mapping = 'projection_lonlat'
+        nc.variables['density'].units = '1'
+        nc.close()
+
     def write_geotiff(self, filename, pixelsize_km=.2):
         '''Write one GeoTiff image per timestep.
 
