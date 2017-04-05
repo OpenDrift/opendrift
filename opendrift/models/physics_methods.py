@@ -135,6 +135,7 @@ class PhysicsMethods(object):
             z = z*np.ones(len(self.elements))
 
         wind_drift_factor[self.elements.z < 0] = 0
+        #wdfmin = wind_drift_factor[self.elements.z >= 0].min()
         wdfmin = wind_drift_factor.min()
         wdfmax = wind_drift_factor.max()
         if wdfmin == wdfmax:

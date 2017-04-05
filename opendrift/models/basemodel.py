@@ -285,15 +285,19 @@ class OpenDriftSimulation(PhysicsMethods):
     def list_configspec(self):
         """List all possible configuration settings with specifications"""
         keys = self._config_hashstrings()
+        print '=============================================='
         for key in keys:
             print '%s [%s] %s' % (key, self.get_config(key),
                                   self.get_configspec(key))
+        print '=============================================='
 
     def list_config(self):
         """List all possible configuration settings with values"""
         keys = self._config_hashstrings()
+        print '=============================================='
         for key in keys:
             print '%s [%s]' % (key, self.get_config(key))
+        print '=============================================='
 
     def prepare_run(self):
         pass  # to be overloaded when needed
@@ -2264,7 +2268,14 @@ class OpenDriftSimulation(PhysicsMethods):
     def get_density_array(self, pixelsize_m):
         lon = self.get_property('lon')[0]
         lat = self.get_property('lat')[0]
+        z = self.get_property('z')[0]
         status = self.get_property('status')[0]
+        lon_submerged = lon.copy()
+        lat_submerged = lat.copy()
+        lon_submerged[z>=0] = 1000
+        lat_submerged[z>=0] = 1000
+        lon_stranded = lon.copy()
+        lat_stranded = lat.copy()
         times = self.get_time_array()[0]
         deltalat = pixelsize_m/111000.0  # m to degrees
         deltalon = deltalat/np.cos(np.radians((lat.min() +
@@ -2275,16 +2286,37 @@ class OpenDriftSimulation(PhysicsMethods):
                               lon.max()+deltalon, deltalon)
         H = np.zeros((len(times), len(lon_array) - 1,
                       len(lat_array) - 1)).astype(int)
+        H_submerged = H.copy()
+        H_stranded = H.copy()
+        try:
+            strandnum = self.status_categories.index('stranded')
+            lon_stranded[status!=strandnum] = 1000
+            lat_stranded[status!=strandnum] = 1000
+            contains_stranded = True
+        except ValueError:
+            contains_stranded = False
+        lon[z<0] = 1000
+        lat[z<0] = 1000
         for i, t in enumerate(times):
             H[i,:,:], lon_array, lat_array = \
                 np.histogram2d(lon[i,:],
                                lat[i,:], bins=(lon_array, lat_array))
+            H_submerged[i,:,:], dummy, dummy = \
+                np.histogram2d(lon_submerged[i,:],
+                               lat_submerged[i,:], bins=(lon_array, lat_array))
+            if contains_stranded is True:
+                H_stranded[i,:,:], dummy, dummy = \
+                np.histogram2d(lon_stranded[i,:],
+                               lat_stranded[i,:],
+                               bins=(lon_array, lat_array))
 
-        return H, lon_array, lat_array
+
+        return H, H_submerged, H_stranded, lon_array, lat_array
 
     def write_netcdf_density_map(self, filename, pixelsize_m=200):
         '''Write netCDF file with map of particles densities'''
-        H, lon_array, lat_array = self.get_density_array(pixelsize_m)
+        H, H_submerged, H_stranded, lon_array, lat_array = \
+            self.get_density_array(pixelsize_m)
         lon_array = (lon_array[0:-1] + lon_array[1::])/2
         lat_array = (lat_array[0:-1] + lat_array[1::])/2
 
@@ -2318,13 +2350,33 @@ class OpenDriftSimulation(PhysicsMethods):
         nc.variables['lat'].short_name = 'latitude'
         nc.variables['lat'].units = 'degrees_north'
         # Density
-        nc.createVariable('density', 'u1', ('time','lat', 'lon'))
+        nc.createVariable('density_surface', 'u1',
+                          ('time','lat', 'lon'))
         H = np.swapaxes(H, 1, 2).astype('uint8')
         H = np.ma.masked_where(H==0, H)
-        nc.variables['density'][:] = H
-        nc.variables['density'].long_name = 'Detection probability'
-        nc.variables['density'].grid_mapping = 'projection_lonlat'
-        nc.variables['density'].units = '1'
+        nc.variables['density_surface'][:] = H
+        nc.variables['density_surface'].long_name = 'Detection probability'
+        nc.variables['density_surface'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_surface'].units = '1'
+        # Density submerged
+       	nc.createVariable('density_submerged', 'u1',
+                          ('time','lat', 'lon'))
+        H_sub = np.swapaxes(H_submerged, 1, 2).astype('uint8')
+        H_sub = np.ma.masked_where(H_sub==0, H_sub)
+        nc.variables['density_submerged'][:] = H_sub
+        nc.variables['density_submerged'].long_name = 'Detection probability submerged'
+        nc.variables['density_submerged'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_submerged'].units = '1' 
+        # Density stranded
+       	nc.createVariable('density_stranded', 'u1',
+                          ('time','lat', 'lon'))
+        H_stranded = np.swapaxes(H_stranded, 1, 2).astype('uint8')
+        H_stranded = np.ma.masked_where(H_stranded==0, H_stranded)
+        nc.variables['density_stranded'][:] = H_stranded
+        nc.variables['density_stranded'].long_name = 'Detection probability stranded'
+        nc.variables['density_stranded'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_stranded'].units = '1' 
+ 
         nc.close()
 
     def write_geotiff(self, filename, pixelsize_km=.2):
