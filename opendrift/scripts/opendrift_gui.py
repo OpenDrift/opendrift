@@ -6,6 +6,7 @@ import numpy as np
 
 from PIL import ImageTk, Image
 import Tkinter as tk
+import ttk
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.leeway import Leeway
 from opendrift.readers import reader_netCDF_CF_generic
@@ -60,8 +61,9 @@ class OpenDriftGUI(tk.Tk):
         oljetyper = o.oiltypes
         self.oljetype = tk.StringVar()
         self.oljetype.set(oljetyper[0])
-        self.categorydrop = tk.OptionMenu(self.master,
-                                          self.oljetype, *oljetyper)
+        self.categorydrop = ttk.Combobox(self.master,
+                                         textvariable=self.oljetype,
+                                         values=oljetyper)
         self.categorydrop.grid(row=1, column=1)
 
         ##########
@@ -260,24 +262,18 @@ class OpenDriftGUI(tk.Tk):
         if model == 'OpenOil':
             self.categoryLabel['text'] = 'Oil type'
             self.oljetype.set('')
-            self.categorydrop['menu'].delete(0, 'end')
             self.o = OpenOil3D(weathering_model='noaa', location='NORWAY')
-            for cat in self.o.oiltypes:
-                self.categorydrop['menu'].add_command(
-                label=cat, command=tk._setit(self.oljetype, cat))
+            self.categorydrop['values'] = self.o.oiltypes
             self.oljetype.set(self.o.oiltypes[0])
 
         if model == 'Leeway':
             self.categoryLabel['text'] = 'Object type'
             self.oljetype.set('')
-            self.categorydrop['menu'].delete(0, 'end')
             self.o = Leeway()
             self.leewaycategories = [
                 self.o.leewayprop[c]['Description'].strip().
                 replace('>', '') for c in self.o.leewayprop]
-            for cat in self.leewaycategories:
-                self.categorydrop['menu'].add_command(
-                label=cat, command=tk._setit(self.oljetype, cat))
+            self.categorydrop['values'] = self.leewaycategories
             self.oljetype.set(self.leewaycategories[0])
 
     def run_opendrift(self):
