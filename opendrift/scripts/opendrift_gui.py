@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import os
 from datetime import datetime, timedelta
 import numpy as np
 
@@ -229,6 +230,14 @@ class OpenDriftGUI(tk.Tk):
         s.config(command=self.text.yview)
         self.text.config(yscrollcommand=s.set)
 
+        # Diana
+        self.dianadir = '/vol/vvfelles/opendrift/diana/'
+        if os.path.exists(self.dianadir):
+            self.has_diana = True
+            print 'Diana is available!'
+        else:
+            self.has_diana = False
+
         ##############
         # Driver data
         ##############
@@ -331,10 +340,13 @@ class OpenDriftGUI(tk.Tk):
         o.run(steps=duration, time_step=time_step)
         print o
 
-        diana_filename = 'diana.nc'
-        tk.Button(self.master, text='Save to Diana',
-                  command=o.write_netcdf_density_map(diana_filename)
-                  ).grid(row=7, column=2, sticky=tk.W, pady=4)
+        if self.has_diana is True:
+            diana_filename = self.dianadir + '/opendrift_' + \
+                self.model.get() + o.start_time.strftime(
+                                '_%Y%m%d_%H%M.nc')
+            tk.Button(self.master, text='Save to Diana',
+                      command=o.write_netcdf_density_map(diana_filename)
+                      ).grid(row=7, column=2, sticky=tk.W, pady=4)
         tk.Button(self.master, text='Animation',
                   command=o.animation).grid(row=7, column=3,
                                             sticky=tk.W, pady=4)

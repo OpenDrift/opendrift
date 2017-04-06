@@ -268,3 +268,49 @@ class Leeway(OpenDriftSimulation):
         self.elements.crosswindSlope[jib] = - self.elements.crosswindSlope[jib]
         logging.debug('Jibing %i out of %i elements.' %
                       (sum(jib), self.num_elements_active()))
+
+    def export_ascii(self, filename):
+        '''Export output to ASCII format of original version'''
+
+        try:
+            f = open(filename, 'w')
+        except:
+            raise ValueError('Could not open file for writing: '
+                             + filename)
+
+        start_time = self.start_time
+        string = (
+            '# Drift simulation initiated [UTC]:\n'
+            'simDate    simTime\n' +
+            '%Y-%m-%d %s #\n' % (self.start_time, 'haa') +
+            '2017-04-03 12:19:22    #\n'
+            '# Model version:\n'
+            'modelVersion\n'
+            ' 2.50\n'
+            '# Object class id & name:\n'
+            'objectClassId  objectClassName\n'
+            ' 32    AVIATION-1\n'
+            '# Seeding start time, position & radius:\n'
+            'startDate  startTime   startLon    startLat    startRad\n'
+            '2017-04-03 12:00:00       4.8000    60.0000       30.000\n'
+            '# Seeding end time, position & radius:\n'
+            'endDate    endTime endLon  endLat  endRad\n'
+            '2017-04-03 12:00:00       4.8000    60.0000       30.000\n'
+            '# Duration of seeding [min] & [timesteps]:\n'
+            'seedDuration   seedSteps\n'
+            '    0      1\n'
+            '# Length of timestep [min]:\n'
+            'timeStep\n'
+            '  60\n'
+            '# Length of model simulation [min] & [timesteps]:\n'
+            'simLength  simSteps\n'
+            '  3240    55\n'
+            '# Total no of seeded particles:\n'
+            'seedTotal\n'
+            ' 500\n'
+            '# Particles seeded per timestep:\n'
+            'seedRate\n'
+            ' 500\n')
+
+        f.write(string)
+        f.close()
