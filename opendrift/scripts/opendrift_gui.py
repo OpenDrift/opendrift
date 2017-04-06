@@ -6,7 +6,7 @@ import numpy as np
 
 from PIL import ImageTk, Image
 import Tkinter as tk
-from opendrift.models.openoil import OpenOil
+from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.leeway import Leeway
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_basemap_landmask
@@ -33,7 +33,7 @@ class OpenDriftGUI(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
         self.title('OpenDrift')
-        o = OpenOil()
+        o = OpenOil3D(weathering_model='noaa', location='NORWAY')
         try:
             img = ImageTk.PhotoImage(Image.open(o.test_data_folder() +
                                      '../../docs/opendrift_logo.png'))
@@ -204,7 +204,7 @@ class OpenDriftGUI(tk.Tk):
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
         self.durationhours.grid(row=4, column=1)
-        self.durationhours.insert(0, 50)
+        self.durationhours.insert(0, 12)
         tk.Label(self.duration, text=' hours ').grid(row=4, column=2)
 
         self.directionvar = tk.StringVar()
@@ -217,7 +217,7 @@ class OpenDriftGUI(tk.Tk):
         ##############
         # Output box
         ##############
-        self.text = tk.Text(self, wrap="word")
+        self.text = tk.Text(self, wrap="word", height=18)
         self.text.grid(row=5, columnspan=5, sticky='nsew')
         self.text.tag_configure("stderr", foreground="#b22222")
         sys.stdout = TextRedirector(self.text, "stdout")
@@ -230,7 +230,7 @@ class OpenDriftGUI(tk.Tk):
         ##############
         # Driver data
         ##############
-        o = OpenOil()
+        o = OpenOil3D()
         self.current = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
         #    o.test_data_folder() +
         #    '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
@@ -261,7 +261,7 @@ class OpenDriftGUI(tk.Tk):
             self.categoryLabel['text'] = 'Oil type'
             self.oljetype.set('')
             self.categorydrop['menu'].delete(0, 'end')
-            self.o = OpenOil()
+            self.o = OpenOil3D(weathering_model='noaa', location='NORWAY')
             for cat in self.o.oiltypes:
                 self.categorydrop['menu'].add_command(
                 label=cat, command=tk._setit(self.oljetype, cat))
@@ -311,7 +311,7 @@ class OpenDriftGUI(tk.Tk):
         else:
             cone = False
         if self.model.get() == 'Leeway':
-            o = Leeway(loglevel=20)
+            o = Leeway(loglevel=0)
             for ln, lc in enumerate(self.leewaycategories):
                 if self.oljetype.get() == lc.strip().replace('>', ''):
                     print 'Leeway object category: ' + lc
@@ -320,23 +320,13 @@ class OpenDriftGUI(tk.Tk):
                             radius=radius, time=start_time,
                             objectType=ln + 1)
         if self.model.get() == 'OpenOil':
-            o = OpenOil(loglevel=20)
+            o = OpenOil3D(weathering_model='noaa', loglevel=0)
             o.seed_elements(lon=lon, lat=lat, number=2000, radius=radius,
                             time=start_time, cone=cone,
                             oiltype=self.oljetype.get())
 
-        print 'Making Basemap...'
-        lons = o.elements_scheduled.lon
-        lats = o.elements_scheduled.lat
-        bufferlat = 2
-        basemap = reader_basemap_landmask.Reader(
-            llcrnrlon=lons.min() - bufferlat,
-            llcrnrlat=lats.min() - bufferlat,
-            urcrnrlon=lons.max() + bufferlat,
-            urcrnrlat=lats.max() + bufferlat,
-            resolution='h', projection='merc',
-            minimise_whitespace=True)
-        o.add_reader([basemap, self.current, self.wind])
+        o.add_reader([self.current, self.wind])
+        o.set_config('general:basemap_resolution', 'h')
 
         time_step = 1800  # Half hour
         duration = int(self.durationhours.get())*3600/time_step
@@ -345,15 +335,19 @@ class OpenDriftGUI(tk.Tk):
         o.run(steps=duration, time_step=time_step)
         print o
 
+        diana_filename = 'diana.nc'
+        tk.Button(self.master, text='Save to Diana',
+                  command=o.write_netcdf_density_map(diana_filename)
+                  ).grid(row=7, column=2, sticky=tk.W, pady=4)
         tk.Button(self.master, text='Animation',
-                  command=o.animation).grid(row=7, column=2,
+                  command=o.animation).grid(row=7, column=3,
                                             sticky=tk.W, pady=4)
         if self.model.get() == 'OpenOil':
             tk.Button(self.master, text='Oil Budget',
-                      command=o.plot_oil_budget).grid(row=7, column=3,
+                      command=o.plot_oil_budget).grid(row=7, column=4,
                                                       sticky=tk.W, pady=4)
 
-        o.plot()
+        #o.plot()
 
 
 if __name__ == '__main__':
