@@ -89,7 +89,7 @@ class OpenDriftGUI(tk.Tk):
         self.lat.grid(row=1, column=1)
         self.lat.insert(0, '60.0')
         self.radius.grid(row=1, column=2)
-        self.radius.insert(0, '5000')
+        self.radius.insert(0, '1000')
         ##########
         # Time
         ##########
