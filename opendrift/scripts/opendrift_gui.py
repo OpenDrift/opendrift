@@ -231,7 +231,7 @@ class OpenDriftGUI(tk.Tk):
         self.text.config(yscrollcommand=s.set)
 
         # Diana
-        self.dianadir = '/vol/vvfelles/opendrift/diana/'
+        self.dianadir = '/vol/vvfelles/opendrift/output/'
         if os.path.exists(self.dianadir):
             self.has_diana = True
             print 'Diana is available!'
@@ -321,12 +321,12 @@ class OpenDriftGUI(tk.Tk):
                 if self.oljetype.get() == lc.strip().replace('>', ''):
                     print 'Leeway object category: ' + lc
                     break
-            o.seed_elements(lon=lon, lat=lat, number=2000,
+            o.seed_elements(lon=lon, lat=lat, number=5000,
                             radius=radius, time=start_time,
                             objectType=ln + 1)
         if self.model.get() == 'OpenOil':
             o = OpenOil3D(weathering_model='noaa', loglevel=0)
-            o.seed_elements(lon=lon, lat=lat, number=2000, radius=radius,
+            o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
                             time=start_time, cone=cone,
                             oiltype=self.oljetype.get())
 
