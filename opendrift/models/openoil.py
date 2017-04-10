@@ -385,9 +385,9 @@ class OpenOil(OpenDriftSimulation):
             self.elements.viscosity = \
                 self.oiltype.kvis_at_temp(
                     self.environment.sea_water_temperature)
-            self.elements.density = \
-                self.oiltype.density_at_temp(
-                    self.environment.sea_water_temperature)
+            self.elements.density = np.atleast_1d([
+                self.oiltype.density_at_temp(t) for t in 
+                    self.environment.sea_water_temperature])
 
         if self.get_config('processes:evaporation') is True:
             self.evaporation_noaa()
