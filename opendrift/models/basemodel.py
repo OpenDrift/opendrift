@@ -244,6 +244,9 @@ class OpenDriftSimulation(PhysicsMethods):
         d = self.configobj
         ds = self.configobj.configspec
         for i, s in enumerate(key.split(':')):
+            if s not in d:
+                self.list_configspec()
+                raise ValueError('Wrong configuration')
             if not isinstance(d[s], dict):
                 d[s] = value
             else:
