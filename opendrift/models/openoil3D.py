@@ -31,7 +31,7 @@ class Oil3D(Oil):
         # Entrainment length scale, see Tkalich and Chan (2002)
         ('entrainment_length_scale', {'dtype': np.float32,
                                       'units': 'm',
-                                      'default': 0.1}),
+                                      'default': 0.03}),
         ('diameter', {'dtype': np.float32,  # Particle diameter
                       'units': 'm',
                       'default': 1e-5})
