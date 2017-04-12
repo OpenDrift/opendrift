@@ -208,6 +208,11 @@ class Leeway(OpenDriftSimulation):
         # Jibe probability
         jibeProbability = ones*pjibe
 
+        # Store seed data for ASCII format output
+        self.ascii = {
+             'lon': lon, 'lat': lat, 'radius': radius,
+             'number': number, 'time': time}
+
         # Call general seed_elements function of OpenDriftSimulation class
         # with the specific values calculated
         super(Leeway, self).seed_elements(
@@ -279,23 +284,35 @@ class Leeway(OpenDriftSimulation):
                              + filename)
 
         start_time = self.start_time
-        string = (
-            '# Drift simulation initiated [UTC]:\n'
-            'simDate    simTime\n' +
-            '%Y-%m-%d %s #\n' % (self.start_time, 'haa') +
-            '2017-04-03 12:19:22    #\n'
+        for inp in ['lon', 'lat', 'radius', 'time']:
+            if len(np.atleast_1d(self.ascii[inp])) == 1:
+                self.ascii[inp] = [self.ascii[inp], self.ascii[inp]]
+        f.write('# Drift simulation initiated [UTC]:\n')
+        f.write('simDate    simTime\n')
+        f.write(self.start_time.strftime('%Y-%m-%d %H:%M:%S #\n'))
+        f.write('2017-04-03 12:19:22    #\n')
+        f.write(
             '# Model version:\n'
             'modelVersion\n'
             ' 2.50\n'
             '# Object class id & name:\n'
-            'objectClassId  objectClassName\n'
-            ' 32    AVIATION-1\n'
+            'objectClassId  objectClassName\n')
+        objtype = self.elements.objectType[0]
+        f.write(' %i\t%s\n' % (objtype,
+                self.leewayprop[objtype]['OBJKEY'].strip()))
+        f.write(
             '# Seeding start time, position & radius:\n'
-            'startDate  startTime   startLon    startLat    startRad\n'
-            '2017-04-03 12:00:00       4.8000    60.0000       30.000\n'
+            'startDate  startTime   startLon    startLat    startRad\n')
+        f.write('%s\t%s\t%s\t%s\n' % (
+            self.ascii['time'][0], self.ascii['lon'][0],
+            self.ascii['lat'][0], self.ascii['radius'][0]))
+        f.write(
             '# Seeding end time, position & radius:\n'
-            'endDate    endTime endLon  endLat  endRad\n'
-            '2017-04-03 12:00:00       4.8000    60.0000       30.000\n'
+            'endDate    endTime endLon  endLat  endRad\n')
+        f.write('%s\t%s\t%s\t%s\n' % (
+            self.ascii['time'][1], self.ascii['lon'][1],
+            self.ascii['lat'][1], self.ascii['radius'][1]))
+        f.write( 
             '# Duration of seeding [min] & [timesteps]:\n'
             'seedDuration   seedSteps\n'
             '    0      1\n'
@@ -311,6 +328,4 @@ class Leeway(OpenDriftSimulation):
             '# Particles seeded per timestep:\n'
             'seedRate\n'
             ' 500\n')
-
-        f.write(string)
         f.close()
