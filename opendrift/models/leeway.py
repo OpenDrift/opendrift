@@ -288,13 +288,12 @@ class Leeway(OpenDriftSimulation):
             if len(np.atleast_1d(self.ascii[inp])) == 1:
                 self.ascii[inp] = [self.ascii[inp], self.ascii[inp]]
         f.write('# Drift simulation initiated [UTC]:\n')
-        f.write('simDate    simTime\n')
-        f.write(self.start_time.strftime('%Y-%m-%d %H:%M:%S #\n'))
-        f.write('2017-04-03 12:19:22    #\n')
+        f.write('simDate simTime\n')
+        f.write(self.start_time.strftime('%Y-%m-%d\t%H:%M:%S\t#\n'))
         f.write(
             '# Model version:\n'
             'modelVersion\n'
-            ' 2.50\n'
+            ' 3.00\n'  # OpenDrift version
             '# Object class id & name:\n'
             'objectClassId  objectClassName\n')
         objtype = self.elements.objectType[0]
@@ -302,13 +301,13 @@ class Leeway(OpenDriftSimulation):
                 self.leewayprop[objtype]['OBJKEY'].strip()))
         f.write(
             '# Seeding start time, position & radius:\n'
-            'startDate  startTime   startLon    startLat    startRad\n')
+            'startDate\tstartTime\tstartLon\tstartLat\tstartRad\n')
         f.write('%s\t%s\t%s\t%s\n' % (
             self.ascii['time'][0], self.ascii['lon'][0],
             self.ascii['lat'][0], self.ascii['radius'][0]))
         f.write(
             '# Seeding end time, position & radius:\n'
-            'endDate    endTime endLon  endLat  endRad\n')
+            'endDate\tendTime\tendLon\tendLat\tendRad\n')
         f.write('%s\t%s\t%s\t%s\n' % (
             self.ascii['time'][1], self.ascii['lon'][1],
             self.ascii['lat'][1], self.ascii['radius'][1]))
