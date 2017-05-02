@@ -51,6 +51,7 @@ o.set_config('processes:evaporation', True)
 o.set_config('processes:emulsification', True)
 o.set_config('processes:turbulentmixing', True)
 o.set_config('turbulentmixing:timestep', 2)
+o.set_config('oil:dispersion_droplet_radius', 2e-5)
 
 # Running model (until end of driver data)
 o.run(steps=4*20, time_step=900, export_buffer_length=10,
@@ -58,13 +59,12 @@ o.run(steps=4*20, time_step=900, export_buffer_length=10,
 
 # Print and plot results
 print o
-o.plot_oil_budget(filename='oil_noaa.png')
+o.plot_oil_budget()
 o.plot()
 o.plot_property('water_fraction')
 o.plot_property('water_fraction', mean=True)
 o.plot_property('mass_oil')
 o.plot_property('z')
 o.plot_property('mass_evaporated')
-o.plot_property('water_fraction')
 o.plot_property('interfacial_area')
 o.animation()

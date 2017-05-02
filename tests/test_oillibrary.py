@@ -56,5 +56,18 @@ class TestOil(unittest.TestCase):
             self.assertTrue(o.elements.mass_evaporated.max() <= 1)
             print oiltype, o.elements.mass_evaporated.min()
 
+    def test_dispersion(self):
+        o = OpenOil3D(loglevel=0, weathering_model='noaa')
+        o.seed_elements(lon=4.8, lat=60, number=100, time=datetime.now(),
+                        oiltype='EKOFISK, STATOIL')
+        o.set_config('processes:dispersion', True)
+        o.set_config('oil:dispersion_droplet_radius', 4e-5)
+        o.list_config()
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 10
+        o.fallback_values['y_sea_water_velocity'] = .3
+        o.run(duration=timedelta(hours=3))
+        self.assertEqual(o.num_elements_deactivated(), 10)
+
 if __name__ == '__main__':
     unittest.main()

@@ -18,6 +18,7 @@ import os
 import numpy as np
 from datetime import datetime
 import logging
+import matplotlib.pyplot as plt
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
@@ -116,6 +117,7 @@ class OpenOil(OpenDriftSimulation):
     configspec = '''
         [oil]
             oil_type = option(%s, default=%s)
+            dispersion_droplet_radius = float(default=20e-6, min=1e-8, max=1)
         [processes]
             dispersion = boolean(default=True)
             diffusion = boolean(default=True)
@@ -395,6 +397,31 @@ class OpenOil(OpenDriftSimulation):
         if self.get_config('processes:emulsification') is True:
             self.emulsification_noaa()
 
+        if self.get_config('processes:dispersion') is True:
+            self.disperse_small_droplets()
+
+    def disperse_small_droplets(self):
+        if len(np.atleast_1d(self.elements.diameter) <
+                    self.num_elements_active()):
+            self.elements.diameter = \
+                self.elements.diameter*np.ones(self.elements.lon.shape)
+        subsurface = np.where(self.elements.z < 0)[0]
+        if len(subsurface) > 0:
+            random_number = np.random.rand(self.num_elements_active())
+            # probability per hour
+            self.deactivate_elements((self.elements.diameter < 
+                                      self.get_config(
+                                      'oil:dispersion_droplet_radius')) &
+                                 (self.elements.z < 1) &
+                                 (random_number <
+                                  self.time_step.total_seconds()/3600.),
+                                 reason='dispersed')
+
+    def plot_droplet_spectrum(self):
+        '''Plotting distribution of droplet radii, for debugging'''
+        plt.hist(self.elements.diameter/2.0)
+        plt.show()
+
     def evaporation_noaa(self):
         #############################################
         # Evaporation, for elements at surface only
@@ -524,13 +551,17 @@ class OpenOil(OpenDriftSimulation):
 
         if 'stranded' not in self.status_categories:
             self.status_categories.append('stranded')
+        if 'dispersed' not in self.status_categories:
+            self.status_categories.append('dispersed')
         mass_submerged = np.ma.masked_where(
             ((status == self.status_categories.index('stranded')) |
+             (status == self.status_categories.index('dispersed')) |
                 (z == 0.0)), mass_oil)
         mass_submerged = np.ma.sum(mass_submerged, axis=1)
 
         mass_surface = np.ma.masked_where(
             ((status == self.status_categories.index('stranded')) |
+             (status == self.status_categories.index('dispersed')) |
                 (z < 0.0)), mass_oil)
         mass_surface = np.ma.sum(mass_surface, axis=1)
 
@@ -539,12 +570,12 @@ class OpenOil(OpenDriftSimulation):
             mass_oil), axis=1)
         mass_evaporated, status = self.get_property('mass_evaporated')
         mass_evaporated = np.sum(mass_evaporated, axis=1)
-        mass_dispersed, status = self.get_property('mass_dispersed')
-        mass_dispersed = np.sum(mass_dispersed, axis=1)
-        # If something is 'dispersed', we add it to category 'submerged'
-        mass_submerged = mass_submerged + mass_dispersed
 
-        budget = np.row_stack((mass_submerged,
+        mass_dispersed = np.ma.sum(np.ma.masked_where(
+            status != self.status_categories.index('dispersed'),
+            mass_oil), axis=1)
+
+        budget = np.row_stack((mass_dispersed, mass_submerged,
                                mass_surface, mass_stranded,
                                mass_evaporated))
         budget = np.cumsum(budget, axis=0)
@@ -557,7 +588,9 @@ class OpenOil(OpenDriftSimulation):
         ax1 = fig.add_subplot(111)
         # Hack: make some emply plots since fill_between does not support label
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='salmon', label='submerged'))
+                      color='darkslategrey', label='dispersed'))
+        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                      color='darkblue', label='submerged'))
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
                       color='royalblue', label='surface'))
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
@@ -565,12 +598,14 @@ class OpenOil(OpenDriftSimulation):
         ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
                       color='skyblue', label='evaporated'))
 
-        ax1.fill_between(time, 0, budget[0, :], facecolor='salmon')
+        ax1.fill_between(time, 0, budget[0, :], facecolor='darkslategrey')
         ax1.fill_between(time, budget[0, :], budget[1, :],
-                         facecolor='royalblue')
+                         facecolor='darkblue')
         ax1.fill_between(time, budget[1, :], budget[2, :],
-                         facecolor='black')
+                         facecolor='royalblue')
         ax1.fill_between(time, budget[2, :], budget[3, :],
+                         facecolor='black')
+        ax1.fill_between(time, budget[3, :], budget[4, :],
                          facecolor='skyblue')
         ax1.set_ylim([0, budget.max()])
         ax1.set_xlim([0, time.max()])
@@ -592,7 +627,7 @@ class OpenOil(OpenDriftSimulation):
         ax2.set_position([box.x0, box.y0 + box.height * 0.1,
                          box.width, box.height * 0.9])
         ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
-                   ncol=4, mode="expand", borderaxespad=0.)
+                   ncol=5, mode="expand", borderaxespad=0., fontsize=10)
         if filename is not None:
             plt.savefig(filename)
             plt.close()
