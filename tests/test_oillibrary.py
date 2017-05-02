@@ -56,6 +56,8 @@ class TestOil(unittest.TestCase):
             self.assertTrue(o.elements.mass_evaporated.max() <= 1)
             print oiltype, o.elements.mass_evaporated.min()
 
+    @unittest.skipIf(has_oil_library is False,
+                     'NOAA OilLibrary is needed')
     def test_dispersion(self):
         o = OpenOil3D(loglevel=0, weathering_model='noaa')
         o.seed_elements(lon=4.8, lat=60, number=100, time=datetime.now(),
