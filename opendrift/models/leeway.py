@@ -271,6 +271,7 @@ class Leeway(OpenDriftSimulation):
             np.abs(self.time_step.total_seconds()) / 3600.0
         jib = jp_per_timestep > np.random.random(self.num_elements_active())
         self.elements.crosswindSlope[jib] = - self.elements.crosswindSlope[jib]
+        self.elements.orientation[jib] = 1 - self.elements.orientation[jib]
         logging.debug('Jibing %i out of %i elements.' %
                       (sum(jib), self.num_elements_active()))
 
@@ -311,20 +312,67 @@ class Leeway(OpenDriftSimulation):
         f.write('%s\t%s\t%s\t%s\n' % (
             self.ascii['time'][1], self.ascii['lon'][1],
             self.ascii['lat'][1], self.ascii['radius'][1]))
+        seedDuration = (self.ascii['time'][1]-self.ascii['time'][0]).total_seconds()/60.
+        seedSteps=seedDuration/(self.time_step_output.total_seconds()/60.)
         f.write( 
             '# Duration of seeding [min] & [timesteps]:\n'
             'seedDuration   seedSteps\n'
-            '    0      1\n'
+            '    %i      %i\n'
             '# Length of timestep [min]:\n'
-            'timeStep\n'
-            '  60\n'
+            'timeStep\n' % (seedDuration, seedSteps))
+        f.write('%i\n' % (self.time_step_output.total_seconds()/60.))
+        f.write(
             '# Length of model simulation [min] & [timesteps]:\n'
-            'simLength  simSteps\n'
-            '  3240    55\n'
+            'simLength  simSteps\n')
+        f.write('%i\t%i\n' % ((self.time - self.start_time).total_seconds()/60., self.steps_output))
+
+        f.write(
             '# Total no of seeded particles:\n'
             'seedTotal\n'
-            ' 500\n'
+            ' %s\n' % (self.num_elements_activated()))
+        f.write(
             '# Particles seeded per timestep:\n'
             'seedRate\n'
-            ' 500\n')
+            ' %i\n' % (self.num_elements_activated()/seedSteps))
+
+        index_of_first, index_of_last = \
+            self.index_of_activation_and_deactivation()
+
+        beforeseeded = 0
+        lons, statuss = self.get_property('lon')
+        lats, statuss = self.get_property('lat')
+        orientations, statuss = self.get_property('orientation')
+        for step in range(self.steps_output):
+            lon = lons[step,:]
+            lat = lats[step,:]
+            orientation = orientations[step,:]
+            status = statuss[step,:]
+            num_active = np.sum(~status.mask)
+            status[status.mask] = 41  # seeded on land
+            lon[status.mask] = 0
+            lat[status.mask] = 0
+            orientation[status.mask] = 0
+            status[status==0] = 11 # active
+            status[status==1] = 41 # stranded
+            ID = np.arange(0, num_active+1)
+            f.write('\n# Date [UTC]:\nnowDate   nowTime\n')
+            f.write((self.start_time + self.time_step_output*step).strftime('%Y-%m-%d\t%H:%M:%S\n'))
+            f.write('# Time passed [min] & [timesteps], now seeded, seeded so far:\ntimePassed  nStep   nowSeeded   nSeeded\n')
+            f.write('  %i\t%i\t%i\t%i\n' % (
+                (self.time_step_output*step).total_seconds()/60,
+                 step, num_active-beforeseeded, num_active))
+            beforeseeded = num_active
+            f.write('# Mean position:\nmeanLon meanLat\n')
+            f.write('%f\t%f\n' % (np.mean(lon[status==11]),
+                                  np.mean(lat[status==11])))
+            f.write('# Particle data:\n')
+            f.write('id  lon lat state   age orientation\n')
+            age_minutes = self.time_step_output.total_seconds()*(
+                           step - index_of_first)/60
+            age_minutes[age_minutes<0] = 0
+            for i in range(num_active):
+                f.write('%i\t%s\t%s\t%i\t%i\t%i\n' % (i+1,
+                        lon[i], lat[i], status[i], age_minutes[i],
+                        orientation[i]))
+
         f.close()
