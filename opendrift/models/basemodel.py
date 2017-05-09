@@ -288,19 +288,23 @@ class OpenDriftSimulation(PhysicsMethods):
     def list_configspec(self):
         """List all possible configuration settings with specifications"""
         keys = self._config_hashstrings()
-        print '=============================================='
+        str = '=============================================='
         for key in keys:
-            print '%s [%s] %s' % (key, self.get_config(key),
-                                  self.get_configspec(key))
-        print '=============================================='
+            str += '%s [%s] %s' % (key, self.get_config(key),
+                                   self.get_configspec(key))
+        str += '=============================================='
+        print str
+        return str
 
     def list_config(self):
         """List all possible configuration settings with values"""
         keys = self._config_hashstrings()
-        print '=============================================='
+        str = '=============================================='
         for key in keys:
-            print '%s [%s]' % (key, self.get_config(key))
-        print '=============================================='
+            str += '%s [%s]' % (key, self.get_config(key))
+        str += '=============================================='
+        print str
+        return str
 
     def prepare_run(self):
         pass  # to be overloaded when needed
