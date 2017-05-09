@@ -31,7 +31,6 @@ before_install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        pip install -r requirements.txt;
         python setup.py develop;
         cd ../..;
     fi
@@ -40,13 +39,13 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
 install:
+  - pip install zope.sqlalchemy
+  - pip install awesome-slugify
+  - pip install repoze.lru
+  - pip install "git+https://github.com/NOAA-ORR-ERD/PyNUCOS.git#egg=unit_conversion"
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
   - conda install --yes -c dan_blanchard python-coveralls
-  #- pip install SQLAlchemy
-  #- pip install zope.sqlalchemy
-  #- pip install awesome-slugify
-  #- pip install repoze.lru
-  #- pip install "git+https://github.com/NOAA-ORR-ERD/PyNUCOS.git#egg=unit_conversion"
+  - pip install SQLAlchemy
 script: coverage run --source=opendrift setup.py test
 after_success:
   - coveralls
