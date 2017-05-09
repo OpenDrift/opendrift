@@ -31,7 +31,6 @@ before_install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        #pip install -r requirements.txt;
         python setup.py develop;
         cd ../..;
     fi
