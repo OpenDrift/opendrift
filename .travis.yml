@@ -26,7 +26,8 @@ before_install:
   - export PATH=/home/travis/miniconda2/bin:$PATH
   - conda update --yes conda
   - if [[ ! -e $HOME/oillibrary ]]; then
-        cd $HOME
+        echo "test1";
+        cd $HOME;
         mkdir -p oillibrary;
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
@@ -35,6 +36,7 @@ before_install:
         python setup.py develop;
         cd ../..;
     fi
+  - echo "test2";
   - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
   # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
   - sudo rm -rf /dev/shm
