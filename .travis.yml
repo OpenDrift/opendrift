@@ -13,7 +13,7 @@ cache:
   directories:
     - $HOME/download
     - $HOME/miniconda2
-    - $HOME/oillibrary
+  #  - $HOME/oillibrary
 sudo: required
 before_install:
   - if [[ ! -e $HOME/miniconda2/bin ]]; then
@@ -26,15 +26,16 @@ before_install:
     fi
   - export PATH=/home/travis/miniconda2/bin:$PATH
   #- conda update --yes conda
-  - if [[ ! -e $HOME/oillibrary ]]; then
-        mkdir -p oillibrary;
-        cd oillibrary;
-        git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
-        cd OilLibrary;
-        python setup.py develop;
-        cd ../..;
-    fi
-  - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
+  #- if [[ ! -e $HOME/oillibrary ]]; then
+  #      cd $HOME
+  #      mkdir -p oillibrary;
+  #      cd oillibrary;
+  #      git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
+  #      cd OilLibrary;
+  #      python setup.py develop;
+  #      cd ../..;
+  #  fi
+  #- export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
   # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
