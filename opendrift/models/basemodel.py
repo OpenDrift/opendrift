@@ -159,7 +159,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.fallback_values = {}
 
         # Make copies of dictionaries so that they are private to each instance
-        self.status_categories = self.status_categories.copy()
+        self.status_categories = ['active']  # Particles are active by default
         self.fallback_values = self.fallback_values.copy()
         self.status_colors_default = self.status_colors_default.copy()
 
