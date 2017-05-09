@@ -38,6 +38,7 @@ before_install:
         python setup.py develop;
         cd ../..;
     fi
+  - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
   # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
