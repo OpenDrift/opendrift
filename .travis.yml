@@ -29,9 +29,9 @@ before_install:
     fi
   - export PATH=/home/travis/miniconda2/bin:$PATH
   #- conda update --yes conda
-  - if [[ ! -e $HOME/oillibrary]]; then
-        mkdir -p download_oillib;
-        cd download_oillib;
+  - if [[ ! -e $HOME/oillibrary ]]; then
+        mkdir -p oillibrary;
+        cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
         pip install -r requirements.txt;
