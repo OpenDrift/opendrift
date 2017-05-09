@@ -13,7 +13,7 @@ cache:
   directories:
     - $HOME/download
     - $HOME/miniconda2
-    - $HOME/download_oillib
+    - $HOME/oillibrary
 sudo: required
 before_install:
   - if [[ ! -e $HOME/miniconda2/bin ]]; then
