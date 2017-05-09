@@ -17,8 +17,6 @@ cache:
 sudo: required
 before_install:
   - ls -al $HOME
-#  - ls -al $HOME/download
-#  - ls -al $HOME/miniconda2
   - if [[ ! -e $HOME/miniconda2/bin ]]; then
         mkdir -p download;
         cd download;
@@ -49,7 +47,7 @@ install:
   - pip install zope.sqlalchemy
   - pip install awesome-slugify
   - pip install repoze.lru
-  - pip install git+https://github.com/NOAA-ORR-ERD/PyNUCOS.git#egg=unit_conversion
+  - pip install "git+https://github.com/NOAA-ORR-ERD/PyNUCOS.git#egg=unit_conversion"
 script: coverage run --source=opendrift setup.py test
 after_success:
   - coveralls
