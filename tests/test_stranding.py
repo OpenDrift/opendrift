@@ -27,7 +27,7 @@ from opendrift.models.pelagicegg import PelagicEggDrift
 from opendrift.models.oceandrift import OceanDrift
 
 
-class TestRun(unittest.TestCase):
+class TestStranding(unittest.TestCase):
 
     def test_stranding_3d(self):
         o = PelagicEggDrift(loglevel=30)
