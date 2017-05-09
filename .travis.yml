@@ -16,7 +16,6 @@ cache:
     - $HOME/download_oillib
 sudo: required
 before_install:
-  - ls -al $HOME
   - if [[ ! -e $HOME/miniconda2/bin ]]; then
         mkdir -p download;
         cd download;
