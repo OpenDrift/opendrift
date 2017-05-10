@@ -25,7 +25,6 @@ before_install:
     fi
   - export PATH=/home/travis/miniconda2/bin:$PATH
   - conda update --yes conda
-  - echo "test2";
   - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
   # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
   - sudo rm -rf /dev/shm
@@ -33,7 +32,6 @@ before_install:
 install:
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
   - if [[ ! -e $HOME/oillibrary ]]; then
-        echo "test1";
         cd $HOME;
         mkdir -p oillibrary;
         cd oillibrary;
@@ -41,8 +39,8 @@ install:
         cd OilLibrary;
         sudo pip install -r requirements.txt;
         sudo python setup.py install;
-        cd ../..;
     fi
+  - cd $HOME
   - conda install --yes -c dan_blanchard python-coveralls
 script: coverage run --source=opendrift setup.py test
 after_success:
