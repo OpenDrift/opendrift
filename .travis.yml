@@ -43,7 +43,7 @@ install:
   - ls -l /home/
   - ls -l /home/travis/
   - ls -l /home/travis/build
-  - ls -l /home/travis/OpenDrift
+  - ls -l /home/travis/build/OpenDrift
   - cd /home/travis/build/OpenDrift
   - conda install --yes -c dan_blanchard python-coveralls
 script: coverage run --source=opendrift setup.py test
