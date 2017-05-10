@@ -305,13 +305,13 @@ class Leeway(OpenDriftSimulation):
             'startDate\tstartTime\tstartLon\tstartLat\tstartRad\n')
         f.write('%s\t%s\t%s\t%s\n' % (
             self.ascii['time'][0], self.ascii['lon'][0],
-            self.ascii['lat'][0], self.ascii['radius'][0]))
+            self.ascii['lat'][0], self.ascii['radius'][0]/1000.))
         f.write(
             '# Seeding end time, position & radius:\n'
             'endDate\tendTime\tendLon\tendLat\tendRad\n')
         f.write('%s\t%s\t%s\t%s\n' % (
             self.ascii['time'][1], self.ascii['lon'][1],
-            self.ascii['lat'][1], self.ascii['radius'][1]))
+            self.ascii['lat'][1], self.ascii['radius'][1]/1000.))
         seedDuration = (self.ascii['time'][1]-self.ascii['time'][0]).total_seconds()/60.
         seedSteps=seedDuration/(self.time_step_output.total_seconds()/60.)
         f.write( 
@@ -360,7 +360,7 @@ class Leeway(OpenDriftSimulation):
             f.write('# Time passed [min] & [timesteps], now seeded, seeded so far:\ntimePassed  nStep   nowSeeded   nSeeded\n')
             f.write('  %i\t%i\t%i\t%i\n' % (
                 (self.time_step_output*step).total_seconds()/60,
-                 step, num_active-beforeseeded, num_active))
+                 step+1, num_active-beforeseeded, num_active))
             beforeseeded = num_active
             f.write('# Mean position:\nmeanLon meanLat\n')
             f.write('%f\t%f\n' % (np.mean(lon[status==11]),
