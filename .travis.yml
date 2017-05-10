@@ -40,7 +40,9 @@ install:
         sudo pip install -r requirements.txt;
         sudo python setup.py install;
     fi
-  - cd $HOME
+  - ls -l /home/travis/
+  - ls -l /home/
+  - cd /home/travis/
   - conda install --yes -c dan_blanchard python-coveralls
 script: coverage run --source=opendrift setup.py test
 after_success:
