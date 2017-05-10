@@ -32,7 +32,7 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 install:
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
-   - if [[ ! -e $HOME/oillibrary ]]; then
+  - if [[ ! -e $HOME/oillibrary ]]; then
         echo "test1";
         cd $HOME;
         mkdir -p oillibrary;
