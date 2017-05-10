@@ -43,7 +43,7 @@ install:
         python setup.py develop;
         cd ../..;
     fi
- - conda install --yes -c dan_blanchard python-coveralls
+  - conda install --yes -c dan_blanchard python-coveralls
 script: coverage run --source=opendrift setup.py test
 after_success:
   - coveralls
