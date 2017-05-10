@@ -38,14 +38,10 @@ install:
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
         sudo pip install -r requirements.txt;
-        sudo python setup.py install;
+        sudo python setup.py develop;
     fi
-  - ls -l /home/
-  - ls -l /home/travis/
-  - ls -l /home/travis/build
-  - ls -l /home/travis/build/OpenDrift/opendrift
-  - cd /home/travis/build/OpenDrift/opendrift
   - conda install --yes -c dan_blanchard python-coveralls
+  - cd /home/travis/build/OpenDrift/opendrift
 script: coverage run --source=opendrift setup.py test
 after_success:
   - coveralls
