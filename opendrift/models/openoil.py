@@ -616,6 +616,8 @@ class OpenOil(OpenDriftSimulation):
         ax2 = ax1.twinx()
         ax2.set_ylim([0, 100])
         ax2.set_ylabel('Percent')
+        if not hasattr(self, 'oil_name'):  # TODO
+            self.oil_name = 'unknown oiltype'
         plt.title('%s - %s to %s' %
                   (self.oil_name,
                    self.start_time.strftime('%Y-%m-%d %H:%M'),

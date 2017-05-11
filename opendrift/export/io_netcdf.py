@@ -1,5 +1,5 @@
 import sys
-import datetime
+from datetime import datetime, timedelta
 import string
 from shutil import move
 import logging
@@ -32,7 +32,7 @@ def init(self, filename, times=None):
     self.outfile.Conventions = 'CF-1.6'
     self.outfile.standard_name_vocabulary = 'CF-1.6'
     self.outfile.featureType = 'trajectory'
-    self.outfile.history = 'Created ' + str(datetime.datetime.now())
+    self.outfile.history = 'Created ' + str(datetime.now())
     self.outfile.source = 'Output from simulation with OpenDrift'
     self.outfile.model_url = 'https://github.com/OpenDrift/opendrift'
     self.outfile.opendrift_class = self.__class__.__name__
@@ -114,7 +114,7 @@ def close(self):
     self.outfile.geospatial_lon_max = self.history['lon'].max()
     self.outfile.geospatial_lon_units = 'degrees_east'
     self.outfile.geospatial_lon_resolution = 'point'
-    self.outfile.runtime = str(datetime.datetime.now() -
+    self.outfile.runtime = str(datetime.now() -
                                self.timers['total time'])
 
     self.outfile.close()  # Finally close file
@@ -232,5 +232,16 @@ def import_file(self, filename, time=None):
             except:
                 logging.warning('Could not set config: %s -> %s' %
                                 (conf_key, value))
+
+    # Import time steps from metadata
+    try:
+        t = datetime.strptime(infile.time_step_calculation, '%H:%M:%S')
+        self.time_step = timedelta(
+            hours=t.hour, minutes=t.minute, seconds=t.second)
+        t = datetime.strptime(infile.time_step_output, '%H:%M:%S')
+        self.time_step_output = timedelta(
+            hours=t.hour, minutes=t.minute, seconds=t.second)
+    except:
+        logging.warning('Could not parse time_steps from netCDF file')
 
     infile.close()
