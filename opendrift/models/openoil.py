@@ -165,6 +165,15 @@ class OpenOil(OpenDriftSimulation):
             self.oiltypes_linenumbers = linenumbers
 
         self.oil_weathering_model = weathering_model
+
+        # Update config with oiltypes 
+        # TODO: add unicode support
+        oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
+        oiltypes = 'option(%s, default=\'%s\')' % (
+            str(oiltypes)[1:-1], oiltypes[0])
+        self._add_config('input:spill:oil_type', oiltypes,
+                         'Oil type', overwrite=True)
+
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
 
@@ -618,6 +627,8 @@ class OpenOil(OpenDriftSimulation):
         ax2.set_ylabel('Percent')
         if not hasattr(self, 'oil_name'):  # TODO
             self.oil_name = 'unknown oiltype'
+            # TODO line below is dangerous when importing old files
+            self.oil_name = self.get_config('input:spill:oil_type')
         plt.title('%s - %s to %s' %
                   (self.oil_name,
                    self.start_time.strftime('%Y-%m-%d %H:%M'),
@@ -637,6 +648,7 @@ class OpenOil(OpenDriftSimulation):
 
     def set_oiltype(self, oiltype):
         self.oil_name = oiltype
+        self.set_config('input:spill:oil_type', oiltype)
         if self.oil_weathering_model == 'noaa':
             try:
                 from oil_library import get_oil_props
