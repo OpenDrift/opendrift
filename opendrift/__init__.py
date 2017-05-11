@@ -1,9 +1,18 @@
 def open(filename):
     '''Import netCDF output file as OpenDrift object of correct class'''
 
+    import os
     import logging
     import pydoc
     from netCDF4 import Dataset
+    if not os.path.exists(filename):
+        logging.info('File does not exist, trying to retrieve from URL')
+        import urllib
+        try:
+            urllib.urlretrieve(filename, 'opendrift_tmp.nc')
+            filename = 'opendrift_tmp.nc'
+        except:
+            raise ValueError('%s does not exist' % filename)
     n = Dataset(filename)
     try:
         module_name = n.opendrift_module
