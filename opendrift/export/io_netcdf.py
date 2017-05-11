@@ -41,6 +41,13 @@ def init(self, filename, times=None):
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step_calculation = str(self.time_step)
     self.outfile.time_step_output = str(self.time_step_output)
+    config = self.outfile.createVariable('config', 'S1', ())
+    for key in self._config_hashstrings():
+        value = self.get_config(key)
+        if isinstance(value, (bool, type(None))):
+            value = str(value)
+        print key, value, type(value), 'VALUES'
+        config.setncattr(key, value)
 
     # Add all element properties as variables
     for prop in self.history.dtype.fields:
@@ -138,7 +145,8 @@ def close(self):
                     else:
                         dstVar[:] = srcVar[0:self.num_elements_activated()]  # Copy data
                 else:
-                    dstVar[:] = srcVar[:]
+                    if name != 'config':
+                        dstVar[:] = srcVar[:]
                 for att in src.variables[name].ncattrs():
                     # Copy variable attributes
                     dstVar.setncattr(att, srcVar.getncattr(att))
@@ -170,8 +178,9 @@ def import_file(self, filename, time=None):
     dtype = np.dtype([(var[0], var[1]['dtype'])
                       for var in self.ElementType.variables.items()])
 
-    history_dtype_fields = [(name, self.ElementType.variables[name]['dtype'])
-                                for name in self.ElementType.variables]
+    history_dtype_fields = [
+        (name, self.ElementType.variables[name]['dtype'])
+        for name in self.ElementType.variables]
     # Add environment variables
     self.history_metadata = self.ElementType.variables.copy()
     for env_var in self.required_variables:
@@ -180,8 +189,9 @@ def import_file(self, filename, time=None):
     history_dtype = np.dtype(history_dtype_fields)
 
     # Import whole dataset (history)
-    self.history = np.ma.array(np.zeros([num_elements, num_timesteps]),
-                               dtype=history_dtype, mask=[True])
+    self.history = np.ma.array(
+        np.zeros([num_elements, num_timesteps]),
+        dtype=history_dtype, mask=[True])
     for var in infile.variables:
         if var in ['time', 'trajectory']:
             continue
@@ -196,8 +206,8 @@ def import_file(self, filename, time=None):
     kwargs = {}
     for var in infile.variables:
         if var in self.ElementType.variables:
-            kwargs[var] = self.history[var][np.arange(len(index_of_last)),
-                                            index_of_last]
+            kwargs[var] = self.history[var][
+                np.arange(len(index_of_last)), index_of_last]
     # Import element IDs, which are named 'trajectory' in netCDF CF convention
     kwargs['ID'] = infile.variables['trajectory'][:]
     self.elements = self.ElementType(**kwargs)
@@ -205,5 +215,23 @@ def import_file(self, filename, time=None):
 
     # Remove elements which are scheduled for deactivation
     self.remove_deactivated_elements()
+
+    # Import and apply config settings
+    if 'config' in infile.variables:
+        for conf_key in infile.variables['config'].ncattrs():
+            value = infile.variables['config'].getncattr(conf_key)
+            if value == 'True':
+                value = True
+            if value == 'False':
+                value = False
+            if value == 'None':
+                value = None
+            try:
+                self.set_config(conf_key, value)
+                logging.info('Setting imported config: %s -> %s' %
+                             (conf_key, value))
+            except:
+                logging.warning('Could not set config: %s -> %s' %
+                                (conf_key, value))
 
     infile.close()
