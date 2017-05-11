@@ -46,7 +46,6 @@ def init(self, filename, times=None):
         value = self.get_config(key)
         if isinstance(value, (bool, type(None))):
             value = str(value)
-        print key, value, type(value), 'VALUES'
         config.setncattr(key, value)
 
     # Add all element properties as variables

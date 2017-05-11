@@ -79,7 +79,7 @@ class TestRun(unittest.TestCase):
 
     def test_seed_outside_coverage(self):
         """Test seeding"""
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil3D(loglevel=20)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         basemap = reader_basemap_landmask.Reader(
             llcrnrlon=4, llcrnrlat=60, urcrnrlon=6, urcrnrlat=64,
@@ -92,7 +92,7 @@ class TestRun(unittest.TestCase):
     def test_runge_kutta(self):
         number = 50
         # With Euler
-        o = OceanDrift3D(loglevel=0, seed=0)
+        o = OceanDrift3D(loglevel=20, seed=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
         o.add_reader([norkyst])
@@ -255,7 +255,7 @@ class TestRun(unittest.TestCase):
 
     def test_vertical_mixing(self):
         # Export to file only at end
-        o1 = PelagicEggDrift(loglevel=0)  # Profiles and vertical mixing
+        o1 = PelagicEggDrift(loglevel=20)  # Profiles and vertical mixing
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
           '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o1.add_reader([norkyst])
@@ -311,7 +311,7 @@ class TestRun(unittest.TestCase):
         os.remove('export_step_interval.nc')
 
     def test_buffer_length_stranding(self):
-        o1 = OceanDrift(loglevel=0)
+        o1 = OceanDrift(loglevel=20)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         basemap = reader_basemap_landmask.Reader(
@@ -326,7 +326,7 @@ class TestRun(unittest.TestCase):
                time_step_output=3600,
                export_buffer_length=10)
         # Without buffer
-        o2 = OceanDrift(loglevel=0)
+        o2 = OceanDrift(loglevel=20)
         o2.add_reader([basemap])
         o2.fallback_values['x_sea_water_velocity'] = 1.0  # onshore drift
         o2.seed_elements(4.8, 60.2, radius=5000, number=100,
@@ -342,7 +342,7 @@ class TestRun(unittest.TestCase):
         os.remove('test_buffer_length_stranding.nc')
 
     def test_output_time_step(self):
-        o1 = OceanDrift(loglevel=0)
+        o1 = OceanDrift(loglevel=20)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         basemap = reader_basemap_landmask.Reader(
@@ -458,7 +458,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.elements.lon, o2.elements.lon)
 
     def test_seed_seafloor(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil3D(loglevel=20)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
         o.add_reader([reader_norkyst])
@@ -475,7 +475,7 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[-1,0], -108.0, 2)  # After some rising
 
     def test_seed_below_reader_coverage(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil3D(loglevel=20)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
         o.add_reader([reader_norkyst])
@@ -493,7 +493,7 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[-1,0], -307.0, 2)  # After some rising
 
     def test_seed_below_seafloor(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil3D(loglevel=20)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader([reader_norkyst])
         o.fallback_values['land_binary_mask'] = 0
@@ -513,7 +513,7 @@ class TestRun(unittest.TestCase):
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
-        o = OceanDrift3D(loglevel=0, proj4='+proj=merc')
+        o = OceanDrift3D(loglevel=20, proj4='+proj=merc')
         o.max_speed = 100
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         reader_norkyst.buffer = 200

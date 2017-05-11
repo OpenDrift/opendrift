@@ -34,7 +34,7 @@ class TestRun(unittest.TestCase):
     """Tests for some physical parameterisations"""
 
     def test_droplet_diameters(self):
-        o = OpenOil3D(loglevel=0, weathering_model='default')
+        o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 3
@@ -96,7 +96,7 @@ class TestRun(unittest.TestCase):
 
         ########################################################
         # No wind/waves (i.e. no mixing)
-        o = OpenOil3D(loglevel=0, weathering_model='default')
+        o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.seed_elements(4, 60, number=100, time=datetime.now())
         o.set_config('turbulentmixing:timestep', 5)
@@ -130,7 +130,7 @@ class TestRun(unittest.TestCase):
         # 2.5m Hs, 10 mum radius (PlantOil)
         # Benchmark test from Jones et al. (2016)
         # NB: Entrainment length scale is not varied as in paper
-        o = OpenOil3D(loglevel=0, weathering_model='default')
+        o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 2.5
@@ -149,7 +149,7 @@ class TestRun(unittest.TestCase):
 
         #######################################################
         # Same as above, but parameterising waves from wind
-        o = OpenOil3D(loglevel=0, weathering_model='default')
+        o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 10
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
@@ -167,7 +167,7 @@ class TestRun(unittest.TestCase):
         ## Repeating last run, but with larger major (outer) time step
         ## Max mixing depth is expected to be same, but is slightly different
         ## This test is made to pass, but results should be checked
-        o = OpenOil3D(loglevel=0, weathering_model='default')
+        o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 10
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
