@@ -36,7 +36,7 @@ except:
 class TestRun(unittest.TestCase):
 
     def test_reader_boundary(self):
-        o = PelagicEggDrift(loglevel=0)
+        o = PelagicEggDrift(loglevel=20)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc') 
         ######################################################
@@ -63,7 +63,7 @@ class TestRun(unittest.TestCase):
     @unittest.skipIf(thredds_support is False,
                      'NetCDF4 library does not support OPeNDAP')
     def atest_reader_boundary_thredds(self):
-        o = PelagicEggDrift(loglevel=0)
+        o = PelagicEggDrift(loglevel=20)
 
         reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
         reader_nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
