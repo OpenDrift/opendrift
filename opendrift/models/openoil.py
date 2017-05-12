@@ -117,7 +117,7 @@ class OpenOil(OpenDriftSimulation):
     configspec = '''
         [oil]
             oil_type = option(%s, default=%s)
-            dispersion_droplet_radius = float(default=20e-6, min=1e-8, max=1)
+            dispersion_droplet_radius = float(default=50e-6, min=1e-8, max=1)
         [processes]
             dispersion = boolean(default=True)
             diffusion = boolean(default=True)
@@ -418,12 +418,13 @@ class OpenOil(OpenDriftSimulation):
         if len(subsurface) > 0:
             random_number = np.random.rand(self.num_elements_active())
             # probability per hour
+            # TODO tuning factor of 100 must be removed
             self.deactivate_elements((self.elements.diameter < 
-                                      self.get_config(
+                                      100*self.get_config(
                                       'oil:dispersion_droplet_radius')) &
-                                 (self.elements.z < 1) &
+                                 (self.elements.z < 0) &
                                  (random_number <
-                                  self.time_step.total_seconds()/3600.),
+                                  self.time_step.total_seconds()),
                                  reason='dispersed')
 
     def plot_droplet_spectrum(self):
