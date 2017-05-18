@@ -407,9 +407,10 @@ class OpenOil(OpenDriftSimulation):
             self.emulsification_noaa()
 
         if self.get_config('processes:dispersion') is True:
-            self.disperse_small_droplets()
+            self.disperse_noaa()
 
-    def disperse_small_droplets(self):
+    def disperse_noaa(self):
+        logging.debug('    Calculating dispersion')
         if len(np.atleast_1d(self.elements.diameter) <
                     self.num_elements_active()):
             self.elements.diameter = \
@@ -417,15 +418,12 @@ class OpenOil(OpenDriftSimulation):
         subsurface = np.where(self.elements.z < 0)[0]
         if len(subsurface) > 0:
             random_number = np.random.rand(self.num_elements_active())
-            # probability per hour
-            # TODO tuning factor of 100 must be removed
-            self.deactivate_elements((self.elements.diameter < 
-                                      100*self.get_config(
-                                      'oil:dispersion_droplet_radius')) &
-                                 (self.elements.z < 0) &
-                                 (random_number <
-                                  self.time_step.total_seconds()),
-                                 reason='dispersed')
+            fraction_dispersed = np.minimum(0.1*self.time_step.total_seconds()/3600., 1)
+            mass_dispersed = fraction_dispersed*self.elements.mass_oil[subsurface]
+            self.elements.mass_oil[subsurface] = self.elements.mass_oil[subsurface] - mass_dispersed
+            self.elements.mass_dispersed[subsurface] = self.elements.mass_dispersed[subsurface] + mass_dispersed
+            self.noaa_mass_balance['mass_components'][subsurface, :] = \
+                self.noaa_mass_balance['mass_components'][subsurface, :]*(1-fraction_dispersed)
 
     def plot_droplet_spectrum(self):
         '''Plotting distribution of droplet radii, for debugging'''
@@ -561,18 +559,14 @@ class OpenOil(OpenDriftSimulation):
 
         if 'stranded' not in self.status_categories:
             self.status_categories.append('stranded')
-        if 'dispersed' not in self.status_categories:
-            self.status_categories.append('dispersed')
         mass_submerged = np.ma.masked_where(
             ((status == self.status_categories.index('stranded')) |
-             (status == self.status_categories.index('dispersed')) |
-                (z == 0.0)), mass_oil)
+            (z == 0.0)), mass_oil)
         mass_submerged = np.ma.sum(mass_submerged, axis=1)
 
         mass_surface = np.ma.masked_where(
             ((status == self.status_categories.index('stranded')) |
-             (status == self.status_categories.index('dispersed')) |
-                (z < 0.0)), mass_oil)
+            (z < 0.0)), mass_oil)
         mass_surface = np.ma.sum(mass_surface, axis=1)
 
         mass_stranded = np.ma.sum(np.ma.masked_where(
@@ -580,10 +574,8 @@ class OpenOil(OpenDriftSimulation):
             mass_oil), axis=1)
         mass_evaporated, status = self.get_property('mass_evaporated')
         mass_evaporated = np.sum(mass_evaporated, axis=1)
-
-        mass_dispersed = np.ma.sum(np.ma.masked_where(
-            status != self.status_categories.index('dispersed'),
-            mass_oil), axis=1)
+        mass_dispersed, status = self.get_property('mass_dispersed')
+        mass_dispersed = np.sum(mass_dispersed, axis=1)
 
         budget = np.row_stack((mass_dispersed, mass_submerged,
                                mass_surface, mass_stranded,
