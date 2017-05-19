@@ -18,6 +18,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
+import logging
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -58,24 +59,52 @@ class TestOil(unittest.TestCase):
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
-    def atest_dispersion(self):
-        for oil in ['EKOFISK, STATOIL']:
-            o = OpenOil3D(loglevel=0, weathering_model='noaa')
-            o.seed_elements(lon=4.8, lat=60, number=100,
-                            time=datetime.now(), oiltype=oil)
-            o.set_config('processes:dispersion', True)
-            o.set_config('oil:dispersion_droplet_radius', 70E-6)
-            o.list_config()
-            o.fallback_values['land_binary_mask'] = 0
-            o.fallback_values['x_wind'] = 10
-            o.fallback_values['y_sea_water_velocity'] = .3
-            o.run(duration=timedelta(hours=24), time_step=900)
-            o.plot_property('mass_oil')
-            o.plot_property('mass_evaporated')
-            o.plot_property('mass_dispersed')
-            o.plot_oil_budget()
-            del o
-            #self.assertEqual(o.num_elements_deactivated(), 18)
+    def test_dispersion(self):
+        for oil in ['SMORBUKK KONDENSAT', 'SKRUGARD']:
+            for windspeed in [3, 8]:
+                if oil == 'SKRUGARD' and windspeed == 3:
+                    continue
+                o = OpenOil3D(loglevel=50, weathering_model='noaa')
+                o.seed_elements(lon=4.8, lat=60, number=100,
+                                time=datetime.now(), oiltype=oil)
+                o.set_config('processes:dispersion', True)
+                o.fallback_values['land_binary_mask'] = 0
+                o.fallback_values['x_wind'] = windspeed
+                o.fallback_values['y_sea_water_velocity'] = .3
+                o.run(duration=timedelta(hours=6), time_step=900)
+
+                b = o.get_oil_budget()
+                actual_dispersed = b['mass_dispersed']/b['mass_total']
+                print 'Dispersion fraction %f for ' \
+                      '%s and wind speed %f' % \
+                      (actual_dispersed[-1], oil, windspeed)
+                if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
+                    fraction_dispersed = 0
+                elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
+                    fraction_dispersed = 0.12055348
+                elif oil == 'SKRUGARD' and windspeed == 8:
+                    fraction_dispersed = 0.23383299
+                else:
+                    fraction_dispersed = -1  # not defined
+                self.assertAlmostEqual(actual_dispersed[-1],
+                                       fraction_dispersed)
+                #o.plot_oil_budget()
+
+    @unittest.skipIf(has_oil_library is False,
+                     'NOAA OilLibrary is needed')
+    def test_no_dispersion(self):
+        o = OpenOil3D(loglevel=50, weathering_model='noaa')
+        o.seed_elements(lon=4.8, lat=60, number=100,
+                        time=datetime.now(), oiltype='SKRUGARD')
+        o.set_config('processes:dispersion', False)
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 8
+        o.fallback_values['y_sea_water_velocity'] = .3
+        o.run(duration=timedelta(hours=2), time_step=1800)
+        b = o.get_oil_budget()
+        actual_dispersed = b['mass_dispersed']/b['mass_total']
+        self.assertAlmostEqual(actual_dispersed[-1], 0)
+        o.plot_oil_budget()
 
 if __name__ == '__main__':
     unittest.main()

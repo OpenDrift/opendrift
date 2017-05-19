@@ -51,7 +51,6 @@ o.set_config('processes:evaporation', True)
 o.set_config('processes:emulsification', True)
 o.set_config('processes:turbulentmixing', True)
 o.set_config('turbulentmixing:timestep', 2)
-o.set_config('oil:dispersion_droplet_radius', 2e-5)
 
 # Running model (until end of driver data)
 o.run(steps=4*20, time_step=900, export_buffer_length=10,

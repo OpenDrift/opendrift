@@ -117,7 +117,6 @@ class OpenOil(OpenDriftSimulation):
     configspec = '''
         [oil]
             oil_type = option(%s, default=%s)
-            dispersion_droplet_radius = float(default=50e-6, min=1e-8, max=1)
         [processes]
             dispersion = boolean(default=True)
             diffusion = boolean(default=True)
@@ -410,20 +409,25 @@ class OpenOil(OpenDriftSimulation):
             self.disperse_noaa()
 
     def disperse_noaa(self):
-        logging.debug('    Calculating dispersion')
-        if len(np.atleast_1d(self.elements.diameter) <
-                    self.num_elements_active()):
-            self.elements.diameter = \
-                self.elements.diameter*np.ones(self.elements.lon.shape)
-        subsurface = np.where(self.elements.z < 0)[0]
-        if len(subsurface) > 0:
-            random_number = np.random.rand(self.num_elements_active())
-            fraction_dispersed = np.minimum(0.1*self.time_step.total_seconds()/3600., 1)
-            mass_dispersed = fraction_dispersed*self.elements.mass_oil[subsurface]
-            self.elements.mass_oil[subsurface] = self.elements.mass_oil[subsurface] - mass_dispersed
-            self.elements.mass_dispersed[subsurface] = self.elements.mass_dispersed[subsurface] + mass_dispersed
-            self.noaa_mass_balance['mass_components'][subsurface, :] = \
-                self.noaa_mass_balance['mass_components'][subsurface, :]*(1-fraction_dispersed)
+        logging.debug('    Calculating: dispersion - NOAA')
+        # From NOAA PyGnome model:
+        # https://github.com/NOAA-ORR-ERD/PyGnome/
+        c_disp = np.power(self.wave_energy_dissipation(), 0.57) * \
+            self.sea_surface_wave_breaking_fraction()
+        # Roy's constant
+        C_Roy = 2400.0 * np.exp(-73.682*np.sqrt(
+            self.elements.viscosity/self.elements.density))
+        v_entrain = 3.9E-8
+        q_disp = C_Roy * c_disp * v_entrain / self.elements.density
+        fraction_dispersed = (q_disp * self.time_step.total_seconds() *
+                         self.elements.density)
+        oil_mass_loss = fraction_dispersed*self.elements.mass_oil
+
+        self.noaa_mass_balance['mass_components'] = \
+            self.noaa_mass_balance['mass_components']*(1-fraction_dispersed[:, np.newaxis])
+
+        self.elements.mass_oil -= oil_mass_loss
+        self.elements.mass_dispersed += oil_mass_loss
 
     def plot_droplet_spectrum(self):
         '''Plotting distribution of droplet radii, for debugging'''
@@ -434,7 +438,7 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Evaporation, for elements at surface only
         #############################################
-        logging.debug('    Calculating evaporation')
+        logging.debug('    Calculating evaporation - NOAA')
         surface = np.where(self.elements.z == 0)[0]  # of active elements
         if len(surface) == 0:
             logging.debug('All elements submerged, no evaporation')
@@ -463,7 +467,7 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Emulsification (surface only?)
         #############################################
-        logging.debug('    Calculating emulsification')
+        logging.debug('    Calculating emulsification - NOAA')
         emul_time = self.oiltype.bulltime
         emul_constant = self.oiltype.bullwinkle
         # max water content fraction - get from database
@@ -541,8 +545,7 @@ class OpenOil(OpenDriftSimulation):
         # Horizontal advection
         self.advect_oil()
 
-    def plot_oil_budget(self, filename=None):
-        import matplotlib.pyplot as plt
+    def get_oil_budget(self):
 
         if self.time_step.days < 0:  # Backwards simulation
             plt.text(0.1, 0.5, 'Oil weathering deactivated for '
@@ -562,25 +565,41 @@ class OpenOil(OpenDriftSimulation):
         mass_submerged = np.ma.masked_where(
             ((status == self.status_categories.index('stranded')) |
             (z == 0.0)), mass_oil)
-        mass_submerged = np.ma.sum(mass_submerged, axis=1)
+        mass_submerged = np.ma.sum(mass_submerged, axis=1).filled(0)
 
         mass_surface = np.ma.masked_where(
             ((status == self.status_categories.index('stranded')) |
             (z < 0.0)), mass_oil)
-        mass_surface = np.ma.sum(mass_surface, axis=1)
+        mass_surface = np.ma.sum(mass_surface, axis=1).filled(0)
 
         mass_stranded = np.ma.sum(np.ma.masked_where(
             status != self.status_categories.index('stranded'),
-            mass_oil), axis=1)
+            mass_oil), axis=1).filled(0)
         mass_evaporated, status = self.get_property('mass_evaporated')
-        mass_evaporated = np.sum(mass_evaporated, axis=1)
+        mass_evaporated = np.sum(mass_evaporated, axis=1).filled(0)
         mass_dispersed, status = self.get_property('mass_dispersed')
-        mass_dispersed = np.sum(mass_dispersed, axis=1)
+        mass_dispersed = np.sum(mass_dispersed, axis=1).filled(0)
 
-        budget = np.row_stack((mass_dispersed, mass_submerged,
-                               mass_surface, mass_stranded,
-                               mass_evaporated))
-        budget = np.cumsum(budget, axis=0)
+        oil_budget = {
+            'mass_dispersed': mass_dispersed,
+            'mass_submerged': mass_submerged,
+            'mass_surface': mass_surface,
+            'mass_stranded': mass_stranded,
+            'mass_evaporated': mass_evaporated,
+            'mass_total': (mass_dispersed + mass_submerged +
+                           mass_surface + mass_stranded + mass_evaporated)
+            }
+
+        return oil_budget
+
+    def plot_oil_budget(self, filename=None):
+
+        b = self.get_oil_budget()
+        oil_budget = np.row_stack(
+            (b['mass_dispersed'], b['mass_submerged'],
+             b['mass_surface'], b['mass_stranded'], b['mass_evaporated']))
+
+        budget = np.cumsum(oil_budget, axis=0)
 
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds()/3600. for t in time_relative])
