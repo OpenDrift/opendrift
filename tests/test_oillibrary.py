@@ -104,7 +104,6 @@ class TestOil(unittest.TestCase):
         b = o.get_oil_budget()
         actual_dispersed = b['mass_dispersed']/b['mass_total']
         self.assertAlmostEqual(actual_dispersed[-1], 0)
-        o.plot_oil_budget()
 
 if __name__ == '__main__':
     unittest.main()
