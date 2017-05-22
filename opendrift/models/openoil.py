@@ -423,8 +423,8 @@ class OpenOil(OpenDriftSimulation):
                          self.elements.density)
         oil_mass_loss = fraction_dispersed*self.elements.mass_oil
 
-        self.noaa_mass_balance['mass_components'] = \
-            self.noaa_mass_balance['mass_components']*(1-fraction_dispersed[:, np.newaxis])
+        self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
+            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_dispersed[:, np.newaxis])
 
         self.elements.mass_oil -= oil_mass_loss
         self.elements.mass_dispersed += oil_mass_loss
