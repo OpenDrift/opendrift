@@ -548,14 +548,7 @@ class OpenOil(OpenDriftSimulation):
     def get_oil_budget(self):
 
         if self.time_step.days < 0:  # Backwards simulation
-            plt.text(0.1, 0.5, 'Oil weathering deactivated for '
-                                'backwards simulations')
-            plt.axis('off')
-            if filename is not None:
-                plt.savefig(filename)
-                plt.close()
-            plt.show()
-            return
+            return None
 
         z, dummy = self.get_property('z')
         mass_oil, status = self.get_property('mass_oil')
@@ -593,6 +586,17 @@ class OpenOil(OpenDriftSimulation):
         return oil_budget
 
     def plot_oil_budget(self, filename=None):
+
+        if self.time_step.days < 0:  # Backwards simulation
+            fig = plt.figure(figsize=(10, 6.))
+            plt.text(0.1, 0.5, 'Oil weathering deactivated for '
+                                'backwards simulations')
+            plt.axis('off')
+            if filename is not None:
+                plt.savefig(filename)
+                plt.close()
+            plt.show()
+            return
 
         b = self.get_oil_budget()
         oil_budget = np.row_stack(
