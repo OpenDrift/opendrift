@@ -6,17 +6,19 @@ from opendrift.models.leeway import Leeway
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.readers import reader_netCDF_CF_generic
 
-#readers = [  # Note that order (priority) is important!
-#    '/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/NorKyst-800m_ZDEPTHS_his.fc*.nc',
-#    '/lustre/storeB/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc*.nc',
-#    '/lustre/storeB/project/copernicus/sea/mywavewam4/mywavewam4.fc*.nc',
-#    'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-#    'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-#    'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
-#    'http://thredds.met.no/thredds/dodsC/atmos/hirlam/hirlam12_be',
-#    'http://thredds.met.no/example_of_nonexisting_url.nc',
-#    'example_of_nonexisting_file',
-#    ]
+readers = [  # Note that order (priority) is important!
+    '/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
+    'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+    '/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
+    'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+    '/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
+    'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
+    '/lustre/storeB/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
+    'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
+    '/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
+    'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
+    'http://thredds.met.no/example_of_nonexisting_url.nc',
+    'example_of_nonexisting_file']
 
 for case in ['oil', 'leeway']:  # test two models
     for timestep in [900, -900]:  # forwards and backwards
@@ -32,8 +34,7 @@ for case in ['oil', 'leeway']:  # test two models
                 o = Leeway()
                 args = {'objectType': 32}
 
-            #o.add_readers_from_list(readers, timeout=5)
-            o.add_halo_readers()
+            o.add_readers_from_list(readers, timeout=5)
             print o
 
             #lons=[-0.8, 0.4]; lats=[59.9, 59.95] # NorKyst border
@@ -45,7 +46,8 @@ for case in ['oil', 'leeway']:  # test two models
             o.seed_elements(lon=lons, lat=lats,
                             time=[datetime.now() - timedelta(hours=3),
                                   datetime.now()],
-                            number=1000, radius = [0, 1000], cone=True, **args)
+                            number=1000, radius = [0, 1000],
+                            cone=True, **args)
 
             print o
             o.run(duration=timedelta(hours=24), time_step=timestep,
