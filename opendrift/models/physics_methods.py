@@ -237,6 +237,10 @@ class PhysicsMethods(object):
             T = (2*np.pi)/self._wave_frequency()
 
         #print '\n T %s \n' % str(T.mean())
+        if T.min() == 0:
+            logging.warning('Zero wave period found - '
+                            'replacing with mean')
+            T[T==0] = np.mean(T[T>0])
         return T
 
     def wave_energy(self):
