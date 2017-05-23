@@ -41,12 +41,13 @@ def init(self, filename, times=None):
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step_calculation = str(self.time_step)
     self.outfile.time_step_output = str(self.time_step_output)
-    config = self.outfile.createVariable('config', 'S1', ())
-    for key in self._config_hashstrings():
-        value = self.get_config(key)
-        if isinstance(value, (bool, type(None))):
-            value = str(value)
-        config.setncattr(key, value)
+    # Disabling config temporarily, as it interrupts Avinet processing
+    #config = self.outfile.createVariable('config', 'S1', ())
+    #for key in self._config_hashstrings():
+    #    value = self.get_config(key)
+    #    if isinstance(value, (bool, type(None))):
+    #        value = str(value)
+    #    config.setncattr(key, value)
 
     # Add all element properties as variables
     for prop in self.history.dtype.fields:
