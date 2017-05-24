@@ -345,8 +345,9 @@ class OpenDriftGUI(tk.Tk):
             diana_filename = self.dianadir + '/opendrift_' + \
                 self.model.get() + o.start_time.strftime(
                                 '_%Y%m%d_%H%M.nc')
-            tk.Button(self.master, text='Save to Diana',
-                      command=o.write_netcdf_density_map(diana_filename)
+            o.write_netcdf_density_map(diana_filename)
+            tk.Button(self.master, text='Show in Diana',
+                      command=lambda: os.system('diana &')
                       ).grid(row=7, column=2, sticky=tk.W, pady=4)
         tk.Button(self.master, text='Animation',
                   command=o.animation).grid(row=7, column=3,
