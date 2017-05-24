@@ -245,7 +245,7 @@ class OpenDriftGUI(tk.Tk):
         self.current = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
         #    o.test_data_folder() +
         #    '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        self.wind = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
+        self.wind = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc')
         #self.wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
         #    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
         self.waves = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be')
