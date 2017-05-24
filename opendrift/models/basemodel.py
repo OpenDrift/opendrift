@@ -536,9 +536,16 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.warning('%s is not a netCDF file recognised by '
                                     'OpenDrift' % f)
             if files == []:  # Try with OPeNDAP URL
-                try:
+                try:  # Check URL accessibility/timeout
                     import urllib2
-                    urllib2.urlopen(u, timeout=timeout)
+                    import netrc
+                    import base64
+                    parts = urllib2.urlparse.urlparse(u)
+                    login, account, password = netrc.netrc().authenticators(parts.netloc)
+                    request = urllib2.Request(u)
+                    creds = base64.encodestring('%s:%s' % (login, password)).strip()
+                    request.add_header("Authorization", "Basic %s" % creds)
+                    urllib2.urlopen(request, timeout=timeout)
                 except Exception as e:
                     # Error code 400 is expected!
                     if not isinstance(e, urllib2.HTTPError) or e.code != 400:
