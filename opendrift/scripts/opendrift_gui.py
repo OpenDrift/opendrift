@@ -242,13 +242,13 @@ class OpenDriftGUI(tk.Tk):
         # Driver data
         ##############
         o = OpenOil3D()
+		# TODO: all readers should be added as list, see further below
         self.current = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
         #    o.test_data_folder() +
         #    '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         self.wind = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc')
         #self.wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
         #    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-        self.waves = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be')
 
         print '#'*41
         print 'Current data coverage:'
@@ -331,7 +331,19 @@ class OpenDriftGUI(tk.Tk):
                             time=start_time, cone=cone,
                             oiltype=self.oljetype.get())
 
-        o.add_reader([self.current, self.wind, self.waves])
+        o.add_reader([self.current, self.wind])
+       	readers = [  # Note that order (priority) is important!
+			'/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
+			#'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+			'/lustre/storeB/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
+			'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+			'/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
+			#'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
+			'/lustre/storeB/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
+			'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
+			'/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
+			'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be']
+        o.add_readers_from_list(readers)
         o.set_config('general:basemap_resolution', 'h')
 
         time_step = 1800  # Half hour

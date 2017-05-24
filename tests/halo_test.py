@@ -9,7 +9,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 readers = [  # Note that order (priority) is important!
     '/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
     'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-    '/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
+    '/lustre/storeB/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
     'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
     '/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
     'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
