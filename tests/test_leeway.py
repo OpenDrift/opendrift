@@ -17,6 +17,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import os
 import unittest
 from datetime import datetime
 
@@ -60,6 +61,8 @@ class TestArray(unittest.TestCase):
         self.assertEqual(self.lee.num_elements_scheduled(), 0)
         self.assertEqual(self.lee.num_elements_active(), 97)
         self.assertEqual(self.lee.num_elements_deactivated(), 3)  # stranded
+        self.lee.export_ascii('leeway_ascii.txt')
+        os.remove('leeway_ascii.txt')
 
 
 if __name__ == '__main__':

@@ -314,6 +314,7 @@ class Leeway(OpenDriftSimulation):
             self.ascii['lat'][1], self.ascii['radius'][1]/1000.))
         seedDuration = (self.ascii['time'][1]-self.ascii['time'][0]).total_seconds()/60.
         seedSteps=seedDuration/(self.time_step_output.total_seconds()/60.)
+        seedSteps = np.maximum(1, seedSteps)
         f.write( 
             '# Duration of seeding [min] & [timesteps]:\n'
             'seedDuration   seedSteps\n'
