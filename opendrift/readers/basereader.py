@@ -94,6 +94,8 @@ class BaseReader(object):
         'northward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_y_velocity',
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'northward_sea_water_velocity': 'y_sea_water_velocity',
+        'eastward_current_velocity': 'x_sea_water_velocity',
+        'northward_current_velocity': 'y_sea_water_velocity',
         'eastward_tidal_current': 'x_sea_water_velocity',
         'northward_tidal_current': 'y_sea_water_velocity',
         'eastward_ekman_current_velocity': 'x_sea_water_velocity',
