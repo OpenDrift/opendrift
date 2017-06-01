@@ -103,6 +103,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 oil_type = option(%s, default=%s)
                 droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
                 droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
+        [wave_entrainment]
+            droplet_size_distribution = option('logarithmic', 'sintef_2009', default='logarithmic')
         [turbulentmixing]
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
             droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
@@ -267,7 +269,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # Calculate a random droplet diameter for each particle,
         # to be used if this particle gets entrained
         self.droplet_diamenter_if_entrained = \
-            self.get_wave_breaking_droplet_diameter(self.num_elements_active())
+            self.get_wave_breaking_droplet_diameter()
         # Uncomment lines below to plot droplet size distribution at each step
         #import matplotlib.pyplot as plt
         #plt.hist(self.droplet_diamenter_if_entrained, 200)
@@ -294,7 +296,15 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             self.elements.diameter[entrained] = \
                 self.droplet_diamenter_if_entrained[entrained]
 
-    def get_wave_breaking_droplet_diameter(self, number):
+    def get_wave_breaking_droplet_diameter(self):
+        dm = self.get_config('wave_entrainment:droplet_size_distribution')
+        if dm == 'sintef_2009':
+            d = self.get_wave_breaking_droplet_diameter_sintef2009()
+        elif dm == 'logarithmic':
+            d = self.get_wave_breaking_droplet_diameter_logarithmic()
+        return d
+
+    def get_wave_breaking_droplet_diameter_logarithmic(self):
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum, if not already done
             logging.info('Generating wave breaking droplet size spectrum')
@@ -308,7 +318,27 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             spectrum = self.droplet_spectrum_diameter**s
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
 
-        return np.random.choice(self.droplet_spectrum_diameter, size=number,
+        return np.random.choice(self.droplet_spectrum_diameter,
+                                size=self.num_elements_active(),
+                                p=self.droplet_spectrum_pdf)
+
+    def get_wave_breaking_droplet_diameter_sintef2009(self):
+        '''Placeholder - to be replaced by Sintef formula'''
+        if not hasattr(self, 'droplet_spectrum_pdf'):
+            # Generate droplet spectrum, if not already done
+            logging.info('Generating wave breaking droplet size spectrum')
+            s = self.get_config('turbulentmixing:droplet_size_exponent')
+            dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
+            dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
+            # Note: a long array of diameters is required for 
+            # sufficient resolution at both ends of logarithmic scale.
+            # Could perhaps use logspace instead of linspace(?)
+            self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
+            spectrum = self.droplet_spectrum_diameter**s
+            self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
+
+        return np.random.choice(self.droplet_spectrum_diameter,
+                                size=self.num_elements_active(),
                                 p=self.droplet_spectrum_pdf)
 
     def resurface_elements(self, minimum_depth=None):
