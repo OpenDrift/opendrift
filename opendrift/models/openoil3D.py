@@ -337,20 +337,23 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     def get_wave_breaking_droplet_diameter_sintef2009(self):
         '''Placeholder - to be replaced by Sintef formula'''
         if not hasattr(self, 'droplet_spectrum_pdf'):
-            # Generate droplet spectrum, if not already done
+            # Generate droplet spectrum as in Johansen et al. (2015)
             logging.info('Generating wave breaking droplet size spectrum')
-            s = self.get_config('turbulentmixing:droplet_size_exponent')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
-            # Note: a long array of diameters is required for 
-            # sufficient resolution at both ends of logarithmic scale.
-            # Could perhaps use logspace instead of linspace(?)
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
-            spectrum = self.droplet_spectrum_diameter**s
+            g = 9.81
+            interfacial_tension = 0.013 # TODO: interfacial surface tension - should get from oiltype
+            A = self.significant_wave_height()/2 # wave amplitude
+            re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / self.elements.viscosity # Reyolds number
+            we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
+            d_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (2.251*0.027*self.elements.oil_film_thickness* re**-0.6)
+            d_50 = np.mean(d_50) # mean log diameter
+            sd = 0.4 # log standard deviation
+            spectrum = np.random.lognormal(mean=d_50, sigma=sd, size=1000000)
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
-
-        return np.random.choice(self.droplet_spectrum_diameter,
-                                size=self.num_elements_active(),
+        
+        return np.random.choice(self.droplet_spectrum_diameter,size=self.num_elements_active(),
                                 p=self.droplet_spectrum_pdf)
 
     def resurface_elements(self, minimum_depth=None):

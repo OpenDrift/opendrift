@@ -69,7 +69,10 @@ class Oil(LagrangianArray):
                                  'default': 0}),
         ('water_fraction', {'dtype': np.float32,
                             'units': '%',
-                            'default': 0})])
+                            'default': 0}),
+        ('oil_film_thickness', {'dtype': np.float32,
+                                'units': 'm',
+                                'default': 0.001})])
 
 
 class OpenOil(OpenDriftSimulation):
@@ -447,8 +450,7 @@ class OpenOil(OpenDriftSimulation):
         # Area for each element, repeated for each component
         volume = (self.elements.mass_oil[surface] /
                   self.elements.density[surface])
-        thickness = 0.001  # constant 1 mm thickness, by now
-        area = volume/thickness
+        area = volume/self.elements.oil_film_thickness[surface]
         evap_decay_constant = noaa.evap_decay_constant(
             self.oiltype, self.wind_speed()[surface],
             self.environment.sea_water_temperature[surface], area,
