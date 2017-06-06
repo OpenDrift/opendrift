@@ -105,6 +105,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
         [wave_entrainment]
             droplet_size_distribution = option('logarithmic', 'sintef_2009', default='logarithmic')
+            entrainment_rate = option('tkalich_2002', 'TBD', default='tkalich_2002')
         [turbulentmixing]
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
             droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
@@ -251,6 +252,17 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         self.elements.terminal_velocity = W
 
     def oil_wave_entrainment_rate(self):
+        er = self.get_config('wave_entrainment:entrainment_rate')
+        if er == 'tkalich_2002':
+            entrainment_rate = self.oil_wave_entrainment_rate_tkalich()
+        elif er == 'TBD':
+            entrainment_rate = self.oil_wave_entrainment_rate_TBD()
+        return entrainment_rate
+
+    def oil_wave_entrainment_rate_TBD(self):
+        pass  # To be implemented
+
+    def oil_wave_entrainment_rate_tkalich(self):
         kb = 0.4
         omega = (2.*np.pi)/self.wave_period()
         gamma = self.wave_damping_coefficient()
