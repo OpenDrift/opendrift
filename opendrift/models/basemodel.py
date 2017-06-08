@@ -545,13 +545,17 @@ class OpenDriftSimulation(PhysicsMethods):
             if files == []:  # Try with OPeNDAP URL
                 try:  # Check URL accessibility/timeout
                     import urllib2
-                    import netrc
-                    import base64
-                    parts = urllib2.urlparse.urlparse(u)
-                    login, account, password = netrc.netrc().authenticators(parts.netloc)
                     request = urllib2.Request(u)
-                    creds = base64.encodestring('%s:%s' % (login, password)).strip()
-                    request.add_header("Authorization", "Basic %s" % creds)
+                    try:  # netrc
+                        import netrc
+                        import base64
+                        parts = urllib2.urlparse.urlparse(u)
+                        login, account, password = netrc.netrc().authenticators(parts.netloc)
+                        creds = base64.encodestring('%s:%s' % (login, password)).strip()
+                        request.add_header("Authorization", "Basic %s" % creds)
+                        logging.info('Applied NETRC credentials')
+                    except:
+                        logging.info('Could not apply NETRC credentials')
                     urllib2.urlopen(request, timeout=timeout)
                 except Exception as e:
                     # Error code 400 is expected!
