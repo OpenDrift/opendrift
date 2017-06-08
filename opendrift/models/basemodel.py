@@ -305,6 +305,13 @@ class OpenDriftSimulation(PhysicsMethods):
         str += '=============================================\n'
         logging.info(str)
 
+    def add_metadata(self, key, value):
+        """Add item to metadata dictionary, for export as netCDF global attributes"""
+        if not hasattr(self, 'metadata_dict'):
+            from collections import OrderedDict
+            self.metadata_dict = OrderedDict()
+        self.metadata_dict[key] = value
+
     def prepare_run(self):
         pass  # to be overloaded when needed
 
@@ -1531,6 +1538,24 @@ class OpenDriftSimulation(PhysicsMethods):
         # Model specific preparation
         #############################
         self.prepare_run()
+
+        #############################
+        # Add some metadata
+        #############################
+        self.add_metadata('simulation_time', datetime.now())
+        readers = self.priority_list
+        for var in self.required_variables:
+            keyword = 'reader_' + var
+            if var not in self.priority_list:
+                self.add_metadata(keyword, self.fallback_values[var])
+            else:
+                readers = self.priority_list[var]
+                if readers[0].startswith('constant_reader'):
+                    self.add_metadata(keyword, self.readers[readers[
+                                0]]._parameter_value_map[var][0])
+                else:
+                    self.add_metadata(keyword,
+                                      self.priority_list[var])
 
         ##########################
         # Main loop

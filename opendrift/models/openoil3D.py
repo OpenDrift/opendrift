@@ -136,6 +136,24 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
     def seed_elements(self, *args, **kwargs):
 
+        if len(args) == 2:
+            kwargs['lon'] = args[0]
+            kwargs['lat'] = args[1]
+            args = {}
+
+        for kw in kwargs:
+            if hasattr(kwargs[kw], '__len__') and not \
+                    isinstance(kwargs[kw], str):
+                if len(kwargs[kw]) == 1:
+                    self.add_metadata('seed_' + kw, str(kwargs[kw][0]))
+                elif len(kwargs[kw]) == 2:
+                    self.add_metadata('seed_' + kw + '_start', str(kwargs[kw][0]))
+                    self.add_metadata('seed_' + kw + '_end', str(kwargs[kw][1]))
+                else:
+                    logging.info('Not adding array %s to metadata' % kw)
+            else:
+                self.add_metadata('seed_' + kw, str(kwargs[kw]))
+
         if 'number' not in kwargs:
             number = 1
         else:
@@ -165,6 +183,28 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             kwargs['diameter'] = np.random.uniform(sub_dmin, sub_dmax, number)
 
         super(OpenOil3D, self).seed_elements(*args, **kwargs)
+
+        # Add oil metadata
+        try:
+            self.add_metadata('seed_oil_density', self.oiltype.get_density())
+        except:
+            try:
+                self.add_metadata('seed_oil_density',
+                                  self.oiltype.density_at_temp(283))
+            except:
+                pass
+        try:
+            self.add_metadata('seed_oil_viscosity',
+                              self.oiltype.get_viscosity(283))
+        except:
+            try:
+                self.add_metadata('seed_oil_viscosity',
+                                  self.oiltype.kvis_at_temp(283))
+            except:
+                pass
+
+    def prepare_run(self):
+        super(OpenOil3D, self).prepare_run()
 
     def particle_radius(self):
         """Calculate radius of entained particles.
