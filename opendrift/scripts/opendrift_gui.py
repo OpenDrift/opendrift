@@ -342,7 +342,9 @@ class OpenDriftGUI(tk.Tk):
 			'/lustre/storeB/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
 			'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
 			'/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
-			'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be']
+			'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
+            'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z',
+            'http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd']
         o.add_readers_from_list(readers)
         o.set_config('general:basemap_resolution', 'h')
 
