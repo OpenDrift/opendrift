@@ -41,13 +41,12 @@ def init(self, filename, times=None):
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step_calculation = str(self.time_step)
     self.outfile.time_step_output = str(self.time_step_output)
-    # Disabling config temporarily, as it interrupts Avinet processing
-    #config = self.outfile.createVariable('config', 'S1', ())
-    #for key in self._config_hashstrings():
-    #    value = self.get_config(key)
-    #    if isinstance(value, (bool, type(None))):
-    #        value = str(value)
-    #    config.setncattr(key, value)
+    # Write config settings
+    for key in self._config_hashstrings():
+        value = self.get_config(key)
+        if isinstance(value, (bool, type(None))):
+            value = str(value)
+        self.outfile.setncattr('config_' + key, value)
 
     # Add all element properties as variables
     for prop in self.history.dtype.fields:
@@ -118,6 +117,11 @@ def close(self):
     self.outfile.runtime = str(datetime.now() -
                                self.timers['total time'])
 
+    # Write additionaly metadata attributes, if given
+    if hasattr(self, 'metadata_dict'):
+        for key, value in self.metadata_dict.iteritems():
+            self.outfile.setncattr(key, str(value))
+
     self.outfile.close()  # Finally close file
 
     # Finally changing UNLIMITED time dimension to fixed, for CDM compliance.
@@ -145,8 +149,7 @@ def close(self):
                     else:
                         dstVar[:] = srcVar[0:self.num_elements_activated()]  # Copy data
                 else:
-                    if name != 'config':
-                        dstVar[:] = srcVar[:]
+                    dstVar[:] = srcVar[:]
                 for att in src.variables[name].ncattrs():
                     # Copy variable attributes
                     dstVar.setncattr(att, srcVar.getncattr(att))
@@ -217,9 +220,11 @@ def import_file(self, filename, time=None):
     self.remove_deactivated_elements()
 
     # Import and apply config settings
-    if 'config' in infile.variables:
-        for conf_key in infile.variables['config'].ncattrs():
-            value = infile.variables['config'].getncattr(conf_key)
+    attributes = infile.ncattrs()
+    for attr in attributes:
+        if attr.startswith('config_'):
+            value = infile.getncattr(attr)
+            conf_key = attr[7:]
             if value == 'True':
                 value = True
             if value == 'False':
