@@ -239,27 +239,9 @@ class OpenDriftGUI(tk.Tk):
             self.has_diana = False
 
         ##############
-        # Driver data
+        # Initialise
         ##############
         o = OpenOil3D()
-		# TODO: all readers should be added as list, see further below
-        self.current = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-        #    o.test_data_folder() +
-        #    '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        self.wind = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc')
-        #self.wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
-        #    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-
-        print '#'*41
-        print 'Current data coverage:'
-        print str(self.current.start_time) + ' - ' + \
-            str(self.current.end_time)
-        print '#'*41
-        print 'Wind data coverage:'
-        print str(self.wind.start_time) + ' - ' + \
-            str(self.wind.end_time)
-        print '#'*41
-        self.start_time = self.current.start_time
 
         ##########
         # RUN
@@ -293,9 +275,6 @@ class OpenDriftGUI(tk.Tk):
                               np.int(self.datevar.get()),
                               np.int(self.hourvar.get()),
                               np.int(self.minutevar.get()))
-        if start_time > self.current.end_time:
-            sys.stdout.write('Start time after end of current data!')
-            start_time = self.current.start_time
         emonth = np.int(self.months.index(self.emonthvar.get()) + 1)
         end_time = datetime(np.int(self.eyearvar.get()), emonth,
                             np.int(self.edatevar.get()),
@@ -331,14 +310,13 @@ class OpenDriftGUI(tk.Tk):
                             time=start_time, cone=cone,
                             oiltype=self.oljetype.get())
 
-        o.add_reader([self.current, self.wind])
        	readers = [  # Note that order (priority) is important!
 			'/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
-			#'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+			'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
 			'/lustre/storeB/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
 			'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
 			'/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
-			#'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
+			'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
 			'/lustre/storeB/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
 			'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
 			'/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
@@ -370,8 +348,6 @@ class OpenDriftGUI(tk.Tk):
             tk.Button(self.master, text='Oil Budget',
                       command=o.plot_oil_budget).grid(row=7, column=4,
                                                       sticky=tk.W, pady=4)
-
-        #o.plot()
 
 
 if __name__ == '__main__':
