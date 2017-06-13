@@ -235,6 +235,7 @@ class OpenDriftGUI(tk.Tk):
         if os.path.exists(self.dianadir):
             self.has_diana = True
             print 'Diana is available!'
+            self.outputdir = '/vol/vvfelles/opendrift/output_native/'
         else:
             self.has_diana = False
 
@@ -330,7 +331,13 @@ class OpenDriftGUI(tk.Tk):
         duration = int(self.durationhours.get())*3600/time_step
         if self.directionvar.get() == 'backwards':
             time_step = -time_step
-        o.run(steps=duration, time_step=time_step)
+        if self.has_diana is True:
+            extra_args = {'outfile': self.outputdir + '/opendrift_' +                          self.model.get() + o.start_time.strftime(
+                                '_%Y%m%d_%H%M.nc')}
+        else:
+            extra_args = {}
+        o.run(steps=duration, time_step=time_step,
+              time_step_output=3600, **extra_args)
         print o
 
         if self.has_diana is True:
