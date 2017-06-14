@@ -300,7 +300,15 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         return entrainment_rate
 
     def oil_wave_entrainment_rate_TBD(self):
-        pass  # To be implemented
+        kb = 0.4
+        omega = (2.*np.pi)/self.wave_period()
+        gamma = self.wave_damping_coefficient()
+        alpha = 1.5
+        Low = self.elements.entrainment_length_scale / self.elements.oil_film_thickness
+        entrainment_rate = \
+            kb*omega*gamma*self.significant_wave_height() / \
+            (16*alpha*Low)
+        return entrainment_rate
 
     def oil_wave_entrainment_rate_tkalich(self):
         kb = 0.4
@@ -390,7 +398,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             d_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (2.251*0.027*self.elements.oil_film_thickness* re**-0.6)
             d_50 = np.mean(d_50) # mean log diameter
             sd = 0.4 # log standard deviation
-            spectrum = np.random.lognormal(mean=d_50, sigma=sd, size=1000000)
+            spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(d_50))**2 / (2 * sd**2))) / (self.droplet_spectrum_diameter * sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
         
         return np.random.choice(self.droplet_spectrum_diameter,size=self.num_elements_active(),

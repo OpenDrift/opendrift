@@ -109,8 +109,8 @@ class TestOil(unittest.TestCase):
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_droplet_distribution(self):
-        o = OpenOil3D(loglevel=50, weathering_model='noaa')
         for droplet_distribution in ['sintef_2009', 'logarithmic']:
+            o = OpenOil3D(loglevel=50, weathering_model='noaa')
             o.set_config('wave_entrainment:droplet_size_distribution',
                          droplet_distribution)
             o.seed_elements(lon=4.8, lat=60, number=100,
@@ -121,10 +121,10 @@ class TestOil(unittest.TestCase):
             o.run(duration=timedelta(hours=1), time_step=1800)
             d = o.elements.diameter
             # Suspicious, Sintef-param should give larer droplets
-            if droplet_distribution == 'sintef_2009':
-                self.assertAlmostEqual(d.mean(), 0.00036269351)
-            elif droplet_distribution == 'logarithmic':
-                self.assertAlmostEqual(d.mean(), 0.00039428595)
+            if droplet_distribution == 'logarithmic':
+                self.assertAlmostEqual(d.mean(), 0.000389540)
+            elif droplet_distribution == 'sintef_2009':
+                self.assertAlmostEqual(d.mean(), 0.000031993)
 
 
 if __name__ == '__main__':
