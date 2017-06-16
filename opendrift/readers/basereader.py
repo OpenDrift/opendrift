@@ -452,7 +452,14 @@ class BaseReader(object):
             logging.debug('No time interpolation needed - right on time.')
             env = env_before
             if profiles is not None:
-                env_profiles = env_profiles_before
+                if 'env_profiles_before' in locals():
+                    env_profiles = env_profiles_before
+                else:
+                    # Copying data from environment to vertical profiles
+                    env_profiles = {'z': profiles_depth}
+                    for var in profiles:
+                        # NB: removing two last points added for vertical span
+                        env_profiles[var] = np.ma.array([env[var], env[var]])[:, 0:-2]
 
         ####################
         # Rotate vectors

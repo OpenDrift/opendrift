@@ -47,7 +47,9 @@ class Reader(BaseReader):
                       x=None, y=None, z=None, block=False):
         
         variables = {'time': time, 'x': x, 'y': y, 'z': z}
-        variables.update(self._parameter_value_map)
+        #variables.update(self._parameter_value_map)
+        for var in requestedVariables:
+            variables[var] = self._parameter_value_map[var]*np.ones(x.shape)
        
         return variables
         
