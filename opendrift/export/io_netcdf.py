@@ -170,8 +170,11 @@ def import_file(self, filename, time=None):
                                infile.variables['time'].units)
     self.end_time = num2date(infile.variables['time'][-1],
                              infile.variables['time'].units)
-    self.time_step_output = num2date(infile.variables['time'][1],
-                              infile.variables['time'].units) - self.start_time
+    if len(infile.variables['time']) > 1:
+        self.time_step_output = num2date(infile.variables['time'][1],
+            infile.variables['time'].units) - self.start_time
+    else:
+        self.time_step_output = timedelta(hours=1)
     self.time = self.end_time  # Using end time as default
     self.status_categories = infile.variables['status'].flag_meanings.split()
 
