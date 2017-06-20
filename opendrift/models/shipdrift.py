@@ -20,6 +20,7 @@
 # Reprogrammed in Python for OpenDrift by Knut-Frode Dagestad Dec 2016
 
 import os
+import logging
 import numpy as np
 import scipy
 
@@ -70,6 +71,8 @@ class ShipDrift(OpenDriftSimulation):
 
     required_variables = ['x_wind', 'y_wind', 'land_binary_mask',
                           'x_sea_water_velocity', 'y_sea_water_velocity',
+                          'sea_surface_wave_stokes_drift_x_velocity',
+                          'sea_surface_wave_stokes_drift_y_velocity',
                           'sea_surface_wave_significant_height',
                           'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
                          ]
@@ -78,6 +81,8 @@ class ShipDrift(OpenDriftSimulation):
                        'y_wind': 0,
                        'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
+                       'sea_surface_wave_stokes_drift_x_velocity': 0,
+                       'sea_surface_wave_stokes_drift_y_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
                        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
                        }
@@ -252,8 +257,16 @@ class ShipDrift(OpenDriftSimulation):
 
         # Wave direction is taken as wind direction plus offset +/- 20 degrees
         offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
-        wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
-                                                   self.environment.x_wind)
+        if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and 
+            self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0):
+                logging.info('Using wind direction as wave direction')
+                wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
+                                                           self.environment.x_wind)
+        else:
+            logging.info('Using Stokes drift direction as wave direction')
+            wave_dir = np.radians(offset) + np.arctan2(
+                self.environment.sea_surface_wave_stokes_drift_x_velocity,
+                self.environment.sea_surface_wave_stokes_drift_y_velocity)
         F_wave_x = F_wave*np.cos(wave_dir)
         F_wave_y = F_wave*np.sin(wave_dir)
         F_total = np.sqrt(np.power(F_wind_x + F_wave_x, 2) +
