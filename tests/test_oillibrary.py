@@ -38,7 +38,7 @@ class TestOil(unittest.TestCase):
                      'NOAA OilLibrary is needed')
     def test_oils(self):
         o = OpenOil3D(loglevel=50, weathering_model='noaa')
-        for oiltype in o.oiltypes[0:20]:
+        for oiltype in o.oiltypes[10:15]:
             if oiltype == 'JP-8':
                 continue
             o = OpenOil3D(loglevel=50, weathering_model='noaa')
