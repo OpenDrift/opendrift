@@ -20,6 +20,7 @@
 # Reprogrammed in Python for OpenDrift by Knut-Frode Dagestad Dec 2016
 
 import os
+import logging
 import numpy as np
 import scipy
 
@@ -70,6 +71,8 @@ class ShipDrift(OpenDriftSimulation):
 
     required_variables = ['x_wind', 'y_wind', 'land_binary_mask',
                           'x_sea_water_velocity', 'y_sea_water_velocity',
+                          'sea_surface_wave_stokes_drift_x_velocity',
+                          'sea_surface_wave_stokes_drift_y_velocity',
                           'sea_surface_wave_significant_height',
                           'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
                          ]
@@ -78,6 +81,8 @@ class ShipDrift(OpenDriftSimulation):
                        'y_wind': 0,
                        'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
+                       'sea_surface_wave_stokes_drift_x_velocity': 0,
+                       'sea_surface_wave_stokes_drift_y_velocity': 0,
                        'sea_surface_wave_significant_height': 0,
                        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
                        }
@@ -252,8 +257,16 @@ class ShipDrift(OpenDriftSimulation):
 
         # Wave direction is taken as wind direction plus offset +/- 20 degrees
         offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
-        wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
-                                                   self.environment.x_wind)
+        if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and 
+            self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0):
+                logging.info('Using wind direction as wave direction')
+                wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
+                                                           self.environment.x_wind)
+        else:
+            logging.info('Using Stokes drift direction as wave direction')
+            wave_dir = np.radians(offset) + np.arctan2(
+                self.environment.sea_surface_wave_stokes_drift_x_velocity,
+                self.environment.sea_surface_wave_stokes_drift_y_velocity)
         F_wave_x = F_wave*np.cos(wave_dir)
         F_wave_y = F_wave*np.sin(wave_dir)
         F_total = np.sqrt(np.power(F_wind_x + F_wave_x, 2) +
@@ -284,3 +297,45 @@ class ShipDrift(OpenDriftSimulation):
         # Stranding
         self.deactivate_elements(self.environment.land_binary_mask == 1,
                                  reason='ship stranded')
+
+    def import_ascii_format(self, filename):
+
+        with open(filename) as f:
+            lines = f.readlines()
+        self.time_step_output, self.time_step = lines[16].split()
+        num_elements = np.int(lines[25].split()[0])
+        if num_elements != 1:
+            raise ValueError('Import presently only supports single ship')
+        num_timesteps = (len(lines)-30.)/14.
+        num_timesteps = int(num_timesteps)
+
+        # Initialise history array 
+        from datetime import datetime, timedelta
+        history_dtype_fields = [
+            (name, self.ElementType.variables[name]['dtype'])
+            for name in self.ElementType.variables]
+        # Add environment variables
+        self.history_metadata = self.ElementType.variables.copy()
+        for env_var in self.required_variables:
+            history_dtype_fields.append((env_var, np.dtype('float32')))
+            self.history_metadata[env_var] = {}
+        history_dtype = np.dtype(history_dtype_fields)
+
+        self.history = np.ma.array(
+	        np.zeros([num_elements, num_timesteps]),
+            dtype=history_dtype, mask=[True])
+
+        self.steps_output = num_timesteps
+        self.steps = num_timesteps
+        self.start_time = datetime.now()
+        self.end_time = datetime.now() + timedelta(hours=1)
+        self.time = self.end_time
+
+        # Read time steps from file
+        for i in range(num_timesteps):
+            line = lines[30 + 14*i + 13]
+            l = line.split()
+            lon = np.float(l[2])
+            lat = np.float(l[3])
+            self.history['lon'][0, i] = lon
+            self.history['lat'][0, i] = lat

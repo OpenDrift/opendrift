@@ -540,5 +540,17 @@ class TestRun(unittest.TestCase):
                          -o.environment.sea_floor_depth_below_sea_level)
         self.assertAlmostEqual(o.elements.z, -159.6, 1)
 
+    def test_seed_on_land(self):
+        o = OceanDrift(loglevel=50)
+        o.set_config('general:basemap_resolution', 'c')
+        o.seed_elements(lon=9, lat=60, time=datetime.now(), number=100)
+        outfile='out.nc'
+        o.run(steps=4, time_step=1800, time_step_output=3600,
+              outfile=outfile)
+        os.remove(outfile)
+        o.write_netcdf_density_map(outfile)
+        os.remove(outfile)
+        
+
 if __name__ == '__main__':
     unittest.main()

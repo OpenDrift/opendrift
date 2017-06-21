@@ -18,12 +18,14 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_netCDF_CF_generic
+from opendrift.readers import reader_constant
 from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
+from opendrift.models.shipdrift import ShipDrift
 
 
 class TestModels(unittest.TestCase):
@@ -50,6 +52,44 @@ class TestModels(unittest.TestCase):
                         time=reader_arome.start_time)
         o.run(steps=48*4, time_step=900)
         self.assertAlmostEqual(o.elements.lon.max(), 17.54, 2)
+
+    def test_shipdrift(self):
+        """Sintef case study"""
+        s = ShipDrift(loglevel=50)
+        c = reader_constant.Reader({
+            'sea_surface_wave_significant_height': 5,
+            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 11,
+            'x_wind': 14.14213562,
+            'y_wind': -14.14213562,
+            'x_sea_water_velocity': 0.05656854249,
+            'y_sea_water_velocity': -0.05656854249})
+        s.fallback_values['land_binary_mask'] = 0
+        s.add_reader(c)
+        s.seed_elements(lon=2, lat=60, time=datetime.now(), number=1,
+                        length=80, beam=14, height=25, draft=5)
+        s.run(time_step=600, duration=timedelta(hours=4))
+        self.assertAlmostEqual(s.elements.lon, 2.25267706)
+        self.assertAlmostEqual(s.elements.lat, 59.87694775)
+
+    def test_shipdrift_backwards(self):
+        """Case above, reversed"""
+        s = ShipDrift(loglevel=50)
+        c = reader_constant.Reader({
+            'sea_surface_wave_significant_height': 5,
+            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 11,
+            'x_wind': 14.14213562,
+            'y_wind': -14.14213562,
+            'x_sea_water_velocity': 0.05656854249,
+            'y_sea_water_velocity': -0.05656854249})
+        s.fallback_values['land_binary_mask'] = 0
+        s.add_reader(c)
+        s.seed_elements(lon=2.25267706, lat=59.87694775,
+                        time=datetime.now(), number=1,
+                        length=80, beam=14, height=25, draft=5)
+        s.run(time_step=-600, duration=timedelta(hours=4))
+        self.assertAlmostEqual(s.elements.lon, 2.0, 3)
+        self.assertAlmostEqual(s.elements.lat, 60, 3)
+
 
 
 if __name__ == '__main__':

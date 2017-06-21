@@ -38,7 +38,7 @@ class TestOil(unittest.TestCase):
                      'NOAA OilLibrary is needed')
     def test_oils(self):
         o = OpenOil3D(loglevel=50, weathering_model='noaa')
-        for oiltype in o.oiltypes[0:20]:
+        for oiltype in o.oiltypes[10:15]:
             if oiltype == 'JP-8':
                 continue
             o = OpenOil3D(loglevel=50, weathering_model='noaa')
@@ -124,7 +124,7 @@ class TestOil(unittest.TestCase):
             if droplet_distribution == 'Exponential':
                 self.assertAlmostEqual(d.mean(), 0.000389540)
             elif droplet_distribution == 'Johansen et al. (2015)':
-                self.assertAlmostEqual(d.mean(), 0.000031993)
+                self.assertAlmostEqual(d.mean(), 0.000038971)
 
 
 if __name__ == '__main__':

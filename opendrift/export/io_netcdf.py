@@ -168,10 +168,14 @@ def import_file(self, filename, time=None):
     infile = Dataset(filename, 'r')
     self.start_time = num2date(infile.variables['time'][0],
                                infile.variables['time'].units)
-    self.end_time = num2date(infile.variables['time'][-1],
+    if len(infile.variables['time']) > 1:
+        self.end_time = num2date(infile.variables['time'][-1],
                              infile.variables['time'].units)
-    self.time_step_output = num2date(infile.variables['time'][1],
-                              infile.variables['time'].units) - self.start_time
+        self.time_step_output = num2date(infile.variables['time'][1],
+            infile.variables['time'].units) - self.start_time
+    else:
+        self.time_step_output = timedelta(hours=1)
+        self.end_time = self.start_time
     self.time = self.end_time  # Using end time as default
     self.status_categories = infile.variables['status'].flag_meanings.split()
 

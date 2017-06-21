@@ -23,9 +23,11 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from opendrift.models.oceandrift import OceanDrift
+from opendrift.models.openoil3D import OpenOil3D
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_constant
 from opendrift.models.pelagicegg import PelagicEggDrift
 
 
@@ -268,6 +270,18 @@ class TestReaders(unittest.TestCase):
         self.assertItemsEqual(env_profiles2['sea_water_temperature'].ravel(),
                               env_profiles4['sea_water_temperature'].ravel())
 
+
+    def test_constant_reader(self):
+        o = OpenOil3D(loglevel=0)
+        o.set_config('general:basemap_resolution', 'c')
+        cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
+        cc = reader_constant.Reader({'x_sea_water_velocity':0, 'y_sea_water_velocity': .2})
+        cs = reader_constant.Reader({'sea_water_temperature': 278})
+        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        o.add_reader([cw, cc, cs, r])
+        o.seed_elements(lon=4, lat=60, time=r.start_time, number=5)
+        o.run(steps=3)
 
 if __name__ == '__main__':
     unittest.main()

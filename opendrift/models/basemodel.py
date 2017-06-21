@@ -732,7 +732,10 @@ class OpenDriftSimulation(PhysicsMethods):
                                 np.ma.mask_or(combined_mask,
                                               np.ma.getmask(tmp_var),
                                               shrink=False)
-                    missing_indices = missing_indices[combined_mask]
+                    try:
+                        missing_indices = missing_indices[combined_mask]
+                    except:  # Not sure what is happening here
+                        logging.info('Problems setting mask on missing_indices!')
                 else:
                     missing_indices = []  # temporary workaround
                 if (type(missing_indices) == np.int64) or (
