@@ -104,8 +104,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
                 droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
         [wave_entrainment]
-            droplet_size_distribution = option('logarithmic', 'sintef_2009', default='logarithmic')
-            entrainment_rate = option('tkalich_2002', 'TBD', default='tkalich_2002')
+            droplet_size_distribution = option('Exponential', 'Johansen et al. (2015)', default='Exponential')
+            entrainment_rate = option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Tkalich & Chan (2002)')
         [turbulentmixing]
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
             droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
@@ -293,35 +293,23 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
     def oil_wave_entrainment_rate(self):
         er = self.get_config('wave_entrainment:entrainment_rate')
-        if er == 'tkalich_2002':
-            entrainment_rate = self.oil_wave_entrainment_rate_tkalich()
-        elif er == 'TBD':
-            entrainment_rate = self.oil_wave_entrainment_rate_TBD()
+        if er == 'Tkalich & Chan (2002)':
+            entrainment_rate = self.oil_wave_entrainment_rate_tkalich2002()
+        elif er == 'Li et al. (2017)':
+            entrainment_rate = self.oil_wave_entrainment_rate_li2017()
         return entrainment_rate
 
-    def oil_wave_entrainment_rate_TBD(self):
+    def oil_wave_entrainment_rate_li2017(self):
         g = 9.81
-        #u_th = 2.5
-        #alfa = 0.027
         interfacial_tension = 0.013 # TODO: interfacial surface tension - get from oiltype
         delta_rho = self.sea_water_density() - self.elements.density
         d_o = 4 * (interfacial_tension / (delta_rho*g))**0.5
         we = ( self.sea_water_density() * g * self.significant_wave_height() * d_o ) / interfacial_tension
         oh = self.elements.viscosity * self.elements.density * (self.elements.density * interfacial_tension * d_o )**-0.5 # From kin. to dyn. viscosity by * density
-        #f_bw = 1.92 * alfa * ( (self.wind_speed() - u_th)/self.wind_speed() )
         entrainment_rate = 4.604e-10 * we**1.805 *oh**-1.023 * self.sea_surface_wave_breaking_fraction()
         return entrainment_rate
-        #kb = 0.4
-        #omega = (2.*np.pi)/self.wave_period()
-        #gamma = self.wave_damping_coefficient()
-        #alpha = 1.5
-        #Low = self.elements.entrainment_length_scale / self.elements.oil_film_thickness
-        #entrainment_rate = \
-        #    kb*omega*gamma*self.significant_wave_height() / \
-        #    (16*alpha*Low)
-        #return entrainment_rate
 
-    def oil_wave_entrainment_rate_tkalich(self):
+    def oil_wave_entrainment_rate_tkalich2002(self):
         kb = 0.4
         omega = (2.*np.pi)/self.wave_period()
         gamma = self.wave_damping_coefficient()
@@ -369,13 +357,13 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
     def get_wave_breaking_droplet_diameter(self):
         dm = self.get_config('wave_entrainment:droplet_size_distribution')
-        if dm == 'sintef_2009':
-            d = self.get_wave_breaking_droplet_diameter_sintef2009()
-        elif dm == 'logarithmic':
-            d = self.get_wave_breaking_droplet_diameter_logarithmic()
+        if dm == 'Johansen et al. (2015)':
+            d = self.get_wave_breaking_droplet_diameter_johansen2015()
+        elif dm == 'Exponential':
+            d = self.get_wave_breaking_droplet_diameter_exponential()
         return d
 
-    def get_wave_breaking_droplet_diameter_logarithmic(self):
+    def get_wave_breaking_droplet_diameter_exponential(self):
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum, if not already done
             logging.info('Generating wave breaking droplet size spectrum')
@@ -393,8 +381,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                                 size=self.num_elements_active(),
                                 p=self.droplet_spectrum_pdf)
 
-    def get_wave_breaking_droplet_diameter_sintef2009(self):
-        '''Placeholder - to be replaced by Sintef formula'''
+    def get_wave_breaking_droplet_diameter_johansen2015(self):
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum as in Johansen et al. (2015)
             logging.info('Generating wave breaking droplet size spectrum')

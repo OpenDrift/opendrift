@@ -68,7 +68,7 @@ class TestOil(unittest.TestCase):
                 o.seed_elements(lon=4.8, lat=60, number=100,
                                 time=datetime.now(), oiltype=oil)
                 o.set_config('processes:dispersion', True)
-                o.set_config('wave_entrainment:droplet_size_distribution', 'logarithmic')
+                o.set_config('wave_entrainment:droplet_size_distribution', 'Exponential')
                 o.fallback_values['land_binary_mask'] = 0
                 o.fallback_values['x_wind'] = windspeed
                 o.fallback_values['y_sea_water_velocity'] = .3
@@ -109,7 +109,7 @@ class TestOil(unittest.TestCase):
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_droplet_distribution(self):
-        for droplet_distribution in ['sintef_2009', 'logarithmic']:
+        for droplet_distribution in ['Johansen et al. (2015)', 'Exponential']:
             o = OpenOil3D(loglevel=50, weathering_model='noaa')
             o.set_config('wave_entrainment:droplet_size_distribution',
                          droplet_distribution)
@@ -121,9 +121,9 @@ class TestOil(unittest.TestCase):
             o.run(duration=timedelta(hours=1), time_step=1800)
             d = o.elements.diameter
             # Suspicious, Sintef-param should give larer droplets
-            if droplet_distribution == 'logarithmic':
+            if droplet_distribution == 'Exponential':
                 self.assertAlmostEqual(d.mean(), 0.000389540)
-            elif droplet_distribution == 'sintef_2009':
+            elif droplet_distribution == 'Johansen et al. (2015)':
                 self.assertAlmostEqual(d.mean(), 0.000038971)
 
 
