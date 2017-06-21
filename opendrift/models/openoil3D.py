@@ -300,15 +300,26 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         return entrainment_rate
 
     def oil_wave_entrainment_rate_TBD(self):
-        kb = 0.4
-        omega = (2.*np.pi)/self.wave_period()
-        gamma = self.wave_damping_coefficient()
-        alpha = 1.5
-        Low = self.elements.entrainment_length_scale / self.elements.oil_film_thickness
-        entrainment_rate = \
-            kb*omega*gamma*self.significant_wave_height() / \
-            (16*alpha*Low)
+        g = 9.81
+        #u_th = 2.5
+        #alfa = 0.027
+        interfacial_tension = 0.013 # TODO: interfacial surface tension - get from oiltype
+        delta_rho = self.sea_water_density() - self.elements.density
+        d_o = 4 * (interfacial_tension / (delta_rho*g))**0.5
+        we = ( self.sea_water_density() * g * self.significant_wave_height() * d_o ) / interfacial_tension
+        oh = self.elements.viscosity * self.elements.density * (self.elements.density * interfacial_tension * d_o )**-0.5 # From kin. to dyn. viscosity by * density
+        #f_bw = 1.92 * alfa * ( (self.wind_speed() - u_th)/self.wind_speed() )
+        entrainment_rate = 4.604e-10 * we**1.805 *oh**-1.023 * self.sea_surface_wave_breaking_fraction()
         return entrainment_rate
+        #kb = 0.4
+        #omega = (2.*np.pi)/self.wave_period()
+        #gamma = self.wave_damping_coefficient()
+        #alpha = 1.5
+        #Low = self.elements.entrainment_length_scale / self.elements.oil_film_thickness
+        #entrainment_rate = \
+        #    kb*omega*gamma*self.significant_wave_height() / \
+        #    (16*alpha*Low)
+        #return entrainment_rate
 
     def oil_wave_entrainment_rate_tkalich(self):
         kb = 0.4
@@ -393,7 +404,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             g = 9.81
             interfacial_tension = 0.013 # TODO: interfacial surface tension - should get from oiltype
             A = self.significant_wave_height()/2 # wave amplitude
-            re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / self.elements.viscosity # Reyolds number
+            re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
             we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
             d_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (2.251*0.027*self.elements.oil_film_thickness* re**-0.6)
             d_50 = np.mean(d_50) # mean log diameter
