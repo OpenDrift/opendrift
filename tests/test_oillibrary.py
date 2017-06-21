@@ -124,7 +124,7 @@ class TestOil(unittest.TestCase):
             if droplet_distribution == 'logarithmic':
                 self.assertAlmostEqual(d.mean(), 0.000389540)
             elif droplet_distribution == 'sintef_2009':
-                self.assertAlmostEqual(d.mean(), 0.000031993)
+                self.assertAlmostEqual(d.mean(), 0.000038971)
 
 
 if __name__ == '__main__':
