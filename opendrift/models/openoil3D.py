@@ -351,9 +351,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         self.elements.z[entrained] = \
             -self.get_config('turbulentmixing:verticalresolution')/2.
         if self.keep_droplet_diameter is False:
-            # Give newly entrained droplets a random diameter
-            self.elements.diameter[entrained] = \
-                self.droplet_diamenter_if_entrained[entrained]
+            # Give surface elements a random diameter
+            self.elements.diameter[self.elements.z==0] = \
+                self.droplet_diamenter_if_entrained[self.elements.z==0]
 
     def get_wave_breaking_droplet_diameter(self):
         dm = self.get_config('wave_entrainment:droplet_size_distribution')
