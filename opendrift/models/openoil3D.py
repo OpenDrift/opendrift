@@ -301,7 +301,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
     def oil_wave_entrainment_rate_li2017(self):
         g = 9.81
-        interfacial_tension = 0.013 # TODO: interfacial surface tension - get from oiltype
+        interfacial_tension = self.elements.oil_water_interfacial_tension
         delta_rho = self.sea_water_density() - self.elements.density
         d_o = 4 * (interfacial_tension / (delta_rho*g))**0.5
         we = ( self.sea_water_density() * g * self.significant_wave_height() * d_o ) / interfacial_tension
@@ -389,7 +389,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
             g = 9.81
-            interfacial_tension = 0.013 # TODO: interfacial surface tension - should get from oiltype
+            interfacial_tension = self.elements.oil_water_interfacial_tension
             A = self.significant_wave_height()/2 # wave amplitude
             re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
             we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
