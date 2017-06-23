@@ -58,10 +58,6 @@ class Oil(LagrangianArray):
         ('interfacial_area', {'dtype': np.float32,
                               'units': 'm2',
                               'default': 0}),
-        ('oil_water_interfacial_tension',
-                             {'dtype': np.float32,
-                              'units': 'kg s-2',
-                              'default': 0.013}),
         ('mass_dispersed', {'dtype': np.float32,
                             'units': 'kg',
                             'default': 0}),
@@ -379,6 +375,11 @@ class OpenOil(OpenDriftSimulation):
             self.noaa_mass_balance['mass_evaporated'] = \
                 self.noaa_mass_balance['mass_components']*0
 
+            self.oil_water_interfacial_tension = \
+                self.oiltype.oil_water_surface_tension()[0]
+            logging.info('Oil-water surface tension is %f Nm' % 
+                         self.oil_water_interfacial_tension)
+
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:
         https://github.com/NOAA-ORR-ERD/PyGnome
@@ -392,19 +393,19 @@ class OpenOil(OpenDriftSimulation):
         # Update density and viscosity according to temperature
         #########################################################
         try:  # Old version of OilLibrary
-            self.elements.viscosity = np.array(
-                [self.oiltype.get_viscosity(t) for t in
-                 self.environment.sea_water_temperature])
-            self.elements.density = np.array(
-                [self.oiltype.get_density(t) for t in
-                 self.environment.sea_water_temperature])
-        except:  # New version of OilLibrary
             self.elements.viscosity = \
                 self.oiltype.kvis_at_temp(
                     self.environment.sea_water_temperature)
             self.elements.density = np.atleast_1d([
                 self.oiltype.density_at_temp(t) for t in 
                     self.environment.sea_water_temperature])
+        except:  # New version of OilLibrary
+            self.elements.viscosity = np.array(
+                [self.oiltype.get_viscosity(t) for t in
+                 self.environment.sea_water_temperature])
+            self.elements.density = np.array(
+                [self.oiltype.get_density(t) for t in
+                 self.environment.sea_water_temperature])
 
         if self.get_config('processes:evaporation') is True:
             self.evaporation_noaa()

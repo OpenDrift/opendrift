@@ -109,7 +109,8 @@ class TestOil(unittest.TestCase):
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_droplet_distribution(self):
-        for droplet_distribution in ['Johansen et al. (2015)', 'Exponential']:
+        for droplet_distribution in ['Johansen et al. (2015)',
+                                     'Exponential']:
             o = OpenOil3D(loglevel=50, weathering_model='noaa')
             o.set_config('wave_entrainment:droplet_size_distribution',
                          droplet_distribution)
@@ -124,7 +125,7 @@ class TestOil(unittest.TestCase):
             if droplet_distribution == 'Exponential':
                 self.assertAlmostEqual(d.mean(), 0.000493373)
             elif droplet_distribution == 'Johansen et al. (2015)':
-                self.assertAlmostEqual(d.mean(), 0.000046578)
+                self.assertAlmostEqual(d.mean(), 0.000072400)
 
 
 if __name__ == '__main__':
