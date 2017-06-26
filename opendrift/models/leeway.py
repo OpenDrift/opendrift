@@ -135,6 +135,9 @@ class Leeway(OpenDriftSimulation):
         # objtype = np.ones(number)*objectType
         # Note: cone is not used, simply to provide same interface as others
 
+        logging.info('Seeding elements of object type %i: %s' %
+                     (objectType, self.leewayprop[objectType]['OBJKEY'].strip()))
+
         # Probability of jibing (4 % per hour)
         pjibe = 0.04
 
