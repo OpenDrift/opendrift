@@ -220,33 +220,44 @@ class OpenDriftGUI(tk.Tk):
         #######################
         # Simulation duration
         #######################
+        self.coastline = tk.Frame(self.master, bd=2,
+                                 relief=tk.FLAT, padx=5, pady=0)
+        self.coastline.grid(row=4, column=1)
+        tk.Label(self.coastline, text='Coastline resolution ').grid(
+                 row=4, column=1)
+        self.mapresvar = tk.StringVar()
+        self.mapres = tk.OptionMenu(self.coastline, self.mapresvar,
+                                    *['full', 'high'])
+        self.mapres.grid(row=4, column=2)
+        self.mapresvar.set('high')
+        
         self.duration = tk.Frame(self.master, bd=2,
-                                 relief=tk.FLAT, padx=5, pady=15)
-        self.duration.grid(row=4, column=1)
-        tk.Label(self.duration, text='Run simulation ').grid(row=4, column=0)
+                                 relief=tk.FLAT, padx=5, pady=5)
+        self.duration.grid(row=5, column=1)
+        tk.Label(self.duration, text='Run simulation ').grid(row=5, column=0)
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
-        self.durationhours.grid(row=4, column=1)
+        self.durationhours.grid(row=5, column=1)
         self.durationhours.insert(0, 12)
-        tk.Label(self.duration, text=' hours ').grid(row=4, column=2)
+        tk.Label(self.duration, text=' hours ').grid(row=5, column=2)
 
         self.directionvar = tk.StringVar()
         self.directionvar.set('forwards')
         self.direction = tk.OptionMenu(self.duration, self.directionvar,
                                        'forwards', 'backwards')
-        self.direction.grid(row=4, column=3)
-        tk.Label(self.duration, text=' in time ').grid(row=4, column=4)
+        self.direction.grid(row=5, column=3)
+        tk.Label(self.duration, text=' in time ').grid(row=5, column=4)
 
         ##############
         # Output box
         ##############
         self.text = tk.Text(self, wrap="word", height=18)
-        self.text.grid(row=5, columnspan=8, sticky='nsew')
+        self.text.grid(row=6, columnspan=8, sticky='nsew')
         self.text.tag_configure("stderr", foreground="#b22222")
         sys.stdout = TextRedirector(self.text, "stdout")
         sys.stderr = TextRedirector(self.text, "stderr")
         s = tk.Scrollbar(self)
-        s.grid(row=5, column=8, sticky='ns')
+        s.grid(row=6, column=8, sticky='ns')
         s.config(command=self.text.yview)
         self.text.config(yscrollcommand=s.set)
 
@@ -268,7 +279,7 @@ class OpenDriftGUI(tk.Tk):
         # RUN
         ##########
         tk.Button(self.master, text='PEIS PAO', bg='green',
-                  command=self.run_opendrift).grid(row=7, column=1,
+                  command=self.run_opendrift).grid(row=8, column=1,
                                               sticky=tk.W, pady=4)
 
     def copy_position(self, a, b, c):
@@ -374,6 +385,10 @@ class OpenDriftGUI(tk.Tk):
                                 '_%Y%m%d_%H%M.nc')}
         else:
             extra_args = {}
+
+        mapres = self.mapresvar.get()[0]
+        o.set_config('general:basemap_resolution', mapres)         
+
         o.run(steps=duration, time_step=time_step,
               time_step_output=3600, **extra_args)
         print o
@@ -385,14 +400,14 @@ class OpenDriftGUI(tk.Tk):
             o.write_netcdf_density_map(diana_filename)
             tk.Button(self.master, text='Show in Diana',
                       command=lambda: os.system('diana &')
-                      ).grid(row=7, column=2, sticky=tk.W, pady=4)
+                      ).grid(row=8, column=2, sticky=tk.W, pady=4)
         tk.Button(self.master, text='Animation',
-                  command=o.animation).grid(row=7, column=3,
+                  command=o.animation).grid(row=8, column=3,
                                             sticky=tk.W, pady=4)
         if self.model.get() == 'OpenOil':
             self.budgetbutton = tk.Button(self.master,
                 text='Oil Budget', command=o.plot_oil_budget)
-            self.budgetbutton.grid(row=7, column=4, sticky=tk.W, pady=4)
+            self.budgetbutton.grid(row=8, column=4, sticky=tk.W, pady=4)
 
 
 if __name__ == '__main__':
