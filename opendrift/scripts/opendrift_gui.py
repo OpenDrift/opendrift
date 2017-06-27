@@ -29,7 +29,6 @@ class TextRedirector(object):
     def flush(self):
         self.defstdout.flush()
 
-
 class OpenDriftGUI(tk.Tk):
 
     def __init__(self):
@@ -62,7 +61,7 @@ class OpenDriftGUI(tk.Tk):
         oljetyper = o.oiltypes
         self.oljetype = tk.StringVar()
         self.oljetype.set(oljetyper[0])
-        self.categorydrop = ttk.Combobox(self.master,
+        self.categorydrop = ttk.Combobox(self.master, width=50,
                                          textvariable=self.oljetype,
                                          values=oljetyper)
         self.categorydrop.grid(row=1, column=1)
@@ -81,15 +80,25 @@ class OpenDriftGUI(tk.Tk):
         tk.Label(self.start, text='Longitude').grid(row=0, column=1)
         tk.Label(self.start, text='Latitude').grid(row=0, column=0)
         tk.Label(self.start, text='Radius [m]').grid(row=0, column=2)
-        self.lat = tk.Entry(self.start, width=6, justify=tk.RIGHT)
-        self.lon = tk.Entry(self.start, width=6, justify=tk.RIGHT)
-        self.radius = tk.Entry(self.start, width=6, justify=tk.RIGHT)
+        self.latvar = tk.StringVar()
+        self.lonvar = tk.StringVar()
+        self.radiusvar = tk.StringVar()
+        self.lat = tk.Entry(self.start, textvariable=self.latvar,
+                            width=6, justify=tk.RIGHT)
+        self.lon = tk.Entry(self.start, textvariable=self.lonvar,
+                            width=6, justify=tk.RIGHT)
+        self.radius = tk.Entry(self.start, width=6,
+                               textvariable=self.radiusvar,
+                               justify=tk.RIGHT)
         self.lon.grid(row=1, column=1)
         self.lon.insert(0, '4.5')
         self.lat.grid(row=1, column=0)
         self.lat.insert(0, '60.0')
         self.radius.grid(row=1, column=2)
         self.radius.insert(0, '1000')
+        self.lonvar.trace('w', self.copy_position)
+        self.latvar.trace('w', self.copy_position)
+        self.radiusvar.trace('w', self.copy_position)
         ##########
         # Time
         ##########
@@ -115,7 +124,7 @@ class OpenDriftGUI(tk.Tk):
         self.month.grid(row=3, column=1)
 
         self.yearvar = tk.StringVar()
-        self.years = range(2015, 2017)
+        self.years = range(2015, now.year+1)
         self.yearvar.set(now.year)
         self.year = tk.OptionMenu(self.start, self.yearvar, *self.years)
         self.year.grid(row=3, column=2)
@@ -133,6 +142,12 @@ class OpenDriftGUI(tk.Tk):
                                     *self.minutes)
         self.minute.grid(row=3, column=4)
 
+        self.datevar.trace('w', self.copy_position)
+        self.monthvar.trace('w', self.copy_position)
+        self.yearvar.trace('w', self.copy_position)
+        self.hourvar.trace('w', self.copy_position)
+        self.minutevar.trace('w', self.copy_position)
+
         ###############
         # Release End
         ###############
@@ -145,9 +160,9 @@ class OpenDriftGUI(tk.Tk):
                             relief=tk.SUNKEN, padx=5, pady=5)
         self.end.grid(row=3, column=1)
 
-        tk.Label(self.end, text='Longitude').grid(row=0, column=1)
-        tk.Label(self.end, text='Latitude').grid(row=0, column=0)
-        tk.Label(self.end, text='Radius [m]').grid(row=0, column=2)
+        tk.Label(self.end, text='Longitude', bg='gray').grid(row=0, column=1)
+        tk.Label(self.end, text='Latitude', bg='gray').grid(row=0, column=0)
+        tk.Label(self.end, text='Radius [m]', bg='gray').grid(row=0, column=2)
         self.elat = tk.Entry(self.end, width=6, justify=tk.RIGHT)
         self.elon = tk.Entry(self.end, width=6, justify=tk.RIGHT)
         self.eradius = tk.Entry(self.end, width=6, justify=tk.RIGHT)
@@ -156,16 +171,16 @@ class OpenDriftGUI(tk.Tk):
         self.elat.grid(row=1, column=0)
         self.elat.insert(0, '60.0')
         self.eradius.grid(row=1, column=2)
-        self.eradius.insert(0, '0')
+        self.eradius.insert(0, '1000')
         ##########
         # Time
         ##########
         now = datetime.now()
-        tk.Label(self.end, text='Day').grid(row=2, column=0)
-        tk.Label(self.end, text='Month').grid(row=2, column=1)
-        tk.Label(self.end, text='Year').grid(row=2, column=2)
-        tk.Label(self.end, text='Hour').grid(row=2, column=3)
-        tk.Label(self.end, text='Minutes [UTC]').grid(row=2, column=4)
+        tk.Label(self.end, text='Day', bg='gray').grid(row=2, column=0)
+        tk.Label(self.end, text='Month', bg='gray').grid(row=2, column=1)
+        tk.Label(self.end, text='Year', bg='gray').grid(row=2, column=2)
+        tk.Label(self.end, text='Hour', bg='gray').grid(row=2, column=3)
+        tk.Label(self.end, text='Minutes [UTC]', bg='gray').grid(row=2, column=4)
         self.edatevar = tk.StringVar()
         self.edates = range(1, 32)
         self.edatevar.set(now.day)
@@ -179,7 +194,7 @@ class OpenDriftGUI(tk.Tk):
         self.emonth.grid(row=3, column=1)
 
         self.eyearvar = tk.StringVar()
-        self.eyears = range(2015, 2017)
+        self.eyears = range(2015, now.year+1)
         self.eyearvar.set(now.year)
         self.eyear = tk.OptionMenu(self.end, self.eyearvar, *self.eyears)
         self.eyear.grid(row=3, column=2)
@@ -196,6 +211,11 @@ class OpenDriftGUI(tk.Tk):
         self.eminute = tk.OptionMenu(self.end, self.eminutevar,
                                      *self.eminutes)
         self.eminute.grid(row=3, column=4)
+        self.eyear.config(bg='gray')
+        self.emonth.config(bg='gray')
+        self.edate.config(bg='gray')
+        self.ehour.config(bg='gray')
+        self.eminute.config(bg='gray')
 
         #######################
         # Simulation duration
@@ -221,12 +241,12 @@ class OpenDriftGUI(tk.Tk):
         # Output box
         ##############
         self.text = tk.Text(self, wrap="word", height=18)
-        self.text.grid(row=5, columnspan=5, sticky='nsew')
+        self.text.grid(row=5, columnspan=8, sticky='nsew')
         self.text.tag_configure("stderr", foreground="#b22222")
         sys.stdout = TextRedirector(self.text, "stdout")
         sys.stderr = TextRedirector(self.text, "stderr")
         s = tk.Scrollbar(self)
-        s.grid(row=5, column=5, sticky='ns')
+        s.grid(row=5, column=8, sticky='ns')
         s.config(command=self.text.yview)
         self.text.config(yscrollcommand=s.set)
 
@@ -251,6 +271,19 @@ class OpenDriftGUI(tk.Tk):
                   command=self.run_opendrift).grid(row=7, column=1,
                                               sticky=tk.W, pady=4)
 
+    def copy_position(self, a, b, c):
+        self.elat.delete(0, tk.END)
+        self.elat.insert(0, self.lat.get())
+        self.elon.delete(0, tk.END)
+        self.elon.insert(0, self.lon.get())
+        self.eradius.delete(0, tk.END)
+        self.eradius.insert(0, self.radius.get())
+        self.edatevar.set(self.datevar.get())
+        self.emonthvar.set(self.monthvar.get())
+        self.eyearvar.set(self.yearvar.get())
+        self.ehourvar.set(self.hourvar.get())
+        self.eminutevar.set(self.minutevar.get())
+
     def set_model(self, model):
         if model == 'OpenOil':
             self.categoryLabel['text'] = 'Oil type'
@@ -271,6 +304,11 @@ class OpenDriftGUI(tk.Tk):
 
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
+        try:
+            self.budgetbutton.destroy()
+        except Exception as e:
+            print e
+            pass
         month = np.int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(np.int(self.yearvar.get()), month,
                               np.int(self.datevar.get()),
@@ -311,17 +349,17 @@ class OpenDriftGUI(tk.Tk):
                             time=start_time, cone=cone,
                             oiltype=self.oljetype.get())
 
-       	readers = [  # Note that order (priority) is important!
-			'/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
-			'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-			'/lustre/storeB/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
-			'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-			'/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
-			'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
-			'/lustre/storeB/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
-			'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
-			'/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
-			'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
+        readers = [  # Note that order (priority) is important!
+            '/lustre/storeA/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
+            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+            '/lustre/storeA/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
+            'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+            '/lustre/storeA/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
+            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
+            '/lustre/storeA/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
+            'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
+            '/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
+            'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
             'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z',
             'http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd']
         o.add_readers_from_list(readers)
@@ -352,9 +390,9 @@ class OpenDriftGUI(tk.Tk):
                   command=o.animation).grid(row=7, column=3,
                                             sticky=tk.W, pady=4)
         if self.model.get() == 'OpenOil':
-            tk.Button(self.master, text='Oil Budget',
-                      command=o.plot_oil_budget).grid(row=7, column=4,
-                                                      sticky=tk.W, pady=4)
+            self.budgetbutton = tk.Button(self.master,
+                text='Oil Budget', command=o.plot_oil_budget)
+            self.budgetbutton.grid(row=7, column=4, sticky=tk.W, pady=4)
 
 
 if __name__ == '__main__':
