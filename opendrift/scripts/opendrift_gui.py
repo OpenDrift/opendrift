@@ -221,6 +221,11 @@ class OpenDriftGUI(tk.Tk):
         self.ehour.config(bg='gray')
         self.eminute.config(bg='gray')
 
+        # Check seeding
+        check_seed = tk.Button(self.end_t, text='Check seeding',
+                                command=self.check_seeding)
+        check_seed.grid(row=1, column=0, padx=0)
+
         #######################
         # Simulation duration
         #######################
@@ -322,6 +327,48 @@ class OpenDriftGUI(tk.Tk):
         print 'Opening help website:\n' + help_url
         import webbrowser
         webbrowser.open(help_url)
+
+    def check_seeding(self):
+        print '#'*50
+        print 'Hang on, plot is comming in a few seconds...'
+        mapres = self.mapresvar.get()[0]
+        if mapres == 'f':
+            print '...actually more like 30 seconds for full resolution coastline....'
+            if self.has_diana is True:
+                print 'Du far ta deg ein liten trall mens du ventar.'
+        print '#'*50
+        month = np.int(self.months.index(self.monthvar.get()) + 1)
+        start_time = datetime(np.int(self.yearvar.get()), month,
+                              np.int(self.datevar.get()),
+                              np.int(self.hourvar.get()),
+                              np.int(self.minutevar.get()))
+        emonth = np.int(self.months.index(self.emonthvar.get()) + 1)
+        end_time = datetime(np.int(self.eyearvar.get()), emonth,
+                            np.int(self.edatevar.get()),
+                            np.int(self.ehourvar.get()),
+                            np.int(self.eminutevar.get()))
+        sys.stdout.flush()
+        lon = np.float(self.lon.get())
+        lat = np.float(self.lat.get())
+        radius = np.float(self.radius.get())
+        elon = np.float(self.elon.get())
+        elat = np.float(self.elat.get())
+        eradius = np.float(self.eradius.get())
+        if lon != elon or lat != elat or start_time != end_time:
+            lon = [lon, elon]
+            lat = [lat, elat]
+            radius = [radius, eradius]
+            start_time = [start_time, end_time]
+            cone = True
+        else:
+            cone = False
+
+        so = Leeway(loglevel=50)
+        so.seed_elements(lon=lon, lat=lat, number=5000,
+                         radius=radius, time=start_time)
+        so.set_config('general:basemap_resolution', mapres)         
+        so.plot(buffer=.5)
+        del so
 
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
