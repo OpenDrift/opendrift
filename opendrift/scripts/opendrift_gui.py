@@ -400,7 +400,7 @@ class OpenDriftGUI(tk.Tk):
         o.set_config('general:basemap_resolution', mapres)         
 
         o.run(steps=duration, time_step=time_step,
-              time_step_output=3600, **extra_args)
+              time_step_output=time_step, **extra_args)
         print o
 
         if self.has_diana is True:
