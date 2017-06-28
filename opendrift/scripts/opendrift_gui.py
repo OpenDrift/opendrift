@@ -56,6 +56,10 @@ class OpenDriftGUI(tk.Tk):
                                        *(models), command=self.set_model)
         self.modeldrop.grid(row=0, column=1)
 
+        help_button = tk.Button(self.top, text='Help',
+                                command=self.show_help)
+        help_button.grid(row=0, column=2, padx=50)
+
         self.categoryLabel = tk.Label(self.master, text='Oil type')
         self.categoryLabel.grid(row=1, column=0)
         oljetyper = o.oiltypes
@@ -312,6 +316,12 @@ class OpenDriftGUI(tk.Tk):
                 replace('>', '') for c in self.o.leewayprop]
             self.categorydrop['values'] = self.leewaycategories
             self.oljetype.set(self.leewaycategories[0])
+
+    def show_help(self):
+        help_url = 'https://github.com/OpenDrift/opendrift/wiki/Graphical-User-Interface'
+        print 'Opening help website:\n' + help_url
+        import webbrowser
+        webbrowser.open(help_url)
 
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
