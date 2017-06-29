@@ -257,7 +257,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
             #avoid that elements are below bottom
             bottom = np.where(self.elements.z < Zmin)
-            self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
+            if len(bottom[0]) > 0:
+                self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
             # Call surface interaction:
             # reflection at surface or formation of slick and wave mixing if implemented for this class
