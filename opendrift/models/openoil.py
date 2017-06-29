@@ -36,7 +36,7 @@ class Oil(LagrangianArray):
         ('viscosity', {'dtype': np.float32,
                        #'unit': 'mm2/s (centiStokes)',
                        'units': 'N s/m2 (Pa s)',
-                       'default': 0.5}),
+                       'default': 0.005}),
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 880}),
@@ -379,6 +379,9 @@ class OpenOil(OpenDriftSimulation):
                 self.oiltype.oil_water_surface_tension()[0]
             logging.info('Oil-water surface tension is %f Nm' % 
                          self.oil_water_interfacial_tension)
+        else:
+            logging.info('Using default oil-water tension of 0.03Nm')
+            self.oil_water_interfacial_tension = 0.03
 
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:

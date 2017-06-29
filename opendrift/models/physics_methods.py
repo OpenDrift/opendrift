@@ -260,6 +260,8 @@ class PhysicsMethods(object):
     #    return 1027  # kg/m3
 
     def sea_surface_wave_breaking_fraction(self):
+        # TODO: We should also have an option here for
+        # the case when wave height is given, but no wind
         f = 0.032*(self.wind_speed() - 5)/self.wave_period()
         f[f < 0] = 0
         return f

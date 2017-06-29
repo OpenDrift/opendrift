@@ -82,9 +82,9 @@ class TestOil(unittest.TestCase):
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
-                    fraction_dispersed = 0.12055826
+                    fraction_dispersed = 0.11863789
                 elif oil == 'SKRUGARD' and windspeed == 8:
-                    fraction_dispersed =  0.23383768
+                    fraction_dispersed =  0.23420876
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
@@ -123,9 +123,9 @@ class TestOil(unittest.TestCase):
             d = o.elements.diameter
             # Suspicious, Sintef-param should give larer droplets
             if droplet_distribution == 'Exponential':
-                self.assertAlmostEqual(d.mean(), 0.000493373)
+                self.assertAlmostEqual(d.mean(), 0.000489884)
             elif droplet_distribution == 'Johansen et al. (2015)':
-                self.assertAlmostEqual(d.mean(), 0.000072400)
+                self.assertAlmostEqual(d.mean(), 0.000072158)
 
 
 if __name__ == '__main__':

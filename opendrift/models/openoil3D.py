@@ -104,8 +104,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
                 droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
         [wave_entrainment]
-            droplet_size_distribution = option('Exponential', 'Johansen et al. (2015)', default='Exponential')
-            entrainment_rate = option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Tkalich & Chan (2002)')
+            droplet_size_distribution = option('Exponential', 'Johansen et al. (2015)', default='Johansen et al. (2015)')
+            entrainment_rate = option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Li et al. (2017)')
         [turbulentmixing]
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
             droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
