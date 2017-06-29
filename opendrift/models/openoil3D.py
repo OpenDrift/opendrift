@@ -400,15 +400,14 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             sd = 0.4 # log standard deviation
             spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(d_50))**2 / (2 * sd**2))) / (self.droplet_spectrum_diameter * sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
-        
-        try:
+        if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
+                np.abs(np.sum(self.droplet_spectrum_pdf) - 1) > 1e-6:
+            logging.warning('Could not update droplet diameters.')
+            return self.elements.diameter
+        else:
             return np.random.choice(self.droplet_spectrum_diameter,
                                     size=self.num_elements_active(),
                                     p=self.droplet_spectrum_pdf)
-        except Exception as e:
-            logging.warning('Could not update droplet diameters:' +
-                            str(e))
-            return self.elements.diameter
 
     def resurface_elements(self, minimum_depth=None):
         """Oil elements reaching surface (or above) form slick, not droplet"""
