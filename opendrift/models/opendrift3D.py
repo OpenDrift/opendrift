@@ -136,7 +136,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
         #avoid that elements are below bottom
         bottom = np.where(self.elements.z < Zmin)
-        self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
+        if len(bottom[0]) > 0:
+            self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
 
         # Eventual model specific preparions
         self.prepare_vertical_mixing()

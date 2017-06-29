@@ -2,14 +2,14 @@ language: python
 python:
   - "2.7"
 env:
-  - NUMPY_VERSION=1.7   SCIPY_VERSION=0.11 NETCDF_VERSION=1
-  - NUMPY_VERSION=1.11  SCIPY_VERSION=0.17 NETCDF_VERSION=1.2
-  - NUMPY_VERSION=1.13  SCIPY_VERSION=0.19 NETCDF_VERSION=1.2.4 # Bleeding edge
-  - NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1 # Hexagon
-  - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.18.0 NETCDF_VERSION=1.2.4 # Marta
+  - NUMPY_VERSION=1.7   SCIPY_VERSION=0.11 NETCDF_VERSION=1 MATPLOTLIB_VERSION=1.5
+  - NUMPY_VERSION=1.11  SCIPY_VERSION=0.17 NETCDF_VERSION=1.2 MATPLOTLIB_VERSION=1.5
+  - NUMPY_VERSION=1.13  SCIPY_VERSION=0.19 NETCDF_VERSION=1.2.4 MATPLOTLIB_VERSION=2.0 # Bleeding edge
+  - NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1 MATPLOTLIB_VERSION=1.5 # Hexagon
+  - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.18.0 NETCDF_VERSION=1.2.4 MATPLOTLIB_VERSION=1.5 # Marta
 matrix:
   allow_failures:
-    - env: NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1
+    - env: NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1 MATPLOTLIB_VERSION=1.5
 cache:
   directories:
     - $HOME/download
@@ -31,7 +31,7 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
 install:
-  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
+  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib=$MATPLOTLIB_VERSION basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
   - if [[ ! -e $HOME/oillibrary ]]; then
         cd $HOME;
         mkdir -p oillibrary;
