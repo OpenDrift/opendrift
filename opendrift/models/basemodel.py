@@ -733,6 +733,9 @@ class OpenDriftSimulation(PhysicsMethods):
                                               np.ma.getmask(tmp_var),
                                               shrink=False)
                     try:
+                        if len(missing_indices) != len(combined_mask):
+                            # TODO: mask mismatch due to 2 added points
+                            raise ValueError('Mismatch of masks')
                         missing_indices = missing_indices[combined_mask]
                     except:  # Not sure what is happening here
                         logging.info('Problems setting mask on missing_indices!')
