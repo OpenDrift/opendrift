@@ -406,7 +406,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                                     size=self.num_elements_active(),
                                     p=self.droplet_spectrum_pdf)
         except Exception as e:
-            logging.warning('Could not update droplet diameters:' + e)
+            logging.warning('Could not update droplet diameters:' +
+                            str(e))
             return self.elements.diameter
 
     def resurface_elements(self, minimum_depth=None):
