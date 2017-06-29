@@ -389,6 +389,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
             g = 9.81
+            # TODO: calculation below with scalars, but we have
+            # arrays, with varying oil properties
             interfacial_tension = self.oil_water_interfacial_tension
             A = self.significant_wave_height()/2 # wave amplitude
             re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
@@ -399,8 +401,13 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(d_50))**2 / (2 * sd**2))) / (self.droplet_spectrum_diameter * sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
         
-        return np.random.choice(self.droplet_spectrum_diameter,size=self.num_elements_active(),
-                                p=self.droplet_spectrum_pdf)
+        try:
+            return np.random.choice(self.droplet_spectrum_diameter,
+                                    size=self.num_elements_active(),
+                                    p=self.droplet_spectrum_pdf)
+        except Exception as e:
+            logging.warning('Could not update droplet diameters:' + e)
+            return self.elements.diameter
 
     def resurface_elements(self, minimum_depth=None):
         """Oil elements reaching surface (or above) form slick, not droplet"""
