@@ -20,6 +20,7 @@ config = {
         'scipy',
         'matplotlib',
         'netCDF4',
+        'pillow',
         'basemap'
     ],
     'packages': find_packages(),
