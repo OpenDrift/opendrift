@@ -458,8 +458,7 @@ class BaseReader(object):
                     # Copying data from environment to vertical profiles
                     env_profiles = {'z': profiles_depth}
                     for var in profiles:
-                        # NB: removing two last points added for vertical span
-                        env_profiles[var] = np.ma.array([env[var], env[var]])[:, 0:-2]
+                        env_profiles[var] = np.ma.array([env[var], env[var]])
 
         ####################
         # Rotate vectors

@@ -711,8 +711,9 @@ class OpenDriftSimulation(PhysicsMethods):
                             z_ind = np.arange(np.minimum(
                                 len(env_profiles['z'])-1,
                                 len(env_profiles_tmp['z'])-1))
+                            # len(missing_indices) since 2 points might have been added and not removed
                             env_profiles[var][np.ix_(z_ind, missing_indices)] = \
-                                np.ma.masked_invalid(env_profiles_tmp[var][z_ind,:]).astype('float32')
+                                np.ma.masked_invalid(env_profiles_tmp[var][z_ind,0:len(missing_indices)]).astype('float32')
 
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
