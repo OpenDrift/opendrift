@@ -1020,7 +1020,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 number_array = np.ones(number)
                 time_array = [time[0] + i*td for i in range(number)]
 
-            if 'z' in kwargs and kwargs['z'] == 'seafloor':
+            if 'z' in kwargs and kwargs['z'] is 'seafloor':
                 # We need to fetch seafloor depth from reader
                 if 'sea_floor_depth_below_sea_level' not in self.priority_list:
                     raise ValueError('A reader providing the variable '
@@ -1073,7 +1073,7 @@ class OpenDriftSimulation(PhysicsMethods):
         kwargs['lon'], kwargs['lat'], az = \
             geod.fwd(lon*ones, lat*ones, az, dist, radians=False)
 
-        if 'z' in kwargs and kwargs['z'] == 'seafloor':
+        if 'z' in kwargs and kwargs['z'] is 'seafloor':
             # We need to fetch seafloor depth from reader
             # Unfortunately, this is duplication of code above
             if 'sea_floor_depth_below_sea_level' not in self.priority_list:
