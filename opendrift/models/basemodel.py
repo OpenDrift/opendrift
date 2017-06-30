@@ -694,7 +694,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Copy retrieved variables to env array, and mask nan-values
                 for var in variable_group:
                     env[var][missing_indices] = np.ma.masked_invalid(
-                        env_tmp[var]).astype('float32')
+                        env_tmp[var][0:len(missing_indices)]).astype('float32')
                     if profiles_from_reader is not None and var in profiles_from_reader:
                         if 'env_profiles' not in locals():
                             env_profiles = env_profiles_tmp
