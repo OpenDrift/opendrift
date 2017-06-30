@@ -267,6 +267,8 @@ class Reader(BaseReader):
                     logging.debug('sigma to z for ' + varname[0])
                     try:  # Converting masked values to nan, since
                           # not handled by multi_zslice
+                        variables[par] = np.ma.array(variables[par],
+                                            mask=variables[par].mask)
                         variables[par][variables[par].mask] = np.nan
                     except:
                         pass
@@ -300,6 +302,8 @@ class Reader(BaseReader):
                     if mask_v.ndim == 3:
                         mask_v = mask_v[-1,:,:]  # Upper layer
                 if 'eta_v' in var.dimensions:
+                    variables[par] = np.ma.array(variables[par],
+                                        mask=variables[par].mask)
                     variables[par][variables[par].mask] = 0
                     if variables[par].ndim == 2:
                         variables[par] = \
@@ -312,6 +316,8 @@ class Reader(BaseReader):
                     variables[par] = np.ma.masked_where(variables[par]==0,
                                                         variables[par])
                 elif 'eta_u' in var.dimensions:
+                    variables[par] = np.ma.array(variables[par],
+                                        mask=variables[par].mask)
                     variables[par][variables[par].mask] = 0
                     if variables[par].ndim == 2:
                         variables[par] = \

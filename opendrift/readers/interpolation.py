@@ -35,6 +35,7 @@ class NDImage2DInterpolator():
 
     def __call__(self, array2d):
         try:
+            array2d = np.ma.array(array2d, mask=array2d.mask)
             array2d[array2d.mask] = np.nan  # Gives holes
         except:
             pass
