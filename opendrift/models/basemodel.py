@@ -789,6 +789,21 @@ class OpenDriftSimulation(PhysicsMethods):
                     if num_missing_individual > 0:
                         logging.debug('        ...plus %s individual points in other profiles' %
                                       num_missing_individual)
+
+        #######################################################
+        # Some extra checks of units and realistic magnitude
+        #######################################################
+        if 'sea_water_temperature' in variables:
+            t_kelvin = np.where(env['sea_water_temperature']>273) & (env['sea_water_temperature']<350)[0]
+            if len(t_kelvin) > 0:
+                logging.warning('Converting temperatures from Kelvin to Celcius')
+                env['sea_water_temperature'][t_kelvin] = env['sea_water_temperature'][t_kelvin] - 273.15
+                if 'env_profiles' in locals() and 'sea_water_temperature' in env_profiles.keys():
+                    t_kelvin = np.where((
+                        env_profiles['sea_water_temperature']>273) &
+                       (env_profiles['sea_water_temperature']<350))[0]
+                    env_profiles['sea_water_temperature'][t_kelvin] = \
+                        env_profiles['sea_water_temperature'][t_kelvin] - 273.15
        
         #####################
         # Diagnostic output
