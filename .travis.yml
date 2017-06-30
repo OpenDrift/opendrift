@@ -31,7 +31,7 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
 install:
-  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib=$MATPLOTLIB_VERSION basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj gdal
+  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib=$MATPLOTLIB_VERSION basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj gdal libgdal=2.0.0=0
   - if [[ ! -e $HOME/oillibrary ]]; then
         cd $HOME;
         mkdir -p oillibrary;
