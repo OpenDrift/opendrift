@@ -300,6 +300,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         return entrainment_rate
 
     def oil_wave_entrainment_rate_li2017(self):
+        # Z. Li, M.L. Spaulding, D. French McCay, J. Mar. Pollut. Bull. (2016):
+        # An algorithm for modeling entrainment and naturally and chemically dispersed
+        # oil droplet size distribution under surface breaking wave conditions
         g = 9.81
         interfacial_tension = self.oil_water_interfacial_tension
         delta_rho = self.sea_water_density() - self.elements.density
@@ -310,6 +313,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         return entrainment_rate
 
     def oil_wave_entrainment_rate_tkalich2002(self):
+        # Tkalich P. and Chan E.S.  
+        # Vertical mixing of oil droplets by breaking waves
+        # Marine Pollution Bulletin. 2002, V.44 (11), pp. 1219-1229
         kb = 0.4
         omega = (2.*np.pi)/self.wave_period()
         gamma = self.wave_damping_coefficient()

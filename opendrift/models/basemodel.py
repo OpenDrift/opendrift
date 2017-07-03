@@ -112,6 +112,7 @@ class OpenDriftSimulation(PhysicsMethods):
     configspec_basemodel = '''
             [general]
                 basemap_resolution = option('f', 'h', 'i', 'c', default='h')
+                minimise_map_whitespace = boolean(default=False)
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
             [drift]
                 scheme = option('euler', 'runge-kutta', default='euler')
@@ -1497,7 +1498,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
                                      deltalat),
                 resolution=self.get_config('general:basemap_resolution'),
-                                    projection='merc')
+                projection='merc',
+                minimise_whitespace=self.get_config('general:minimise_map_whitespace'))
             self.add_reader(reader_basemap)
             self.dynamical_landmask = True
             self.timer_end('preparing main loop:making dynamical landmask')
@@ -2212,7 +2214,8 @@ class OpenDriftSimulation(PhysicsMethods):
                             color=self.status_colors[status],
                             label='%s (%i)' % (status, len(indices[0])))
         try:
-            plt.legend(loc='best')
+            #plt.legend(loc='best')
+            plt.legend(loc='upper left')
             #plt.legend(loc='lower right')
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
