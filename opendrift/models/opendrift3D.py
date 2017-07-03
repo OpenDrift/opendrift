@@ -289,7 +289,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             tindex = np.int(tslider.val)
             mainplot.cla()
             mainplot.grid()
-            mainplot.hist(self.history['z'].T[tindex, :], bins=-maxrange/dz,
+            mainplot.hist(self.history['z'].T[tindex, :], bins=int(-maxrange/dz),
                           range=[maxrange, 0], orientation='horizontal')
             mainplot.set_ylim([maxrange, 0])
             mainplot.set_xlabel('number of particles')

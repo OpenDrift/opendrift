@@ -12,11 +12,12 @@ print '#'*30
 
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
-reader_hycom = reader_netCDF_CF_generic.Reader('http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.1/2010/3hrly')
+#reader_hycom = reader_netCDF_CF_generic.Reader('http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.1/2010/3hrly')
 #print reader_hycom0
-#reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CLS-L4-CUREUL_HS-ALT_SUM-V01.0_FULL_TIME_SERIE')  # Total
+reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CLS-L4-CUREUL_HS-ALT_SUM-V02.0_FULL_TIME_SERIE')  # Total
 
-reader_oceanwind = reader_netCDF_CF_generic.Reader('http://www.ncdc.noaa.gov/thredds/dodsC/oceanwinds6hr')
+#reader_oceanwind = reader_netCDF_CF_generic.Reader('http://www.ncdc.noaa.gov/thredds/dodsC/oceanwinds6hr')
+reader_oceanwind = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CERSAT-GLO-CLIM_WIND_L4-OBS_FULL_TIME_SERIE')
 #print reader_oceanwind
 
 # Landmask (Basemap)
@@ -25,8 +26,8 @@ reader_basemap = reader_basemap_landmask.Reader(
                     urcrnrlon=-80, urcrnrlat=32, resolution='i')
 
 # Add readers
-o.add_reader([reader_basemap, reader_hycom, reader_oceanwind])
-#o.add_reader([reader_basemap, reader_globcurrent, reader_oceanwind])
+#o.add_reader([reader_basemap, reader_hycom, reader_oceanwind])
+o.add_reader([reader_basemap, reader_globcurrent, reader_oceanwind])
 
 # Seed some particles
 lon = -88.387161; lat = 28.736669  # Macondo location
