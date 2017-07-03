@@ -388,6 +388,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                                 p=self.droplet_spectrum_pdf)
 
     def get_wave_breaking_droplet_diameter_johansen2015(self):
+        # Johansen O, Reed M, Bodsberg NR, Natural dispersion revisited
+        # DOI: 10.1016/j.marpolbul.2015.02.026
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum as in Johansen et al. (2015)
             logging.info('Generating wave breaking droplet size spectrum')
