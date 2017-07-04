@@ -1801,8 +1801,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 delta_lat = 1
             elif latspan > 1 and latspan <= 10:
                 delta_lat = .5
-            else:
+            elif latspan > .2 and latspan <= 1:
                 delta_lat = .1
+            else:
+                delta_lat = .01
             lonspan = map.lonmax - map.lonmin
             if lonspan > 20:
                 delta_lon = 4
@@ -1810,8 +1812,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 delta_lon = 2
             elif lonspan > 1 and lonspan <= 10:
                 delta_lon = 1
+            elif lonspan > .2 and lonspan <= 1:
+                delta_lon = .1
             else:
-                delta_lon = .2
+                delta_lon = .02
         if delta_lat != 0:
             map.drawmeridians(np.arange(np.floor(map.lonmin),
                                         np.ceil(map.lonmax), delta_lon),
