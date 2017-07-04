@@ -2105,7 +2105,8 @@ class OpenDriftSimulation(PhysicsMethods):
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
              drifter_file=None, show=True, vmin=None, vmax=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
-             contourlines=False, trajectory_dict=None, **kwargs):
+             contourlines=False, trajectory_dict=None,
+             title='auto', legend='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -2214,9 +2215,8 @@ class OpenDriftSimulation(PhysicsMethods):
                             color=self.status_colors[status],
                             label='%s (%i)' % (status, len(indices[0])))
         try:
-            #plt.legend(loc='best')
-            plt.legend(loc='upper left')
-            #plt.legend(loc='lower right')
+            if legend is not None:
+                plt.legend(loc=legend)
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
             print traceback.format_exc()
@@ -2245,16 +2245,20 @@ class OpenDriftSimulation(PhysicsMethods):
                            u_component[::skip, ::skip],
                            v_component[::skip, ::skip], scale=scale)
 
-        if hasattr(self, 'time'):
-            plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
-                      (self.start_time.strftime('%Y-%m-%d %H:%M'),
-                       self.time.strftime('%Y-%m-%d %H:%M'),
-                       self.steps_output))
-        else:
-            plt.title(type(self).__name__ + ' - %i elements seeded at %s' %
-                      (self.num_elements_scheduled(),
-                       self.elements_scheduled_time[0].strftime(
-                       '%Y-%m-%d %H:%M')))
+        if title is not None:
+            if title is 'auto':
+                if hasattr(self, 'time'):
+                    plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
+                              (self.start_time.strftime('%Y-%m-%d %H:%M'),
+                               self.time.strftime('%Y-%m-%d %H:%M'),
+                               self.steps_output))
+                else:
+                    plt.title(type(self).__name__ + ' - %i elements seeded at %s' %
+                              (self.num_elements_scheduled(),
+                               self.elements_scheduled_time[0].strftime(
+                               '%Y-%m-%d %H:%M')))
+            else:
+                plt.title(title)
 
         if drifter_file is not None:
             # Format of joubeh.com
