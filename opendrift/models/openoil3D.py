@@ -143,7 +143,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         for kw in kwargs:
             if hasattr(kwargs[kw], '__len__') and not \
-                    isinstance(kwargs[kw], str):
+                    isinstance(kwargs[kw], basestring):
                 if len(kwargs[kw]) == 1:
                     self.add_metadata('seed_' + kw, str(kwargs[kw][0]))
                 elif len(kwargs[kw]) == 2:
