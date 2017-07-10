@@ -754,7 +754,7 @@ class BaseReader(object):
             time = self.start_time  # Use first timestep, if not given
 
         # Convert variables to list and x,y to ndarrays
-        if isinstance(variables, str):
+        if isinstance(variables, basestring):
             variables = [variables]
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)

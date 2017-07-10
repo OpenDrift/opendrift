@@ -471,7 +471,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """
 
         # Convert any strings to lists, for looping
-        if isinstance(variables, str):
+        if isinstance(variables, basestring):
             variables = [variables]
         if isinstance(readers, BaseReader):
             readers = [readers]
