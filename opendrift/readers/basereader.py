@@ -76,7 +76,7 @@ class BaseReader(object):
                          # capable of returning blocks of data
 
     # Default interpolation method, see function interpolate_block()
-    interpolation = 'ndimage'
+    interpolation = 'linearNDFast'
 
     verticalbuffer = 1  # To be overridden by application as needed
 
