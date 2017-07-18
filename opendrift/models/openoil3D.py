@@ -227,10 +227,12 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         if not hasattr(self, 'seed_json'):
             self.seed_json = []
         self.seed_json.append(seed_json)
-        for js in self.seed_json:
-            for kw in js:
-                if isinstance(js[kw], np.int64) or isinstance(js[kw], np.float64):
-                    js[kw] = np.float32(js[kw])*1.0
+        for i in range(len(self.seed_json)):
+            for kw in self.seed_json[i]:
+                if (isinstance(self.seed_json[i][kw], np.int64) or
+                    isinstance(self.seed_json[i][kw], np.float64)):
+                    self.seed_json[i][kw] = \
+                        np.float32(self.seed_json[i][kw])*1.0
         self.add_metadata('seed_json', json.dumps(self.seed_json))
 
     def prepare_run(self):
