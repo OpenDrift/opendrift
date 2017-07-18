@@ -229,10 +229,11 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         self.seed_json.append(seed_json)
         for i in range(len(self.seed_json)):
             for kw in self.seed_json[i]:
-                if (isinstance(self.seed_json[i][kw], np.int64) or
-                    isinstance(self.seed_json[i][kw], np.float64)):
+                try:
                     self.seed_json[i][kw] = \
                         float(self.seed_json[i][kw])
+                except:
+                    pass
         self.add_metadata('seed_json', json.dumps(self.seed_json))
 
     def prepare_run(self):
