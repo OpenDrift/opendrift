@@ -151,6 +151,10 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 data[0] = str(data[0])
                 if len(data) == 2:
                     data[1] = str(data[1])
+            elif not isinstance(data[0], basestring):
+                data[0] = float(data[0])
+                if len(data) == 2:
+                    data[1] = float(data[1])
             if not isinstance(kwargs[kw], basestring):
                 if kw in ['lon', 'lat', 'z', 'radius', 'time']:
                     pointer = seed_json['start']
@@ -227,13 +231,6 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         if not hasattr(self, 'seed_json'):
             self.seed_json = []
         self.seed_json.append(seed_json)
-        for i in range(len(self.seed_json)):
-            for kw in self.seed_json[i]:
-                try:
-                    self.seed_json[i][kw] = \
-                        float(self.seed_json[i][kw])
-                except:
-                    pass
         self.add_metadata('seed_json', json.dumps(self.seed_json))
 
     def prepare_run(self):
