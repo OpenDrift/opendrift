@@ -18,6 +18,7 @@ import os
 import numpy as np
 from datetime import datetime
 import logging
+import json
 
 from opendrift.models.openoil import OpenOil, Oil
 from opendrift.models.opendrift3D import OpenDrift3DSimulation
@@ -141,18 +142,34 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             kwargs['lat'] = args[1]
             args = {}
 
+        seed_json = {'start':{}, 'end':{}}
         for kw in kwargs:
-            if hasattr(kwargs[kw], '__len__') and not \
-                    isinstance(kwargs[kw], basestring):
-                if len(kwargs[kw]) == 1:
-                    self.add_metadata('seed_' + kw, str(kwargs[kw][0]))
+            data = kwargs[kw]
+            if not isinstance(data, basestring):
+                data = np.atleast_1d(data)
+            if isinstance(data[0], datetime):
+                data[0] = str(data[0])
+                if len(data) == 2:
+                    data[1] = str(data[1])
+            if not isinstance(kwargs[kw], basestring):
+                if kw in ['lon', 'lat', 'z', 'radius', 'time']:
+                    pointer = seed_json['start']
+                    pointer2 = seed_json['end']
+                else:
+                    pointer = seed_json
+                if len(data) == 1:
+                    self.add_metadata('seed_' + kw, data[0])
+                    pointer[kw] = data[0]
                 elif len(kwargs[kw]) == 2:
                     self.add_metadata('seed_' + kw + '_start', str(kwargs[kw][0]))
                     self.add_metadata('seed_' + kw + '_end', str(kwargs[kw][1]))
+                    pointer[kw] = data[0]
+                    pointer2[kw] = data[1]
                 else:
                     logging.info('Not adding array %s to metadata' % kw)
             else:
-                self.add_metadata('seed_' + kw, str(kwargs[kw]))
+                self.add_metadata('seed_' + kw, str(data))
+                seed_json[kw] = data
 
         if 'number' not in kwargs:
             number = 1
@@ -187,21 +204,30 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # Add oil metadata
         try:
             self.add_metadata('seed_oil_density', self.oiltype.get_density())
+            seed_json['oil_density'] = self.oiltype.get_density()
         except:
             try:
                 self.add_metadata('seed_oil_density',
                                   self.oiltype.density_at_temp(283))
+                seed_json['oil_density'] = self.oiltype.density_at_temp(283)
             except:
                 pass
         try:
             self.add_metadata('seed_oil_viscosity',
                               self.oiltype.get_viscosity(283))
+            seed_json['oil_viscosity'] = self.oiltype.get_viscosity(283)
         except:
             try:
                 self.add_metadata('seed_oil_viscosity',
                                   self.oiltype.kvis_at_temp(283))
+                seed_json['oil_viscosity'] = self.oiltype.kvis_at_temp(283)
             except:
                 pass
+
+        if not hasattr(self, 'seed_json'):
+            self.seed_json = []
+        self.seed_json.append(seed_json)
+        self.add_metadata('seed_json', json.dumps(self.seed_json))
 
     def prepare_run(self):
         super(OpenOil3D, self).prepare_run()
