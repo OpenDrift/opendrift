@@ -79,7 +79,6 @@ def main():
     
     examples_path = os.path.dirname(os.path.realpath(__file__))
     files = glob.glob(os.path.join(examples_path, 'example_*.py'))
-    files = files[0:5]
     
 
     # Set backend of matplotlib 
