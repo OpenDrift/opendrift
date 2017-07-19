@@ -12,6 +12,10 @@ env:
 matrix:
   allow_failures:
     - env: NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 NETCDF_VERSION=1 MATPLOTLIB_VERSION=1.5
+addons:
+  apt:
+    packages:
+    - gfortran
 cache:
   directories:
     - $HOME/download
