@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 from scipy.ndimage import map_coordinates
+import scipy.ndimage as ndimage
 from scipy.interpolate import interp1d, LinearNDInterpolator
 
 
@@ -75,11 +76,49 @@ class LinearND2DInterpolator():
             self.interpolator.valid = valid
 
         return self.interpolator(self.y, self.x)
+        
+        
+class Linear2DInterpolator():
+
+    def __init__(self, xgrid, ygrid, x, y):
+        self.x = x
+        self.y = y
+        self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
+        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
+        self.valid_arrays = []
+        
+    # "Grows" the unmasked areas by one pixel
+    @staticmethod
+    def expandData(in_data):
+        out_mask = ~ndimage.morphology.binary_dilation(~in_data.mask.copy())
+        out_data = in_data.filled(np.finfo(np.float64).min)
+        out_data = ndimage.morphology.grey_dilation(out_data, size=3)
+        out_data[~in_data.mask] = in_data.data[~in_data.mask]
+        out = np.ma.masked_array(out_data, mask=out_mask)
+        return out
+
+    def __call__(self, array2d):
+        if not isinstance(array2d,np.ma.MaskedArray):
+            logging.debug('Array used for interpolation is not a masked array.')
+    
+        array2d_ptr, read_only = array2d.data.__array_interface__['data'] 
+    
+        # change the array2d to fill masked parts 
+        # i.e., land with no flow
+        if array2d_ptr not in self.valid_arrays:
+            # Fill five cells of masked data
+            for i in range(5):
+                array2d = self.expandData(array2d)
+            self.valid_arrays.append(array2d_ptr)
+        
+        return map_coordinates(array2d, [self.yi, self.xi],
+                                cval=np.nan, order=1)
 
 horizontal_interpolation_methods = {
     'nearest': Nearest2DInterpolator,
     'ndimage': NDImage2DInterpolator,
-    'linearND': LinearND2DInterpolator}
+    'linearND': LinearND2DInterpolator,
+    'linearNDFast': Linear2DInterpolator}
 
 
 ###########################
