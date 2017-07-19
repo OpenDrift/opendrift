@@ -175,7 +175,7 @@ class TestReaders(unittest.TestCase):
                          profiles['sea_water_temperature'][0,0])
         # Check interpolated temperature at 33 m depth
         self.assertAlmostEqual(data['sea_water_temperature'][1],
-                               8.2648999309539786)
+                               8.36, 2)
         #import matplotlib.pyplot as plt
         #plt.plot(profiles['sea_water_temperature'][:,0])
         #plt.plot(profiles['sea_water_temperature'][:,1], 'r')
@@ -224,16 +224,16 @@ class TestReaders(unittest.TestCase):
                               reader_nordic.start_time,
                               testlon, testlat, testz,
                               o.required_profiles)
-        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.338, 2)
-        self.assertAlmostEqual(env['sea_water_temperature'][1], 0.6282, 3)
+        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.318, 2)
+        self.assertAlmostEqual(env['sea_water_temperature'][1], 0.468122, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
         self.assertItemsEqual(missing, [False,False,False,False,False])
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,0],
-                               4.338, 2)
+                               4.318, 2)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,4], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][8,2], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][7,2],
-                               2.252265, 3)
+                               2.3049809, 3)
         # Get separate data
         env2, env_profiles2, missing2 = \
             o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',

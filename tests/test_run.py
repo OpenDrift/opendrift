@@ -471,7 +471,7 @@ class TestRun(unittest.TestCase):
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[0,0], -151.76, 1)  # Seeded at seafloor depth
         self.assertAlmostEqual(z[-1,0], -106.0, 2)  # After some rising
 
     def test_seed_below_reader_coverage(self):
@@ -507,7 +507,7 @@ class TestRun(unittest.TestCase):
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[0,0], -151.2, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[0,0], -151.76, 1)  # Seeded at seafloor depth
         self.assertAlmostEqual(z[-1,0], -106.0, 2)  # After some rising
 
     def test_lift_above_seafloor(self):
@@ -538,7 +538,7 @@ class TestRun(unittest.TestCase):
         # Check that element has not penetrated seafloor
         self.assertFalse(o.elements.z <
                          -o.environment.sea_floor_depth_below_sea_level)
-        self.assertAlmostEqual(o.elements.z, -159.6, 1)
+        self.assertAlmostEqual(o.elements.z, -160.06, 1)
 
     def test_seed_on_land(self):
         o = OceanDrift(loglevel=50)
