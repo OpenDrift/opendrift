@@ -228,19 +228,23 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             self.seed_json = []
         self.seed_json.append(seed_json)
 
-       	class MyEncoder(json.JSONEncoder):  # Serialisation of json
-			def default(self, obj):
-				if isinstance(obj, np.integer):
-					return int(obj)
-				elif isinstance(obj, np.floating):
-					return float(obj)
-				elif isinstance(obj, np.ndarray):
-					return obj.tolist()
-				else:
-					return super(MyEncoder, self).default(obj) 
+        class MyEncoder(json.JSONEncoder):  # Serialisation of json
+            def default(self, obj):
+                if isinstance(obj, np.bool_) :
+                    return str(obj)
+                elif isinstance(obj, bool) :
+                    return str(obj)
+                elif isinstance(obj, np.integer):
+                    return int(obj)
+                elif isinstance(obj, np.floating):
+                    return float(obj)
+                elif isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                else:
+                    return super(MyEncoder, self).default(obj) 
 
         self.add_metadata('seed_json', json.dumps(self.seed_json,
-											cls=MyEncoder))
+                                            cls=MyEncoder))
 
     def prepare_run(self):
         super(OpenOil3D, self).prepare_run()
