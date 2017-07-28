@@ -619,7 +619,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return variable_groups, reader_groups, missing_variables
 
-    def get_environment(self, variables, time, lon, lat, z, profiles):
+    def get_environment(self, variables, time, lon, lat, z, profiles, parameterise=True):
         '''Retrieve environmental variables at requested positions.
 
         Updates:
@@ -805,6 +805,25 @@ class OpenDriftSimulation(PhysicsMethods):
                        (env_profiles['sea_water_temperature']<350))[0]
                     env_profiles['sea_water_temperature'][t_kelvin] = \
                         env_profiles['sea_water_temperature'][t_kelvin] - 273.15
+
+        #######################################################
+        # Parameterisation of unavailable variables
+        #######################################################
+        if parameterise:
+            fetch = 25000 # 25000 meters of open water wind fetch on avarage.
+            if (env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and 
+                env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
+                    logging.info('Calculating parameterised stokes drift')
+                    for i in range(len(env['x_wind'])):
+                        env['sea_surface_wave_stokes_drift_x_velocity'][i], \
+                        env['sea_surface_wave_stokes_drift_y_velocity'][i] = \
+                            self.wave_stokes_drift_parameterised((env['x_wind'][i], env['y_wind'][i]), fetch)
+
+            if (env['sea_surface_wave_significant_height'].max() == 0):
+                    logging.info('Calculating parameterised significant wave height')
+                    for i in range(len(env['x_wind'])):
+                        env['sea_surface_wave_significant_height'][i] = \
+                            self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]), fetch)
        
         #####################
         # Diagnostic output
