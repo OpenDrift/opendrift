@@ -184,7 +184,7 @@ class PhysicsMethods(object):
             logging.debug('Advecting with Stokes drift (%s to %s m/s)' %
                       (s.min(), s.max()))
 
-    def wave_stokes_drift_parameterised(self, wind = (0, 0), fetch = None):
+    def wave_stokes_drift_parameterised(self, wind, fetch):
         """
         Parameterise stokes drift based on pre calculated tables and fetch.
         """
@@ -211,14 +211,14 @@ class PhysicsMethods(object):
         if windSpeed > 30: windSpeed = 30
         
         stokes_drift_x_velocity = \
-            Wf.get(fetch, Wf[5000])[windSpeed] * wind[0]
+            Wf.get(fetch, Wf[25000])[windSpeed] * wind[0]
         
         stokes_drift_y_velocity = \
-            Wf.get(fetch, Wf[5000])[windSpeed] * wind[1]
+            Wf.get(fetch, Wf[25000])[windSpeed] * wind[1]
 
         return stokes_drift_x_velocity, stokes_drift_y_velocity
 
-    def wave_significant_height_parameterised(self, wind = (0, 0), fetch = None):
+    def wave_significant_height_parameterised(self, wind, fetch):
         """
         Parameterise significant wave height based on pre calculated tables and fetch.
         """
@@ -245,7 +245,7 @@ class PhysicsMethods(object):
         if windSpeed > 30: windSpeed = 30
 
         wave_significant_height = \
-            Sw.get(fetch, Sw[5000])[windSpeed]
+            Sw.get(fetch, Sw[25000])[windSpeed]
 
         return wave_significant_height
 

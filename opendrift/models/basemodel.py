@@ -120,7 +120,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=.1)
                 wind_uncertainty = float(min=0, max=5, default=1)
-                relative_wind = boolean(default=False)'''
+                relative_wind = boolean(default=False)
+                use_tabularised_stokes_drift = boolean(default=False)
+                tabularised_stokes_drift_fetch = option(5000, 25000, 50000, default=25000)'''
 
     max_speed = 1  # Assumed max average speed of any element
     required_profiles = None  # Optional possibility to get vertical profiles
@@ -619,7 +621,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return variable_groups, reader_groups, missing_variables
 
-    def get_environment(self, variables, time, lon, lat, z, profiles, parameterise=True):
+    def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
 
         Updates:
@@ -809,21 +811,22 @@ class OpenDriftSimulation(PhysicsMethods):
         #######################################################
         # Parameterisation of unavailable variables
         #######################################################
-        if parameterise:
-            fetch = 25000 # 25000 meters of open water wind fetch on avarage.
+        if self.get_config('drift:use_tabularised_stokes_drift') is True:
             if (env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and 
                 env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
                     logging.info('Calculating parameterised stokes drift')
                     for i in range(len(env['x_wind'])):
                         env['sea_surface_wave_stokes_drift_x_velocity'][i], \
                         env['sea_surface_wave_stokes_drift_y_velocity'][i] = \
-                            self.wave_stokes_drift_parameterised((env['x_wind'][i], env['y_wind'][i]), fetch)
+                            self.wave_stokes_drift_parameterised((env['x_wind'][i], env['y_wind'][i]),
+                            self.get_config('drift:tabularised_stokes_drift_fetch'))
 
             if (env['sea_surface_wave_significant_height'].max() == 0):
                     logging.info('Calculating parameterised significant wave height')
                     for i in range(len(env['x_wind'])):
                         env['sea_surface_wave_significant_height'][i] = \
-                            self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]), fetch)
+                            self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]),
+                            self.get_config('drift:tabularised_stokes_drift_fetch'))
        
         #####################
         # Diagnostic output
