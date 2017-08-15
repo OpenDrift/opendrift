@@ -424,12 +424,16 @@ class BaseReader(object):
                                                 env_after[var] * weight_after))
 
                 if var in standard_names.keys():
-                    if (env[var].min() < standard_names[var]['valid_min']) \
-                            or (env[var].max() >
-                                standard_names[var]['valid_max']):
-                        logging.info('Invalid values found for ' + var)
-                        logging.info(env[var])
-                        sys.exit('quitting')
+                    invalid = np.where((env[var] < standard_names[var]['valid_min']) 
+                               | (env[var] > standard_names[var]['valid_max']))[0]
+                    if len(invalid) > 0:
+                        logging.warning('Invalid values found for ' + var)
+                        logging.warning(env[var][invalid])
+                        logging.warning('(allowed range: [%s, %s])' %
+                                        (standard_names[var]['valid_min'],
+                                         standard_names[var]['valid_max']))
+                        logging.warning('Replacing with NaN')
+                        env[var][invalid] = np.nan
             # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
