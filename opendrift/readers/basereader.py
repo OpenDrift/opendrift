@@ -778,7 +778,8 @@ class BaseReader(object):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
-        outside = np.where((x < self.xmin) | (x > self.xmax) |
+        outside = np.where(~np.isfinite(x+y) |
+                           (x < self.xmin) | (x > self.xmax) |
                            (y < self.ymin) | (y > self.ymax))[0]
         if np.size(outside) == np.size(x):
             lon, lat = self.xy2lonlat(x, y)

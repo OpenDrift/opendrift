@@ -198,6 +198,8 @@ class Reader(BaseReader):
         # Find horizontal indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
+        indx[outside] = 0  # To be masked later
+        indy[outside] = 0
         indx_el = indx
         indy_el = indy
         if block is True:
@@ -209,9 +211,6 @@ class Reader(BaseReader):
                              np.min([indx.max()+buffer, self.lon.shape[1]-1]))
             indy = np.arange(np.max([0, indy.min()-buffer]),
                              np.min([indy.max()+buffer, self.lon.shape[0]-1]))
-        else:
-            indx[outside] = 0  # To be masked later
-            indy[outside] = 0
 
         # Find depth levels covering all elements
         if z.min() == 0 or not hasattr(self, 'hc'):
