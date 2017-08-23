@@ -96,6 +96,7 @@ class Reader(BaseReader):
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
 
             # Read sigma-coordinate transform parameters
+            self.Dataset.variables['Cs_r'].set_auto_mask(False)
             self.Cs_r = self.Dataset.variables['Cs_r'][:]
             try:
                 self.hc = self.Dataset.variables['hc'][:]
