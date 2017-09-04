@@ -33,8 +33,10 @@ class Reader(BaseReader):
 
         # Map ROMS variable names to CF standard_name
         self.ROMS_variable_mapping = {
-            'mask_rho': 'land_binary_mask',
-            'mask_psi': 'land_binary_mask',
+            # Removing (temoprarily) land_binary_mask from ROMS-variables,
+            # as this leads to trouble with linearNDFast interpolation
+            #'mask_rho': 'land_binary_mask',
+            #'mask_psi': 'land_binary_mask',
             'h': 'sea_floor_depth_below_sea_level',
             'zeta': 'sea_surface_height',
             'u': 'x_sea_water_velocity',
@@ -96,6 +98,7 @@ class Reader(BaseReader):
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
 
             # Read sigma-coordinate transform parameters
+            self.Dataset.variables['Cs_r'].set_auto_mask(False)
             self.Cs_r = self.Dataset.variables['Cs_r'][:]
             try:
                 self.hc = self.Dataset.variables['hc'][:]
@@ -253,7 +256,11 @@ class Reader(BaseReader):
             varname = [name for name, cf in
                        self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
-            var.set_auto_maskandscale(True)
+            # Automatic masking may lead to trouble for ROMS files
+            # with valid_min/max, _Fill_value or missing_value
+            # https://github.com/Unidata/netcdf4-python/issues/703
+            var.set_auto_mask(False)
+            var.set_auto_scale(True)
 
             if var.ndim == 2:
                 variables[par] = var[indy, indx]

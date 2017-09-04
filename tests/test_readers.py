@@ -44,15 +44,15 @@ class TestReaders(unittest.TestCase):
         r = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader([r, basemap])
-        self.assertEqual(o.priority_list['land_binary_mask'],
-                         ['roms native', 'basemap_landmask'])
+        #self.assertEqual(o.priority_list['land_binary_mask'],
+        #                 ['roms native', 'basemap_landmask'])
         self.assertEqual(o.priority_list['x_sea_water_velocity'],
                          ['roms native'])
         # Switch order
         o = OceanDrift()
         o.add_reader([basemap, r])
-        self.assertEqual(o.priority_list['land_binary_mask'],
-                         ['basemap_landmask', 'roms native'])
+        #self.assertEqual(o.priority_list['land_binary_mask'],
+        #                 ['basemap_landmask', 'roms native'])
         self.assertEqual(o.priority_list['x_sea_water_velocity'],
                          ['roms native'])
 

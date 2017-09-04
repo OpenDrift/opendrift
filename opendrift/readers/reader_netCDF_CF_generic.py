@@ -134,6 +134,12 @@ class Reader(BaseReader):
         self.ymin, self.ymax = y.min(), y.max()
         self.delta_x = np.abs(x[1] - x[0])
         self.delta_y = np.abs(y[1] - y[0])
+        if np.abs(x[-1] - x[-2]) != self.delta_x:
+            print x[1::] - x[0:-1]
+            raise ValueError('delta_x is not constant!')
+        if np.abs(y[-1] - y[-2]) != self.delta_y:
+            print y[1::] - y[0:-1]
+            raise ValueError('delta_y is not constant!')
         self.x = x  # Store coordinate vectors
         self.y = y
 
