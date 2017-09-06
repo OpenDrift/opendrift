@@ -42,11 +42,14 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
                            filenames=None, recalculate=True):
 
     if recalculate is False:
-        o1 = cls()
-        o1.io_import_file('o0.nc')
-        o2 = cls()
-        o2.io_import_file('o1.nc')
-        return o1, o2
+        try:
+            o1 = cls()
+            o1.io_import_file('o0.nc')
+            o2 = cls()
+            o2.io_import_file('o1.nc')
+            return o1, o2
+        except:
+            print 'Could not import'
     lon = np.atleast_1d(lon)
     if len(lon) == 1:
         lon = [lon[0], lon[0]]

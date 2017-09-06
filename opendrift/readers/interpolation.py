@@ -203,8 +203,8 @@ class ReaderBlock():
         # Mask any extremely large values, e.g. if missing netCDF _Fill_value
         for var in self.data_dict:
             if isinstance(self.data_dict[var], np.ma.core.MaskedArray):
-                self.data_dict[var] = np.ma.masked_greater(self.data_dict[var],
-                                                           1E+20)
+                self.data_dict[var] = np.ma.masked_outside(
+                    self.data_dict[var], -1E+9, 1E+9)
 
         # Set 1D (vertical) and 2D (horizontal) interpolators
         try:

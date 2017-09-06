@@ -296,6 +296,10 @@ class Reader(BaseReader):
             if block is False:
                 variables[par].mask[outside] = True
 
+            # Mask extreme values which might have slipped through
+            variables[par] = np.ma.masked_outside(
+                variables[par], -1E+9, 1E+9)
+
             if block is True:
                 # Unstagger grid for vectors
                 logging.debug('Unstaggering ' + par)
