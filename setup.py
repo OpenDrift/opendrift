@@ -1,3 +1,4 @@
+import os
 from setuptools import setup, find_packages 
 import unittest
 
@@ -6,7 +7,8 @@ def opendrift_tests():
     test_suite = test_loader.discover('tests', pattern='test_*.py')
     return test_suite
 
-exec(open('opendrift/version.py').read())
+here = os.path.abspath(os.path.dirname(__file__))
+exec(open(os.path.join(here, 'opendrift/version.py')).read())
 
 config = {
     'name': 'OpenDrift',
