@@ -6,13 +6,15 @@ def opendrift_tests():
     test_suite = test_loader.discover('tests', pattern='test_*.py')
     return test_suite
 
+exec(open('opendrift/version.py').read())
+
 config = {
     'name': 'OpenDrift',
     'description': 'OpenDrift - framework for ocean trajectory modeling',
     'author': 'Knut-Frode Dagestad / MET Norway',
     'url': 'https://github.com/OpenDrift/opendrift',
     'download_url': 'https://github.com/OpenDrift/opendrift',
-    'version': '1.0.0',
+    'version': __version__,
     'license': 'GPLv2',
     'install_requires': [
         'configobj',

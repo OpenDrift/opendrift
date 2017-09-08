@@ -40,6 +40,7 @@ try:
 except:
     logging.info('Basemap is not available, can not make plots')
 
+import opendrift
 from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
 from opendrift.models.physics_methods import PhysicsMethods
 
@@ -206,7 +207,9 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timer_start('total time')
         self.timer_start('configuration')
 
-        logging.info('OpenDriftSimulation initialised')
+        self.add_metadata('opendrift_version', opendrift.__version__)
+        logging.info('OpenDriftSimulation initialised (version %s)' %
+                     opendrift.__version__)
 
     def _add_config(self, key, value, comment, overwrite=False):
         """Add a configuration item to the current model."""
@@ -2656,7 +2659,8 @@ class OpenDriftSimulation(PhysicsMethods):
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
-        outStr += 'Model:\t' + type(self).__name__ + '\n'
+        outStr += 'Model:\t' + type(self).__name__ + \
+            '     (OpenDrift version %s)\n' % opendrift.__version__
         outStr += '\t%s active %s particles  (%s deactivated, %s scheduled)\n'\
             % (self.num_elements_active(), self.ElementType.__name__,
                self.num_elements_deactivated(), self.num_elements_scheduled())

@@ -1,6 +1,8 @@
 import numpy as np
 from datetime import timedelta
 
+from .version import __version__
+
 def open(filename):
     '''Import netCDF output file as OpenDrift object of correct class'''
 
