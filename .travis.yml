@@ -40,15 +40,15 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 install:
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION matplotlib=$MATPLOTLIB_VERSION basemap=1.0.7 netcdf4=$NETCDF_VERSION configobj
-  - if [[ ! -e $HOME/oillibrary ]]; then
-        cd $HOME;
-        mkdir -p oillibrary;
-        cd oillibrary;
-        git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
-        cd OilLibrary;
-        sudo -H pip install -r requirements.txt;
-        sudo python setup.py develop --user;
-    fi
+  #- if [[ ! -e $HOME/oillibrary ]]; then
+  #      cd $HOME;
+  #      mkdir -p oillibrary;
+  #      cd oillibrary;
+  #      git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
+  #      cd OilLibrary;
+  #      sudo -H pip install -r requirements.txt;
+  #      sudo python setup.py develop;
+  #  fi
   - conda install --yes -c dan_blanchard python-coveralls
   - cd /home/travis/build/OpenDrift/opendrift
 script: coverage run --source=opendrift setup.py test
