@@ -184,13 +184,13 @@ class OpenOil(OpenDriftSimulation):
             if np.isscalar(at_surface):
                 at_surface = at_surface*np.ones(self.num_elements_active(),
                                                 dtype=bool)
-            Urel = windspeed/self.model.reference_wind  # Relative wind
+            Urel = windspeed/self.oil_data['reference_wind']  # Relative wind
             h = 2  # Film thickness in mm, harcoded for now
 
             # Calculate exposure time
             #   presently without compensation for sea temperature
             delta_exposure_seconds = \
-                (self.model.reference_thickness/h)*Urel * \
+                (self.oil_data['reference_thickness']/h)*Urel * \
                 self.time_step.total_seconds()
             if np.isscalar(self.elements.age_exposure_seconds):
                 self.elements.age_exposure_seconds += delta_exposure_seconds
@@ -200,7 +200,7 @@ class OpenOil(OpenDriftSimulation):
 
             self.elements.fraction_evaporated = np.interp(
                 self.elements.age_exposure_seconds,
-                self.model.tref, self.model.fref)
+                self.oil_data['tref'], self.oil_data['fref'])
             self.mass_evaporated = \
                 self.elements.mass_oil*self.elements.fraction_evaporated
             # Remove evaporated part from mass_oil
@@ -225,20 +225,20 @@ class OpenOil(OpenDriftSimulation):
     def emulsification(self):
         if self.get_config('processes:emulsification') is True:
             logging.debug('   Calculating: emulsification')
-            if not hasattr(self.model, 'reference_wind'):
+            if 'reference_wind' not in self.oil_data.keys():
                 logging.debug('Emulsification is currently only possible when'
                               'importing oil properties from file.')
             else:
                 windspeed = np.sqrt(self.environment.x_wind**2 +
                                     self.environment.y_wind**2)
                 # Apparent emulsion age of particles
-                Urel = windspeed/self.model.reference_wind  # Relative wind
+                Urel = windspeed/self.oil_data['reference_wind']  # Relative wind
                 self.elements.age_emulsion_seconds += \
                     Urel*self.time_step.total_seconds()
 
                 self.elements.water_fraction = np.interp(
                     self.elements.age_emulsion_seconds,
-                    self.model.tref, self.model.wmax)
+                    self.oil_data['tref'], self.oil_data['wmax'])
 
     def disperse(self):
         if self.get_config('processes:dispersion') is True:
@@ -685,8 +685,9 @@ class OpenOil(OpenDriftSimulation):
         for i in range(linenumber + 1):
             oilfile.readline()
         ref = oilfile.readline().split()
-        self.model.reference_thickness = np.float(ref[0])
-        self.model.reference_wind = np.float(ref[1])
+        self.oil_data = {}
+        self.oil_data['reference_thickness'] = np.float(ref[0])
+        self.oil_data['reference_wind'] = np.float(ref[1])
         tref = []
         fref = []
         wmax = []
@@ -698,18 +699,19 @@ class OpenOil(OpenDriftSimulation):
             tref.append(line[0])
             fref.append(line[1])
             wmax.append(line[3])
-        self.model.tref = np.array(tref, dtype='float')*3600.
-        self.model.fref = np.array(fref, dtype='float')*.01
-        self.model.wmax = np.array(wmax, dtype='float')
-        self.model.oiltype = oiltype  # Store name of oil type
+        self.oil_data['tref'] = np.array(tref, dtype='float')*3600.
+        self.oil_data['fref'] = np.array(fref, dtype='float')*.01
+        self.oil_data['wmax'] = np.array(wmax, dtype='float')
+        self.oil_data['oiltype'] = oiltype  # Store name of oil type
 
     def seed_elements(self, *args, **kwargs):
         if 'oiltype' in kwargs:
-            oiltype = kwargs['oiltype']
+            self.set_config('seed:oil_type', kwargs['oiltype'])
             del kwargs['oiltype']
         else:
-            oiltype = 'BALDER'  # Default
-        self.set_oiltype(oiltype)
+            logging.warning('Oil type not specified, using default: ' +
+                            self.get_config('seed:oil_type'))
+        self.set_oiltype(self.get_config('seed:oil_type'))
 
         if self.oil_weathering_model == 'noaa':
             try:  # Older version of OilLibrary
@@ -717,7 +719,7 @@ class OpenOil(OpenDriftSimulation):
             except:  # Newer version of OilLibrary
                 oil_density = self.oiltype.density_at_temp(283)
             logging.info('Using density %s of oiltype %s' %
-                         (oil_density, oiltype))
+                         (oil_density, self.get_config('seed:oil_type')))
             kwargs['density'] = oil_density
 
         if 'm3_per_hour' in kwargs:

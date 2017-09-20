@@ -45,12 +45,6 @@ from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
 from opendrift.models.physics_methods import PhysicsMethods
 
 
-class ModelSettings(object):
-    # Empty class to store model specific information,
-    # to avoid namespace conflicts with OpenDriftSimulation class
-    pass
-
-
 class OpenDriftSimulation(PhysicsMethods):
     """Generic trajectory model class, to be extended (subclassed).
 
@@ -107,8 +101,6 @@ class OpenDriftSimulation(PhysicsMethods):
     status_colors_default = {'initial': 'green',
                              'active': 'blue',
                              'missing_data': 'gray'}
-
-    model = ModelSettings  # To store model specific information
 
     configspec_basemodel = '''
             [general]
