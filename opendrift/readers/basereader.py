@@ -637,30 +637,13 @@ class BaseReader(object):
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
-        if hasattr(self, 'zmin'):
-            if self.zmin is not None:
-                zmin = self.zmin
-            else:
-                zmin = -np.inf
-        else:
-            # If there is only one vertical layer (len(z) = 1),
-            # we assume this is valid at any depths/heights
-            if hasattr(self, 'z') and self.z is not None \
-                    and len(self.z) > 1:
-                zmin = np.min(self.z)
-            else:
-                zmin = -np.inf
-        if hasattr(self, 'zmax'):
-            if self.zmax is not None:
-                zmax = self.zmax
-            else:
-                zmax = np.inf
-        else:
-            if hasattr(self, 'z') and self.z is not None \
-                    and len(self.z) > 1:
-                zmax = np.max(self.z)
-            else:
-                zmax = np.inf
+        # Only checking vertical coverage if zmin, zmax is defined
+        zmin = -np.inf
+        zmax = np.inf
+        if hasattr(self, 'zmin') and self.zmin is not None:
+            zmin = self.zmin
+        if hasattr(self, 'zmax') and self.zmax is not None:
+            zmax = self.zmax
 
         indices = np.where((x >= self.xmin) & (x <= self.xmax) &
                            (y >= self.ymin) & (y <= self.ymax) &

@@ -164,6 +164,9 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 eddydiffusivity,
                 self.get_config('turbulentmixing:diffusivitymodel'))(self)
 
+        logging.debug('Diffiusivities are in range %s to %s.' %
+                      (Kprofiles.min(), Kprofiles.max()))
+
         # get profiles of salinity and temperature
         # (to save interpolation time in the inner loop)
         if (self.get_config('turbulentmixing:TSprofiles') is True 
@@ -184,7 +187,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # prepare vertical interpolation coordinates
         z_i = range(Kprofiles.shape[0])
         z_index = interp1d(-self.environment_profiles['z'],
-                           z_i, bounds_error=False)
+                           z_i, bounds_error=False,
+                           fill_value=(0,len(z_i)-1))  # Extrapolation
         # internal loop for fast time step of vertical mixing model
         # binned random walk needs faster time step compared
         # to horizontal advection
