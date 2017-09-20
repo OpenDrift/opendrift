@@ -183,7 +183,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             self.keep_droplet_diameter = False
         if 'z' not in kwargs:
             kwargs['z'] = 0
-        if kwargs['z'] == 'seafloor':
+        if isinstance(kwargs['z'], basestring) and \
+                kwargs['z'][0:8] == 'seafloor':
             z = -np.ones(number)
         else:
             z = np.atleast_1d(kwargs['z'])

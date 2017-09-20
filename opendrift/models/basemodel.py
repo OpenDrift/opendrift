@@ -1058,7 +1058,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 number_array = np.ones(number)
                 time_array = [time[0] + i*td for i in range(number)]
 
-            if 'z' in kwargs and kwargs['z'] is 'seafloor':
+            if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
+                    and kwargs['z'][0:8] == 'seafloor':
                 # We need to fetch seafloor depth from reader
                 if 'sea_floor_depth_below_sea_level' not in self.priority_list:
                     raise ValueError('A reader providing the variable '
@@ -1072,8 +1073,15 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.get_environment(['sea_floor_depth_below_sea_level'],
                                          time=t, lon=lon, lat=lat,
                                          z=0*lon, profiles=None)
+                # Add M meters if given as 'seafloor+M'
+                if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
+                    meters_above_seafloor = np.float(kwargs['z'][9::])
+                    logging.info('Seeding elements %f meters above seafloor'
+                                 % meters_above_seafloor)
+                else:
+                    meters_above_seafloor = 0
                 kwargs['z'] = \
-                    -env['sea_floor_depth_below_sea_level'].astype('float32')
+                    -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
 
             # Recursively seeding elements around each point
             scalarargs = {}
@@ -1111,7 +1119,8 @@ class OpenDriftSimulation(PhysicsMethods):
         kwargs['lon'], kwargs['lat'], az = \
             geod.fwd(lon*ones, lat*ones, az, dist, radians=False)
 
-        if 'z' in kwargs and kwargs['z'] is 'seafloor':
+        if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
+                and kwargs['z'][0:8] == 'seafloor':
             # We need to fetch seafloor depth from reader
             # Unfortunately, this is duplication of code above
             if 'sea_floor_depth_below_sea_level' not in self.priority_list:
@@ -1126,8 +1135,15 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.get_environment(['sea_floor_depth_below_sea_level'],
                                      t, kwargs['lon'], kwargs['lat'],
                                      0.*ones, None)
+            # Add M meters if given as 'seafloor+M'
+            if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
+                meters_above_seafloor = np.float(kwargs['z'][9::])
+                logging.info('Seeding elements %f meters above seafloor'
+                             % meters_above_seafloor)
+            else:
+                meters_above_seafloor = 0
             kwargs['z'] = \
-                -env['sea_floor_depth_below_sea_level'].astype('float32')
+                -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
 
         elements = self.ElementType(**kwargs)
 

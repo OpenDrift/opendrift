@@ -474,6 +474,24 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[0,0], -151.76, 1)  # Seeded at seafloor depth
         self.assertAlmostEqual(z[-1,0], -106.0, 2)  # After some rising
 
+    def test_seed_above_seafloor(self):
+        o = OpenOil3D(loglevel=20)
+        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o.fallback_values['land_binary_mask'] = 0
+        o.add_reader([reader_norkyst])
+        lon = 4.5; lat = 62.0
+        # Seed elements 50 meters above seafloor:
+        o.seed_elements(lon, lat, z='seafloor+50', time=reader_norkyst.start_time,
+                        density=1000)
+        o.set_config('processes:turbulentmixing', True)
+        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.run(steps=3, time_step=300, time_step_output=300)
+        #o.plot_property('z')
+        z, status = o.get_property('z')
+        self.assertAlmostEqual(z[0,0], -101.76, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,0], -57.0, 2)  # After some rising
+
     def test_seed_below_reader_coverage(self):
         o = OpenOil3D(loglevel=20)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
