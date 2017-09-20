@@ -110,22 +110,13 @@ class OpenOil(OpenDriftSimulation):
                      'missing_data': 'gray', 'stranded': 'red',
                      'evaporated': 'yellow', 'dispersed': 'magenta'}
 
-    # Read oil types from file (presently only for illustrative effect)
-    oil_types = str([str(l.strip()) for l in open(
-                    os.path.dirname(os.path.realpath(__file__)) + \
-                    '/oil_types.txt').readlines()])[1:-1]
-    default_oil = oil_types.split(',')[0].strip()
-
-    # Configuration
     configspec = '''
-        [oil]
-            oil_type = option(%s, default=%s)
         [processes]
             dispersion = boolean(default=True)
             diffusion = boolean(default=True)
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
-    ''' % (oil_types, default_oil)
+    '''
 
 
     def __init__(self, weathering_model='default', *args, **kwargs):
@@ -173,7 +164,7 @@ class OpenOil(OpenDriftSimulation):
         oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
         oiltypes = 'option(%s, default=\'%s\')' % (
             str(oiltypes)[1:-1], oiltypes[0])
-        self._add_config('input:spill:oil_type', oiltypes,
+        self._add_config('seed:oil_type', oiltypes,
                          'Oil type', overwrite=True)
 
         # Calling general constructor of parent class
@@ -654,7 +645,7 @@ class OpenOil(OpenDriftSimulation):
         if not hasattr(self, 'oil_name'):  # TODO
             self.oil_name = 'unknown oiltype'
             # TODO line below is dangerous when importing old files
-            self.oil_name = self.get_config('input:spill:oil_type')
+            self.oil_name = self.get_config('seed:oil_type')
         plt.title('%s - %s to %s' %
                   (self.oil_name,
                    self.start_time.strftime('%Y-%m-%d %H:%M'),
@@ -674,7 +665,7 @@ class OpenOil(OpenDriftSimulation):
 
     def set_oiltype(self, oiltype):
         self.oil_name = oiltype
-        self.set_config('input:spill:oil_type', oiltype)
+        self.set_config('seed:oil_type', oiltype)
         if self.oil_weathering_model == 'noaa':
             try:
                 from oil_library import get_oil_props
