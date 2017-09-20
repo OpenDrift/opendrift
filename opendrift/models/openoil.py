@@ -162,8 +162,6 @@ class OpenOil(OpenDriftSimulation):
         # Update config with oiltypes 
         # TODO: add unicode support
         oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
-        oiltypes = 'option(%s, default=\'%s\')' % (
-            str(oiltypes)[1:-1], oiltypes[0])
         self._add_config('seed:oil_type', oiltypes,
                          'Oil type', overwrite=True)
 

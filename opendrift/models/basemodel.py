@@ -205,6 +205,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def _add_config(self, key, value, comment, overwrite=False):
         """Add a configuration item to the current model."""
+        if isinstance(value, list):
+            value = 'option(%s, default=\'%s\')' % (
+                     str(value)[1:-1], value[0])
         cs = ''  # configstring
         for i, s in enumerate(key.split(':')):
             if i < len(key.split(':')) - 1:

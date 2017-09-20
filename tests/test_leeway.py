@@ -48,7 +48,7 @@ class TestArray(unittest.TestCase):
         objectType = self.objectType
         self.assertEqual(self.lee.leewayprop[objectType]
                          ['Description'],
-                         ' Fishing vessel, general (mean values)\n')
+                         'Fishing vessel, general (mean values)')
         self.assertEqual(self.lee.leewayprop[objectType]['DWSLOPE'], 2.47)
 
     def test_leewayrun(self):

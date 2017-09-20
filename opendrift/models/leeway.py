@@ -109,10 +109,10 @@ class Leeway(OpenDriftSimulation):
                 break
             elems = objproptxt[i*3].split()[0]
 
-            objKey = objproptxt[i*3].split()[0]
+            objKey = objproptxt[i*3].split()[0].strip()
             arr = [float(x) for x in objproptxt[i*3+2].split()]
             props = {'OBJKEY': objKey}
-            props['Description'] = objproptxt[i*3+1]
+            props['Description'] = objproptxt[i*3+1].strip()
             props['DWSLOPE'] = arr[0]
             props['DWOFFSET'] = arr[1]
             props['DWSTD'] = arr[2]
@@ -123,6 +123,12 @@ class Leeway(OpenDriftSimulation):
             props['CWLOFFSET'] = arr[7]
             props['CWLSTD'] = arr[8]
             self.leewayprop[i+1] = props
+
+        # Config
+        descriptions = [self.leewayprop[p]['Description'] for
+                        p in self.leewayprop]
+        self._add_config('seed:object_type', descriptions, 'Object type',
+                         overwrite=True)
 
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
@@ -136,7 +142,7 @@ class Leeway(OpenDriftSimulation):
         # Note: cone is not used, simply to provide same interface as others
 
         logging.info('Seeding elements of object type %i: %s' %
-                     (objectType, self.leewayprop[objectType]['OBJKEY'].strip()))
+                     (objectType, self.leewayprop[objectType]['OBJKEY']))
 
         # Probability of jibing (4 % per hour)
         pjibe = 0.04
@@ -235,8 +241,8 @@ class Leeway(OpenDriftSimulation):
         Print only objects containing 'substr', if specified'''
 
         for i, p in enumerate(self.leewayprop):
-            description = self.leewayprop[p]['Description'].strip()
-            objkey = self.leewayprop[p]['OBJKEY'].strip()
+            description = self.leewayprop[p]['Description']
+            objkey = self.leewayprop[p]['OBJKEY']
             if substr is not None:
                 if substr.lower() not in description.lower() + objkey.lower():
                     continue
@@ -302,7 +308,7 @@ class Leeway(OpenDriftSimulation):
             'objectClassId  objectClassName\n')
         objtype = self.elements.objectType[0]
         f.write(' %i\t%s\n' % (objtype,
-                self.leewayprop[objtype]['OBJKEY'].strip()))
+                self.leewayprop[objtype]['OBJKEY']))
         f.write(
             '# Seeding start time, position & radius:\n'
             'startDate\tstartTime\tstartLon\tstartLat\tstartRad\n')
