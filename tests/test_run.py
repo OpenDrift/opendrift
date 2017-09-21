@@ -33,6 +33,20 @@ from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.pelagicegg import PelagicEggDrift
 
+def gdal_error_handler(err_class, err_num, err_msg):
+    errtype = {
+            gdal.CE_None:'None',
+            gdal.CE_Debug:'Debug',
+            gdal.CE_Warning:'Warning',
+            gdal.CE_Failure:'Failure',
+            gdal.CE_Fatal:'Fatal'
+    }
+    err_msg = err_msg.replace('\n',' ')
+    err_class = errtype.get(err_class, 'None')
+    print 'Error Number: %s' % (err_num)
+    print 'Error Type: %s' % (err_class)
+    print 'Error Message: %s' % (err_msg)
+
 try:
     import ogr
     import osr
@@ -40,6 +54,7 @@ try:
     version_num = int(gdal.VersionInfo('VERSION_NUM'))
     if version_num >= 2000000:
         has_ogr = True
+        gdal.PushErrorHandler(gdal_error_handler)
     else:
         print 'GDAL version >= 2.0 is required:'
         has_ogr = False
