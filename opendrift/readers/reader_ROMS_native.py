@@ -298,7 +298,7 @@ class Reader(BaseReader):
 
             # Mask extreme values which might have slipped through
             variables[par] = np.ma.masked_outside(
-                variables[par], -1E+9, 1E+9)
+                variables[par], -30000, 30000)
 
             if block is True:
                 # Unstagger grid for vectors
