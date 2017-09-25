@@ -238,6 +238,7 @@ class Reader(BaseReader):
 
             # Loop to find the layers covering the requested z-values
             indz_min = 0
+            indz_max = self.num_layers
             for i in range(self.num_layers):
                 if np.min(z-z_rho[i, indy_el, indx_el]) > 0:
                     indz_min = i
