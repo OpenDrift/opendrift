@@ -134,10 +134,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         surface = self.elements.z == 0
         self.elements.z[~surface] = np.round(self.elements.z[~surface]/dz)*dz
 
-        #avoid that elements are below bottom
+        # Prevent elements to go below seafloor
         bottom = np.where(self.elements.z < Zmin)
         if len(bottom[0]) > 0:
-            self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
+            logging.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
+            self.elements.z[bottom] = np.round(Zmin[bottom]/dz)*dz + dz/2.
 
         # Eventual model specific preparions
         self.prepare_vertical_mixing()
@@ -259,10 +260,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             # put the particles that belong to the surface slick (if present) back to the surface
             self.elements.z[surface] = 0.
 
-            #avoid that elements are below bottom
+            # Prevent elements to go below seafloor
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
-                self.elements.z[bottom] = np.round(Zmin/dz)*dz + dz/2.
+                logging.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
+                self.elements.z[bottom] = np.round(Zmin[bottom]/dz)*dz + dz/2.
 
             # Call surface interaction:
             # reflection at surface or formation of slick and wave mixing if implemented for this class
