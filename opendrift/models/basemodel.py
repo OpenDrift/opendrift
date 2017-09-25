@@ -1527,7 +1527,8 @@ class OpenDriftSimulation(PhysicsMethods):
             reader_basemap = reader_basemap_landmask.Reader(
                 llcrnrlon=self.elements_scheduled.lon.min() - deltalon,
                 urcrnrlon=self.elements_scheduled.lon.max() + deltalon,
-                llcrnrlat=self.elements_scheduled.lat.min() - deltalat,
+                llcrnrlat=np.maximum(-89, self.elements_scheduled.lat.min() -
+                                     deltalat),
                 urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
                                      deltalat),
                 resolution=self.get_config('general:basemap_resolution'),

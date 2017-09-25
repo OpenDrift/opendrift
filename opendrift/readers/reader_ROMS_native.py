@@ -98,7 +98,10 @@ class Reader(BaseReader):
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
 
             # Read sigma-coordinate transform parameters
-            self.Dataset.variables['Cs_r'].set_auto_mask(False)
+            try:
+                self.Dataset.variables['Cs_r'].set_auto_mask(False)
+            except:
+                pass
             self.Cs_r = self.Dataset.variables['Cs_r'][:]
             try:
                 self.hc = self.Dataset.variables['hc'][:]
@@ -259,8 +262,12 @@ class Reader(BaseReader):
             # Automatic masking may lead to trouble for ROMS files
             # with valid_min/max, _Fill_value or missing_value
             # https://github.com/Unidata/netcdf4-python/issues/703
-            var.set_auto_mask(False)
-            var.set_auto_scale(True)
+            try:
+                var.set_auto_mask(False)
+                var.set_auto_scale(True)
+            except:
+                logging.debug('Could not sete auto_mask and auto_scale,'
+                              ' probably due to MFDataset.')
 
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
@@ -298,7 +305,7 @@ class Reader(BaseReader):
 
             # Mask extreme values which might have slipped through
             variables[par] = np.ma.masked_outside(
-                variables[par], -1E+9, 1E+9)
+                variables[par], -30000, 30000)
 
             if block is True:
                 # Unstagger grid for vectors
