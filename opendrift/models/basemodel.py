@@ -23,11 +23,17 @@ import logging
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
+import multiprocessing
+import platform
+import netCDF4
 
 import numpy as np
+import scipy
 import configobj, validate
 try:
-    from mpl_toolkits.basemap import Basemap
+    from mpl_toolkits import basemap
+    Basemap = basemap.Basemap
+    import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -1384,6 +1390,26 @@ class OpenDriftSimulation(PhysicsMethods):
             export_variables: list of variables and parameter names to be 
                 saved to file. Default is None (all variables are saved)
         """
+
+        # Exporting software and hardware specification, for possible debugging
+        # TODO: this should be a separade method
+        logging.debug('------------------------------------------------------')
+        logging.debug('Software and hardware:')
+        try:
+            from psutil import virtual_memory
+            ram = virtual_memory().total/(1024**3)
+        except:
+            ram = 'unknown'
+        logging.debug('  %s GB memory' % ram)
+        logging.debug( '  %s processors (%s)' % (multiprocessing.cpu_count(), platform.processor()))
+        logging.debug( '  Basemap version %s' % basemap.__version__)
+        logging.debug( '  NumPy version %s' % np.__version__)
+        logging.debug( '  SciPy version %s' % scipy.__version__)
+        logging.debug( '  Matplotlib version %s' % matplotlib.__version__)
+        logging.debug( '  NetCDF4 version %s' % netCDF4.__version__)
+        import sys
+        logging.debug( '  Python version %s' % sys.version.replace('\n', ''))
+        logging.debug('------------------------------------------------------')
 
         self.timer_end('configuration')
         self.timer_start('preparing main loop')
