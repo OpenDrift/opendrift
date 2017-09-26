@@ -2261,9 +2261,13 @@ class OpenDriftSimulation(PhysicsMethods):
             print traceback.format_exc()
 
         if background is not None:
+            if hasattr(self, 'time'):
+                time = self.time - self.time_step_output
+            else:
+                time = None
             map_x, map_y, scalar, u_component, v_component = \
-                self.get_map_background(map, background, time=self.time -
-                                        self.time_step_output)
+                self.get_map_background(map, background, time=time)
+                                        #self.time_step_output)
 
             if show_scalar is True:
                 if contourlines is False:
@@ -2344,8 +2348,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def get_map_background(self, map, background, time=None):
         # Get background field for plotting on map or animation
-        if time is None:
-            time = self.time - self.time_step_output
         if type(background) is list:
             variable = background[0]  # A vector is requested
         else:
@@ -2354,6 +2356,10 @@ class OpenDriftSimulation(PhysicsMethods):
             reader = self.readers[readerName]
             if variable in reader.variables:
                 break
+        if time is None:
+            if hasattr(self, 'elements_scheduled_time'):
+                # Using time of first seeded element
+                time = self.elements_scheduled_time[0]
         # Get lat/lons of ny by nx evenly space grid.
         lons, lats = map.makegrid(4, 4)
         reader_x, reader_y = reader.lonlat2xy(lons, lats)
