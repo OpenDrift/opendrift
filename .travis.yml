@@ -32,7 +32,7 @@ before_install:
         cd ..;
     fi
   - export PATH=/home/travis/miniconda2/bin:$PATH
-  - conda update --yes conda
+#  - conda update --yes conda
   - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
   # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
   - sudo rm -rf /dev/shm
