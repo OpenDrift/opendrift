@@ -55,6 +55,8 @@ class LinearND2DInterpolator():
         self.y = y
 
     def __call__(self, array2d):
+        print array2d
+        print type(array2d)
         valid = ~np.ravel(array2d).mask
 
         if hasattr(self, 'interpolator'):
