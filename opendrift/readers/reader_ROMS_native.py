@@ -265,10 +265,23 @@ class Reader(BaseReader):
             # https://github.com/Unidata/netcdf4-python/issues/703
             try:
                 var.set_auto_mask(False)
-                var.set_auto_scale(True)
+                var.set_auto_scale(False)
             except:
-                logging.debug('Could not sete auto_mask and auto_scale,'
+                logging.debug('Could not set auto_mask and auto_scale,'
                               ' probably due to MFDataset.')
+
+            try:
+                FillValue = getattr(var, '_FillValue')
+            except:
+                FillValue = 1e-100
+            try:
+                scale = getattr(var, 'scale_factor')
+            except:
+                scale = 1
+            try:
+                offset = getattr(var, 'add_offset')
+            except:
+                offset = 0
 
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
@@ -276,23 +289,21 @@ class Reader(BaseReader):
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
                 variables[par] = var[indxTime, indz, indy, indx]
-                # Regrid from sigma to z levels
-                if len(np.atleast_1d(indz)) > 1:
-                    logging.debug('sigma to z for ' + varname[0])
-                    try:  # Converting masked values to nan, since
-                          # not handled by multi_zslice
-                        variables[par] = np.ma.array(variables[par],
-                                            mask=variables[par].mask)
-                        variables[par][variables[par].mask] = np.nan
-                    except:
-                        pass
-                    variables[par] = depth.multi_zslice(
-                        variables[par], z_rho, variables['z'])
-                    # Re-adding mask removed by multi_zslice:
-                    variables[par] = np.ma.masked_invalid(variables[par])
             else:
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
+
+			# Manual scaling, offsetting and masking due to issue with ROMS files
+            mask = variables[par]==FillValue
+            variables[par] = variables[par]*scale + offset
+            variables[par][mask] = np.nan
+
+            if var.ndim == 4:
+                # Regrid from sigma to z levels
+                if len(np.atleast_1d(indz)) > 1:
+                    logging.debug('sigma to z for ' + varname[0])
+                    variables[par] = depth.multi_zslice(
+                        variables[par], z_rho, variables['z'])
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
@@ -304,21 +315,9 @@ class Reader(BaseReader):
             if block is False:
                 variables[par].mask[outside] = True
 
-            # Mask extreme values which might have slipped through
-            variables[par] = np.ma.masked_outside(
-                variables[par], -30000, 30000)
-
             if block is True:
                 # Unstagger grid for vectors
                 logging.debug('Unstaggering ' + par)
-                if par == 'x_sea_water_velocity':
-                    mask_u = variables[par].mask.copy()
-                    if mask_u.ndim == 3:
-                        mask_u = mask_u[-1,:,:]  # Upper layer
-                if par == 'y_sea_water_velocity':
-                    mask_v = variables[par].mask.copy()
-                    if mask_v.ndim == 3:
-                        mask_v = mask_v[-1,:,:]  # Upper layer
                 if 'eta_v' in var.dimensions:
                     variables[par] = np.ma.array(variables[par],
                                         mask=variables[par].mask)
