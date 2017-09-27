@@ -49,15 +49,13 @@ class LinearND2DInterpolator():
 
     def __init__(self, xgrid, ygrid, x, y):
         self.block_x, self.block_y = np.meshgrid(xgrid, ygrid)
-        self.block_x = np.ravel(self.block_x)
-        self.block_y = np.ravel(self.block_y)
+        self.block_x = self.block_x.ravel()
+        self.block_y = self.block_y.ravel()
         self.x = x
         self.y = y
 
     def __call__(self, array2d):
-        print array2d
-        print type(array2d)
-        valid = ~np.ravel(array2d).mask
+        valid = ~array2d.ravel().mask
 
         if hasattr(self, 'interpolator'):
             if not np.array_equal(valid, self.interpolator.valid):
@@ -67,13 +65,13 @@ class LinearND2DInterpolator():
                  valid, self.interpolator.valid)):
             # Reuse stored interpolator with new data
             self.interpolator.values[:, 0] = \
-                (np.ravel(array2d)[valid])
+                (array2d.ravel()[valid])
         else:
             # Make new interpolator for given x,y
             self.interpolator = LinearNDInterpolator(
                 (self.block_y[valid],
                  self.block_x[valid]),
-                np.ravel(array2d)[valid])
+                array2d.ravel()[valid])
             # Store valid array, to determine if can be used again
             self.interpolator.valid = valid
 

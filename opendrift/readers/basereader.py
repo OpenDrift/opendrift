@@ -135,13 +135,13 @@ class BaseReader(object):
                     np.arange(self.ymin, self.ymax + 1, 1))
 
                 # Making interpolator (lon, lat) -> x
-                self.spl_x = LinearNDInterpolator((np.ravel(self.lon),
-                                                   np.ravel(self.lat)),
-                                                  np.ravel(block_x),
+                self.spl_x = LinearNDInterpolator((self.lon.ravel(),
+                                                   self.lat.ravel()),
+                                                  block_x.ravel(),
                                                   fill_value=np.nan)
                 # Reusing x-interpolator (deepcopy) with data for y
                 self.spl_y = copy.deepcopy(self.spl_x)
-                self.spl_y.values[:, 0] = np.ravel(block_y)
+                self.spl_y.values[:, 0] = block_y.ravel()
 
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
