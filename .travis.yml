@@ -23,11 +23,10 @@ cache:
     - $HOME/miniconda2
 sudo: required
 before_install:
-  - sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev
   - if [[ ! -e $HOME/miniconda2/bin ]]; then
+        sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
         mkdir -p download;
         cd download;
-        #wget -c https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
         wget -c https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
         ./miniconda.sh -b -f;
