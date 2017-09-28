@@ -45,7 +45,6 @@ class Test(unittest.TestCase):
         o.add_reader(nordicMF_all)
         o.seed_elements(lon, lat, number=100, radius=5000,
                         time=nordicMF_all.start_time)
-        o.max_speed=.2
         o.run(steps=48, time_step=3600)
 
         # Same run, with multi-file dataset
@@ -54,7 +53,6 @@ class Test(unittest.TestCase):
         o2.add_reader(nordicMF)
         o2.seed_elements(lon, lat, number=100, radius=5000,
                         time=nordicMF_all.start_time)
-        o2.max_speed=.2
         o2.run(steps=48, time_step=3600)
 
         #o.plot(filename='o1.png', background='sea_floor_depth_below_sea_level')
