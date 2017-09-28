@@ -269,6 +269,11 @@ class Reader(BaseReader):
             except:
                 logging.debug('Could not set auto_mask and auto_scale,'
                               ' probably due to MFDataset.')
+                try:
+                    var.set_auto_maskandscale(False)
+                    logging.debug('But automaskandscale did work!')
+                except:
+                    logging.debug('Could also not use set_automaskandscale')
 
             try:
                 FillValue = getattr(var, '_FillValue')
