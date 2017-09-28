@@ -27,7 +27,7 @@ class Test(unittest.TestCase):
     """Tests for netCDF"""
 
     def test_MFDataset(self):
-        o = OceanDrift3D(loglevel=0)
+        o = OceanDrift3D(loglevel=20)
         o.set_config('general:basemap_resolution', 'i')
         nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic_subset_day*.nc')
@@ -49,7 +49,7 @@ class Test(unittest.TestCase):
         o.run(steps=48, time_step=3600)
 
         # Same run, with multi-file dataset
-        o2 = OceanDrift3D(loglevel=0)
+        o2 = OceanDrift3D(loglevel=20)
         o2.set_config('general:basemap_resolution', 'i')
         o2.add_reader(nordicMF)
         o2.seed_elements(lon, lat, number=100, radius=5000,
