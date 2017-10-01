@@ -96,6 +96,8 @@ class Linear2DInterpolator():
     # "Grows" the unmasked areas by one pixel
     @staticmethod
     def expandData(in_data):
+        if not isinstance(in_data.mask, np.ndarray):
+            in_data.mask = np.ones(in_data.shape, dtype=bool)*in_data.mask
         out_mask = ~ndimage.morphology.binary_dilation(~in_data.mask.copy())
         out_data = in_data.filled(np.finfo(np.float64).min)
         out_data = ndimage.morphology.grey_dilation(out_data, size=3)

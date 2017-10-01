@@ -134,9 +134,10 @@ class Reader(BaseReader):
             self.gls_parameters = {}
             for gls_param in ['gls_cmu0', 'gls_p', 'gls_m', 'gls_n']:
                 self.gls_parameters[gls_param] = \
-                    self.Dataset.variables[gls_param][0]
+                    self.Dataset.variables[gls_param][()]
             logging.info('Read GLS parameters from file.')
         except Exception as e:
+            logging.info(e)
             logging.info('Did not find complete set of GLS parameters')
 
         # Get time coverage
