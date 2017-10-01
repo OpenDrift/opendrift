@@ -1,4 +1,6 @@
+import unittest
 import numpy as np
+import time
 from datetime import timedelta
 
 from .version import __version__
@@ -95,3 +97,15 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
 
     return o1, o2
  
+
+# Add timer for unittest
+@classmethod
+def setUpClass(cls):
+    cls.startTime = time.time()
+
+@classmethod
+def tearDownClass(cls):
+    print "\nTIMING %s.%s: %.3f" % (cls.__module__, cls.__name__, time.time() - cls.startTime)
+
+unittest.TestCase.setUpClass = setUpClass
+unittest.TestCase.tearDownClass = tearDownClass
