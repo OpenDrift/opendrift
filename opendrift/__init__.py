@@ -99,13 +99,12 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
  
 
 # Add timer for unittest
-@classmethod
-def setUpClass(cls):
-    cls.startTime = time.time()
+def setUp(self):
+	self._started_at = time.time()
 
-@classmethod
-def tearDownClass(cls):
-    print "\nTIMING %s.%s: %.3f" % (cls.__module__, cls.__name__, time.time() - cls.startTime)
+def tearDown(self):
+	elapsed = time.time() - self._started_at
+	print('TIMING: ({}s) {}'.format(round(elapsed, 2), self.id()))
 
-unittest.TestCase.setUpClass = setUpClass
-unittest.TestCase.tearDownClass = tearDownClass
+unittest.TestCase.setUp = setUp
+unittest.TestCase.tearDown = tearDown
