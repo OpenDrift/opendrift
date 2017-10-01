@@ -256,6 +256,7 @@ class Reader(BaseReader):
                                           -z.min()) + self.verticalbuffer)
             variables['z'] = np.array(self.zlevels[zi1:zi2])
 
+        #read_masks = {}  # To store maskes for various grids
         for par in requested_variables:
             varname = [name for name, cf in
                        self.ROMS_variable_mapping.items() if cf == par]
@@ -263,17 +264,18 @@ class Reader(BaseReader):
             # Automatic masking may lead to trouble for ROMS files
             # with valid_min/max, _Fill_value or missing_value
             # https://github.com/Unidata/netcdf4-python/issues/703
-            try:
-                var.set_auto_mask(False)
-                var.set_auto_scale(False)
-            except:
-                logging.debug('Could not set auto_mask and auto_scale,'
-                              ' probably due to MFDataset.')
-                try:
-                    var.set_auto_maskandscale(False)
-                    logging.debug('But automaskandscale did work!')
-                except:
-                    logging.debug('Could also not use set_automaskandscale')
+            #try:
+            #    var.set_auto_mask(False)
+            #    var.set_auto_scale(False)
+            #except:
+            #    logging.debug('Could not set auto_mask and auto_scale,'
+            #                  ' probably due to MFDataset.')
+            #    try:
+            #        var.set_auto_maskandscale(False)
+            #        logging.debug('But automaskandscale did work!')
+            #    except:
+            #        logging.debug('Could also not use set_automaskandscale')
+            var.set_auto_maskandscale(False)
 
             try:
                 FillValue = getattr(var, '_FillValue')
@@ -298,7 +300,28 @@ class Reader(BaseReader):
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-			# Manual scaling, offsetting and masking due to issue with ROMS files
+            ## Masking
+            #dimensions = getattr(var, 'dimensions')
+            #for maskdim in ['rho', 'psi', 'u', 'v']:
+            #    if ('eta_' + maskdim in dimensions):
+            #        if maskdim not in read_masks.keys():
+            #            maskvar = self.Dataset.variables['mask_' + maskdim]
+            #            read_masks[maskdim] = maskvar[indy, indx] == 0
+            #        thismask = read_masks[maskdim] 
+            #if var.ndim == 2:
+            #    variables[par][thismask] = np.nan
+            #elif var.ndim == 3:
+            #    tdmask = np.tile(thismask, (variables[par].shape[0],1)) 
+            #    variables[par][thismask[np.newaxis,:,:]] = np.nan
+            #elif var.ndim == 4:
+            #    tdmask = np.tile(thismask, (variables[par].shape[0],1,1)) 
+            #    variables[par][tdmask] = np.nan
+            #else:
+            #    print 'Wrong dimension: ' + str(var.ndim)
+
+			## Manual scaling, offsetting and masking due to issue with ROMS files
+            logging.debug('Manually masking %s, FillValue %s, scale %s, offset %s' % 
+                (par, FillValue, scale, offset))
             mask = variables[par]==FillValue
             variables[par] = variables[par]*scale + offset
             variables[par][mask] = np.nan
@@ -309,6 +332,8 @@ class Reader(BaseReader):
                     logging.debug('sigma to z for ' + varname[0])
                     variables[par] = depth.multi_zslice(
                         variables[par], z_rho, variables['z'])
+                    # Nan in input to multi_zslice gives extreme values in output
+                    variables[par][variables[par]>1e+9] = np.nan
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
@@ -320,47 +345,48 @@ class Reader(BaseReader):
             if block is False:
                 variables[par].mask[outside] = True
 
-            if block is True:
-                # Unstagger grid for vectors
-                logging.debug('Unstaggering ' + par)
-                if 'eta_v' in var.dimensions:
-                    variables[par] = np.ma.array(variables[par],
-                                        mask=variables[par].mask)
-                    variables[par][variables[par].mask] = 0
-                    if variables[par].ndim == 2:
-                        variables[par] = \
-                            (variables[par][0:-1,0:-1] +
-                            variables[par][0:-1,1::])/2
-                    elif variables[par].ndim == 3:
-                        variables[par] = \
-                            (variables[par][:,0:-1,0:-1] +
-                            variables[par][:,0:-1,1::])/2
-                    variables[par] = np.ma.masked_where(variables[par]==0,
-                                                        variables[par])
-                elif 'eta_u' in var.dimensions:
-                    variables[par] = np.ma.array(variables[par],
-                                        mask=variables[par].mask)
-                    variables[par][variables[par].mask] = 0
-                    if variables[par].ndim == 2:
-                        variables[par] = \
-                            (variables[par][0:-1,0:-1] +
-                             variables[par][1::,0:-1])/2
-                    elif variables[par].ndim == 3:
-                        variables[par] = \
-                            (variables[par][:,0:-1,0:-1] +
-                             variables[par][:,1::,0:-1])/2
-                    variables[par] = np.ma.masked_where(variables[par]==0,
-                                                        variables[par])
-                else:
-                    if variables[par].ndim == 2:
-                        variables[par] = variables[par][1::, 1::]
-                    elif variables[par].ndim == 3:
-                        variables[par] = variables[par][:,1::, 1::]
+            # Skipping de-staggering, as it leads to invalid values at later interpolation
+            #if block is True:
+            #    # Unstagger grid for vectors
+            #    logging.debug('Unstaggering ' + par)
+            #    if 'eta_v' in var.dimensions:
+            #        variables[par] = np.ma.array(variables[par],
+            #                            mask=variables[par].mask)
+            #        variables[par][variables[par].mask] = 0
+            #        if variables[par].ndim == 2:
+            #            variables[par] = \
+            #                (variables[par][0:-1,0:-1] +
+            #                variables[par][0:-1,1::])/2
+            #        elif variables[par].ndim == 3:
+            #            variables[par] = \
+            #                (variables[par][:,0:-1,0:-1] +
+            #                variables[par][:,0:-1,1::])/2
+            #        variables[par] = np.ma.masked_where(variables[par]==0,
+            #                                            variables[par])
+            #    elif 'eta_u' in var.dimensions:
+            #        variables[par] = np.ma.array(variables[par],
+            #                            mask=variables[par].mask)
+            #        variables[par][variables[par].mask] = 0
+            #        if variables[par].ndim == 2:
+            #            variables[par] = \
+            #                (variables[par][0:-1,0:-1] +
+            #                 variables[par][1::,0:-1])/2
+            #        elif variables[par].ndim == 3:
+            #            variables[par] = \
+            #                (variables[par][:,0:-1,0:-1] +
+            #                 variables[par][:,1::,0:-1])/2
+            #        variables[par] = np.ma.masked_where(variables[par]==0,
+            #                                            variables[par])
+            #    else:
+            #        if variables[par].ndim == 2:
+            #            variables[par] = variables[par][1::, 1::]
+            #        elif variables[par].ndim == 3:
+            #            variables[par] = variables[par][:,1::, 1::]
 
         if block is True:
             # TODO: should be midpoints, but angle array below needs integer
-            indx = indx[0:-1]
-            indy = indy[1::]
+            #indx = indx[0:-1]  # Only if de-staggering has been performed
+            #indy = indy[1::]
             variables['x'] = indx
             variables['y'] = indy
         else:

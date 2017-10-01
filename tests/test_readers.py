@@ -195,9 +195,11 @@ class TestReaders(unittest.TestCase):
                 time = nordic3d.start_time + timedelta(seconds=900),
                 x=x, y=y, z=z, block=True)
         self.assertAlmostEqual(data['sea_water_temperature'][0,60, 60],
-                               3.59, 2)
+                               3.447, 2)
+                               #3.59, 2)
         self.assertAlmostEqual(data['sea_water_temperature'][-1,60, 60],
-                               -0.803, 2)
+                               -0.783, 2)
+                               #-0.803, 2)
 
     def test_get_environment(self):
         o = PelagicEggDrift(loglevel=0)
@@ -224,12 +226,12 @@ class TestReaders(unittest.TestCase):
                               reader_nordic.start_time,
                               testlon, testlat, testz,
                               o.required_profiles)
-        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.318, 2)
+        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.267, 2)
         self.assertAlmostEqual(env['sea_water_temperature'][1], 0.468122, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
         self.assertItemsEqual(missing, [False,False,False,False,False])
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,0],
-                               4.318, 2)
+                               4.267, 2)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,4], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][8,2], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][7,2],
