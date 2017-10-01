@@ -18,6 +18,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import os
+import time
 import unittest
 from datetime import datetime
 
@@ -29,6 +30,8 @@ class TestArray(unittest.TestCase):
     """Tests for Leeway module."""
 
     def setUp(self):
+        self._started_at = time.time()  # For timer
+
         self.objectType = 50  # FISHING-VESSEL-1
         self.lee = Leeway(loglevel=20)
         #print self.lee.leewayprop.values()[0]

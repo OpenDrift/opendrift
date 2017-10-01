@@ -38,13 +38,19 @@ class TestStranding(unittest.TestCase):
         o.seed_elements(lon=14.0, lat=68.15, radius=2000, number=100,
                         time=[reader_nordic.start_time,
                               reader_nordic.end_time], z=0)
+        o.set_config('general:basemap_resolution', 'i')
         o.set_config('general:coastline_action', 'stranding')
-        o.set_config('turbulentmixing:timestep', 60)
+        o.set_config('turbulentmixing:timestep', 120)
         o.set_config('turbulentmixing:verticalresolution', 10)
-        o.run(end_time=reader_nordic.end_time, time_step=3600*3)
+        o.run(end_time=reader_nordic.end_time, time_step=3600*6)
         self.assertEqual(o.status_categories[1], 'stranded')
         self.assertEqual(o.elements_deactivated.status.min(), 1)
         self.assertEqual(o.elements_deactivated.status.max(), 1)
+        self.assertEqual(o.num_elements_scheduled(), 0)
+        self.assertEqual(o.num_elements_active(), 27)
+        self.assertEqual(o.num_elements_activated(), 100)
+        self.assertEqual(o.num_elements_deactivated(), 73)
+        self.assertEqual(o.num_elements_total(), 100)
 
 
     def test_stranding_options(self):

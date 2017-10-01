@@ -20,6 +20,7 @@
 import unittest
 
 from opendrift.readers import reader_ROMS_native
+from opendrift.readers import reader_basemap_landmask
 from opendrift.models.oceandrift3D import OceanDrift3D
 
 
@@ -27,7 +28,14 @@ class Test(unittest.TestCase):
     """Tests for netCDF"""
 
     def test_MFDataset(self):
-        o = OceanDrift3D(loglevel=20)
+
+        reader_basemap = reader_basemap_landmask.Reader(
+            llcrnrlon=13.5, llcrnrlat=67.1,
+            urcrnrlon=14.5, urcrnrlat=67.7,
+            resolution='i', projection='merc')
+
+
+        o = OceanDrift3D(loglevel=0)
         o.set_config('general:basemap_resolution', 'i')
         nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic_subset_day*.nc')
@@ -42,15 +50,15 @@ class Test(unittest.TestCase):
         # e0=0, e1=20, x0=40, x1=70
         # ncks -d eta_rho,0,$e1 -d eta_psi,0,$e1 -d eta_v,0,$e1 -d eta_u,0,$e1 -d xi_rho,$x0,$x1 -d xi_psi,$x0,$x1 -d xi_v,$x0,$x1 -d xi_u,$x0,$x1 Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc Nordic_subset.nc -O --fl_fmt=netcdf4_classic
         # ncks -O -d ocean_time,0 Nordic_subset.nc Nordic_subset_day1.nc
-        o.add_reader(nordicMF_all)
+        o.add_reader([reader_basemap, nordicMF_all])
         o.seed_elements(lon, lat, number=100, radius=5000,
                         time=nordicMF_all.start_time)
         o.run(steps=48, time_step=3600)
 
         # Same run, with multi-file dataset
-        o2 = OceanDrift3D(loglevel=20)
+        o2 = OceanDrift3D(loglevel=0)
         o2.set_config('general:basemap_resolution', 'i')
-        o2.add_reader(nordicMF)
+        o2.add_reader([reader_basemap, nordicMF])
         o2.seed_elements(lon, lat, number=100, radius=5000,
                         time=nordicMF_all.start_time)
         o2.run(steps=48, time_step=3600)
