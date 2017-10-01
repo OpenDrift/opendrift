@@ -55,7 +55,13 @@ class LinearND2DInterpolator():
         self.y = y
 
     def __call__(self, array2d):
-        valid = ~array2d.ravel().mask
+        array_ravel = array2d.ravel()
+        if isinstance(array2d.mask, np.ndarray):
+            valid = ~array2d.ravel().mask
+        elif array2d.mask == False:
+            valid = np.ones(array_ravel.shape, dtype=bool)
+        elif array2d.mask == True:
+            valid = np.zeros(array_ravel.shape, dtype=bool)
 
         if hasattr(self, 'interpolator'):
             if not np.array_equal(valid, self.interpolator.valid):
@@ -65,13 +71,13 @@ class LinearND2DInterpolator():
                  valid, self.interpolator.valid)):
             # Reuse stored interpolator with new data
             self.interpolator.values[:, 0] = \
-                (array2d.ravel()[valid])
+                (array_ravel[valid])
         else:
             # Make new interpolator for given x,y
             self.interpolator = LinearNDInterpolator(
                 (self.block_y[valid],
                  self.block_x[valid]),
-                array2d.ravel()[valid])
+                array_ravel[valid])
             # Store valid array, to determine if can be used again
             self.interpolator.valid = valid
 
