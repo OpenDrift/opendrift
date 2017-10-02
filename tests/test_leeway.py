@@ -26,28 +26,13 @@ from opendrift.readers import reader_basemap_landmask
 from opendrift.models.leeway import Leeway
 
 
-class TestArray(unittest.TestCase):
+class TestLeeway(unittest.TestCase):
     """Tests for Leeway module."""
-
-    def setUp(self):
-        self._started_at = time.time()  # For timer
-
-        self.objectType = 50  # FISHING-VESSEL-1
-        self.lee = Leeway(loglevel=20)
-        #print self.lee.leewayprop.values()[0]
-
-        #self.lee = WindBlow(loglevel=0)
-        self.reader_basemap = reader_basemap_landmask.Reader(
-            llcrnrlon=3, llcrnrlat=59, projection='merc',
-            urcrnrlon=6, urcrnrlat=61, resolution='i')
-        self.lee.add_reader([self.reader_basemap])
-        self.lee.fallback_values['x_wind'] = 0
-        self.lee.fallback_values['y_wind'] = 10
-        self.lee.fallback_values['x_sea_water_velocity'] = 0
-        self.lee.fallback_values['y_sea_water_velocity'] = 0
 
     def test_leewayprop(self):
         """Check that Leeway properties are properly read."""
+        self.objectType = 50  # FISHING-VESSEL-1
+        self.lee = Leeway(loglevel=20)
         objectType = self.objectType
         self.assertEqual(self.lee.leewayprop[objectType]
                          ['Description'],
@@ -56,9 +41,19 @@ class TestArray(unittest.TestCase):
 
     def test_leewayrun(self):
         """Test the expected Leeway left/right split."""
+        self.lee = Leeway(loglevel=30)
+        self.objectType = 50  # FISHING-VESSEL-1
+        self.reader_basemap = reader_basemap_landmask.Reader(
+            llcrnrlon=3, llcrnrlat=59.8, projection='merc',
+            urcrnrlon=6, urcrnrlat=60.5, resolution='i')
+        self.lee.add_reader([self.reader_basemap])
         self.lee.seed_elements(lon=4.5, lat=60, number=100,
                                objectType=self.objectType,
                                time=datetime(2015, 1, 1))
+        self.lee.fallback_values['x_wind'] = 0
+        self.lee.fallback_values['y_wind'] = 10
+        self.lee.fallback_values['x_sea_water_velocity'] = 0
+        self.lee.fallback_values['y_sea_water_velocity'] = 0
         # Check that 7 out of 100 elements strand towards coast
         self.lee.run(steps=24, time_step=3600)
         self.assertEqual(self.lee.num_elements_scheduled(), 0)

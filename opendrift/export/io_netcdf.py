@@ -237,7 +237,7 @@ def import_file(self, filename, time=None):
                 value = None
             try:
                 self.set_config(conf_key, value)
-                logging.info('Setting imported config: %s -> %s' %
+                logging.debug('Setting imported config: %s -> %s' %
                              (conf_key, value))
             except:
                 logging.warning('Could not set config: %s -> %s' %
