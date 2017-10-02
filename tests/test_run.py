@@ -67,12 +67,12 @@ class TestRun(unittest.TestCase):
     """Tests for (non-scalar) LagrangianArray"""
 
     def make_OceanDrift_object(self):
-        self.o = OceanDrift(loglevel=20)
+        self.o = OceanDrift(loglevel=30)
         self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
         self.o.use_block = False
         self.reader_basemap = reader_basemap_landmask.Reader(
             llcrnrlon=-1.5, llcrnrlat=59,
-            urcrnrlon=7, urcrnrlat=64, resolution='i')
+            urcrnrlon=7, urcrnrlat=64, resolution='c')
         self.o.add_reader([self.fake_eddy, self.reader_basemap])
 
     def test_seed(self):
@@ -208,10 +208,10 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self.o.num_elements_deactivated(), 0)
         self.assertEqual(self.o.num_elements_total(), 9)
 
-    def test2_seed_elementss(self):
+    def test2_seed_elements(self):
         """Test a model run"""
         self.make_OceanDrift_object()
-        self.o.seed_elements([2.0, 4.5, 3.0], [61.0, 60.0, 62.0],
+        self.o.seed_elements([2.0, 5.0, 3.0], [61.0, 60.0, 62.0],
                              radius=0, number=9,
                              time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
 

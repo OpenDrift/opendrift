@@ -44,14 +44,14 @@ class TestModels(unittest.TestCase):
         self.assertEqual(len(self.o.elements_scheduled), 100)
 
     def test_windblow(self):
-        o = WindBlow(loglevel=20)
+        o = WindBlow(loglevel=30)
         reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
         o.add_reader([reader_arome])
         lat = 67.711251; lon = 13.556971  # Lofoten
         o.seed_elements(lon, lat, radius=5000, number=1000,
                         time=reader_arome.start_time)
-        o.run(steps=48*4, time_step=900)
-        self.assertAlmostEqual(o.elements.lon.max(), 17.49, 2)
+        o.run(steps=24, time_step=3600)
+        self.assertAlmostEqual(o.elements.lon.max(), 16.167, 2)
 
     def test_shipdrift(self):
         """Sintef case study"""

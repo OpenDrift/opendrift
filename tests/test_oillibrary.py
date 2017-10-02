@@ -38,7 +38,7 @@ class TestOil(unittest.TestCase):
                      'NOAA OilLibrary is needed')
     def test_oils(self):
         o = OpenOil3D(loglevel=50, weathering_model='noaa')
-        for oiltype in o.oiltypes[10:15]:
+        for oiltype in o.oiltypes[12:14]:
             if oiltype == 'JP-8':
                 continue
             o = OpenOil3D(loglevel=50, weathering_model='noaa')
@@ -64,15 +64,16 @@ class TestOil(unittest.TestCase):
             for windspeed in [3, 8]:
                 if oil == 'SKRUGARD' and windspeed == 3:
                     continue
-                o = OpenOil3D(loglevel=50, weathering_model='noaa')
+                o = OpenOil3D(loglevel=30, weathering_model='noaa')
                 o.seed_elements(lon=4.8, lat=60, number=100,
                                 time=datetime.now(), oiltype=oil)
                 o.set_config('processes:dispersion', True)
                 o.set_config('wave_entrainment:droplet_size_distribution', 'Exponential')
+                o.set_config('turbulentmixing:timestep', 10)
                 o.fallback_values['land_binary_mask'] = 0
                 o.fallback_values['x_wind'] = windspeed
                 o.fallback_values['y_sea_water_velocity'] = .3
-                o.run(duration=timedelta(hours=6), time_step=900)
+                o.run(duration=timedelta(hours=3), time_step=900)
 
                 b = o.get_oil_budget()
                 actual_dispersed = b['mass_dispersed']/b['mass_total']
@@ -82,11 +83,9 @@ class TestOil(unittest.TestCase):
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
-                    fraction_dispersed = 0.11863789
-                    fraction_dispersed = 0.1198852
+                    fraction_dispersed = 0.06816189
                 elif oil == 'SKRUGARD' and windspeed == 8:
-                    fraction_dispersed =  0.23420876
-                    fraction_dispersed =  0.23335621
+                    fraction_dispersed =  0.13052827
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],

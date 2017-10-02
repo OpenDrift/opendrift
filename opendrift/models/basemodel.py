@@ -399,10 +399,10 @@ class OpenDriftSimulation(PhysicsMethods):
         self.proj4 = proj4
         if proj4 is not None:
             self.proj = pyproj.Proj(self.proj4 + ' +ellps=WGS84')
-            logging.info('Calculation SRS set to: ' + self.proj.srs)
+            logging.debug('Calculation SRS set to: ' + self.proj.srs)
         else:
             self.proj = None
-            logging.info('Calculation SRS set to: ' + str(self.proj))
+            logging.debug('Calculation SRS set to: ' + str(self.proj))
 
     def lonlat2xy(self, lon, lat):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
