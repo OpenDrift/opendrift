@@ -1318,7 +1318,9 @@ class OpenDriftSimulation(PhysicsMethods):
             status = np.asscalar(self.elements.status)
             self.elements.status = np.zeros(self.num_elements_active())
             self.elements.status.fill(status)
-        self.elements.status[indices] = reason_number
+        # Deactivate elements, if they have not already been deactivated
+        self.elements.status[indices & (self.elements.status ==0)] = \
+            reason_number
         logging.debug('%s elements scheduled for deactivation (%s)' %
                       (sum(indices), reason))
 
