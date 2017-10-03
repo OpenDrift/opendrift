@@ -202,7 +202,7 @@ class TestReaders(unittest.TestCase):
                                #-0.803, 2)
 
     def test_get_environment(self):
-        o = PelagicEggDrift(loglevel=0)
+        o = PelagicEggDrift(loglevel=30)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc', name='Nordic')
         reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc', name='Arctic')
         ######################################################
@@ -274,7 +274,7 @@ class TestReaders(unittest.TestCase):
 
 
     def test_constant_reader(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil3D(loglevel=30)
         o.set_config('general:basemap_resolution', 'c')
         cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
         cc = reader_constant.Reader({'x_sea_water_velocity':0, 'y_sea_water_velocity': .2})

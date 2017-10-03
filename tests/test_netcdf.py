@@ -34,8 +34,7 @@ class Test(unittest.TestCase):
             urcrnrlon=14.5, urcrnrlat=67.7,
             resolution='i', projection='merc')
 
-
-        o = OceanDrift3D(loglevel=0)
+        o = OceanDrift3D(loglevel=30)
         o.set_config('general:basemap_resolution', 'i')
         nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic_subset_day*.nc')
@@ -56,7 +55,7 @@ class Test(unittest.TestCase):
         o.run(steps=48, time_step=3600)
 
         # Same run, with multi-file dataset
-        o2 = OceanDrift3D(loglevel=0)
+        o2 = OceanDrift3D(loglevel=30)
         o2.set_config('general:basemap_resolution', 'i')
         o2.add_reader([reader_basemap, nordicMF])
         o2.seed_elements(lon, lat, number=100, radius=5000,
@@ -66,10 +65,10 @@ class Test(unittest.TestCase):
         #o.plot(filename='o1.png', background='sea_floor_depth_below_sea_level')
         #o2.plot(filename='o2.png', background='sea_floor_depth_below_sea_level')
 
-        self.assertEqual(o.num_elements_active(), 70)
-        self.assertEqual(o2.num_elements_active(), 70)
-        self.assertEqual(o.num_elements_deactivated(), 30)
-        self.assertEqual(o2.num_elements_deactivated(), 30)
+        self.assertEqual(o.num_elements_active(), 63)
+        self.assertEqual(o2.num_elements_active(), 63)
+        self.assertEqual(o.num_elements_deactivated(), 37)
+        self.assertEqual(o2.num_elements_deactivated(), 37)
         self.assertEqual(o.elements.lon[0], o2.elements.lon[0])
 
 if __name__ == '__main__':

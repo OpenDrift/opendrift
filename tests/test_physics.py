@@ -131,7 +131,7 @@ class TestRun(unittest.TestCase):
         # 2.5m Hs, 10 mum radius (PlantOil)
         # Benchmark test from Jones et al. (2016)
         # NB: Entrainment length scale is not varied as in paper
-        o = OpenOil3D(loglevel=0, weathering_model='default')
+        o = OpenOil3D(loglevel=30, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 2.5

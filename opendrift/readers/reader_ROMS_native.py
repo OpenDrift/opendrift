@@ -262,26 +262,16 @@ class Reader(BaseReader):
             varname = [name for name, cf in
                        self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
+
             # Automatic masking may lead to trouble for ROMS files
             # with valid_min/max, _Fill_value or missing_value
             # https://github.com/Unidata/netcdf4-python/issues/703
-            #try:
-            #    var.set_auto_mask(False)
-            #    var.set_auto_scale(False)
-            #except:
-            #    logging.debug('Could not set auto_mask and auto_scale,'
-            #                  ' probably due to MFDataset.')
-            #    try:
-            #        var.set_auto_maskandscale(False)
-            #        logging.debug('But automaskandscale did work!')
-            #    except:
-            #        logging.debug('Could also not use set_automaskandscale')
             var.set_auto_maskandscale(False)
 
             try:
                 FillValue = getattr(var, '_FillValue')
             except:
-                FillValue = 1e-100
+                FillValue = None
             try:
                 scale = getattr(var, 'scale_factor')
             except:
@@ -301,31 +291,19 @@ class Reader(BaseReader):
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-            ## Masking
-            #dimensions = getattr(var, 'dimensions')
-            #for maskdim in ['rho', 'psi', 'u', 'v']:
-            #    if ('eta_' + maskdim in dimensions):
-            #        if maskdim not in read_masks.keys():
-            #            maskvar = self.Dataset.variables['mask_' + maskdim]
-            #            read_masks[maskdim] = maskvar[indy, indx] == 0
-            #        thismask = read_masks[maskdim] 
-            #if var.ndim == 2:
-            #    variables[par][thismask] = np.nan
-            #elif var.ndim == 3:
-            #    tdmask = np.tile(thismask, (variables[par].shape[0],1)) 
-            #    variables[par][thismask[np.newaxis,:,:]] = np.nan
-            #elif var.ndim == 4:
-            #    tdmask = np.tile(thismask, (variables[par].shape[0],1,1)) 
-            #    variables[par][tdmask] = np.nan
-            #else:
-            #    print 'Wrong dimension: ' + str(var.ndim)
-
-			## Manual scaling, offsetting and masking due to issue with ROMS files
-            logging.debug('Manually masking %s, FillValue %s, scale %s, offset %s' % 
+			# Manual scaling, offsetting and masking due to issue with ROMS files
+            logging.warning('Manually masking %s, FillValue %s, scale %s, offset %s' % 
                 (par, FillValue, scale, offset))
-            mask = variables[par]==FillValue
+            if FillValue is not None:
+                if var.dtype != FillValue.dtype:
+                    logging.warning('Data type of variable (%s) and _FillValue (%s) is not the same. Masking 0-values instead' % (var.dtype, FillValue.dtype))
+                    mask = variables[par] == 0
+                else:
+                    logging.warning('Masking ' + str(FillValue))
+                    mask = variables[par] == FillValue
             variables[par] = variables[par]*scale + offset
-            variables[par][mask] = np.nan
+            if FillValue is not None:
+                variables[par][mask] = np.nan
 
             if var.ndim == 4:
                 # Regrid from sigma to z levels
@@ -443,6 +421,10 @@ class Reader(BaseReader):
             else:
                 variables['land_binary_mask'] = \
                     1 - variables['land_binary_mask']
+
+        # Masking NaN
+        for var in requested_variables:
+            variables[var] = np.ma.masked_invalid(variables[var])
         
         return variables
 

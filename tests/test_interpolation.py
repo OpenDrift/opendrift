@@ -247,6 +247,44 @@ class TestInterpolation(unittest.TestCase):
         self.assertAlmostEqual(prof['x_sea_water_velocity'][5,48],
                                -0.090, 2)
 
+    def test_linearNDFast(self):
+        """Test interpolation."""
+        reader = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        reader.buffer=1
+        num_points = 50
+        np.random.seed(0)  # To get the same random numbers each time
+        lons = np.random.uniform(14, 15, num_points)
+        lats = np.random.uniform(68, 68.4, num_points)
+        z = np.random.uniform(-20, 0, num_points)
+        x, y = reader.lonlat2xy(lons, lats)
+
+        variables = ['x_sea_water_velocity']
+        # Read a block of data covering the points
+        data = reader.get_variables(variables, time=reader.start_time,
+                                    x=x, y=y, z=z, block=True)
+
+        # Check that LinearNDFast interpolation gives a real value
+        b = ReaderBlock(data.copy(),
+                        interpolation_horizontal='linearNDFast')
+        xp = np.atleast_1d(b.x.mean())
+        yp = np.atleast_1d(b.y.mean())
+        zp = np.atleast_1d(0)
+        env, prof = b.interpolate(xp,yp,zp,
+                                  variables,
+                                  profiles=variables,
+                                  profiles_depth=[-30, 0])
+        self.assertAlmostEqual(env['x_sea_water_velocity'], 0.0848, 3)
+
+        # Check that nearest interpolation gives NaN
+        b2 = ReaderBlock(data.copy(), interpolation_horizontal='nearest')
+        env, prof = b2.interpolate(xp,yp,zp,
+                                  variables,
+                                  profiles=variables,
+                                  profiles_depth=[-30, 0])
+        self.assertTrue(env['x_sea_water_velocity'][0].mask)
+
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -114,9 +114,19 @@ class Linear2DInterpolator():
         # change the array2d to fill masked parts 
         # i.e., land with no flow
         if array2d_ptr not in self.valid_arrays:
+            # Uncomment to visualise data extrapolation
+            #old = array2d.copy()
             # Fill five cells of masked data
             for i in range(5):
                 array2d = self.expandData(array2d)
+            #import matplotlib.pyplot as plt
+            #plt.subplot(2,1,1)
+            #plt.imshow(old)
+            #plt.subplot(2,1,2)
+            #plt.imshow(array2d)
+            #print type(old)
+            #print type(array2d)
+            #plt.show()
             self.valid_arrays.append(array2d_ptr)
         
         return map_coordinates(array2d, [self.yi, self.xi],
