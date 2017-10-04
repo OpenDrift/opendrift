@@ -19,6 +19,7 @@ import logging
 import copy
 from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
+from datetime import datetime, timedelta
 
 from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
@@ -247,6 +248,7 @@ class BaseReader(object):
         """
 
         logging.debug('Fetching variables from ' + self.name)
+        start_time = datetime.now()
         if profiles is not None and block is True:
             # If profiles are requested for any parameters, we
             # add two fake points at the end of array to make sure that the
@@ -265,6 +267,10 @@ class BaseReader(object):
         if 'x' in env.keys():
             env['x'] = np.array(env['x'], dtype=np.float)
             env['y'] = np.array(env['y'], dtype=np.float)
+
+        if not hasattr(self, 'time_reading'):
+            self.time_reading = timedelta(0)
+        self.time_reading += datetime.now() - start_time
 
         return env
 
@@ -386,6 +392,7 @@ class BaseReader(object):
             ############################################################
             # Interpolate before/after blocks onto particles in space
             ############################################################
+            start_time_interpolation = datetime.now()
             logging.debug('Interpolating before (%s) in space  (%s)' %
                           (self.var_block_before[str(variables)].time,
                            self.interpolation))
@@ -402,6 +409,11 @@ class BaseReader(object):
                     str(variables)].interpolate(
                         reader_x, reader_y, z, variables,
                         profiles, profiles_depth)
+
+            if not hasattr(self, 'time_interpolation'):
+                self.time_interpolation = timedelta(0)
+            self.time_interpolation += \
+                datetime.now() - start_time_interpolation
 
         #######################
         # Time interpolation
