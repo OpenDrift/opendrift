@@ -292,12 +292,14 @@ class Reader(BaseReader):
                                 self.variable_mapping[par])
 
 			# Manual scaling, offsetting and masking due to issue with ROMS files
-            logging.warning('Manually masking %s, FillValue %s, scale %s, offset %s' % 
+            logging.debug('Manually masking %s, FillValue %s, scale %s, offset %s' % 
                 (par, FillValue, scale, offset))
             if FillValue is not None:
                 if var.dtype != FillValue.dtype:
-                    logging.warning('Data type of variable (%s) and _FillValue (%s) is not the same. Masking 0-values instead' % (var.dtype, FillValue.dtype))
                     mask = variables[par] == 0
+                    if not 'already_warned' in locals():
+                        logging.warning('Data type of variable (%s) and _FillValue (%s) is not the same. Masking 0-values instead' % (var.dtype, FillValue.dtype))
+                        already_warned = True
                 else:
                     logging.warning('Masking ' + str(FillValue))
                     mask = variables[par] == FillValue
