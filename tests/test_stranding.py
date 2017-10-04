@@ -79,6 +79,7 @@ class TestStranding(unittest.TestCase):
             o.seed_elements(lon=12.2, lat=67.7, radius=0,
                             time=reader_osc.zero_time)
             o.run(steps=28, time_step=3600*2)
+            #o.plot()
             print 'Testing stranding: %s' % option
             if len(o.elements) == 1:
                 el = o.elements
@@ -86,7 +87,6 @@ class TestStranding(unittest.TestCase):
                 el = o.elements_deactivated
             self.assertEqual(o.status_categories[int(el.status)], status[i])
             self.assertAlmostEqual(el.lon, lons[i], 2)
-            #o.plot()
 
 
 if __name__ == '__main__':

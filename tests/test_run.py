@@ -475,7 +475,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.elements.lon, o2.elements.lon)
 
     def test_seed_seafloor(self):
-        o = OpenOil3D(loglevel=20)
+        o = OpenOil3D(loglevel=30)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
         o.add_reader([reader_norkyst])

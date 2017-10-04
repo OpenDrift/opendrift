@@ -322,14 +322,22 @@ class OpenDriftSimulation(PhysicsMethods):
     def prepare_run(self):
         pass  # to be overloaded when needed
 
-    def store_present_positions(self):
+    def store_present_positions(self, IDs=None, lons=None, lats=None):
         """Store present element positions, in case they shall be moved back"""
         if self.get_config('general:coastline_action') == 'previous':
             if not hasattr(self, 'previous_lon'):
                 self.previous_lon = np.ma.masked_all(self.num_elements_total())
                 self.previous_lat = np.ma.masked_all(self.num_elements_total())
-            self.previous_lon[self.elements.ID-1] = np.copy(self.elements.lon)
-            self.previous_lat[self.elements.ID-1] = np.copy(self.elements.lat)
+            if IDs is None:
+                IDs = self.elements.ID
+                lons = self.elements.lon
+                lats = self.elements.lat
+                self.newly_seeded_IDs = None
+            else:
+                # to check if seeded on land
+                self.newly_seeded_IDs = IDs
+            self.previous_lon[IDs-1] = np.copy(lons)
+            self.previous_lat[IDs-1] = np.copy(lats)
 
     def previous_position_if(self):
         return None
@@ -346,9 +354,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.environment.land_binary_mask == 1, reason='stranded')
         elif i == 'previous':  # Go back to previous position (in water)
             previous_position_if = self.previous_position_if()
-            if not hasattr(self, 'previous_lon'):
+            if self.newly_seeded_IDs is not None:
                 self.deactivate_elements(
-                    self.environment.land_binary_mask == 1,
+                    (self.environment.land_binary_mask == 1) &
+                    (self.elements.ID >= self.newly_seeded_IDs[0]),
                     reason='seeded_on_land')
                 if previous_position_if is not None:
                     self.deactivate_elements((previous_position_if*1 == 1) & (
@@ -957,6 +966,10 @@ class OpenDriftSimulation(PhysicsMethods):
             indices = (self.elements_scheduled_time <= self.time) & \
                       (self.elements_scheduled_time >
                        self.time + self.time_step)
+        self.store_present_positions(
+            self.elements_scheduled.ID[indices],
+            self.elements_scheduled.lon[indices],
+            self.elements_scheduled.lat[indices])
         self.elements_scheduled.move_elements(self.elements, indices)
         self.elements_scheduled_time = self.elements_scheduled_time[~indices]
         logging.debug('Released %i new elements.' % np.sum(indices))
