@@ -61,6 +61,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             [turbulentmixing]
                 timestep = float(min=0.1, max=3600, default=4.)
                 verticalresolution = float(min=0.01, max=10, default = 2.)
+                max_iterations = integer(min=0, max=100000, default = 0)
                 diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'gls_tke', default='environment')
                 TSprofiles = boolean(default=True)
                 '''
@@ -194,6 +195,9 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # binned random walk needs faster time step compared
         # to horizontal advection
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
+        if self.get_config('turbulentmixing:max_iterations') != 0:
+            ntimes_mix = np.minimum(ntimes_mix,
+                self.get_config('turbulentmixing:max_iterations'))
         logging.debug('Vertical mixing module:')
         logging.debug('turbulent diffusion with binned random walk scheme')
         logging.debug('using ' + str(ntimes_mix) + ' fast time steps of dt=' +
