@@ -114,8 +114,8 @@ class Linear2DInterpolator():
         # change the array2d to fill masked parts 
         # i.e., land with no flow
         if array2d_ptr not in self.valid_arrays:
-            # Fill five cells of masked data
-            for i in range(5):
+            # Fill eight cells of masked data
+            for i in range(8):
                 array2d = self.expandData(array2d)
             self.valid_arrays.append(array2d_ptr)
         
@@ -130,6 +130,8 @@ class Linear2DInterpolator():
         #plt.plot(self.yi, self.xi, '*w')
         #plt.imshow(array2d)
         #plt.show()
+        if interp.min() < -1e+10  or interp.max() > 1e+10:
+            logging.warning('Invalid values returned by LinearNDFast!')
         return interp
 
 horizontal_interpolation_methods = {
