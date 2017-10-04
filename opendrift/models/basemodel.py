@@ -335,7 +335,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.newly_seeded_IDs = None
             else:
                 # to check if seeded on land
-                self.newly_seeded_IDs = IDs
+                self.newly_seeded_IDs = np.copy(IDs)
             self.previous_lon[IDs-1] = np.copy(lons)
             self.previous_lat[IDs-1] = np.copy(lats)
 
