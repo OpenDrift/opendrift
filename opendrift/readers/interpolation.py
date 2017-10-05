@@ -114,8 +114,8 @@ class Linear2DInterpolator():
         # change the array2d to fill masked parts 
         # i.e., land with no flow
         if array2d_ptr not in self.valid_arrays:
-            # Fill eight cells of masked data
-            for i in range(8):
+            # Fill five cells of masked data
+            for i in range(5):
                 array2d = self.expandData(array2d)
             self.valid_arrays.append(array2d_ptr)
         

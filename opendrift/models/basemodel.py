@@ -366,7 +366,6 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.deactivate_elements((previous_position_if*1 == 1) & (
                                      self.environment.land_binary_mask == 0),
                                          reason='seeded_at_nodata_position')
-                return
 
             if previous_position_if is None:
                 on_land = np.where(self.environment.land_binary_mask == 1)[0]
