@@ -168,7 +168,7 @@ class PhysicsMethods(object):
         if np.max(np.array(
             self.environment.sea_surface_wave_stokes_drift_x_velocity)) \
                 == 0:
-            logging.debug('No Stokes drift velocity available.')
+            logging.debug('No Stokes drift velocity available')
             return
 
         stokes_u, stokes_v, s = stokes_drift_profile_breivik(
@@ -291,12 +291,12 @@ class PhysicsMethods(object):
                 ) and self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
             # prefer using Tm02:
             T = self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.copy()
-            logging.debug('use mean period Tm02 as wave period')
+            logging.debug('Using mean period Tm02 as wave period')
         elif hasattr(self.environment, 'sea_surface_wave_period_at_variance_spectral_density_maximum'
                 ) and self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
             # alternatively use Tp
             T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
-            logging.debug('use peak period Tp as wave period')
+            logging.debug('Using peak period Tp as wave period')
         else:
             # calculate Tp from wind speed:
             logging.debug('Calculating wave period Tm02 from wind')

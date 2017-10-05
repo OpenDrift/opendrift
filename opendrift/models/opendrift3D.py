@@ -63,7 +63,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 verticalresolution = float(min=0.01, max=10, default = 2.)
                 max_iterations = integer(min=0, max=100000, default = 0)
                 diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'gls_tke', default='environment')
-                TSprofiles = boolean(default=True)
+                TSprofiles = boolean(default=False)
                 '''
         self._add_configstring(configspec_oceandrift3D)
 
@@ -85,7 +85,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             termical velocity
         """
         if self.get_config('processes:verticaladvection') is False:
-            logging.debug('Vertical advection deactivated.')
+            logging.debug('Vertical advection deactivated')
             return
 
         w = self.environment.upward_sea_water_velocity
@@ -118,7 +118,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         """
 
         if self.get_config('processes:turbulentmixing') is False:
-            logging.debug('Turbulent mixing deactivated.')
+            logging.debug('Turbulent mixing deactivated')
             return
 
         self.timer_start('main loop:updating elements:vertical mixing')
@@ -151,7 +151,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             if 'ocean_vertical_diffusivity' in self.environment_profiles:
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
-                logging.debug('use diffusivity from ocean model')
+                logging.debug('Using diffusivity from ocean model')
             else:
                 # NB: using constant diffusivity, and value from first
                 # element only - this should be checked/improved!
@@ -159,14 +159,14 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                     self.environment.ocean_vertical_diffusivity[0] * \
                     np.ones((len(self.environment_profiles['z']),
                              self.num_elements_active()))
-                logging.debug('use constant diffusivity')
+                logging.debug('Using constant diffusivity')
         else:
-            logging.debug('use functional expression for diffusivity')
+            logging.debug('Using functional expression for diffusivity')
             Kprofiles = getattr(
                 eddydiffusivity,
                 self.get_config('turbulentmixing:diffusivitymodel'))(self)
 
-        logging.debug('Diffiusivities are in range %s to %s.' %
+        logging.debug('Diffiusivities are in range %s to %s' %
                       (Kprofiles.min(), Kprofiles.max()))
 
         # get profiles of salinity and temperature
@@ -178,11 +178,13 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 self.environment_profiles['sea_water_temperature']
             if ('sea_water_salinity' in self.fallback_values and
                 Sprofiles.min() == Sprofiles.max()):
-                logging.debug('Salinity and temperature are fallback values, '
-                              'skipping TSprofile')
+                logging.debug('Salinity and temperature are fallback'                              'values, skipping TSprofile')
                 Sprofiles = None
                 Tprofiles = None
+            else:
+                logging.debug('Using TSprofiles for vertical mixing')
         else:
+            logging.debug('TSprofiles deactivated for vertical mixing')
             Sprofiles = None
             Tprofiles = None
 
@@ -199,9 +201,9 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             ntimes_mix = np.minimum(ntimes_mix,
                 self.get_config('turbulentmixing:max_iterations'))
         logging.debug('Vertical mixing module:')
-        logging.debug('turbulent diffusion with binned random walk scheme')
-        logging.debug('using ' + str(ntimes_mix) + ' fast time steps of dt=' +
-                      str(dt_mix) + 's')
+        logging.debug('Turbulent diffusion with binned random walk '
+                      'scheme using ' + str(ntimes_mix) +
+                      ' fast time steps of dt=' + str(dt_mix) + 's')
         for i in range(0, ntimes_mix):
             #remember which particles belong to the exact surface
             surface = self.elements.z == 0
