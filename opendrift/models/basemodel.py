@@ -743,6 +743,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     for var in variable_group:
                         #tmp_var = np.ma.masked_invalid(env_tmp[var])
                         # Changed 13 Oct 2016, but uncertain of effect
+                        # Changed back 5 Oct 2017, apparently no effect(?)
                         # TODO: to be checked 
                         tmp_var = env_tmp[var]
                         if 'combined_mask' not in locals():
