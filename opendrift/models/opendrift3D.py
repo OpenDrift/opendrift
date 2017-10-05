@@ -196,11 +196,14 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # internal loop for fast time step of vertical mixing model
         # binned random walk needs faster time step compared
         # to horizontal advection
+        logging.debug('Vertical mixing module:')
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
         if self.get_config('turbulentmixing:max_iterations') != 0:
-            ntimes_mix = np.minimum(ntimes_mix,
-                self.get_config('turbulentmixing:max_iterations'))
-        logging.debug('Vertical mixing module:')
+            if self.steps_calculation <= 5:
+                logging.debug('Mixing the whole first five time steps')
+            else:
+                ntimes_mix = np.minimum(ntimes_mix,
+                    self.get_config('turbulentmixing:max_iterations'))
         logging.debug('Turbulent diffusion with binned random walk '
                       'scheme using ' + str(ntimes_mix) +
                       ' fast time steps of dt=' + str(dt_mix) + 's')
