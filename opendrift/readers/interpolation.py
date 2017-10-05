@@ -121,17 +121,20 @@ class Linear2DInterpolator():
         
         interp = map_coordinates(array2d, [self.yi, self.xi],
                                  cval=np.nan, order=1)
-        # Uncomment to visualise data extrapolation
-        #import matplotlib.pyplot as plt
-        #old = array2d.copy()
-        #plt.subplot(2,1,1)
-        #plt.imshow(old)
-        #plt.subplot(2,1,2)
-        #plt.plot(self.yi, self.xi, '*w')
-        #plt.imshow(array2d)
-        #plt.show()
-        if interp.min() < -1e+10  or interp.max() > 1e+10:
+        invalid = np.where(interp.min() < -1e+10 or
+                           interp.max() > 1e+10)[0]
+        if len(invalid) > 0:
             logging.warning('Invalid values returned by LinearNDFast!')
+            # Uncomment to visualise data extrapolation
+            #import matplotlib.pyplot as plt
+            #old = array2d.copy()
+            #plt.subplot(2,1,1)
+            #plt.imshow(old)
+            #plt.subplot(2,1,2)
+            #plt.plot(self.yi, self.xi, '*w')
+            #plt.imshow(array2d)
+            #plt.show()
+
         return interp
 
 horizontal_interpolation_methods = {
