@@ -741,10 +741,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     except:
                         pass
                     for var in variable_group:
-                        tmp_var = np.ma.masked_invalid(env_tmp[var])
+                        #tmp_var = np.ma.masked_invalid(env_tmp[var])
                         # Changed 13 Oct 2016, but uncertain of effect
                         # TODO: to be checked 
-                        #tmp_var = env_tmp[var]
+                        tmp_var = env_tmp[var]
                         if 'combined_mask' not in locals():
                             combined_mask = np.ma.getmask(tmp_var)
                         else:
