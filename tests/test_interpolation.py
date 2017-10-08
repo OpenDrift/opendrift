@@ -26,6 +26,7 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers.interpolation import \
+        expand_numpy_array, \
         ReaderBlock, LinearND2DInterpolator, \
         NDImage2DInterpolator, Nearest2DInterpolator, \
         Nearest1DInterpolator, Linear1DInterpolator
@@ -274,7 +275,7 @@ class TestInterpolation(unittest.TestCase):
                                   variables,
                                   profiles=variables,
                                   profiles_depth=[-30, 0])
-        self.assertAlmostEqual(env['x_sea_water_velocity'], 0.0848, 3)
+        self.assertAlmostEqual(env['x_sea_water_velocity'], 0.0663, 3)
 
         # Check that nearest interpolation gives NaN
         b2 = ReaderBlock(data.copy(), interpolation_horizontal='nearest')
@@ -282,8 +283,32 @@ class TestInterpolation(unittest.TestCase):
                                   variables,
                                   profiles=variables,
                                   profiles_depth=[-30, 0])
-        self.assertTrue(env['x_sea_water_velocity'][0].mask)
+        self.assertFalse(np.isfinite(env['x_sea_water_velocity'][0]))
 
+    def test_expand_array(self):
+        reader = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        reader.buffer=1
+        num_points = 50
+        np.random.seed(0)  # To get the same random numbers each time
+        lons = np.random.uniform(14, 15, num_points)
+        lats = np.random.uniform(68, 68.4, num_points)
+        x, y = reader.lonlat2xy(lons, lats)
+        variables = ['x_sea_water_velocity']
+        # Read a block of data covering the points
+        data = reader.get_variables(variables, time=reader.start_time,
+                                    x=x, y=y, z=0, block=True)
+        data = np.ma.filled(data['x_sea_water_velocity'],
+                            fill_value=np.nan)
+        self.assertTrue(np.isnan(data.max()))
+        self.assertEqual(sum(~np.isfinite(data.ravel())), 80)
+        expand_numpy_array(data)
+        self.assertEqual(sum(~np.isfinite(data.ravel())), 40)
+        expand_numpy_array(data)
+        self.assertEqual(sum(~np.isfinite(data.ravel())), 9)
+        expand_numpy_array(data)
+        self.assertEqual(sum(~np.isfinite(data.ravel())), 0)
+        self.assertFalse(np.isnan(data.max()))
 
 
 if __name__ == '__main__':

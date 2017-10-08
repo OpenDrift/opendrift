@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_oscillating
+from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.pelagicegg import PelagicEggDrift
 from opendrift.models.oceandrift import OceanDrift
 
@@ -48,9 +49,32 @@ class TestStranding(unittest.TestCase):
         self.assertEqual(o.elements_deactivated.status.min(), 1)
         self.assertEqual(o.elements_deactivated.status.max(), 1)
         self.assertEqual(o.num_elements_scheduled(), 0)
-        self.assertEqual(o.num_elements_active(), 86)
+        self.assertEqual(o.num_elements_active(), 88)
         self.assertEqual(o.num_elements_activated(), 100)
-        self.assertEqual(o.num_elements_deactivated(), 14)
+        self.assertEqual(o.num_elements_deactivated(), 12)
+        self.assertEqual(o.num_elements_total(), 100)
+
+    def test_stranding_roms(self):
+        o = PelagicEggDrift(loglevel=0)
+        reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+        '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
+        reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
+        '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        o.add_reader(reader_arctic)
+        o.add_reader(reader_nordic)
+        o.fallback_values['x_sea_water_velocity'] = 1
+        o.seed_elements(lon=13.0, lat=68.0, radius=20000, number=100,
+                        time=[reader_arctic.start_time,
+                              reader_nordic.end_time], z=-30)
+        o.set_config('general:basemap_resolution', 'c')
+        o.set_config('general:coastline_action', 'previous')
+        o.set_config('processes:turbulentmixing', False)
+        o.max_speed=1
+        o.run(end_time=reader_nordic.end_time, time_step=3600*36)
+        self.assertEqual(o.num_elements_scheduled(), 0)
+        self.assertEqual(o.num_elements_active(), 100)
+        self.assertEqual(o.num_elements_activated(), 100)
+        self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertEqual(o.num_elements_total(), 100)
 
     def test_stranding_options(self):

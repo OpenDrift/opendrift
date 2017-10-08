@@ -6,6 +6,19 @@ import scipy.ndimage as ndimage
 from scipy.interpolate import interp1d, LinearNDInterpolator
 
 
+def expand_numpy_array(data):
+    if isinstance(data, np.ma.MaskedArray):
+        logging.warning('Converting masked array to numpy array before interpolating')
+        data = np.ma.filled(data, fill_value=np.nan)
+    if not np.isfinite(data).any():
+        logging.warning('Only NaNs, returning')
+        return
+    mask = ~np.isfinite(data)
+    data[mask] = np.finfo(np.float64).min
+    data[mask] = ndimage.morphology.grey_dilation(data, size=3)[mask]
+    data[data==np.finfo(np.float64).min] = np.nan
+
+
 ###########################
 # 2D interpolator classes
 ###########################
@@ -56,12 +69,13 @@ class LinearND2DInterpolator():
 
     def __call__(self, array2d):
         array_ravel = array2d.ravel()
-        if isinstance(array2d.mask, np.ndarray):
-            valid = ~array2d.ravel().mask
-        elif array2d.mask == False:
-            valid = np.ones(array_ravel.shape, dtype=bool)
-        elif array2d.mask == True:
-            valid = np.zeros(array_ravel.shape, dtype=bool)
+        valid = np.isfinite(array_ravel)
+        #if isinstance(array2d.mask, np.ndarray):
+        #    valid = ~array2d.ravel().mask
+        #elif array2d.mask == False:
+        #    valid = np.ones(array_ravel.shape, dtype=bool)
+        #elif array2d.mask == True:
+        #    valid = np.zeros(array_ravel.shape, dtype=bool)
 
         if hasattr(self, 'interpolator'):
             if not np.array_equal(valid, self.interpolator.valid):
@@ -91,51 +105,22 @@ class Linear2DInterpolator():
         self.y = y
         self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
         self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
-        self.valid_arrays = []
         
-    # "Grows" the unmasked areas by one pixel
-    @staticmethod
-    def expandData(in_data):
-        if not isinstance(in_data.mask, np.ndarray):
-            in_data.mask = np.ones(in_data.shape, dtype=bool)*in_data.mask
-        out_mask = ~ndimage.morphology.binary_dilation(~in_data.mask.copy())
-        out_data = in_data.filled(np.finfo(np.float64).min)
-        out_data = ndimage.morphology.grey_dilation(out_data, size=3)
-        out_data[~in_data.mask] = in_data.data[~in_data.mask]
-        out = np.ma.masked_array(out_data, mask=out_mask)
-        return out
 
     def __call__(self, array2d):
-        if not isinstance(array2d,np.ma.MaskedArray):
-            logging.debug('Array used for interpolation is not a masked array.')
+        if isinstance(array2d,np.ma.MaskedArray):
+            logging.debug('Converting masked array to numpy array for interpolation')
+            array2d = np.ma.filled(array2d, fill_value=np.nan)
     
-        array2d_ptr, read_only = array2d.data.__array_interface__['data'] 
-    
-        # change the array2d to fill masked parts 
-        # i.e., land with no flow
-        if array2d_ptr not in self.valid_arrays:
-            # Fill five cells of masked data
-            for i in range(5):
-                array2d = self.expandData(array2d)
-            self.valid_arrays.append(array2d_ptr)
-        
+        # Fill NaN-values with nearby real values
+        for i in range(5):
+            expand_numpy_array(array2d)
+
         interp = map_coordinates(array2d, [self.yi, self.xi],
                                  cval=np.nan, order=1)
-        invalid = np.where(interp.min() < -1e+10 or
-                           interp.max() > 1e+10)[0]
-        if len(invalid) > 0:
-            logging.warning('Invalid values returned by LinearNDFast!')
-            # Uncomment to visualise data extrapolation
-            #import matplotlib.pyplot as plt
-            #old = array2d.copy()
-            #plt.subplot(2,1,1)
-            #plt.imshow(old)
-            #plt.subplot(2,1,2)
-            #plt.plot(self.yi, self.xi, '*w')
-            #plt.imshow(array2d)
-            #plt.show()
 
         return interp
+
 
 horizontal_interpolation_methods = {
     'nearest': Nearest2DInterpolator,
@@ -228,6 +213,9 @@ class ReaderBlock():
             if isinstance(self.data_dict[var], np.ma.core.MaskedArray):
                 self.data_dict[var] = np.ma.masked_outside(
                     self.data_dict[var], -1E+9, 1E+9)
+                # Convert masked arrays to numpy arrays
+                self.data_dict[var] = np.ma.filled(self.data_dict[var],
+                                                   fill_value=np.nan)
 
         # Set 1D (vertical) and 2D (horizontal) interpolators
         try:
