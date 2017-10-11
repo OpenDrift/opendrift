@@ -252,38 +252,49 @@ class TestInterpolation(unittest.TestCase):
         """Test interpolation."""
         reader = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-        reader.buffer=1
+        reader.buffer=3
         num_points = 50
         np.random.seed(0)  # To get the same random numbers each time
         lons = np.random.uniform(14, 15, num_points)
         lats = np.random.uniform(68, 68.4, num_points)
         z = np.random.uniform(-20, 0, num_points)
         x, y = reader.lonlat2xy(lons, lats)
+        #z=None
 
         variables = ['x_sea_water_velocity']
         # Read a block of data covering the points
         data = reader.get_variables(variables, time=reader.start_time,
                                     x=x, y=y, z=z, block=True)
 
-        # Check that LinearNDFast interpolation gives a real value
         b = ReaderBlock(data.copy(),
                         interpolation_horizontal='linearNDFast')
-        xp = np.atleast_1d(b.x.mean())
-        yp = np.atleast_1d(b.y.mean())
-        zp = np.atleast_1d(0)
-        env, prof = b.interpolate(xp,yp,zp,
+        x2 = np.random.uniform(x.min(), x.max(), num_points)
+        y2 = np.random.uniform(y.min(), y.max(), num_points)
+        z2 = np.random.uniform(-20, 0, num_points)
+        self.assertTrue(b.covers_positions(x, y, z))
+        self.assertTrue(b.covers_positions(x2, y2, z2))
+        # Check that there are holes in the arrays of the ReaderBlock
+        self.assertEqual(
+            np.sum(~np.isfinite(b.data_dict['x_sea_water_velocity'])), 1001)
+        # Check that LinearNDFast interpolation gives a real value
+        env, prof = b.interpolate(x2, y2, z2,
                                   variables,
                                   profiles=variables,
                                   profiles_depth=[-30, 0])
-        self.assertAlmostEqual(env['x_sea_water_velocity'], 0.0663, 3)
+        self.assertEqual(
+            np.sum(~np.isfinite(env['x_sea_water_velocity'])), 0)
+        # Check that the arrays of the ReaderBlock have been filled in
+        self.assertEqual(
+            np.sum(~np.isfinite(b.data_dict['x_sea_water_velocity'])), 0)
 
-        # Check that nearest interpolation gives NaN
+        # Check that nearest interpolation contains some NaN values
         b2 = ReaderBlock(data.copy(), interpolation_horizontal='nearest')
-        env, prof = b2.interpolate(xp,yp,zp,
+        env, prof = b2.interpolate(x2, y2, z2,
                                   variables,
                                   profiles=variables,
                                   profiles_depth=[-30, 0])
-        self.assertFalse(np.isfinite(env['x_sea_water_velocity'][0]))
+        self.assertEqual(
+            np.sum(~np.isfinite(env['x_sea_water_velocity'])), 31)
 
     def test_expand_array(self):
         reader = reader_ROMS_native.Reader(o.test_data_folder() +

@@ -111,13 +111,27 @@ class Linear2DInterpolator():
         if isinstance(array2d,np.ma.MaskedArray):
             logging.debug('Converting masked array to numpy array for interpolation')
             array2d = np.ma.filled(array2d, fill_value=np.nan)
+        if not np.isfinite(array2d).any():
+            logging.warning('Only NaNs input to linearNDFast - returning')
+            return np.nan*np.ones(len(self.xi))
     
         # Fill NaN-values with nearby real values
-        for i in range(5):
-            expand_numpy_array(array2d)
-
         interp = map_coordinates(array2d, [self.yi, self.xi],
                                  cval=np.nan, order=1)
+        missing = np.where(~np.isfinite(interp))[0]
+        i=0
+        while len(missing) > 0:
+            i += 1
+            if i > 10:
+                logging.warning('Still NaN-values after 10 iterations, exiting!')
+                return interp
+            logging.debug('NaN values for %i elements, expanding data %i' %
+                          (len(missing), i))
+            expand_numpy_array(array2d)
+            interp[missing] = map_coordinates(
+                array2d, [self.yi[missing], self.xi[missing]],
+                cval=np.nan, order=1, mode='nearest')
+            missing = np.where(~np.isfinite(interp))[0]
 
         return interp
 
