@@ -284,6 +284,33 @@ class OpenDriftSimulation(PhysicsMethods):
         c, cs, s = self._config_hash_to_dict(key)
         return cs[s]
 
+    def get_configspec_default_min_max(self, key):
+        """Get default, min and max config values for configuration setting"""
+        c, cs, s = self._config_hash_to_dict(key)
+        v = validate.Validator()
+        default = v.get_default_value(cs[s])
+        datatype = cs[s].split('(')[0]
+        if datatype in ['float', 'integer']:
+            minimum = cs[s].split('min=')[-1].split(',')[0]
+            maximum = cs[s].split('max=')[-1].split(',')[0]
+            if datatype == 'float':
+                minimum = float(minimum)
+                maximum = float(maximum)
+            elif datatype == 'integer':
+                minimum = int(minimum)
+                maximum = int(maximum)
+        else:
+            minimum = maximum = None
+        if datatype == 'option':
+            # Parsing options list
+            options = cs[s][len('options'):-1]
+            options = options.split('default=')[0][:-2]
+            import ast
+            options = ast.literal_eval('[' + options + ']')
+        else:
+            options = None
+        return default, minimum, maximum, options
+
     def _config_hashstrings(self):
         """Get list of strings section:section:key for all config items"""
         def fun(k, d, pre):

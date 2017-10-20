@@ -1,9 +1,33 @@
 import unittest
+import importlib
 import numpy as np
 import time
 from datetime import timedelta
 
 from .version import __version__
+
+
+# For automated access to available drift classes, e.g. for GUI
+# Hardcoded for now
+_available_models = \
+    ['leeway.Leeway',
+     'openoil.OpenOil',
+     'shipdrift.ShipDrift']
+
+def get_model_names():
+    return [m.split('.')[-1] for m in _available_models]
+
+def get_model(model_name):
+    if model_name not in get_model_names():
+        raise ValueError('No drift model named %s' % model_name)
+    else:
+        for m in _available_models:
+            if m.split('.')[-1] == model_name:
+                module = importlib.import_module(
+                            'opendrift.models.' + m.split('.')[0])
+                model = getattr(module, model_name)
+                return model
+
 
 def open(filename):
     '''Import netCDF output file as OpenDrift object of correct class'''
