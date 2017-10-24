@@ -42,8 +42,6 @@ install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        #/home/travis/miniconda2/bin/pip install git+https://github.com/NOAA-ORR-ERD/PyNUCOS.git#egg=unit_conversion;
-        #conda install --file conda_requirements.txt;
         pip install -r requirements.txt;
         sudo /home/travis/miniconda2/bin/python setup.py develop;
     fi
