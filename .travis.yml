@@ -36,7 +36,7 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
 install:
-  - conda install --no-update-deps --yes libgfortran
+  - conda install --no-update-deps --yes libgfortran==1
   - if [[ ! -e $HOME/oillibrary ]]; then
         cd $HOME;
         mkdir -p oillibrary;
