@@ -46,7 +46,7 @@ install:
         sudo -H pip install -r requirements.txt;
         sudo python setup.py develop;
     fi
-  - conda install --yes -c dan_blanchard python-coveralls
+  - conda install --no-update-deps --yes -c dan_blanchard python-coveralls
   - cd /home/travis/build/OpenDrift/opendrift
 script: coverage run --source=opendrift setup.py test
 after_success:
