@@ -36,7 +36,6 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
 install:
-  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
   - if [[ ! -e $HOME/oillibrary ]]; then
         cd $HOME;
         mkdir -p oillibrary;
@@ -47,6 +46,7 @@ install:
         sudo python setup.py develop;
     fi
   - conda install --yes -c dan_blanchard python-coveralls
+  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
   - cd /home/travis/build/OpenDrift/opendrift
 script: coverage run --source=opendrift setup.py test
 after_success:
