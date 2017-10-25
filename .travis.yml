@@ -48,6 +48,7 @@ install:
     fi
   - conda install --yes -c dan_blanchard python-coveralls
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
+  - conda install  -f  numpy
   - cd /home/travis/build/OpenDrift/opendrift
 script: coverage run --source=opendrift setup.py test
 after_success:
