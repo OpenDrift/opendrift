@@ -42,8 +42,7 @@ install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        conda config --add channels NOAA-ORR-ERD;
-        conda install --yes --file conda_requirements.txt;
+        conda install --yes -c NOAA-ORR-ERD --file conda_requirements.txt;
         sudo /home/travis/miniconda2/bin/python setup.py develop;
     fi
 #sudo -H pip install -r requirements.txt;
