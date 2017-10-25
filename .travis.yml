@@ -42,7 +42,7 @@ install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        conda install --yes -c NOAA-ORR-ERD --file conda_requirements.txt;
+        conda install --yes -c NOAA-ORR-ERD SQLAlchemy zope.sqlalchemy awesome-slugify pytest repoze.lru unit_conversion;
         conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj;
         sudo /home/travis/miniconda2/bin/python setup.py develop;
     fi
