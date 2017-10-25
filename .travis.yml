@@ -44,7 +44,6 @@ install:
         cd OilLibrary;
         sudo -H pip install -r requirements.txt;
         sudo python setup.py develop;
-        sudo /home/travis/miniconda2/bin/python setup.py develop;
     fi
   - conda install --yes -c dan_blanchard python-coveralls
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
