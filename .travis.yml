@@ -43,7 +43,7 @@ install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        pip install -r requirements.txt;
+        sudo -H pip install -r requirements.txt;
         sudo /home/travis/miniconda2/bin/python setup.py develop;
     fi
   - conda install --yes -c dan_blanchard python-coveralls
