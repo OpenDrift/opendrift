@@ -34,7 +34,7 @@ before_install:
         ./miniconda.sh -b -f;
         cd ..;
     fi
-  - if [[ $SCIPY == 1.0 ]]; then
+  - if [[ $SCIPY == "1.0" ]]; then
         conda config --add channels conda-forge
     fi
   - export PATH=/home/travis/miniconda2/bin:$PATH
