@@ -19,7 +19,8 @@ cache:
     - $HOME/miniconda2
 sudo: required
 before_install:
-  - if [[ ! -e $HOME/miniconda2/bin ]]; then
+  #- if [[ ! -e $HOME/miniconda2/bin ]]; then
+  - if [[ 1 == 1 ]]; then
         sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
         mkdir -p download;
         cd download;
