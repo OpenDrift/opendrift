@@ -34,17 +34,13 @@ before_install:
         ./miniconda.sh -b -f;
         cd ..;
     fi
+  - export PATH=/home/travis/miniconda2/bin:$PATH
   - if [[ $SCIPY == "1.0" ]]; then
         conda config --add channels conda-forge;
     fi
-  - export PATH=/home/travis/miniconda2/bin:$PATH
-  #  - conda update --yes conda
   - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
-  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
-  #- sudo rm -rf /dev/shm
-  #- sudo ln -s /run/shm /dev/shm
 install:
-  - conda install --yes --no-update-deps -c dan_blanchard python-coveralls
+  - conda install --yes -c dan_blanchard python-coveralls
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
   - if [[ ! -e $HOME/oillibrary ]]; then
         cd $HOME;
