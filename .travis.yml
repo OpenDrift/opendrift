@@ -43,8 +43,8 @@ install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        sudo -H pip install Flask-SQLAlchemy;
-        sudo -H pip install -r requirements.txt;
+        pip install Flask-SQLAlchemy;
+        pip install -r requirements.txt;
         python setup.py develop --user;
     fi
   - conda install --yes -c dan_blanchard python-coveralls
