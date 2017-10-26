@@ -41,7 +41,8 @@ before_install:
 install:
   - conda install --yes --no-update-deps -c dan_blanchard python-coveralls
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
-  - if [[ ! -e $HOME/oillibrary ]]; then
+  #- if [[ ! -e $HOME/oillibrary ]]; then
+  - if [[ 1 == 0 ]]; then
         cd $HOME;
         mkdir -p oillibrary;
         cd oillibrary;
