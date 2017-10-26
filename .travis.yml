@@ -37,7 +37,7 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 install:
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
-  - conda install libgfortran==1
+  - conda install --yes libgfortran==1
   - if [[ ! -e $HOME/oillibrary ]]; then
         cd $HOME;
         mkdir -p oillibrary;
