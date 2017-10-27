@@ -20,6 +20,7 @@ import copy
 from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
 from datetime import datetime, timedelta
+from collections import OrderedDict
 
 from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
@@ -119,6 +120,7 @@ class BaseReader(object):
                                    # be valid at all times
 
         # Set projection for coordinate transformations
+        self.simulation_SRS = False  # Avoid unnecessary vector rotation
         if hasattr(self, 'proj'):
             self.projected = True
         else:
@@ -205,6 +207,21 @@ class BaseReader(object):
             pixelsize = dist/self.shape[0]
         return pixelsize
 
+    # TODO:  Duplication from Basemodel, should be unified
+    def timer_start(self, category):
+        if not hasattr(self, 'timers'):
+            self.timers = OrderedDict()
+        if not hasattr(self, 'timing'):
+            self.timing = OrderedDict()
+        if category not in self.timing:
+            self.timing[category] = timedelta(0)
+        self.timers[category] = datetime.now()
+
+    def timer_end(self, category):
+        if self.timers[category] is not None:
+            self.timing[category] += datetime.now() - self.timers[category]
+        self.timers[category] = None
+
     @abstractmethod
     def get_variables(self, variables, time=None,
                       x=None, y=None, z=None, block=False):
@@ -248,7 +265,7 @@ class BaseReader(object):
         """
 
         logging.debug('Fetching variables from ' + self.name)
-        start_time = datetime.now()
+        self.timer_start('reading')
         if profiles is not None and block is True:
             # If profiles are requested for any parameters, we
             # add two fake points at the end of array to make sure that the
@@ -268,9 +285,7 @@ class BaseReader(object):
             env['x'] = np.array(env['x'], dtype=np.float)
             env['y'] = np.array(env['y'], dtype=np.float)
 
-        if not hasattr(self, 'time_reading'):
-            self.time_reading = timedelta(0)
-        self.time_reading += datetime.now() - start_time
+        self.timer_end('reading')
 
         return env
 
@@ -279,6 +294,8 @@ class BaseReader(object):
                                    lon=None, lat=None, z=None,
                                    block=False, rotate_to_proj=None):
 
+        self.timer_start('total')
+        self.timer_start('preparing')
         # Raise error if time not not within coverage of reader
         if not self.covers_time(time):
             raise ValueError('%s is outside time coverage (%s - %s) of %s' %
@@ -307,6 +324,7 @@ class BaseReader(object):
 
         if block is False or self.return_block is False:
             # Analytical reader, continous in space and time
+            self.timer_end('preparing')
             env_before = self._get_variables(variables, profiles,
                                              profiles_depth,
                                              time,
@@ -314,6 +332,7 @@ class BaseReader(object):
                                              reader_x, reader_y, z,
                                              block=block)
             logging.debug('Fetched env-before')
+            self.timer_start('preparing')
 
         else:
             # Swap before- and after-blocks if matching times
@@ -335,11 +354,13 @@ class BaseReader(object):
             if (not str(variables) in self.var_block_before) or \
                     (self.var_block_before[str(variables)].time !=
                      time_before):
+                self.timer_end('preparing')
                 reader_data_dict = \
                     self._get_variables(variables, profiles,
                                         profiles_depth, time_before,
                                         reader_x, reader_y, z,
                                         block=block)
+                self.timer_start('preparing')
                 self.var_block_before[str(variables)] = \
                     ReaderBlock(reader_data_dict,
                                 interpolation_horizontal=self.interpolation)
@@ -358,11 +379,13 @@ class BaseReader(object):
                     self.var_block_after[str(variables)] = \
                         self.var_block_before[str(variables)]
                 else:
+                    self.timer_end('preparing')
                     reader_data_dict = \
                         self._get_variables(variables, profiles,
                                             profiles_depth, time_after,
                                             reader_x, reader_y, z,
                                             block=block)
+                    self.timer_start('preparing')
                     self.var_block_after[str(variables)] = \
                         ReaderBlock(
                             reader_data_dict,
@@ -389,10 +412,11 @@ class BaseReader(object):
                                 'Buffer size (%s) must be increased.' %
                                 (self.name, str(self.buffer)))
 
+            self.timer_end('preparing')
             ############################################################
             # Interpolate before/after blocks onto particles in space
             ############################################################
-            start_time_interpolation = datetime.now()
+            self.timer_start('interpolation')
             logging.debug('Interpolating before (%s) in space  (%s)' %
                           (self.var_block_before[str(variables)].time,
                            self.interpolation))
@@ -410,14 +434,12 @@ class BaseReader(object):
                         reader_x, reader_y, z, variables,
                         profiles, profiles_depth)
 
-            if not hasattr(self, 'time_interpolation'):
-                self.time_interpolation = timedelta(0)
-            self.time_interpolation += \
-                datetime.now() - start_time_interpolation
+            self.timer_end('interpolation')
 
         #######################
         # Time interpolation
         #######################
+        self.timer_start('interpolation_time')
         env_profiles = None
         if (time_after is not None) and (time_before != time):
             weight_after = ((time - time_before).total_seconds() /
@@ -475,14 +497,13 @@ class BaseReader(object):
                     env_profiles = {'z': profiles_depth}
                     for var in profiles:
                         env_profiles[var] = np.ma.array([env[var], env[var]])
+        self.timer_end('interpolation_time')
 
         ####################
         # Rotate vectors
         ####################
         if rotate_to_proj is not None:
-            if (rotate_to_proj.srs == self.proj.srs) or (
-                rotate_to_proj.is_latlong() is True and
-                self.proj.is_latlong() is True):
+            if self.simulation_SRS is True:
                 logging.debug('Reader SRS is the same as calculation SRS - '
                               'rotation of vectors is not needed.')
             else:
@@ -502,6 +523,7 @@ class BaseReader(object):
                                 for x in vector_pairs)]
 
                 if len(vector_pairs) > 0:
+                    self.timer_start('rotating vectors')
                     for vector_pair in vector_pairs:
                         env[vector_pair[0]], env[vector_pair[1]] = \
                             self.rotate_vectors(reader_x, reader_y,
@@ -511,8 +533,10 @@ class BaseReader(object):
                         if profiles is not None and vector_pair[0] in profiles:
                             sys.exit('Rotating profiles of vectors '
                                      'is not yet implemented')
+                    self.timer_end('rotating vectors')
 
         # Masking non-covered pixels
+        self.timer_start('masking')
         if len(ind_covered) != len(lon):
             logging.debug('Masking %i elements outside coverage' %
                           (len(lon)-len(ind_covered)))
@@ -528,6 +552,8 @@ class BaseReader(object):
                     tmp[:, ind_covered] = env_profiles[var].copy()
                     env_profiles[var] = np.ma.masked_invalid(tmp)
 
+        self.timer_end('masking')
+        self.timer_end('total')
         return env, env_profiles
 
     def rotate_vectors(self, reader_x, reader_y,
@@ -913,6 +939,17 @@ class BaseReader(object):
         for variable in self.variables:
             outStr += '  ' + variable + '\n'
         outStr += '===========================\n'
+        outStr += self.performance()
+
+        return outStr
+
+    def performance(self):
+        '''Report the time spent on various tasks'''
+        outStr = ''
+        if hasattr(self, 'timing'):
+            for cat, time in self.timing.iteritems():
+                time = str(time)[0:str(time).find('.') + 2]
+                outStr += '%10s  %s\n' % (time, cat)
         return outStr
 
     def plot(self, variable=None, vmin=None, vmax=None):

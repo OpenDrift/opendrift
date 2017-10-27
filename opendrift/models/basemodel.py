@@ -482,6 +482,17 @@ class OpenDriftSimulation(PhysicsMethods):
             self.timing[category] += datetime.now() - self.timers[category]
         self.timers[category] = None
 
+    def format_timedelta(self, timedelta):
+        '''Format timedelta nicely for printing'''
+        timestr = str(timedelta)[0:str(timedelta).find('.') + 2]
+        for i, c in enumerate(timestr):
+            if c in '123456789.':
+                timestr = timestr[i:]  # Strip leading 0 and :
+                if c == '.':
+                    timestr = '0' + timestr
+                break
+        return timestr
+
     def performance(self):
         '''Report the time spent on various tasks'''
 
@@ -500,6 +511,15 @@ class OpenDriftSimulation(PhysicsMethods):
             category = parts[-1]
             category = category.replace('<colon>', ':')
             outStr += '%s%7s %s\n' % (indent, timestr, category)
+
+        outStr += '--------------------\n'
+        outStr += 'Reader performance:\n'
+        for r in self.readers:
+            reader = self.readers[r]
+            outStr += '--------------------\n'
+            outStr += r + '\n'
+            outStr += reader.performance()
+    
         return outStr
 
     def add_reader(self, readers, variables=None):
@@ -802,6 +822,7 @@ class OpenDriftSimulation(PhysicsMethods):
         logging.debug('---------------------------------------')
         logging.debug('Finished processing all variable groups')
 
+        self.timer_start('main loop:readers:postprocessing')
         for var in self.fallback_values:
             if (var not in variables) and (profiles is None or var not in profiles):
                 continue
@@ -915,6 +936,7 @@ class OpenDriftSimulation(PhysicsMethods):
             for var in env_profiles:
                 env_profiles[var] = np.array(env_profiles[var])
 
+        self.timer_end('main loop:readers:postprocessing')
         self.timer_end('main loop:readers')
 
         return env.view(np.recarray), env_profiles, missing
@@ -1487,6 +1509,15 @@ class OpenDriftSimulation(PhysicsMethods):
         if self.proj is None:
             logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
+
+        # Check if any readers have same SRS as simulation
+        for reader in self.readers.values():
+            readerSRS = reader.proj.srs.replace(' +ellps=WGS84', '').strip()
+            simulationSRS = self.proj.srs.replace(' +ellps=WGS84', '').strip()
+            if readerSRS == simulationSRS:
+                reader.simulation_SRS = True
+            else:
+                reader.simulation_SRS = False
 
         missing_variables = self.missing_variables()
         missing_variables = [m for m in missing_variables if
@@ -2546,7 +2577,7 @@ class OpenDriftSimulation(PhysicsMethods):
         nc.variables['density_surface'].grid_mapping = 'projection_lonlat'
         nc.variables['density_surface'].units = '1'
         # Density submerged
-       	nc.createVariable('density_submerged', 'u1',
+        nc.createVariable('density_submerged', 'u1',
                           ('time','lat', 'lon'))
         H_sub = np.swapaxes(H_submerged, 1, 2).astype('uint8')
         H_sub = np.ma.masked_where(H_sub==0, H_sub)
@@ -2555,7 +2586,7 @@ class OpenDriftSimulation(PhysicsMethods):
         nc.variables['density_submerged'].grid_mapping = 'projection_lonlat'
         nc.variables['density_submerged'].units = '1' 
         # Density stranded
-       	nc.createVariable('density_stranded', 'u1',
+        nc.createVariable('density_stranded', 'u1',
                           ('time','lat', 'lon'))
         H_stranded = np.swapaxes(H_stranded, 1, 2).astype('uint8')
         H_stranded = np.ma.masked_where(H_stranded==0, H_stranded)
