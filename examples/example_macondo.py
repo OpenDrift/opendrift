@@ -6,6 +6,8 @@ from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
+# This is a highly simplified 2D simulation, for illustration purpose only
+
 print '#'*30
 print 'NOTE: this example depends on availability of data from two Thredds servers: tds.hycom.org and www.ncdc.noaa.gov. May sometimes be slow or hanging.'
 print '#'*30
@@ -20,6 +22,7 @@ reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thr
 reader_oceanwind = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CERSAT-GLO-CLIM_WIND_L4-OBS_FULL_TIME_SERIE')
 #print reader_oceanwind
 
+# For longer simulations, it is better to pre-generate a basemap:
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(
                     llcrnrlon=-94, llcrnrlat=20,

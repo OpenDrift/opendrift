@@ -3,7 +3,6 @@
 from datetime import timedelta
 import numpy as np
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
@@ -18,13 +17,7 @@ reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
-# Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=4, llcrnrlat=59.8,
-                    urcrnrlon=6, urcrnrlat=61,
-                    resolution='h', projection='merc')
-
-o.add_reader([reader_basemap, reader_current, reader_wind])
+o.add_reader([reader_current, reader_wind])
 
 #######################
 # Seeding elements
@@ -43,7 +36,6 @@ o.add_reader([reader_basemap, reader_current, reader_wind])
 
 # Giving each element a unique (random) wind_drift_factor
 wind_drift_factor = np.random.uniform(0, 0.06, 2000)
-
 o.seed_elements(4.7, 59.9, radius=3000, number=2000,
                 time=reader_current.start_time,
                 wind_drift_factor=wind_drift_factor)
