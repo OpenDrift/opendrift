@@ -45,10 +45,13 @@ class Reader(BaseReader):
     variables = ['land_binary_mask']
 
     def __init__(self, llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat,
-                 resolution='i', projection='cyl', minimise_whitespace=False,
+                 resolution='i', projection='merc', minimise_whitespace=False,
                  rasterize=True, rasterize_resolution=500):
 
         logging.debug('Creating Basemap...')
+
+        if projection == 'cyl':  # TODO: should be fixed
+            raise ValueError('Cyl projection not supported, as rasterisation needs units of m')
 
         if minimise_whitespace is True:
             # Calculate aspect ratio, to minimise whitespace on figures
