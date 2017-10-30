@@ -418,14 +418,15 @@ class OpenDriftGUI(tk.Tk):
                             oiltype=self.oljetype.get())
 
         readers = [  # Note that order (priority) is important!
-            '/lustre/storeA/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
+            '/lustre/storeB/project/metproduction/from_opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc',
             'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-            '/lustre/storeA/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
+            '/lustre/storeB/project/metproduction/from_opdata/roms/Nordic-4km_SURF_1h_avg_00.nc',
             'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-            '/lustre/storeA/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
-            '/lustre/storeA/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
+            '/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_extracted_2_5km_latest.nc',
+            '/lustre/storeB/project/metproduction/from_opdata/roms/N800m/ocean_force_NorKyst800.nc',
+            '/lustre/storeB/project/metproduction/from_opdata/roms/N4km/ocean_force_Nordic4km.nc',
+            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc',
+            'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc',
             '/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
             'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
             'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z',
