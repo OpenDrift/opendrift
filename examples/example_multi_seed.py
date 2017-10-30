@@ -2,7 +2,6 @@
 
 from datetime import datetime
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
@@ -16,19 +15,13 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=3.0, llcrnrlat=60.4,
-                    urcrnrlon=6, urcrnrlat=61.8,
-                    resolution='h', projection='merc')
-
-o.add_reader([reader_basemap, reader_norkyst, reader_arome])
+o.add_reader([reader_norkyst, reader_arome])
+o.set_config('processes:evaporation', False)
 
 ############################################################
 # Seed oil particles within contour detected from satellite
 ############################################################
-o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml',
-    num_elements=2000)
+o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 ############################################################
 # Additional continous point release, lasting 24 hours
 ############################################################

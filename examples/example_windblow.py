@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from opendrift.readers import reader_netCDF_CF_generic
-
 from opendrift.models.windblow import WindBlow
 
 o = WindBlow(loglevel=0)  # Set loglevel to 0 for debug information

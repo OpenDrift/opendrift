@@ -114,7 +114,7 @@ class Reader(BaseReader):
                     self.z = var[:]
                 else:
                     self.z = -var[:]
-            if standard_name == 'time' or axis == 'T' or var_name == 'time':
+            if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
                 time = var[:]
                 time_units = units

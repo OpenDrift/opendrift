@@ -28,14 +28,14 @@ o.add_reader([reader_basemap, reader_norkyst, reader_nordic4])
 #o.add_reader([reader_basemap, reader_norkyst])
 
 # Seeding some particles
-lons = np.linspace(10.2, 12.2, 100)
-lats = np.linspace(69.8, 70.8, 100)
+lons = np.linspace(10.2, 12.2, 50)
+lats = np.linspace(69.8, 70.8, 50)
 lons, lats = np.meshgrid(lons, lats)
 lons = lons.ravel()
 lats = lats.ravel()
 
 # Seed oil elements at defined position and time
-o.seed_elements(lons, lats, radius=0, number=10000,
+o.seed_elements(lons, lats, radius=0, number=2500,
                 time=reader_nordic4.start_time)
 
 # Running model (until end of driver data)
@@ -44,4 +44,3 @@ o.run(steps=16*4, time_step=900)
 # Print and plot results
 print o
 o.animation()
-o.plot()

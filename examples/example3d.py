@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift3D import OceanDrift3D
 
@@ -12,12 +11,7 @@ reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/do
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
-# Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=4, llcrnrlat=59.8,
-                    urcrnrlon=6, urcrnrlat=61,
-                    resolution='h', projection='merc')
-
-o.add_reader([reader_basemap, reader_norkyst, reader_arome])
+o.add_reader([reader_norkyst, reader_arome])
 
 # Seeding some particles
 lon = 4.8; lat = 60.0; # Outside Bergen

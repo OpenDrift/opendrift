@@ -15,10 +15,6 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
     '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 reader_nordic.variables = ['land_binary_mask']
-#####################################################################
-# Uncomment to use Basemap landmask, otherwise ROMS landmask is used
-#o.add_reader([reader_nordic])  
-#####################################################################
 
 reader_osc = reader_oscillating.Reader('x_sea_water_velocity', amplitude=1,
                                        zero_time=reader_nordic.start_time)

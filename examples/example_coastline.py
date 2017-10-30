@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-import os
 import numpy as np
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 
@@ -13,19 +11,9 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 o.max_speed = 3
 
 # This example works better using hourly input from Thredds than the daily data from test folder
-#reader_nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
-#reader_nordic = reader_ROMS_native.Reader('/disk1/data/svim/ocean_avg_uv_20110501.nc4')
-reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
-    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-
-# To force using basemap landmask
-#reader_nordic.variables = [v for v in reader_nordic.variables
-#                           if v != 'land_binary_mask']
-
-# linearND interpolates data towards coast; uncomment for nearest interpolation
-#reader_nordic.interpolation='linearND'
-
-print reader_nordic
+reader_nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
+#reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
+#    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
 o.add_reader([reader_nordic])
 o.set_config('general:basemap_resolution', 'h')

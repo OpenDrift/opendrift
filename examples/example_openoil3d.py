@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil3D import OpenOil3D
 
@@ -14,25 +13,14 @@ print o.oiltypes  # Print available oil types
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-#reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
-
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-#reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
-# Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=4.4, llcrnrlat=60.0,
-                    urcrnrlon=5.6, urcrnrlat=60.9,
-                    resolution='h', projection='merc',
-                    minimise_whitespace=True)
-
-o.add_reader([reader_basemap, reader_norkyst, reader_arome])
+o.add_reader([reader_norkyst, reader_arome])
 
 # Seeding some particles
 lon = 4.9; lat = 60.1; # Outside Bergen
-
 #time = [reader_arome.start_time,
 #        reader_arome.start_time + timedelta(hours=30)]
 time = reader_arome.start_time

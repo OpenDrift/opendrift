@@ -102,7 +102,7 @@ class OpenOil(OpenDriftSimulation):
                        'sea_surface_wave_stokes_drift_y_velocity': 0,
                        'sea_floor_depth_below_sea_level': 0,
                        'sea_ice_area_fraction': 0,
-                       'sea_water_temperature': 273.15 + 12,
+                       'sea_water_temperature': 12,
                        'x_wind': 0, 'y_wind': 0}
 
     # Default colors for plotting

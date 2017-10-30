@@ -2,17 +2,14 @@
 
 from datetime import datetime, timedelta
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.models.shipdrift import ShipDrift
 
 o = ShipDrift(loglevel=0)
 o.set_config('general:basemap_resolution', 'h')
 
 o.add_readers_from_list([
-    #'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-    'http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc',
-    #'http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc',
-    '/lustre/storeB/project/metproduction/products/ecmwf/nc/ec_atmo_0_1deg_20161220T120000Z_1h.nc',
+    'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+    'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc',
     'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be'
     ])
 
