@@ -16,7 +16,7 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 # Nordic4
-reader_nordic4 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
+reader_nordic4 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
 
 # Landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(

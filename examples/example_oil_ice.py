@@ -9,7 +9,6 @@ o = OpenOil(loglevel=0)
 o.max_speed = 1
 
 # Nordc4
-#reader_nordic4 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
 reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
 reader_arctic.interpolation = 'linearND'
 
