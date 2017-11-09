@@ -111,7 +111,6 @@ class OpenDriftSimulation(PhysicsMethods):
     configspec_basemodel = '''
             [general]
                 basemap_resolution = option('f', 'h', 'i', 'c', default='h')
-                minimise_map_whitespace = boolean(default=False)
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
             [drift]
                 scheme = option('euler', 'runge-kutta', default='euler')
@@ -310,6 +309,18 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             options = None
         return default, minimum, maximum, options
+
+    def get_seed_config(self):
+        """Get dictionary with all config options under category seed"""
+        sc = {}
+        for c in self._config_hashstrings():
+            if c[0:5] == 'seed:':
+                name = c[5:]
+                sc[name] = {}
+                sn = sc[name]
+                sn['default'], sn['min'], sn['max'], sn['options'] = \
+                    self.get_configspec_default_min_max(c)
+        return sc
 
     def _config_hashstrings(self):
         """Get list of strings section:section:key for all config items"""
@@ -1633,8 +1644,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
                                      deltalat),
                 resolution=self.get_config('general:basemap_resolution'),
-                projection='merc',
-                minimise_whitespace=self.get_config('general:minimise_map_whitespace'))
+                projection='merc')
             self.add_reader(reader_basemap)
             self.dynamical_landmask = True
             self.timer_end('preparing main loop:making dynamical landmask')
@@ -1907,6 +1917,8 @@ class OpenDriftSimulation(PhysicsMethods):
         if 'basemap_landmask' in self.readers:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
+            plt.figure(0, figsize=self.readers['basemap_landmask'].figsize)
+            ax = plt.axes([.05, .05, .85, .9])
         else:
             # Otherwise create a new Basemap covering the elements
             ## Calculate aspect ratio, to minimise whitespace on figures
@@ -1916,9 +1928,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 np.float(latmax-latmin) / (np.float(lonmax-lonmin))
             aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
             if aspect_ratio > 1:
-                plt.figure(figsize=(10./aspect_ratio, 10.))
+                plt.figure(0, figsize=(10./aspect_ratio, 10.))
             else:
-                plt.figure(figsize=(11., 11.*aspect_ratio))
+                plt.figure(0, figsize=(11., 11.*aspect_ratio))
             #ax = plt.axes([.05,.05,.85,.9])
             ax = plt.axes([.05, .08, .85, .9])  # When colorbar below
             map = Basemap(lonmin, latmin, lonmax, latmax,

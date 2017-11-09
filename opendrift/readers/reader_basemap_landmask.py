@@ -45,27 +45,13 @@ class Reader(BaseReader):
     variables = ['land_binary_mask']
 
     def __init__(self, llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat,
-                 resolution='i', projection='merc', minimise_whitespace=False,
+                 resolution='i', projection='merc',
                  rasterize=True, rasterize_resolution=500):
 
         logging.debug('Creating Basemap...')
 
         if projection == 'cyl':  # TODO: should be fixed
             raise ValueError('Cyl projection not supported, as rasterisation needs units of m')
-
-        if minimise_whitespace is True:
-            # Calculate aspect ratio, to minimise whitespace on figures
-            # Drawback is that empty figure is created in interactive mode
-            meanlat = (llcrnrlat + urcrnrlat)/2
-            aspect_ratio = np.float(urcrnrlat - llcrnrlat) / \
-                (np.float(urcrnrlon-llcrnrlon))
-            if projection != 'cyl':
-                aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
-            if aspect_ratio > 1:
-                plt.figure(figsize=(10./aspect_ratio, 10.))
-            else:
-                plt.figure(figsize=(11., 11.*aspect_ratio))
-            ax = plt.axes([.05, .05, .85, .9])
 
         # Generate Basemap instane
         self.map = Basemap(llcrnrlon, llcrnrlat,
@@ -109,7 +95,21 @@ class Reader(BaseReader):
                 self.bmap_raster = None
         else:
             self.bmap_raster = None
-            
+
+        # Calculate aspect ratio, to minimise whitespace on figures
+        # Drawback is that empty figure is created in interactive mode
+        meanlat = (llcrnrlat + urcrnrlat)/2
+        aspect_ratio = np.float(urcrnrlat - llcrnrlat) / \
+            (np.float(urcrnrlon-llcrnrlon))
+        if projection != 'cyl':
+            aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
+        if aspect_ratio > 1:
+            self.figsize=(10./aspect_ratio, 10.)
+            plt.figure(0, figsize=(10./aspect_ratio, 10.))
+        else:
+            self.figsize=(11., 11.*aspect_ratio)
+            plt.figure(0, figsize=(11., 11.*aspect_ratio))
+        ax = plt.axes([.05, .05, .85, .9])
             
     def on_land_polycheck(self, x, y):
         points = np.c_[x, y]

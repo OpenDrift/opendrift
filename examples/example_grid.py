@@ -15,8 +15,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov20
 reader_basemap = reader_basemap_landmask.Reader(
                     llcrnrlon=3.5, llcrnrlat=59.9,
                     urcrnrlon=5.5, urcrnrlat=61.2,
-                    resolution='h', projection='merc',
-                    minimise_whitespace=True)
+                    resolution='h', projection='merc')
 
 o.add_reader([reader_basemap, reader_norkyst])
 
