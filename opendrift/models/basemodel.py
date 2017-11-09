@@ -31,9 +31,8 @@ import numpy as np
 import scipy
 import configobj, validate
 try:
-    from mpl_toolkits import basemap
-    Basemap = basemap.Basemap
     import matplotlib
+    matplotlib.use('agg')
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -43,6 +42,8 @@ try:
     except:
         have_nx = False
         from matplotlib.path import Path
+    from mpl_toolkits import basemap
+    Basemap = basemap.Basemap
 except:
     logging.info('Basemap is not available, can not make plots')
 
