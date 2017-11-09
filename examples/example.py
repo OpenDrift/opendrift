@@ -31,10 +31,11 @@ o.seed_elements(lon, lat, radius=50, number=3000, time=time,
                 wind_drift_factor=.02)
 
 # Adjusting some configuration
-o.set_config('processes:diffusion', True)
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', True)
 o.set_config('processes:emulsification', True)
+o.set_config('drift:current_uncertainty', .1)
+o.set_config('drift:wind_uncertainty', 1)
 
 # Running model
 o.run(end_time=reader_norkyst.end_time, time_step=1800,

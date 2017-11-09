@@ -28,7 +28,6 @@ o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_2
     num_elements=2000)
 
 # Adjusting some configuration
-o.set_config('processes:diffusion', True)
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)

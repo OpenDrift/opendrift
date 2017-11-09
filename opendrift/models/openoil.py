@@ -113,7 +113,6 @@ class OpenOil(OpenDriftSimulation):
     configspec = '''
         [processes]
             dispersion = boolean(default=True)
-            diffusion = boolean(default=True)
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
     '''
@@ -297,33 +296,6 @@ class OpenOil(OpenDriftSimulation):
             #                        np.power(dissipation_energy, 0.57)),
             #                        1/1.17)
             #self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
-
-    def diffusion(self):
-        if self.get_config('processes:diffusion') is True:
-            # Current
-            std_current_comp = self.get_config('drift:current_uncertainty')
-            if std_current_comp > 0:
-                sigma_u = np.random.normal(0, std_current_comp,
-                                           self.num_elements_active())
-                sigma_v = np.random.normal(0, std_current_comp,
-                                           self.num_elements_active())
-            else:
-                sigma_u = 0*self.environment.x_wind
-                sigma_v = 0*self.environment.x_wind
-            self.update_positions(sigma_u, sigma_v)
-
-            # Wind
-            wind_drift_factor = self.get_config('drift:wind_drift_factor')
-            std_wind_comp = self.get_config('drift:wind_uncertainty')
-            if wind_drift_factor > 0 and std_wind_comp > 0:
-                sigma_u = np.random.normal(0, std_wind_comp*wind_drift_factor,
-                                           self.num_elements_active())
-                sigma_v = np.random.normal(0, std_wind_comp*wind_drift_factor,
-                                           self.num_elements_active())
-            else:
-                sigma_u = 0*self.environment.x_wind
-                sigma_v = 0*self.environment.x_wind
-            self.update_positions(sigma_u, sigma_v)
 
     def oil_weathering(self):
         self.elements.age_seconds += self.time_step.total_seconds()
@@ -525,9 +497,6 @@ class OpenOil(OpenDriftSimulation):
 
         # Stokes drift
         self.stokes_drift()
-
-        # Uncertainty / diffusion
-        self.diffusion()
 
         # Deactivate elements hitting sea ice
         if hasattr(self.environment, 'sea_ice_area_fraction'):

@@ -32,7 +32,6 @@ print o
 
 # Adjusting some configuration
 o.set_config('general:basemap_resolution',  'i')
-o.set_config('processes:diffusion',  False)
 o.set_config('processes:dispersion',  False)
 o.set_config('processes:evaporation',  False)
 o.set_config('processes:emulsification',  False)

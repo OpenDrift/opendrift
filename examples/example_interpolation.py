@@ -30,7 +30,6 @@ o.seed_elements(lon, lat, radius=50, number=5000, time=time)
 
 
 # Adjusting some configuration
-o.set_config('processes:diffusion',  True)
 o.set_config('processes:dispersion',  False)
 o.set_config('processes:evaporation',  False)
 o.set_config('processes:emulsification',  False)
@@ -48,7 +47,6 @@ o.run(steps=66*2, time_step=1800)
 o2 = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_norkyst, reader_arome])
 o2.seed_elements(lon, lat, radius=50, number=5000, time=time)
-o2.set_config('processes:diffusion',  True)
 o2.set_config('processes:dispersion',  False)
 o2.set_config('processes:evaporation',  False)
 o2.set_config('processes:emulsification',  False)

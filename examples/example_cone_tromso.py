@@ -32,7 +32,6 @@ o.seed_elements(lon, lat, radius=[100, 500], number=10000,
 print o
 
 # Adjusting some configuration
-o.set_config('processes:diffusion', True)
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)

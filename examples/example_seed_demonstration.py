@@ -8,8 +8,6 @@ from opendrift.models.openoil import OpenOil
 #o = OceanDrift(loglevel=50)
 o = OpenOil(loglevel=50)
 
-o.set_config('processes:diffusion', False)
-
 # We do not care about landmask or current for this seeding demonstration,
 # so we simple specify fallback_values instead of adding any readers
 o.fallback_values['land_binary_mask'] = 0

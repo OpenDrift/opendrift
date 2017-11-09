@@ -119,8 +119,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 scheme = option('euler', 'runge-kutta', default='euler')
                 wind_drift_factor = float(min=0, max=1, default=0.02)
                 stokes_drift = boolean(default=True)
-                current_uncertainty = float(min=0, max=5, default=.1)
-                wind_uncertainty = float(min=0, max=5, default=1)
+                current_uncertainty = float(min=0, max=5, default=0)
+                wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
                 use_tabularised_stokes_drift = boolean(default=False)
                 tabularised_stokes_drift_fetch = option(5000, 25000, 50000, default=25000)'''
@@ -902,6 +902,29 @@ class OpenDriftSimulation(PhysicsMethods):
                             self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]),
                             self.get_config('drift:tabularised_stokes_drift_fetch'))
        
+        #############################
+        # Add uncertainty/diffusion
+        #############################
+        # Current
+        if 'x_sea_water_velocity' in variables and \
+                'y_sea_water_velocity' in variables:
+            std = self.get_config('drift:current_uncertainty')
+            if std > 0:
+                logging.debug('Adding uncertainty for current: %s m/s' % std)
+                env['x_sea_water_velocity'] += np.random.normal(
+                    0, std, self.num_elements_active())
+                env['y_sea_water_velocity'] += np.random.normal(
+                    0, std, self.num_elements_active())
+        # Wind
+        if 'x_wind' in variables and 'y_wind' in variables:
+            std = self.get_config('drift:wind_uncertainty')
+            if std > 0:
+                logging.debug('Adding uncertainty for wind: %s m/s' % std)
+                env['x_wind'] += np.random.normal(
+                    0, std, self.num_elements_active())
+                env['y_wind'] += np.random.normal(
+                    0, std, self.num_elements_active())
+
         #####################
         # Diagnostic output
         #####################
@@ -2280,7 +2303,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
              drifter_file=None, show=True, vmin=None, vmax=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
-             contourlines=False, trajectory_dict=None,
+             contourlines=False, trajectory_dict=None, colorbar=True,
              title='auto', legend='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
@@ -2418,7 +2441,8 @@ class OpenDriftSimulation(PhysicsMethods):
                         CS = map.contour(map_x, map_y, scalar, contourlines,
                                          colors='gray')
                     plt.clabel(CS, fmt='%g')
-                plt.colorbar()
+                if colorbar is True:
+                    plt.colorbar()
 
             if type(background) is list:
                 map.quiver(map_x[::skip, ::skip], map_y[::skip, ::skip],
