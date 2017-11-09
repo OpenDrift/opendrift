@@ -2071,7 +2071,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def animation(self, buffer=.2, filename=None, compare=None,
                   background=None, vmin=None, vmax=None, skip=5, scale=10,
-                  legend=['', ''], markersize=5, fps=10):
+                  legend=None, legend_loc='best', markersize=5, fps=10):
         """Animate last run."""
 
         def plot_timestep(i):
@@ -2096,12 +2096,16 @@ class OpenDriftSimulation(PhysicsMethods):
                 y_deactive[index_of_last_deactivated < i])
 
             if compare is not None:
-                points_other.set_data(x_other[range(x_other.shape[0]), i],
-                                      y_other[range(x_other.shape[0]), i])
-                points_other_deactivated.set_data(
-                    x_other_deactive[index_of_last_deactivated_other < i],
-                    y_other_deactive[index_of_last_deactivated_other < i])
-                return points, points_other
+                for cd in compare_list:
+                    cd['points_other'].set_data(
+                        cd['x_other'][range(cd['x_other'].shape[0]), i],
+                        cd['y_other'][range(cd['x_other'].shape[0]), i])
+                    cd['points_other_deactivated'].set_data(
+                        cd['x_other_deactive'][
+                            cd['index_of_last_deactivated_other'] < i],
+                        cd['y_other_deactive'][
+                            cd['index_of_last_deactivated_other'] < i])
+                return points, cd['points_other']
             else:
                 return points
 
@@ -2120,6 +2124,8 @@ class OpenDriftSimulation(PhysicsMethods):
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
+        if legend is None:
+            legend = ['']
         points = map.plot([], [], '.k', label=legend[0],
                           markersize=markersize)[0]
         # Plot deactivated elements, with transparency
@@ -2128,30 +2134,44 @@ class OpenDriftSimulation(PhysicsMethods):
                                      self.elements_deactivated.lat)
 
         if compare is not None:
-            if type(compare) is str:
-                # Other is given as filename
-                other = self.__class__(loglevel=0)
-                other.io_import_file(compare)
-            else:
-                # Other is given as an OpenDrift object
-                other = compare
-            # Find map coordinates and plot data for comparison
-            x_other, y_other = map(other.history['lon'], other.history['lat'])
-            points_other = map.plot(x_other[0, 0], y_other[0, 0], '.r',
-                                    label=legend[1],
-                                    markersize=markersize)[0]
-            x_other_deactive, y_other_deactive = \
-                map(other.elements_deactivated.lon,
-                    other.elements_deactivated.lat)
-            # Plot deactivated elements, with transparency
-            points_other_deactivated = map.plot([], [], '.r', alpha=.3)[0]
-            firstlast = np.ma.notmasked_edges(x_other, axis=1)
-            index_of_last_other = firstlast[1][1]
-            index_of_last_deactivated_other = \
-                index_of_last_other[other.elements_deactivated.ID-1]
+            colors = ['r.', 'g.', 'b.', 'm.']
+            if not type(compare) is list:
+                compare = [compare]
+            if legend == ['']:
+                legend = ['']*int(len(compare)+1)
+            compare_list = [{}]*len(compare)
+            for cn, comp in enumerate(compare):
+                compare_list[cn] = {}
+                cd = compare_list[cn]  # pointer to dict with data
+                if type(comp) is str:
+                    # Other is given as filename
+                    other = self.__class__(loglevel=0)
+                    other.io_import_file(comp)
+                else:
+                    # Other is given as an OpenDrift object
+                    other = comp
+
+                # Find map coordinates and plot data for comparison
+                cd['x_other'], cd['y_other'] = \
+                    map(other.history['lon'], other.history['lat'])
+                cd['points_other'] = \
+                    map.plot(cd['x_other'][0, 0],
+                             cd['y_other'][0, 0], colors[cn],
+                             label=legend[cn+1], markersize=markersize)[0]
+                cd['x_other_deactive'], cd['y_other_deactive'] = \
+                    map(other.elements_deactivated.lon,
+                        other.elements_deactivated.lat)
+                # Plot deactivated elements, with transparency
+                cd['points_other_deactivated'] = \
+                    map.plot([], [], colors[cn], alpha=.3)[0]
+                cd['firstlast'] = np.ma.notmasked_edges(
+                    cd['x_other'], axis=1)
+                cd['index_of_last_other'] = cd['firstlast'][1][1]
+                cd['index_of_last_deactivated_other'] = \
+                    cd['index_of_last_other'][other.elements_deactivated.ID-1]
 
         if legend != ['', '']:
-            plt.legend()
+            plt.legend(markerscale=3, loc=legend_loc)
 
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
                                        frames=x.shape[1], interval=50)
