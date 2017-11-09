@@ -90,7 +90,18 @@ class ShipDrift(OpenDriftSimulation):
     max_speed = 2  # m/s
     winwav_angle = 20  # Angular offset in degrees
 
+    configspec = '''
+        [seed]
+            length = float(min=1, max=500, default=50)
+            height = float(min=1, max=50, default=12)
+            draft = float(min=1, max=20, default=8)
+            beam = float(min=1, max=30, default=10)
+        '''
+
+
     def __init__(self, *args, **kwargs):
+
+        self._add_configstring(self.configspec)
 
         # Read ship properties
         d = os.path.dirname(os.path.realpath(__file__))

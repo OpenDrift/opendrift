@@ -11,6 +11,7 @@ import ttk
 import opendrift.models
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.leeway import Leeway
+from opendrift.models.shipdrift import ShipDrift
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_basemap_landmask
 
@@ -39,6 +40,9 @@ class OpenDriftGUI(tk.Tk):
 
         tk.Tk.__init__(self)
         
+        ##################
+        # Layout frames
+        ##################
         self.n = ttk.Notebook(self.master)
         self.n.grid()
         self.seed = ttk.Frame(self.n)
@@ -46,6 +50,39 @@ class OpenDriftGUI(tk.Tk):
         self.n.add(self.seed, text='Seeding')
         self.n.add(self.config, text='Config')
 
+        # Top
+        self.top = tk.Frame(self.seed,
+                            relief=tk.FLAT, pady=25, padx=25)
+        self.top.grid(row=0, column=1, rowspan=1)
+        # Config
+        self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
+        self.con.grid(row=0, column=1, rowspan=1)
+        # Time start and end
+        self.start_t = tk.Frame(self.seed, relief=tk.FLAT)
+        self.start_t.grid(row=2, column=0, rowspan=1)
+        self.end_t = tk.Frame(self.seed, relief=tk.FLAT)
+        self.end_t.grid(row=3, column=0, rowspan=1)
+        self.start = tk.Frame(self.seed, bg='lightgray', bd=2,
+                              relief=tk.SUNKEN, pady=5, padx=5)
+        self.start.grid(row=2, column=1, rowspan=1)
+        self.end = tk.Frame(self.seed, bg='gray', bd=2,
+                            relief=tk.SUNKEN, padx=5, pady=5)
+        self.end.grid(row=3, column=1)
+        self.coastline = tk.Frame(self.seed, bd=2,
+                                 relief=tk.FLAT, padx=5, pady=0)
+        self.coastline.grid(row=4, column=1)
+        self.duration = tk.Frame(self.seed, bd=2,
+                                 relief=tk.FLAT, padx=5, pady=5)
+        self.duration.grid(row=5, column=1)
+        self.seed_frame = tk.Frame(self.seed, bd=2,
+                                   relief=tk.FLAT, padx=5, pady=0)
+        self.seed_frame.grid(row=4, columnspan=8, sticky='nsew')
+        self.output = tk.Frame(self.seed, bd=2,
+                               relief=tk.FLAT, padx=5, pady=0)
+        self.output.grid(row=7, column=2, columnspan=8, sticky='nsew')
+
+
+        ##########################
         self.title('OpenDrift')
         o = OpenOil3D(weathering_model='noaa', location='NORWAY')
         try:
@@ -56,18 +93,6 @@ class OpenDriftGUI(tk.Tk):
             panel.grid(row=0, column=0)
         except:
             pass # Could not display logo
-
-        self.top = tk.Frame(self.seed,
-                            relief=tk.FLAT, pady=25, padx=25)
-        self.top.grid(row=0, column=1, rowspan=1)
-        # Config
-        #self.config = tk.Frame(self.seed,
-        #                       relief=tk.FLAT, pady=25, padx=25)
-        #self.config.grid(row=9, column=1, rowspan=1)
-        self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
-        self.con.grid(row=0, column=1, rowspan=1)
-        for cs in o._config_hashstrings()[0:4]:
-            print cs
         #######################################################
         tk.Label(self.top, text='Simulation type').grid(row=0, column=0)
         self.model = tk.StringVar()
@@ -95,13 +120,8 @@ class OpenDriftGUI(tk.Tk):
         ##########
         # Release
         ##########
-        self.start_t = tk.Frame(self.seed, relief=tk.FLAT)
-        self.start_t.grid(row=2, column=0, rowspan=1)
         startlabel = tk.Label(self.start_t, text="\n\nStart release\n\n")
         startlabel.grid(row=0, column=0)
-        self.start = tk.Frame(self.seed, bg='lightgray', bd=2,
-                              relief=tk.SUNKEN, pady=5, padx=5)
-        self.start.grid(row=2, column=1, rowspan=1)
 
         tk.Label(self.start, text='Longitude').grid(row=0, column=1)
         tk.Label(self.start, text='Latitude').grid(row=0, column=0)
@@ -177,15 +197,8 @@ class OpenDriftGUI(tk.Tk):
         ###############
         # Release End
         ###############
-        self.end_t = tk.Frame(self.seed, relief=tk.FLAT)
         endlabel = tk.Label(self.end_t, text="\n\nEnd release\n\n")
         endlabel.grid(row=0, column=0)
-        self.end_t.grid(row=3, column=0, rowspan=1)
-
-        self.end = tk.Frame(self.seed, bg='gray', bd=2,
-                            relief=tk.SUNKEN, padx=5, pady=5)
-        self.end.grid(row=3, column=1)
-
         tk.Label(self.end, text='Longitude', bg='gray').grid(row=0, column=1)
         tk.Label(self.end, text='Latitude', bg='gray').grid(row=0, column=0)
         tk.Label(self.end, text='Radius [m]', bg='gray').grid(row=0, column=2)
@@ -251,9 +264,6 @@ class OpenDriftGUI(tk.Tk):
         #######################
         # Simulation duration
         #######################
-        self.coastline = tk.Frame(self.seed, bd=2,
-                                 relief=tk.FLAT, padx=5, pady=0)
-        self.coastline.grid(row=4, column=1)
         tk.Label(self.coastline, text='Coastline resolution ').grid(
                  row=4, column=1)
         self.mapresvar = tk.StringVar()
@@ -262,9 +272,6 @@ class OpenDriftGUI(tk.Tk):
         self.mapres.grid(row=4, column=2)
         self.mapresvar.set('high')
         
-        self.duration = tk.Frame(self.seed, bd=2,
-                                 relief=tk.FLAT, padx=5, pady=5)
-        self.duration.grid(row=5, column=1)
         tk.Label(self.duration, text='Run simulation ').grid(row=5, column=0)
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
@@ -282,7 +289,7 @@ class OpenDriftGUI(tk.Tk):
         ##############
         # Output box
         ##############
-        self.text = tk.Text(self.seed, wrap="word", height=18)
+        self.text = tk.Text(self.output, wrap="word", height=18)
         self.text.grid(row=6, columnspan=8, sticky='nsew')
         self.text.tag_configure("stderr", foreground="#b22222")
         sys.stdout = TextRedirector(self.text, "stdout")
@@ -338,8 +345,7 @@ class OpenDriftGUI(tk.Tk):
             self.o = OpenOil3D(weathering_model='noaa', location='NORWAY')
             self.categorydrop['values'] = self.o.oiltypes
             self.oljetype.set(self.o.oiltypes[0])
-
-        if model == 'Leeway':
+        elif model == 'Leeway':
             self.categoryLabel['text'] = 'Object type'
             self.oljetype.set('')
             self.o = Leeway()
@@ -348,11 +354,11 @@ class OpenDriftGUI(tk.Tk):
                 replace('>', '') for c in self.o.leewayprop]
             self.categorydrop['values'] = self.leewaycategories
             self.oljetype.set(self.leewaycategories[0])
+        elif model == 'ShipDrift':
+            self.categoryLabel['text'] = 'Object type'
+            self.oljetype.set('')
+            self.o = ShipDrift()
 
-        #self.config.destroy()
-        #self.config = tk.Frame(self.seed,
-        #                       relief=tk.FLAT, pady=25, padx=25)
-        #self.config.grid(row=9, column=1, rowspan=1)
         print dir(self.config)
         for con in self.config.winfo_children():
             con.destroy()
@@ -363,6 +369,36 @@ class OpenDriftGUI(tk.Tk):
             tk.Label(self.config, text=cs).grid(row=i, column=1, rowspan=1)
 
         print 'Setting model: ' + model
+        print self.o.list_configspec()
+        #default, minimum, maximum, options = self.o.get_configspec_default_min_max('seed:oil_type')
+        #print default
+        sc = self.o.get_seed_config()
+        print sc
+        self.seed_input = {}
+        self.seed_input_var = {}
+        self.seed_input_label = {}
+        self.seed_frame.destroy()
+        self.seed_frame = tk.Frame(self.seed, bd=2,
+                                   relief=tk.FLAT, padx=5, pady=0)
+        self.seed_frame.grid(row=4, columnspan=8, sticky='nsew')
+        # FIND
+        for num, i in enumerate(sc):
+            self.seed_input_label[i] = tk.Label(self.seed_frame,
+                                                text=i + '\t')
+            self.seed_input_label[i].grid(row=num, column=0)
+            self.seed_input_var[i] = tk.StringVar()
+            if type(sc[i]['options']) is list:
+                self.seed_input[i] = ttk.Combobox(
+                    self.seed_frame, width=50,
+                    textvariable=self.seed_input_var[i],
+                    values=sc[i]['options'])
+                self.seed_input_var[i].set(sc[i]['default'])
+            else:
+                self.seed_input[i] = tk.Entry(
+                    self.seed_frame, textvariable=self.seed_input_var[i],
+                    width=6, justify=tk.RIGHT)
+                self.seed_input[i].insert(0, sc[i]['default'])
+            self.seed_input[i].grid(row=num, column=1)
 
     def show_help(self):
         help_url = 'https://github.com/OpenDrift/opendrift/wiki/Graphical-User-Interface'
