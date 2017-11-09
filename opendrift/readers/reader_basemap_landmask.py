@@ -16,11 +16,14 @@
 
 import logging
 
+import os
 import gc
 import numpy as np
 import collections
 import matplotlib
-matplotlib.use('tkagg')
+if os.environ.get('DISPLAY','') == '':
+    logging.info('No display found. Using non-interactive Agg backend')
+    matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 try:

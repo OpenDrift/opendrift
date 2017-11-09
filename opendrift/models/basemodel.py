@@ -32,7 +32,9 @@ import scipy
 import configobj, validate
 try:
     import matplotlib
-    matplotlib.use('tkagg')
+    if os.environ.get('DISPLAY','') == '':
+        logging.info('No display found. Using non-interactive Agg backend')
+        matplotlib.use('agg')
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
