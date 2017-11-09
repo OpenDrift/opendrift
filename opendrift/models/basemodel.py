@@ -32,7 +32,7 @@ import scipy
 import configobj, validate
 try:
     import matplotlib
-    matplotlib.use('agg')
+    matplotlib.use('tkagg')
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon

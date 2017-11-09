@@ -20,7 +20,7 @@ import gc
 import numpy as np
 import collections
 import matplotlib
-matplotlib.use('agg')
+matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 try:
