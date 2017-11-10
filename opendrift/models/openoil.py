@@ -555,6 +555,7 @@ class OpenOil(OpenDriftSimulation):
 
     def plot_oil_budget(self, filename=None):
 
+        plt.close()
         if self.time_step.days < 0:  # Backwards simulation
             fig = plt.figure(figsize=(10, 6.))
             plt.text(0.1, 0.5, 'Oil weathering deactivated for '
