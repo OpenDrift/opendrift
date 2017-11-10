@@ -2235,6 +2235,7 @@ class OpenDriftSimulation(PhysicsMethods):
         x = self.get_property('lon')[0].T
         #seafloor_depth = \
         #    -self.get_property('sea_floor_depth_below_sea_level')[0].T
+        plt.close()
         fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
         ax = fig.gca()
         plt.xlabel('Longitude [degrees]')
@@ -2756,6 +2757,7 @@ class OpenDriftSimulation(PhysicsMethods):
         from matplotlib import dates
 
         hfmt = dates.DateFormatter('%d %b %Y %H:%M')
+        plt.close()
         fig = plt.figure()
         ax = fig.gca()
         ax.xaxis.set_major_formatter(hfmt)
