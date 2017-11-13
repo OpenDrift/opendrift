@@ -117,6 +117,21 @@ class OpenOil(OpenDriftSimulation):
             emulsification = boolean(default=True)
     '''
 
+    duplicate_oils = ['ALVHEIM BLEND, STATOIL', 'DRAUGEN, STATOIL',
+                      'EKOFISK BLEND 2000', 'EKOFISK BLEND, STATOIL',
+                      'EKOFISK, CITGO', 'EKOFISK, EXXON', 'EKOFISK, PHILLIPS',
+                      'EKOFISK, STATOIL', 'ELDFISK', 'ELDFISK B',
+                      'GLITNE, STATOIL', 'GOLIAT BLEND, STATOIL',
+                      'GRANE BLEND, STATOIL', 'GUDRUN BLEND, STATOIL',
+                      'GULLFAKS A, STATOIL', 'GULLFAKS C, STATOIL',
+                      'GULLFAKS, SHELL OIL', 'GULLFAKS SOR',
+                      'GULLFAKS, STATOIL', 'HEIDRUN, STATOIL',
+                      'NJORD, STATOIL', 'NORNE, STATOIL',
+                      'OSEBERG BLEND, STATOIL', 'OSEBERG EXXON',
+                      'OSEBERG, PHILLIPS', 'OSEBERG, SHELL OIL',
+                      'SLEIPNER CONDENSATE, STATOIL',
+                      'STATFJORD BLEND, STATOIL', 'VARG, STATOIL']
+
 
     def __init__(self, weathering_model='default', *args, **kwargs):
 
@@ -140,6 +155,7 @@ class OpenOil(OpenDriftSimulation):
             else:
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
+            self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
         else:
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
