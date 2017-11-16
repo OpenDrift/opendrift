@@ -32,7 +32,7 @@ import scipy
 import configobj, validate
 try:
     import matplotlib
-    if os.environ.get('DISPLAY','') == '':
+    if os.environ.get('DISPLAY','') == '' and 'PYCHARM_HOSTED' not in os.environ:
         logging.info('No display found. Using non-interactive Agg backend')
         matplotlib.use('agg')
     import matplotlib.pyplot as plt
