@@ -32,8 +32,9 @@ import scipy
 import configobj, validate
 try:
     import matplotlib
-    if os.environ.get('DISPLAY','') == '' and 'PYCHARM_HOSTED' not in os.environ:
-        logging.info('No display found. Using non-interactive Agg backend')
+    if os.environ.get('DISPLAY','') == '' and \
+            'PYCHARM_HOSTED' not in os.environ:
+        print 'No display found. Using non-interactive Agg backend'
         matplotlib.use('agg')
     import matplotlib.pyplot as plt
     from matplotlib import animation
@@ -47,7 +48,7 @@ try:
     from mpl_toolkits import basemap
     Basemap = basemap.Basemap
 except:
-    logging.info('Basemap is not available, can not make plots')
+    print 'Basemap is not available, can not make plots'
 
 import opendrift
 from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
@@ -1510,7 +1511,6 @@ class OpenDriftSimulation(PhysicsMethods):
         logging.debug( '  SciPy version %s' % scipy.__version__)
         logging.debug( '  Matplotlib version %s' % matplotlib.__version__)
         logging.debug( '  NetCDF4 version %s' % netCDF4.__version__)
-        import sys
         logging.debug( '  Python version %s' % sys.version.replace('\n', ''))
         logging.debug('------------------------------------------------------')
 
@@ -1833,7 +1833,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.info(traceback.format_exc())
                 logging.info('========================')
                 if stop_on_error is True:
-                    import sys; sys.exit('Stopping on error')
+                    sys.exit('Stopping on error')
                 break
 
         self.timer_end('main loop')
