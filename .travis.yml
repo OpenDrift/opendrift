@@ -19,7 +19,6 @@ matrix:
   allow_failures:
     - env: NUMPY=1.7    SCIPY=0.11   NETCDF=1.0   MATPLOTLIB=1.3
     - env: NUMPY=1.8.2  SCIPY=0.13.3 NETCDF=1.1   MATPLOTLIB=1.3
-    - env: NUMPY=1.13.3 SCIPY=1.0    NETCDF=1.3.0 MATPLOTLIB=2.0
 cache:
   directories:
     - $HOME/download
