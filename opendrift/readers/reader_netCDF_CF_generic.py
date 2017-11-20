@@ -62,6 +62,7 @@ class Reader(BaseReader):
         logging.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
+            logging.debug('Parsing variable: ' +  var_name)
             var = self.Dataset.variables[var_name]
             if var.ndim > 1:
                 continue  # Coordinates must be 1D-array
@@ -82,8 +83,12 @@ class Reader(BaseReader):
             if '_CoordinateAxisType' in attributes:
                 CoordinateAxisType = var.__dict__['_CoordinateAxisType']
             if standard_name == 'longitude' or \
-                    long_name == 'longitude' or \
-                    axis == 'X' or \
+                    long_name == 'longitude':
+                self.lon = var[:]
+            if standard_name == 'latitude' or \
+                    long_name == 'latitude':
+                self.lat = var[:]
+            if axis == 'X' or \
                     CoordinateAxisType == 'Lon' or \
                     standard_name == 'projection_x_coordinate':
                 self.xname = var_name
@@ -93,11 +98,8 @@ class Reader(BaseReader):
                 else:
                     unitfactor = 1
                 x = var[:]*unitfactor
-                self.unitfactor = unitfactor
-                self.numx = var.shape[0]
-            if standard_name == 'latitude' or \
-                    long_name == 'latitude' or \
-                    axis == 'Y' or \
+                self.numx = var.shape[0] 
+            if axis == 'Y' or \
                     CoordinateAxisType == 'Lat' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
@@ -106,8 +108,9 @@ class Reader(BaseReader):
                     unitfactor = 1000
                 else:
                     unitfactor = 1
+                self.unitfactor = unitfactor
                 y = var[:]*unitfactor
-                self.numy = var.shape[0]
+                self.numy = var.shape[0] 
             if standard_name == 'depth' or axis == 'Z':
                 if 'positive' not in var.ncattrs() or \
                         var.__dict__['positive'] == 'up':
@@ -130,26 +133,39 @@ class Reader(BaseReader):
             raise ValueError('Did not find x-coordinate variable')
         if 'y' not in locals():
             raise ValueError('Did not find y-coordinate variable')
-        self.xmin, self.xmax = x.min(), x.max()
-        self.ymin, self.ymax = y.min(), y.max()
-        self.delta_x = np.abs(x[1] - x[0])
-        self.delta_y = np.abs(y[1] - y[0])
-        rel_delta_x = (x[1::] - x[0:-1])
-        rel_delta_x = np.abs((rel_delta_x.max() -
-                              rel_delta_x.min())/self.delta_x)
-        rel_delta_y = (y[1::] - y[0:-1])
-        rel_delta_y = np.abs((rel_delta_y.max() -
-                              rel_delta_y.min())/self.delta_y)
-        if rel_delta_x > 0.01:  # Allow 1 % deviation
-            print rel_delta_x
-            print x[1::] - x[0:-1]
-            raise ValueError('delta_x is not constant!')
-        if rel_delta_y > 0.01:
-            print rel_delta_y
-            print y[1::] - y[0:-1]
-            raise ValueError('delta_y is not constant!')
-        self.x = x  # Store coordinate vectors
-        self.y = y
+        if x.ndim == 1:
+            self.xmin, self.xmax = x.min(), x.max()
+            self.ymin, self.ymax = y.min(), y.max()
+            self.delta_x = np.abs(x[1] - x[0])
+            self.delta_y = np.abs(y[1] - y[0])
+            rel_delta_x = (x[1::] - x[0:-1])
+            rel_delta_x = np.abs((rel_delta_x.max() -
+                                  rel_delta_x.min())/self.delta_x)
+            rel_delta_y = (y[1::] - y[0:-1])
+            rel_delta_y = np.abs((rel_delta_y.max() -
+                                  rel_delta_y.min())/self.delta_y)
+            if rel_delta_x > 0.01:  # Allow 1 % deviation
+                print rel_delta_x
+                print x[1::] - x[0:-1]
+                raise ValueError('delta_x is not constant!')
+            if rel_delta_y > 0.01:
+                print rel_delta_y
+                print y[1::] - y[0:-1]
+                raise ValueError('delta_y is not constant!')
+            self.x = x  # Store coordinate vectors
+            self.y = y
+        elif x.ndim == 2:
+            self.xmin = 0
+            self.ymin = 0
+            self.xmax = x.shape[0] - 1
+            self.ymax = x.shape[1] - 1
+            self.x = range(0, self.xmax)
+            self.y = range(0, self.ymax)
+            self.projected = False
+            del self.proj4
+        else:
+            raise ValueError('Wrong dimension of coordinate: %s'
+                             % x.ndim)
 
         # Find all variables having standard_name
         self.variable_mapping = {}
