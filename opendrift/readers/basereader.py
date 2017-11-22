@@ -985,7 +985,8 @@ class BaseReader(object):
                           width=width, height=width)
         else:
             # Global map if reader domain is large
-            map = Basemap(-180, -89, 180, 89,
+            map = Basemap(np.array(corners[0]).min(), -89,
+                          np.array(corners[0]).max(), 89,
                           resolution='c', projection='cyl')
 
         map.drawcoastlines()
