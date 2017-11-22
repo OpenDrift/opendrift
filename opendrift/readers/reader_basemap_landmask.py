@@ -131,6 +131,7 @@ class Reader(BaseReader):
     Returns a vector of booleans with True if the point (x[i], y[i]) is on land
     """
     def on_land(self, x, y):
+        #return [self.map.is_land(x0, y0) for x0,y0 in zip(x,y)]  # uncomment for simulation in lakes
         x0 = (x - self.bmap_raster.xmin)/self.bmap_raster.resolution
         y0 = (y - self.bmap_raster.ymin)/self.bmap_raster.resolution
         x0 = np.int32(x0)
