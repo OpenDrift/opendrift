@@ -77,9 +77,11 @@ class Reader(BaseReader):
             if standard_name == 'longitude' or \
                     long_name == 'longitude':
                 self.lon = var
+                lon_var_name = var_name
             if standard_name == 'latitude' or \
                     long_name == 'latitude':
                 self.lat = var
+                lat_var_name = var_name
             if axis == 'X' or \
                     CoordinateAxisType == 'Lon' or \
                     standard_name == 'projection_x_coordinate':
@@ -124,14 +126,20 @@ class Reader(BaseReader):
         if 'x' not in locals():
             if self.lon.ndim == 1:
                 x = self.lon[:]
+                self.xname = lon_var_name
+                self.numx = len(x)
             else:
                 raise ValueError('Did not find x-coordinate variable')
         if 'y' not in locals():
             if self.lat.ndim == 1:
                 y = self.lat[:]
+                self.yname = lat_var_name
+                self.numy = len(y)
             else:
                 raise ValueError('Did not find y-coordinate variable')
 
+        if not hasattr(self, 'unitfactor'):
+            self.unitfactor = 1
         self.xmin, self.xmax = x.min(), x.max()
         self.ymin, self.ymax = y.min(), y.max()
         self.delta_x = np.abs(x[1] - x[0])
