@@ -39,6 +39,10 @@ basemap = reader_basemap_landmask.Reader(
 class TestReaders(unittest.TestCase):
     """Tests for readers"""
 
+    def test_parse_filename_date(self):
+        o = OceanDrift()
+        f = o.parse_filename_date('/lustre/storeB/project/metproduction/products/norshelf/norshelf_his_%Y%m%dT00Z.nc')
+
     def test_adding_readers(self):
         o = OceanDrift()
         r = reader_ROMS_native.Reader(o.test_data_folder() +

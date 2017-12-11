@@ -609,6 +609,20 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
 
+    def parse_filename_date(self, filename, check_existence=True):
+
+        if not isinstance(filename, basestring):
+            return filename
+        f = datetime.now().strftime(filename)
+        if f == filename:
+            return filename
+        if os.path.exists(f):
+            print 'File exists'
+        else:
+            print 'File does not exist'
+
+        return f
+
     def add_readers_from_list(self, urls, timeout=10):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
@@ -2928,4 +2942,3 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Could not save animation:')
             logging.info(e)
             logging.debug(traceback.format_exc())
-                

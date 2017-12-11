@@ -952,7 +952,7 @@ class BaseReader(object):
                 outStr += '%10s  %s\n' % (time, cat)
         return outStr
 
-    def plot(self, variable=None, vmin=None, vmax=None):
+    def plot(self, variable=None, vmin=None, vmax=None, filename=None):
         """Plot geographical coverage of reader."""
 
         try:
@@ -1041,4 +1041,8 @@ class BaseReader(object):
         except:
             pass
 
-        plt.show()
+        if filename is not None:
+            plt.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
