@@ -189,12 +189,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                            z_i, bounds_error=False,
                            fill_value=(0,len(z_i)-1))  # Extrapolation
 
-        from matplotlib import pyplot
-        #fig=pyplot.figure()
-        #ax = fig.gca()
-        #ax.plot(self.environment_profiles['z'],Kprofiles[0])
-        #pyplot.show()
-
         # internal loop for fast time step of vertical mixing model
         # random walk needs faster time step compared
         # to horizontal advection
@@ -227,6 +221,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             w = self.elements.terminal_velocity
 
             # diffusivity K at depth z+dz
+
             dz = 1e-3
             zi = z_index(-self.elements.z+0.5*dz)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
@@ -251,6 +246,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
             # diffusivity gradient
             dKdz = (K1 - K2) / dz
+
             # K at depth z+dKdz*dt/2 
             zi = z_index(-(self.elements.z+dKdz*dt_mix/2))
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
@@ -261,6 +257,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 weight_upper + \
                 Kprofiles[lower, range(Kprofiles.shape[1])] * \
                 (1-weight_upper)
+
 
             # Visser et al. 1996 random walk mixing
             # requires an inner loop time step dt such that
@@ -283,6 +280,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
            
             # advect due to buoyancy
             self.elements.z = self.elements.z + w*dt_mix
+
 
             # put the particles that belonged to the surface slick (if present) back to the surface
             self.elements.z[surface] = 0.
