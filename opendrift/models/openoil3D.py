@@ -386,24 +386,29 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         #plt.gca().set_yscale("log")
         #plt.show()
 
-    def surface_interaction(self, time_step_seconds, alpha=1.5):
+    def surface_wave_mixing(self, time_step_seconds, alpha=1.5):
         """Mix surface oil into water column."""
-
-        # Place particles above surface to exactly 0
-        surface = self.elements.z >= 0
-        self.elements.z[surface] = 0
-
         # Entrain oil into uppermost layer (whitecapping from waves)
         # TODO: optimise this by only calculate for surface elements
+        surface = self.elements.z >= 0
         random_number = np.random.uniform(0, 1, len(self.elements.z))
         entrained = np.logical_and(surface,
                         random_number<self.oil_entrainment_probability)
+        # TODO: determine water depth for wave entrainment
         self.elements.z[entrained] = \
             -self.get_config('turbulentmixing:verticalresolution')/2.
         if self.keep_droplet_diameter is False:
             # Give surface elements a random diameter
             self.elements.diameter[self.elements.z==0] = \
                 self.droplet_diamenter_if_entrained[self.elements.z==0]
+
+    def surface_stick(self):
+        """set surfaced particles to exactly zero depth to let them form a slick """
+        
+        surface = np.where(self.elements.z >= 0)
+        if len(surface[0]) > 0:
+            self.elements.z[surface] = 0.
+
 
     def get_wave_breaking_droplet_diameter(self):
         dm = self.get_config('wave_entrainment:droplet_size_distribution')
