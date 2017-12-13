@@ -222,6 +222,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
             # diffusivity K at depth z+dz
 
+
             dz = 1e-3
             zi = z_index(-self.elements.z+0.5*dz)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
@@ -280,7 +281,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
            
             # advect due to buoyancy
             self.elements.z = self.elements.z + w*dt_mix
-
 
             # put the particles that belonged to the surface slick (if present) back to the surface
             self.elements.z[surface] = 0.
