@@ -114,6 +114,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     configspec_basemodel = '''
             [general]
+                use_basemap_landmask = boolean(default=True)
                 basemap_resolution = option('f', 'h', 'i', 'c', default='h')
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
             [drift]
@@ -1660,9 +1661,17 @@ class OpenDriftSimulation(PhysicsMethods):
         # If no basemap has been added, we determine it dynamically
         ##############################################################
         # TODO: some more error checking here
-        if 'land_binary_mask' in self.required_variables and \
+        # If Basemap landmask is requested, it shall not be obtained from other readers
+        if self.get_config('general:use_basemap_landmask') is True:
+            if 'land_binary_mask' in self.priority_list:
+                if 'basemap_landmask' in self.priority_list['land_binary_mask']:
+                    self.priority_list['land_binary_mask'] = ['basemap_landmask']
+                else:
+                    del self.priority_list['land_binary_mask']
+        if self.get_config('general:use_basemap_landmask') is True and \
+                ('land_binary_mask' in self.required_variables and \
                 'land_binary_mask' not in self.priority_list \
-                and 'land_binary_mask' not in self.fallback_values:
+                and 'land_binary_mask' not in self.fallback_values):
             logging.info(
                 'Adding a dynamical landmask (resolution "%s") based on '
                 'assumed maximum speed of %s m/s. '
@@ -2552,6 +2561,11 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             scalar = data[background]
             u_component = v_component = None
+
+        # Shift one pixel for correct plotting
+        reader_x = reader_x - reader.delta_x
+        reader_y = reader_y - reader.delta_y
+
         rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
         map_x, map_y = map(rlons, rlats)
 

@@ -205,7 +205,7 @@ class ReaderBlock():
     """Class to store and interpolate the output from a reader."""
 
     def __init__(self, data_dict,
-                 interpolation_horizontal='ndimage',
+                 interpolation_horizontal='linearNDFast',
                  interpolation_vertical='linear'):
 
         # Make pointers to data values, for convenience
@@ -248,6 +248,12 @@ class ReaderBlock():
                 'Valid interpolation methods are: ' +
                 str(vertical_interpolation_methods.keys()))
 
+        if 'land_binary_mask' in self.data_dict.keys() and \
+                interpolation_horizontal != 'nearest':
+            logging.debug('Nearest interpolation will be used '
+                          'for landmask, and %s for other variables'
+                          % interpolation_horizontal)
+
     def _initialize_interpolator(self, x, y, z=None):
         logging.debug('Initialising interpolator.')
         self.interpolator2d = self.Interpolator2DClass(self.x, self.y, x, y)
@@ -263,7 +269,11 @@ class ReaderBlock():
         if profiles is not []:
             profiles_dict = {'z': self.z}
         for varname, data in self.data_dict.iteritems():
-            horizontal = self._interpolate_horizontal_layers(data)
+            nearest = False
+            if varname == 'land_binary_mask':
+                nearest = True
+                self.interpolator2d_nearest = Nearest2DInterpolator(self.x, self.y, x, y)
+            horizontal = self._interpolate_horizontal_layers(data, nearest=nearest)
             if profiles is not None and varname in profiles:
                 profiles_dict[varname] = horizontal
             if horizontal.ndim > 1:
@@ -272,15 +282,19 @@ class ReaderBlock():
                 env_dict[varname] = horizontal
         return env_dict, profiles_dict
 
-    def _interpolate_horizontal_layers(self, data):
+    def _interpolate_horizontal_layers(self, data, nearest=False):
         '''Interpolate all layers of 3d (or 2d) array.'''
 
+        if nearest is True:
+            interpolator2d = self.interpolator2d_nearest
+        else:
+            interpolator2d = self.interpolator2d
         if data.ndim == 2:
-            return self.interpolator2d(data)
+            return interpolator2d(data)
         if data.ndim == 3:
             num_layers = data.shape[0]
             # Allocate output array
-            result = np.ma.empty((num_layers, len(self.interpolator2d.x)))
+            result = np.ma.empty((num_layers, len(interpolator2d.x)))
             for layer in range(num_layers):
                 result[layer, :] = self.interpolator2d(data[layer, :, :])
             return result

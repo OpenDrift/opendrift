@@ -92,7 +92,7 @@ class TestInterpolation(unittest.TestCase):
 
         data_dict, x, y, z = self.get_synthetic_data_dict()
         # Make block from dictionary, and apply tests
-        b = ReaderBlock(data_dict)
+        b = ReaderBlock(data_dict, interpolation_horizontal='ndimage')
         self.assertEqual(b.data_dict['var2d'].shape,
                          (len(b.y), len(b.x)))
         self.assertEqual(b.data_dict['var3d'].shape,
