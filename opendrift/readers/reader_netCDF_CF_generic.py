@@ -150,11 +150,11 @@ class Reader(BaseReader):
         rel_delta_y = (y[1::] - y[0:-1])
         rel_delta_y = np.abs((rel_delta_y.max() -
                               rel_delta_y.min())/self.delta_y)
-        if rel_delta_x > 0.01:  # Allow 1 % deviation
+        if rel_delta_x > 0.02:  # Allow 1 % deviation
             print rel_delta_x
             print x[1::] - x[0:-1]
             raise ValueError('delta_x is not constant!')
-        if rel_delta_y > 0.01:
+        if rel_delta_y > 0.02:
             print rel_delta_y
             print y[1::] - y[0:-1]
             raise ValueError('delta_y is not constant!')

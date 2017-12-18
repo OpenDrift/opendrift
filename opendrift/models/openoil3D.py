@@ -347,6 +347,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # Z. Li, M.L. Spaulding, D. French McCay, J. Mar. Pollut. Bull. (2016):
         # An algorithm for modeling entrainment and naturally and chemically dispersed
         # oil droplet size distribution under surface breaking wave conditions
+        print 'sig. wave height ', self.significant_wave_height()
         g = 9.81
         interfacial_tension = self.oil_water_interfacial_tension
         delta_rho = self.sea_water_density() - self.elements.density
