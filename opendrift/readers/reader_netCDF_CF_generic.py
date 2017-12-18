@@ -106,11 +106,12 @@ class Reader(BaseReader):
                 y = var[:]*unitfactor
                 self.numy = var.shape[0] 
             if standard_name == 'depth' or axis == 'Z':
-                if 'positive' not in attributes or \
-                        var.__dict__['positive'] == 'up':
-                    self.z = var[:]
-                else:
-                    self.z = -var[:]
+                if var[:].ndim == 1:
+                    if 'positive' not in attributes or \
+                            var.__dict__['positive'] == 'up':
+                        self.z = var[:]
+                    else:
+                        self.z = -var[:]
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
                 time = var[:]
