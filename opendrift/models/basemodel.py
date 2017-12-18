@@ -1802,6 +1802,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                          self.elements.z,
                                          self.required_profiles)
 
+                self.calculate_missing_environment_variables()
+
                 self.interact_with_coastline()
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
