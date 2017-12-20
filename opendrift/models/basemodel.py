@@ -130,6 +130,7 @@ class OpenDriftSimulation(PhysicsMethods):
     max_speed = 1  # Assumed max average speed of any element
     required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
+    plot_comparison_colors = ['r', 'g', 'b', 'm', 'c', 'y']
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  loglevel=logging.DEBUG):
@@ -2180,41 +2181,20 @@ class OpenDriftSimulation(PhysicsMethods):
                                      self.elements_deactivated.lat)
 
         if compare is not None:
-            colors = ['r.', 'g.', 'b.', 'm.']
-            if not type(compare) is list:
-                compare = [compare]
-            if legend == ['']:
-                legend = ['']*int(len(compare)+1)
-            compare_list = [{}]*len(compare)
-            for cn, comp in enumerate(compare):
-                compare_list[cn] = {}
-                cd = compare_list[cn]  # pointer to dict with data
-                if type(comp) is str:
-                    # Other is given as filename
-                    other = self.__class__(loglevel=0)
-                    other.io_import_file(comp)
-                else:
-                    # Other is given as an OpenDrift object
-                    other = comp
+            compare_list = self._get_comparison_xy_for_plots(map, compare)
 
-                # Find map coordinates and plot data for comparison
-                cd['x_other'], cd['y_other'] = \
-                    map(other.history['lon'], other.history['lat'])
+            for cn, cd in enumerate(compare_list):
+                if legend != ['']:
+                    legstr = legend[cn+1]
+                else:
+                    legstr = None
                 cd['points_other'] = \
                     map.plot(cd['x_other'][0, 0],
-                             cd['y_other'][0, 0], colors[cn],
-                             label=legend[cn+1], markersize=markersize)[0]
-                cd['x_other_deactive'], cd['y_other_deactive'] = \
-                    map(other.elements_deactivated.lon,
-                        other.elements_deactivated.lat)
+                        cd['y_other'][0, 0], self.plot_comparison_colors[cn] + '.',
+                        label=legstr, markersize=markersize)[0]
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    map.plot([], [], colors[cn], alpha=.3)[0]
-                cd['firstlast'] = np.ma.notmasked_edges(
-                    cd['x_other'], axis=1)
-                cd['index_of_last_other'] = cd['firstlast'][1][1]
-                cd['index_of_last_deactivated_other'] = \
-                    cd['index_of_last_other'][other.elements_deactivated.ID-1]
+                    map.plot([], [], self.plot_comparison_colors[cn] + '.', alpha=.3)[0]
 
         if legend != ['', '']:
             plt.legend(markerscale=3, loc=legend_loc)
@@ -2225,7 +2205,10 @@ class OpenDriftSimulation(PhysicsMethods):
         if filename is not None:
             self._save_animation(anim, filename, fps)
         else:
-            plt.show()
+            try:
+                plt.show()
+            except AttributeError:
+                pass
 
     def animation_profile(self, filename=None, compare=None,
                           legend=['', ''], markersize=5, fps=20):
@@ -2322,13 +2305,45 @@ class OpenDriftSimulation(PhysicsMethods):
         if filename is not None:
             self._save_animation(anim, filename, fps)
         else:
-            plt.show()
+            try:
+                plt.show()
+            except AttributeError:
+                pass
+
+    def _get_comparison_xy_for_plots(self, map, compare):
+        if not type(compare) is list:
+            compare = [compare]
+        compare_list = [{}]*len(compare)
+        for cn, comp in enumerate(compare):
+            compare_list[cn] = {}
+            cd = compare_list[cn]  # pointer to dict with data
+            if type(comp) is str:
+                # Other is given as filename
+                other = self.__class__(loglevel=0)
+                other.io_import_file(comp)
+            else:
+                # Other is given as an OpenDrift object
+                other = comp
+
+            # Find map coordinates of comparison simulations
+            cd['x_other'], cd['y_other'] = \
+                map(other.history['lon'], other.history['lat'])
+            cd['x_other_deactive'], cd['y_other_deactive'] = \
+                map(other.elements_deactivated.lon,
+                    other.elements_deactivated.lat)
+            cd['firstlast'] = np.ma.notmasked_edges(
+                cd['x_other'], axis=1)
+            cd['index_of_last_other'] = cd['firstlast'][1][1]
+            cd['index_of_last_deactivated_other'] = \
+                cd['index_of_last_other'][other.elements_deactivated.ID-1]
+
+        return compare_list
 
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
-             drifter_file=None, show=True, vmin=None, vmax=None,
+             show=True, vmin=None, vmax=None, compare=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
-             title='auto', legend='best', **kwargs):
+             title='auto', legend=None, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -2364,7 +2379,11 @@ class OpenDriftSimulation(PhysicsMethods):
         if hasattr(self, 'history'):
             # Plot trajectories
             if linecolor is None:
-                map.plot(x.T, y.T, color='gray', alpha=alpha)
+                if compare is not None and legend is not None:
+                    map.plot(x.T[:,0], y.T[:,0], color='gray', alpha=alpha, label=legend[0])
+                    map.plot(x.T, y.T, color='gray', alpha=alpha, label='_nolegend_')
+                else:
+                    map.plot(x.T, y.T, color='gray', alpha=alpha)
             else:
                 # Color lines according to given parameter
                 try:
@@ -2400,17 +2419,24 @@ class OpenDriftSimulation(PhysicsMethods):
                 axcb.set_label(colorbarstring, size=14)
                 axcb.ax.tick_params(labelsize=14)
 
+        if compare is None:
+            label_initial = 'initial (%i)' % x.shape[0]
+            label_active = 'active (%i)' % (x.shape[0] - self.num_elements_deactivated())
+            color_initial = self.status_colors['initial']
+            color_active = self.status_colors['active']
+        else:
+            label_initial = None
+            label_active = None
+            color_initial = 'gray'
+            color_active = 'gray'
         map.scatter(x[range(x.shape[0]), index_of_first],
                     y[range(x.shape[0]), index_of_first],
                     zorder=10, edgecolor='k', linewidths=.2,
-                    color=self.status_colors['initial'],
-                    label='initial (%i)' % x.shape[0])
+                    color=color_initial, label=label_initial)
         map.scatter(x[range(x.shape[0]), index_of_last],
                     y[range(x.shape[0]), index_of_last],
                     zorder=3, edgecolor='k', linewidths=.2,
-                    color=self.status_colors['active'],
-                    label='active (%i)' %
-                    (x.shape[0] - self.num_elements_deactivated()))
+                    color=color_active, label=label_active)
 
         x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
                                            self.elements_deactivated.lat)
@@ -2432,13 +2458,35 @@ class OpenDriftSimulation(PhysicsMethods):
                     zorder = 11
                 else:
                     zorder = 3
+                if compare is not None:
+                    legstr = None
+                else:
+                    legstr = '%s (%i)' % (status, len(indices[0]))
+                if compare is None:
+                    color_status = self.status_colors[status]
+                else:
+                    color_status = 'gray'
                 map.scatter(x_deactivated[indices], y_deactivated[indices],
                             zorder=zorder, edgecolor='k', linewidths=.1,
-                            color=self.status_colors[status],
-                            label='%s (%i)' % (status, len(indices[0])))
+                            color=color_status, label=legstr)
+
+        if compare is not None:
+            cd = self._get_comparison_xy_for_plots(map, compare)
+            for i, c in enumerate(cd):
+                if legend != None:
+                    legstr = legend[i+1]
+                else:
+                    legstr = None
+                map.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i] + '-', label=legstr)
+                map.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i] + '-', label='_nolegend_')
+                map.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
+                    c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
+                    zorder=3, edgecolor='k', linewidths=.2,
+                    color=self.plot_comparison_colors[i])
+
         try:
-            if legend is not None:
-                plt.legend(loc=legend)
+            if legend is not None or compare is None:
+                plt.legend(loc=legend_loc)
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
             print traceback.format_exc()
@@ -2487,22 +2535,6 @@ class OpenDriftSimulation(PhysicsMethods):
                                '%Y-%m-%d %H:%M')))
             else:
                 plt.title(title)
-
-        if drifter_file is not None:
-            # Format of joubeh.com
-            for dfile in drifter_file:
-                data = np.recfromcsv(dfile)
-                x, y = map(data['longitude'], data['latitude'])
-                map.plot(x, y, '-k', linewidth=2)
-                map.plot(x[0], y[0], '*k')
-                map.plot(x[-1], y[-1], '*k')
-
-            # Format for shell buoy
-            #data = np.loadtxt(drifter_file, skiprows=1, usecols=(2, 3))
-            #x, y = map(data.T[1], data.T[0])
-            #map.plot(x, y, '-r', linewidth=2, zorder=10)
-            #map.plot(x[0], y[0], '*r', zorder=10)
-            #map.plot(x[-1], y[-1], '*r', zorder=10)
 
         if trajectory_dict is not None:
             self._plot_trajectory_dict(map, trajectory_dict)
