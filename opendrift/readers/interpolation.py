@@ -273,13 +273,30 @@ class ReaderBlock():
             if varname == 'land_binary_mask':
                 nearest = True
                 self.interpolator2d_nearest = Nearest2DInterpolator(self.x, self.y, x, y)
-            horizontal = self._interpolate_horizontal_layers(data, nearest=nearest)
+            if type(data) is list:
+                num_ensembles = len(data)
+                logging.debug('Interpolating %i ensembles for %s' % (num_ensembles, varname))
+                if data[0].ndim == 2:
+                    horizontal = np.zeros(x.shape)*np.nan
+                else:
+                    horizontal = np.zeros((len(self.z), len(x)))*np.nan
+                ensemble_number = np.remainder(range(len(x)), num_ensembles)
+                for en in range(num_ensembles):
+                    elnum = ensemble_number == en
+                    int_full = self._interpolate_horizontal_layers(data[en], nearest=nearest)
+                    if int_full.ndim == 1:
+                        horizontal[elnum] = int_full[elnum]
+                    else:
+                        horizontal[:, elnum] = int_full[:, elnum]
+            else:
+                horizontal = self._interpolate_horizontal_layers(data, nearest=nearest)
             if profiles is not None and varname in profiles:
                 profiles_dict[varname] = horizontal
             if horizontal.ndim > 1:
                 env_dict[varname] = self.interpolator1d(horizontal)
             else:
                 env_dict[varname] = horizontal
+
         return env_dict, profiles_dict
 
     def _interpolate_horizontal_layers(self, data, nearest=False):
