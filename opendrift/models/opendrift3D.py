@@ -182,7 +182,9 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             Tprofiles = None
 
         # prepare vertical interpolation coordinates
-        z_i = range(Kprofiles.shape[0])
+        #z_i = range(Kprofiles.shape[0])
+        z_i = range(self.environment_profiles['z'].shape[0])
+        #print len(self.environment_profiles['z']), len(z_i)
         z_index = interp1d(-self.environment_profiles['z'],
                            z_i, bounds_error=False,
                            fill_value=(0,len(z_i)-1))  # Extrapolation
@@ -357,7 +359,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             mask = self.history['z'].T[0] == self.history['z'].T[0] 
 
         if bins is None:
-            bins=-maxrange/dz
+            bins=int(-maxrange/dz)
 
         ax.hist(self.history['z'].T[step,mask], bins=bins,
                 range=[maxrange, 0], orientation='horizontal')

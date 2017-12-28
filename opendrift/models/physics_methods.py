@@ -148,6 +148,7 @@ class PhysicsMethods(object):
 
         x_wind = self.environment.x_wind
         y_wind = self.environment.y_wind
+        
         try:
             if self.get_config('drift:relative_wind') is True:
                 # Use wind relative to (subtracted) ocean current
