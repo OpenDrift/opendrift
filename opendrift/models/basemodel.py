@@ -2117,13 +2117,13 @@ class OpenDriftSimulation(PhysicsMethods):
         return lons, lats
 
     def animation(self, buffer=.2, filename=None, compare=None,
-                  background=None, vmin=None, vmax=None, skip=5, scale=10,
-                  legend=None, legend_loc='best', markersize=5, fps=10):
+                  background=None, vmin=None, vmax=None,
+                  skip=5, scale=10, color=False, markersize=5,
+                  legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
-            #plt.gcf().gca().set_title(str(i))
             ax.set_title(times[i])
             if background is not None:
                 map_x, map_y, scalar, u_component, v_component = \
@@ -2136,30 +2136,47 @@ class OpenDriftSimulation(PhysicsMethods):
                                map_y[::skip, ::skip],
                                u_component[::skip, ::skip],
                                v_component[::skip, ::skip], scale=scale)
-            points.set_data(x[range(x.shape[0]), i],
-                            y[range(x.shape[0]), i])
-            points_deactivated.set_data(
+            # Move points
+            points.set_offsets(np.c_[x[range(x.shape[0]), i],
+                                     y[range(x.shape[0]), i]])
+            points_deactivated.set_offsets(np.c_[
                 x_deactive[index_of_last_deactivated < i],
-                y_deactive[index_of_last_deactivated < i])
+                y_deactive[index_of_last_deactivated < i]])
+            if color is not False:  # Update colors
+                points.set_array(colorarray[:, i])
+                if isinstance(color, basestring):
+                    points_deactivated.set_array(
+                        colorarray_deactivated[
+                            index_of_last_deactivated < i])
 
             if compare is not None:
                 for cd in compare_list:
-                    cd['points_other'].set_data(
+                    cd['points_other'].set_offsets(np.c_[
                         cd['x_other'][range(cd['x_other'].shape[0]), i],
-                        cd['y_other'][range(cd['x_other'].shape[0]), i])
-                    cd['points_other_deactivated'].set_data(
+                        cd['y_other'][range(cd['x_other'].shape[0]), i]])
+                    cd['points_other_deactivated'].set_offsets(np.c_[
                         cd['x_other_deactive'][
                             cd['index_of_last_deactivated_other'] < i],
                         cd['y_other_deactive'][
-                            cd['index_of_last_deactivated_other'] < i])
+                            cd['index_of_last_deactivated_other'] < i]])
                 return points, cd['points_other']
             else:
                 return points
 
-        # Find map coordinates and plot points with empty data, to be updated
+        # Find map coordinates and plot points with empty data
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
         ax = plt.gcf().gca()
+
+        if color is not False:
+            if isinstance(color, basestring):
+                colorarray = self.get_property(color)[0].T
+                colorarray_deactivated = \
+                    getattr(self.elements_deactivated, color)
+            else:
+                colorarray = color
+            vmin = colorarray.min()
+            vmax = colorarray.max()
 
         if background is not None:
             map_x, map_y, scalar, u_component, v_component = \
@@ -2173,10 +2190,18 @@ class OpenDriftSimulation(PhysicsMethods):
             index_of_last[self.elements_deactivated.ID-1]
         if legend is None:
             legend = ['']
-        points = map.plot([], [], '.k', label=legend[0],
-                          markersize=markersize)[0]
+
+        if color is False:
+            c = 'k'
+        else:
+            c = []
+        points = map.scatter([], [], color=c, zorder=10,
+                             edgecolor='',
+                             vmin=vmin, vmax=vmax, label=legend[0])
         # Plot deactivated elements, with transparency
-        points_deactivated = map.plot([], [], '.k', alpha=.3)[0]
+        points_deactivated = map.scatter([], [], color=c, zorder=9,
+                                         vmin=vmin, vmax=vmax,
+                                         edgecolor='', alpha=.3)
         x_deactive, y_deactive = map(self.elements_deactivated.lon,
                                      self.elements_deactivated.lat)
 
@@ -2189,18 +2214,26 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     legstr = None
                 cd['points_other'] = \
-                    map.plot(cd['x_other'][0, 0],
-                        cd['y_other'][0, 0], self.plot_comparison_colors[cn] + '.',
-                        label=legstr, markersize=markersize)[0]
+                    map.scatter([], [], color=
+                                self.plot_comparison_colors[cn],
+                                label=legstr, zorder=10)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    map.plot([], [], self.plot_comparison_colors[cn] + '.', alpha=.3)[0]
+                    map.scatter([], [], color= self.plot_comparison_colors[cn], alpha=.3, zorder=9)
 
         if legend != ['', '']:
             plt.legend(markerscale=3, loc=legend_loc)
 
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
                                        frames=x.shape[1], interval=50)
+
+        if color is not False:
+            if isinstance(color, basestring):
+                cb = plt.colorbar(label=color)
+            else:
+                cb = plt.colorbar()
+            cb.set_alpha(1)
+            cb.draw_all()
 
         if filename is not None:
             self._save_animation(anim, filename, fps)
@@ -2387,7 +2420,10 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 # Color lines according to given parameter
                 try:
-                    param = self.history[linecolor]
+                    if isinstance(linecolor, basestring):
+                        param = self.history[linecolor]
+                    else:
+                        param = linecolor
                 except:
                     raise ValueError(
                         'Available parameters to be used for linecolors: ' +
