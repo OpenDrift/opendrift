@@ -279,7 +279,7 @@ class Reader(BaseReader):
             # Ensemble blocks are split into lists
             if ensemble_dim is not None:
                 num_ensembles = variables[par].shape[ensemble_dim]
-                logging.debug('Num ensembles: ', num_ensembles)
+                logging.debug('Num ensembles: %i ' % num_ensembles)
                 newvar = [0]*num_ensembles
                 for ensemble_num in range(num_ensembles):
                     newvar[ensemble_num] = \

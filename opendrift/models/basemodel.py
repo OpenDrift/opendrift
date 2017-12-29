@@ -2118,7 +2118,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def animation(self, buffer=.2, filename=None, compare=None,
                   background=None, vmin=None, vmax=None,
-                  skip=5, scale=10, color=False, markersize=5,
+                  skip=5, scale=10, color=False, clabel=None,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
@@ -2224,12 +2224,16 @@ class OpenDriftSimulation(PhysicsMethods):
         if legend != ['', '']:
             plt.legend(markerscale=3, loc=legend_loc)
 
-        anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
-                                       frames=x.shape[1], interval=50)
+        anim = animation.FuncAnimation(
+            plt.gcf(), plot_timestep, blit=False,
+            frames=x.shape[1], interval=50)
 
         if color is not False:
-            if isinstance(color, basestring):
-                cb = plt.colorbar(label=color)
+            if isinstance(color, basestring) or clabel is not None:
+                if clabel is None:
+                    clabel = color
+                print clabel
+                cb = plt.colorbar(label=clabel)
             else:
                 cb = plt.colorbar()
             cb.set_alpha(1)
