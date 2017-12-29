@@ -123,6 +123,10 @@ class Reader(BaseReader):
                     self.time_step = self.times[1] - self.times[0]
                 else:
                     self.time_step = None
+            if standard_name == 'realization':
+                self.realizations = var[:]
+                logging.debug('%i ensemble members available'
+                              % len(self.realizations))
 
         if 'x' not in locals():
             if self.lon.ndim == 1:
@@ -191,7 +195,8 @@ class Reader(BaseReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None, block=False,
+                      indrealization=None):
 
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
@@ -211,6 +216,12 @@ class Reader(BaseReader):
                 indz = indz[0]  # Extract integer to read only one layer
         else:
             indz = 0
+
+        if indrealization == None:
+            if hasattr(self, 'realizations'):
+                indrealization = range(len(self.realizations))
+            else:
+                indrealization = None
 
         # Find indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
@@ -236,29 +247,45 @@ class Reader(BaseReader):
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
 
+            ensemble_dim = None
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
             elif var.ndim == 3:
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
                 variables[par] = var[indxTime, indz, indy, indx]
+            elif var.ndim == 5:  # Ensemble data
+                variables[par] = var[indxTime, indz, indrealization, indy, indx]
+                ensemble_dim = 0  # Hardcoded ensemble dimension for now
             else:
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-            # If 2D array is returned due to the fancy slicing methods
-            # of netcdf-python, we need to take the diagonal
+            # If 2D array is returned due to the fancy slicing
+            # methods of netcdf-python, we need to take the diagonal
             if variables[par].ndim > 1 and block is False:
                 variables[par] = variables[par].diagonal()
 
             # Mask values outside domain
-            variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
+            variables[par] = np.ma.array(variables[par],
+                                         ndmin=2, mask=False)
             if block is False:
                 variables[par].mask[outside] = True
 
             # Mask extreme values which might have slipped through
             variables[par] = np.ma.masked_outside(
                 variables[par], -30000, 30000)
+
+            # Ensemble blocks are split into lists
+            if ensemble_dim is not None:
+                num_ensembles = variables[par].shape[ensemble_dim]
+                logging.debug('Num ensembles: ', num_ensembles)
+                newvar = [0]*num_ensembles
+                for ensemble_num in range(num_ensembles):
+                    newvar[ensemble_num] = \
+                        np.take(variables[par],
+                                ensemble_num, ensemble_dim)
+                variables[par] = newvar
 
         # Store coordinates of returned points
         try:
