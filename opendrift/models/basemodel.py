@@ -2117,7 +2117,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return lons, lats
 
     def animation(self, buffer=.2, filename=None, compare=None,
-                  background=None, vmin=None, vmax=None,
+                  background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
@@ -2148,6 +2148,19 @@ class OpenDriftSimulation(PhysicsMethods):
                     points_deactivated.set_array(
                         colorarray_deactivated[
                             index_of_last_deactivated < i])
+
+            if drifter is not None:
+                from bisect import bisect_left
+                ind = np.max(
+                    (0, bisect_left(drifter['time'], times[i]) - 1))
+                if i < 1 or i >= len(times)-1 or \
+                        drifter['time'][ind] < times[i-1] or \
+                        drifter['time'][ind] > times[i+1]:
+                    # Do not show when outside time interval
+                    drifter_pos.set_offsets([])
+                else:
+                    drifter_pos.set_offsets(
+                        np.c_[drifter['x'][ind], drifter['y'][ind]])
 
             if compare is not None:
                 for cd in compare_list:
@@ -2220,6 +2233,13 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
                     map.scatter([], [], color= self.plot_comparison_colors[cn], alpha=.3, zorder=9)
+
+        if drifter is not None:
+            print 'Drifter!'
+            drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
+            #map.plot(drifter['x'], drifter['y'])
+            drifter_pos = map.scatter([], [], color='r',
+                                      zorder=15, label='Drifter')
 
         if legend != ['', '']:
             plt.legend(markerscale=3, loc=legend_loc)
