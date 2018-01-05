@@ -2197,6 +2197,10 @@ class OpenDriftSimulation(PhysicsMethods):
                                         time=self.start_time)
             map.pcolormesh(map_x, map_y, scalar, alpha=1,
                            vmin=vmin, vmax=vmax)
+            if clabel is None:
+                plt.colorbar()
+            else:
+                plt.colorbar(label=clabel)
 
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
@@ -2631,7 +2635,9 @@ class OpenDriftSimulation(PhysicsMethods):
         for readerName in self.readers:
             reader = self.readers[readerName]
             if variable in reader.variables:
-                break
+                if time is None or (time>= reader.start_time
+                        and time <= reader.end_time):
+                    break
         if time is None:
             if hasattr(self, 'elements_scheduled_time'):
                 # Using time of first seeded element
@@ -2640,7 +2646,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lons, lats = map.makegrid(4, 4)
         reader_x, reader_y = reader.lonlat2xy(lons, lats)
         data = reader.get_variables(
-            background, time, reader_x, reader_y, 0, block=True)
+            background, time, reader_x, reader_y, None, block=True)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
         if type(background) is list:
             u_component = data[background[0]]
@@ -3031,8 +3037,11 @@ class OpenDriftSimulation(PhysicsMethods):
             else:  # MP4
                 logging.info('Saving MP4 animation...')
                 try:
-                    anim.save(filename, fps=fps, bitrate=1800,
-                              extra_args=['-pix_fmt', 'yuv420p'])
+                    # For perfrect quality, but larger file size
+                    FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
+                    anim.save(filename, writer=FFwriter)
+                    #anim.save(filename, fps=fps, bitrate=1800,
+                    #          extra_args=['-pix_fmt', 'yuv420p'])
                 except Exception as e:
                     logging.info(e)
                     try:
