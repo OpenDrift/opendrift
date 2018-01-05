@@ -15,53 +15,22 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import logging
-from bisect import bisect_left, bisect_right
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
-from basereader import BaseReader, vector_pairs_xy
-from roppy import depth
+from basereader import BaseReader
 
+# This is a reader class for the netcdf file format used internally at MSL
+# It is adapted from reader_netCDF_CF_Generic.py (found in same folder)
+# S.Weppe  
 
 class Reader(BaseReader):
 
-    def __init__(self, filename=None, name=None, gridfile=None):
+    def __init__(self, filename=None, name=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
-
-        # Map ROMS variable names to CF standard_name
-        self.ROMS_variable_mapping = {
-            # Removing (temoprarily) land_binary_mask from ROMS-variables,
-            # as this leads to trouble with linearNDFast interpolation
-            'mask_rho': 'land_binary_mask',
-            'mask_psi': 'land_binary_mask',
-            'h': 'sea_floor_depth_below_sea_level',
-            'zeta': 'sea_surface_height',
-            'u': 'x_sea_water_velocity',
-            'v': 'y_sea_water_velocity',
-            'w': 'upward_sea_water_velocity',
-            'temp': 'sea_water_temperature',
-            'salt': 'sea_water_salinity',
-            'uice': 'sea_ice_x_velocity',
-            'vice': 'sea_ice_y_velocity',
-            'aice': 'sea_ice_area_fraction',
-            'hice': 'sea_ice_thickness',
-            'gls': 'turbulent_generic_length_scale',
-            'tke': 'turbulent_kinetic_energy',
-            'AKs': 'ocean_vertical_diffusivity',
-            'sustr': 'surface_downward_x_stress',
-            'svstr': 'surface_downward_y_stress',
-            'Uwind': 'x_wind',
-            'Vwind': 'y_wind'}
-
-        # z-levels to which sigma-layers may be interpolated
-        self.zlevels = [
-            0, -.5, -1, -3, -5, -10, -25, -50, -75, -100, -150, -200,
-            -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
-            -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
-            -6500, -7000, -7500, -8000]
 
         filestr = str(filename)
         if name is None:
@@ -81,338 +50,295 @@ class Reader(BaseReader):
         except Exception as e:
             raise ValueError(e)
 
-        if 's_rho' not in self.Dataset.variables:
-            dimensions = 2
-        else:
-            dimensions = 3
-
-        if dimensions == 3:
-            # Read sigma-coordinate values
-            try:
-                self.sigma = self.Dataset.variables['s_rho'][:]
-            except:
-                num_sigma = len(self.Dataset.dimensions['s_rho'])
-                logging.warning(
-                    's_rho not available in dataset, constructing from'
-                    ' number of layers (%s).' % num_sigma)
-                self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
-
-            # Read sigma-coordinate transform parameters
-            try:
-                self.Dataset.variables['Cs_r'].set_auto_mask(False)
-            except:
-                pass
-            self.Cs_r = self.Dataset.variables['Cs_r'][:]
-            try:
-                self.hc = self.Dataset.variables['hc'][:]
-            except:
-                self.hc = self.Dataset.variables['hc'][0]
-
-            self.num_layers = len(self.sigma)
-        else:
-            self.num_layers = 1
-            self.ROMS_variable_mapping['ubar'] = 'x_sea_water_velocity'
-            self.ROMS_variable_mapping['vbar'] = 'y_sea_water_velocity'
-            del self.ROMS_variable_mapping['u']
-            del self.ROMS_variable_mapping['v']
-
-        if 'lat_rho' in self.Dataset.variables:
-            # Horizontal oordinates and directions
-            self.lat = self.Dataset.variables['lat_rho'][:]
-            self.lon = self.Dataset.variables['lon_rho'][:]
-        else:
-            if gridfile is None:
-                raise ValueError(filename + ' does not contain lon/lat '
-                                 'arrays, please supply a grid-file '
-                                 '"gridfile=<grid_file>"')
-            else:
-                gf = Dataset(gridfile)
-                self.lat = gf.variables['lat_rho'][:]
-                self.lon = gf.variables['lon_rho'][:]
-
-        try:  # Check for GLS parameters (diffusivity)
-            self.gls_parameters = {}
-            for gls_param in ['gls_cmu0', 'gls_p', 'gls_m', 'gls_n']:
-                self.gls_parameters[gls_param] = \
-                    self.Dataset.variables[gls_param][()]
-            logging.info('Read GLS parameters from file.')
-        except Exception as e:
-            logging.info(e)
-            logging.info('Did not find complete set of GLS parameters')
-
-        # Get time coverage
-        try:
-            ocean_time = self.Dataset.variables['ocean_time']
-        except:
-            ocean_time = self.Dataset.variables['time']
-        time_units = ocean_time.__dict__['units']
-        if time_units == 'second':
-            logging.info('Ocean time given as seconds relative to start '
-                         'Setting artifical start time of 1 Jan 2000.')
-            time_units = 'seconds since 2000-01-01 00:00:00'
-        self.times = num2date(ocean_time[:], time_units)
-        self.start_time = self.times[0]
-        self.end_time = self.times[-1]
-        if len(self.times) > 1:
-            self.time_step = self.times[1] - self.times[0]
-        else:
-            self.time_step = None
-
-        # x and y are rows and columns for unprojected datasets
-        self.xmin = 0.
-        self.xmax = np.float(len(self.Dataset.dimensions['xi_rho'])) - 1
-        self.delta_x = 1.
-        self.ymin = 0.
-        self.ymax = np.float(len(self.Dataset.dimensions['eta_rho'])) - 1
-        self.delta_y = 1.
-
-        self.name = 'roms native'
-
-        # Find all variables having standard_name
-        self.variables = []
+        logging.debug('Finding coordinate variables.')
+        # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
-            if var_name in self.ROMS_variable_mapping.keys():
-                var = self.Dataset.variables[var_name]
-                self.variables.append(self.ROMS_variable_mapping[var_name])
+            logging.debug('Parsing variable: ' +  var_name)
+            var = self.Dataset.variables[var_name]
+            #if var.ndim > 1:
+            #    continue  # Coordinates must be 1D-array
+            attributes = var.ncattrs()
+            standard_name = ''
+            long_name = ''
+            axis = ''
+            units = ''
+            CoordinateAxisType = ''
+            if not hasattr(self, 'proj4'):
+                for att in attributes:
+                    if 'proj4' in att:
+                        self.proj4 = str(var.__getattr__(att))
+            if 'standard_name' in attributes:
+                standard_name = var.__dict__['standard_name']
+            if 'long_name' in attributes:
+                long_name = var.__dict__['long_name']
+            if 'axis' in attributes:
+                axis = var.__dict__['axis']
+            if 'units' in attributes:
+                units = var.__dict__['units']
+            if '_CoordinateAxisType' in attributes:
+                CoordinateAxisType = var.__dict__['_CoordinateAxisType']
+            if standard_name == 'longitude' or \
+                    long_name == 'longitude' or standard_name == 'lon':
+                self.lon = var
+                lon_var_name = var_name
+            if standard_name == 'latitude' or \
+                    long_name == 'latitude' or standard_name == 'lat':
+                self.lat = var
+                lat_var_name = var_name
+            if axis == 'X' or \
+                    CoordinateAxisType == 'Lon' or \
+                    standard_name == 'projection_x_coordinate':
+                self.xname = var_name
+                # Fix for units; should ideally use udunits package
+                if units == 'km':
+                    unitfactor = 1000
+                else:
+                    unitfactor = 1
+                x = var[:]*unitfactor
+                self.numx = var.shape[0] 
+            if axis == 'Y' or \
+                    CoordinateAxisType == 'Lat' or \
+                    standard_name == 'projection_y_coordinate':
+                self.yname = var_name
+                # Fix for units; should ideally use udunits package
+                if units == 'km':
+                    unitfactor = 1000
+                else:
+                    unitfactor = 1
+                self.unitfactor = unitfactor
+                y = var[:]*unitfactor
+                self.numy = var.shape[0] 
+            if standard_name == 'depth' or axis == 'Z':
+                if var[:].ndim == 1:
+                    if 'positive' not in attributes or \
+                            var.__dict__['positive'] == 'up':
+                        self.z = var[:]
+                    else:
+                        self.z = -var[:]
+            if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
+                # Read and store time coverage (of this particular file)
+                time = var[:]
+                time_units = units
+                self.times = num2date(time, time_units)
+                self.start_time = self.times[0]
+                self.end_time = self.times[-1]
+                if len(self.times) > 1:
+                    self.time_step = self.times[1] - self.times[0]
+                else:
+                    self.time_step = None
+            if standard_name == 'realization':
+                self.realizations = var[:]
+                logging.debug('%i ensemble members available'
+                              % len(self.realizations))
+
+        if 'x' not in locals():
+            if self.lon.ndim == 1:
+                x = self.lon[:]
+                self.xname = lon_var_name
+                self.numx = len(x)
+            else:
+                raise ValueError('Did not find x-coordinate variable')
+        if 'y' not in locals():
+            if self.lat.ndim == 1:
+                y = self.lat[:]
+                self.yname = lat_var_name
+                self.numy = len(y)
+            else:
+                raise ValueError('Did not find y-coordinate variable')
+
+        if not hasattr(self, 'unitfactor'):
+            self.unitfactor = 1
+        self.xmin, self.xmax = x.min(), x.max()
+        self.ymin, self.ymax = y.min(), y.max()
+        self.delta_x = np.abs(x[1] - x[0])
+        self.delta_y = np.abs(y[1] - y[0])
+        rel_delta_x = (x[1::] - x[0:-1])
+        rel_delta_x = np.abs((rel_delta_x.max() -
+                              rel_delta_x.min())/self.delta_x)
+        rel_delta_y = (y[1::] - y[0:-1])
+        rel_delta_y = np.abs((rel_delta_y.max() -
+                              rel_delta_y.min())/self.delta_y)
+        if rel_delta_x > 0.05:  # Allow 5 % deviation
+            print rel_delta_x
+            print x[1::] - x[0:-1]
+            raise ValueError('delta_x is not constant!')
+        if rel_delta_y > 0.05:
+            print rel_delta_y
+            print y[1::] - y[0:-1]
+            raise ValueError('delta_y is not constant!')
+        self.x = x  # Store coordinate vectors
+        self.y = y
+
+        if not hasattr(self, 'proj4'):
+            if self.lon.ndim == 1:
+                logging.debug('Lon and lat are 1D arrays, assuming latong projection')
+                self.proj4 = '+proj=latlong'
+            elif self.lon.ndim == 2:
+                logging.debug('Reading lon lat 2D arrays, since projection is not given')
+                self.lon = self.lon[:]
+                self.lat = self.lat[:]
+                self.projected = False
+
+        
+        # Map MSL variable names to CF standard_name used in OpenDrift
+        # 
+        # see infos here : https://wiki.metocean.co.nz/display/OPS/Parameter+definitions
+        
+        # change the `variable_aliases` variable to fit with MetOcean convention (initially defined in basereader.py)
+        self.variable_aliases = {
+            # 'mask_rho': 'land_binary_mask',
+            # 'mask_psi': 'land_binary_mask',
+            'dep': 'sea_floor_depth_below_sea_level',
+            'el': 'sea_surface_height',   # el = et + ssh
+            'et': 'sea_surface_height',   # tidal elevation
+            'ssh': 'sea_surface_height',  # non-tidal
+            'um': 'x_sea_water_velocity', # depth-averaged total
+            'vm': 'y_sea_water_velocity', # depth-averaged total
+            'umo': 'x_sea_water_velocity',# depth-averaged non-tidal
+            'vmo': 'y_sea_water_velocity',# depth-averaged non-tidal
+            'ut': 'x_sea_water_velocity', # tide
+            'vt': 'y_sea_water_velocity', # tide
+            'uo': 'x_sea_water_velocity', # non-tidal current 3D
+            'vo': 'y_sea_water_velocity', # non-tidal current 3D
+            'u': 'x_sea_water_velocity',  # total current 3D
+            'v': 'y_sea_water_velocity',  # total current 3D
+            'w': 'upward_sea_water_velocity',
+            'uso': 'x_sea_water_velocity', #surface layer non-tidal current (5 m below sea level)
+            'vso': 'y_sea_water_velocity', #surface layer non-tidal current (5 m below sea level)
+            'sst': 'sea_water_temperature',
+            'salt': 'sea_water_salinity',
+            'ugrd10m': 'x_wind',
+            'vgrd10m': 'y_wind',
+            'lev' : 'z'                    # This should allow correct loading of z levels - if present. TO CHECK 
+                                           # lev :   vertical levels for ocean models or data
+            }
+
+        self.variable_mapping = {}
+
+        for var_name in self.Dataset.variables:
+            if var_name in [self.xname, self.yname, 'dep']:
+                continue  # Skip coordinate variables
+            var = self.Dataset.variables[var_name]
+            attributes = var.ncattrs()
+            if 'standard_name' in attributes:
+                standard_name = str(var.__dict__['standard_name'])
+                if standard_name in self.variable_aliases:  # Mapping if needed
+                    standard_name = self.variable_aliases[standard_name]
+                self.variable_mapping[standard_name] = str(var_name)
+
+        self.variables = self.variable_mapping.keys() # check that it does the right thing here
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None, block=False,
+                      indrealization=None):
 
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
-        # If one vector component is requested, but not the other
-        # we must add the other for correct rotation
-        for vector_pair in vector_pairs_xy:
-            if (vector_pair[0] in requested_variables and 
-                vector_pair[1] not in requested_variables):
-                requested_variables.extend([vector_pair[1]])
-            if (vector_pair[1] in requested_variables and 
-                vector_pair[0] not in requested_variables):
-                requested_variables.extend([vector_pair[0]])
-
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        variables = {}
+        if hasattr(self, 'z') and (z is not None): 
+            # Find z-index range
+            # NB: may need to flip if self.z is ascending
+            indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
+            indz = np.arange(np.maximum(0, indices.min() - 1 -
+                                        self.verticalbuffer),
+                             np.minimum(len(self.z), indices.max() + 1 +
+                                        self.verticalbuffer))
+            if len(indz) == 1:
+                indz = indz[0]  # Extract integer to read only one layer
+        else:
+            indz = 0
 
-        if z is None:
-            z = np.atleast_1d(0)
+        if indrealization == None:
+            if hasattr(self, 'realizations'):
+                indrealization = range(len(self.realizations))
+            else:
+                indrealization = None
 
-        # Find horizontal indices corresponding to requested x and y
+        # Find indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
-        indx[outside] = 0  # To be masked later
-        indy[outside] = 0
-        indx_el = indx
-        indy_el = indy
+        # If x or y coordinates are decreasing, we need to flip
+        if self.x[0] > self.x[-1]:
+            indx = len(self.x) - indx
+        if self.y[0] > self.y[-1]:
+            indy = len(self.y) - indy
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
-            # Avoiding the last pixel in each dimension, since there are
-            # several grids which are shifted (rho, u, v, psi)
             indx = np.arange(np.max([0, indx.min()-buffer]),
-                             np.min([indx.max()+buffer, self.lon.shape[1]-1]))
+                             np.min([indx.max()+buffer, self.numx]))
             indy = np.arange(np.max([0, indy.min()-buffer]),
-                             np.min([indy.max()+buffer, self.lon.shape[0]-1]))
-
-        # Find depth levels covering all elements
-        if z.min() == 0 or not hasattr(self, 'hc'):
-            indz = self.num_layers - 1  # surface layer
-            variables['z'] = 0
-
+                             np.min([indy.max()+buffer, self.numy]))
         else:
-            # Find the range of indices covering given z-values
-            if not hasattr(self, 'sea_floor_depth_below_sea_level'):
-                logging.debug('Reading sea floor depth...')
-                self.sea_floor_depth_below_sea_level = \
-                    self.Dataset.variables['h'][:]
-            indxgrid, indygrid = np.meshgrid(indx, indy)
-            H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
-            z_rho = depth.sdepth(H, self.hc, self.Cs_r)
-            # Element indices must be relative to extracted subset
-            indx_el = indx_el - indx.min()
-            indy_el = indy_el - indy.min()
+            indx[outside] = 0  # To be masked later
+            indy[outside] = 0
 
-            # Loop to find the layers covering the requested z-values
-            indz_min = 0
-            indz_max = self.num_layers
-            for i in range(self.num_layers):
-                if np.min(z-z_rho[i, indy_el, indx_el]) > 0:
-                    indz_min = i
-                if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
-                    indz_max = i
-            indz = range(np.maximum(0, indz_min-self.verticalbuffer),
-                         np.minimum(self.num_layers,
-                                    indz_max + 1 + self.verticalbuffer))
-            z_rho = z_rho[indz, :, :]
-            # Determine the z-levels to which to interpolate
-            zi1 = np.maximum(0, bisect_left(-np.array(self.zlevels),
-                                            -z.max()) - self.verticalbuffer)
-            zi2 = np.minimum(len(self.zlevels),
-                             bisect_right(-np.array(self.zlevels),
-                                          -z.min()) + self.verticalbuffer)
-            variables['z'] = np.array(self.zlevels[zi1:zi2])
+        variables = {}
 
-        #read_masks = {}  # To store maskes for various grids
         for par in requested_variables:
-            varname = [name for name, cf in
-                       self.ROMS_variable_mapping.items() if cf == par]
-            var = self.Dataset.variables[varname[0]]
+            var = self.Dataset.variables[self.variable_mapping[par]]
 
-            # Automatic masking may lead to trouble for ROMS files
-            # with valid_min/max, _Fill_value or missing_value
-            # https://github.com/Unidata/netcdf4-python/issues/703
-            var.set_auto_maskandscale(False)
-
-            try:
-                FillValue = getattr(var, '_FillValue')
-            except:
-                FillValue = None
-            try:
-                scale = getattr(var, 'scale_factor')
-            except:
-                scale = 1
-            try:
-                offset = getattr(var, 'add_offset')
-            except:
-                offset = 0
-
+            ensemble_dim = None
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
             elif var.ndim == 3:
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
                 variables[par] = var[indxTime, indz, indy, indx]
+            elif var.ndim == 5:  # Ensemble data
+                variables[par] = var[indxTime, indz, indrealization, indy, indx]
+                ensemble_dim = 0  # Hardcoded ensemble dimension for now
             else:
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-			# Manual scaling, offsetting and masking due to issue with ROMS files
-            logging.debug('Manually masking %s, FillValue %s, scale %s, offset %s' % 
-                (par, FillValue, scale, offset))
-            if FillValue is not None:
-                if var.dtype != FillValue.dtype:
-                    mask = variables[par] == 0
-                    if not 'already_warned' in locals():
-                        logging.warning('Data type of variable (%s) and _FillValue (%s) is not the same. Masking 0-values instead' % (var.dtype, FillValue.dtype))
-                        already_warned = True
-                else:
-                    logging.warning('Masking ' + str(FillValue))
-                    mask = variables[par] == FillValue
-            variables[par] = variables[par]*scale + offset
-            if FillValue is not None:
-                variables[par][mask] = np.nan
-
-            if var.ndim == 4:
-                # Regrid from sigma to z levels
-                if len(np.atleast_1d(indz)) > 1:
-                    logging.debug('sigma to z for ' + varname[0])
-                    variables[par] = depth.multi_zslice(
-                        variables[par], z_rho, variables['z'])
-                    # Nan in input to multi_zslice gives extreme values in output
-                    variables[par][variables[par]>1e+9] = np.nan
-
-            # If 2D array is returned due to the fancy slicing methods
-            # of netcdf-python, we need to take the diagonal
+            # If 2D array is returned due to the fancy slicing
+            # methods of netcdf-python, we need to take the diagonal
             if variables[par].ndim > 1 and block is False:
                 variables[par] = variables[par].diagonal()
 
             # Mask values outside domain
-            variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
+            variables[par] = np.ma.array(variables[par],
+                                         ndmin=2, mask=False)
             if block is False:
                 variables[par].mask[outside] = True
 
-            # Skipping de-staggering, as it leads to invalid values at later interpolation
-            #if block is True:
-            #    # Unstagger grid for vectors
-            #    logging.debug('Unstaggering ' + par)
-            #    if 'eta_v' in var.dimensions:
-            #        variables[par] = np.ma.array(variables[par],
-            #                            mask=variables[par].mask)
-            #        variables[par][variables[par].mask] = 0
-            #        if variables[par].ndim == 2:
-            #            variables[par] = \
-            #                (variables[par][0:-1,0:-1] +
-            #                variables[par][0:-1,1::])/2
-            #        elif variables[par].ndim == 3:
-            #            variables[par] = \
-            #                (variables[par][:,0:-1,0:-1] +
-            #                variables[par][:,0:-1,1::])/2
-            #        variables[par] = np.ma.masked_where(variables[par]==0,
-            #                                            variables[par])
-            #    elif 'eta_u' in var.dimensions:
-            #        variables[par] = np.ma.array(variables[par],
-            #                            mask=variables[par].mask)
-            #        variables[par][variables[par].mask] = 0
-            #        if variables[par].ndim == 2:
-            #            variables[par] = \
-            #                (variables[par][0:-1,0:-1] +
-            #                 variables[par][1::,0:-1])/2
-            #        elif variables[par].ndim == 3:
-            #            variables[par] = \
-            #                (variables[par][:,0:-1,0:-1] +
-            #                 variables[par][:,1::,0:-1])/2
-            #        variables[par] = np.ma.masked_where(variables[par]==0,
-            #                                            variables[par])
-            #    else:
-            #        if variables[par].ndim == 2:
-            #            variables[par] = variables[par][1::, 1::]
-            #        elif variables[par].ndim == 3:
-            #            variables[par] = variables[par][:,1::, 1::]
+            # Mask extreme values which might have slipped through
+            variables[par] = np.ma.masked_outside(
+                variables[par], -30000, 30000)
 
+            # Ensemble blocks are split into lists
+            if ensemble_dim is not None:
+                num_ensembles = variables[par].shape[ensemble_dim]
+                logging.debug('Num ensembles: %i ' % num_ensembles)
+                newvar = [0]*num_ensembles
+                for ensemble_num in range(num_ensembles):
+                    newvar[ensemble_num] = \
+                        np.take(variables[par],
+                                ensemble_num, ensemble_dim)
+                variables[par] = newvar
+
+        # Store coordinates of returned points
+        try:
+            variables['z'] = self.z[indz]
+        except:
+            variables['z'] = None
         if block is True:
-            # TODO: should be midpoints, but angle array below needs integer
-            #indx = indx[0:-1]  # Only if de-staggering has been performed
-            #indy = indy[1::]
-            variables['x'] = indx
-            variables['y'] = indy
+            variables['x'] = \
+                self.Dataset.variables[self.xname][indx]*self.unitfactor
+            # Subtracting 1 from indy (not indx) makes Norkyst800
+            # fit better with GSHHS coastline - but unclear why
+            variables['y'] = \
+                self.Dataset.variables[self.yname][indy]*self.unitfactor
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
-        variables['x'] = variables['x'].astype(np.float)
-        variables['y'] = variables['y'].astype(np.float)
         variables['time'] = nearestTime
-
-        if 'x_sea_water_velocity' or 'sea_ice_x_velocity' \
-                or 'x_wind' in variables.keys():
-            # We must rotate current vectors
-            if not hasattr(self, 'angle_xi_east'):
-                logging.debug('Reading angle between xi and east...')
-                self.angle_xi_east = self.Dataset.variables['angle'][:]
-            rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
-            if 'x_sea_water_velocity' in variables.keys():
-                variables['x_sea_water_velocity'], \
-                    variables['y_sea_water_velocity'] = rotate_vectors_angle(
-                        variables['x_sea_water_velocity'],
-                        variables['y_sea_water_velocity'], rad)
-            if 'sea_ice_x_velocity' in variables.keys():
-                variables['sea_ice_x_velocity'], \
-                    variables['sea_ice_y_velocity'] = rotate_vectors_angle(
-                        variables['sea_ice_x_velocity'],
-                        variables['sea_ice_y_velocity'], rad)
-            if 'x_wind' in variables.keys():
-                variables['x_wind'], \
-                    variables['y_wind'] = rotate_vectors_angle(
-                        variables['x_wind'],
-                        variables['y_wind'], rad)
-
-        if 'land_binary_mask' in requested_variables:
-            variables['land_binary_mask'] = \
-                1 - variables['land_binary_mask']
-
-        # Masking NaN
-        for var in requested_variables:
-            variables[var] = np.ma.masked_invalid(variables[var])
-        
         return variables
-
-
-def rotate_vectors_angle(u, v, radians):
-    u2 = u*np.cos(radians) - v*np.sin(radians)
-    v2 = u*np.sin(radians) + v*np.cos(radians)
-    return u2, v2
