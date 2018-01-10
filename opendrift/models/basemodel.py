@@ -3037,11 +3037,13 @@ class OpenDriftSimulation(PhysicsMethods):
             else:  # MP4
                 logging.info('Saving MP4 animation...')
                 try:
-                    # For perfrect quality, but larger file size
-                    FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
-                    anim.save(filename, writer=FFwriter)
-                    #anim.save(filename, fps=fps, bitrate=1800,
-                    #          extra_args=['-pix_fmt', 'yuv420p'])
+                    try:
+                        # For perfrect quality, but larger file size
+                        FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
+                        anim.save(filename, writer=FFwriter)
+                    except:
+                        anim.save(filename, fps=fps, bitrate=1800,
+                                  extra_args=['-pix_fmt', 'yuv420p'])
                 except Exception as e:
                     logging.info(e)
                     try:
