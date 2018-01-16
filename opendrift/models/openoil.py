@@ -365,7 +365,6 @@ class OpenOil(OpenDriftSimulation):
         https://github.com/NOAA-ORR-ERD/PyGnome
         '''
         logging.debug('NOAA oil weathering')
-        self.timer_start('main loop:updating elements:oil weathering:preparing')
         # C to K
         self.environment.sea_water_temperature[
             self.environment.sea_water_temperature < 100] += 273.15
@@ -374,14 +373,14 @@ class OpenOil(OpenDriftSimulation):
         # Update density and viscosity according to temperature
         #########################################################
         try:  # New version of OilLibrary
-            self.timer_start('main loop:updating elements:oil weathering:updating_viscosities')
+            self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
             self.elements.viscosity = self.oiltype.kvis_at_temp(
                 self.environment.sea_water_temperature)
-            self.timer_end('main loop:updating elements:oil weathering:updating_viscosities')
-            self.timer_start('main loop:updating elements:oil weathering:updating_densities')
+            self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
+            self.timer_start('main loop:updating elements:oil weathering:updating densities')
             self.elements.density = self.oiltype.density_at_temp(
                 self.environment.sea_water_temperature)
-            self.timer_end('main loop:updating elements:oil weathering:updating_densities')
+            self.timer_end('main loop:updating elements:oil weathering:updating densities')
         except:  # Old version of OilLibrary
             self.elements.viscosity = np.array(
                 [self.oiltype.get_viscosity(t) for t in
@@ -389,7 +388,6 @@ class OpenOil(OpenDriftSimulation):
             self.elements.density = np.array(
                 [self.oiltype.get_density(t) for t in
                  self.environment.sea_water_temperature])
-        self.timer_end('main loop:updating elements:oil weathering:preparing')
 
         if self.get_config('processes:evaporation') is True:
             self.timer_start('main loop:updating elements:oil weathering:evaporation')
