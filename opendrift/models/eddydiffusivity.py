@@ -4,7 +4,7 @@ import logging
 
 
 def windspeed_Sundby1983(s):
-    logging.debug('use wind speed parameterizatoin for diffusivity')
+    logging.debug('use Sunby (1983) wind speed parameterizatoin for diffusivity')
     depths = s.environment_profiles['z']
     windspeed_squared = s.environment.x_wind**2 + s.environment.y_wind**2
     if np.max(windspeed_squared) == 0:
@@ -16,6 +16,43 @@ def windspeed_Sundby1983(s):
     Kprofiles, N = sp.meshgrid(K, depths)
     return Kprofiles
 
+def windspeed_Large1994(s):
+    logging.debug('use Large et al 1994 speed parameterizatoin for diffusivity')
+    depths = -s.environment_profiles['z']
+    print depths
+    D = 50 # mixed layer depth, should be read from ocean model
+    rhoa = 1.22
+    cd = 1.25e-3 # Kara et al. 2007
+    K_background = 0.001
+    windspeed_squared = s.environment.x_wind**2 + s.environment.y_wind**2
+    if np.max(windspeed_squared) == 0:
+        # Wind not available, check if we can invert from wind stress
+        if hasattr(s.environment, 'surface_downward_x_stress'):
+            windspeed_squared = s.windspeed_from_stress()**2
+    windstress = windspeed_squared * cd * rhoa
+
+    Windstress, Z = sp.meshgrid(windstress, depths)
+   
+    Kprofiles = D * stabilityfunction(Z/D) * 0.4 * G(Z/D) * Windstress
+    below = np.where(Z>=D)
+    Kprofiles[below]=Kprofiles[below]*0.+K_background
+    return Kprofiles
+
+def stabilityfunction(sigma):
+    # controls stratification regimes for diffusivity 
+    # a value of 1 represent neutrally buoyant conditions (no stratification)
+    # a value between 0 and 1 represents stable stratification
+    return 0.2 # should be depth dependent, too
+
+def G(sigma): 
+    # vertical shape function for eddy diffusivity
+    a1 = 1.
+    a2 = -2 
+    a3 = 1
+    G = a1*sigma + a2*sigma**2 + a3*sigma**3
+    below = np.where(G>=1)
+    G[below]=G[below]*0.
+    return G 
 
 def gls_tke(s):
     '''From LADIM model.'''
