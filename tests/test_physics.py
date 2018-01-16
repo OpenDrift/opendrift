@@ -146,7 +146,7 @@ class TestPhysics(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -28, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -38.39, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
@@ -162,7 +162,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -24.0, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -41.63, 1)
         #######################################################
 
 
@@ -181,7 +181,7 @@ class TestPhysics(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -32.0, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -51.53, 1)
         ########################################################
 
 
