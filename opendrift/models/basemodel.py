@@ -1855,6 +1855,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.info('End of simulation:')
                 logging.info(e)
                 logging.info(traceback.format_exc())
+                if not hasattr(self, 'environment'):
+                    sys.exit('Simulation aborted.')
                 logging.info('========================')
                 if stop_on_error is True:
                     sys.exit('Stopping on error')
