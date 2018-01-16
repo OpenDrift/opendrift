@@ -265,7 +265,7 @@ class OpenOil(OpenDriftSimulation):
             sea_water_density = 1028
             fraction_breaking_waves = 0.02
             wave_significant_height = \
-                self.environment.sea_surface_wave_significant_height
+                self.significant_wave_height()
             wave_significant_height[wave_significant_height == 0] = \
                 0.0246*windspeed[wave_significant_height == 0]**2
             dissipation_wave_energy = \
