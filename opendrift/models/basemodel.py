@@ -2677,17 +2677,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return map_x, map_y, scalar, u_component, v_component
 
-    def get_density_array(self, pixelsize_m):
+    def get_density_array(self, pixelsize_m, weight=None):
         lon = self.get_property('lon')[0]
         lat = self.get_property('lat')[0]
-        z = self.get_property('z')[0]
-        status = self.get_property('status')[0]
-        lon_submerged = lon.copy()
-        lat_submerged = lat.copy()
-        lon_submerged[z>=0] = 1000
-        lat_submerged[z>=0] = 1000
-        lon_stranded = lon.copy()
-        lat_stranded = lat.copy()
         times = self.get_time_array()[0]
         deltalat = pixelsize_m/111000.0  # m to degrees
         deltalon = deltalat/np.cos(np.radians((lat.min() +
@@ -2696,8 +2688,22 @@ class OpenDriftSimulation(PhysicsMethods):
                               lat.max()+deltalat, deltalat)
         lon_array = np.arange(lon.min()-deltalat,
                               lon.max()+deltalon, deltalon)
+        bins=(lon_array, lat_array)
+        z = self.get_property('z')[0]
+        if weight is not None:
+            weight_array = self.get_property(weight)[0]
+
+        status = self.get_property('status')[0]
+        lon_submerged = lon.copy()
+        lat_submerged = lat.copy()
+        lon_stranded = lon.copy()
+        lat_stranded = lat.copy()
+        lon_submerged[z>=0] = 1000
+        lat_submerged[z>=0] = 1000
+        lon[z<0] = 1000
+        lat[z<0] = 1000
         H = np.zeros((len(times), len(lon_array) - 1,
-                      len(lat_array) - 1)).astype(int)
+                      len(lat_array) - 1))#.astype(int)
         H_submerged = H.copy()
         H_stranded = H.copy()
         try:
@@ -2707,21 +2713,22 @@ class OpenDriftSimulation(PhysicsMethods):
             contains_stranded = True
         except ValueError:
             contains_stranded = False
-        lon[z<0] = 1000
-        lat[z<0] = 1000
-        for i, t in enumerate(times):
-            H[i,:,:], lon_array, lat_array = \
-                np.histogram2d(lon[i,:],
-                               lat[i,:], bins=(lon_array, lat_array))
+
+        for i in range(len(times)):
+            if weight is not None:
+                weights = weight_array[i,:]
+            else:
+                weights = None
+            H[i,:,:], dummy, dummy = \
+                np.histogram2d(lon[i,:], lat[i,:],
+                               weights=weights, bins=bins)
             H_submerged[i,:,:], dummy, dummy = \
-                np.histogram2d(lon_submerged[i,:],
-                               lat_submerged[i,:], bins=(lon_array, lat_array))
+                np.histogram2d(lon_submerged[i,:], lat_submerged[i,:],
+                               weights=weights, bins=bins)
             if contains_stranded is True:
                 H_stranded[i,:,:], dummy, dummy = \
-                np.histogram2d(lon_stranded[i,:],
-                               lat_stranded[i,:],
-                               bins=(lon_array, lat_array))
-
+                np.histogram2d(lon_stranded[i,:], lat_stranded[i,:],
+                               weights=weights, bins=bins)
 
         return H, H_submerged, H_stranded, lon_array, lat_array
 
