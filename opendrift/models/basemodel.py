@@ -32,6 +32,8 @@ import scipy
 import configobj, validate
 try:
     import matplotlib
+    matplotlib.rcParams['legend.numpoints'] = 1
+    matplotlib.rcParams['legend.scatterpoints'] = 1
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
         print 'No display found. Using non-interactive Agg backend'
@@ -2231,7 +2233,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                      self.elements_deactivated.lat)
 
         if compare is not None:
-            compare_list = self._get_comparison_xy_for_plots(map, compare)
+            compare_list = self._get_comparison_xy_for_plots(
+                                map, compare)
 
             for cn, cd in enumerate(compare_list):
                 if legend != ['']:
@@ -2244,7 +2247,12 @@ class OpenDriftSimulation(PhysicsMethods):
                                 label=legstr, zorder=10)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    map.scatter([], [], color= self.plot_comparison_colors[cn], alpha=.3, zorder=9)
+                    map.scatter([], [], alpha=.3, zorder=9, color=
+                                self.plot_comparison_colors[cn])
+
+            if legend != ['', '']:
+                plt.legend(markerscale=2, loc=legend_loc)
+
 
         if drifter is not None:
             print 'Drifter!'
@@ -2252,9 +2260,6 @@ class OpenDriftSimulation(PhysicsMethods):
             #map.plot(drifter['x'], drifter['y'])
             drifter_pos = map.scatter([], [], color='r',
                                       zorder=15, label='Drifter')
-
-        if legend != ['', '']:
-            plt.legend(markerscale=3, loc=legend_loc)
 
         anim = animation.FuncAnimation(
             plt.gcf(), plot_timestep, blit=False,
@@ -2558,7 +2563,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         try:
             if legend is not None or compare is None:
-                plt.legend(loc=legend_loc)
+                plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
             print traceback.format_exc()
