@@ -2129,6 +2129,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def animation(self, buffer=.2, filename=None, compare=None,
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
+                  colorbar=True, cmap=None,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
@@ -2198,8 +2199,9 @@ class OpenDriftSimulation(PhysicsMethods):
                     getattr(self.elements_deactivated, color)
             else:
                 colorarray = color
-            vmin = colorarray.min()
-            vmax = colorarray.max()
+            if vmin is None:
+                vmin = colorarray.min()
+                vmax = colorarray.max()
 
         if background is not None:
             map_x, map_y, scalar, u_component, v_component = \
@@ -2207,10 +2209,11 @@ class OpenDriftSimulation(PhysicsMethods):
                                         time=self.start_time)
             map.pcolormesh(map_x, map_y, scalar, alpha=1,
                            vmin=vmin, vmax=vmax)
-            if clabel is None:
-                plt.colorbar()
-            else:
-                plt.colorbar(label=clabel)
+            if colorbar is True:
+                if clabel is None:
+                    plt.colorbar()
+                else:
+                    plt.colorbar(label=clabel)
 
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
@@ -2223,7 +2226,7 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             c = []
         points = map.scatter([], [], color=c, zorder=10,
-                             edgecolor='',
+                             edgecolor='', cmap=cmap,
                              vmin=vmin, vmax=vmax, label=legend[0])
         # Plot deactivated elements, with transparency
         points_deactivated = map.scatter([], [], color=c, zorder=9,
@@ -2265,7 +2268,7 @@ class OpenDriftSimulation(PhysicsMethods):
             plt.gcf(), plot_timestep, blit=False,
             frames=x.shape[1], interval=50)
 
-        if color is not False:
+        if colorbar is True and color is not False:
             if isinstance(color, basestring) or clabel is not None:
                 if clabel is None:
                     clabel = color
@@ -2865,7 +2868,7 @@ class OpenDriftSimulation(PhysicsMethods):
         time_array_relative = [td*i for i in range(self.steps_output)]
         return time_array, time_array_relative
 
-    def plot_environment(self):
+    def plot_environment(self, filename=None):
         """Plot mean wind and current velocities of element of last run."""
         x_wind = self.get_property('x_wind')[0]
         y_wind = self.get_property('x_wind')[0]
@@ -2895,7 +2898,10 @@ class OpenDriftSimulation(PhysicsMethods):
         for tl in ax2.get_yticklabels():
             tl.set_color('r')
         ax1.set_xlabel('Time  [hours]')
-        plt.show()
+        if filename is None:
+            plt.show()
+        else:
+            plt.savefig(filename)
 
     def plot_property(self, prop, mean=False):
         """Basic function to plot time series of any element properties."""
