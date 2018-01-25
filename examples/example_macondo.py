@@ -8,17 +8,12 @@ from opendrift.models.openoil import OpenOil
 
 # This is a highly simplified 2D simulation, for illustration purpose only
 
-print '#'*30
-print 'NOTE: this example depends on availability of data from two Thredds servers: tds.hycom.org and www.ncdc.noaa.gov. May sometimes be slow or hanging.'
-print '#'*30
-
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 #reader_hycom = reader_netCDF_CF_generic.Reader('http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.1/2010/3hrly')
 #print reader_hycom0
 reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CLS-L4-CUREUL_HS-ALT_SUM-V02.0_FULL_TIME_SERIE')  # Total
 
-#reader_oceanwind = reader_netCDF_CF_generic.Reader('http://www.ncdc.noaa.gov/thredds/dodsC/oceanwinds6hr')
 reader_oceanwind = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CERSAT-GLO-CLIM_WIND_L4-OBS_FULL_TIME_SERIE')
 #print reader_oceanwind
 
