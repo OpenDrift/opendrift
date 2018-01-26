@@ -239,7 +239,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.configobj.configspec = newconf.configspec
             newconf.merge(self.configobj)
             self.configobj = newconf
-        
+
     def _add_configstring(self, configstring):
         """Add several configuration items from string (INI-format)."""
         newconf = configobj.ConfigObj(configspec=configstring.split('\n'))
@@ -274,7 +274,7 @@ class OpenDriftSimulation(PhysicsMethods):
         for i, s in enumerate(hashstring.split(':')):
             if isinstance(c[s], dict):
                 c = c[s]
-                cs = cs[s] 
+                cs = cs[s]
         return c, cs, s
 
     def get_config(self, key):
@@ -419,7 +419,7 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 logging.debug('%s elements hit coastline, '
                               'moving back to water' % len(on_land))
-                on_land_ID = self.elements.ID[on_land] 
+                on_land_ID = self.elements.ID[on_land]
                 self.elements.lon[on_land] = \
                     np.copy(self.previous_lon[on_land_ID - 1])
                 self.elements.lat[on_land] = \
@@ -534,7 +534,7 @@ class OpenDriftSimulation(PhysicsMethods):
             outStr += '--------------------\n'
             outStr += r + '\n'
             outStr += reader.performance()
-    
+
         return outStr
 
     def add_reader(self, readers, variables=None):
@@ -804,7 +804,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     for var in variable_group:
                         tmp_var = np.ma.masked_invalid(env_tmp[var])
                         # Changed 13 Oct 2016, but uncertain of effect
-                        # TODO: to be checked 
+                        # TODO: to be checked
                         #tmp_var = env_tmp[var]
                         if 'combined_mask' not in locals():
                             combined_mask = np.ma.getmask(tmp_var)
@@ -887,7 +887,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # Parameterisation of unavailable variables
         #######################################################
         if self.get_config('drift:use_tabularised_stokes_drift') is True:
-            if (env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and 
+            if (env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and
                 env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
                     logging.info('Calculating parameterised stokes drift')
                     for i in range(len(env['x_wind'])):
@@ -902,7 +902,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         env['sea_surface_wave_significant_height'][i] = \
                             self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]),
                             self.get_config('drift:tabularised_stokes_drift_fetch'))
-       
+
         #############################
         # Add uncertainty/diffusion
         #############################
@@ -915,6 +915,13 @@ class OpenDriftSimulation(PhysicsMethods):
                 env['x_sea_water_velocity'] += np.random.normal(
                     0, std, self.num_elements_active())
                 env['y_sea_water_velocity'] += np.random.normal(
+                    0, std, self.num_elements_active())
+            std = self.get_config('drift:current_uncertainty_uniform')
+            if std > 0:
+                logging.debug('Adding uncertainty for current: %s m/s' % std)
+                env['x_sea_water_velocity'] += np.random.uniform(
+                    0, std, self.num_elements_active())
+                env['y_sea_water_velocity'] += np.random.uniform(
                     0, std, self.num_elements_active())
         # Wind
         if 'x_wind' in variables and 'y_wind' in variables:
@@ -1485,13 +1492,13 @@ class OpenDriftSimulation(PhysicsMethods):
                 and eventually written to file.
                 Timedelta object or seconds.
                 Default: same as time_step, meaning that all steps are stored
-            The length of the simulation is specified by defining one 
+            The length of the simulation is specified by defining one
                 (and only one) of the following parameters:
                 - steps: integer, maximum number of steps. End of simulation
                     will be self.start_time + steps*self.time_step
                 - duration: timedelta defining the length of the simulation
                 - end_time: datetime object defining the end of the simulation
-            export_variables: list of variables and parameter names to be 
+            export_variables: list of variables and parameter names to be
                 saved to file. Default is None (all variables are saved)
         """
 
@@ -1534,7 +1541,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Set projection to latlong if not taken from any of the readers
         if self.proj is not None and not (self.proj.is_latlong() or
-            'proj=merc' in self.proj.srs): 
+            'proj=merc' in self.proj.srs):
             for vector_component in vector_pairs_xy:
                 for component in vector_component:
                     if component in self.fallback_values and \
@@ -2644,7 +2651,7 @@ class OpenDriftSimulation(PhysicsMethods):
         nc.variables['density_submerged'][:] = H_sub
         nc.variables['density_submerged'].long_name = 'Detection probability submerged'
         nc.variables['density_submerged'].grid_mapping = 'projection_lonlat'
-        nc.variables['density_submerged'].units = '1' 
+        nc.variables['density_submerged'].units = '1'
         # Density stranded
         nc.createVariable('density_stranded', 'u1',
                           ('time','lat', 'lon'))
@@ -2653,8 +2660,8 @@ class OpenDriftSimulation(PhysicsMethods):
         nc.variables['density_stranded'][:] = H_stranded
         nc.variables['density_stranded'].long_name = 'Detection probability stranded'
         nc.variables['density_stranded'].grid_mapping = 'projection_lonlat'
-        nc.variables['density_stranded'].units = '1' 
- 
+        nc.variables['density_stranded'].units = '1'
+
         nc.close()
 
     def write_geotiff(self, filename, pixelsize_km=.2):
@@ -2928,4 +2935,3 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Could not save animation:')
             logging.info(e)
             logging.debug(traceback.format_exc())
-                
