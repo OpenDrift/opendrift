@@ -109,7 +109,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             entrainment_rate = option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Li et al. (2017)')
         [turbulentmixing]
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
-            droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
+            droplet_diameter_max_wavebreaking = float(default=2e-3, min=1e-8, max=1)
             droplet_size_exponent = float(default=0, min=-10, max=10)
     ''' % (oil_types, default_oil)
 
@@ -452,10 +452,15 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             A = self.significant_wave_height()/2 # wave amplitude
             re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
             we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
-            d_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (0.027*self.elements.oil_film_thickness* re**-0.6)
-            d_50 = np.mean(d_50) # mean log diameter
-            sd = 0.4 # log standard deviation
-            spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(d_50))**2 / (2 * sd**2))) / (self.droplet_spectrum_diameter * sd * np.sqrt(2 * np.pi))
+            dN_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (0.027*self.elements.oil_film_thickness* re**-0.6) # median droplet diameter in number distribution
+            sd = 0.4 # log standard deviation in log10 units
+            Sd = np.log(10) *sd # log standard deviation in natural log units
+            dV_50 = np.exp( np.log(dN_50) + 3*Sd**2 ) # convert number distribution to volume distribution
+            print dN_50
+            print dV_50
+            # treat all particle in one go:
+            dV_50 = np.mean(dV_50) # mean log diameter
+            spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
         if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
                 np.abs(np.sum(self.droplet_spectrum_pdf) - 1) > 1e-6:

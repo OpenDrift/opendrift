@@ -40,7 +40,7 @@ o2.set_config('wave_entrainment:droplet_size_distribution', 'Exponential')
 o2.set_config('processes:evaporation', False)
 o2.set_config('processes:dispersion', False)
 o2.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
-o2.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
+o2.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 2e-3)
 o2.set_config('turbulentmixing:droplet_size_exponent', 0)
 o2.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000, radius=100,
                  z=0, oiltype='VILJE')
@@ -59,13 +59,13 @@ o3.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (20
 o3.set_config('processes:evaporation', False)
 o3.set_config('processes:dispersion', False)
 o3.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
-o3.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
+o3.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 2e-3)
 o3.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000, radius=100,
-                 z=0, oiltype='VILJE')
+                 z=0, oiltype='VILJE', oil_film_thickness=0.001)
 o3.run(duration=timedelta(hours=1), time_step=3600)
 
 dmin = 1e-6 # Change dmin, dmax according to choice in config
-dmax = 1e-3
+dmax = 2e-3
 droplet_diameters = o.elements.diameter
 droplet_diameters2 = o2.elements.diameter
 droplet_diameters3 = o3.elements.diameter
