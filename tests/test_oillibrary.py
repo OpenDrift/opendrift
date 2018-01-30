@@ -127,7 +127,7 @@ class TestOil(unittest.TestCase):
                 self.assertAlmostEqual(d.mean(), 0.0004189556)
             elif droplet_distribution == 'Johansen et al. (2015)':
                 #self.assertAlmostEqual(d.mean(), 0.000072158)
-                self.assertAlmostEqual(d.mean(), 0.00006904389)
+                self.assertAlmostEqual(d.mean(), 0.000062877)
 
 
 if __name__ == '__main__':
