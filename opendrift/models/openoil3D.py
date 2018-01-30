@@ -456,8 +456,6 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             sd = 0.4 # log standard deviation in log10 units
             Sd = np.log(10) *sd # log standard deviation in natural log units
             dV_50 = np.exp( np.log(dN_50) + 3*Sd**2 ) # convert number distribution to volume distribution
-            print dN_50
-            print dV_50
             # treat all particle in one go:
             dV_50 = np.mean(dV_50) # mean log diameter
             spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
