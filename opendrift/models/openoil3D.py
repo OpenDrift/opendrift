@@ -452,7 +452,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             A = self.significant_wave_height()/2 # wave amplitude
             re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
             we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
-            d_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (2.251*0.027*self.elements.oil_film_thickness* re**-0.6)
+            d_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (0.027*self.elements.oil_film_thickness* re**-0.6)
             d_50 = np.mean(d_50) # mean log diameter
             sd = 0.4 # log standard deviation
             spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(d_50))**2 / (2 * sd**2))) / (self.droplet_spectrum_diameter * sd * np.sqrt(2 * np.pi))
