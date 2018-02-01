@@ -35,7 +35,7 @@ class Oil3D(Oil):
                                       'default': 0.03}),
         ('diameter', {'dtype': np.float32,  # Particle diameter
                       'units': 'm',
-                      'default': 1e-5})
+                      'default': 0.})
         ])
 
 
@@ -446,18 +446,26 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
             g = 9.81
-            # TODO: calculation below with scalars, but we have
-            # arrays, with varying oil properties
             interfacial_tension = self.oil_water_interfacial_tension
-            A = self.significant_wave_height()/2 # wave amplitude
-            re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
-            we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
+            #
+            #A = self.significant_wave_height()/2. # wave amplitude
+            #re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
+            #we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
+            #
+            H = self.significant_wave_height()/2. # fall height
+            # Reyolds number (Eq. 7a from Johansen et al. 2015)
+            re = (self.elements.density*self.elements.oil_film_thickness*(g*H)**0.5) / (self.elements.viscosity*self.elements.density) 
+            # Weber number (Eq. 7b from Johansen et al.2015)
+            we = (self.elements.density*self.elements.oil_film_thickness*g*H) / interfacial_tension # Weber number
             dN_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (0.027*self.elements.oil_film_thickness* re**-0.6) # median droplet diameter in number distribution
             sd = 0.4 # log standard deviation in log10 units
             Sd = np.log(10) *sd # log standard deviation in natural log units
             dV_50 = np.exp( np.log(dN_50) + 3*Sd**2 ) # convert number distribution to volume distribution
+            # TODO: calculation below with scalars, but we have
+            # arrays, with varying oil properties
             # treat all particle in one go:
             dV_50 = np.mean(dV_50) # mean log diameter
+            logging.info('droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
             spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
         if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
@@ -484,6 +492,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         if self.get_config('processes:turbulentmixing') is True:
             self.update_terminal_velocity()
             self.vertical_mixing()
+            del self.droplet_spectrum_pdf
 
         # Vertical advection
         if self.get_config('processes:verticaladvection') is True:
