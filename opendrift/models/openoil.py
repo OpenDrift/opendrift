@@ -374,20 +374,38 @@ class OpenOil(OpenDriftSimulation):
         #########################################################
         try:  # New version of OilLibrary
             self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
-            self.elements.viscosity = self.oiltype.kvis_at_temp(
+            oil_viscosity = self.oiltype.kvis_at_temp(
                 self.environment.sea_water_temperature)
             self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
             self.timer_start('main loop:updating elements:oil weathering:updating densities')
-            self.elements.density = self.oiltype.density_at_temp(
+            oil_density = self.oiltype.density_at_temp(
                 self.environment.sea_water_temperature)
             self.timer_end('main loop:updating elements:oil weathering:updating densities')
         except:  # Old version of OilLibrary
-            self.elements.viscosity = np.array(
+            oil_viscosity = np.array(
                 [self.oiltype.get_viscosity(t) for t in
                  self.environment.sea_water_temperature])
-            self.elements.density = np.array(
+            oil_density = np.array(
                 [self.oiltype.get_density(t) for t in
                  self.environment.sea_water_temperature])
+
+        # Calculate emulsion density
+        self.elements.density = (
+            self.elements.water_fraction*self.sea_water_density() +
+           (1 - self.elements.water_fraction) * oil_density)
+
+        # Calculate emulsion viscosity
+        visc_f_ref = 0.84  # From PyGNOME
+        visc_curvfit_param = 1.5e3 # units are sec^0.5 / m
+        fw_d_fref = self.elements.water_fraction/visc_f_ref
+        kv1 = np.sqrt(oil_viscosity)*visc_curvfit_param
+        kv1[kv1<1] = 1
+        kv1[kv1>10] = 10
+        self.elements.fraction_evaporated = self.elements.mass_evaporated/(self.elements.mass_oil+self.elements.mass_evaporated)
+        self.elements.viscosity = (
+            oil_viscosity*np.exp(kv1*self.elements.fraction_evaporated)*
+                (1 + (fw_d_fref / (1.187 - fw_d_fref))) ** 2.49)
+
 
         if self.get_config('processes:evaporation') is True:
             self.timer_start('main loop:updating elements:oil weathering:evaporation')

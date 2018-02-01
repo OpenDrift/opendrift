@@ -421,7 +421,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     def get_wave_breaking_droplet_diameter_exponential(self):
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum, if not already done
-            logging.info('Generating wave breaking droplet size spectrum')
+            logging.debug('Generating wave breaking droplet size spectrum')
             s = self.get_config('turbulentmixing:droplet_size_exponent')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
@@ -441,7 +441,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # DOI: 10.1016/j.marpolbul.2015.02.026
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum as in Johansen et al. (2015)
-            logging.info('Generating wave breaking droplet size spectrum')
+            logging.debug('Generating wave breaking droplet size spectrum')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
@@ -465,7 +465,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             # arrays, with varying oil properties
             # treat all particle in one go:
             dV_50 = np.mean(dV_50) # mean log diameter
-            logging.info('droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
+            logging.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
             spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
         if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \

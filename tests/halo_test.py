@@ -25,7 +25,7 @@ for case in ['oil', 'leeway']:  # test two models
         for z in [0, -200]:  # seeding at sea surface and at 200 m depth
             if case == 'oil':
                 o = OpenOil3D(weathering_model='noaa')
-                args = {'oiltype': 'HEIDRUN, STATOIL',
+                args = {'oiltype': 'IVAR AASEN',
                 #args = {'oiltype': 'WISTING',
                         'z': z}
             else:

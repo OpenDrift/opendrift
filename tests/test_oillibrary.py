@@ -83,9 +83,9 @@ class TestOil(unittest.TestCase):
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
-                    fraction_dispersed = 0.06816
+                    fraction_dispersed = 0.0097
                 elif oil == 'SKRUGARD' and windspeed == 8:
-                    fraction_dispersed = 0.13306482
+                    fraction_dispersed = 0.1226
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
