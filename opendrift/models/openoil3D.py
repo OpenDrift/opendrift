@@ -452,12 +452,15 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             #re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
             #we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
             #
-            H = self.significant_wave_height()/2. # fall height
+            H = self.significant_wave_height() # fall height = 2 * wave amplitude
             # Reyolds number (Eq. 7a from Johansen et al. 2015)
             re = (self.elements.density*self.elements.oil_film_thickness*(g*H)**0.5) / (self.elements.viscosity*self.elements.density) 
             # Weber number (Eq. 7b from Johansen et al.2015)
             we = (self.elements.density*self.elements.oil_film_thickness*g*H) / interfacial_tension # Weber number
-            dN_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (0.027*self.elements.oil_film_thickness* re**-0.6) # median droplet diameter in number distribution
+            A = 2.251 # parameters from Johansen et al. 2015
+            Bp = 0.027
+            B = A*Bp  
+            dN_50 = (A*self.elements.oil_film_thickness*we**-0.6) + (B*self.elements.oil_film_thickness* re**-0.6) # median droplet diameter in number distribution
             sd = 0.4 # log standard deviation in log10 units
             Sd = np.log(10) *sd # log standard deviation in natural log units
             dV_50 = np.exp( np.log(dN_50) + 3*Sd**2 ) # convert number distribution to volume distribution
