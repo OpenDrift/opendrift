@@ -610,6 +610,7 @@ class OpenOil(OpenDriftSimulation):
             return
 
         b = self.get_oil_budget()
+
         oil_budget = np.row_stack(
             (b['mass_dispersed'], b['mass_submerged'],
              b['mass_surface'], b['mass_stranded'], b['mass_evaporated']))
@@ -623,26 +624,31 @@ class OpenOil(OpenDriftSimulation):
         # Left axis showing oil mass
         ax1 = fig.add_subplot(111)
         # Hack: make some emply plots since fill_between does not support label
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='darkslategrey', label='dispersed'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='darkblue', label='submerged'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='royalblue', label='surface'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='black', label='stranded'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='skyblue', label='evaporated'))
+        if np.sum(b['mass_dispersed']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='darkslategrey', label='dispersed'))
+            ax1.fill_between(time, 0, budget[0, :], facecolor='darkslategrey')
+        if np.sum(b['mass_submerged']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='darkblue', label='submerged'))
+            ax1.fill_between(time, budget[0, :], budget[1, :],
+                             facecolor='darkblue')
+        if np.sum(b['mass_surface']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='royalblue', label='surface'))
+            ax1.fill_between(time, budget[1, :], budget[2, :],
+                             facecolor='royalblue')
+        if np.sum(b['mass_stranded']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='black', label='stranded'))
+            ax1.fill_between(time, budget[2, :], budget[3, :],
+                             facecolor='black')
+        if np.sum(b['mass_evaporated']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='skyblue', label='evaporated'))
+            ax1.fill_between(time, budget[3, :], budget[4, :],
+                             facecolor='skyblue')
 
-        ax1.fill_between(time, 0, budget[0, :], facecolor='darkslategrey')
-        ax1.fill_between(time, budget[0, :], budget[1, :],
-                         facecolor='darkblue')
-        ax1.fill_between(time, budget[1, :], budget[2, :],
-                         facecolor='royalblue')
-        ax1.fill_between(time, budget[2, :], budget[3, :],
-                         facecolor='black')
-        ax1.fill_between(time, budget[3, :], budget[4, :],
-                         facecolor='skyblue')
         ax1.set_ylim([0, budget.max()])
         ax1.set_xlim([0, time.max()])
         ax1.set_ylabel('Mass oil  [%s]' %
