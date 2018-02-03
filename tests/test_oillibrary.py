@@ -77,19 +77,32 @@ class TestOil(unittest.TestCase):
 
                 b = o.get_oil_budget()
                 actual_dispersed = b['mass_dispersed']/b['mass_total']
+                actual_submerged = b['mass_submerged']/b['mass_total']
+                actual_evaporated = b['mass_evaporated']/b['mass_total']
+                print actual_evaporated
                 print 'Dispersion fraction %f for ' \
                       '%s and wind speed %f' % \
                       (actual_dispersed[-1], oil, windspeed)
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
+                    fraction_submerged = 0
+                    fraction_evaporated = 0.4955
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
                     fraction_dispersed = 0.0097
+                    fraction_submerged = 0
+                    fraction_evaporated = 0.52469
                 elif oil == 'SKRUGARD' and windspeed == 8:
                     fraction_dispersed = 0.1226
+                    fraction_submerged = 0.0708
+                    fraction_evaporated = 0.2108
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
                                        fraction_dispersed, 2)
+                self.assertAlmostEqual(actual_submerged[-1],
+                                       fraction_submerged, 2)
+                self.assertAlmostEqual(actual_evaporated[-1],
+                                       fraction_evaporated, 2)
                 #o.plot_oil_budget()
 
     @unittest.skipIf(has_oil_library is False,
