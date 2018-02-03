@@ -731,12 +731,15 @@ class OpenOil(OpenDriftSimulation):
 
         if self.oil_weathering_model == 'noaa':
             try:  # Older version of OilLibrary
-                oil_density = self.oiltype.get_density(283)  # 10 degrees
+                oil_density = self.oiltype.get_density(285)  # 12 degrees
+                oil_viscosity = self.oiltype.get_viscosity(285)
             except:  # Newer version of OilLibrary
-                oil_density = self.oiltype.density_at_temp(283)
-            logging.info('Using density %s of oiltype %s' %
-                         (oil_density, self.get_config('seed:oil_type')))
+                oil_density = self.oiltype.density_at_temp(285)
+                oil_viscosity = self.oiltype.kvis_at_temp(285)
+            logging.info('Using density %s and viscosity %s of oiltype %s' %
+                         (oil_density, oil_viscosity, self.get_config('seed:oil_type')))
             kwargs['density'] = oil_density
+            kwargs['viscosity'] = oil_viscosity
 
         if 'm3_per_hour' in kwargs:
             # From given volume rate, we calculate the mass per element

@@ -79,7 +79,6 @@ class TestOil(unittest.TestCase):
                 actual_dispersed = b['mass_dispersed']/b['mass_total']
                 actual_submerged = b['mass_submerged']/b['mass_total']
                 actual_evaporated = b['mass_evaporated']/b['mass_total']
-                print actual_evaporated
                 print 'Dispersion fraction %f for ' \
                       '%s and wind speed %f' % \
                       (actual_dispersed[-1], oil, windspeed)
