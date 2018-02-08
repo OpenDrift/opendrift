@@ -105,7 +105,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
                 droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
         [wave_entrainment]
-            droplet_size_distribution = option('Exponential', 'Johansen et al. (2015)', default='Johansen et al. (2015)')
+            droplet_size_distribution = option('Exponential', 'Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
             entrainment_rate = option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Li et al. (2017)')
         [turbulentmixing]
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
@@ -394,9 +394,11 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         random_number = np.random.uniform(0, 1, len(self.elements.z))
         entrained = np.logical_and(surface,
                         random_number<self.oil_entrainment_probability)
-        # TODO: determine water depth for wave entrainment
-        self.elements.z[entrained] = \
-            -self.get_config('turbulentmixing:verticalresolution')/2.
+        # intrusion depth for wave entrainment from Delvigne and Sweeney (1988), Li et al. (2017):
+        zb = 1.5 * self.significant_wave_height() # between 0 and zb
+        if entrained.sum() > 0:
+            intrusion_depth = np.random.uniform(0, np.mean(zb), entrained.sum())
+            self.elements.z[entrained] = - intrusion_depth
         if self.keep_droplet_diameter is False:
             # Give surface elements a random diameter
             self.elements.diameter[self.elements.z==0] = \
@@ -414,6 +416,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         dm = self.get_config('wave_entrainment:droplet_size_distribution')
         if dm == 'Johansen et al. (2015)':
             d = self.get_wave_breaking_droplet_diameter_johansen2015()
+        elif dm == 'Li et al. (2017)':
+            d = self.get_wave_breaking_droplet_diameter_liz2017()
         elif dm == 'Exponential':
             d = self.get_wave_breaking_droplet_diameter_exponential()
         return d
@@ -436,9 +440,50 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                                 size=self.num_elements_active(),
                                 p=self.droplet_spectrum_pdf)
 
+    def get_wave_breaking_droplet_diameter_liz2017(self):
+        # Li,Zhengkai, M. Spaulding, D. French-McCay, D. Crowley, J.R. Payne: "Development of a unified oil droplet size distribution model 
+        # with application to surface breaking waves and subsea blowout releases considering dispersant effects" Mar. Pol. Bul.
+        # DOI: 10.1016/j.marpolbul.2016.09.008
+        # Should be prefered when the oil film thickness is unknown.
+        if not hasattr(self, 'droplet_spectrum_pdf'):
+            # Generate droplet spectrum as in Li (Zhengkai) et al. (2017)
+            logging.debug('Generating wave breaking droplet size spectrum')
+            dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
+            dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
+            self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
+            g = 9.81
+            interfacial_tension = self.oil_water_interfacial_tension
+            delta_rho = self.sea_water_density() - self.elements.density
+            d_o = 4 * (interfacial_tension / (delta_rho*g))**0.5
+            we = ( self.sea_water_density() * g * self.significant_wave_height() * d_o ) / interfacial_tension
+            oh = self.elements.viscosity * self.elements.density * (self.elements.density * interfacial_tension * d_o )**-0.5 # From kin. to dyn. viscosity by * density
+            r = 1.791
+            p = 0.460
+            q = -0.518
+            dV_50 = d_o * r * (1+10*oh)**p * we**q # median droplet diameter in volume distribution
+            sd = 0.4 # log standard deviation in log10 units
+            Sd = np.log(10) *sd # log standard deviation in natural log units
+            # TODO: calculation below with scalars, but we have arrays, with varying oil properties
+            # treat all particle in one go:
+            dV_50 = np.mean(dV_50) # mean log diameter
+            dN_50 = np.exp( np.log(dV_50) - 3*Sd**2 ) # convert number distribution to volume distribution
+            logging.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
+            spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
+            self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
+        if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
+                np.abs(np.sum(self.droplet_spectrum_pdf) - 1) > 1e-6:
+            logging.warning('Could not update droplet diameters.')
+            return self.elements.diameter
+        else:
+            return np.random.choice(self.droplet_spectrum_diameter,
+                                    size=self.num_elements_active(),
+                                    p=self.droplet_spectrum_pdf)
+
+
     def get_wave_breaking_droplet_diameter_johansen2015(self):
         # Johansen O, Reed M, Bodsberg NR, Natural dispersion revisited
         # DOI: 10.1016/j.marpolbul.2015.02.026
+        # requires oil film thickness
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum as in Johansen et al. (2015)
             logging.debug('Generating wave breaking droplet size spectrum')
