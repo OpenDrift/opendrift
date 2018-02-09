@@ -85,15 +85,15 @@ class TestOil(unittest.TestCase):
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
                     fraction_submerged = 0
-                    fraction_evaporated = 0.4955
+                    fraction_evaporated = 0.5261
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
-                    fraction_dispersed = 0.0097
-                    fraction_submerged = 0
-                    fraction_evaporated = 0.52469
+                    fraction_dispersed = 0.0863
+                    fraction_submerged = 0.2924
+                    fraction_evaporated = 0.4890
                 elif oil == 'SKRUGARD' and windspeed == 8:
-                    fraction_dispersed = 0.1226
-                    fraction_submerged = 0.0708
-                    fraction_evaporated = 0.2108
+                    fraction_dispersed = 0.1330
+                    fraction_submerged = 0.3105
+                    fraction_evaporated = 0.1882
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],

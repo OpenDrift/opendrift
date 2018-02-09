@@ -684,12 +684,22 @@ class OpenOil(OpenDriftSimulation):
         self.set_config('seed:oil_type', oiltype)
         if self.oil_weathering_model == 'noaa':
             try:
-                from oil_library import get_oil_props
-                self.oiltype = get_oil_props(oiltype)
+                from oil_library import get_oil_props, _get_db_session
+                from oil_library.models import Oil as ADIOS_Oil
+                from oil_library.oil_props import OilProps
+                session = _get_db_session()
+                oils = session.query(ADIOS_Oil).filter(
+                            ADIOS_Oil.name == oiltype)
+                ADIOS_ids = [oil.adios_oil_id for oil in oils]
+                if len(ADIOS_ids) == 0:
+                    raise ValueError('Oil type "%s" not found in NOAA database' % oiltype)
+                elif len(ADIOS_ids) == 1:
+                    self.oiltype = get_oil_props(oiltype)
+                else:
+                    logging.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
+                    self.oiltype = OilProps(oils[0])
             except Exception as e:
                 print e
-                raise ValueError('Oil type "%s" not found in NOAA database'
-                                 % oiltype)
             return
 
         if oiltype not in self.oiltypes:
