@@ -277,15 +277,15 @@ class BaseReader(object):
             z = np.append(z, [profiles_depth[0], profiles_depth[1]])
         env = self.get_variables(variables, time, x, y, z, block)
 
-        # Convert any numpy arrays to masked arrays
-        for var in env.keys():
-            if isinstance(env[var], np.ndarray):
-                env[var] = np.ma.masked_array(env[var], mask=False)
-
         # Make sure x and y are floats (and not e.g. int64)
         if 'x' in env.keys():
             env['x'] = np.array(env['x'], dtype=np.float)
             env['y'] = np.array(env['y'], dtype=np.float)
+
+        # Convert any masked arrays to NumPy arrays
+        for variable in env.keys():
+            if isinstance(env[variable], np.ma.MaskedArray):
+                env[variable] = env[variable].filled(np.nan)
 
         self.timer_end('reading')
 
