@@ -287,6 +287,28 @@ class BaseReader(object):
             if isinstance(env[variable], np.ma.MaskedArray):
                 env[variable] = env[variable].filled(np.nan)
 
+        # Convolve arrays with a kernel, if reader.convolve is set
+        if hasattr(self, 'convolve'):
+            from scipy import ndimage
+            N = self.convolve
+            if isinstance(N, (int, np.integer)):
+                kernel = np.ones((N, N))
+                kernel = kernel/kernel.sum()
+            else:
+                kernel = N
+            logging.debug('Convolving variables with kernel: %s' % kernel)
+            for variable in env.keys():
+                if variable in ['x', 'y', 'z', 'time']:
+                    pass
+                else:
+                    if env[variable].ndim == 2:
+                        env[variable] = ndimage.convolve(
+                            env[variable], kernel, mode='nearest')
+                    elif env[variable].ndim == 3:
+                        env[variable] = ndimage.convolve(
+                            env[variable], kernel[:,:,None],
+                            mode='nearest')
+
         self.timer_end('reading')
 
         return env
