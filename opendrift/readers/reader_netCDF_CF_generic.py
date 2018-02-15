@@ -234,8 +234,11 @@ class Reader(BaseReader):
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
-            indx = np.arange(np.max([0, indx.min()-buffer]),
-                             np.min([indx.max()+buffer, self.numx]))
+            if self.global_coverage():
+                indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+            else:
+                indx = np.arange(np.max([0, indx.min()-buffer]),
+                                 np.min([indx.max()+buffer, self.numx]))
             indy = np.arange(np.max([0, indy.min()-buffer]),
                              np.min([indy.max()+buffer, self.numy]))
         else:
@@ -244,22 +247,47 @@ class Reader(BaseReader):
 
         variables = {}
 
+        if indx.min() < 0:
+            logging.debug('Requested data block is not continous in file'+
+                          ', must read two blocks and concatenate.')
+            indx_left = indx[indx<0]
+            indx_right = indx[indx>=0]
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
 
             ensemble_dim = None
-            if var.ndim == 2:
-                variables[par] = var[indy, indx]
-            elif var.ndim == 3:
-                variables[par] = var[indxTime, indy, indx]
-            elif var.ndim == 4:
-                variables[par] = var[indxTime, indz, indy, indx]
-            elif var.ndim == 5:  # Ensemble data
-                variables[par] = var[indxTime, indz, indrealization, indy, indx]
-                ensemble_dim = 0  # Hardcoded ensemble dimension for now
-            else:
-                raise Exception('Wrong dimension of variable: ' +
-                                self.variable_mapping[par])
+            if indx.min() >= 0:
+                if var.ndim == 2:
+                    variables[par] = var[indy, indx]
+                elif var.ndim == 3:
+                    variables[par] = var[indxTime, indy, indx]
+                elif var.ndim == 4:
+                    variables[par] = var[indxTime, indz, indy, indx]
+                elif var.ndim == 5:  # Ensemble data
+                    variables[par] = var[indxTime, indz, indrealization, indy, indx]
+                    ensemble_dim = 0  # Hardcoded ensemble dimension for now
+                else:
+                    raise Exception('Wrong dimension of variable: ' +
+                                    self.variable_mapping[par])
+            else:  # We need to read left and right parts separately
+                if var.ndim == 2:
+                    left = var[indy, indx_left]
+                    right = var[indy, indx_right]
+                    variables[par] = np.ma.concatenate((left, right), 1)
+                elif var.ndim == 3:
+                    left = var[indxTime, indy, indx_left]
+                    right = var[indxTime, indy, indx_right]
+                    variables[par] = np.ma.concatenate((left, right), 1)
+                elif var.ndim == 4:
+                    left = var[indxTime, indz, indy, indx_left]
+                    right = var[indxTime, indz, indy, indx_right]
+                    variables[par] = np.ma.concatenate((left, right), 2)
+                elif var.ndim == 5:  # Ensemble data
+                    left = var[indxTime, indz, indrealization,
+                               indy, indx_left]
+                    right = var[indxTime, indz, indrealization,
+                                indy, indx_right]
+                    variables[par] = np.ma.concatenate((left, right), 3)
 
             # If 2D array is returned due to the fancy slicing
             # methods of netcdf-python, we need to take the diagonal
@@ -302,6 +330,10 @@ class Reader(BaseReader):
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
+        if self.global_coverage():
+            if self.xmax + self.delta_x >= 360:
+                variables['x'][variables['x']>180] -= 360
 
         variables['time'] = nearestTime
+
         return variables

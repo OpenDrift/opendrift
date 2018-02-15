@@ -691,11 +691,6 @@ class BaseReader(object):
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
 
-        # Compensate for wrapping about 0 or 180 longitude
-        if self.proj.is_latlong():
-            if self.xmax > 180:
-                lon[lon < 0] = lon[lon < 0] + 360
-
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
@@ -707,11 +702,29 @@ class BaseReader(object):
         if hasattr(self, 'zmax') and self.zmax is not None:
             zmax = self.zmax
 
-        indices = np.where((x >= self.xmin) & (x <= self.xmax) &
-                           (y >= self.ymin) & (y <= self.ymax) &
-                           (z >= zmin) & (z <= zmax))[0]
+        if self.global_coverage():
+            # We need only check north-south and z coverage
+            indices = np.where((y >= self.ymin) & (y <= self.ymax) &
+                               (z >= zmin) & (z <= zmax))[0]
+        else:
+            indices = np.where((x >= self.xmin) & (x <= self.xmax) &
+                               (y >= self.ymin) & (y <= self.ymax) &
+                               (z >= zmin) & (z <= zmax))[0]
 
         return indices
+
+    def global_coverage(self):
+        """Return True if global coverage east-west"""
+
+        if self.proj.is_latlong() is True and hasattr(self, 'delta_x'):
+            if (self.xmin - self.delta_x <= 0) and (
+                self.xmax + self.delta_x >= 360):
+                return True  # Global 0 to 360
+            if (self.xmin - self.delta_x <= -180) and (
+                self.xmax + self.delta_x >= 180):
+                return True  # Global -180 to 180
+
+        return False
 
     def coverage_string(self):
         """Coverage of reader to be reported as string for debug output"""
@@ -720,59 +733,6 @@ class BaseReader(object):
         return '%.2f-%.2fE, %.2f-%.2fN' % (
                     np.min(corners[0]), np.max(corners[0]),
                     np.min(corners[1]), np.max(corners[1]))
-
-    def check_coverage(self, time, lon, lat):
-        """Check which points are within coverage of reader.
-
-        Checks that requested positions and time are within coverage of
-        this reader, and that it can provide the requested variable(s).
-        Returns the input arguments, possibly modified/corrected (below)
-
-        Arguments:
-            See function get_variables for definition.
-
-        Returns:
-            x, y: coordinates of point in spatial reference system of reader
-            indices: indices of the input points which are inside domain
-
-        Raises:
-            ValueError:
-                - if requested time is outside coverage of reader.
-                - if all requested positions are outside coverage of reader.
-        """
-
-        lon = np.atleast_1d(lon)
-        lat = np.atleast_1d(lat)
-
-        # Check time
-        if self.start_time is not None and (time is not None and
-                                            time < self.start_time):
-            raise ValueError('Requested time (%s) is before first available '
-                             'time (%s) of %s' % (time, self.start_time,
-                                                  self.name))
-        if self.end_time is not None and (time is not None and
-                                          time > self.end_time):
-            raise ValueError('Requested time (%s) is after last available '
-                             'time (%s) of %s' % (time, self.end_time,
-                                                  self.name))
-
-        # Compensate for wrapping about 0 or 180 longitude
-        if self.proj.is_latlong():
-            if self.xmax > 180:
-                lon[lon < 0] = lon[lon < 0] + 360
-
-        # Calculate x,y coordinates from lon,lat
-        x, y = self.lonlat2xy(lon, lat)
-
-        indices = np.where((x > self.xmin) & (x < self.xmax) &
-                           (y > self.ymin) & (y < self.ymax))[0]
-        if len(indices) == 0:
-            raise ValueError(('Coverage: all %s particles (%.2f-%.2fE, ' +
-                              '%.2f-%.2fN) are outside domain of %s (%s)') %
-                             (len(lon), lon.min(), lon.max(), lat.min(),
-                              lat.max(), self.name, self.coverage_string()))
-
-        return x[indices], y[indices], indices
 
     def check_arguments(self, variables, time, x, y, z):
         """Check validity of arguments input to method get_variables.
@@ -823,9 +783,13 @@ class BaseReader(object):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
-        outside = np.where(~np.isfinite(x+y) |
-                           (x < self.xmin) | (x > self.xmax) |
-                           (y < self.ymin) | (y > self.ymax))[0]
+        if self.global_coverage():
+            outside = np.where(~np.isfinite(x+y) |
+                               (y < self.ymin) | (y > self.ymax))[0]
+        else:
+            outside = np.where(~np.isfinite(x+y) |
+                               (x < self.xmin) | (x > self.xmax) |
+                               (y < self.ymin) | (y > self.ymax))[0]
         if np.size(outside) == np.size(x):
             lon, lat = self.xy2lonlat(x, y)
             raise ValueError(('Argcheck: all %s particles (%.2f-%.2fE, ' +
