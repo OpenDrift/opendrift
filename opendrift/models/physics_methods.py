@@ -124,6 +124,8 @@ class PhysicsMethods(object):
         if wind_drift_factor is None:
             wind_drift_factor = self.elements.wind_drift_factor
 
+        wind_drift_factor = wind_drift_factor.copy()  # To prevent outside value to be modified
+
         # Convert wind_drift_factor to array
         if len(np.atleast_1d(wind_drift_factor)) == 1:
             wind_drift_factor = wind_drift_factor*np.ones(len(self.elements))

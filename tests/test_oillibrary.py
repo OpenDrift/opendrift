@@ -86,14 +86,17 @@ class TestOil(unittest.TestCase):
                     fraction_dispersed = 0
                     fraction_submerged = 0
                     fraction_evaporated = 0.5261
+                    meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
                     fraction_dispersed = 0.0863
                     fraction_submerged = 0.2924
                     fraction_evaporated = 0.4890
+                    meanlon = 4.81773
                 elif oil == 'SKRUGARD' and windspeed == 8:
                     fraction_dispersed = 0.1330
                     fraction_submerged = 0.3105
                     fraction_evaporated = 0.1882
+                    meanlon = 4.82765
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
@@ -102,6 +105,7 @@ class TestOil(unittest.TestCase):
                                        fraction_submerged, 2)
                 self.assertAlmostEqual(actual_evaporated[-1],
                                        fraction_evaporated, 2)
+                self.assertAlmostEqual(np.mean(o.elements.lon), meanlon, 4)
                 #o.plot_oil_budget()
 
     @unittest.skipIf(has_oil_library is False,
