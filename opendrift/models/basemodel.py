@@ -121,6 +121,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 wind_drift_factor = float(min=0, max=1, default=0.02)
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
+                current_uncertainty_uniform = float(min=0, max=5, default=0)
                 wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
                 use_tabularised_stokes_drift = boolean(default=False)
