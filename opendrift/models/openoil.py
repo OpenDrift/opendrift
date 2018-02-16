@@ -152,6 +152,9 @@ class OpenOil(OpenDriftSimulation):
                                 ImportedRecord).filter(ImportedRecord.
                                 location==kwargs['location']).all()
                 del kwargs['location']
+                all_oiltypes = session.query(Oil.name).all()
+                generic_oiltypes = [o for o in all_oiltypes if o[0][0:2] == '*G']
+                self.oiltypes.extend(generic_oiltypes)
             else:
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
