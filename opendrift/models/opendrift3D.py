@@ -59,10 +59,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 turbulentmixing = boolean(default=True)
                 verticaladvection = boolean(default=True)
             [turbulentmixing]
-                timestep = float(min=0.1, max=3600, default=4.)
-                verticalresolution = float(min=0.01, max=10, default = 2.)
+                timestep = float(min=0.1, max=3600, default=60.)
+                verticalresolution = float(min=0.01, max=10, default = 1.)
                 max_iterations = integer(min=0, max=100000, default = 0)
-                diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'gls_tke', default='environment')
+                diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
                 TSprofiles = boolean(default=False)
                 '''
         self._add_configstring(configspec_oceandrift3D)
@@ -95,13 +95,19 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
     def prepare_vertical_mixing(self):
         pass  # To be implemented by subclasses as needed
 
-    def surface_interaction(self, time_step_seconds):
+    def surface_stick(self):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
 
-        # Place particles above surface into the uppermost layer
-        surface = self.elements.z >= 0
-        self.elements.z[surface] = \
-            -self.get_config('turbulentmixing:verticalresolution')/2.
+        # keep particle just below the surface
+        surface = np.where(self.elements.z >= 0)
+        if len(surface[0]) > 0:
+            self.elements.z[surface] = -0.01
+
+    def surface_wave_mixing(self, time_step_seconds):
+        '''To be overloaded by subclasses, e.g. downward mixing of oil'''
+
+        # do nothing 
+        pass
 
     def vertical_mixing(self):
         """Mix particles vertically according to eddy diffusivity and buoyancy
@@ -112,9 +118,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             diameter, and shape.
 
             Vertical particle displacemend du to turbulent mixing is
-            calculated using the "binned random walk scheme" (Thygessen and
-            Aadlandsvik, 2007).
-            The formulation of this scheme is copied from LADIM (IMR).
+            calculated using a random walk scheme" (Visser et al. 1996)
         """
 
         if self.get_config('processes:turbulentmixing') is False:
@@ -124,22 +128,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         self.timer_start('main loop:updating elements:vertical mixing')
         from opendrift.models import eddydiffusivity
 
-        dz = self.get_config('turbulentmixing:verticalresolution')
-        dz = np.float32(dz)  # Convert to avoid error for older numpy
         dt_mix = self.get_config('turbulentmixing:timestep')
 
         # minimum height/maximum depth for each particle
         Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
-
-        # place particle in center of bin
-        surface = self.elements.z == 0
-        self.elements.z[~surface] = np.round(self.elements.z[~surface]/dz)*dz
-
-        # Prevent elements to go below seafloor
-        bottom = np.where(self.elements.z < Zmin)
-        if len(bottom[0]) > 0:
-            logging.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
-            self.elements.z[bottom] = np.round(Zmin[bottom]/dz)*dz + dz/2.
 
         # Eventual model specific preparions
         self.prepare_vertical_mixing()
@@ -178,7 +170,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 self.environment_profiles['sea_water_temperature']
             if ('sea_water_salinity' in self.fallback_values and
                 Sprofiles.min() == Sprofiles.max()):
-                logging.debug('Salinity and temperature are fallback'                              'values, skipping TSprofile')
+                logging.debug('Salinity and temperature are fallback'
+                              'values, skipping TSprofile')
                 Sprofiles = None
                 Tprofiles = None
             else:
@@ -189,12 +182,15 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             Tprofiles = None
 
         # prepare vertical interpolation coordinates
-        z_i = range(Kprofiles.shape[0])
+        #z_i = range(Kprofiles.shape[0])
+        z_i = range(self.environment_profiles['z'].shape[0])
+        #print len(self.environment_profiles['z']), len(z_i)
         z_index = interp1d(-self.environment_profiles['z'],
                            z_i, bounds_error=False,
                            fill_value=(0,len(z_i)-1))  # Extrapolation
+
         # internal loop for fast time step of vertical mixing model
-        # binned random walk needs faster time step compared
+        # random walk needs faster time step compared
         # to horizontal advection
         logging.debug('Vertical mixing module:')
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
@@ -204,9 +200,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             else:
                 ntimes_mix = np.minimum(ntimes_mix,
                     self.get_config('turbulentmixing:max_iterations'))
-        logging.debug('Turbulent diffusion with binned random walk '
+        logging.debug('Turbulent diffusion with random walk '
                       'scheme using ' + str(ntimes_mix) +
                       ' fast time steps of dt=' + str(dt_mix) + 's')
+
         for i in range(0, ntimes_mix):
             #remember which particles belong to the exact surface
             surface = self.elements.z == 0
@@ -223,8 +220,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
             w = self.elements.terminal_velocity
 
-            # diffusivity K at depth z
-            zi = z_index(-self.elements.z)
+            # diffusivity K at depth z+dz
+
+
+            dz = 1e-3
+            zi = z_index(-self.elements.z+0.5*dz)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
@@ -234,9 +234,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 Kprofiles[lower, range(Kprofiles.shape[1])] * \
                 (1-weight_upper)
 
-            # K at depth z-dz ; gradient of K is required for correct
-            # solution with random walk scheme
-            zi = z_index(-(self.elements.z-dz))
+            # diffusivity K at depth z-dz
+            zi = z_index(-self.elements.z-0.5*dz)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
@@ -246,40 +245,58 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 Kprofiles[lower, range(Kprofiles.shape[1])] * \
                 (1-weight_upper)
 
-            # calculate rise/sink probability dependent on K and w
-            p = dt_mix * (2.0*K1 + dz*w)/(2.0*dz*dz)  # probability to rise
-            q = dt_mix * (2.0*K2 - dz*w)/(2.0*dz*dz)  # probability to sink
+            # diffusivity gradient
+            dKdz = (K1 - K2) / dz
 
-            # check if probabilities are reasonable or wrong; which can happen if K is very high (K>0.1)
-            wrong = p+q > 1.00002
-            if wrong.sum() > 0:
-                logging.info('WARNING! '+str(wrong.sum())+' elements have p+q>1; you might need a smaller mixing time step')
-                # fixing p and q by scaling them to assure p+q<1:
-                norm = p+q
-                p[wrong] = p[wrong]/norm[wrong] 
-                q[wrong] = q[wrong]/norm[wrong]
+            # K at depth z+dKdz*dt/2 
+            zi = z_index(-(self.elements.z+dKdz*dt_mix/2))
+            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
+            weight_upper = 1 - (zi - upper)
+            weight_upper[np.isnan(weight_upper)] = 1
+            K3 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
+                weight_upper + \
+                Kprofiles[lower, range(Kprofiles.shape[1])] * \
+                (1-weight_upper)
 
-            # use probabilities to mix some particles up or down
-            RandKick = np.random.random(self.num_elements_active())           
-            up = np.where(RandKick < p)
-            down = np.where(RandKick > 1.0 - q)           
-            self.elements.z[up] = self.elements.z[up] + dz # move to layer above
-            self.elements.z[down] = self.elements.z[down] - dz # move to layer underneath
 
-            # put the particles that belong to the surface slick (if present) back to the surface
-            self.elements.z[surface] = 0.
+            # Visser et al. 1996 random walk mixing
+            # requires an inner loop time step dt such that
+            # dt << (d2K/dz2)^-1, e.g. typically dt << 15min
+            R = 2*np.random.random(self.num_elements_active()) - 1            
+            r = 1.0/3
+            # new position  =  old position   - up_K_flux   + random walk
+            self.elements.z = self.elements.z - dKdz*dt_mix + R*np.sqrt(( K3*dt_mix*2/r))
+ 
+            # Reflect from surface 
+            reflect = np.where(self.elements.z >= 0)
+            if len(reflect[0]) > 0:
+                self.elements.z[reflect] = -self.elements.z[reflect]
 
-            # Prevent elements to go below seafloor
+            # reflect elements going below seafloor
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
                 logging.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
-                self.elements.z[bottom] = np.round(Zmin[bottom]/dz)*dz + dz/2.
+                self.elements.z[bottom] = 2*Zmin[bottom] - self.elements.z[bottom]
+           
+            # advect due to buoyancy
+            self.elements.z = self.elements.z + w*dt_mix
 
-            # Call surface interaction:
-            # reflection at surface or formation of slick and wave mixing if implemented for this class
-            self.surface_interaction(dt_mix)
+            # put the particles that belonged to the surface slick (if present) back to the surface
+            self.elements.z[surface] = 0.
 
+            # formation of slick and wave mixing for surfaced particles if implemented for this class
+            self.surface_stick()
+            self.surface_wave_mixing(dt_mix)
+
+            # let particles stick to bottom 
+            bottom = np.where(self.elements.z < Zmin)
+            if len(bottom[0]) > 0:
+                logging.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+                self.elements.z[bottom] = Zmin 
+ 
         self.timer_end('main loop:updating elements:vertical mixing')
+
 
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""
@@ -340,7 +357,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             mask = self.history['z'].T[0] == self.history['z'].T[0] 
 
         if bins is None:
-            bins=-maxrange/dz
+            bins=int(-maxrange/dz)
 
         ax.hist(self.history['z'].T[step,mask], bins=bins,
                 range=[maxrange, 0], orientation='horizontal')
@@ -356,3 +373,5 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                      '   Mean windspeed: %.1f m/s' % windspeed)
         if show is True:
             pyplot.show()
+
+

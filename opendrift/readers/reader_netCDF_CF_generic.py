@@ -106,11 +106,12 @@ class Reader(BaseReader):
                 y = var[:]*unitfactor
                 self.numy = var.shape[0] 
             if standard_name == 'depth' or axis == 'Z':
-                if 'positive' not in attributes or \
-                        var.__dict__['positive'] == 'up':
-                    self.z = var[:]
-                else:
-                    self.z = -var[:]
+                if var[:].ndim == 1:
+                    if 'positive' not in attributes or \
+                            var.__dict__['positive'] == 'up':
+                        self.z = var[:]
+                    else:
+                        self.z = -var[:]
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
                 time = var[:]
@@ -122,6 +123,10 @@ class Reader(BaseReader):
                     self.time_step = self.times[1] - self.times[0]
                 else:
                     self.time_step = None
+            if standard_name == 'realization':
+                self.realizations = var[:]
+                logging.debug('%i ensemble members available'
+                              % len(self.realizations))
 
         if 'x' not in locals():
             if self.lon.ndim == 1:
@@ -150,11 +155,11 @@ class Reader(BaseReader):
         rel_delta_y = (y[1::] - y[0:-1])
         rel_delta_y = np.abs((rel_delta_y.max() -
                               rel_delta_y.min())/self.delta_y)
-        if rel_delta_x > 0.01:  # Allow 1 % deviation
+        if rel_delta_x > 0.05:  # Allow 5 % deviation
             print rel_delta_x
             print x[1::] - x[0:-1]
             raise ValueError('delta_x is not constant!')
-        if rel_delta_y > 0.01:
+        if rel_delta_y > 0.05:
             print rel_delta_y
             print y[1::] - y[0:-1]
             raise ValueError('delta_y is not constant!')
@@ -190,7 +195,8 @@ class Reader(BaseReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None, block=False,
+                      indrealization=None):
 
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
@@ -211,6 +217,12 @@ class Reader(BaseReader):
         else:
             indz = 0
 
+        if indrealization == None:
+            if hasattr(self, 'realizations'):
+                indrealization = range(len(self.realizations))
+            else:
+                indrealization = None
+
         # Find indices corresponding to requested x and y
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
@@ -222,8 +234,11 @@ class Reader(BaseReader):
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
-            indx = np.arange(np.max([0, indx.min()-buffer]),
-                             np.min([indx.max()+buffer, self.numx]))
+            if self.global_coverage():
+                indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+            else:
+                indx = np.arange(np.max([0, indx.min()-buffer]),
+                                 np.min([indx.max()+buffer, self.numx]))
             indy = np.arange(np.max([0, indy.min()-buffer]),
                              np.min([indy.max()+buffer, self.numy]))
         else:
@@ -232,32 +247,73 @@ class Reader(BaseReader):
 
         variables = {}
 
+        if indx.min() < 0:
+            logging.debug('Requested data block is not continous in file'+
+                          ', must read two blocks and concatenate.')
+            indx_left = indx[indx<0]
+            indx_right = indx[indx>=0]
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
 
-            if var.ndim == 2:
-                variables[par] = var[indy, indx]
-            elif var.ndim == 3:
-                variables[par] = var[indxTime, indy, indx]
-            elif var.ndim == 4:
-                variables[par] = var[indxTime, indz, indy, indx]
-            else:
-                raise Exception('Wrong dimension of variable: ' +
-                                self.variable_mapping[par])
+            ensemble_dim = None
+            if indx.min() >= 0:
+                if var.ndim == 2:
+                    variables[par] = var[indy, indx]
+                elif var.ndim == 3:
+                    variables[par] = var[indxTime, indy, indx]
+                elif var.ndim == 4:
+                    variables[par] = var[indxTime, indz, indy, indx]
+                elif var.ndim == 5:  # Ensemble data
+                    variables[par] = var[indxTime, indz, indrealization, indy, indx]
+                    ensemble_dim = 0  # Hardcoded ensemble dimension for now
+                else:
+                    raise Exception('Wrong dimension of variable: ' +
+                                    self.variable_mapping[par])
+            else:  # We need to read left and right parts separately
+                if var.ndim == 2:
+                    left = var[indy, indx_left]
+                    right = var[indy, indx_right]
+                    variables[par] = np.ma.concatenate((left, right), 1)
+                elif var.ndim == 3:
+                    left = var[indxTime, indy, indx_left]
+                    right = var[indxTime, indy, indx_right]
+                    variables[par] = np.ma.concatenate((left, right), 1)
+                elif var.ndim == 4:
+                    left = var[indxTime, indz, indy, indx_left]
+                    right = var[indxTime, indz, indy, indx_right]
+                    variables[par] = np.ma.concatenate((left, right), 2)
+                elif var.ndim == 5:  # Ensemble data
+                    left = var[indxTime, indz, indrealization,
+                               indy, indx_left]
+                    right = var[indxTime, indz, indrealization,
+                                indy, indx_right]
+                    variables[par] = np.ma.concatenate((left, right), 3)
 
-            # If 2D array is returned due to the fancy slicing methods
-            # of netcdf-python, we need to take the diagonal
+            # If 2D array is returned due to the fancy slicing
+            # methods of netcdf-python, we need to take the diagonal
             if variables[par].ndim > 1 and block is False:
                 variables[par] = variables[par].diagonal()
 
             # Mask values outside domain
-            variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
+            variables[par] = np.ma.array(variables[par],
+                                         ndmin=2, mask=False)
             if block is False:
                 variables[par].mask[outside] = True
 
             # Mask extreme values which might have slipped through
             variables[par] = np.ma.masked_outside(
                 variables[par], -30000, 30000)
+
+            # Ensemble blocks are split into lists
+            if ensemble_dim is not None:
+                num_ensembles = variables[par].shape[ensemble_dim]
+                logging.debug('Num ensembles: %i ' % num_ensembles)
+                newvar = [0]*num_ensembles
+                for ensemble_num in range(num_ensembles):
+                    newvar[ensemble_num] = \
+                        np.take(variables[par],
+                                ensemble_num, ensemble_dim)
+                variables[par] = newvar
 
         # Store coordinates of returned points
         try:
@@ -274,6 +330,10 @@ class Reader(BaseReader):
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
+        if self.global_coverage():
+            if self.xmax + self.delta_x >= 360:
+                variables['x'][variables['x']>180] -= 360
 
         variables['time'] = nearestTime
+
         return variables

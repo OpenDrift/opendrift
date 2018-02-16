@@ -32,6 +32,8 @@ import scipy
 import configobj, validate
 try:
     import matplotlib
+    matplotlib.rcParams['legend.numpoints'] = 1
+    matplotlib.rcParams['legend.scatterpoints'] = 1
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
         print 'No display found. Using non-interactive Agg backend'
@@ -114,6 +116,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     configspec_basemodel = '''
             [general]
+                use_basemap_landmask = boolean(default=True)
                 basemap_resolution = option('f', 'h', 'i', 'c', default='h')
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
             [drift]
@@ -130,6 +133,7 @@ class OpenDriftSimulation(PhysicsMethods):
     max_speed = 1  # Assumed max average speed of any element
     required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
+    plot_comparison_colors = ['r', 'g', 'b', 'm', 'c', 'y']
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  loglevel=logging.DEBUG):
@@ -610,6 +614,20 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
 
+    def parse_filename_date(self, filename, check_existence=True):
+
+        if not isinstance(filename, basestring):
+            return filename
+        f = datetime.now().strftime(filename)
+        if f == filename:
+            return filename
+        if os.path.exists(f):
+            print 'File exists'
+        else:
+            print 'File does not exist'
+
+        return f
+
     def add_readers_from_list(self, urls, timeout=10):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
@@ -888,22 +906,26 @@ class OpenDriftSimulation(PhysicsMethods):
         # Parameterisation of unavailable variables
         #######################################################
         if self.get_config('drift:use_tabularised_stokes_drift') is True:
-            if (env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and
-                env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
-                    logging.info('Calculating parameterised stokes drift')
-                    for i in range(len(env['x_wind'])):
-                        env['sea_surface_wave_stokes_drift_x_velocity'][i], \
-                        env['sea_surface_wave_stokes_drift_y_velocity'][i] = \
-                            self.wave_stokes_drift_parameterised((env['x_wind'][i], env['y_wind'][i]),
-                            self.get_config('drift:tabularised_stokes_drift_fetch'))
+            if 'x_wind' not in variables:
+                logging.debug('No wind available to calculate Stokes drift')
+            else:
+                if 'sea_surface_wave_stokes_drift_x_velocity' not in variables or (
+                    env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and 
+                    env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
+                        logging.info('Calculating parameterised stokes drift')
+                        for i in range(len(env['x_wind'])):
+                            env['sea_surface_wave_stokes_drift_x_velocity'][i], \
+                            env['sea_surface_wave_stokes_drift_y_velocity'][i] = \
+                                self.wave_stokes_drift_parameterised((env['x_wind'][i], env['y_wind'][i]),
+                                self.get_config('drift:tabularised_stokes_drift_fetch'))
 
-            if (env['sea_surface_wave_significant_height'].max() == 0):
-                    logging.info('Calculating parameterised significant wave height')
-                    for i in range(len(env['x_wind'])):
-                        env['sea_surface_wave_significant_height'][i] = \
-                            self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]),
-                            self.get_config('drift:tabularised_stokes_drift_fetch'))
-
+                if (env['sea_surface_wave_significant_height'].max() == 0):
+                        logging.info('Calculating parameterised significant wave height')
+                        for i in range(len(env['x_wind'])):
+                            env['sea_surface_wave_significant_height'][i] = \
+                                self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]),
+                                self.get_config('drift:tabularised_stokes_drift_fetch'))
+       
         #############################
         # Add uncertainty/diffusion
         #############################
@@ -1654,9 +1676,17 @@ class OpenDriftSimulation(PhysicsMethods):
         # If no basemap has been added, we determine it dynamically
         ##############################################################
         # TODO: some more error checking here
-        if 'land_binary_mask' in self.required_variables and \
+        # If Basemap landmask is requested, it shall not be obtained from other readers
+        if self.get_config('general:use_basemap_landmask') is True:
+            if 'land_binary_mask' in self.priority_list:
+                if 'basemap_landmask' in self.priority_list['land_binary_mask']:
+                    self.priority_list['land_binary_mask'] = ['basemap_landmask']
+                else:
+                    del self.priority_list['land_binary_mask']
+        if self.get_config('general:use_basemap_landmask') is True and \
+                ('land_binary_mask' in self.required_variables and \
                 'land_binary_mask' not in self.priority_list \
-                and 'land_binary_mask' not in self.fallback_values:
+                and 'land_binary_mask' not in self.fallback_values):
             logging.info(
                 'Adding a dynamical landmask (resolution "%s") based on '
                 'assumed maximum speed of %s m/s. '
@@ -1796,6 +1826,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                          self.elements.z,
                                          self.required_profiles)
 
+                self.calculate_missing_environment_variables()
+
                 self.interact_with_coastline()
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
@@ -1839,6 +1871,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.info('End of simulation:')
                 logging.info(e)
                 logging.info(traceback.format_exc())
+                if not hasattr(self, 'environment'):
+                    sys.exit('Simulation aborted.')
                 logging.info('========================')
                 if stop_on_error is True:
                     sys.exit('Stopping on error')
@@ -2101,13 +2135,14 @@ class OpenDriftSimulation(PhysicsMethods):
         return lons, lats
 
     def animation(self, buffer=.2, filename=None, compare=None,
-                  background=None, vmin=None, vmax=None, skip=5, scale=10,
-                  legend=None, legend_loc='best', markersize=5, fps=10):
+                  background=None, vmin=None, vmax=None, drifter=None,
+                  skip=5, scale=10, color=False, clabel=None,
+                  colorbar=True, cmap=None,
+                  legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
-            #plt.gcf().gca().set_title(str(i))
             ax.set_title(times[i])
             if background is not None:
                 map_x, map_y, scalar, u_component, v_component = \
@@ -2120,30 +2155,61 @@ class OpenDriftSimulation(PhysicsMethods):
                                map_y[::skip, ::skip],
                                u_component[::skip, ::skip],
                                v_component[::skip, ::skip], scale=scale)
-            points.set_data(x[range(x.shape[0]), i],
-                            y[range(x.shape[0]), i])
-            points_deactivated.set_data(
+            # Move points
+            points.set_offsets(np.c_[x[range(x.shape[0]), i],
+                                     y[range(x.shape[0]), i]])
+            points_deactivated.set_offsets(np.c_[
                 x_deactive[index_of_last_deactivated < i],
-                y_deactive[index_of_last_deactivated < i])
+                y_deactive[index_of_last_deactivated < i]])
+            if color is not False:  # Update colors
+                points.set_array(colorarray[:, i])
+                if isinstance(color, basestring):
+                    points_deactivated.set_array(
+                        colorarray_deactivated[
+                            index_of_last_deactivated < i])
+
+            if drifter is not None:
+                from bisect import bisect_left
+                ind = np.max(
+                    (0, bisect_left(drifter['time'], times[i]) - 1))
+                if i < 1 or i >= len(times)-1 or \
+                        drifter['time'][ind] < times[i-1] or \
+                        drifter['time'][ind] > times[i+1]:
+                    # Do not show when outside time interval
+                    drifter_pos.set_offsets([])
+                else:
+                    drifter_pos.set_offsets(
+                        np.c_[drifter['x'][ind], drifter['y'][ind]])
 
             if compare is not None:
                 for cd in compare_list:
-                    cd['points_other'].set_data(
+                    cd['points_other'].set_offsets(np.c_[
                         cd['x_other'][range(cd['x_other'].shape[0]), i],
-                        cd['y_other'][range(cd['x_other'].shape[0]), i])
-                    cd['points_other_deactivated'].set_data(
+                        cd['y_other'][range(cd['x_other'].shape[0]), i]])
+                    cd['points_other_deactivated'].set_offsets(np.c_[
                         cd['x_other_deactive'][
                             cd['index_of_last_deactivated_other'] < i],
                         cd['y_other_deactive'][
-                            cd['index_of_last_deactivated_other'] < i])
+                            cd['index_of_last_deactivated_other'] < i]])
                 return points, cd['points_other']
             else:
                 return points
 
-        # Find map coordinates and plot points with empty data, to be updated
+        # Find map coordinates and plot points with empty data
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
         ax = plt.gcf().gca()
+
+        if color is not False:
+            if isinstance(color, basestring):
+                colorarray = self.get_property(color)[0].T
+                colorarray_deactivated = \
+                    getattr(self.elements_deactivated, color)
+            else:
+                colorarray = color
+            if vmin is None:
+                vmin = colorarray.min()
+                vmax = colorarray.max()
 
         if background is not None:
             map_x, map_y, scalar, u_component, v_component = \
@@ -2151,66 +2217,83 @@ class OpenDriftSimulation(PhysicsMethods):
                                         time=self.start_time)
             map.pcolormesh(map_x, map_y, scalar, alpha=1,
                            vmin=vmin, vmax=vmax)
+            if colorbar is True:
+                if clabel is None:
+                    plt.colorbar()
+                else:
+                    plt.colorbar(label=clabel)
 
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
         if legend is None:
             legend = ['']
-        points = map.plot([], [], '.k', label=legend[0],
-                          markersize=markersize)[0]
+
+        if color is False:
+            c = 'k'
+        else:
+            c = []
+        points = map.scatter([], [], color=c, zorder=10,
+                             edgecolor='', cmap=cmap,
+                             vmin=vmin, vmax=vmax, label=legend[0])
         # Plot deactivated elements, with transparency
-        points_deactivated = map.plot([], [], '.k', alpha=.3)[0]
+        points_deactivated = map.scatter([], [], color=c, zorder=9,
+                                         vmin=vmin, vmax=vmax,
+                                         edgecolor='', alpha=.3)
         x_deactive, y_deactive = map(self.elements_deactivated.lon,
                                      self.elements_deactivated.lat)
 
         if compare is not None:
-            colors = ['r.', 'g.', 'b.', 'm.']
-            if not type(compare) is list:
-                compare = [compare]
-            if legend == ['']:
-                legend = ['']*int(len(compare)+1)
-            compare_list = [{}]*len(compare)
-            for cn, comp in enumerate(compare):
-                compare_list[cn] = {}
-                cd = compare_list[cn]  # pointer to dict with data
-                if type(comp) is str:
-                    # Other is given as filename
-                    other = self.__class__(loglevel=0)
-                    other.io_import_file(comp)
-                else:
-                    # Other is given as an OpenDrift object
-                    other = comp
+            compare_list = self._get_comparison_xy_for_plots(
+                                map, compare)
 
-                # Find map coordinates and plot data for comparison
-                cd['x_other'], cd['y_other'] = \
-                    map(other.history['lon'], other.history['lat'])
+            for cn, cd in enumerate(compare_list):
+                if legend != ['']:
+                    legstr = legend[cn+1]
+                else:
+                    legstr = None
                 cd['points_other'] = \
-                    map.plot(cd['x_other'][0, 0],
-                             cd['y_other'][0, 0], colors[cn],
-                             label=legend[cn+1], markersize=markersize)[0]
-                cd['x_other_deactive'], cd['y_other_deactive'] = \
-                    map(other.elements_deactivated.lon,
-                        other.elements_deactivated.lat)
+                    map.scatter([], [], color=
+                                self.plot_comparison_colors[cn],
+                                label=legstr, zorder=10)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    map.plot([], [], colors[cn], alpha=.3)[0]
-                cd['firstlast'] = np.ma.notmasked_edges(
-                    cd['x_other'], axis=1)
-                cd['index_of_last_other'] = cd['firstlast'][1][1]
-                cd['index_of_last_deactivated_other'] = \
-                    cd['index_of_last_other'][other.elements_deactivated.ID-1]
+                    map.scatter([], [], alpha=.3, zorder=9, color=
+                                self.plot_comparison_colors[cn])
 
-        if legend != ['', '']:
-            plt.legend(markerscale=3, loc=legend_loc)
+            if legend != ['', '']:
+                plt.legend(markerscale=2, loc=legend_loc)
 
-        anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
-                                       frames=x.shape[1], interval=50)
+
+        if drifter is not None:
+            print 'Drifter!'
+            drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
+            #map.plot(drifter['x'], drifter['y'])
+            drifter_pos = map.scatter([], [], color='r',
+                                      zorder=15, label='Drifter')
+
+        anim = animation.FuncAnimation(
+            plt.gcf(), plot_timestep, blit=False,
+            frames=x.shape[1], interval=50)
+
+        if colorbar is True and color is not False:
+            if isinstance(color, basestring) or clabel is not None:
+                if clabel is None:
+                    clabel = color
+                print clabel
+                cb = plt.colorbar(label=clabel)
+            else:
+                cb = plt.colorbar()
+            cb.set_alpha(1)
+            cb.draw_all()
 
         if filename is not None:
             self._save_animation(anim, filename, fps)
         else:
-            plt.show()
+            try:
+                plt.show()
+            except AttributeError:
+                pass
 
     def animation_profile(self, filename=None, compare=None,
                           legend=['', ''], markersize=5, fps=20):
@@ -2307,13 +2390,45 @@ class OpenDriftSimulation(PhysicsMethods):
         if filename is not None:
             self._save_animation(anim, filename, fps)
         else:
-            plt.show()
+            try:
+                plt.show()
+            except AttributeError:
+                pass
+
+    def _get_comparison_xy_for_plots(self, map, compare):
+        if not type(compare) is list:
+            compare = [compare]
+        compare_list = [{}]*len(compare)
+        for cn, comp in enumerate(compare):
+            compare_list[cn] = {}
+            cd = compare_list[cn]  # pointer to dict with data
+            if type(comp) is str:
+                # Other is given as filename
+                other = self.__class__(loglevel=0)
+                other.io_import_file(comp)
+            else:
+                # Other is given as an OpenDrift object
+                other = comp
+
+            # Find map coordinates of comparison simulations
+            cd['x_other'], cd['y_other'] = \
+                map(other.history['lon'], other.history['lat'])
+            cd['x_other_deactive'], cd['y_other_deactive'] = \
+                map(other.elements_deactivated.lon,
+                    other.elements_deactivated.lat)
+            cd['firstlast'] = np.ma.notmasked_edges(
+                cd['x_other'], axis=1)
+            cd['index_of_last_other'] = cd['firstlast'][1][1]
+            cd['index_of_last_deactivated_other'] = \
+                cd['index_of_last_other'][other.elements_deactivated.ID-1]
+
+        return compare_list
 
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
-             drifter_file=None, show=True, vmin=None, vmax=None,
+             show=True, vmin=None, vmax=None, compare=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
-             title='auto', legend='best', **kwargs):
+             title='auto', legend=None, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -2349,11 +2464,18 @@ class OpenDriftSimulation(PhysicsMethods):
         if hasattr(self, 'history'):
             # Plot trajectories
             if linecolor is None:
-                map.plot(x.T, y.T, color='gray', alpha=alpha)
+                if compare is not None and legend is not None:
+                    map.plot(x.T[:,0], y.T[:,0], color='gray', alpha=alpha, label=legend[0])
+                    map.plot(x.T, y.T, color='gray', alpha=alpha, label='_nolegend_')
+                else:
+                    map.plot(x.T, y.T, color='gray', alpha=alpha)
             else:
                 # Color lines according to given parameter
                 try:
-                    param = self.history[linecolor]
+                    if isinstance(linecolor, basestring):
+                        param = self.history[linecolor]
+                    else:
+                        param = linecolor
                 except:
                     raise ValueError(
                         'Available parameters to be used for linecolors: ' +
@@ -2385,17 +2507,24 @@ class OpenDriftSimulation(PhysicsMethods):
                 axcb.set_label(colorbarstring, size=14)
                 axcb.ax.tick_params(labelsize=14)
 
+        if compare is None:
+            label_initial = 'initial (%i)' % x.shape[0]
+            label_active = 'active (%i)' % (x.shape[0] - self.num_elements_deactivated())
+            color_initial = self.status_colors['initial']
+            color_active = self.status_colors['active']
+        else:
+            label_initial = None
+            label_active = None
+            color_initial = 'gray'
+            color_active = 'gray'
         map.scatter(x[range(x.shape[0]), index_of_first],
                     y[range(x.shape[0]), index_of_first],
                     zorder=10, edgecolor='k', linewidths=.2,
-                    color=self.status_colors['initial'],
-                    label='initial (%i)' % x.shape[0])
+                    color=color_initial, label=label_initial)
         map.scatter(x[range(x.shape[0]), index_of_last],
                     y[range(x.shape[0]), index_of_last],
                     zorder=3, edgecolor='k', linewidths=.2,
-                    color=self.status_colors['active'],
-                    label='active (%i)' %
-                    (x.shape[0] - self.num_elements_deactivated()))
+                    color=color_active, label=label_active)
 
         x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
                                            self.elements_deactivated.lat)
@@ -2417,13 +2546,35 @@ class OpenDriftSimulation(PhysicsMethods):
                     zorder = 11
                 else:
                     zorder = 3
+                if compare is not None:
+                    legstr = None
+                else:
+                    legstr = '%s (%i)' % (status, len(indices[0]))
+                if compare is None:
+                    color_status = self.status_colors[status]
+                else:
+                    color_status = 'gray'
                 map.scatter(x_deactivated[indices], y_deactivated[indices],
                             zorder=zorder, edgecolor='k', linewidths=.1,
-                            color=self.status_colors[status],
-                            label='%s (%i)' % (status, len(indices[0])))
+                            color=color_status, label=legstr)
+
+        if compare is not None:
+            cd = self._get_comparison_xy_for_plots(map, compare)
+            for i, c in enumerate(cd):
+                if legend != None:
+                    legstr = legend[i+1]
+                else:
+                    legstr = None
+                map.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i] + '-', label=legstr)
+                map.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i] + '-', label='_nolegend_')
+                map.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
+                    c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
+                    zorder=3, edgecolor='k', linewidths=.2,
+                    color=self.plot_comparison_colors[i])
+
         try:
-            if legend is not None:
-                plt.legend(loc=legend)
+            if legend is not None or compare is None:
+                plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
             print traceback.format_exc()
@@ -2473,22 +2624,6 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 plt.title(title)
 
-        if drifter_file is not None:
-            # Format of joubeh.com
-            for dfile in drifter_file:
-                data = np.recfromcsv(dfile)
-                x, y = map(data['longitude'], data['latitude'])
-                map.plot(x, y, '-k', linewidth=2)
-                map.plot(x[0], y[0], '*k')
-                map.plot(x[-1], y[-1], '*k')
-
-            # Format for shell buoy
-            #data = np.loadtxt(drifter_file, skiprows=1, usecols=(2, 3))
-            #x, y = map(data.T[1], data.T[0])
-            #map.plot(x, y, '-r', linewidth=2, zorder=10)
-            #map.plot(x[0], y[0], '*r', zorder=10)
-            #map.plot(x[-1], y[-1], '*r', zorder=10)
-
         if trajectory_dict is not None:
             self._plot_trajectory_dict(map, trajectory_dict)
 
@@ -2524,7 +2659,9 @@ class OpenDriftSimulation(PhysicsMethods):
         for readerName in self.readers:
             reader = self.readers[readerName]
             if variable in reader.variables:
-                break
+                if time is None or (time>= reader.start_time
+                        and time <= reader.end_time):
+                    break
         if time is None:
             if hasattr(self, 'elements_scheduled_time'):
                 # Using time of first seeded element
@@ -2533,7 +2670,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lons, lats = map.makegrid(4, 4)
         reader_x, reader_y = reader.lonlat2xy(lons, lats)
         data = reader.get_variables(
-            background, time, reader_x, reader_y, 0, block=True)
+            background, time, reader_x, reader_y, None, block=True)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
         if type(background) is list:
             u_component = data[background[0]]
@@ -2546,22 +2683,19 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             scalar = data[background]
             u_component = v_component = None
+
+        # Shift one pixel for correct plotting
+        reader_x = reader_x - reader.delta_x
+        reader_y = reader_y - reader.delta_y
+
         rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
         map_x, map_y = map(rlons, rlats)
 
         return map_x, map_y, scalar, u_component, v_component
 
-    def get_density_array(self, pixelsize_m):
+    def get_density_array(self, pixelsize_m, weight=None):
         lon = self.get_property('lon')[0]
         lat = self.get_property('lat')[0]
-        z = self.get_property('z')[0]
-        status = self.get_property('status')[0]
-        lon_submerged = lon.copy()
-        lat_submerged = lat.copy()
-        lon_submerged[z>=0] = 1000
-        lat_submerged[z>=0] = 1000
-        lon_stranded = lon.copy()
-        lat_stranded = lat.copy()
         times = self.get_time_array()[0]
         deltalat = pixelsize_m/111000.0  # m to degrees
         deltalon = deltalat/np.cos(np.radians((lat.min() +
@@ -2570,8 +2704,22 @@ class OpenDriftSimulation(PhysicsMethods):
                               lat.max()+deltalat, deltalat)
         lon_array = np.arange(lon.min()-deltalat,
                               lon.max()+deltalon, deltalon)
+        bins=(lon_array, lat_array)
+        z = self.get_property('z')[0]
+        if weight is not None:
+            weight_array = self.get_property(weight)[0]
+
+        status = self.get_property('status')[0]
+        lon_submerged = lon.copy()
+        lat_submerged = lat.copy()
+        lon_stranded = lon.copy()
+        lat_stranded = lat.copy()
+        lon_submerged[z>=0] = 1000
+        lat_submerged[z>=0] = 1000
+        lon[z<0] = 1000
+        lat[z<0] = 1000
         H = np.zeros((len(times), len(lon_array) - 1,
-                      len(lat_array) - 1)).astype(int)
+                      len(lat_array) - 1))#.astype(int)
         H_submerged = H.copy()
         H_stranded = H.copy()
         try:
@@ -2581,21 +2729,22 @@ class OpenDriftSimulation(PhysicsMethods):
             contains_stranded = True
         except ValueError:
             contains_stranded = False
-        lon[z<0] = 1000
-        lat[z<0] = 1000
-        for i, t in enumerate(times):
-            H[i,:,:], lon_array, lat_array = \
-                np.histogram2d(lon[i,:],
-                               lat[i,:], bins=(lon_array, lat_array))
+
+        for i in range(len(times)):
+            if weight is not None:
+                weights = weight_array[i,:]
+            else:
+                weights = None
+            H[i,:,:], dummy, dummy = \
+                np.histogram2d(lon[i,:], lat[i,:],
+                               weights=weights, bins=bins)
             H_submerged[i,:,:], dummy, dummy = \
-                np.histogram2d(lon_submerged[i,:],
-                               lat_submerged[i,:], bins=(lon_array, lat_array))
+                np.histogram2d(lon_submerged[i,:], lat_submerged[i,:],
+                               weights=weights, bins=bins)
             if contains_stranded is True:
                 H_stranded[i,:,:], dummy, dummy = \
-                np.histogram2d(lon_stranded[i,:],
-                               lat_stranded[i,:],
-                               bins=(lon_array, lat_array))
-
+                np.histogram2d(lon_stranded[i,:], lat_stranded[i,:],
+                               weights=weights, bins=bins)
 
         return H, H_submerged, H_stranded, lon_array, lat_array
 
@@ -2727,7 +2876,7 @@ class OpenDriftSimulation(PhysicsMethods):
         time_array_relative = [td*i for i in range(self.steps_output)]
         return time_array, time_array_relative
 
-    def plot_environment(self):
+    def plot_environment(self, filename=None):
         """Plot mean wind and current velocities of element of last run."""
         x_wind = self.get_property('x_wind')[0]
         y_wind = self.get_property('x_wind')[0]
@@ -2757,7 +2906,10 @@ class OpenDriftSimulation(PhysicsMethods):
         for tl in ax2.get_yticklabels():
             tl.set_color('r')
         ax1.set_xlabel('Time  [hours]')
-        plt.show()
+        if filename is None:
+            plt.show()
+        else:
+            plt.savefig(filename)
 
     def plot_property(self, prop, mean=False):
         """Basic function to plot time series of any element properties."""
@@ -2919,8 +3071,13 @@ class OpenDriftSimulation(PhysicsMethods):
             else:  # MP4
                 logging.info('Saving MP4 animation...')
                 try:
-                    anim.save(filename, fps=fps, bitrate=1800,
-                              extra_args=['-pix_fmt', 'yuv420p'])
+                    try:
+                        # For perfrect quality, but larger file size
+                        FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
+                        anim.save(filename, writer=FFwriter)
+                    except:
+                        anim.save(filename, fps=fps, bitrate=1800,
+                                  extra_args=['-pix_fmt', 'yuv420p'])
                 except Exception as e:
                     logging.info(e)
                     try:

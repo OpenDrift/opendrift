@@ -39,6 +39,10 @@ basemap = reader_basemap_landmask.Reader(
 class TestReaders(unittest.TestCase):
     """Tests for readers"""
 
+    def test_parse_filename_date(self):
+        o = OceanDrift()
+        f = o.parse_filename_date('/lustre/storeB/project/metproduction/products/norshelf/norshelf_his_%Y%m%dT00Z.nc')
+
     def test_adding_readers(self):
         o = OceanDrift()
         r = reader_ROMS_native.Reader(o.test_data_folder() +
@@ -66,13 +70,13 @@ class TestReaders(unittest.TestCase):
         r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         # Element outside reader domain
-        self.assertRaises(ValueError, r.check_coverage, r.start_time, 5, 80)
+        self.assertEqual(len(r.covers_positions(5, 80)), 0)
         x, y = r.lonlat2xy(5, 80)
         self.assertRaises(ValueError, r.check_arguments,
                           'y_sea_water_velocity', r.start_time, x, y, 0)
         # Element inside reader domain
-        x, y, ind = r.check_coverage(r.start_time, 5, 60)  # inside
-        self.assertEqual(ind, 0)
+        self.assertEqual(len(r.covers_positions(5, 60)), 1)
+        x, y = r.lonlat2xy(5, 60)
         var, time, x2, y2, z2, outside = \
             r.check_arguments('y_sea_water_velocity', r.start_time, x, y, 0)
         self.assertEqual(var, ['y_sea_water_velocity'])

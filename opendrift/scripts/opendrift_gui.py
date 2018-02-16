@@ -430,6 +430,7 @@ class OpenDriftGUI(tk.Tk):
             '/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
             'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
             'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z',
+            'http://data.ncof.co.uk/thredds/dodsC/METOFFICE-GLO-AF-PHYS-HOURLY-CUR',
             'http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd']
         o.add_readers_from_list(readers)
         o.set_config('general:basemap_resolution', 'h')

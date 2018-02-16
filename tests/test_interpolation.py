@@ -92,7 +92,7 @@ class TestInterpolation(unittest.TestCase):
 
         data_dict, x, y, z = self.get_synthetic_data_dict()
         # Make block from dictionary, and apply tests
-        b = ReaderBlock(data_dict)
+        b = ReaderBlock(data_dict, interpolation_horizontal='ndimage')
         self.assertEqual(b.data_dict['var2d'].shape,
                          (len(b.y), len(b.x)))
         self.assertEqual(b.data_dict['var3d'].shape,
@@ -103,6 +103,37 @@ class TestInterpolation(unittest.TestCase):
         # Checking output is as expected
         self.assertEqual(values[10], 1.6487979858538129)
         self.assertEqual(sum(values.mask), 15)
+
+    def test_interpolation_ensemble(self):
+        
+        data_dict, x, y, z = self.get_synthetic_data_dict()
+        x = x[0:15]
+        y = y[0:15]
+        z = z[0:15]
+        data_dict['var2d'] = np.ones(data_dict['var2d'].shape)
+        data_dict['var3d'] = np.ones(data_dict['var3d'].shape)
+        data_dict['var2de'] = [data_dict['var2d']*1,
+                               data_dict['var2d']*2,
+                               data_dict['var2d']*3]
+        data_dict['var3de'] = [data_dict['var3d']*31,
+                               data_dict['var3d']*32,
+                               data_dict['var3d']*33]
+
+        b = ReaderBlock(data_dict)
+        interp = b.interpolate(x, y, z)[0]  # 1 is profiles
+        v2 = interp['var2d']
+        v2e = interp['var2de']
+        v3 = interp['var3d']
+        v3e = interp['var3de']
+        
+        self.assertEqual(v2[0], 1)
+        self.assertEqual(v2e[0], 1)
+        self.assertEqual(v2e[1], 2)
+        self.assertEqual(v2e[3], 1)
+        self.assertEqual(v3[0], 1)
+        self.assertEqual(v3e[0], 31)
+        self.assertEqual(v3e[1], 32)
+        self.assertAlmostEqual(v3e[3], 31)
 
     def test_interpolation_vertical(self):
 

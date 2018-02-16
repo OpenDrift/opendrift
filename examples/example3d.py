@@ -6,7 +6,7 @@ from opendrift.models.oceandrift3D import OceanDrift3D
 o = OceanDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc')
+reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
 
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')

@@ -35,8 +35,8 @@ class Reader(BaseReader):
         self.ROMS_variable_mapping = {
             # Removing (temoprarily) land_binary_mask from ROMS-variables,
             # as this leads to trouble with linearNDFast interpolation
-            #'mask_rho': 'land_binary_mask',
-            #'mask_psi': 'land_binary_mask',
+            'mask_rho': 'land_binary_mask',
+            'mask_psi': 'land_binary_mask',
             'h': 'sea_floor_depth_below_sea_level',
             'zeta': 'sea_surface_height',
             'u': 'x_sea_water_velocity',
@@ -402,27 +402,8 @@ class Reader(BaseReader):
                         variables['y_wind'], rad)
 
         if 'land_binary_mask' in requested_variables:
-            if 'x_sea_water_velocity' in variables.keys() and (
-                    'y_sea_water_velocity' in variables.keys()):
-                logging.debug('Masking land where current is masked')
-                if variables['x_sea_water_velocity'].ndim == 2:
-                    mask = np.ma.getmask(
-                        variables['x_sea_water_velocity'])
-                elif variables['x_sea_water_velocity'].ndim == 3:
-                    # Using upper current level to mask land
-                    # TODO 0 instead of -1 for upper level?
-                    mask = np.ma.getmask(
-                        variables['x_sea_water_velocity'])[-1,:,:]
-                # Convert to masked array
-                landmask = np.ma.zeros((len(indy), len(indx)))
-                try:
-                    landmask[mask] = 1
-                except:
-                    pass
-                variables['land_binary_mask'] = landmask
-            else:
-                variables['land_binary_mask'] = \
-                    1 - variables['land_binary_mask']
+            variables['land_binary_mask'] = \
+                1 - variables['land_binary_mask']
 
         # Masking NaN
         for var in requested_variables:
