@@ -940,7 +940,8 @@ class BaseReader(object):
                 outStr += '%10s  %s\n' % (time, cat)
         return outStr
 
-    def plot(self, variable=None, vmin=None, vmax=None, filename=None):
+    def plot(self, variable=None, vmin=None, vmax=None,
+             filename=None, title=None):
         """Plot geographical coverage of reader."""
 
         try:
@@ -1007,7 +1008,10 @@ class BaseReader(object):
             boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
             plt.gca().add_patch(boundary)
 # add patch to the map
-        plt.title(self.name)
+        if title is None:
+            plt.title(self.name)
+        else:
+            plt.title(title)
         plt.xlabel('Time coverage: %s to %s' %
                    (self.start_time, self.end_time))
 
