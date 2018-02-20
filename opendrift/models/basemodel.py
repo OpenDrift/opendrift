@@ -2428,7 +2428,7 @@ class OpenDriftSimulation(PhysicsMethods):
              show=True, vmin=None, vmax=None, compare=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
-             title='auto', legend=None, legend_loc='best', **kwargs):
+             title='auto', legend=True, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -2461,10 +2461,19 @@ class OpenDriftSimulation(PhysicsMethods):
         max_elements = 5000.0
         alpha = min_alpha**(2*(self.num_elements_total()-1)/(max_elements-1))
         alpha = np.max((min_alpha, alpha))
+        if legend is False:
+            legend = None
         if hasattr(self, 'history'):
             # Plot trajectories
             if linecolor is None:
                 if compare is not None and legend is not None:
+                    if legend is True:
+                        if hasattr(compare, 'len'):
+                            numleg = len(compare)
+                        else:
+                            numleg = 2
+                        legend = ['Simulation %d' % (i+1) for i in
+                                  range(numleg)]
                     map.plot(x.T[:,0], y.T[:,0], color='gray', alpha=alpha, label=legend[0])
                     map.plot(x.T, y.T, color='gray', alpha=alpha, label='_nolegend_')
                 else:
@@ -2573,7 +2582,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     color=self.plot_comparison_colors[i])
 
         try:
-            if legend is not None or compare is None:
+            if legend is not None:# and compare is None:
                 plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
             print 'Cannot plot legend, due to bug in matplotlib:'
