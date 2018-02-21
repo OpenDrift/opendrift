@@ -23,7 +23,8 @@ import collections
 import matplotlib
 if os.environ.get('DISPLAY','') == '':
     logging.info('No display found. Using non-interactive Agg backend')
-    matplotlib.use('agg')
+    # matplotlib.use('agg')
+    matplotlib.use('Tkagg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 try:

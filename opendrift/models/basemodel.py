@@ -35,7 +35,8 @@ try:
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
         print 'No display found. Using non-interactive Agg backend'
-        matplotlib.use('agg')
+        # matplotlib.use('agg')
+        matplotlib.use('Tkagg') # not sure why but using 'agg' doesnt work for some examples 
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -1956,7 +1957,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def set_up_map(self, buffer=.1, delta_lat=None, **kwargs):
         """Generate Basemap instance on which trajectories are plotted."""
-
         lons, lats = self.get_lonlats()
 
         # Initialise map
@@ -2175,7 +2175,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 return points, cd['points_other']
             else:
                 return points
-
+        
         # Find map coordinates and plot points with empty data
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
@@ -2424,10 +2424,10 @@ class OpenDriftSimulation(PhysicsMethods):
             linecolor: name of variable to be used for coloring trajectories.
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
         """
-
+        
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, **kwargs)
-
+        
         # The more elements, the more transparent we make the lines
         min_alpha = 0.1
         max_elements = 5000.0
@@ -2489,6 +2489,7 @@ class OpenDriftSimulation(PhysicsMethods):
             label_active = None
             color_initial = 'gray'
             color_active = 'gray'
+
         map.scatter(x[range(x.shape[0]), index_of_first],
                     y[range(x.shape[0]), index_of_first],
                     zorder=10, edgecolor='k', linewidths=.2,
@@ -2600,7 +2601,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self._plot_trajectory_dict(map, trajectory_dict)
 
         #plt.gca().tick_params(labelsize=14)
-
+        
         if filename is not None:
             #plt.savefig(filename, dpi=200)
             plt.savefig(filename)

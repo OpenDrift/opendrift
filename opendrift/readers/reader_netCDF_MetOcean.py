@@ -237,9 +237,9 @@ class Reader(BaseReader):
                     standard_name = self.variable_aliases[var_name]
                 self.variable_mapping[standard_name] = str(var_name) 
         
-        import pdb;pdb.set_trace()
         # For now we can't differenciate the different kinds of currents...as it seems opendrift only expect x/y currents
-        # all different currents are mapped to x_sea_water_velocity, y_water_velocity
+        # all different currents are mapped to x_sea_water_velocity, y_water_velocity 
+        # this means that some overwriting can occur if there are more than 2 (u,v) pairs in the file - an option may be to allow specifying which vraibles to use 
         # e.g. see here : https://github.com/OpenDrift/opendrift/blob/master/opendrift/readers/basereader.py line 89
         self.variables = self.variable_mapping.keys() # check that it does the right thing here
 
