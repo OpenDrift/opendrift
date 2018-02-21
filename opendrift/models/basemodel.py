@@ -1093,6 +1093,55 @@ class OpenDriftSimulation(PhysicsMethods):
         self.elements_scheduled_time = self.elements_scheduled_time[~indices]
         logging.debug('Released %i new elements.' % np.sum(indices))
 
+    def closest_ocean_points(self, lon, lat):
+
+        deltalon = 0.01 # grid
+        deltalat = 0.01
+        numbuffer = 10
+        lonmin = lon.min() - deltalon*numbuffer
+        lonmax = lon.max() + deltalon*numbuffer
+        latmin = lat.min() - deltalat*numbuffer
+        latmax = lat.max() + deltalat*numbuffer
+        if 'land_binary_mask' in self.priority_list:
+            print 'reader exist'
+        else:
+            print 'no land reader '
+            from opendrift.readers import reader_basemap_landmask
+            reader_basemap = reader_basemap_landmask.Reader(
+                llcrnrlon=lonmin, urcrnrlon=lonmax,
+                llcrnrlat=np.maximum(-89, latmin),
+                urcrnrlat=np.minimum(89, latmax),
+                resolution=self.get_config('general:basemap_resolution'),
+                projection='merc')
+            print reader_basemap
+            self.add_reader(reader_basemap)  # temporary
+        land = self.get_environment(
+            ['land_binary_mask'], lon=lon, lat=lat, z=0*lon,
+            time=None, profiles=None)[0]['land_binary_mask']
+        if land.max() == 0:
+            logging.info('All points are in ocean')
+            return lon, lat
+        print land
+        landlons = lon[land==1]
+        landlats = lat[land==1]
+        longrid = np.arange(lonmin, lonmax, deltalon)
+        latgrid = np.arange(latmin, latmax, deltalat)
+        longrid, latgrid = np.meshgrid(longrid, latgrid)
+        longrid = longrid.ravel()
+        latgrid = latgrid.ravel()
+        print longrid.shape, latgrid.shape
+        landgrid = self.get_environment(
+            ['land_binary_mask'], lon=longrid, lat=latgrid, z=0*longrid,
+            time=None, profiles=None)[0]['land_binary_mask']
+
+        oceangridlons = longrid[landgrid==0]
+        oceangridlats = latgrid[landgrid==0]
+        print landgrid.min(), landgrid.max(), landgrid.shape
+        print len(oceangridlons), 'num ocean'
+        from scipy import spatial
+
+        return newlon, newlat
+
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
                       cone=False, **kwargs):
         """Seed a given number of particles around given position(s).
