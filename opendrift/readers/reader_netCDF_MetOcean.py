@@ -52,6 +52,7 @@ class Reader(BaseReader):
 
         logging.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
+
         for var_name in self.Dataset.variables:
             logging.debug('Parsing variable: ' +  var_name)
             var = self.Dataset.variables[var_name]
@@ -78,11 +79,11 @@ class Reader(BaseReader):
             if '_CoordinateAxisType' in attributes:
                 CoordinateAxisType = var.__dict__['_CoordinateAxisType']
             if standard_name == 'longitude' or \
-                    long_name == 'longitude' or standard_name == 'lon':
+                    long_name == 'longitude' or standard_name == 'lon' or var_name == 'lon':
                 self.lon = var
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
-                    long_name == 'latitude' or standard_name == 'lat':
+                    long_name == 'latitude' or standard_name == 'lat' or var_name == 'lat':
                 self.lat = var
                 lat_var_name = var_name
             if axis == 'X' or \
@@ -108,7 +109,7 @@ class Reader(BaseReader):
                 self.unitfactor = unitfactor
                 y = var[:]*unitfactor
                 self.numy = var.shape[0] 
-            if standard_name == 'depth' or axis == 'Z':
+            if standard_name == 'depth' or axis == 'Z' or var_name == 'lev': # probably refers to vertical levels ?
                 if var[:].ndim == 1:
                     if 'positive' not in attributes or \
                             var.__dict__['positive'] == 'up':
@@ -130,7 +131,7 @@ class Reader(BaseReader):
                 self.realizations = var[:]
                 logging.debug('%i ensemble members available'
                               % len(self.realizations))
-
+        
         if 'x' not in locals():
             if self.lon.ndim == 1:
                 x = self.lon[:]
@@ -171,7 +172,7 @@ class Reader(BaseReader):
 
         if not hasattr(self, 'proj4'):
             if self.lon.ndim == 1:
-                logging.debug('Lon and lat are 1D arrays, assuming latong projection')
+                logging.debug('Lon and lat are 1D arrays, assuming latlong projection')
                 self.proj4 = '+proj=latlong'
             elif self.lon.ndim == 2:
                 logging.debug('Reading lon lat 2D arrays, since projection is not given')
@@ -194,38 +195,52 @@ class Reader(BaseReader):
             'ssh': 'sea_surface_height',  # non-tidal
             'um': 'x_sea_water_velocity', # depth-averaged total
             'vm': 'y_sea_water_velocity', # depth-averaged total
+            'us': 'x_sea_water_velocity',  # surface current total 
+            'vs': 'y_sea_water_velocity',  # surface current total
             'umo': 'x_sea_water_velocity',# depth-averaged non-tidal
             'vmo': 'y_sea_water_velocity',# depth-averaged non-tidal
-            'ut': 'x_sea_water_velocity', # tide
-            'vt': 'y_sea_water_velocity', # tide
-            'uo': 'x_sea_water_velocity', # non-tidal current 3D
-            'vo': 'y_sea_water_velocity', # non-tidal current 3D
+            'ut': 'x_sea_water_velocity', # tide eastward_tidal_current
+            'vt': 'y_sea_water_velocity', # tide northward_tidal_current
+            'uo': 'x_sea_water_velocity', # non-tidal current 3D / eastward_geostrophic_current_velocity
+            'vo': 'y_sea_water_velocity', # non-tidal current 3D / northward_geostrophic_current_velocity
             'u': 'x_sea_water_velocity',  # total current 3D
             'v': 'y_sea_water_velocity',  # total current 3D
             'w': 'upward_sea_water_velocity',
-            'uso': 'x_sea_water_velocity', #surface layer non-tidal current (5 m below sea level)
-            'vso': 'y_sea_water_velocity', #surface layer non-tidal current (5 m below sea level)
+            'uso': 'x_sea_water_velocity', #surface layer non-tidal current (5 m below sea level) / surface_geostrophic_eastward_sea_water_velocity
+            'vso': 'y_sea_water_velocity', #surface layer non-tidal current (5 m below sea level) / surface_geostrophic_northward_sea_water_velocity
             'sst': 'sea_water_temperature',
-            'salt': 'sea_water_salinity',
-            'ugrd10m': 'x_wind',
-            'vgrd10m': 'y_wind',
+            'salt': 'c',
+            'ugrd10m': 'x_wind', # x_wind_10m
+            'vgrd10m': 'y_wind', # y_wind_10m
             'lev' : 'z'                    # This should allow correct loading of z levels - if present. TO CHECK 
                                            # lev :   vertical levels for ocean models or data
             }
 
-        self.variable_mapping = {}
+        self.variable_mapping = {} 
+        # variable_mapping provides the names of the variable to be used for each of the opendrift-convention variable names
+        # this is the opposite of the variable_aliases above
+        # i.e. if you need 'sea_surface_height' within opendrift, use variable 'el' in the netcdf file
 
         for var_name in self.Dataset.variables:
             if var_name in [self.xname, self.yname, 'dep']:
                 continue  # Skip coordinate variables
             var = self.Dataset.variables[var_name]
             attributes = var.ncattrs()
+            
             if 'standard_name' in attributes:
                 standard_name = str(var.__dict__['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
-
+            else: # MetOcean dataset may not have a standard_name so use var_name instead to "map" variables names to opendrift convention
+                if var_name in self.variable_aliases:  # Mapping if needed, not this will be true only if var_name is found in the self.variable_aliases first column
+                    standard_name = self.variable_aliases[var_name]
+                self.variable_mapping[standard_name] = str(var_name) 
+        
+        import pdb;pdb.set_trace()
+        # For now we can't differenciate the different kinds of currents...as it seems opendrift only expect x/y currents
+        # all different currents are mapped to x_sea_water_velocity, y_water_velocity
+        # e.g. see here : https://github.com/OpenDrift/opendrift/blob/master/opendrift/readers/basereader.py line 89
         self.variables = self.variable_mapping.keys() # check that it does the right thing here
 
         # Run constructor of parent Reader class
