@@ -1094,6 +1094,7 @@ class OpenDriftSimulation(PhysicsMethods):
         logging.debug('Released %i new elements.' % np.sum(indices))
 
     def closest_ocean_points(self, lon, lat):
+        """Return the closest ocean points for given lon, lat"""
 
         deltalon = 0.01 # grid
         deltalat = 0.01
@@ -1102,10 +1103,9 @@ class OpenDriftSimulation(PhysicsMethods):
         lonmax = lon.max() + deltalon*numbuffer
         latmin = lat.min() - deltalat*numbuffer
         latmax = lat.max() + deltalat*numbuffer
-        if 'land_binary_mask' in self.priority_list:
-            print 'reader exist'
-        else:
-            print 'no land reader '
+        if not 'land_binary_mask' in self.priority_list:
+            logging.info('No land reader added, '
+                         'making a temporary basemap reader')
             from opendrift.readers import reader_basemap_landmask
             reader_basemap = reader_basemap_landmask.Reader(
                 llcrnrlon=lonmin, urcrnrlon=lonmax,
@@ -1113,15 +1113,24 @@ class OpenDriftSimulation(PhysicsMethods):
                 urcrnrlat=np.minimum(89, latmax),
                 resolution=self.get_config('general:basemap_resolution'),
                 projection='merc')
-            print reader_basemap
-            self.add_reader(reader_basemap)  # temporary
-        land = self.get_environment(
+            reader_basemap.name = 'tempreader'
+            from opendrift.models.oceandrift import OceanDrift
+            o = OceanDrift(
+                loglevel=logging.getLogger().getEffectiveLevel())
+            o.add_reader(reader_basemap)  # temporary object
+            time = reader_basemap.start_time
+        else:
+            land_reader_name = self.priority_list['land_binary_mask'][0]
+            time = self.readers[land_reader_name].start_time
+            o = self
+        land = o.get_environment(
             ['land_binary_mask'], lon=lon, lat=lat, z=0*lon,
-            time=None, profiles=None)[0]['land_binary_mask']
+            time=time, profiles=None)[0]['land_binary_mask']
         if land.max() == 0:
             logging.info('All points are in ocean')
             return lon, lat
-        print land
+        logging.info('Moving %i out of %i points from land to water' %
+                     (np.sum(land==1), len(lon)))
         landlons = lon[land==1]
         landlats = lat[land==1]
         longrid = np.arange(lonmin, lonmax, deltalon)
@@ -1129,18 +1138,25 @@ class OpenDriftSimulation(PhysicsMethods):
         longrid, latgrid = np.meshgrid(longrid, latgrid)
         longrid = longrid.ravel()
         latgrid = latgrid.ravel()
-        print longrid.shape, latgrid.shape
-        landgrid = self.get_environment(
+        landgrid = o.get_environment(
             ['land_binary_mask'], lon=longrid, lat=latgrid, z=0*longrid,
-            time=None, profiles=None)[0]['land_binary_mask']
+            time=time, profiles=None)[0]['land_binary_mask']
 
         oceangridlons = longrid[landgrid==0]
         oceangridlats = latgrid[landgrid==0]
-        print landgrid.min(), landgrid.max(), landgrid.shape
-        print len(oceangridlons), 'num ocean'
         from scipy import spatial
+        tree = scipy.spatial.cKDTree(
+            np.dstack([oceangridlons, oceangridlats])[0])
+        landpoints = np.dstack([landlons, landlats])
+        dist, indices = tree.query(landpoints)
+        lon[land==1] = oceangridlons[indices]
+        lat[land==1] = oceangridlats[indices]
+        try:
+            plt.close()
+        except:
+            pass
 
-        return newlon, newlat
+        return lon, lat
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
                       cone=False, **kwargs):
@@ -2053,7 +2069,7 @@ class OpenDriftSimulation(PhysicsMethods):
             map = Basemap(lonmin, latmin, lonmax, latmax,
                           resolution=
                             self.get_config('general:basemap_resolution'),
-                          projection='merc')
+                          projection='merc', area_thresh=0)
 
         map.drawcoastlines(color='gray')
         map.fillcontinents(color='#ddaa99')
@@ -2075,9 +2091,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 delta_lon = 4
             elif lonspan > 10 and lonspan <= 20:
                 delta_lon = 2
-            elif lonspan > 1 and lonspan <= 10:
-                delta_lon = 1
-            elif lonspan > .2 and lonspan <= 1:
+            elif lonspan > 2 and lonspan <= 10:
+                delta_lon = .5
+            elif lonspan > .2 and lonspan <= 2:
                 delta_lon = .1
             else:
                 delta_lon = .02
