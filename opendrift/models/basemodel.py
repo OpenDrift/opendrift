@@ -1121,10 +1121,12 @@ class OpenDriftSimulation(PhysicsMethods):
                 loglevel=logging.getLogger().getEffectiveLevel())
             o.add_reader(reader_basemap)  # temporary object
             time = reader_basemap.start_time
+            tmp_reader = True
         else:
             land_reader_name = self.priority_list['land_binary_mask'][0]
             time = self.readers[land_reader_name].start_time
             o = self
+            tmp_reader = False
         land = o.get_environment(
             ['land_binary_mask'], lon=lon, lat=lat, z=0*lon,
             time=time, profiles=None)[0]['land_binary_mask']
@@ -1156,10 +1158,8 @@ class OpenDriftSimulation(PhysicsMethods):
         dist, indices = tree.query(landpoints)
         lon[land==1] = oceangridlons[indices]
         lat[land==1] = oceangridlats[indices]
-        try:
+        if tmp_reader is True:
             plt.close()
-        except:
-            pass
 
         return lon, lat
 
