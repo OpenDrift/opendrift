@@ -1156,6 +1156,7 @@ class OpenDriftSimulation(PhysicsMethods):
             np.dstack([oceangridlons, oceangridlats])[0])
         landpoints = np.dstack([landlons, landlats])
         dist, indices = tree.query(landpoints)
+        indices = indices.ravel()
         lon[land==1] = oceangridlons[indices]
         lat[land==1] = oceangridlats[indices]
         if tmp_reader is True:
@@ -1787,9 +1788,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Move point seed on land to ocean
         if self.get_config('seed:ocean_only') is True and ('land_binary_mask' not in self.fallback_values):
+            self.timer_start('preparing main loop:moving elements to ocean')
             self.elements_scheduled.lon, self.elements_scheduled.lat = \
                 self.closest_ocean_points(self.elements_scheduled.lon,
                                           self.elements_scheduled.lat)
+            self.timer_end('preparing main loop:moving elements to ocean')
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file
