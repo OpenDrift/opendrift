@@ -417,22 +417,8 @@ class OpenDriftGUI(tk.Tk):
                             time=start_time, cone=cone,
                             oiltype=self.oljetype.get())
 
-        readers = [  # Note that order (priority) is important!
-            '/lustre/storeB/project/metproduction/from_opdata/roms/NorKyst-800m_ZDEPTHS_his_00.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-            '/lustre/storeB/project/metproduction/from_opdata/roms/Nordic-4km_SURF_1h_avg_00.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-            '/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_extracted_2_5km_latest.nc',
-            '/lustre/storeB/project/metproduction/from_opdata/roms/N800m/ocean_force_NorKyst800.nc',
-            '/lustre/storeB/project/metproduction/from_opdata/roms/N4km/ocean_force_Nordic4km.nc',
-            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc',
-            '/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
-            'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z',
-            'http://data.ncof.co.uk/thredds/dodsC/METOFFICE-GLO-AF-PHYS-HOURLY-CUR',
-            'http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd']
-        o.add_readers_from_list(readers)
+        o.add_readers_from_file(o.test_data_folder() +
+            '../../opendrift/scripts/data_sources.txt')
         o.set_config('general:basemap_resolution', 'h')
 
         time_step = 1800  # Half hour

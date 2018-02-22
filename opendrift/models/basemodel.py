@@ -670,6 +670,14 @@ class OpenDriftSimulation(PhysicsMethods):
                         logging.warning('%s is not a netCDF file recognised '
                                         'by OpenDrift: %s' % (u, str(e)))
 
+    def add_readers_from_file(self, filename, timeout=10):
+        import os
+        print os.listdir('.')
+        fp = open(filename, 'r')
+        sources = fp.readlines()
+        sources = [line.strip() for line in sources if line[0] != '#']
+        self.add_readers_from_list(sources, timeout)
+
     def list_environment_variables(self):
         """Return list of all variables provided by the added readers."""
         variables = []
