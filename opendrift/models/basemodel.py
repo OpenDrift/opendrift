@@ -671,8 +671,6 @@ class OpenDriftSimulation(PhysicsMethods):
                                         'by OpenDrift: %s' % (u, str(e)))
 
     def add_readers_from_file(self, filename, timeout=10):
-        import os
-        print os.listdir('.')
         fp = open(filename, 'r')
         sources = fp.readlines()
         sources = [line.strip() for line in sources if line[0] != '#']
