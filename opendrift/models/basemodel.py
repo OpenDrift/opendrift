@@ -2284,9 +2284,10 @@ class OpenDriftSimulation(PhysicsMethods):
                            vmin=vmin, vmax=vmax)
             if colorbar is True:
                 if clabel is None:
-                    plt.colorbar()
+                    map.colorbar(size='3%', pad='5%', location='bottom')
                 else:
-                    plt.colorbar(label=clabel)
+                    map.colorbar(label=clabel, size='3%', pad='5%',
+                                 location='bottom')
 
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
@@ -2346,7 +2347,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 if clabel is None:
                     clabel = color
                 print clabel
-                cb = plt.colorbar(label=clabel)
+                cb = map.colorbar(label=clabel, location='bottom',
+                                  size='3%', pad='5%')
             else:
                 cb = plt.colorbar()
             cb.set_alpha(1)
@@ -2676,7 +2678,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                          colors='gray')
                     plt.clabel(CS, fmt='%g')
                 if colorbar is True:
-                    plt.colorbar()
+                    map.colorbar(location='bottom', pad='5%', size='3%')
 
             if type(background) is list:
                 map.quiver(map_x[::skip, ::skip], map_y[::skip, ::skip],
