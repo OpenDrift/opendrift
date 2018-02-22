@@ -1,8 +1,9 @@
 INSTALL NOTES 
 ------------------
 
-As root build using 
-/home/simon/docker/ercore
+# to build the docker image
+
+cd /docker
 docker build -t metocean/opendrift_simon .
 
 run (interactively)

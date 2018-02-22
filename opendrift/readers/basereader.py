@@ -108,6 +108,8 @@ class BaseReader(object):
         'northward_eulerian_current_velocity': 'y_sea_water_velocity',
         'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'x_sea_water_velocity',
         'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity'}
+        # ocean_vertical_diffusivity
+        # ocean_horizontal_diffusivity
 
     def __init__(self):
         # Common constructor for all readers
