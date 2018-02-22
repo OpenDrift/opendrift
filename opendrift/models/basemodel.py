@@ -119,6 +119,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 use_basemap_landmask = boolean(default=True)
                 basemap_resolution = option('f', 'h', 'i', 'c', default='h')
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
+            [seed]
+                ocean_only = boolean(default=True)
             [drift]
                 scheme = option('euler', 'runge-kutta', default='euler')
                 wind_drift_factor = float(min=0, max=1, default=0.02)
@@ -1141,6 +1143,9 @@ class OpenDriftSimulation(PhysicsMethods):
         landgrid = o.get_environment(
             ['land_binary_mask'], lon=longrid, lat=latgrid, z=0*longrid,
             time=time, profiles=None)[0]['land_binary_mask']
+        if landgrid.min() == 1 or np.isnan(landgrid.min()):
+            logging.warning('No ocean pixels nearby, cannot move elements.')
+            return lon, lat
 
         oceangridlons = longrid[landgrid==0]
         oceangridlats = latgrid[landgrid==0]
@@ -1780,6 +1785,12 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             self.dynamical_landmask = False
 
+        # Move point seed on land to ocean
+        if self.get_config('seed:ocean_only') is True and ('land_binary_mask' not in self.fallback_values):
+            self.elements_scheduled.lon, self.elements_scheduled.lat = \
+                self.closest_ocean_points(self.elements_scheduled.lon,
+                                          self.elements_scheduled.lat)
+
         ####################################################################
         # Preparing history array for storage in memory and eventually file
         ####################################################################
@@ -2091,9 +2102,11 @@ class OpenDriftSimulation(PhysicsMethods):
                 delta_lon = 4
             elif lonspan > 10 and lonspan <= 20:
                 delta_lon = 2
-            elif lonspan > 2 and lonspan <= 10:
+            elif lonspan > 3 and lonspan <= 10:
+                delta_lon = 1
+            elif lonspan > 1 and lonspan <= 3:
                 delta_lon = .5
-            elif lonspan > .2 and lonspan <= 2:
+            elif lonspan > .2 and lonspan <= 1:
                 delta_lon = .1
             else:
                 delta_lon = .02
