@@ -1521,16 +1521,29 @@ class OpenDriftSimulation(PhysicsMethods):
                 num_seeded += num_elements
 
     def seed_from_ladim(self, ladimfile, roms):
+        """Seed elements from ladim *.rls text file: [time, x, y, z, name]"""
 
         data = np.loadtxt(ladimfile,
-            dtype={'names': ('time', 'x', 'y', 'num'),
+            dtype={'names': ('time', 'x', 'y', 'z'),
                    'formats': ('S20', 'f4', 'f4', 'f4')},
             usecols=(0,1,2,3))
 
         time = [datetime.strptime(t, "%Y-%m-%dT%H")
                 for t in data['time']]
+        time = np.array(time)
 
         lon, lat = roms.xy2lonlat(data['x'], data['y'])
+        z = -data['z']
+
+        logging.info('Seeding %i elements from %s:' % (len(lon), ladimfile))
+        logging.info('    Lons: %f to %f' % (lon.min(), lon.max()))
+        logging.info('    Lats: %f to %f' % (lat.min(), lat.max()))
+        logging.info('    Depths: %f to %f' % (z.min(), z.max()))
+        logging.info('    Time: %s to %s' % (time.min(), time.max()))
+        elements = self.ElementType(lon=lon, lat=lat, z=-z)
+
+        self.schedule_elements(elements, time)
+
 
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
