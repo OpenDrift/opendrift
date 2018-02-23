@@ -222,7 +222,9 @@ class Reader(BaseReader):
         # i.e. if you need 'sea_surface_height' within opendrift, use variable 'el' in the netcdf file
 
         for var_name in self.Dataset.variables:
-            if var_name in [self.xname, self.yname, 'dep']:
+            if var_name in [self.xname, self.yname] : 
+            # if var_name in [self.xname, self.yname] 'depth']: //  not sure why 'dep' is skipped in original reader_netCDF_CF_generic.py
+            # this is needed for sea_floor_depth_below_sea_level
                 continue  # Skip coordinate variables
             var = self.Dataset.variables[var_name]
             attributes = var.ncattrs()
@@ -241,6 +243,7 @@ class Reader(BaseReader):
         # all different currents are mapped to x_sea_water_velocity, y_water_velocity 
         # this means that some overwriting can occur if there are more than 2 (u,v) pairs in the file - an option may be to allow specifying which vraibles to use 
         # e.g. see here : https://github.com/OpenDrift/opendrift/blob/master/opendrift/readers/basereader.py line 89
+        
         self.variables = self.variable_mapping.keys() # check that it does the right thing here
 
         # Run constructor of parent Reader class

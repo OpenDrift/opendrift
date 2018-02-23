@@ -280,10 +280,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 self.elements.z[bottom] = 2*Zmin[bottom] - self.elements.z[bottom]
            
             # advect due to buoyancy
+
             self.elements.z = self.elements.z + w*dt_mix
 
             # put the particles that belonged to the surface slick (if present) back to the surface
-            self.elements.z[surface] = 0.
+            #self.elements.z[surface] = 0. # Edit : This is probably no needed here as we do want settling ?
 
             # formation of slick and wave mixing for surfaced particles if implemented for this class
             self.surface_stick()

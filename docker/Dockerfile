@@ -21,6 +21,8 @@ RUN echo "-----------------Install OPENDRIFT-----------------" &&\
 # Would be useful to install the motu_client.py
 # available from https://github.com/clstoulouse/motu-client-python
 # To download data directly from CMEMS
-
+#
+#
+# Install NOAA's Oil libray as well
 
 
