@@ -951,9 +951,9 @@ class OpenDriftSimulation(PhysicsMethods):
             if std > 0:
                 logging.debug('Adding uncertainty for current: %s m/s' % std)
                 env['x_sea_water_velocity'] += np.random.uniform(
-                    0, std, self.num_elements_active())
+                    -std, std, self.num_elements_active())
                 env['y_sea_water_velocity'] += np.random.uniform(
-                    0, std, self.num_elements_active())
+                    -std, std, self.num_elements_active())
         # Wind
         if 'x_wind' in variables and 'y_wind' in variables:
             std = self.get_config('drift:wind_uncertainty')
