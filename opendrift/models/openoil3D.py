@@ -35,7 +35,7 @@ class Oil3D(Oil):
                                       'default': 0.03}),
         ('diameter', {'dtype': np.float32,  # Particle diameter
                       'units': 'm',
-                      'default': 1e-5})
+                      'default': 0.})
         ])
 
 
@@ -89,7 +89,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         'upward_sea_water_velocity': 0
         }
 
-    max_speed = 1.0  # m/s
+    max_speed = 1.3  # m/s
 
     # Read oil types from file (presently only for illustrative effect)
     oil_types = str([str(l.strip()) for l in open(
@@ -109,7 +109,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             entrainment_rate = option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Li et al. (2017)')
         [turbulentmixing]
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
-            droplet_diameter_max_wavebreaking = float(default=1e-3, min=1e-8, max=1)
+            droplet_diameter_max_wavebreaking = float(default=2e-3, min=1e-8, max=1)
             droplet_size_exponent = float(default=0, min=-10, max=10)
     ''' % (oil_types, default_oil)
 
@@ -386,24 +386,29 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         #plt.gca().set_yscale("log")
         #plt.show()
 
-    def surface_interaction(self, time_step_seconds, alpha=1.5):
+    def surface_wave_mixing(self, time_step_seconds, alpha=1.5):
         """Mix surface oil into water column."""
-
-        # Place particles above surface to exactly 0
-        surface = self.elements.z >= 0
-        self.elements.z[surface] = 0
-
         # Entrain oil into uppermost layer (whitecapping from waves)
         # TODO: optimise this by only calculate for surface elements
+        surface = self.elements.z >= 0
         random_number = np.random.uniform(0, 1, len(self.elements.z))
         entrained = np.logical_and(surface,
                         random_number<self.oil_entrainment_probability)
+        # TODO: determine water depth for wave entrainment
         self.elements.z[entrained] = \
             -self.get_config('turbulentmixing:verticalresolution')/2.
         if self.keep_droplet_diameter is False:
             # Give surface elements a random diameter
             self.elements.diameter[self.elements.z==0] = \
                 self.droplet_diamenter_if_entrained[self.elements.z==0]
+
+    def surface_stick(self):
+        """set surfaced particles to exactly zero depth to let them form a slick """
+        
+        surface = np.where(self.elements.z >= 0)
+        if len(surface[0]) > 0:
+            self.elements.z[surface] = 0.
+
 
     def get_wave_breaking_droplet_diameter(self):
         dm = self.get_config('wave_entrainment:droplet_size_distribution')
@@ -416,7 +421,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     def get_wave_breaking_droplet_diameter_exponential(self):
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum, if not already done
-            logging.info('Generating wave breaking droplet size spectrum')
+            logging.debug('Generating wave breaking droplet size spectrum')
             s = self.get_config('turbulentmixing:droplet_size_exponent')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
@@ -436,21 +441,35 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # DOI: 10.1016/j.marpolbul.2015.02.026
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum as in Johansen et al. (2015)
-            logging.info('Generating wave breaking droplet size spectrum')
+            logging.debug('Generating wave breaking droplet size spectrum')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
             g = 9.81
+            interfacial_tension = self.oil_water_interfacial_tension
+            #
+            #A = self.significant_wave_height()/2. # wave amplitude
+            #re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
+            #we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
+            #
+            H = self.significant_wave_height() # fall height = 2 * wave amplitude
+            # Reyolds number (Eq. 7a from Johansen et al. 2015)
+            re = (self.elements.density*self.elements.oil_film_thickness*(g*H)**0.5) / (self.elements.viscosity*self.elements.density) 
+            # Weber number (Eq. 7b from Johansen et al.2015)
+            we = (self.elements.density*self.elements.oil_film_thickness*g*H) / interfacial_tension # Weber number
+            A = 2.251 # parameters from Johansen et al. 2015
+            Bp = 0.027
+            B = A*Bp  
+            dN_50 = (A*self.elements.oil_film_thickness*we**-0.6) + (B*self.elements.oil_film_thickness* re**-0.6) # median droplet diameter in number distribution
+            sd = 0.4 # log standard deviation in log10 units
+            Sd = np.log(10) *sd # log standard deviation in natural log units
+            dV_50 = np.exp( np.log(dN_50) + 3*Sd**2 ) # convert number distribution to volume distribution
             # TODO: calculation below with scalars, but we have
             # arrays, with varying oil properties
-            interfacial_tension = self.oil_water_interfacial_tension
-            A = self.significant_wave_height()/2 # wave amplitude
-            re = (self.elements.density*self.elements.oil_film_thickness*(2*g*A)**0.5) / (self.elements.viscosity*self.elements.density) # Reyolds number
-            we = (self.elements.density*self.elements.oil_film_thickness*2*g*A) / interfacial_tension # Weber number
-            d_50 = (2.251*self.elements.oil_film_thickness*we**-0.6) + (2.251*0.027*self.elements.oil_film_thickness* re**-0.6)
-            d_50 = np.mean(d_50) # mean log diameter
-            sd = 0.4 # log standard deviation
-            spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(d_50))**2 / (2 * sd**2))) / (self.droplet_spectrum_diameter * sd * np.sqrt(2 * np.pi))
+            # treat all particle in one go:
+            dV_50 = np.mean(dV_50) # mean log diameter
+            logging.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
+            spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
         if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
                 np.abs(np.sum(self.droplet_spectrum_pdf) - 1) > 1e-6:
@@ -476,6 +495,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         if self.get_config('processes:turbulentmixing') is True:
             self.update_terminal_velocity()
             self.vertical_mixing()
+            del self.droplet_spectrum_pdf
 
         # Vertical advection
         if self.get_config('processes:verticaladvection') is True:

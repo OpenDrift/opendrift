@@ -77,19 +77,35 @@ class TestOil(unittest.TestCase):
 
                 b = o.get_oil_budget()
                 actual_dispersed = b['mass_dispersed']/b['mass_total']
+                actual_submerged = b['mass_submerged']/b['mass_total']
+                actual_evaporated = b['mass_evaporated']/b['mass_total']
                 print 'Dispersion fraction %f for ' \
                       '%s and wind speed %f' % \
                       (actual_dispersed[-1], oil, windspeed)
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
+                    fraction_submerged = 0
+                    fraction_evaporated = 0.5261
+                    meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
-                    fraction_dispersed = 0.068155557
+                    fraction_dispersed = 0.0863
+                    fraction_submerged = 0.2924
+                    fraction_evaporated = 0.4890
+                    meanlon = 4.81773
                 elif oil == 'SKRUGARD' and windspeed == 8:
-                    fraction_dispersed = 0.13058466
+                    fraction_dispersed = 0.1330
+                    fraction_submerged = 0.3105
+                    fraction_evaporated = 0.1882
+                    meanlon = 4.82765
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
-                                       fraction_dispersed)
+                                       fraction_dispersed, 2)
+                self.assertAlmostEqual(actual_submerged[-1],
+                                       fraction_submerged, 2)
+                self.assertAlmostEqual(actual_evaporated[-1],
+                                       fraction_evaporated, 2)
+                self.assertAlmostEqual(np.mean(o.elements.lon), meanlon, 4)
                 #o.plot_oil_budget()
 
     @unittest.skipIf(has_oil_library is False,
@@ -124,10 +140,10 @@ class TestOil(unittest.TestCase):
             d = o.elements.diameter
             # Suspicious, Sintef-param should give larer droplets
             if droplet_distribution == 'Exponential':
-                self.assertAlmostEqual(d.mean(), 0.0005209301)
+                self.assertAlmostEqual(d.mean(), 0.000849, 2)
             elif droplet_distribution == 'Johansen et al. (2015)':
                 #self.assertAlmostEqual(d.mean(), 0.000072158)
-                self.assertAlmostEqual(d.mean(), 0.00007504259)
+                self.assertAlmostEqual(d.mean(), 0.000653, 2)
 
 
 if __name__ == '__main__':

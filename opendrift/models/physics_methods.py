@@ -124,6 +124,8 @@ class PhysicsMethods(object):
         if wind_drift_factor is None:
             wind_drift_factor = self.elements.wind_drift_factor
 
+        wind_drift_factor = wind_drift_factor.copy()  # To prevent outside value to be modified
+
         # Convert wind_drift_factor to array
         if len(np.atleast_1d(wind_drift_factor)) == 1:
             wind_drift_factor = wind_drift_factor*np.ones(len(self.elements))
@@ -148,6 +150,7 @@ class PhysicsMethods(object):
 
         x_wind = self.environment.x_wind
         y_wind = self.environment.y_wind
+        
         try:
             if self.get_config('drift:relative_wind') is True:
                 # Use wind relative to (subtracted) ocean current
@@ -255,6 +258,23 @@ class PhysicsMethods(object):
         surface = np.where(self.elements.z >= 0)[0]
         self.elements.z[surface] = minimum_depth
 
+    def calculate_missing_environment_variables(self):
+
+        # Missing significant wave height
+        if hasattr(self.environment,
+                   'sea_surface_wave_significant_height') and \
+                self.environment.sea_surface_wave_significant_height.max() == 0:
+            logging.debug('Calculating Hs from wind')
+            Hs = self.significant_wave_height()
+
+        # Missing wave periode
+        if hasattr(self.environment,
+                   'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment') and \
+                self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() == 0:
+            logging.debug('Calculating wave period from wind')
+            wave_period = self.wave_period()
+
+
     def wind_speed(self):
         return np.sqrt(self.environment.x_wind**2 +
                        self.environment.y_wind**2)
@@ -270,8 +290,8 @@ class PhysicsMethods(object):
             #return 0.2*np.power(self.wind_speed(), 2)/9.81
             # WMO 1998
             Hs = 0.0246*np.power(self.wind_speed(), 2)
+            self.environment.sea_surface_wave_significant_height = Hs
 
-        #print '\n Hs %s \n' % str(Hs.mean())
         return Hs
 
     def _wave_frequency(self):
@@ -279,7 +299,6 @@ class PhysicsMethods(object):
         # Pierson-Moskowitz if period not available from readers
         # WMO guide to wave analysis and forecasting pp. 14, WMO (1998)
         windspeed = self.wind_speed()
-        #print '\n windspeed %s \n' % str(windspeed.mean())
       
         omega = 0.877*9.81/(1.17*windspeed)
         omega[windspeed==0] = 5  # fallback value if no wind speed or Hs
@@ -301,6 +320,7 @@ class PhysicsMethods(object):
             # calculate Tp from wind speed:
             logging.debug('Calculating wave period Tm02 from wind')
             T = (2*np.pi)/self._wave_frequency()
+            self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment = T
 
         #print '\n T %s \n' % str(T.mean())
         if T.min() == 0:

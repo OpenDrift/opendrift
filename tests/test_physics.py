@@ -30,7 +30,7 @@ from opendrift.readers import reader_ROMS_native
 from opendrift.models.openoil3D import OpenOil3D
 
 
-class TestRun(unittest.TestCase):
+class TestPhysics(unittest.TestCase):
     """Tests for some physical parameterisations"""
 
     def test_droplet_diameters(self):
@@ -146,7 +146,7 @@ class TestRun(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -28, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -38.39, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
@@ -162,7 +162,7 @@ class TestRun(unittest.TestCase):
         o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -24.0, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -41.63, 1)
         #######################################################
 
 
@@ -181,9 +181,28 @@ class TestRun(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -32.0, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -51.53, 1)
         ########################################################
 
+
+    def test_parameterised_stokes(self):
+        o = OpenOil3D(loglevel=30, weathering_model='default')
+        o.set_config('drift:use_tabularised_stokes_drift', False)
+        o.set_config('processes:evaporation', False)
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 10
+        o.seed_elements(lon=3, lat=60, time=datetime.now())
+        o.run(steps=2)
+        # Second run with parameterised Stokes drift
+        o2 = OpenOil3D(loglevel=30, weathering_model='default')
+        o2.set_config('drift:use_tabularised_stokes_drift', True)
+        o2.set_config('processes:evaporation', False)
+        o2.fallback_values['land_binary_mask'] = 0
+        o2.fallback_values['x_wind'] = 10
+        o2.seed_elements(lon=3, lat=60, time=datetime.now())
+        o2.run(steps=2)
+        # Check that stokes drift moves elements downwind
+        self.assertTrue(o2.elements.lon > o.elements.lon)
 
 if __name__ == '__main__':
     unittest.main()

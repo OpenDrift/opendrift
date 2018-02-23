@@ -106,6 +106,8 @@ class BaseReader(object):
         'northward_geostrophic_current_velocity': 'y_sea_water_velocity',
         'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
         'northward_eulerian_current_velocity': 'y_sea_water_velocity',
+        'surface_geostrophic_eastward_sea_water_velocity': 'x_sea_water_velocity',
+        'surface_geostrophic_northward_sea_water_velocity': 'y_sea_water_velocity',
         'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'x_sea_water_velocity',
         'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity'}
         # ocean_vertical_diffusivity
@@ -277,15 +279,37 @@ class BaseReader(object):
             z = np.append(z, [profiles_depth[0], profiles_depth[1]])
         env = self.get_variables(variables, time, x, y, z, block)
 
-        # Convert any numpy arrays to masked arrays
-        for var in env.keys():
-            if isinstance(env[var], np.ndarray):
-                env[var] = np.ma.masked_array(env[var], mask=False)
-
         # Make sure x and y are floats (and not e.g. int64)
         if 'x' in env.keys():
             env['x'] = np.array(env['x'], dtype=np.float)
             env['y'] = np.array(env['y'], dtype=np.float)
+
+        # Convert any masked arrays to NumPy arrays
+        for variable in env.keys():
+            if isinstance(env[variable], np.ma.MaskedArray):
+                env[variable] = env[variable].filled(np.nan)
+
+        # Convolve arrays with a kernel, if reader.convolve is set
+        if hasattr(self, 'convolve'):
+            from scipy import ndimage
+            N = self.convolve
+            if isinstance(N, (int, np.integer)):
+                kernel = np.ones((N, N))
+                kernel = kernel/kernel.sum()
+            else:
+                kernel = N
+            logging.debug('Convolving variables with kernel: %s' % kernel)
+            for variable in env.keys():
+                if variable in ['x', 'y', 'z', 'time']:
+                    pass
+                else:
+                    if env[variable].ndim == 2:
+                        env[variable] = ndimage.convolve(
+                            env[variable], kernel, mode='nearest')
+                    elif env[variable].ndim == 3:
+                        env[variable] = ndimage.convolve(
+                            env[variable], kernel[:,:,None],
+                            mode='nearest')
 
         self.timer_end('reading')
 
@@ -669,11 +693,6 @@ class BaseReader(object):
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
 
-        # Compensate for wrapping about 0 or 180 longitude
-        if self.proj.is_latlong():
-            if self.xmax > 180:
-                lon[lon < 0] = lon[lon < 0] + 360
-
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
@@ -685,11 +704,29 @@ class BaseReader(object):
         if hasattr(self, 'zmax') and self.zmax is not None:
             zmax = self.zmax
 
-        indices = np.where((x >= self.xmin) & (x <= self.xmax) &
-                           (y >= self.ymin) & (y <= self.ymax) &
-                           (z >= zmin) & (z <= zmax))[0]
+        if self.global_coverage():
+            # We need only check north-south and z coverage
+            indices = np.where((y >= self.ymin) & (y <= self.ymax) &
+                               (z >= zmin) & (z <= zmax))[0]
+        else:
+            indices = np.where((x >= self.xmin) & (x <= self.xmax) &
+                               (y >= self.ymin) & (y <= self.ymax) &
+                               (z >= zmin) & (z <= zmax))[0]
 
         return indices
+
+    def global_coverage(self):
+        """Return True if global coverage east-west"""
+
+        if self.proj.is_latlong() is True and hasattr(self, 'delta_x'):
+            if (self.xmin - self.delta_x <= 0) and (
+                self.xmax + self.delta_x >= 360):
+                return True  # Global 0 to 360
+            if (self.xmin - self.delta_x <= -180) and (
+                self.xmax + self.delta_x >= 180):
+                return True  # Global -180 to 180
+
+        return False
 
     def coverage_string(self):
         """Coverage of reader to be reported as string for debug output"""
@@ -698,59 +735,6 @@ class BaseReader(object):
         return '%.2f-%.2fE, %.2f-%.2fN' % (
                     np.min(corners[0]), np.max(corners[0]),
                     np.min(corners[1]), np.max(corners[1]))
-
-    def check_coverage(self, time, lon, lat):
-        """Check which points are within coverage of reader.
-
-        Checks that requested positions and time are within coverage of
-        this reader, and that it can provide the requested variable(s).
-        Returns the input arguments, possibly modified/corrected (below)
-
-        Arguments:
-            See function get_variables for definition.
-
-        Returns:
-            x, y: coordinates of point in spatial reference system of reader
-            indices: indices of the input points which are inside domain
-
-        Raises:
-            ValueError:
-                - if requested time is outside coverage of reader.
-                - if all requested positions are outside coverage of reader.
-        """
-
-        lon = np.atleast_1d(lon)
-        lat = np.atleast_1d(lat)
-
-        # Check time
-        if self.start_time is not None and (time is not None and
-                                            time < self.start_time):
-            raise ValueError('Requested time (%s) is before first available '
-                             'time (%s) of %s' % (time, self.start_time,
-                                                  self.name))
-        if self.end_time is not None and (time is not None and
-                                          time > self.end_time):
-            raise ValueError('Requested time (%s) is after last available '
-                             'time (%s) of %s' % (time, self.end_time,
-                                                  self.name))
-
-        # Compensate for wrapping about 0 or 180 longitude
-        if self.proj.is_latlong():
-            if self.xmax > 180:
-                lon[lon < 0] = lon[lon < 0] + 360
-
-        # Calculate x,y coordinates from lon,lat
-        x, y = self.lonlat2xy(lon, lat)
-
-        indices = np.where((x > self.xmin) & (x < self.xmax) &
-                           (y > self.ymin) & (y < self.ymax))[0]
-        if len(indices) == 0:
-            raise ValueError(('Coverage: all %s particles (%.2f-%.2fE, ' +
-                              '%.2f-%.2fN) are outside domain of %s (%s)') %
-                             (len(lon), lon.min(), lon.max(), lat.min(),
-                              lat.max(), self.name, self.coverage_string()))
-
-        return x[indices], y[indices], indices
 
     def check_arguments(self, variables, time, x, y, z):
         """Check validity of arguments input to method get_variables.
@@ -801,9 +785,13 @@ class BaseReader(object):
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
-        outside = np.where(~np.isfinite(x+y) |
-                           (x < self.xmin) | (x > self.xmax) |
-                           (y < self.ymin) | (y > self.ymax))[0]
+        if self.global_coverage():
+            outside = np.where(~np.isfinite(x+y) |
+                               (y < self.ymin) | (y > self.ymax))[0]
+        else:
+            outside = np.where(~np.isfinite(x+y) |
+                               (x < self.xmin) | (x > self.xmax) |
+                               (y < self.ymin) | (y > self.ymax))[0]
         if np.size(outside) == np.size(x):
             lon, lat = self.xy2lonlat(x, y)
             raise ValueError(('Argcheck: all %s particles (%.2f-%.2fE, ' +
@@ -954,7 +942,8 @@ class BaseReader(object):
                 outStr += '%10s  %s\n' % (time, cat)
         return outStr
 
-    def plot(self, variable=None, vmin=None, vmax=None, filename=None):
+    def plot(self, variable=None, vmin=None, vmax=None,
+             filename=None, title=None):
         """Plot geographical coverage of reader."""
 
         try:
@@ -1021,7 +1010,10 @@ class BaseReader(object):
             boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
             plt.gca().add_patch(boundary)
 # add patch to the map
-        plt.title(self.name)
+        if title is None:
+            plt.title(self.name)
+        else:
+            plt.title(title)
         plt.xlabel('Time coverage: %s to %s' %
                    (self.start_time, self.end_time))
 

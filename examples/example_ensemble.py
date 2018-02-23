@@ -13,8 +13,8 @@ r = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25f
 o.add_reader(r)
 
 #o.set_config('general:basemap_resolution', 'c')
-o.seed_elements(lat=60, lon=4.5, time=r.start_time,
-                radius=500, number=10000)
+o.seed_elements(lat=60, lon=4.8, time=r.start_time,
+                radius=1000, number=10000)
 
 o.run(duration=timedelta(hours=50), time_step=3600)
 

@@ -152,6 +152,9 @@ class OpenOil(OpenDriftSimulation):
                                 ImportedRecord).filter(ImportedRecord.
                                 location==kwargs['location']).all()
                 del kwargs['location']
+                all_oiltypes = session.query(Oil.name).all()
+                generic_oiltypes = [o for o in all_oiltypes if o[0][0:2] == '*G']
+                self.oiltypes.extend(generic_oiltypes)
             else:
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
@@ -265,7 +268,7 @@ class OpenOil(OpenDriftSimulation):
             sea_water_density = 1028
             fraction_breaking_waves = 0.02
             wave_significant_height = \
-                self.environment.sea_surface_wave_significant_height
+                self.significant_wave_height()
             wave_significant_height[wave_significant_height == 0] = \
                 0.0246*windspeed[wave_significant_height == 0]**2
             dissipation_wave_energy = \
@@ -372,29 +375,55 @@ class OpenOil(OpenDriftSimulation):
         #########################################################
         # Update density and viscosity according to temperature
         #########################################################
-        try:  # Old version of OilLibrary
-            self.elements.viscosity = \
-                self.oiltype.kvis_at_temp(
-                    self.environment.sea_water_temperature)
-            self.elements.density = np.atleast_1d([
-                self.oiltype.density_at_temp(t) for t in 
-                    self.environment.sea_water_temperature])
-        except:  # New version of OilLibrary
-            self.elements.viscosity = np.array(
+        try:  # New version of OilLibrary
+            self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
+            oil_viscosity = self.oiltype.kvis_at_temp(
+                self.environment.sea_water_temperature)
+            self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
+            self.timer_start('main loop:updating elements:oil weathering:updating densities')
+            oil_density = self.oiltype.density_at_temp(
+                self.environment.sea_water_temperature)
+            self.timer_end('main loop:updating elements:oil weathering:updating densities')
+        except:  # Old version of OilLibrary
+            oil_viscosity = np.array(
                 [self.oiltype.get_viscosity(t) for t in
                  self.environment.sea_water_temperature])
-            self.elements.density = np.array(
+            oil_density = np.array(
                 [self.oiltype.get_density(t) for t in
                  self.environment.sea_water_temperature])
 
+        # Calculate emulsion density
+        self.elements.density = (
+            self.elements.water_fraction*self.sea_water_density() +
+           (1 - self.elements.water_fraction) * oil_density)
+
+        # Calculate emulsion viscosity
+        visc_f_ref = 0.84  # From PyGNOME
+        visc_curvfit_param = 1.5e3 # units are sec^0.5 / m
+        fw_d_fref = self.elements.water_fraction/visc_f_ref
+        kv1 = np.sqrt(oil_viscosity)*visc_curvfit_param
+        kv1[kv1<1] = 1
+        kv1[kv1>10] = 10
+        self.elements.fraction_evaporated = self.elements.mass_evaporated/(self.elements.mass_oil+self.elements.mass_evaporated)
+        self.elements.viscosity = (
+            oil_viscosity*np.exp(kv1*self.elements.fraction_evaporated)*
+                (1 + (fw_d_fref / (1.187 - fw_d_fref))) ** 2.49)
+
+
         if self.get_config('processes:evaporation') is True:
+            self.timer_start('main loop:updating elements:oil weathering:evaporation')
             self.evaporation_noaa()
+            self.timer_end('main loop:updating elements:oil weathering:evaporation')
 
         if self.get_config('processes:emulsification') is True:
+            self.timer_start('main loop:updating elements:oil weathering:emulsification')
             self.emulsification_noaa()
+            self.timer_end('main loop:updating elements:oil weathering:emulsification')
 
         if self.get_config('processes:dispersion') is True:
+            self.timer_start('main loop:updating elements:oil weathering:dispersion')
             self.disperse_noaa()
+            self.timer_end('main loop:updating elements:oil weathering:dispersion')
 
     def disperse_noaa(self):
         logging.debug('    Calculating: dispersion - NOAA')
@@ -584,6 +613,7 @@ class OpenOil(OpenDriftSimulation):
             return
 
         b = self.get_oil_budget()
+
         oil_budget = np.row_stack(
             (b['mass_dispersed'], b['mass_submerged'],
              b['mass_surface'], b['mass_stranded'], b['mass_evaporated']))
@@ -597,26 +627,31 @@ class OpenOil(OpenDriftSimulation):
         # Left axis showing oil mass
         ax1 = fig.add_subplot(111)
         # Hack: make some emply plots since fill_between does not support label
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='darkslategrey', label='dispersed'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='darkblue', label='submerged'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='royalblue', label='surface'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='black', label='stranded'))
-        ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
-                      color='skyblue', label='evaporated'))
+        if np.sum(b['mass_dispersed']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='darkslategrey', label='dispersed'))
+            ax1.fill_between(time, 0, budget[0, :], facecolor='darkslategrey')
+        if np.sum(b['mass_submerged']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='darkblue', label='submerged'))
+            ax1.fill_between(time, budget[0, :], budget[1, :],
+                             facecolor='darkblue')
+        if np.sum(b['mass_surface']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='royalblue', label='surface'))
+            ax1.fill_between(time, budget[1, :], budget[2, :],
+                             facecolor='royalblue')
+        if np.sum(b['mass_stranded']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='black', label='stranded'))
+            ax1.fill_between(time, budget[2, :], budget[3, :],
+                             facecolor='black')
+        if np.sum(b['mass_evaporated']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='skyblue', label='evaporated'))
+            ax1.fill_between(time, budget[3, :], budget[4, :],
+                             facecolor='skyblue')
 
-        ax1.fill_between(time, 0, budget[0, :], facecolor='darkslategrey')
-        ax1.fill_between(time, budget[0, :], budget[1, :],
-                         facecolor='darkblue')
-        ax1.fill_between(time, budget[1, :], budget[2, :],
-                         facecolor='royalblue')
-        ax1.fill_between(time, budget[2, :], budget[3, :],
-                         facecolor='black')
-        ax1.fill_between(time, budget[3, :], budget[4, :],
-                         facecolor='skyblue')
         ax1.set_ylim([0, budget.max()])
         ax1.set_xlim([0, time.max()])
         ax1.set_ylabel('Mass oil  [%s]' %
@@ -652,12 +687,22 @@ class OpenOil(OpenDriftSimulation):
         self.set_config('seed:oil_type', oiltype)
         if self.oil_weathering_model == 'noaa':
             try:
-                from oil_library import get_oil_props
-                self.oiltype = get_oil_props(oiltype)
+                from oil_library import get_oil_props, _get_db_session
+                from oil_library.models import Oil as ADIOS_Oil
+                from oil_library.oil_props import OilProps
+                session = _get_db_session()
+                oils = session.query(ADIOS_Oil).filter(
+                            ADIOS_Oil.name == oiltype)
+                ADIOS_ids = [oil.adios_oil_id for oil in oils]
+                if len(ADIOS_ids) == 0:
+                    raise ValueError('Oil type "%s" not found in NOAA database' % oiltype)
+                elif len(ADIOS_ids) == 1:
+                    self.oiltype = get_oil_props(oiltype)
+                else:
+                    logging.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
+                    self.oiltype = OilProps(oils[0])
             except Exception as e:
                 print e
-                raise ValueError('Oil type "%s" not found in NOAA database'
-                                 % oiltype)
             return
 
         if oiltype not in self.oiltypes:
@@ -699,12 +744,15 @@ class OpenOil(OpenDriftSimulation):
 
         if self.oil_weathering_model == 'noaa':
             try:  # Older version of OilLibrary
-                oil_density = self.oiltype.get_density(283)  # 10 degrees
+                oil_density = self.oiltype.get_density(285)  # 12 degrees
+                oil_viscosity = self.oiltype.get_viscosity(285)
             except:  # Newer version of OilLibrary
-                oil_density = self.oiltype.density_at_temp(283)
-            logging.info('Using density %s of oiltype %s' %
-                         (oil_density, self.get_config('seed:oil_type')))
+                oil_density = self.oiltype.density_at_temp(285)
+                oil_viscosity = self.oiltype.kvis_at_temp(285)
+            logging.info('Using density %s and viscosity %s of oiltype %s' %
+                         (oil_density, oil_viscosity, self.get_config('seed:oil_type')))
             kwargs['density'] = oil_density
+            kwargs['viscosity'] = oil_viscosity
 
         if 'm3_per_hour' in kwargs:
             # From given volume rate, we calculate the mass per element
