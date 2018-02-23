@@ -1520,6 +1520,18 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
                 num_seeded += num_elements
 
+    def seed_from_ladim(self, ladimfile, roms):
+
+        data = np.loadtxt(ladimfile,
+            dtype={'names': ('time', 'x', 'y', 'num'),
+                   'formats': ('S20', 'f4', 'f4', 'f4')},
+            usecols=(0,1,2,3))
+
+        time = [datetime.strptime(t, "%Y-%m-%dT%H")
+                for t in data['time']]
+
+        lon, lat = roms.xy2lonlat(data['x'], data['y'])
+
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
         if sum(indices) == 0:
