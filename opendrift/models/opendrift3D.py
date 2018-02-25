@@ -25,7 +25,7 @@ from opendrift.elements import LagrangianArray
 class Lagrangian3DArray(LagrangianArray):
     """Extending LagrangianArray for elements moving in 3 dimensions
     The Particle may be buoyant and/or subject to vertical mixing
-    buoyant bahaviour is described by terminal velocity
+    buoyant behaviour is described by terminal velocity
     """
 
     variables = LagrangianArray.add_variables([

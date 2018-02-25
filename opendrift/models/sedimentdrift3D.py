@@ -108,6 +108,9 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         # Vertical advection
         self.vertical_advection()
 
+        # Sediment resuspension checks , if switched on
+        # ToDo!
+
         # Deactivate elements that exceed a certain age
         if self.get_config('drift:max_age_seconds') is not None:
             self.deactivate_elements(self.elements.age_seconds >=

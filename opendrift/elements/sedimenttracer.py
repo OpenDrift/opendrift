@@ -19,7 +19,7 @@ from  buoyanttracer import BuoyantTracer
 import numpy as np
 
 class SedimentTracer(BuoyantTracer):
-    """Extending BuoyantTracer (which is same as PassiveTracer+settling velocity) to a sediment element
+    """Extending BuoyantTracer (which is same as a PassiveTracerwith an added settling velocity) to a "sediment" element
        which has additional properties such as critical_shear_stress for resuspension 
     """
 

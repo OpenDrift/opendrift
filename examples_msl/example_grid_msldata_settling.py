@@ -21,7 +21,9 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 # Norkyst
 # reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc') # this file has several u,v variable which confuses which to use - to fix by specifying which variables to use ? 
+reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['dep']) # i.e. only use the 'dep' variable in that file
+reader_roms_cnz_depth.always_valid = True # this is useful if the time vector associated with the bathy does not fit with the simulation time 
+#use always_valid for variables that can be used at all times, such as a bathy 
 reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz_surf_res200401.nc') # only uso,vso in this one - seems to be recognized ok 
 
 
@@ -32,9 +34,9 @@ reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz_surf_res200401.
 #                     urcrnrlon=5.5, urcrnrlat=61.2,
 #                     resolution='h', projection='merc')
 
-o.add_reader([reader_roms_cnz]) # ** need to add a reader with depth info when using settling
+o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader with depth info when using settling
  
-
+# import pdb;pdb.set_trace()
 # no vertical diffusion infos available from readers : set fall_back constant values 
 o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
 

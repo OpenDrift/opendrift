@@ -21,14 +21,17 @@ from netCDF4 import Dataset, MFDataset, num2date
 
 from basereader import BaseReader
 
-# This is a reader class for the netcdf file format used internally at MSL
+# This is a reader class for the netcdf file used internally at MetOcean
 # It is adapted from reader_netCDF_CF_Generic.py (found in same folder)
+# using a new variable name "mapping" matrix, and an option to specify which variables 
+# from the file should be used. This is expected to be used mostly when more than one (u,v) pairs are available,
+# to avoid (re)mapping differents u or v components to the same 'x_sea_water_velocity' or 'y_sea_water_velocity' 
+# in OpenDrift, or when we want to read only a single variable from a file (e.g. depth).
 # S.Weppe  
 
 class Reader(BaseReader):
 
-    def __init__(self, filename=None, name=None):
-
+    def __init__(self, filename=None, name=None, variables_to_use = None, **kwargs):
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
 
@@ -181,11 +184,11 @@ class Reader(BaseReader):
                 self.projected = False
 
         
-        # Map MSL variable names to CF standard_name used in OpenDrift
+        # Map MetOcean variable names to CF standard_name used in OpenDrift
         # 
-        # see infos here : https://wiki.metocean.co.nz/display/OPS/Parameter+definitions
+        # see infos on variables names here : https://wiki.metocean.co.nz/display/OPS/Parameter+definitions
         
-        # change the `variable_aliases` variable to fit with MetOcean convention (initially defined in basereader.py)
+        # change the `variable_aliases` variable to fit with MetOcean convention (note the mapping was initially defined in basereader.py)
         self.variable_aliases = {
             # 'mask_rho': 'land_binary_mask',
             # 'mask_psi': 'land_binary_mask',
@@ -218,14 +221,23 @@ class Reader(BaseReader):
 
         self.variable_mapping = {} 
         # variable_mapping provides the names of the variable to be used for each of the opendrift-convention variable names
-        # this is the opposite of the variable_aliases above
+        # this is the "opposite" of the self.variable_aliases above
         # i.e. if you need 'sea_surface_height' within opendrift, use variable 'el' in the netcdf file
 
         for var_name in self.Dataset.variables:
-            if var_name in [self.xname, self.yname] : 
-            # if var_name in [self.xname, self.yname] 'depth']: //  not sure why 'dep' is skipped in original reader_netCDF_CF_generic.py
+            
+            if var_name in [self.xname, self.yname,'lev'] :
+                 continue  # Skip coordinate variables 
+            # if var_name in [self.xname, self.yname] 'depth']: //  not sure why 'dep' is skipped in original reader_netCDF_CF_generic.py - or does this refer to levels, rather than depth?
             # this is needed for sea_floor_depth_below_sea_level
-                continue  # Skip coordinate variables
+                
+            if variables_to_use is not None :
+            #filter which variables to use    
+                if var_name not in variables_to_use and var_name not in ['time','z']:
+                    # skip variables not in variables_to_use, unless they are 'time' or 'z' which are needed anyways
+                    logging.debug('Skipping variable : %s ; not used' % (var_name))
+                    continue
+
             var = self.Dataset.variables[var_name]
             attributes = var.ncattrs()
             
@@ -239,9 +251,9 @@ class Reader(BaseReader):
                     standard_name = self.variable_aliases[var_name]
                 self.variable_mapping[standard_name] = str(var_name) 
         
-        # For now we can't differenciate the different kinds of currents...as it seems opendrift only expect x/y currents
-        # all different currents are mapped to x_sea_water_velocity, y_water_velocity 
-        # this means that some overwriting can occur if there are more than 2 (u,v) pairs in the file - an option may be to allow specifying which vraibles to use 
+        # For now we can't differenciate the different kinds of currents (i.e. tide, resiudal, total)...as it seems opendrift only expect (u,v) currents
+        # all different currents are therefore mapped to x_sea_water_velocity, y_water_velocity 
+        # which means that some overwriting can occur if there are more than 2 (u,v) pairs in the file - an option may be to allow specifying which variables to use 
         # e.g. see here : https://github.com/OpenDrift/opendrift/blob/master/opendrift/readers/basereader.py line 89
         
         self.variables = self.variable_mapping.keys() # check that it does the right thing here
@@ -252,7 +264,6 @@ class Reader(BaseReader):
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False,
                       indrealization=None):
-
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
@@ -360,3 +371,56 @@ class Reader(BaseReader):
 
         variables['time'] = nearestTime
         return variables
+
+    def nearest_time(self, time):
+        """Return nearest times before and after the requested time.
+
+        Returns:
+            nearest_time: datetime
+            time_before: datetime
+            time_after: datetime
+            indx_nearest: int
+            indx_before: int
+            indx_after: int
+
+        The function is copied from basereader.py, and is only modified to
+        allow for field that are set as "always_valid" such as bathys
+
+        """
+        if self.start_time == self.end_time:
+            return self.start_time, self.start_time, None, 0, 0, 0
+        if self.start_time is None:
+            return None, None, None, None, None, None
+        # field was set as always valid
+        # return the first timestep regardless of actual time queried 
+        # as the actual time in original file may not fit with the simulation time
+        if self.always_valid:
+            # return self.start_time, self.start_time, None, 0, 0, 0
+            return None,None,None, 0, 0, 0 
+            # trick it by settting start_time to "time", this prevents any time interpolation in basereader.py line 470
+
+        if hasattr(self, 'times'):  # Time as array, possibly with holes
+            indx_before = np.max((0, bisect_left(self.times, time) - 1))
+            if self.times[indx_before + 1] == time:
+                # Correction needed when requested time exists in times
+                indx_before = indx_before + 1
+            time_before = self.times[indx_before]
+            indx_after = np.minimum(indx_before + 1,
+                                    len(self.times) - 1)  # At the end
+            time_after = self.times[indx_after]
+            if (time - time_before) < (time_after - time):
+                indx_nearest = indx_before
+            else:
+                indx_nearest = indx_after
+            nearest_time = self.times[indx_nearest]
+        else:  # Time step is constant (no holes)
+            indx = float((time - self.start_time).total_seconds()) / \
+                float(self.time_step.total_seconds())
+            indx_nearest = int(round(indx))
+            nearest_time = self.start_time + indx_nearest*self.time_step
+            indx_before = int(np.floor(indx))
+            time_before = self.start_time + indx_before*self.time_step
+            indx_after = int(np.ceil(indx))
+            time_after = self.start_time + indx_after*self.time_step
+        return nearest_time, time_before, time_after,\
+            indx_nearest, indx_before, indx_after
