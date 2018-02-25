@@ -14,16 +14,19 @@ from opendrift.readers import reader_netCDF_MetOcean
 from opendrift.models.sedimentdrift3D import SedimentDrift3D
 from opendrift.models.oceandrift3D import OceanDrift3D
 
-
+###############################
+# MODEL SELECTION
+###############################
 o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 # o = OceanDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 
-# Norkyst
-# reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-
+###############################
+# READERS
+###############################
 reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['dep']) # i.e. only use the 'dep' variable in that file
 reader_roms_cnz_depth.always_valid = True # this is useful if the time vector associated with the bathy does not fit with the simulation time 
 #use always_valid for variables that can be used at all times, such as a bathy 
+
 reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz_surf_res200401.nc') # only uso,vso in this one - seems to be recognized ok 
 
 
@@ -39,6 +42,13 @@ o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader 
 # import pdb;pdb.set_trace()
 # no vertical diffusion infos available from readers : set fall_back constant values 
 o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
+
+# all required variables that can be set using o.fall_back are generally listed 
+# below the model class definition  e.g. see /models/sedimentdrift3D.py, line 36
+
+###############################
+# PARTICLE SEEDING
+###############################
 
 
 # Seeding some particles
@@ -65,13 +75,19 @@ o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2004,1,1),
 
 # specific element variable such as terminal_velocity, can be specified here. 
 # terminal_velocity>0 particle moves up, terminal_velocity<0 particle moves down
+# 
+# General variables to be defined lon,lat,z,time ..look in each /elements/element*.py for more properties
+# 
+# 
 
+###############################
+# PHYSICS
+###############################
 
 o.fallback_values['ocean_vertical_diffusivity'] = 0.0001 # specify constant ocean_vertical_diffusivity in m2.s-1
 
 o.set_config('drift:current_uncertainty', 0.0)
 o.set_config('drift:wind_uncertainty', 0.0)
-
 
 o.set_config('processes:verticaladvection' , False) # no vertical current available, so no vertical advection
 o.set_config('processes:turbulentmixing', True) # 
@@ -85,17 +101,22 @@ o.set_config('turbulentmixing:timestep', 1800)
 # o.set_config('turbulentmixing:timestep', 1800)  # can be set to same as "run" time step to reproduce ERcore behaviour
 
 
-# import pdb;pdb.set_trace()
+###############################
+# RUN 
+###############################
 
 # Running model (until end of driver data)
 o.run(time_step=1800, end_time = datetime(2004,1,4), outfile='opendrift_settling.nc',time_step_output = 1800)
 # o.run(time_step=1800, steps = 100, outfile='opendrift_settling.nc',time_step_output = 1800)  
 
-# the start time is define by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
+# the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
+
+###############################
+# PLOTS / ANIMATION
+###############################
 
 # Print and plot results
 print o
-
 
 o.animation()
 o.plot()
