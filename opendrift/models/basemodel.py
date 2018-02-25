@@ -952,9 +952,9 @@ class OpenDriftSimulation(PhysicsMethods):
             if std > 0:
                 logging.debug('Adding uncertainty for current: %s m/s' % std)
                 env['x_sea_water_velocity'] += np.random.uniform(
-                    0, std, self.num_elements_active())
+                    -std, std, self.num_elements_active())
                 env['y_sea_water_velocity'] += np.random.uniform(
-                    0, std, self.num_elements_active())
+                    -std, std, self.num_elements_active())
         # Wind
         if 'x_wind' in variables and 'y_wind' in variables:
             std = self.get_config('drift:wind_uncertainty')
@@ -1127,16 +1127,17 @@ class OpenDriftSimulation(PhysicsMethods):
             o = OceanDrift(
                 loglevel=logging.getLogger().getEffectiveLevel())
             o.add_reader(reader_basemap)  # temporary object
-            time = reader_basemap.start_time
+            land_reader = reader_basemap
             tmp_reader = True
         else:
+            logging.info('Using existing reader for land_binary_mask')
             land_reader_name = self.priority_list['land_binary_mask'][0]
-            time = self.readers[land_reader_name].start_time
+            land_reader = self.readers[land_reader_name]
             o = self
             tmp_reader = False
-        land = o.get_environment(
-            ['land_binary_mask'], lon=lon, lat=lat, z=0*lon,
-            time=time, profiles=None)[0]['land_binary_mask']
+        land = o.get_environment(['land_binary_mask'],
+            lon=lon, lat=lat, z=0*lon, time=land_reader.start_time,
+            profiles=None)[0]['land_binary_mask']
         if land.max() == 0:
             logging.info('All points are in ocean')
             return lon, lat
@@ -1149,9 +1150,14 @@ class OpenDriftSimulation(PhysicsMethods):
         longrid, latgrid = np.meshgrid(longrid, latgrid)
         longrid = longrid.ravel()
         latgrid = latgrid.ravel()
+        # Remove grid-points not covered by this reader
+        latgrid_covered = land_reader.covers_positions(longrid, latgrid)
+        longrid = longrid[latgrid_covered]
+        latgrid = latgrid[latgrid_covered]
         landgrid = o.get_environment(
-            ['land_binary_mask'], lon=longrid, lat=latgrid, z=0*longrid,
-            time=time, profiles=None)[0]['land_binary_mask']
+            ['land_binary_mask'], lon=longrid, lat=latgrid,
+            z=0*longrid, time=land_reader.start_time,
+            profiles=None)[0]['land_binary_mask']
         if landgrid.min() == 1 or np.isnan(landgrid.min()):
             logging.warning('No ocean pixels nearby, cannot move elements.')
             return lon, lat
@@ -1514,6 +1520,31 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
                 num_seeded += num_elements
+
+    def seed_from_ladim(self, ladimfile, roms):
+        """Seed elements from ladim *.rls text file: [time, x, y, z, name]"""
+
+        data = np.loadtxt(ladimfile,
+            dtype={'names': ('time', 'x', 'y', 'z'),
+                   'formats': ('S20', 'f4', 'f4', 'f4')},
+            usecols=(0,1,2,3))
+
+        time = [datetime.strptime(t, "%Y-%m-%dT%H")
+                for t in data['time']]
+        time = np.array(time)
+
+        lon, lat = roms.xy2lonlat(data['x'], data['y'])
+        z = -data['z']
+
+        logging.info('Seeding %i elements from %s:' % (len(lon), ladimfile))
+        logging.info('    Lons: %f to %f' % (lon.min(), lon.max()))
+        logging.info('    Lats: %f to %f' % (lat.min(), lat.max()))
+        logging.info('    Depths: %f to %f' % (z.min(), z.max()))
+        logging.info('    Time: %s to %s' % (time.min(), time.max()))
+        elements = self.ElementType(lon=lon, lat=lat, z=-z)
+
+        self.schedule_elements(elements, time)
+
 
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
@@ -2354,7 +2385,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
 
         if drifter is not None:
-            print 'Drifter!'
             drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
             #map.plot(drifter['x'], drifter['y'])
             drifter_pos = map.scatter([], [], color='r',
@@ -2368,7 +2398,6 @@ class OpenDriftSimulation(PhysicsMethods):
             if isinstance(color, basestring) or clabel is not None:
                 if clabel is None:
                     clabel = color
-                print clabel
                 cb = map.colorbar(label=clabel, location='bottom',
                                   size='3%', pad='5%')
             else:

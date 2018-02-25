@@ -294,7 +294,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
                 logging.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
-                self.elements.z[bottom] = Zmin 
+                self.elements.z[bottom] = Zmin[bottom]
  
         self.timer_end('main loop:updating elements:vertical mixing')
 
