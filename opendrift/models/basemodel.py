@@ -1934,6 +1934,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.calculate_missing_environment_variables()
 
+                if sum(missing) > 0:
+                    self.report_missing_variables()
+
                 self.interact_with_coastline()
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
@@ -2071,6 +2074,18 @@ class OpenDriftSimulation(PhysicsMethods):
                 ((self.steps_output - self.steps_exported) ==
                     self.export_buffer_length):
             self.io_write_buffer()
+
+    def report_missing_variables(self):
+        """Issue warning if some environment variables missing."""
+        
+        missing_variables = []
+        for var in self.required_variables:
+            if np.isnan(getattr(self.environment, var).min()):
+                missing_variables.append(var)
+
+        if len(missing_variables) > 0:
+            logging.warning('Missing variables: ' +
+                            str(missing_variables))
 
     def index_of_activation_and_deactivation(self):
         """Return the indices when elements were seeded and deactivated."""
