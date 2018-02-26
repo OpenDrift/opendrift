@@ -100,6 +100,8 @@ class TestRun(unittest.TestCase):
             llcrnrlon=4, llcrnrlat=60, urcrnrlon=6, urcrnrlat=64,
             resolution='c', projection='merc')
         o.add_reader([basemap, norkyst])
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
         o.seed_elements(5, 63, number=5,
                         time=norkyst.start_time - 24*timedelta(hours=24))
         o.run(steps=3, time_step=timedelta(minutes=15))
@@ -478,6 +480,10 @@ class TestRun(unittest.TestCase):
         o = OpenOil3D(loglevel=30)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.add_reader([reader_norkyst])
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
@@ -495,6 +501,10 @@ class TestRun(unittest.TestCase):
         o = OpenOil3D(loglevel=20)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.add_reader([reader_norkyst])
         lon = 4.5; lat = 62.0
         # Seed elements 50 meters above seafloor:
@@ -513,6 +523,8 @@ class TestRun(unittest.TestCase):
         o = OpenOil3D(loglevel=20)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
         o.add_reader([reader_norkyst])
         lon = 5.0; lat = 64.0
         o.seed_elements(lon, lat, z=-350, time=reader_norkyst.start_time,
@@ -532,6 +544,10 @@ class TestRun(unittest.TestCase):
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader([reader_norkyst])
         o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
                         density=1000)

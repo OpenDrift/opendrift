@@ -43,7 +43,9 @@ class TestOil(unittest.TestCase):
                 continue
             o = OpenOil3D(loglevel=50, weathering_model='noaa')
             o.fallback_values['x_wind'] = 7
+            o.fallback_values['y_wind'] = 0
             o.fallback_values['x_sea_water_velocity'] = .7
+            o.fallback_values['y_sea_water_velocity'] = 0
             o.fallback_values['land_binary_mask'] = 0
             o.seed_elements(4.7, 60.0, radius=3000, number=3, z=0,
             time=datetime.now(), oiltype=oiltype)
@@ -72,6 +74,8 @@ class TestOil(unittest.TestCase):
                 o.set_config('turbulentmixing:timestep', 10)
                 o.fallback_values['land_binary_mask'] = 0
                 o.fallback_values['x_wind'] = windspeed
+                o.fallback_values['y_wind'] = 0
+                o.fallback_values['x_sea_water_velocity'] = 0
                 o.fallback_values['y_sea_water_velocity'] = .3
                 o.run(duration=timedelta(hours=3), time_step=900)
 
@@ -117,6 +121,8 @@ class TestOil(unittest.TestCase):
         o.set_config('processes:dispersion', False)
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 8
+        o.fallback_values['y_wind'] = 8
+        o.fallback_values['x_sea_water_velocity'] = 0
         o.fallback_values['y_sea_water_velocity'] = .3
         o.run(duration=timedelta(hours=2), time_step=1800)
         b = o.get_oil_budget()
@@ -135,6 +141,8 @@ class TestOil(unittest.TestCase):
                             time=datetime.now(), oiltype='SKRUGARD')
             o.fallback_values['land_binary_mask'] = 0
             o.fallback_values['x_wind'] = 8
+            o.fallback_values['y_wind'] = 0
+            o.fallback_values['x_sea_water_velocity'] = 0
             o.fallback_values['y_sea_water_velocity'] = .3
             o.run(duration=timedelta(hours=1), time_step=1800)
             d = o.elements.diameter
