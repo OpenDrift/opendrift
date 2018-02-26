@@ -72,7 +72,7 @@ lon = 174.5133; lat = -41.2348;
 #                 time=reader_roms_cnz.start_time)
 
 o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2004,1,1),
-                 z=0.0, terminal_velocity = -0.1) #, wind_drift_factor = 0, age_seconds = 0,)
+                 z=0.0, terminal_velocity = -0.001) #, wind_drift_factor = 0, age_seconds = 0,)
 
 # specific element variable such as terminal_velocity, can be specified here. 
 # terminal_velocity>0 particle moves up, terminal_velocity<0 particle moves down
@@ -85,13 +85,16 @@ o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2004,1,1),
 # PHYSICS
 ###############################
 
+o.fallback_values['ocean_horizontal_diffusivity'] = 0.1 # specify constant ocean_horizontal_diffusivity in m2.s-1
 o.fallback_values['ocean_vertical_diffusivity'] = 0.0001 # specify constant ocean_vertical_diffusivity in m2.s-1
 
+# drift
+# o.set_config('drift:scheme','euler') # or 'runge-kutta'
 o.set_config('drift:current_uncertainty', 0.0)
 o.set_config('drift:wind_uncertainty', 0.0)
-
+#processes
 o.set_config('processes:verticaladvection' , False) # no vertical current available, so no vertical advection
-o.self.get_config('processes:resuspension',False) # already False be default but just for reference 
+o.set_config('processes:resuspension',False) # already False be default but just for reference 
 o.set_config('processes:turbulentmixing', True) # 
 o.set_config('turbulentmixing:diffusivitymodel', 'environment') # i.e. specified from model or constant
 o.set_config('turbulentmixing:TSprofiles',False)
@@ -107,9 +110,9 @@ o.set_config('turbulentmixing:timestep', 1800)
 ###############################
 
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = datetime(2004,1,2), outfile='opendrift_settling_withdepth.nc',time_step_output = 1800)
-
+o.run(time_step=1800, end_time = datetime(2004,1,4), outfile='opendrift_settling.nc',time_step_output = 1800)
 # the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
+
 
 ###############################
 # PLOTS / ANIMATION

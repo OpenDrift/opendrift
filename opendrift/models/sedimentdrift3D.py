@@ -15,6 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
+import logging
 from opendrift.models.opendrift3D import OpenDrift3DSimulation
 from opendrift.models.oceandrift import OceanDrift
 # from opendrift.elements.passivetracer import PassiveTracer
@@ -25,14 +26,13 @@ from opendrift.elements.buoyanttracer import BuoyantTracer
 class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
     """Trajectory model based on the OpenDrift framework.
 
-    Sediment Model 
+    Sediment 3D motion 
     Propagation with horizontal and vertical ocean currents, horizontal and 
-    vertical diffusion (additional wind drag inherited from base class if needed).
+    vertical diffusions (additional wind drag inherited from base class if needed).
     Suitable for sediment tracers, e.g. for tracking sediment particles.
     Adapted from OpenDrift3DSimulation/OceanDrift by Simon Weppe - MetOcean Solutions.
 
     """
-    # import pdb;pdb.set_trace()
     ElementType = BuoyantTracer # simply use BuoyantTracer for now - will eventually move to SedimentTracer
     required_variables = [
         'x_sea_water_velocity',
@@ -40,6 +40,7 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         'x_wind', 'y_wind',
         'upward_sea_water_velocity',
         'ocean_vertical_diffusivity',
+        'ocean_horizontal_diffusivity',
         'sea_surface_wave_significant_height',
         'sea_surface_wave_stokes_drift_x_velocity',
         'sea_surface_wave_stokes_drift_y_velocity',
@@ -65,13 +66,15 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         'x_wind': 0,
         'y_wind': 0,
         'upward_sea_water_velocity': 0,
-        'ocean_vertical_diffusivity': 0.02,
+        'ocean_vertical_diffusivity': 0.02, # in m2/s
+        'ocean_horizontal_diffusivity' : 0.1, # in m2/s2
         'sea_floor_depth_below_sea_level': 10000
         }
     
     # Adding some specs - inspired from basereader.py
     #
     # Default plotting colors of trajectory endpoints
+
     status_colors_default = {'initial': 'green',
                              'active': 'blue',
                              'missing_data': 'gray',
@@ -104,13 +107,60 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         # self.elements.terminal_velocity = 0.
         pass
 
+    def horizontal_diffusion(self, *args, **kwargs):
+        '''
+        Horizontal diffusion based on:
+        - constant coefficients to be set using  
+            o.fallback_values['ocean_horizontal_diffusivity'] = 0.1 
+        - or interpolated from an environment object (as in vertical_mixing() )
+        
+        * this should not be used in combination with drift:current_uncertainty ~=0 
+        * as this model the same process, only with a different approach 
+
+        The random component added to the particle position to reproduce turbulent horizontal 
+        is computed using a approach similar to PyGnome, CMS :
+
+        -https://github.com/beatrixparis/connectivity-modeling-system/blob/master/cms-master/src/mod_turb.f90
+        -Garcia-Martinez and Tovar, 1999 - Computer Modeling of Oil Spill Trajectories With a High Accuracy Method
+        -Lonin, S.A., 1999. Lagrangian model for oil spill diffusion at sea. Spill Science and Technology Bulletin, 5(5): 331-336
+        -https://github.com/NOAA-ORR-ERD/PyGnome/blob/master/lib_gnome/Random_c.cpp#L50 
+
+        stored as an array in self.elements.horizontal_diffusion
+ 
+        '''
+        
+        # check if some diffusion is not already accounted for using drift:current_uncertainty
+        if self.get_config('drift:current_uncertainty') != 0:
+            logging.debug('Warning = some horizontal diffusion already accounted for using drift:current_uncertainty')
+
+        diff_fac = 6 # 6 is used in PyGnome as well, but can be = 2 in other formulations, such as in the CMS model - hard coded for now
+        K_xy = self.environment.ocean_horizontal_diffusivity # horizontal diffusion coefficient in m2/s
+        max_diff_distance = np.sqrt(diff_fac * self.time_step.seconds * K_xy) # max diffusion distance in [meters] over that time step
+        
+        # add randomness
+        diff_distance = np.random.uniform(-1,1,size = len(max_diff_distance))  *max_diff_distance
+        # convert to an equivalent velocity vector to fit with the update_position subroutine
+        diff_velocity = diff_distance /  self.time_step.seconds #  diffusion velocity in [m/s]
+        # split into (Vx,Vy) components, using random diffusion directions
+        theta_rand = np.random.uniform(0,2*np.pi,size = max_diff_distance.shape[0])    
+        x_vel = diff_velocity * np.cos(theta_rand)
+        y_vel = diff_velocity * np.sin(theta_rand)
+        #
+        # other option could be to compute (diff_distance_x,diff_distance_y) but not sure this would be correct ?
+        #
+        # update positions, adding the diffusion "velocities"       
+        self.update_positions(self, x_vel, y_vel)
+
+
     def update(self):
         """Update positions and properties of elements."""
 
         self.elements.age_seconds += self.time_step.total_seconds()
 
         # Simply move particles with ambient current
-        self.advect_ocean_current()
+        self.advect_ocean_current() # from physics_methods.py
+        # Horizontal diffusion
+        self.horizontal_diffusion()
 
         # Advect particles due to wind drag
         # (according to specified wind_drift_factor)
@@ -127,14 +177,14 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         self.vertical_advection()
 
         # Sediment resuspension checks , if switched on
+        # self.sediment_resuspension() - ToDo!
         # 
-        # ToDo!
         # 1-find particles on the bottom
         # 2-compute bed shear stresses
         # 3-compare to critical_shear_stress
         # 4-resuspend or stay on seabed depending on 3)
-        # probably need to use a cut-off age after which particles are de-activated anyway
-        # to prevent excessive build-up of "active" particle in the simulations
+        #   > probably need to use a cut-off age after which particles are de-activated anyway
+        #   to prevent excessive build-up of "active" particle in the simulations
 
         # Deactivate elements that exceed a certain age
         if self.get_config('drift:max_age_seconds') is not None:
@@ -146,3 +196,6 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
             self.deactivate_elements(self.elements.z ==
                                      -1.*self.environment.sea_floor_depth_below_sea_level,
                                      reason='settled')
+
+        # Note the interaction with shoreline in taken care of by interact_with_coastline in basemodel.py
+        # when run() is called
