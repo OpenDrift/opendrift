@@ -138,7 +138,7 @@ class OpenDriftSimulation(PhysicsMethods):
     plot_comparison_colors = ['r', 'g', 'b', 'm', 'c', 'y']
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
-                 loglevel=logging.DEBUG):
+                 loglevel=logging.DEBUG, logfile=None):
         """Initialise OpenDriftSimulation
 
         Args:
@@ -197,8 +197,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if loglevel != 'custom':
             logging.getLogger('').handlers = []
+            if logfile is not None:
+                eargs = {'filename': logfile}
+            else:
+                eargs = {}
             logging.basicConfig(level=loglevel,
-                                format='%(levelname)s: %(message)s')
+                                format='%(levelname)s: %(message)s',
+                                **eargs)
 
         # Prepare outfile
         try:
@@ -615,20 +620,6 @@ class OpenDriftSimulation(PhysicsMethods):
         if self.proj is None:
             logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
-
-    def parse_filename_date(self, filename, check_existence=True):
-
-        if not isinstance(filename, basestring):
-            return filename
-        f = datetime.now().strftime(filename)
-        if f == filename:
-            return filename
-        if os.path.exists(f):
-            print 'File exists'
-        else:
-            print 'File does not exist'
-
-        return f
 
     def add_readers_from_list(self, urls, timeout=10):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
@@ -1453,7 +1444,7 @@ class OpenDriftSimulation(PhysicsMethods):
             import ogr
             import osr
         except Exception as e:
-            print e
+            logging.warning(e)
             raise ValueError('OGR library is needed to read shapefiles.')
 
         if 'timeformat' in kwargs:
@@ -2712,8 +2703,8 @@ class OpenDriftSimulation(PhysicsMethods):
             if legend is not None:# and compare is None:
                 plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
-            print 'Cannot plot legend, due to bug in matplotlib:'
-            print traceback.format_exc()
+            logging.warning('Cannot plot legend, due to bug in matplotlib:')
+            logging.warning(traceback.format_exc())
 
         if background is not None:
             if hasattr(self, 'time'):
@@ -3079,8 +3070,6 @@ class OpenDriftSimulation(PhysicsMethods):
         """Get property from history, sorted by status."""
         prop = self.history[propname].copy()
         status = self.history['status'].copy()
-        #for stat in self.status_categories:
-        #    print '\t%s' % stat
         index_of_first, index_of_last = \
             self.index_of_activation_and_deactivation()
         j = np.arange(status.shape[1])
