@@ -1972,8 +1972,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.timer_end('main loop:updating elements')
                 #####################################################
 
-                self.remove_deactivated_elements()
-
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
 
