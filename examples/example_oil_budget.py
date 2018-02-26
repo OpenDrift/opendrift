@@ -26,6 +26,7 @@ reader_basemap = reader_basemap_landmask.Reader(
 
 #o.add_reader([reader_basemap, reader_norkyst, reader_arome])
 o.fallback_values['x_wind'] = 7
+o.fallback_values['y_wind'] = 0
 o.fallback_values['x_sea_water_velocity'] = .7
 o.fallback_values['y_sea_water_velocity'] = .3
 #o.fallback_values['land_binary_mask'] = 0

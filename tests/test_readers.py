@@ -274,14 +274,17 @@ class TestReaders(unittest.TestCase):
 
 
     def test_constant_reader(self):
-        o = OpenOil3D(loglevel=30)
+        o = OpenOil3D(loglevel=0)
         o.set_config('general:basemap_resolution', 'c')
         cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
         cc = reader_constant.Reader({'x_sea_water_velocity':0, 'y_sea_water_velocity': .2})
         cs = reader_constant.Reader({'sea_water_temperature': 278})
         r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        o.add_reader([cw, cc, cs, r])
+        o.add_reader([cw, cc, r])
+        # TODO: should check why adding constant reader with 
+        #   sea_water_temperature gives Deprecated warning
+        #o.add_reader([cw, cc, cs, r])
         o.seed_elements(lon=4, lat=60, time=r.start_time, number=5)
         o.run(steps=3)
 

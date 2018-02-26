@@ -1690,15 +1690,21 @@ class OpenDriftSimulation(PhysicsMethods):
         if len(missing_variables) > 0:
             has_fallback = [var for var in missing_variables
                             if var in self.fallback_values]
-            if has_fallback == missing_variables:
+            has_no_fallback = [var for var in missing_variables
+                               if var not in self.fallback_values]
+            #if has_fallback == missing_variables:
+            if len(has_fallback) > 0:# == missing_variables:
                 logging.info('Fallback values will be used for the following '
                              'variables which have no readers: ')
                 for var in has_fallback:
                     logging.info('\t%s: %f' % (var, self.fallback_values[var]))
-            else:
+            #else:
+            if len(has_no_fallback) > 0:# == missing_variables:
+                logging.warning('No readers added for the following variables: '
+                                + str(has_no_fallback))
                 raise ValueError('Readers must be added for the '
                                  'following required variables: ' +
-                                 str(missing_variables))
+                                 str(has_no_fallback))
 
         # Some cleanup needed if starting from imported state
         if self.steps_calculation >= 1:
@@ -1964,6 +1970,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.timer_end('main loop:updating elements')
                 #####################################################
 
+                self.remove_deactivated_elements()
 
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
