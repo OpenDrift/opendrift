@@ -1820,7 +1820,9 @@ class OpenDriftSimulation(PhysicsMethods):
             self.dynamical_landmask = False
 
         # Move point seed on land to ocean
-        if self.get_config('seed:ocean_only') is True and ('land_binary_mask' not in self.fallback_values):
+        if self.get_config('seed:ocean_only') is True and \
+            ('land_binary_mask' not in self.fallback_values) and \
+            ('land_binary_mask' in self.required_variables):
             self.timer_start('preparing main loop:moving elements to ocean')
             self.elements_scheduled.lon, self.elements_scheduled.lat = \
                 self.closest_ocean_points(self.elements_scheduled.lon,
