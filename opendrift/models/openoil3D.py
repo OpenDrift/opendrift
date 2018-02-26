@@ -261,7 +261,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         #             np.power(self.elements.viscosity, 0.34) / 1000000
 
         # r = np.random.uniform(0, rmax, self.num_elements_active())
-        return self.elements.diameter/2  # Hardcoded diameter
+        return self.elements.diameter/2.0  # Hardcoded diameter
 
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
@@ -278,7 +278,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         """
         g = 9.81  # ms-2
 
-        r = self.particle_radius()*2
+        r = self.particle_radius()*2.0
 
         # prepare interpolation of temp, salt
 
@@ -377,16 +377,16 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                 self.get_config('turbulentmixing:timestep')
         # Calculate a random droplet diameter for each particle,
         # to be used if this particle gets entrained
-        self.droplet_diamenter_if_entrained = \
+        self.droplet_diameter_if_entrained = \
             self.get_wave_breaking_droplet_diameter()
         # Uncomment lines below to plot droplet size distribution at each step
         #import matplotlib.pyplot as plt
-        #plt.hist(self.droplet_diamenter_if_entrained, 200)
+        #plt.hist(self.droplet_diameter_if_entrained, 200)
         #plt.gca().set_xscale("log")
         #plt.gca().set_yscale("log")
         #plt.show()
 
-    def surface_wave_mixing(self, time_step_seconds, alpha=1.5):
+    def surface_wave_mixing(self, time_step_seconds):
         """Mix surface oil into water column."""
         # Entrain oil into uppermost layer (whitecapping from waves)
         # TODO: optimise this by only calculate for surface elements
@@ -394,13 +394,17 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         random_number = np.random.uniform(0, 1, len(self.elements.z))
         entrained = np.logical_and(surface,
                         random_number<self.oil_entrainment_probability)
-        # TODO: determine water depth for wave entrainment
-        self.elements.z[entrained] = \
-            -self.get_config('turbulentmixing:verticalresolution')/2.
-        if self.keep_droplet_diameter is False:
-            # Give surface elements a random diameter
-            self.elements.diameter[self.elements.z==0] = \
-                self.droplet_diamenter_if_entrained[self.elements.z==0]
+        # Intrusion depth for wave entrainment from Delvigne and Sweeney (1988), Li et al. (2017):
+        if entrained.sum() > 0:
+            logging.debug('Entraining %i of %i surface elements' %
+						  (entrained.sum(), surface.sum()))
+            zb = 1.5 * self.significant_wave_height() # between 0 and zb
+            intrusion_depth = np.random.uniform(0, np.mean(zb), entrained.sum())
+            self.elements.z[entrained] = - intrusion_depth
+            if self.keep_droplet_diameter is False:
+                # Give entrained elements a random diameter
+                self.elements.diameter[entrained] = \
+                    self.droplet_diameter_if_entrained[entrained]
 
     def surface_stick(self):
         """set surfaced particles to exactly zero depth to let them form a slick """
@@ -408,7 +412,6 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         surface = np.where(self.elements.z >= 0)
         if len(surface[0]) > 0:
             self.elements.z[surface] = 0.
-
 
     def get_wave_breaking_droplet_diameter(self):
         dm = self.get_config('wave_entrainment:droplet_size_distribution')
