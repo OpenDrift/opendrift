@@ -2546,6 +2546,7 @@ class OpenDriftSimulation(PhysicsMethods):
              show=True, vmin=None, vmax=None, compare=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
+             surface_color=None, submerged_color=None,
              title='auto', legend=True, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
@@ -2648,10 +2649,18 @@ class OpenDriftSimulation(PhysicsMethods):
                     y[range(x.shape[0]), index_of_first],
                     zorder=10, edgecolor='k', linewidths=.2,
                     color=color_initial, label=label_initial)
+        if surface_color is not None:
+            color_active = surface_color
+            label_active = 'surface'
         map.scatter(x[range(x.shape[0]), index_of_last],
                     y[range(x.shape[0]), index_of_last],
                     zorder=3, edgecolor='k', linewidths=.2,
                     color=color_active, label=label_active)
+        #if submerged_color is not None:
+        #    map.scatter(x[range(x.shape[0]), index_of_last],
+        #                y[range(x.shape[0]), index_of_last],
+        #                zorder=3, edgecolor='k', linewidths=.2,
+        #                color=submerged_color, label='submerged')
 
         x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
                                            self.elements_deactivated.lat)
