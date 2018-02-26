@@ -25,10 +25,11 @@ from opendrift.elements.buoyanttracer import BuoyantTracer
 class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
     """Trajectory model based on the OpenDrift framework.
 
-    Simply propagation with horizontal and vertical ocean currents
-    and possibly additional wind drag.
-    Suitable for passive tracers, e.g. for tracking water particles.
-    Developed at MET Norway.
+    Sediment Model 
+    Propagation with horizontal and vertical ocean currents, horizontal and 
+    vertical diffusion (additional wind drag inherited from base class if needed).
+    Suitable for sediment tracers, e.g. for tracking sediment particles.
+    Adapted from OpenDrift3DSimulation/OceanDrift by Simon Weppe - MetOcean Solutions.
 
     """
     # import pdb;pdb.set_trace()
@@ -67,14 +68,31 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         'ocean_vertical_diffusivity': 0.02,
         'sea_floor_depth_below_sea_level': 10000
         }
+    
+    # Adding some specs - inspired from basereader.py
+    #
+    # Default plotting colors of trajectory endpoints
+    status_colors_default = {'initial': 'green',
+                             'active': 'blue',
+                             'missing_data': 'gray',
+                             'settled': 'red'}
+    # adding processes switch to contol resuspension
+    configspec_sedimentdrift3d = '''
+        [processes]
+            resuspension = boolean(default=False)
+    '''
 
     def __init__(self, *args, **kwargs):
+        # update configstring
+        self._add_configstring(self.configspec_sedimentdrift3d)
 
         # Calling general constructor of parent class
         super(SedimentDrift3D, self).__init__(*args, **kwargs)
 
         # Turbulent mixing switched off by default
         self.set_config('processes:turbulentmixing', False)
+        # resuspension switched off by default
+        self.set_config('processes:resuspension', False)
 
     def update_terminal_velocity(self, *args, **kwargs):
         '''
@@ -109,10 +127,22 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         self.vertical_advection()
 
         # Sediment resuspension checks , if switched on
+        # 
         # ToDo!
+        # 1-find particles on the bottom
+        # 2-compute bed shear stresses
+        # 3-compare to critical_shear_stress
+        # 4-resuspend or stay on seabed depending on 3)
+        # probably need to use a cut-off age after which particles are de-activated anyway
+        # to prevent excessive build-up of "active" particle in the simulations
 
         # Deactivate elements that exceed a certain age
         if self.get_config('drift:max_age_seconds') is not None:
             self.deactivate_elements(self.elements.age_seconds >=
                                      self.get_config('drift:max_age_seconds'),
                                      reason='retired')
+        # When no resuspension is required, deactivate that reached the seabed
+        if self.get_config('processes:resuspension') is False:
+            self.deactivate_elements(self.elements.z ==
+                                     -1.*self.environment.sea_floor_depth_below_sea_level,
+                                     reason='settled')

@@ -18,6 +18,7 @@ import logging
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
+from bisect import bisect_left
 
 from basereader import BaseReader
 
