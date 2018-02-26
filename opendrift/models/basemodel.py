@@ -1982,6 +1982,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.info('========================')
                 if stop_on_error is True:
                     sys.exit('Stopping on error')
+                if self.steps_calculation <= 1:
+                    raise ValueError('Simulation stopped within first timestep')
                 break
 
         self.timer_end('main loop')
