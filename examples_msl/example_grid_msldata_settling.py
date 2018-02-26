@@ -42,7 +42,7 @@ o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader 
 
 
  # no vertical diffusion infos available from readers : set fall_back constant values 
-o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
+# o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
 
 # all required variables that can be set using o.fall_back are generally listed 
 # below the model class definition  e.g. see /models/sedimentdrift3D.py, line 36
@@ -85,8 +85,8 @@ o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2004,1,1),
 # PHYSICS
 ###############################
 
-o.fallback_values['ocean_horizontal_diffusivity'] = 0.1 # specify constant ocean_horizontal_diffusivity in m2.s-1
-o.fallback_values['ocean_vertical_diffusivity'] = 0.0001 # specify constant ocean_vertical_diffusivity in m2.s-1
+o.fallback_values['ocean_horizontal_diffusivity'] = 0.5 # specify constant ocean_horizontal_diffusivity in m2.s-1
+o.fallback_values['ocean_vertical_diffusivity'] = 0.0000 # specify constant ocean_vertical_diffusivity in m2.s-1
 
 # drift
 # o.set_config('drift:scheme','euler') # or 'runge-kutta'
@@ -110,7 +110,7 @@ o.set_config('turbulentmixing:timestep', 1800)
 ###############################
 
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = datetime(2004,1,4), outfile='opendrift_settling.nc',time_step_output = 1800)
+o.run(time_step=1800, end_time = datetime(2004,1,2), outfile='opendrift_settling_nodiff.nc',time_step_output = 1800)
 # the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
 
 
