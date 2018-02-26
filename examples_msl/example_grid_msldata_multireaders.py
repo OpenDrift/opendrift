@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-#  This script is based on https://github.com/OpenDrift/opendrift/tree/master/examples/example_grid.py
-#  The aim is to test the use of reader_netCDF_MetOcean which allows using MetOcean data in OpenDrift
+#  This script is based on https://github.com/OpenDrift/opendrift/tree/master/examples_msl/example_grid_msldata_settling.py
+#  The aim is to show how to:
+#  - specify several readers, with (u,v) pairs, adding their velocities for the simulations
+#  - set of primary/secondary readers to be used depending on particle positions
 #   
 #  This is also used as a reference case to compare Opendrift trajectories with ERcore trajectories
 # 
@@ -28,12 +30,15 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 ###############################
 # READERS
 ###############################
-reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['dep']) # i.e. only use the 'dep' variable in that file
-reader_roms_cnz_depth.always_valid = True # this is useful if the time vector associated with the bathy does not fit with the simulation time 
+# depth
+# reader_roms_bob_depth = reader_netCDF_MetOcean.Reader('C:/metocean/bob_cons.nc',variables_to_use = ['dep']) # i.e. only use the 'dep' variable in that file
+# reader_roms_bob_depth.always_valid = True # this is useful if the time vector associated with the bathy does not fit with the simulation time 
 #use always_valid for variables that can be used at all times, such as a bathy 
 
-reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz_surf_res200401.nc') # only uso,vso in this one - seems to be recognized ok 
-
+# residual currents
+reader_roms_bob_res3D = reader_netCDF_MetOcean.Reader('C:/metocean/roms_bob_3D_res201312.nc') # 
+# tidal currents
+reader_roms_bob_tide = reader_netCDF_MetOcean.Reader('C:/metocean/bob_tide_20131201.nc') # 
 
 # Making customised landmask (Basemap)
 
@@ -42,12 +47,7 @@ reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz_surf_res200401.
 #                     urcrnrlon=5.5, urcrnrlat=61.2,
 #                     resolution='h', projection='merc')
 
-# o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader with depth info when using settling
-o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader with depth info when using settling
-
-
- # no vertical diffusion infos available from readers : set fall_back constant values 
-# o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
+o.add_reader([reader_roms_bob_res3D,reader_roms_bob_tide]) #
 
 # all required variables that can be set using o.fall_back are generally listed 
 # below the model class definition  e.g. see /models/sedimentdrift3D.py, line 36
@@ -62,7 +62,9 @@ o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader 
 # lats = np.linspace(60, 61, 100)
 # 
 #  Point release
-lon = 174.5133; lat = -41.2348; 
+lon = 85.9888
+lat = 11.4011
+
 #  Rectangle release
 # lons = np.linspace(170.0,170.5, 100) 
 # lats = np.linspace(-39.5,-39.0, 100)
@@ -76,7 +78,7 @@ lon = 174.5133; lat = -41.2348;
 # o.seed_elements(lons, lats, radius=0, number=10000,
 #                 time=reader_roms_cnz.start_time)
 
-o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2004,1,1),
+o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2013,12,1),
                  z=0.0, terminal_velocity = -0.001) #, wind_drift_factor = 0, age_seconds = 0,)
 
 # specific element variable such as terminal_velocity, can be specified here. 
@@ -120,7 +122,7 @@ o.set_config('turbulentmixing:timestep', 1800)
 ###############################
 
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = datetime(2004,1,2), outfile='opendrift_settling.nc',time_step_output = 1800)
+o.run(time_step=1800, end_time = datetime(2013,12,2), outfile='opendrift_adding_currents.nc',time_step_output = 1800)
 # the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
 
 

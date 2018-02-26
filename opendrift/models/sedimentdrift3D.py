@@ -97,6 +97,364 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         # resuspension switched off by default
         self.set_config('processes:resuspension', False)
 
+    def get_environment(self, variables, time, lon, lat, z, profiles):
+        '''Retrieve environmental variables at requested positions.
+        This version was initially copied from basemodel.py, and modified to 
+        allow possible addition of (x_sea_water_velocity,y_sea_water_velocity) 
+        pairs, from several readers. 
+
+        The intial version will just use a "break" after the variable group 
+        (x_sea_water_velocity,y_sea_water_velocity) has been found in a reader
+        (i.e. not adding current components)
+        
+        This is useful when tidal and residual currents come from different 
+        datasets/files.
+
+
+        Updates:
+            Buffer (raw data blocks) for each reader stored for performance:
+                [readers].var_block_before (last before requested time)
+                [readers].var_block_after (first after requested time)
+                    - lists of one ReaderBlock per variable group:
+                        - time, x, y, [vars]
+        Returns:
+            environment: recarray with variables as named attributes,
+                         interpolated to requested positions/time.
+
+        '''
+        self.timer_start('main loop:readers')
+        # Initialise ndarray to hold environment variables
+        dtype = [(var, np.float32) for var in variables]
+        env = np.ma.array(np.zeros(len(lon)), dtype=dtype)
+
+        # For each variable/reader group:
+        variable_groups, reader_groups, missing_variables = \
+            self.get_reader_groups(variables)
+        for variable in variables:  # Fill with fallback value if no reader
+            if (self.fallback_values is not None
+                    and variable in self.fallback_values):
+                env[variable] = np.ma.ones(env[variable].shape)\
+                    * self.fallback_values[variable]
+
+        for i, variable_group in enumerate(variable_groups):
+            logging.debug('----------------------------------------')
+            logging.debug('Variable group %s' % (str(variable_group)))
+            logging.debug('----------------------------------------')
+            reader_group = reader_groups[i]
+            missing_indices = np.array(range(len(lon)))
+
+            # For each reader:
+
+            for reader_name in reader_group:
+
+                logging.debug('Calling reader ' + reader_name)
+                logging.debug('----------------------------------------')
+                self.timer_start('main loop:readers:' +
+                                 reader_name.replace(':', '<colon>'))
+                reader = self.readers[reader_name]
+                if not reader.covers_time(time):
+                    logging.debug('\tOutside time coverage of reader.')
+                    continue
+                # Fetch given variables at given positions from current reader
+                try:
+                    logging.debug('Data needed for %i elements' %
+                                  len(missing_indices))
+                    # Check if vertical profiles are requested from reader
+                    if profiles is not None:
+                        profiles_from_reader = list(
+                            set(variable_group) & set(profiles))
+                        if profiles_from_reader == []:
+                            profiles_from_reader = None
+                    else:
+                        profiles_from_reader = None
+                    #original code-------------------------
+                    # env_tmp, env_profiles_tmp = \
+                    #     reader.get_variables_interpolated(
+                    #         variable_group, profiles_from_reader,
+                    #         self.required_profiles_z_range, time,
+                    #         lon[missing_indices], lat[missing_indices],
+                    #         z[missing_indices], self.use_block, self.proj)
+                    #------------------------------------
+                    # 
+                    # allow for addition of current (u,v) pairs
+                    # if env_tmp already exists, it means that a pair of (x_sea_water_velocity,y_sea_water_velocity)
+                    # has already been interpolated from a reader, in that case, we add the new currents pair that the existing
+                    # env_tmp
+                    if 'x_sea_water_velocity' in variable_group and 'env_tmp' in locals():
+                        import pdb;pdb.set_trace()
+                        logging.debug('Several readers available for %s : ' % (variable_group) )
+                        logging.debug('%s' % (reader_group) )
+                        logging.debug('Adding currents from reader : ' +  reader_name )
+                        logging.debug('to existing [x_sea_water_velocity,y_sea_water_velocity]')
+                        
+                        # check what is going on with the missing_indices
+                        getting an error message
+
+                        # get (u,v) currents from that reader
+                        env_tmp1, env_profiles_tmp1 = \
+                            reader.get_variables_interpolated(
+                                variable_group, profiles_from_reader,
+                                self.required_profiles_z_range, time,
+                                lon[missing_indices], lat[missing_indices],
+                                z[missing_indices], self.use_block, self.proj)
+                        # add to previous currents
+                        env_tmp['x_sea_water_velocity'] += env_tmp1['x_sea_water_velocity']
+                        env_tmp['y_sea_water_velocity'] += env_tmp1['y_sea_water_velocity']
+                        
+                        if env_profiles_tmp is not None : 
+                            env_profiles_tmp['x_sea_water_velocity'] += env_profiles_tmp1['x_sea_water_velocity']
+                            env_profiles_tmp['y_sea_water_velocity'] += env_profiles_tmp1['y_sea_water_velocity']
+
+                    else : # standard case
+                        #original code
+                        env_tmp, env_profiles_tmp = \
+                            reader.get_variables_interpolated(
+                                variable_group, profiles_from_reader,
+                                self.required_profiles_z_range, time,
+                                lon[missing_indices], lat[missing_indices],
+                                z[missing_indices], self.use_block, self.proj)
+
+
+                except Exception as e:
+                    logging.info('========================')
+                    logging.info('Exception:')
+                    logging.info(e)
+                    logging.debug(traceback.format_exc())
+                    logging.info('========================')
+                    self.timer_end('main loop:readers:' +
+                                   reader_name.replace(':', '<colon>'))
+                    continue
+
+                # Copy retrieved variables to env array, and mask nan-values
+                for var in variable_group:
+                    env[var][missing_indices] = np.ma.masked_invalid(
+                        env_tmp[var][0:len(missing_indices)]).astype('float32')
+                    if profiles_from_reader is not None and var in profiles_from_reader:
+                        if 'env_profiles' not in locals():
+                            env_profiles = env_profiles_tmp
+                        # TODO: fix to be checked
+                        if var in env_profiles and var in env_profiles_tmp:
+                            # If one profile has fewer vertical layers than
+                            # the other, we use only the overlapping part
+                            if len(env_profiles['z']) != len(
+                                env_profiles_tmp['z']):
+                                logging.debug('Warning: different number of '
+                                    ' vertical layers: %s and %s' % (
+                                        len(env_profiles['z']),
+                                        len( env_profiles_tmp['z'])))
+                            z_ind = np.arange(np.minimum(
+                                len(env_profiles['z'])-1,
+                                len(env_profiles_tmp['z'])-1))
+                            # len(missing_indices) since 2 points might have been added and not removed
+                            env_profiles[var][np.ix_(z_ind, missing_indices)] = \
+                                np.ma.masked_invalid(env_profiles_tmp[var][z_ind,0:len(missing_indices)]).astype('float32')
+                
+                # Detect elements with missing data, for present reader group
+                if hasattr(env_tmp[variable_group[0]], 'mask'):
+                    try:
+                        del combined_mask
+                    except:
+                        pass
+                    for var in variable_group:
+                        tmp_var = np.ma.masked_invalid(env_tmp[var])
+                        # Changed 13 Oct 2016, but uncertain of effect
+                        # TODO: to be checked
+                        #tmp_var = env_tmp[var]
+                        if 'combined_mask' not in locals():
+                            combined_mask = np.ma.getmask(tmp_var)
+                        else:
+                            combined_mask = \
+                                np.ma.mask_or(combined_mask,
+                                              np.ma.getmask(tmp_var),
+                                              shrink=False)
+                    try:
+                        if len(missing_indices) != len(combined_mask):
+                            # TODO: mask mismatch due to 2 added points
+                            raise ValueError('Mismatch of masks')
+                        missing_indices = missing_indices[combined_mask]
+                    except:  # Not sure what is happening here
+                        logging.info('Problems setting mask on missing_indices!')
+                else:
+                    missing_indices = []  # temporary workaround
+                if (type(missing_indices) == np.int64) or (
+                        type(missing_indices) == np.int32):
+                    missing_indices = []
+                self.timer_end('main loop:readers:' +
+                               reader_name.replace(':', '<colon>'))
+                if len(missing_indices) == 0:
+                    logging.debug('Obtained data for all elements.')
+                    # if the current variables_group is ['x_sea_water_velocity','y_sea_water_velocity'], and 
+                    # that are more than one reader available for that group , we try to add the current (x,y) component pairs
+                    # rather than exiting the loop now
+                    if 'x_sea_water_velocity' in variable_group and len(reader_group)>1 :
+                        # import pdb;pdb.set_trace()
+                        pass
+                    else : 
+                    # variable_group other than ['x_sea_water_velocity','y_sea_water_velocity'] should not need to be combined
+                    # exit the loop now
+                        break
+                else:
+                    logging.debug('Data missing for %i elements.' %
+                                  (len(missing_indices)))
+
+        logging.debug('---------------------------------------')
+        logging.debug('Finished processing all variable groups')
+
+        self.timer_start('main loop:readers:postprocessing')
+        for var in self.fallback_values:
+            if (var not in variables) and (profiles is None or var not in profiles):
+                continue
+            mask = env[var].mask
+            if sum(mask==True) > 0:
+                logging.debug('    Using fallback value %s for %s for %s elements' %
+                              (self.fallback_values[var], var, sum(mask==True)))
+                env[var][mask] = self.fallback_values[var]
+            # Profiles
+            if profiles is not None and var in profiles:
+                if 'env_profiles' not in locals():
+                    logging.debug('Creating empty dictionary for profiles not '
+                                  'profided by any reader: ' + str(self.required_profiles))
+                    env_profiles = {}
+                    env_profiles['z'] = \
+                        np.array(self.required_profiles_z_range)[::-1]
+                if var not in env_profiles:
+                    logging.debug('      Using fallback value %s for %s for all profiles' %
+                                  (self.fallback_values[var], var))
+                    env_profiles[var] = self.fallback_values[var]*\
+                        np.ma.ones((len(env_profiles['z']), self.num_elements_active()))
+                else:
+                    mask = env_profiles[var].mask
+                    num_masked_values_per_element = sum(mask==True)
+                    num_missing_profiles = sum(num_masked_values_per_element == len(env_profiles['z']))
+                    env_profiles[var][mask] = self.fallback_values[var]
+                    logging.debug('      Using fallback value %s for %s for %s profiles' %
+                                  (self.fallback_values[var], var, num_missing_profiles,))
+                    num_missing_individual = sum(num_masked_values_per_element > 0) - num_missing_profiles
+                    if num_missing_individual > 0:
+                        logging.debug('        ...plus %s individual points in other profiles' %
+                                      num_missing_individual)
+
+        #######################################################
+        # Some extra checks of units and realistic magnitude
+        #######################################################
+        if 'sea_water_temperature' in variables:
+            t_kelvin = np.where(env['sea_water_temperature']>100)[0]
+            if len(t_kelvin) > 0:
+                logging.warning('Converting temperatures from Kelvin to Celcius')
+                env['sea_water_temperature'][t_kelvin] = env['sea_water_temperature'][t_kelvin] - 273.15
+                if 'env_profiles' in locals() and 'sea_water_temperature' in env_profiles.keys():
+                  env_profiles['sea_water_temperature'][:,t_kelvin] = \
+                    env_profiles['sea_water_temperature'][:,t_kelvin] - 273.15
+
+        #######################################################
+        # Parameterisation of unavailable variables
+        #######################################################
+        if self.get_config('drift:use_tabularised_stokes_drift') is True:
+            if 'x_wind' not in variables:
+                logging.debug('No wind available to calculate Stokes drift')
+            else:
+                if 'sea_surface_wave_stokes_drift_x_velocity' not in variables or (
+                    env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and 
+                    env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
+                        logging.info('Calculating parameterised stokes drift')
+                        for i in range(len(env['x_wind'])):
+                            env['sea_surface_wave_stokes_drift_x_velocity'][i], \
+                            env['sea_surface_wave_stokes_drift_y_velocity'][i] = \
+                                self.wave_stokes_drift_parameterised((env['x_wind'][i], env['y_wind'][i]),
+                                self.get_config('drift:tabularised_stokes_drift_fetch'))
+
+                if (env['sea_surface_wave_significant_height'].max() == 0):
+                        logging.info('Calculating parameterised significant wave height')
+                        for i in range(len(env['x_wind'])):
+                            env['sea_surface_wave_significant_height'][i] = \
+                                self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]),
+                                self.get_config('drift:tabularised_stokes_drift_fetch'))
+       
+        #############################
+        # Add uncertainty/diffusion
+        #############################
+        # Current
+        if 'x_sea_water_velocity' in variables and \
+                'y_sea_water_velocity' in variables:
+            std = self.get_config('drift:current_uncertainty')
+            if std > 0:
+                logging.debug('Adding uncertainty for current: %s m/s' % std)
+                env['x_sea_water_velocity'] += np.random.normal(
+                    0, std, self.num_elements_active())
+                env['y_sea_water_velocity'] += np.random.normal(
+                    0, std, self.num_elements_active())
+            std = self.get_config('drift:current_uncertainty_uniform')
+            if std > 0:
+                logging.debug('Adding uncertainty for current: %s m/s' % std)
+                env['x_sea_water_velocity'] += np.random.uniform(
+                    -std, std, self.num_elements_active())
+                env['y_sea_water_velocity'] += np.random.uniform(
+                    -std, std, self.num_elements_active())
+        # Wind
+        if 'x_wind' in variables and 'y_wind' in variables:
+            std = self.get_config('drift:wind_uncertainty')
+            if std > 0:
+                logging.debug('Adding uncertainty for wind: %s m/s' % std)
+                env['x_wind'] += np.random.normal(
+                    0, std, self.num_elements_active())
+                env['y_wind'] += np.random.normal(
+                    0, std, self.num_elements_active())
+
+        #####################
+        # Diagnostic output
+        #####################
+        if len(env) > 0:
+            logging.debug('------------ SUMMARY -------------')
+            for var in variables:
+                logging.debug('    %s: %g (min) %g (max)' %
+                              (var, env[var].min(), env[var].max()))
+            logging.debug('---------------------------------')
+            logging.debug('\t\t%s active elements' % self.num_elements_active())
+            if self.num_elements_active() > 0:
+                lonmin = self.elements.lon.min()
+                lonmax = self.elements.lon.max()
+                latmin = self.elements.lat.min()
+                latmax = self.elements.lat.max()
+                zmin = self.elements.z.min()
+                zmax = self.elements.z.max()
+                if latmin == latmax:
+                    logging.debug('\t\tlatitude =  %s' % (latmin))
+                else:
+                    logging.debug('\t\t%s <- latitude  -> %s' % (latmin, latmax))
+                if lonmin == lonmax:
+                    logging.debug('\t\tlongitude = %s' % (lonmin))
+                else:
+                    logging.debug('\t\t%s <- longitude -> %s' % (lonmin, lonmax))
+                if zmin == zmax:
+                    logging.debug('\t\tz = %s' % (zmin))
+                else:
+                    logging.debug('\t\t%s   <- z ->   %s' % (zmin, zmax))
+                logging.debug('---------------------------------')
+
+        # Prepare array indiciating which elements contain any invalid values
+        missing = np.ma.masked_invalid(env[variables[0]]).mask
+        for var in variables[1:]:
+            missing = np.ma.mask_or(missing,
+                                    np.ma.masked_invalid(env[var]).mask,
+                                    shrink=False)
+
+        # Convert dictionary to recarray and return
+        if 'env_profiles' not in locals():
+            env_profiles = None
+
+        # Convert masked arrays to regular arrays for increased performance
+        env = np.array(env)
+        if env_profiles is not None:
+            for var in env_profiles:
+                env_profiles[var] = np.array(env_profiles[var])
+
+        self.timer_end('main loop:readers:postprocessing')
+        self.timer_end('main loop:readers')
+
+        return env.view(np.recarray), env_profiles, missing
+
+
+
     def update_terminal_velocity(self, *args, **kwargs):
         '''
         Terminal velocity due to buoyancy or sedimentation rate,

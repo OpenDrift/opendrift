@@ -760,8 +760,11 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.debug('----------------------------------------')
             reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
+
             # For each reader:
+
             for reader_name in reader_group:
+
                 logging.debug('Calling reader ' + reader_name)
                 logging.debug('----------------------------------------')
                 self.timer_start('main loop:readers:' +
@@ -822,7 +825,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             # len(missing_indices) since 2 points might have been added and not removed
                             env_profiles[var][np.ix_(z_ind, missing_indices)] = \
                                 np.ma.masked_invalid(env_profiles_tmp[var][z_ind,0:len(missing_indices)]).astype('float32')
-
+                
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
                     try:

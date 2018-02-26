@@ -115,11 +115,16 @@ class Reader(BaseReader):
                 self.numy = var.shape[0] 
             if standard_name == 'depth' or axis == 'Z' or var_name == 'lev': # probably refers to vertical levels ?
                 if var[:].ndim == 1:
-                    if 'positive' not in attributes or \
-                            var.__dict__['positive'] == 'up':
-                        self.z = var[:]
-                    else:
-                        self.z = -var[:]
+                    # levels in MetOcean file convention are 0 at the surface, positive down i.e lev = 5 means 5 m below surface
+                    # need to be converted to negative down to fit with opendrift convention
+                    self.z = -var[:] 
+                    # original code-----------------------  
+                    # if 'positive' not in attributes or \
+                    #         var.__dict__['positive'] == 'up':
+                    #     self.z = var[:]
+                    # else:
+                    #     self.z = -var[:] 
+                    # --------------------------------- 
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
                 time = var[:]
@@ -229,8 +234,8 @@ class Reader(BaseReader):
             
             if var_name in [self.xname, self.yname,'lev'] :
                  continue  # Skip coordinate variables 
-            # if var_name in [self.xname, self.yname] 'depth']: //  not sure why 'dep' is skipped in original reader_netCDF_CF_generic.py - or does this refer to levels, rather than depth?
-            # this is needed for sea_floor_depth_below_sea_level
+            # if var_name in [self.xname, self.yname] 'depth']: //  not sure why 'dep' is skipped in original reader_netCDF_CF_generic.py, probably refers to levels, rather than depth?
+            # 'depth' or 'dep' should not be skipepd to allow mapping 'sea_floor_depth_below_sea_level'
                 
             if variables_to_use is not None :
             #filter which variables to use    
@@ -252,10 +257,10 @@ class Reader(BaseReader):
                     standard_name = self.variable_aliases[var_name]
                 self.variable_mapping[standard_name] = str(var_name) 
         
-        # For now we can't differenciate the different kinds of currents (i.e. tide, resiudal, total)...as it seems opendrift only expect (u,v) currents
-        # all different currents are therefore mapped to x_sea_water_velocity, y_water_velocity 
-        # which means that some overwriting can occur if there are more than 2 (u,v) pairs in the file - an option may be to allow specifying which variables to use 
-        # e.g. see here : https://github.com/OpenDrift/opendrift/blob/master/opendrift/readers/basereader.py line 89
+        # For now we can't differenciate the different kinds of currents (i.e. tide, resiudal, total)...as it seems opendrift only expect general (u,v) currents
+        # All different currents are therefore mapped to x_sea_water_velocity, y_water_velocity for now
+        # which means that some overwriting can occur if there are more than 2 (u,v) pairs in the file - an option may be to allow specifying which variables to use in a file
+        # example : reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['dep']) 
         
         self.variables = self.variable_mapping.keys() # check that it does the right thing here
 
