@@ -264,15 +264,17 @@ class PhysicsMethods(object):
         if hasattr(self.environment,
                    'sea_surface_wave_significant_height') and \
                 self.environment.sea_surface_wave_significant_height.max() == 0:
-            logging.debug('Calculating Hs from wind')
             Hs = self.significant_wave_height()
+            logging.debug('Calculating Hs from wind, min: %f, mean: %f, max: %f' %
+                          (Hs.min(), Hs.mean(), Hs.max()))
 
         # Missing wave periode
         if hasattr(self.environment,
                    'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment') and \
                 self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() == 0:
-            logging.debug('Calculating wave period from wind')
             wave_period = self.wave_period()
+            logging.debug('Calculating wave period from wind, min: %f, mean: %f, max: %f' %
+                          (wave_period.min(), wave_period.mean(), wave_period.max()))
 
 
     def wind_speed(self):
@@ -327,6 +329,9 @@ class PhysicsMethods(object):
             logging.warning('Zero wave period found - '
                             'replacing with mean')
             T[T==0] = np.mean(T[T>0])
+
+        logging.debug('   min: %f, mean: %f, max: %f' % (T.min(), T.mean(), T.max()))
+
         return T
 
     def wave_energy(self):
