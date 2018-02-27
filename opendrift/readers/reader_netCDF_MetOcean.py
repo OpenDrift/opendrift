@@ -21,6 +21,7 @@ from netCDF4 import Dataset, MFDataset, num2date
 from bisect import bisect_left
 
 from basereader import BaseReader
+from interpolation import ReaderBlock
 
 # This is a reader class for the netcdf file used internally at MetOcean
 # It is adapted from reader_netCDF_CF_Generic.py (found in same folder)
@@ -29,6 +30,23 @@ from basereader import BaseReader
 # to avoid (re)mapping differents u or v components to the same 'x_sea_water_velocity' or 'y_sea_water_velocity' 
 # in OpenDrift, or when we want to read only a single variable from a file (e.g. depth).
 # S.Weppe  
+
+# needed to be copid from basereader.py
+# Some valid (but extreme) ranges for checking that values are reasonable
+standard_names = {
+    'x_wind': {'valid_min': -50, 'valid_max': 50},
+    'y_wind': {'valid_min': -50, 'valid_max': 50},
+    'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
+    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10}}
+
+# Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
+vector_pairs_xy = [
+    ['x_wind', 'y_wind'],
+    ['x_sea_water_velocity', 'y_sea_water_velocity'],
+    ['sea_surface_wave_stokes_drift_x_velocity',
+     'sea_surface_wave_stokes_drift_y_velocity']
+    ]
+
 
 class Reader(BaseReader):
 
@@ -708,14 +726,60 @@ class Reader(BaseReader):
                     env_profiles[var] = np.ma.masked_invalid(tmp)
 
         self.timer_end('masking')
+
+        ##################################
+        # Apply log profile, if applicable
+        ##################################
+        self.timer_start('log_profile')
+        if self.use_log_profile and 'x_sea_water_velocity' in variables:
+            if 'sea_floor_depth_below_sea_level' in variables :
+                log_fac = self.logarithmic_current_profile(z, env['sea_floor_depth_below_sea_level'])
+                logging.debug('Applying logarithmic profile to depth-averaged currents')
+                env['x_sea_water_velocity'] = env['x_sea_water_velocity'] * log_fac
+                env['y_sea_water_velocity'] = env['y_sea_water_velocity'] * log_fac
+
+            else :
+                logging.debug('required variable ''sea_floor_depth_below_sea_level'' not available')
+                logging.debug('can not apply logarithmic profile - passing')
+                pass 
+                
+        self.timer_end('log_profile')
+
+
         self.timer_end('total')
 
-        import pdb;pdb.set_trace()
-        some bug relating to traceback ?
-
+        ###########################
+        # Return interpolated data 
+        ###########################
         return env, env_profiles
 
 
 
-    def apply_log_profile(particle_depth,total_depth):
-    # return some ratios to apply to depth-averaged currents
+    def logarithmic_current_profile(self, particle_z, total_depth):
+        ''' 
+        Extrapolation of depth-averaged currents to any vertical 
+        level of the water column assuming a logarithmic profile
+
+
+        Inputs :
+            particle_z : vertical position of particle in water column
+            total_depth : total water depth at particle position
+            z0 : roughness length, in meters (default, z0 = 0.001m )
+
+        Returns : 
+            Factors to be apply to interpolated raw depth-averaged currents
+
+        Reference :
+            Van Rijn, 1993. Principles of Sediment Transport in Rivers,
+            Estuaries and Coastal Seas
+
+        '''
+
+        # Opendrift convention : particle_z is 0 at the surface, negative down
+        # we need the height of particle above seabed (positive)
+        part_z_above_seabed = np.abs(total_depth) + particle_z 
+        if not hasattr(self,'z0'): 
+            self.z0 = 0.001 # typical value for sandy seabed
+        log_fac = ( np.log(part_z_above_seabed / self.z0) ) / ( np.log(np.abs(total_depth)/self.z0)-1 ) # total_depth must be positive, hence the abs()
+        return log_fac
+

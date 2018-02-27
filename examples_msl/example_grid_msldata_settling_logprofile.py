@@ -28,9 +28,7 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 # reader with option to extrapolate currents to any vertical level z, using a log profile
 # The netcdf file must have depth information , besides the depth-averaged currents (u,v)
 # 
-reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['um','vm','dep'],always_valid = False, use_log_profile = True)
-
-
+reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['um','vm','dep'], always_valid = False, use_log_profile = True , z0 = 0.001)
 
 o.add_reader([reader_roms_cnz]) # 
 
@@ -44,8 +42,8 @@ o.add_reader([reader_roms_cnz]) #
 lon = 174.5133
 lat = -41.2348
 
-o.seed_elements(lon, lat, radius=0, number=1000,time=reader_roms_cnz.start_time,
-                 z=0.0, terminal_velocity = -0.001) #, wind_drift_factor = 0, age_seconds = 0,)
+o.seed_elements(lon, lat, radius=0, number=100,time=reader_roms_cnz.start_time,
+                 z=0.0, terminal_velocity = -0.01) #, wind_drift_factor = 0, age_seconds = 0,)
 
 # specific element variable such as terminal_velocity, can be specified here. 
 # terminal_velocity>0 particle moves up, terminal_velocity<0 particle moves down
@@ -60,7 +58,7 @@ o.list_config()
 o.list_configspec()
 
 # diffusion - constant in that example
-o.fallback_values['ocean_horizontal_diffusivity'] = 0.5 # specify constant ocean_horizontal_diffusivity in m2.s-1
+o.fallback_values['ocean_horizontal_diffusivity'] = 0.0 # specify constant ocean_horizontal_diffusivity in m2.s-1
 o.fallback_values['ocean_vertical_diffusivity'] = 0.0000 # specify constant ocean_vertical_diffusivity in m2.s-1
 
 # drift
@@ -89,7 +87,7 @@ o.set_config('turbulentmixing:timestep', 1800)
 ###############################
 
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = reader_roms_cnz.start_time + timedelta(days=2), outfile='opendrift_logprofile.nc',time_step_output = 1800)
+o.run(time_step=1800, end_time = reader_roms_cnz.start_time + timedelta(days=2), outfile='opendrift_using_logprofile.nc',time_step_output = 1800)
 # the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
 
 

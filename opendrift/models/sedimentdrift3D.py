@@ -281,7 +281,6 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
                     # that are more than one reader available for that group , we try to add the current (x,y) component pairs
                     # rather than exiting the loop now
                     if 'x_sea_water_velocity' in variable_group and len(reader_group)>1 :
-                        # import pdb;pdb.set_trace()
                         pass
                     else : 
                     # variable_group other than ['x_sea_water_velocity','y_sea_water_velocity'] should not need to be combined
@@ -459,23 +458,18 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         # self.elements.terminal_velocity = 0.
         pass
 
-    def apply_log_profile(self, z_particles ,  *args, **kwargs):
-        '''
-        Terminal velocity due to buoyancy or sedimentation rate,
-        to be used in turbulent mixing module.
-        stored as an array in self.elements.terminal_velocity
-        '''
-        # do nothing 
-        import pdb;pdb.set_trace()
-        # self.elements.terminal_velocity = 0.
-        pass
-
     def horizontal_diffusion(self, *args, **kwargs):
         '''
-        Horizontal diffusion based on:
-        - constant coefficients to be set using  
-            o.fallback_values['ocean_horizontal_diffusivity'] = 0.1 
-        - or interpolated from an environment object (as in vertical_mixing() )
+        Horizontal diffusion based on random walk technique
+        using diffusion coefficients K_xy (in m2/s - constant or interpolaote from field)
+        and uniformly distributed random numbers R(-1,1) with a zero mean.
+
+        
+        Constant coefficients 'ocean_horizontal_diffusivity' can be set using:
+        o.fallback_values['ocean_horizontal_diffusivity'] = 0.1 
+
+        Time-Space varying coefficients  'ocean_horizontal_diffusivity' 
+        can also be interpolated from an environment object (as in vertical_mixing() )
         
         * this should not be used in combination with drift:current_uncertainty ~=0 
         * as this model the same process, only with a different approach 
@@ -503,8 +497,8 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         K_xy = self.environment.ocean_horizontal_diffusivity # horizontal diffusion coefficient in m2/s
         max_diff_distance = np.sqrt(diff_fac * self.time_step.seconds * K_xy) # max diffusion distance in [meters] over that time step
         
-        # add randomness
-        diff_distance = np.random.uniform(-1,1,size = len(max_diff_distance)) * max_diff_distance
+        # add randomness - using uniform distribution (i.e. same probabilty for each value) - note some formulations use "normal" distribution
+        diff_distance = np.random.uniform(-1,1,size = len(max_diff_distance)) * max_diff_distance 
         # convert to an equivalent velocity vector to fit with the update_position subroutine
         diff_velocity = diff_distance /  self.time_step.seconds #  diffusion velocity in [m/s]
         # split into (Vx,Vy) components, using random diffusion "directions"

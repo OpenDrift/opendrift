@@ -90,7 +90,7 @@ o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2004,1,1),
 # PHYSICS
 ###############################
 
-# these will list all possible option
+# these will list all possible options for that model
 o.list_config()
 o.list_configspec()
 
@@ -105,7 +105,12 @@ o.set_config('drift:wind_uncertainty', 0.0)
 #processes
 o.set_config('processes:verticaladvection' , False) # no vertical current available, so no vertical advection
 o.set_config('processes:resuspension',False) # already False be default but just for reference 
-o.set_config('processes:turbulentmixing', True) # 
+o.set_config('processes:turbulentmixing', True) 
+# Note that turbulentmixing include the buoyancy-related settling for now (terminal_velocity)
+# if False, no vertical mixing NOR settling will occur - might need to be changed to allow pure buoyancy-drive settling and skip the vertical mixing computations?
+# 
+# 
+
 o.set_config('turbulentmixing:diffusivitymodel', 'environment') # i.e. specified from model or constant
 o.set_config('turbulentmixing:TSprofiles',False)
 o.set_config('turbulentmixing:timestep', 1800)  
