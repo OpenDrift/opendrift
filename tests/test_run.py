@@ -94,7 +94,7 @@ class TestRun(unittest.TestCase):
 
     def test_seed_outside_coverage(self):
         """Test seeding"""
-        o = OpenOil3D(loglevel=20)
+        o = OpenOil3D(loglevel=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         basemap = reader_basemap_landmask.Reader(
             llcrnrlon=4, llcrnrlat=60, urcrnrlon=6, urcrnrlat=64,
@@ -104,7 +104,8 @@ class TestRun(unittest.TestCase):
         o.fallback_values['y_wind'] = 0
         o.seed_elements(5, 63, number=5,
                         time=norkyst.start_time - 24*timedelta(hours=24))
-        o.run(steps=3, time_step=timedelta(minutes=15))
+        with self.assertRaises(ValueError):
+            o.run(steps=3, time_step=timedelta(minutes=15))
 
     def test_runge_kutta(self):
         number = 50
@@ -592,15 +593,16 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(o.elements.z, -160.06, 1)
 
     def test_seed_on_land(self):
-        o = OceanDrift(loglevel=50)
+        o = OceanDrift(loglevel=0)
         o.set_config('general:basemap_resolution', 'c')
         o.seed_elements(lon=9, lat=60, time=datetime.now(), number=100)
         outfile='out.nc'
-        o.run(steps=4, time_step=1800, time_step_output=3600,
-              outfile=outfile)
+        with self.assertRaises(ValueError):
+            o.run(steps=4, time_step=1800, time_step_output=3600,
+                  outfile=outfile)
         os.remove(outfile)
-        o.write_netcdf_density_map(outfile)
-        os.remove(outfile)
+        #o.write_netcdf_density_map(outfile)
+        #os.remove(outfile)
         
 
 if __name__ == '__main__':

@@ -18,7 +18,9 @@ dmax = 5.e-3
 o = OpenOil3D(loglevel=20, weathering_model='noaa')
 o.fallback_values['land_binary_mask'] = 0
 o.fallback_values['x_sea_water_velocity'] = -.2
+o.fallback_values['y_sea_water_velocity'] = 0
 o.fallback_values['x_wind'] = 6.
+o.fallback_values['y_wind'] = 0
 o.fallback_values['sea_water_temperature'] = 5.
 o.fallback_values['sea_surface_wave_stokes_drift_x_velocity'] = .3
 o.fallback_values['sea_surface_wave_stokes_drift_y_velocity'] = 0

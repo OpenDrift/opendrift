@@ -708,7 +708,7 @@ class OpenOil(OpenDriftSimulation):
                     logging.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
                     self.oiltype = OilProps(oils[0])
             except Exception as e:
-                print e
+                logging.warning(e)
             return
 
         if oiltype not in self.oiltypes:

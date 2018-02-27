@@ -117,14 +117,12 @@ class PhysicsMethods(object):
             raise ValueError('Drift scheme not recognised: ' +
                              self.get_config('drift:scheme'))
 
-    def advect_wind(self, wind_drift_factor=None):
+    def advect_wind(self):
         # Elements at ocean surface (z=0) are advected with given percentage
         # of wind speed. NB: Only basic Euler schema is implemented
 
-        if wind_drift_factor is None:
-            wind_drift_factor = self.elements.wind_drift_factor
-
-        wind_drift_factor = wind_drift_factor.copy()  # To prevent outside value to be modified
+        # Make copy to prevent outside value to be modified
+        wind_drift_factor = self.elements.wind_drift_factor.copy()
 
         # Convert wind_drift_factor to array
         if len(np.atleast_1d(wind_drift_factor)) == 1:
@@ -137,19 +135,26 @@ class PhysicsMethods(object):
         if len(np.atleast_1d(z)) == 1:
             z = z*np.ones(len(self.elements))
 
-        wind_drift_factor[self.elements.z < 0] = 0
-        #wdfmin = wind_drift_factor[self.elements.z >= 0].min()
-        wdfmin = wind_drift_factor.min()
-        wdfmax = wind_drift_factor.max()
+        surface = self.elements.z >= 0
+        if surface.sum() == 0:
+            logging.debug('All elements are entrained, '
+                          'no wind drift.')
+            return
+
+        wdf = wind_drift_factor.copy()
+        wdf[~surface] = 0.0
+        wdfmin = wdf[surface].min()
+        wdfmax = wdf[surface].max()
         if wdfmin == wdfmax:
             logging.debug(
-                'Applying wind drift factor of %s to elements at surface'
-                % wdfmin)
+                'Applying wind drift factor of %s to %i elements '
+                'at surface' % (wdfmin, sum(surface)))
         else:
-            logging.debug('Applying wind drift factor between %s and %s to elements at surface' % (wdfmin, wdfmax))
+            logging.debug('Applying wind drift factor between %s and'                          ' %s to %i elements at surface' %
+                          (wdfmin, wdfmax, sum(surface)))
 
-        x_wind = self.environment.x_wind
-        y_wind = self.environment.y_wind
+        x_wind = self.environment.x_wind.copy()
+        y_wind = self.environment.y_wind.copy()
         
         try:
             if self.get_config('drift:relative_wind') is True:
@@ -159,8 +164,7 @@ class PhysicsMethods(object):
         except:
             pass
 
-        self.update_positions(x_wind*wind_drift_factor,
-                              y_wind*wind_drift_factor)
+        self.update_positions(x_wind*wdf, y_wind*wdf)
 
     def stokes_drift(self):
 

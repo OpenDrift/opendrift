@@ -19,7 +19,6 @@ def windspeed_Sundby1983(s):
 def windspeed_Large1994(s):
     logging.debug('use Large et al 1994 speed parameterizatoin for diffusivity')
     depths = -s.environment_profiles['z']
-    print depths
     D = 50 # mixed layer depth, should be read from ocean model
     rhoa = 1.22
     cd = 1.25e-3 # Kara et al. 2007

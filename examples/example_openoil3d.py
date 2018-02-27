@@ -26,10 +26,10 @@ lon = 4.9; lat = 60.1; # Outside Bergen
 time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=3000, number=500, time=time, z=0,
+o.seed_elements(lon, lat, radius=3000, number=2000, time=time, z=0,
                 #oiltype='GULLFAKS, EXXON')
-                oiltype='ARABIAN MEDIUM, API')
-                #oiltype='ALGERIAN CONDENSATE')
+                #oiltype='ARABIAN MEDIUM, API')
+                oiltype='ALGERIAN CONDENSATE')
 
 # Adjusting some configuration
 o.set_config('processes:evaporation',  True)
