@@ -437,3 +437,285 @@ class Reader(BaseReader):
             time_after = self.start_time + indx_after*self.time_step
         return nearest_time, time_before, time_after,\
             indx_nearest, indx_before, indx_after
+
+    
+
+
+    # this will overload the get_variables_interpolated from basereader.py
+    # to allow applying log profile correction
+    #evntually this may be a nice feature to add the basereader ?
+    def get_variables_interpolated(self, variables, profiles=None,
+                                   profiles_depth=None, time=None,
+                                   lon=None, lat=None, z=None,
+                                   block=False, rotate_to_proj=None):
+
+        self.timer_start('total')
+        self.timer_start('preparing')
+        # Raise error if time not not within coverage of reader
+        if not self.covers_time(time):
+            raise ValueError('%s is outside time coverage (%s - %s) of %s' %
+                             (time, self.start_time, self.end_time, self.name))
+
+        # Check which particles are covered (indep of time)
+        ind_covered = self.covers_positions(lon, lat, z)
+        if len(ind_covered) == 0:
+            raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
+                              'are outside domain of %s (%s)') %
+                             (len(lon), lon.min(), lon.max(), lat.min(),
+                              lat.max(), self.name, self.coverage_string()))
+
+        # Find reader time_before/time_after
+        time_nearest, time_before, time_after, i1, i2, i3 = \
+            self.nearest_time(time)
+        logging.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
+                      (time_before, time_after))
+        if time == time_before:
+            time_after = None
+
+        reader_x, reader_y = self.lonlat2xy(lon[ind_covered],
+                                            lat[ind_covered])
+        z = z.copy()[ind_covered]  # Send values and not reference
+                                   # to avoid modifications
+
+        if block is False or self.return_block is False:
+            # Analytical reader, continous in space and time
+            self.timer_end('preparing')
+            env_before = self._get_variables(variables, profiles,
+                                             profiles_depth,
+                                             time,
+                                             #time_before,
+                                             reader_x, reader_y, z,
+                                             block=block)
+            logging.debug('Fetched env-before')
+            self.timer_start('preparing')
+
+        else:
+            # Swap before- and after-blocks if matching times
+            if str(variables) in self.var_block_before:
+                block_before_time = self.var_block_before[
+                    str(variables)].time
+                if str(variables) in self.var_block_after:
+                    block_after_time = self.var_block_after[
+                        str(variables)].time
+                    if block_before_time != time_before:
+                        if block_after_time == time_before:
+                            self.var_block_before[str(variables)] = \
+                                self.var_block_after[str(variables)]
+                    if block_after_time != time_after:
+                        if block_before_time == time_before:
+                            self.var_block_after[str(variables)] = \
+                                self.var_block_before[str(variables)]
+            # Fetch data, if no buffer is available
+            if (not str(variables) in self.var_block_before) or \
+                    (self.var_block_before[str(variables)].time !=
+                     time_before):
+                self.timer_end('preparing')
+                reader_data_dict = \
+                    self._get_variables(variables, profiles,
+                                        profiles_depth, time_before,
+                                        reader_x, reader_y, z,
+                                        block=block)
+                self.timer_start('preparing')
+                self.var_block_before[str(variables)] = \
+                    ReaderBlock(reader_data_dict,
+                                interpolation_horizontal=self.interpolation)
+                try:
+                    len_z = len(self.var_block_before[str(variables)].z)
+                except:
+                    len_z = 1
+                logging.debug(('Fetched env-block (size %ix%ix%i) ' +
+                              'for time before (%s)') %
+                              (len(self.var_block_before[str(variables)].x),
+                               len(self.var_block_before[str(variables)].y),
+                               len_z, time_before))
+            if not str(variables) in self.var_block_after or \
+                    self.var_block_after[str(variables)].time != time_after:
+                if time_after is None:
+                    self.var_block_after[str(variables)] = \
+                        self.var_block_before[str(variables)]
+                else:
+                    self.timer_end('preparing')
+                    reader_data_dict = \
+                        self._get_variables(variables, profiles,
+                                            profiles_depth, time_after,
+                                            reader_x, reader_y, z,
+                                            block=block)
+                    self.timer_start('preparing')
+                    self.var_block_after[str(variables)] = \
+                        ReaderBlock(
+                            reader_data_dict,
+                            interpolation_horizontal=self.interpolation)
+                    try:
+                        len_z = len(self.var_block_after[str(variables)].z)
+                    except:
+                        len_z = 1
+
+                    logging.debug(('Fetched env-block (size %ix%ix%i) ' +
+                                  'for time after (%s)') %
+                                  (len(self.var_block_after[
+                                       str(variables)].x),
+                                   len(self.var_block_after[
+                                       str(variables)].y),
+                                   len_z, time_after))
+
+            if self.var_block_before[str(variables)].covers_positions(
+                reader_x, reader_y) is False or \
+                self.var_block_after[str(variables)].covers_positions(
+                    reader_x, reader_y) is False:
+                logging.warning('Data block from %s not large enough to '
+                                'cover element positions within timestep. '
+                                'Buffer size (%s) must be increased.' %
+                                (self.name, str(self.buffer)))
+
+            self.timer_end('preparing')
+            ############################################################
+            # Interpolate before/after blocks onto particles in space
+            ############################################################
+            self.timer_start('interpolation')
+            logging.debug('Interpolating before (%s) in space  (%s)' %
+                          (self.var_block_before[str(variables)].time,
+                           self.interpolation))
+            env_before, env_profiles_before = self.var_block_before[
+                str(variables)].interpolate(
+                    reader_x, reader_y, z, variables,
+                    profiles, profiles_depth)
+
+            if (time_after is not None) and (time_before != time):
+                logging.debug('Interpolating after (%s) in space  (%s)' %
+                              (self.var_block_after[str(variables)].time,
+                               self.interpolation))
+                env_after, env_profiles_after = self.var_block_after[
+                    str(variables)].interpolate(
+                        reader_x, reader_y, z, variables,
+                        profiles, profiles_depth)
+
+            self.timer_end('interpolation')
+
+        #######################
+        # Time interpolation
+        #######################
+        self.timer_start('interpolation_time')
+        env_profiles = None
+        if (time_after is not None) and (time_before != time):
+            weight_after = ((time - time_before).total_seconds() /
+                            (time_after - time_before).total_seconds())
+            logging.debug(('Interpolating before (%s, weight %.2f) and'
+                           '\n\t\t      after (%s, weight %.2f) in time') %
+                          (self.var_block_before[str(variables)].time,
+                           1 - weight_after,
+                           self.var_block_after[str(variables)].time,
+                           weight_after))
+            env = {}
+            for var in variables:
+                # Weighting together, and masking invalid entries
+                env[var] = np.ma.masked_invalid((env_before[var] *
+                                                (1 - weight_after) +
+                                                env_after[var] * weight_after))
+
+                if var in standard_names.keys():
+                    invalid = np.where((env[var] < standard_names[var]['valid_min']) 
+                               | (env[var] > standard_names[var]['valid_max']))[0]
+                    if len(invalid) > 0:
+                        logging.warning('Invalid values found for ' + var)
+                        logging.warning(env[var][invalid])
+                        logging.warning('(allowed range: [%s, %s])' %
+                                        (standard_names[var]['valid_min'],
+                                         standard_names[var]['valid_max']))
+                        logging.warning('Replacing with NaN')
+                        env[var][invalid] = np.nan
+            # Interpolating vertical profiles in time
+            if profiles is not None:
+                env_profiles = {}
+                logging.info('Interpolating profiles in time')
+                # Truncating layers not present both before and after
+                numlayers = np.minimum(len(env_profiles_before['z']),
+                                       len(env_profiles_after['z']))
+                env_profiles['z'] = env_profiles_before['z'][0:numlayers+1]
+                for var in env_profiles_before.keys():
+                    if var == 'z':
+                        continue
+                    env_profiles[var] = (
+                        env_profiles_before[var][0:numlayers, :] *
+                        (1 - weight_after) +
+                        env_profiles_after[var][0:numlayers, :]*weight_after)
+            else:
+                env_profiles = None
+
+        else:
+            logging.debug('No time interpolation needed - right on time.')
+            env = env_before
+            if profiles is not None:
+                if 'env_profiles_before' in locals():
+                    env_profiles = env_profiles_before
+                else:
+                    # Copying data from environment to vertical profiles
+                    env_profiles = {'z': profiles_depth}
+                    for var in profiles:
+                        env_profiles[var] = np.ma.array([env[var], env[var]])
+        self.timer_end('interpolation_time')
+
+        ####################
+        # Rotate vectors
+        ####################
+        if rotate_to_proj is not None:
+            if self.simulation_SRS is True:
+                logging.debug('Reader SRS is the same as calculation SRS - '
+                              'rotation of vectors is not needed.')
+            else:
+                vector_pairs = []
+                for var in variables:
+                    for vector_pair in vector_pairs_xy:
+                        if var in vector_pair:
+                            counterpart = list(set(vector_pair) -
+                                               set([var]))[0]
+                            if counterpart in variables:
+                                vector_pairs.append(vector_pair)
+                            else:
+                                sys.exit('Missing component of vector pair:' +
+                                         counterpart)
+                # Extract unique vector pairs
+                vector_pairs = [list(x) for x in set(tuple(x)
+                                for x in vector_pairs)]
+
+                if len(vector_pairs) > 0:
+                    self.timer_start('rotating vectors')
+                    for vector_pair in vector_pairs:
+                        env[vector_pair[0]], env[vector_pair[1]] = \
+                            self.rotate_vectors(reader_x, reader_y,
+                                                env[vector_pair[0]],
+                                                env[vector_pair[1]],
+                                                self.proj, rotate_to_proj)
+                        if profiles is not None and vector_pair[0] in profiles:
+                            sys.exit('Rotating profiles of vectors '
+                                     'is not yet implemented')
+                    self.timer_end('rotating vectors')
+
+        # Masking non-covered pixels
+        self.timer_start('masking')
+        if len(ind_covered) != len(lon):
+            logging.debug('Masking %i elements outside coverage' %
+                          (len(lon)-len(ind_covered)))
+            for var in variables:
+                tmp = np.nan*np.ones(lon.shape)
+                tmp[ind_covered] = env[var].copy()
+                env[var] = np.ma.masked_invalid(tmp)
+                # Filling also fin missing columns
+                # for env_profiles outside coverage
+                if env_profiles is not None and var in env_profiles.keys():
+                    tmp = np.nan*np.ones((env_profiles[var].shape[0],
+                                          len(lon)))
+                    tmp[:, ind_covered] = env_profiles[var].copy()
+                    env_profiles[var] = np.ma.masked_invalid(tmp)
+
+        self.timer_end('masking')
+        self.timer_end('total')
+
+        import pdb;pdb.set_trace()
+        some bug relating to traceback ?
+
+        return env, env_profiles
+
+
+
+    def apply_log_profile(particle_depth,total_depth):
+    # return some ratios to apply to depth-averaged currents

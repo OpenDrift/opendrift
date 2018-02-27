@@ -167,11 +167,6 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
                     else:
                         profiles_from_reader = None
                     
-                    # import pdb;pdb.set_trace()
-                    # if 'x_sea_water_velocity' in variable_group and reader.use_log_profile:
-                    #     apply_log_profile(z) 
-                        # 
-
                     if 'x_sea_water_velocity' in variable_group and 'env_tmp' in locals():
                         # special case when we want to add [x_sea_water_velocity,y_sea_water_velocity] from 
                         # reader_name to the [x_sea_water_velocity,y_sea_water_velocity] that were obtained from 
