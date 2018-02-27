@@ -34,5 +34,4 @@ o2.seed_elements(lon, lat, radius=0, number=1, time=time)
 o2.run(steps=66*2, time_step=1800)
 
 # Animate and compare the two runs
-o.animation(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'],
-            markersize=10)
+o.animation(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'])

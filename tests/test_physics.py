@@ -36,6 +36,10 @@ class TestPhysics(unittest.TestCase):
     def test_droplet_diameters(self):
         o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 3
         o.set_config('turbulentmixing:verticalresolution', 2)
@@ -56,13 +60,14 @@ class TestPhysics(unittest.TestCase):
         # Check initial droplet sizes (expect range 0.0005 to 0.005)
         self.assertTrue(d_start.min() > o.get_config('input:spill:droplet_diameter_min_subsea'))
         self.assertTrue(d_start.max() < o.get_config('input:spill:droplet_diameter_max_subsea'))
-        # Check final droplet sizes (expect 1e-5 to 1e-3 after wavebreaking)
-        self.assertTrue(d_end.min() > o.get_config('turbulentmixing:droplet_diameter_min_wavebreaking'))
-        self.assertTrue(d_end.max() < o.get_config('turbulentmixing:droplet_diameter_max_wavebreaking'))
 
     def test_constant_droplet_diameters(self):
         o = OpenOil3D(loglevel=50, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 2.5
         o.set_config('turbulentmixing:verticalresolution', 2)
@@ -98,6 +103,10 @@ class TestPhysics(unittest.TestCase):
         # No wind/waves (i.e. no mixing)
         o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(4, 60, number=100, time=datetime.now())
         o.set_config('turbulentmixing:timestep', 5)
         o.run(steps=4*2, time_step_output=3600, time_step=900)
@@ -136,6 +145,9 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 2.5
         o.fallback_values['x_wind'] = 10
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
@@ -146,7 +158,7 @@ class TestPhysics(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -38.39, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -43.76, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
@@ -155,6 +167,9 @@ class TestPhysics(unittest.TestCase):
         o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 10
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
@@ -162,7 +177,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -41.63, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -55.4, 1)
         #######################################################
 
 
@@ -173,6 +188,9 @@ class TestPhysics(unittest.TestCase):
         o = OpenOil3D(loglevel=20, weathering_model='default')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 10
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
@@ -181,7 +199,7 @@ class TestPhysics(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -51.53, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -37.45, 1)
         ########################################################
 
 
@@ -191,6 +209,9 @@ class TestPhysics(unittest.TestCase):
         o.set_config('processes:evaporation', False)
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 10
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(lon=3, lat=60, time=datetime.now())
         o.run(steps=2)
         # Second run with parameterised Stokes drift
@@ -199,6 +220,9 @@ class TestPhysics(unittest.TestCase):
         o2.set_config('processes:evaporation', False)
         o2.fallback_values['land_binary_mask'] = 0
         o2.fallback_values['x_wind'] = 10
+        o2.fallback_values['y_wind'] = 0
+        o2.fallback_values['x_sea_water_velocity'] = 0
+        o2.fallback_values['y_sea_water_velocity'] = 0
         o2.seed_elements(lon=3, lat=60, time=datetime.now())
         o2.run(steps=2)
         # Check that stokes drift moves elements downwind

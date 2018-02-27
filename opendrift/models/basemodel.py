@@ -124,7 +124,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 ocean_only = boolean(default=True)
             [drift]
                 scheme = option('euler', 'runge-kutta', default='euler')
-                wind_drift_factor = float(min=0, max=1, default=0.02)
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
                 current_uncertainty_uniform = float(min=0, max=5, default=0)
@@ -139,7 +138,7 @@ class OpenDriftSimulation(PhysicsMethods):
     plot_comparison_colors = ['r', 'g', 'b', 'm', 'c', 'y']
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
-                 loglevel=logging.DEBUG):
+                 loglevel=logging.DEBUG, logfile=None):
         """Initialise OpenDriftSimulation
 
         Args:
@@ -198,8 +197,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if loglevel != 'custom':
             logging.getLogger('').handlers = []
+            if logfile is not None:
+                eargs = {'filename': logfile}
+            else:
+                eargs = {}
             logging.basicConfig(level=loglevel,
-                                format='%(levelname)s: %(message)s')
+                                format='%(levelname)s: %(message)s',
+                                **eargs)
 
         # Prepare outfile
         try:
@@ -617,20 +621,6 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
 
-    def parse_filename_date(self, filename, check_existence=True):
-
-        if not isinstance(filename, basestring):
-            return filename
-        f = datetime.now().strftime(filename)
-        if f == filename:
-            return filename
-        if os.path.exists(f):
-            print 'File exists'
-        else:
-            print 'File does not exist'
-
-        return f
-
     def add_readers_from_list(self, urls, timeout=10):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
@@ -743,7 +733,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timer_start('main loop:readers')
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
-        env = np.ma.array(np.zeros(len(lon)), dtype=dtype)
+        env = np.ma.array(np.zeros(len(lon))*np.nan, dtype=dtype)
 
         # For each variable/reader group:
         variable_groups, reader_groups, missing_variables = \
@@ -1457,7 +1447,7 @@ class OpenDriftSimulation(PhysicsMethods):
             import ogr
             import osr
         except Exception as e:
-            print e
+            logging.warning(e)
             raise ValueError('OGR library is needed to read shapefiles.')
 
         if 'timeformat' in kwargs:
@@ -1704,15 +1694,21 @@ class OpenDriftSimulation(PhysicsMethods):
         if len(missing_variables) > 0:
             has_fallback = [var for var in missing_variables
                             if var in self.fallback_values]
-            if has_fallback == missing_variables:
+            has_no_fallback = [var for var in missing_variables
+                               if var not in self.fallback_values]
+            #if has_fallback == missing_variables:
+            if len(has_fallback) > 0:# == missing_variables:
                 logging.info('Fallback values will be used for the following '
                              'variables which have no readers: ')
                 for var in has_fallback:
                     logging.info('\t%s: %f' % (var, self.fallback_values[var]))
-            else:
+            #else:
+            if len(has_no_fallback) > 0:# == missing_variables:
+                logging.warning('No readers added for the following variables: '
+                                + str(has_no_fallback))
                 raise ValueError('Readers must be added for the '
                                  'following required variables: ' +
-                                 str(missing_variables))
+                                 str(has_no_fallback))
 
         # Some cleanup needed if starting from imported state
         if self.steps_calculation >= 1:
@@ -1828,7 +1824,9 @@ class OpenDriftSimulation(PhysicsMethods):
             self.dynamical_landmask = False
 
         # Move point seed on land to ocean
-        if self.get_config('seed:ocean_only') is True and ('land_binary_mask' not in self.fallback_values):
+        if self.get_config('seed:ocean_only') is True and \
+            ('land_binary_mask' not in self.fallback_values) and \
+            ('land_binary_mask' in self.required_variables):
             self.timer_start('preparing main loop:moving elements to ocean')
             self.elements_scheduled.lon, self.elements_scheduled.lat = \
                 self.closest_ocean_points(self.elements_scheduled.lon,
@@ -1948,6 +1946,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.calculate_missing_environment_variables()
 
+                if sum(missing) > 0:
+                    self.report_missing_variables()
+
                 self.interact_with_coastline()
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
@@ -1975,7 +1976,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.timer_end('main loop:updating elements')
                 #####################################################
 
-
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
 
@@ -1996,6 +1996,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.info('========================')
                 if stop_on_error is True:
                     sys.exit('Stopping on error')
+                if self.steps_calculation <= 1:
+                    raise ValueError('Simulation stopped within first timestep')
                 break
 
         self.timer_end('main loop')
@@ -2083,6 +2085,18 @@ class OpenDriftSimulation(PhysicsMethods):
                 ((self.steps_output - self.steps_exported) ==
                     self.export_buffer_length):
             self.io_write_buffer()
+
+    def report_missing_variables(self):
+        """Issue warning if some environment variables missing."""
+        
+        missing_variables = []
+        for var in self.required_variables:
+            if np.isnan(getattr(self.environment, var).min()):
+                missing_variables.append(var)
+
+        if len(missing_variables) > 0:
+            logging.warning('Missing variables: ' +
+                            str(missing_variables))
 
     def index_of_activation_and_deactivation(self):
         """Return the indices when elements were seeded and deactivated."""
@@ -2549,6 +2563,7 @@ class OpenDriftSimulation(PhysicsMethods):
              show=True, vmin=None, vmax=None, compare=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
+             surface_color=None, submerged_color=None,
              title='auto', legend=True, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
@@ -2652,10 +2667,18 @@ class OpenDriftSimulation(PhysicsMethods):
                     y[range(x.shape[0]), index_of_first],
                     zorder=10, edgecolor='k', linewidths=.2,
                     color=color_initial, label=label_initial)
+        if surface_color is not None:
+            color_active = surface_color
+            label_active = 'surface'
         map.scatter(x[range(x.shape[0]), index_of_last],
                     y[range(x.shape[0]), index_of_last],
                     zorder=3, edgecolor='k', linewidths=.2,
                     color=color_active, label=label_active)
+        #if submerged_color is not None:
+        #    map.scatter(x[range(x.shape[0]), index_of_last],
+        #                y[range(x.shape[0]), index_of_last],
+        #                zorder=3, edgecolor='k', linewidths=.2,
+        #                color=submerged_color, label='submerged')
 
         x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
                                            self.elements_deactivated.lat)
@@ -2707,8 +2730,8 @@ class OpenDriftSimulation(PhysicsMethods):
             if legend is not None:# and compare is None:
                 plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
-            print 'Cannot plot legend, due to bug in matplotlib:'
-            print traceback.format_exc()
+            logging.warning('Cannot plot legend, due to bug in matplotlib:')
+            logging.warning(traceback.format_exc())
 
         if background is not None:
             if hasattr(self, 'time'):
@@ -3074,8 +3097,6 @@ class OpenDriftSimulation(PhysicsMethods):
         """Get property from history, sorted by status."""
         prop = self.history[propname].copy()
         status = self.history['status'].copy()
-        #for stat in self.status_categories:
-        #    print '\t%s' % stat
         index_of_first, index_of_last = \
             self.index_of_activation_and_deactivation()
         j = np.arange(status.shape[1])

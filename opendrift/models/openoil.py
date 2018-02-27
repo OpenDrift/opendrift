@@ -598,9 +598,11 @@ class OpenOil(OpenDriftSimulation):
 
         return oil_budget
 
-    def plot_oil_budget(self, filename=None):
+    def plot_oil_budget(self, filename=None, ax=None):
 
-        plt.close()
+        if ax==None:
+            plt.close()
+
         if self.time_step.days < 0:  # Backwards simulation
             fig = plt.figure(figsize=(10, 6.))
             plt.text(0.1, 0.5, 'Oil weathering deactivated for '
@@ -622,10 +624,14 @@ class OpenOil(OpenDriftSimulation):
 
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds()/3600. for t in time_relative])
-        fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
 
-        # Left axis showing oil mass
-        ax1 = fig.add_subplot(111)
+        if ax==None:
+            fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
+            # Left axis showing oil mass
+            ax1 = fig.add_subplot(111)
+        else:
+            ax1 = ax
+
         # Hack: make some emply plots since fill_between does not support label
         if np.sum(b['mass_dispersed']) > 0:
             ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
@@ -702,7 +708,7 @@ class OpenOil(OpenDriftSimulation):
                     logging.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
                     self.oiltype = OilProps(oils[0])
             except Exception as e:
-                print e
+                logging.warning(e)
             return
 
         if oiltype not in self.oiltypes:

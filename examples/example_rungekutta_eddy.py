@@ -32,8 +32,7 @@ o2.set_config('drift:scheme', 'runge-kutta')
 o2.seed_elements(lon, lat, radius=0, number=1, time=datetime(2015,1,1))
 o2.run(steps=300, time_step=3600)
 
-o.plot()
-o2.plot()
+o.plot(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'])
+#o2.plot()
 # Animate and compare the two runs
-o.animation(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'],
-            markersize=15)
+o.animation(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'])

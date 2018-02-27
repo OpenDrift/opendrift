@@ -61,7 +61,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             [turbulentmixing]
                 timestep = float(min=0.1, max=3600, default=60.)
                 verticalresolution = float(min=0.01, max=10, default = 1.)
-                max_iterations = integer(min=0, max=100000, default = 0)
                 diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
                 TSprofiles = boolean(default=False)
                 '''
@@ -194,12 +193,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # to horizontal advection
         logging.debug('Vertical mixing module:')
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
-        if self.get_config('turbulentmixing:max_iterations') != 0:
-            if self.steps_calculation <= 5:
-                logging.debug('Mixing the whole first five time steps')
-            else:
-                ntimes_mix = np.minimum(ntimes_mix,
-                    self.get_config('turbulentmixing:max_iterations'))
         logging.debug('Turbulent diffusion with random walk '
                       'scheme using ' + str(ntimes_mix) +
                       ' fast time steps of dt=' + str(dt_mix) + 's')

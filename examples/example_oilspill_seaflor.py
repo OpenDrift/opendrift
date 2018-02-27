@@ -12,6 +12,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan20
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 o.add_reader([reader_norkyst])
+o.fallback_values['x_wind'] = 0
+o.fallback_values['y_wind'] = 0
 
 # Seeding some particles
 lon = 4.5; lat = 62.0
