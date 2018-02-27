@@ -33,6 +33,12 @@ from basereader import BaseReader
 class Reader(BaseReader):
 
     def __init__(self, filename=None, name=None, variables_to_use = None, **kwargs):
+
+        # allow direct initialization of class attribute using kwargs
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        #------------------------------------------------------------
+
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
 
@@ -259,8 +265,9 @@ class Reader(BaseReader):
         
         # For now we can't differenciate the different kinds of currents (i.e. tide, resiudal, total)...as it seems opendrift only expect general (u,v) currents
         # All different currents are therefore mapped to x_sea_water_velocity, y_water_velocity for now
-        # which means that some overwriting can occur if there are more than 2 (u,v) pairs in the file - an option may be to allow specifying which variables to use in a file
-        # example : reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['dep']) 
+        # Here we have added an option variables_to_use to allow specifying which variables to use in a file
+        # example : reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['dep','um','vm']) 
+        # other variables will be discarded  
         
         self.variables = self.variable_mapping.keys() # check that it does the right thing here
 

@@ -1,13 +1,9 @@
 #!/usr/bin/env python
 
-#  This script is based on https://github.com/OpenDrift/opendrift/tree/master/examples/example_grid.py
-#  The aim is to test the use of reader_netCDF_MetOcean which allows using MetOcean data in OpenDrift
-#   
-#  This is also used as a reference case to compare Opendrift trajectories with ERcore trajectories
+#  This script is based on https://github.com/OpenDrift/opendrift/tree/master/examples_msl/example_grid_msldata_settling.py
+#  The aim is to show how to:
+#  - use depth-averaged current and switch on option to use a log profile to extrapolate velocity to any vertical level
 # 
-#
-#  This example show how to use the SedimentDrift3D model, which allows modelling horizontal and vertical advection due to currents
-#  horizontal and vertical diffusion (mixing), and buoyancy-related setlling 
 #
 # 
 
@@ -28,26 +24,15 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 ###############################
 # READERS
 ###############################
-reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['dep']) # i.e. only use the 'dep' variable in that file
-reader_roms_cnz_depth.always_valid = True # this is useful if the time vector associated with the bathy does not fit with the simulation time 
-#use always_valid for variables that can be used at all times, such as a bathy 
 
-reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz_surf_res200401.nc') # only uso,vso in this one - seems to be recognized ok 
-
-
-# Making customised landmask (Basemap)
-
-# reader_basemap = reader_basemap_landmask.Reader(
-#                     llcrnrlon=3.5, llcrnrlat=59.9,
-#                     urcrnrlon=5.5, urcrnrlat=61.2,
-#                     resolution='h', projection='merc')
-
-# o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader with depth info when using settling
-o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader with depth info when using settling
+# reader with option to extrapolate currents to any vertical level z, using a log profile
+# The netcdf file must have depth information , besides the depth-averaged currents (u,v)
+# 
+reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['um','vm','dep'],always_valid = False, use_log_profile = True)
 
 
- # no vertical diffusion infos available from readers : set fall_back constant values 
-# o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
+
+o.add_reader([reader_roms_cnz]) # 
 
 # all required variables that can be set using o.fall_back are generally listed 
 # below the model class definition  e.g. see /models/sedimentdrift3D.py, line 36
@@ -55,42 +40,22 @@ o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader 
 ###############################
 # PARTICLE SEEDING
 ###############################
-
-
-# Seeding some particles
-# lons = np.linspace(3.5, 5.0, 100)
-# lats = np.linspace(60, 61, 100)
-# 
 #  Point release
-lon = 174.5133; lat = -41.2348; 
-#  Rectangle release
-# lons = np.linspace(170.0,170.5, 100) 
-# lats = np.linspace(-39.5,-39.0, 100)
-# lons, lats = np.meshgrid(lons, lats)
-# lons = lons.ravel()
-# lats = lats.ravel()
-#
+lon = 174.5133
+lat = -41.2348
 
-# Seed oil elements at defined position and time
-
-# o.seed_elements(lons, lats, radius=0, number=10000,
-#                 time=reader_roms_cnz.start_time)
-
-o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2004,1,1),
+o.seed_elements(lon, lat, radius=0, number=1000,time=reader_roms_cnz.start_time,
                  z=0.0, terminal_velocity = -0.001) #, wind_drift_factor = 0, age_seconds = 0,)
 
 # specific element variable such as terminal_velocity, can be specified here. 
 # terminal_velocity>0 particle moves up, terminal_velocity<0 particle moves down
-# 
-# General variables to be defined lon,lat,z,time ..look in each /elements/element*.py for more properties
-# 
-# 
+#  
 
 ###############################
 # PHYSICS
 ###############################
 
-# these will list all possible option
+# these will list all possible options for that model
 o.list_config()
 o.list_configspec()
 
@@ -124,7 +89,7 @@ o.set_config('turbulentmixing:timestep', 1800)
 ###############################
 
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = datetime(2004,1,2), outfile='opendrift_settling.nc',time_step_output = 1800)
+o.run(time_step=1800, end_time = reader_roms_cnz.start_time + timedelta(days=2), outfile='opendrift_logprofile.nc',time_step_output = 1800)
 # the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
 
 

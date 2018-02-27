@@ -36,9 +36,11 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 #use always_valid for variables that can be used at all times, such as a bathy 
 
 # residual currents
-reader_roms_bob_res3D = reader_netCDF_MetOcean.Reader('C:/metocean/roms_bob_3D_res201312.nc') # 
+reader_roms_bob_res3D = reader_netCDF_MetOcean.Reader('C:/metocean/roms_bob_3D_res201312.nc',variables_to_use = ['uo','vo']) # 
+# Note : calling reader_roms_bob_res3D will show which variables it includes, timing, levels, extents etc.. etc..
+
 # tidal currents
-reader_roms_bob_tide = reader_netCDF_MetOcean.Reader('C:/metocean/bob_tide_20131201.nc') # 
+reader_roms_bob_tide = reader_netCDF_MetOcean.Reader('C:/metocean/bob_tide_20131201.nc',variables_to_use = ['ut','vt']) # 
 
 # Making customised landmask (Basemap)
 
@@ -47,7 +49,7 @@ reader_roms_bob_tide = reader_netCDF_MetOcean.Reader('C:/metocean/bob_tide_20131
 #                     urcrnrlon=5.5, urcrnrlat=61.2,
 #                     resolution='h', projection='merc')
 
-o.add_reader([reader_roms_bob_res3D,reader_roms_bob_tide]) #
+o.add_reader([reader_roms_bob_res3D,reader_roms_bob_tide]) # 
 
 # all required variables that can be set using o.fall_back are generally listed 
 # below the model class definition  e.g. see /models/sedimentdrift3D.py, line 36
@@ -87,10 +89,15 @@ o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2013,12,1),
 # General variables to be defined lon,lat,z,time ..look in each /elements/element*.py for more properties
 # 
 # 
+import pdb;pdb.set_trace()
 
 ###############################
 # PHYSICS
 ###############################
+
+# these will list all possible options for that model
+o.list_config()
+o.list_configspec()
 
 # diffusion - constant in that example
 o.fallback_values['ocean_horizontal_diffusivity'] = 0.5 # specify constant ocean_horizontal_diffusivity in m2.s-1

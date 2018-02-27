@@ -23,14 +23,14 @@ from opendrift.elements.buoyanttracer import BuoyantTracer
 # from opendrift.elements.sedimenttracer import SedimentTracer
 
 
-class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
-    """Trajectory model based on the OpenDrift framework.
+class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation base class
+    """Trajectory model based on the OpenDrift framework using the OpenDrift3DSimulation baseclass
 
     Sediment 3D motion 
     Propagation with horizontal and vertical ocean currents, horizontal and 
     vertical diffusions (additional wind drag inherited from base class if needed).
     Suitable for sediment tracers, e.g. for tracking sediment particles.
-    Adapted from OpenDrift3DSimulation/OceanDrift by Simon Weppe - MetOcean Solutions.
+    Adapted from OpenDrift3DSimulation by Simon Weppe - MetOcean Solutions.
 
     """
     ElementType = BuoyantTracer # simply use BuoyantTracer for now - will eventually move to SedimentTracer
@@ -144,7 +144,6 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
             missing_indices = np.array(range(len(lon)))
 
             # For each reader:
-
             for reader_name in reader_group:
 
                 logging.debug('Calling reader ' + reader_name)
@@ -167,28 +166,26 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
                             profiles_from_reader = None
                     else:
                         profiles_from_reader = None
-                    #original code-------------------------
-                    # env_tmp, env_profiles_tmp = \
-                    #     reader.get_variables_interpolated(
-                    #         variable_group, profiles_from_reader,
-                    #         self.required_profiles_z_range, time,
-                    #         lon[missing_indices], lat[missing_indices],
-                    #         z[missing_indices], self.use_block, self.proj)
-                    #------------------------------------
-                    # 
-                    # allow for addition of current (u,v) pairs
-                    # if env_tmp already exists, it means that a pair of (x_sea_water_velocity,y_sea_water_velocity)
-                    # has already been interpolated from a reader, in that case, we add the new currents pair that the existing
-                    # env_tmp
+                    
+                    # import pdb;pdb.set_trace()
+                    # if 'x_sea_water_velocity' in variable_group and reader.use_log_profile:
+                    #     apply_log_profile(z) 
+                        # 
+
                     if 'x_sea_water_velocity' in variable_group and 'env_tmp' in locals():
-                        import pdb;pdb.set_trace()
+                        # special case when we want to add [x_sea_water_velocity,y_sea_water_velocity] from 
+                        # reader_name to the [x_sea_water_velocity,y_sea_water_velocity] that were obtained from 
+                        # a previous reader
+                        # e.g. adding tidal currents and residual currents
+                        # 
+                        # 
                         logging.debug('Several readers available for %s : ' % (variable_group) )
                         logging.debug('%s' % (reader_group) )
                         logging.debug('Adding currents from reader : ' +  reader_name )
                         logging.debug('to existing [x_sea_water_velocity,y_sea_water_velocity]')
                         
-                        # check what is going on with the missing_indices
-                        getting an error message
+                        # need to reset missing_indices to interpolate to all points
+                        missing_indices = np.array(range(len(lon)))
 
                         # get (u,v) currents from that reader
                         env_tmp1, env_profiles_tmp1 = \
@@ -197,16 +194,18 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
                                 self.required_profiles_z_range, time,
                                 lon[missing_indices], lat[missing_indices],
                                 z[missing_indices], self.use_block, self.proj)
+                        
                         # add to previous currents
                         env_tmp['x_sea_water_velocity'] += env_tmp1['x_sea_water_velocity']
                         env_tmp['y_sea_water_velocity'] += env_tmp1['y_sea_water_velocity']
-                        
+
+                        # add to previous current profile, if applicable
                         if env_profiles_tmp is not None : 
                             env_profiles_tmp['x_sea_water_velocity'] += env_profiles_tmp1['x_sea_water_velocity']
                             env_profiles_tmp['y_sea_water_velocity'] += env_profiles_tmp1['y_sea_water_velocity']
 
-                    else : # standard case
-                        #original code
+                    else : # standard case - for all other variables groups
+                        # Fetch given variables at given positions from current reader
                         env_tmp, env_profiles_tmp = \
                             reader.get_variables_interpolated(
                                 variable_group, profiles_from_reader,
@@ -462,6 +461,17 @@ class SedimentDrift3D(OpenDrift3DSimulation, OceanDrift): # multiple inheritance
         stored as an array in self.elements.terminal_velocity
         '''
         # do nothing 
+        # self.elements.terminal_velocity = 0.
+        pass
+
+    def apply_log_profile(self, z_particles ,  *args, **kwargs):
+        '''
+        Terminal velocity due to buoyancy or sedimentation rate,
+        to be used in turbulent mixing module.
+        stored as an array in self.elements.terminal_velocity
+        '''
+        # do nothing 
+        import pdb;pdb.set_trace()
         # self.elements.terminal_velocity = 0.
         pass
 
