@@ -246,7 +246,7 @@ class Reader(BaseReader):
             'uso': 'x_sea_water_velocity', #surface layer non-tidal current (5 m below sea level) / surface_geostrophic_eastward_sea_water_velocity
             'vso': 'y_sea_water_velocity', #surface layer non-tidal current (5 m below sea level) / surface_geostrophic_northward_sea_water_velocity
             'sst': 'sea_water_temperature',
-            'salt': 'c',
+            'salt': 'sea_water_salinity',
             'ugrd10m': 'x_wind', # x_wind_10m
             'vgrd10m': 'y_wind', # y_wind_10m
             'lev' : 'z'                    # This should allow correct loading of z levels - if present. TO CHECK 

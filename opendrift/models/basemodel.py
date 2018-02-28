@@ -523,7 +523,15 @@ class OpenDriftSimulation(PhysicsMethods):
     def performance(self):
         '''Report the time spent on various tasks'''
 
-        outStr = '---------------------------\n'
+        outStr = '--------------------\n'
+        outStr += 'Reader performance:\n'
+        for r in self.readers:
+            reader = self.readers[r]
+            outStr += '--------------------\n'
+            outStr += r + '\n'
+            outStr += reader.performance()
+
+        outStr += '--------------------\n'
         outStr += 'Performance:\n'
         for category, time in self.timing.iteritems():
             timestr = str(time)[0:str(time).find('.') + 2]
@@ -540,13 +548,6 @@ class OpenDriftSimulation(PhysicsMethods):
             outStr += '%s%7s %s\n' % (indent, timestr, category)
 
         outStr += '--------------------\n'
-        outStr += 'Reader performance:\n'
-        for r in self.readers:
-            reader = self.readers[r]
-            outStr += '--------------------\n'
-            outStr += r + '\n'
-            outStr += reader.performance()
-
         return outStr
 
     def add_reader(self, readers, variables=None):
@@ -1987,17 +1988,25 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time = self.time + self.time_step
 
             except Exception as e:
+                message = ('The simulation stopped before requested '
+                           'end time was reached.')
+                logging.warning(message)
+                self.store_message(message)
                 logging.info('========================')
                 logging.info('End of simulation:')
                 logging.info(e)
                 logging.info(traceback.format_exc())
+                logging.info(self.get_messages())
                 if not hasattr(self, 'environment'):
-                    sys.exit('Simulation aborted.')
+                    sys.exit('Simulation aborted. ' +
+                             self.get_messages())
                 logging.info('========================')
                 if stop_on_error is True:
-                    sys.exit('Stopping on error')
+                    sys.exit('Stopping on error. ' +
+                             self.get_messages())
                 if self.steps_calculation <= 1:
-                    raise ValueError('Simulation stopped within first timestep')
+                    raise ValueError('Simulation stopped within '
+                        'first timestep. ' + self.get_messages())
                 break
 
         self.timer_end('main loop')
@@ -2097,6 +2106,8 @@ class OpenDriftSimulation(PhysicsMethods):
         if len(missing_variables) > 0:
             logging.warning('Missing variables: ' +
                             str(missing_variables))
+            self.store_message('Missing variables: ' +
+                               str(missing_variables))
 
     def index_of_activation_and_deactivation(self):
         """Return the indices when elements were seeded and deactivated."""
@@ -3153,6 +3164,9 @@ class OpenDriftSimulation(PhysicsMethods):
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
+        if hasattr(self, 'history'):
+            outStr += self.performance()
+            outStr += '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + \
             '     (OpenDrift version %s)\n' % opendrift.__version__
         outStr += '\t%s active %s particles  (%s deactivated, %s scheduled)\n'\
@@ -3184,25 +3198,31 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time-self.start_time)
                 outStr += '\tOutput steps: %i * %s\n' % (
                     self.steps_output, self.time_step_output)
-        if hasattr(self, 'history'):
-            outStr += self.performance()
+        if hasattr(self, 'messages'):
+            outStr += '-------------------\n'
+            outStr += self.get_messages()
         outStr += '===========================\n'
         return outStr
 
-    def add_halo_readers(self, path='/lustre/storeB/project/copernicus/sea/'):
+    def store_message(self, message):
+        """Store important messages to be displayed to user at end."""
+        if not hasattr(self, 'messages'):
+            self.messages = []
+        self.messages.append(message)
+
+    def get_messages(self):
+        """Report any messages stored during simulation."""
+        
+        if hasattr(self, 'messages'):
+            return str(self.messages).strip('[]') + '\n'
+        else:
+            return ''
+
+    def add_halo_readers(self):
         """Adding some Thredds and file readers in prioritised order"""
 
-        readers = [  # Note that order (priority) is important!
-            path + '/romsnorkyst/zdepths1h/NorKyst-800m_ZDEPTHS_his.fc*.nc',
-            path + '/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc*.nc',
-            path + '/mywavewam4/mywavewam4.fc*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-            'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/atmos/hirlam/hirlam12_be',
-            'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be']
-
-        self.add_readers_from_list(readers, timeout=5)
+        self.add_readers_from_file(self.test_data_folder() +
+            '../../opendrift/scripts/data_sources.txt')
 
     def _save_animation(self, anim, filename, fps):
         logging.info('Saving animation to ' + filename + '...')

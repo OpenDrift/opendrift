@@ -45,6 +45,9 @@ reader_swan_nzra_surface = reader_netCDF_MetOcean.Reader(data_pth + 'waves_swan_
 reader_wrf_nzra1_surface = reader_netCDF_MetOcean.Reader(data_pth + 'winds_nzra1_nz_20050101_20050107.nc',variables_to_use = ['ugrd10m','vgrd10m']) # i.e. only use the 'dep' variable in that file
 
 
+>> probably need to "map" hs,tp,dpm, 
+
+
 # Making customised landmask (Basemap)
 # reader_basemap = reader_basemap_landmask.Reader(
 #                     llcrnrlon=172.0, llcrnrlat=-42.0,
