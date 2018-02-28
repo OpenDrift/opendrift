@@ -256,7 +256,7 @@ class Reader(BaseReader):
             var = self.Dataset.variables[self.variable_mapping[par]]
 
             ensemble_dim = None
-            if indx.min() >= 0:
+            if not (indx.min() < 0 and indx.max() > 0):
                 if var.ndim == 2:
                     variables[par] = var[indy, indx]
                 elif var.ndim == 3:
