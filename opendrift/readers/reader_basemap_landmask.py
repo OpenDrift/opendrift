@@ -92,12 +92,16 @@ class Reader(BaseReader):
         # Generate rasterized version of polygons for faster checking of stranding
         # (if enabled)
         if (rasterize == True):
-            logging.debug('Creating rasterized Basemap...')
-            try:
-                self.bmap_raster = self.gen_land_bitmap(self.map, rasterize_resolution)
-            except Exception as e:
-                logging.warning('Rasterizing Basemap failed! Continuing without rasterized version. Received "' + e.message + '"')
+            if (len(self.map.landpolygons) == 0):
+                logging.debug('No land polygons to rasterize...')
                 self.bmap_raster = None
+            else:
+                logging.debug('Creating rasterized Basemap...')
+                try:
+                    self.bmap_raster = self.gen_land_bitmap(self.map, rasterize_resolution)
+                except Exception as e:
+                    logging.warning('Rasterizing Basemap failed! Continuing without rasterized version. Received "' + e.message + '"')
+                    self.bmap_raster = None
         else:
             self.bmap_raster = None
 
