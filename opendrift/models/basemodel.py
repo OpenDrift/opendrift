@@ -522,8 +522,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def performance(self):
         '''Report the time spent on various tasks'''
 
-        outStr = '---------------------------\n'
-        outStr += 'Performance:\n'
+        outStr = 'Performance:\n'
         for category, time in self.timing.iteritems():
             timestr = str(time)[0:str(time).find('.') + 2]
             for i, c in enumerate(timestr):
@@ -1983,6 +1982,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time = self.time + self.time_step
 
             except Exception as e:
+                message = ('The simulation stopped before requested '
+                           'end time was reached.')
+                logging.warning(message)
+                self.store_message(message)
                 logging.info('========================')
                 logging.info('End of simulation:')
                 logging.info(e)
@@ -3155,6 +3158,9 @@ class OpenDriftSimulation(PhysicsMethods):
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
+        if hasattr(self, 'history'):
+            outStr += self.performance()
+            outStr += '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + \
             '     (OpenDrift version %s)\n' % opendrift.__version__
         outStr += '\t%s active %s particles  (%s deactivated, %s scheduled)\n'\
@@ -3186,8 +3192,9 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time-self.start_time)
                 outStr += '\tOutput steps: %i * %s\n' % (
                     self.steps_output, self.time_step_output)
-        if hasattr(self, 'history'):
-            outStr += self.performance()
+        if hasattr(self, 'messages'):
+            outStr += '-------------------\n'
+            outStr += self.get_messages()
         outStr += '===========================\n'
         return outStr
 
@@ -3201,7 +3208,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """Report any messages stored during simulation."""
         
         if hasattr(self, 'messages'):
-            return str(self.messages).strip('[]').strip('"')
+            return str(self.messages).strip('[]') + '\n'
         else:
             return ''
 

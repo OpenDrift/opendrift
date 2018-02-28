@@ -247,16 +247,19 @@ class Reader(BaseReader):
 
         variables = {}
 
-        if indx.min() < 0:
+        if indx.min() < 0 and indx.max() > 0:
             logging.debug('Requested data block is not continous in file'+
                           ', must read two blocks and concatenate.')
-            indx_left = indx[indx<0]
+            indx_left = indx[indx<0] + self.numx  # Shift to positive indices
             indx_right = indx[indx>=0]
+            continous = False
+        else:
+            continous = True
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
 
             ensemble_dim = None
-            if not (indx.min() < 0 and indx.max() > 0):
+            if continous is True:
                 if var.ndim == 2:
                     variables[par] = var[indy, indx]
                 elif var.ndim == 3:
