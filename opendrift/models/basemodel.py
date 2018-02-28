@@ -522,7 +522,16 @@ class OpenDriftSimulation(PhysicsMethods):
     def performance(self):
         '''Report the time spent on various tasks'''
 
-        outStr = 'Performance:\n'
+        outStr = '--------------------\n'
+        outStr += 'Reader performance:\n'
+        for r in self.readers:
+            reader = self.readers[r]
+            outStr += '--------------------\n'
+            outStr += r + '\n'
+            outStr += reader.performance()
+
+        outStr += '--------------------\n'
+        outStr += 'Performance:\n'
         for category, time in self.timing.iteritems():
             timestr = str(time)[0:str(time).find('.') + 2]
             for i, c in enumerate(timestr):
@@ -538,13 +547,6 @@ class OpenDriftSimulation(PhysicsMethods):
             outStr += '%s%7s %s\n' % (indent, timestr, category)
 
         outStr += '--------------------\n'
-        outStr += 'Reader performance:\n'
-        for r in self.readers:
-            reader = self.readers[r]
-            outStr += '--------------------\n'
-            outStr += r + '\n'
-            outStr += reader.performance()
-
         return outStr
 
     def add_reader(self, readers, variables=None):
