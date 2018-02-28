@@ -130,6 +130,8 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         # For each variable/reader group:
         variable_groups, reader_groups, missing_variables = \
             self.get_reader_groups(variables)
+        # Here, the function get_reader_groups
+        # will take into account dataset priority
         for variable in variables:  # Fill with fallback value if no reader
             if (self.fallback_values is not None
                     and variable in self.fallback_values):

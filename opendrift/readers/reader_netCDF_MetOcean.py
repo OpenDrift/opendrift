@@ -29,6 +29,10 @@ from interpolation import ReaderBlock
 # from the file should be used. This is expected to be used mostly when more than one (u,v) pairs are available,
 # to avoid (re)mapping differents u or v components to the same 'x_sea_water_velocity' or 'y_sea_water_velocity' 
 # in OpenDrift, or when we want to read only a single variable from a file (e.g. depth).
+#
+# For reference, there is actually some option to select variables in model.add_reader(variables=['var1']), but this is not exactly doing what 
+# we need here
+#
 # S.Weppe  
 
 # needed to be copid from basereader.py

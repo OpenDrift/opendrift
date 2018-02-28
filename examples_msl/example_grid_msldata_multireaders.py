@@ -37,22 +37,32 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 
 # residual currents
 reader_roms_bob_res3D = reader_netCDF_MetOcean.Reader('C:/metocean/roms_bob_3D_res201312.nc',variables_to_use = ['uo','vo']) # 
-# Note : calling reader_roms_bob_res3D will show which variables it includes, timing, levels, extents etc.. etc..
+# contents of reader can be check by calling reader_roms_bob_res3D - this  will show which variables it includes, timing, levels, extents etc.. etc..
 
 # tidal currents
 reader_roms_bob_tide = reader_netCDF_MetOcean.Reader('C:/metocean/bob_tide_20131201.nc',variables_to_use = ['ut','vt']) # 
 
-# Making customised landmask (Basemap)
+o.add_reader([reader_roms_bob_res3D,reader_roms_bob_tide]) #
+# note the order in which 'readers' are specified matters - the entered first will be used as first choice, second one as fallback etc... 
 
-# reader_basemap = reader_basemap_landmask.Reader(
-#                     llcrnrlon=3.5, llcrnrlat=59.9,
-#                     urcrnrlon=5.5, urcrnrlat=61.2,
-#                     resolution='h', projection='merc')
 
-o.add_reader([reader_roms_bob_res3D,reader_roms_bob_tide]) # 
+## NOTE ----------------------------------------------------
+# 
+# Alternative way to decide which variables in which files (but will not resolve issue when there are several currents (u,v) pairs)
+# 
+# >> when a variable that is required by the model is present in several readers/datasets, we have no control on which one will be used
+# we can force a given reader to use a specified variable , and discard other adding readers one at a time, specifying 'variables
+# e.g
+# reader_1 = reader_netCDF_MetOcean.Reader('file1.nc') # assume file1.nc has variables u,v,hs,tp
+# o.add_reader(reader_1,variables = ['x_sea_water_velocity','y_sea_water_velocity']) # we only want to use u,v
+# reader_2 = reader_netCDF_MetOcean.Reader('file2.nc') # assume file2.nc has variables hs,tp, uwind,vwind
+# o.add_reader(reader_2,variables = ['sea_surface_wave_significant_height']) # we only want to use sea_surface_wave_significant_height from that file
+#-----------------------------------------------------------
 
-# all required variables that can be set using o.fall_back are generally listed 
-# below the model class definition  e.g. see /models/sedimentdrift3D.py, line 36
+import pdb;pdb.set_trace()
+# play with priority list ??
+
+o.list_environment_variables()
 
 ###############################
 # PARTICLE SEEDING
