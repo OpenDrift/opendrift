@@ -34,29 +34,26 @@ reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_c
 reader_roms_cnz_depth.always_valid = True # this is useful if the time vector associated with the bathy does not fit with the simulation time 
 #use always_valid for variables that can be used at all times, such as a bathy 
 
-reader_roms_cnz_dav = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['dep','um','vm'],use_log_profile = True , z0 = 0.001) # i.e. only use the 'dep' variable in that file
+reader_roms_cnz_dav = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['dep','um','vm'],use_log_profile = False , z0 = 0.001) 
+# Note that to be able to do a log extrapolation, the reader must have depth info
 
-reader_roms_cnz_surface = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['us','vs']) # i.e. only use the 'dep' variable in that file
+reader_roms_cnz_surface = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['us','vs']) # 
 
-reader_roms_cnz_3D = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_3D_20050101_20050107.nc',variables_to_use = ['u','v']) # i.e. only use the 'dep' variable in that file
+reader_roms_cnz_3D = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_3D_20050101_20050107.nc',variables_to_use = ['u','v']) #
 
-reader_swan_nzra_surface = reader_netCDF_MetOcean.Reader(data_pth + 'waves_swan_nzra_nz-nzn_20050101_20050107.nc',variables_to_use = ['hs','tp','dpm']) # i.e. only use the 'dep' variable in that file
+reader_swan_nzra_surface = reader_netCDF_MetOcean.Reader(data_pth + 'waves_swan_nzra_nz-nzn_20050101_20050107.nc',variables_to_use = ['hs','tp','dpm']) # 
 
-reader_wrf_nzra1_surface = reader_netCDF_MetOcean.Reader(data_pth + 'winds_nzra1_nz_20050101_20050107.nc',variables_to_use = ['ugrd10m','vgrd10m']) # i.e. only use the 'dep' variable in that file
-
-
->> probably need to "map" hs,tp,dpm, 
-
+reader_wrf_nzra1_surface = reader_netCDF_MetOcean.Reader(data_pth + 'winds_nzra1_nz_20050101_20050107.nc',variables_to_use = ['ugrd10m','vgrd10m']) # 
 
 # Making customised landmask (Basemap)
 # reader_basemap = reader_basemap_landmask.Reader(
 #                     llcrnrlon=172.0, llcrnrlat=-42.0,
 #                     urcrnrlon=175, urcrnrlat=-38.0,
-#                     resolution='h', projection='latlong')
+#                     resolution='h', projection='merc')
 
+>>>> Something wrong here..even when not using the log profile - related to reader somehow -to check
 
-# o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader with depth info when using settling
-o.add_reader([reader_roms_cnz,reader_roms_cnz_depth]) # ** need to add a reader with depth info when using settling
+o.add_reader([reader_roms_cnz_depth,reader_roms_cnz_dav,reader_swan_nzra_surface,reader_wrf_nzra1_surface]) # 
 
  # no vertical diffusion infos available from readers : set fall_back constant values 
 # o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
@@ -105,8 +102,7 @@ o.seed_elements(lon, lat, radius=0, number=1000,time=reader_swan_nzra_surface.st
 ###############################
 
 # these will list all possible options for that model
-o.list_config()
-o.list_configspec()
+
 
 # diffusion - constant in that example
 o.fallback_values['ocean_horizontal_diffusivity'] = 0.5 # specify constant ocean_horizontal_diffusivity in m2.s-1
@@ -137,10 +133,13 @@ o.set_config('turbulentmixing:timestep', 1800)
 # The time step governing the vertical settling (and mixing if ocean_vertical_diffusivity~=0) is :
 # o.set_config('turbulentmixing:timestep', 1800)  # can be set to same as "run" time step to reproduce ERcore behaviour
 
+o.list_config()
+o.list_configspec()
 
 ###############################
 # RUN 
 ###############################
+# import pdb;pdb.set_trace()
 
 # Running model (until end of driver data)
 o.run(time_step=1800, end_time = reader_swan_nzra_surface.start_time + timedelta(days = 7.0), outfile='opendrift_sedimentdrift3d_all_inputs.nc',time_step_output = 1800)

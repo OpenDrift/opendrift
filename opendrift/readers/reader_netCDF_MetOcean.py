@@ -55,6 +55,8 @@ vector_pairs_xy = [
 class Reader(BaseReader):
 
     def __init__(self, filename=None, name=None, variables_to_use = None, **kwargs):
+        
+        self.use_log_profile = False # No extrapolation using logarithmic profile by default
 
         # allow direct initialization of class attribute using kwargs
         for key, value in kwargs.items():
@@ -219,6 +221,7 @@ class Reader(BaseReader):
 
         
         # Map MetOcean variable names to CF standard_name used in OpenDrift
+        # http://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html
         # 
         # see infos on variables names here : https://wiki.metocean.co.nz/display/OPS/Parameter+definitions
         
@@ -230,15 +233,15 @@ class Reader(BaseReader):
             'el': 'sea_surface_height',   # el = et + ssh
             'et': 'sea_surface_height',   # tidal elevation
             'ssh': 'sea_surface_height',  # non-tidal
-            'um': 'x_sea_water_velocity', # depth-averaged total
-            'vm': 'y_sea_water_velocity', # depth-averaged total
-            'us': 'x_sea_water_velocity',  # surface current total 
-            'vs': 'y_sea_water_velocity',  # surface current total
-            'umo': 'x_sea_water_velocity',# depth-averaged non-tidal
-            'vmo': 'y_sea_water_velocity',# depth-averaged non-tidal
+            'um': 'x_sea_water_velocity', # depth-averaged total / eastward_sea_water_velocity
+            'vm': 'y_sea_water_velocity', # depth-averaged total / northward_sea_water_velocity
+            'us': 'x_sea_water_velocity', # surface current total / surface_eastward_sea_water_velocity
+            'vs': 'y_sea_water_velocity', # surface current total / surface_northward_sea_water_velocity
+            'umo': 'x_sea_water_velocity',# depth-averaged non-tidal / eastward_sea_water_velocity_assuming_no_tide
+            'vmo': 'y_sea_water_velocity',# depth-averaged non-tidal / northward_sea_water_velocity_assuming_no_tide
             'ut': 'x_sea_water_velocity', # tide eastward_tidal_current
             'vt': 'y_sea_water_velocity', # tide northward_tidal_current
-            'uo': 'x_sea_water_velocity', # non-tidal current 3D / eastward_geostrophic_current_velocity
+            'uo': 'x_sea_water_velocity', # non-tidal current 3D / eastward_geostrophic_current_velocity geostrophic_eastward_sea_water_velocity
             'vo': 'y_sea_water_velocity', # non-tidal current 3D / northward_geostrophic_current_velocity
             'u': 'x_sea_water_velocity',  # total current 3D
             'v': 'y_sea_water_velocity',  # total current 3D
@@ -255,6 +258,8 @@ class Reader(BaseReader):
             'vuss': 'sea_surface_wave_stokes_drift_y_velocity',
             'hs' : 'sea_surface_wave_significant_height',
             'tp' : 'sea_surface_wave_period_at_variance_spectral_density_maximum',
+            'dpm': 'sea_surface_wave_from_direction',
+            'tm01' : 'sea_surface_wave_mean_period_from_variance_spectral_density_first_frequency_moment',
             'tm02' : 'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
             'lev' : 'z'                    # This should allow correct loading of z levels - if present. TO CHECK 
                                            # lev :   vertical levels for ocean models or data
@@ -742,20 +747,35 @@ class Reader(BaseReader):
         # Apply log profile, if applicable
         ##################################
         self.timer_start('log_profile')
-        if self.use_log_profile and 'x_sea_water_velocity' in variables:
-            if 'sea_floor_depth_below_sea_level' in variables :
-                log_fac = self.logarithmic_current_profile(z, env['sea_floor_depth_below_sea_level'])
-                logging.debug('Applying logarithmic profile to depth-averaged currents')
-                env['x_sea_water_velocity'] = env['x_sea_water_velocity'] * log_fac
-                env['y_sea_water_velocity'] = env['y_sea_water_velocity'] * log_fac
+        # Need to build a "readerblock" for 'sea_floor_depth_below_sea_level'
+        # to get total water depth a particle locations
+        # **this is needed only if we use a log profile, and only once (assuming depth doesnt change over time for now)
 
-            else :
-                logging.debug('required variable ''sea_floor_depth_below_sea_level'' not available')
-                logging.debug('can not apply logarithmic profile - passing')
-                pass 
+        if self.use_log_profile and 'x_sea_water_velocity' in variables:
+            # build interpolator
+            if not hasattr(self,'water_depth_readerblock'):
+                import pdb;pdb.set_trace()
+                logging.debug('Building ''sea_floor_depth_below_sea_level'' interpolator for logarithmic profile extrapolation')
+                if 'sea_floor_depth_below_sea_level' in self.variables :
+                    water_depth = self._get_variables(['sea_floor_depth_below_sea_level'], profiles,profiles_depth,time,reader_x, reader_y, z,block=block)
+                    water_depth_interp = ReaderBlock(water_depth,interpolation_horizontal=self.interpolation)
+                    del water_depth
+                else:
+                    logging.debug('required variable ''sea_floor_depth_below_sea_level'' not available')
+                    logging.debug('can not apply logarithmic profile - passing')
+                pass
+            # import pdb;pdb.set_trace()
+            # get total water depth at particle (lon,lat)
+            water_depth_at_part,tmp = water_depth_interp.interpolate(lon,lat,variables = ['sea_floor_depth_below_sea_level'])
+            del tmp
+
+            log_fac = self.logarithmic_current_profile(z, water_depth_at_part['sea_floor_depth_below_sea_level'])
+            logging.debug('Applying logarithmic profile to depth-averaged currents')
+            logging.debug('\t\t%s   <- log_ratios ->   %s' % (np.min(log_fac), np.max(log_fac)))
+            env['x_sea_water_velocity'] = env['x_sea_water_velocity'] * log_fac
+            env['y_sea_water_velocity'] = env['y_sea_water_velocity'] * log_fac
                 
         self.timer_end('log_profile')
-
 
         self.timer_end('total')
 
