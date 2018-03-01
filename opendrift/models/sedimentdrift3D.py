@@ -496,23 +496,21 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
             logging.debug('Warning = some horizontal diffusion already accounted for using drift:current_uncertainty')
 
         diff_fac = 6 # 6 is used in PyGnome as well, but can be = 2 in other formulations, such as in the CMS model - hard coded for now
-        K_xy = self.environment.ocean_horizontal_diffusivity # horizontal diffusion coefficient in m2/s
-        max_diff_distance = np.sqrt(diff_fac * self.time_step.seconds * K_xy) # max diffusion distance in [meters] over that time step
-        
-        # add randomness - using uniform distribution (i.e. same probabilty for each value) - note some formulations use "normal" distribution
-        diff_distance = np.random.uniform(-1,1,size = len(max_diff_distance)) * max_diff_distance 
-        # convert to an equivalent velocity vector to fit with the update_position subroutine
-        diff_velocity = diff_distance /  self.time_step.seconds #  diffusion velocity in [m/s]
-        # split into (Vx,Vy) components, using random diffusion "directions"
-        theta_rand = np.random.uniform(0,2*np.pi,size = len(max_diff_distance))    
+        K_xy = self.environment.ocean_horizontal_diffusivity # horizontal diffusion coefficient in [m2/s]
+        # max diffusion distance in meters is : max_diff_distance = np.sqrt(diff_fac * K_xy * self.time_step.seconds)
+        # here we need velocity to fit with the update_position() subroutine
+        # max_diff_velocity = max_diff_distance / self.time_step.seconds = np.sqrt(diff_fac * K_xy / self.time_step.seconds) 
+        max_diff_velocity = np.sqrt(diff_fac * K_xy / self.time_step.seconds) # max diffusion velocity in [m/s]
+        # add randomness - random number in [-1,1] using uniform distribution i.e. same probabilty for each value (note some other formulations may use "normal" distribution)
+        diff_velocity = np.random.uniform(-1,1,size = len(max_diff_velocity)) * max_diff_velocity # in [m/s]
+        # random directions
+        theta_rand = np.random.uniform( 0, 2*np.pi, size = len(max_diff_velocity) )
+        # split diff_velocity into (u,v) velocities using random directions
         x_vel = diff_velocity * np.cos(theta_rand)
         y_vel = diff_velocity * np.sin(theta_rand)
-        #
-        # other option could be to compute (diff_distance_x,diff_distance_y) but not sure this would be correct ?
-        #
-        # update positions, adding the diffusion "velocities"       
-        self.update_positions(x_vel, y_vel)
 
+        # update positions with the diffusion velocities     
+        self.update_positions(x_vel, y_vel)
 
     def update(self):
         """Update positions and properties of elements."""

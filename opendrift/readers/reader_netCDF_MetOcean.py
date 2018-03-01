@@ -248,7 +248,14 @@ class Reader(BaseReader):
             'sst': 'sea_water_temperature',
             'salt': 'sea_water_salinity',
             'ugrd10m': 'x_wind', # x_wind_10m
-            'vgrd10m': 'y_wind', # y_wind_10m
+            'vgrd10m': 'y_wind', # y_wind_10m        
+            'eastward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_x_velocity',
+            'northward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_y_velocity',
+            'uuss': 'sea_surface_wave_stokes_drift_x_velocity',
+            'vuss': 'sea_surface_wave_stokes_drift_y_velocity',
+            'hs' : 'sea_surface_wave_significant_height',
+            'tp' : 'sea_surface_wave_period_at_variance_spectral_density_maximum',
+            'tm02' : 'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
             'lev' : 'z'                    # This should allow correct loading of z levels - if present. TO CHECK 
                                            # lev :   vertical levels for ocean models or data
             }
