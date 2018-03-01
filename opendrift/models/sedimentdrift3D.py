@@ -122,6 +122,8 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
                          interpolated to requested positions/time.
 
         '''
+        add_water_velocity = False
+
         self.timer_start('main loop:readers')
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
@@ -130,6 +132,7 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         # For each variable/reader group:
         variable_groups, reader_groups, missing_variables = \
             self.get_reader_groups(variables)
+
         # Here, the function get_reader_groups
         # will take into account dataset priority
         for variable in variables:  # Fill with fallback value if no reader
@@ -144,6 +147,15 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
             logging.debug('----------------------------------------')
             reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
+            
+            # -------------------------------------------------------------------------------
+            # allow addition of several ['x_sea_water_velocity','y_sea_water_velocity'] pairs
+            # add_water_velocity = False by default
+            if 'x_sea_water_velocity' in variable_group and len(reader_group)>1:
+            # i.e. the "current" variables interpolated are ['x_sea_water_velocity','y_sea_water_velocity']
+            # and there are several readers for these : allow addition
+                add_water_velocity = True 
+            #--------------------------------------------------------------------------------
 
             # For each reader:
             for reader_name in reader_group:
@@ -168,14 +180,14 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
                             profiles_from_reader = None
                     else:
                         profiles_from_reader = None
-                    
-                    if 'x_sea_water_velocity' in variable_group and 'env_tmp' in locals():
-                        # special case when we want to add [x_sea_water_velocity,y_sea_water_velocity] from 
-                        # reader_name to the [x_sea_water_velocity,y_sea_water_velocity] that were obtained from 
-                        # a previous reader
-                        # e.g. adding tidal currents and residual currents
-                        # 
-                        # 
+
+                    if 'env_tmp' in locals() and add_water_velocity and 'x_sea_water_velocity' in reader.variables: 
+                        # adding a special case when we add  ['x_sea_water_velocity','y_sea_water_velocity']
+                        # this happens only if :
+                        # env_tmp exists, which means a first interpoloation round happened
+                        # there are more than 1 "reader" for the velocities, and
+                        # we do want to use the velocity from that reader (possibly specified by variables_to_use when calling the reader)
+                        #
                         logging.debug('Several readers available for %s : ' % (variable_group) )
                         logging.debug('%s' % (reader_group) )
                         logging.debug('Adding currents from reader : ' +  reader_name )
@@ -201,8 +213,10 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
                             env_profiles_tmp['x_sea_water_velocity'] += env_profiles_tmp1['x_sea_water_velocity']
                             env_profiles_tmp['y_sea_water_velocity'] += env_profiles_tmp1['y_sea_water_velocity']
 
-                    else : # standard case - for all other variables groups
-                        # Fetch given variables at given positions from current reader
+                    else :
+                    # standard case - for all other variables groups or when there are only one reader for 
+                    # ['x_sea_water_velocity','y_sea_water_velocity']
+                    # Fetch given variables at given positions from current reader
                         env_tmp, env_profiles_tmp = \
                             reader.get_variables_interpolated(
                                 variable_group, profiles_from_reader,
@@ -279,15 +293,18 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
                                reader_name.replace(':', '<colon>'))
                 if len(missing_indices) == 0:
                     logging.debug('Obtained data for all elements.')
+                    #---------------------------------------------------------------------------------------
                     # if the current variables_group is ['x_sea_water_velocity','y_sea_water_velocity'], and 
-                    # that are more than one reader available for that group , we try to add the current (x,y) component pairs
+                    # that are more than one reader available for that group , we add the velocity components
                     # rather than exiting the loop now
-                    if 'x_sea_water_velocity' in variable_group and len(reader_group)>1 :
+                    if 'x_sea_water_velocity' in variable_group and add_water_velocity :
                         pass
                     else : 
+                    # standard case :    
                     # variable_group other than ['x_sea_water_velocity','y_sea_water_velocity'] should not need to be combined
                     # exit the loop now
                         break
+                    #---------------------------------------------------------------------------------------
                 else:
                     logging.debug('Data missing for %i elements.' %
                                   (len(missing_indices)))
@@ -488,7 +505,7 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
  
         '''
         if not self.environment.ocean_horizontal_diffusivity.any():
-            logging.debug('No horizontal diffusion applied - ocean_horizontal_diffusivity = 0')
+            logging.debug('No horizontal diffusion applied - ocean_horizontal_diffusivity = 0.0')
             pass
 
         # check if some diffusion is not already accounted for using drift:current_uncertainty
@@ -508,6 +525,9 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         # split diff_velocity into (u,v) velocities using random directions
         x_vel = diff_velocity * np.cos(theta_rand)
         y_vel = diff_velocity * np.sin(theta_rand)
+
+        logging.debug('Applying horizontal diffusion to particle positions')
+        logging.debug('\t\t%s   <- horizontal diffusion distance [m] ->   %s' % (np.min(diff_velocity*self.time_step.seconds), np.max(diff_velocity*self.time_step.seconds)))
 
         # update positions with the diffusion velocities     
         self.update_positions(x_vel, y_vel)

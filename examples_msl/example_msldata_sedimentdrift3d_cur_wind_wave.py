@@ -30,11 +30,11 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 ###############################
 data_pth = 'C:/Users/simon/Google Drive/R&D/OpenDrift/data_testing/'
 
-reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['dep']) # i.e. only use the 'dep' variable in that file
+reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_dep.nc',variables_to_use = ['dep']) # i.e. only use the 'dep' variable in that file
 reader_roms_cnz_depth.always_valid = True # this is useful if the time vector associated with the bathy does not fit with the simulation time 
 #use always_valid for variables that can be used at all times, such as a bathy 
 
-reader_roms_cnz_dav = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['dep','um','vm'],use_log_profile = False , z0 = 0.001) 
+reader_roms_cnz_dav = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['dep','um','vm'],use_log_profile = True , z0 = 0.001) 
 # Note that to be able to do a log extrapolation, the reader must have depth info
 
 reader_roms_cnz_surface = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['us','vs']) # 
@@ -51,9 +51,12 @@ reader_wrf_nzra1_surface = reader_netCDF_MetOcean.Reader(data_pth + 'winds_nzra1
 #                     urcrnrlon=175, urcrnrlat=-38.0,
 #                     resolution='h', projection='merc')
 
->>>> Something wrong here..even when not using the log profile - related to reader somehow -to check
+# >>>> Something wrong here..even when not using the log profile - related to reader somehow -to check
 
-o.add_reader([reader_roms_cnz_depth,reader_roms_cnz_dav,reader_swan_nzra_surface,reader_wrf_nzra1_surface]) # 
+# o.add_reader([reader_roms_cnz_depth,reader_roms_cnz_dav,reader_swan_nzra_surface,reader_wrf_nzra1_surface]) # 
+o.add_reader([reader_roms_cnz_depth,reader_roms_cnz_3D,reader_swan_nzra_surface,reader_wrf_nzra1_surface]) # 
+
+
 
  # no vertical diffusion infos available from readers : set fall_back constant values 
 # o.fallback_values['ocean_vertical_diffusivity'] = 0.0001

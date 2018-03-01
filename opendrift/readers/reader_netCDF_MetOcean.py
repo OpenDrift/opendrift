@@ -62,7 +62,6 @@ class Reader(BaseReader):
         for key, value in kwargs.items():
             setattr(self, key, value)
         #------------------------------------------------------------
-
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
 
@@ -753,25 +752,24 @@ class Reader(BaseReader):
 
         if self.use_log_profile and 'x_sea_water_velocity' in variables:
             # build interpolator
-            if not hasattr(self,'water_depth_readerblock'):
-                import pdb;pdb.set_trace()
+            if not hasattr(self,'water_depth_interp'):
                 logging.debug('Building ''sea_floor_depth_below_sea_level'' interpolator for logarithmic profile extrapolation')
                 if 'sea_floor_depth_below_sea_level' in self.variables :
                     water_depth = self._get_variables(['sea_floor_depth_below_sea_level'], profiles,profiles_depth,time,reader_x, reader_y, z,block=block)
-                    water_depth_interp = ReaderBlock(water_depth,interpolation_horizontal=self.interpolation)
+                    self.water_depth_interp = ReaderBlock(water_depth,interpolation_horizontal=self.interpolation)
                     del water_depth
                 else:
-                    logging.debug('required variable ''sea_floor_depth_below_sea_level'' not available')
+                    logging.debug('required variable ''sea_floor_depth_below_sea_level'' not available in reader %s' % (self.name))
                     logging.debug('can not apply logarithmic profile - passing')
                 pass
-            # import pdb;pdb.set_trace()
-            # get total water depth at particle (lon,lat)
-            water_depth_at_part,tmp = water_depth_interp.interpolate(lon,lat,variables = ['sea_floor_depth_below_sea_level'])
+
+            # get total water depth at particle positions (lon,lat)
+            water_depth_at_part,tmp = self.water_depth_interp.interpolate(lon,lat,variables = ['sea_floor_depth_below_sea_level'])
             del tmp
 
             log_fac = self.logarithmic_current_profile(z, water_depth_at_part['sea_floor_depth_below_sea_level'])
             logging.debug('Applying logarithmic profile to depth-averaged currents')
-            logging.debug('\t\t%s   <- log_ratios ->   %s' % (np.min(log_fac), np.max(log_fac)))
+            logging.debug('\t\t%s   <- log_ratios[-] ->   %s' % (np.min(log_fac), np.max(log_fac)))
             env['x_sea_water_velocity'] = env['x_sea_water_velocity'] * log_fac
             env['y_sea_water_velocity'] = env['y_sea_water_velocity'] * log_fac
                 

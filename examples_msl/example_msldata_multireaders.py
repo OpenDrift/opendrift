@@ -59,7 +59,7 @@ o.add_reader([reader_roms_bob_res3D,reader_roms_bob_tide]) #
 # o.add_reader(reader_2,variables = ['sea_surface_wave_significant_height']) # we only want to use sea_surface_wave_significant_height from that file
 #-----------------------------------------------------------
 
-import pdb;pdb.set_trace()
+# import pdb;pdb.set_trace()
 # play with priority list ??
 
 o.list_environment_variables()

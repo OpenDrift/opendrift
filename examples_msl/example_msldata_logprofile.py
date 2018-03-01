@@ -28,7 +28,7 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 # reader with option to extrapolate currents to any vertical level z, using a log profile
 # The netcdf file must have depth information , besides the depth-averaged currents (u,v)
 # 
-reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['um','vm','dep'], always_valid = False, use_log_profile = False , z0 = 0.001)
+reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['um','vm','dep'], always_valid = False, use_log_profile = True , z0 = 0.001)
 
 o.add_reader([reader_roms_cnz]) # 
 
