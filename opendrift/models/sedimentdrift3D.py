@@ -97,6 +97,8 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         # resuspension switched off by default
         self.set_config('processes:resuspension', False)
 
+        self.max_speed = 1.5
+
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
         This version was initially copied from basemodel.py, and modified to 

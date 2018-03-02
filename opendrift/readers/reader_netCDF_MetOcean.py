@@ -595,6 +595,7 @@ class Reader(BaseReader):
                 reader_x, reader_y) is False or \
                 self.var_block_after[str(variables)].covers_positions(
                     reader_x, reader_y) is False:
+                import pdb;pdb.set_trace()
                 logging.warning('Data block from %s not large enough to '
                                 'cover element positions within timestep. '
                                 'Buffer size (%s) must be increased.' %
