@@ -31,13 +31,13 @@ class TestLeeway(unittest.TestCase):
 
     def test_leewayprop(self):
         """Check that Leeway properties are properly read."""
-        self.objectType = 50  # FISHING-VESSEL-1
+        self.objectType = 85  # MED-WASTE-7
         self.lee = Leeway(loglevel=20)
         objectType = self.objectType
         self.assertEqual(self.lee.leewayprop[objectType]
                          ['Description'],
-                         'Fishing vessel, general (mean values)')
-        self.assertEqual(self.lee.leewayprop[objectType]['DWSLOPE'], 2.47)
+                         '>>Medical waste, syringes, small')
+        self.assertEqual(self.lee.leewayprop[objectType]['DWSLOPE'], 1.79)
 
     def test_leewayrun(self):
         """Test the expected Leeway left/right split."""

@@ -176,6 +176,13 @@ class Reader(BaseReader):
                 self.lat = self.lat[:]
                 self.projected = False
 
+        if 'latlong' in self.proj4 and self.xmax > 360:
+            logging.info('Longitudes > 360 degrees, subtracting 360')
+            self.xmin -= 360
+            self.xmax -= 360
+            self.x -= 360
+            self.x -= 360
+
         # Find all variables having standard_name
         self.variable_mapping = {}
         for var_name in self.Dataset.variables:
@@ -336,7 +343,7 @@ class Reader(BaseReader):
         if self.global_coverage():
             if self.xmax + self.delta_x >= 360:
                 variables['x'][variables['x']>180] -= 360
-
+        
         variables['time'] = nearestTime
 
         return variables
