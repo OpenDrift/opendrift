@@ -30,43 +30,20 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 ###############################
 data_pth = 'C:/Users/simon/Google Drive/R&D/OpenDrift/data_testing/'
 
-reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_dep.nc',variables_to_use = ['dep']) # i.e. only use the 'dep' variable in that file
-reader_roms_cnz_depth.always_valid = True # this is useful if the time vector associated with the bathy does not fit with the simulation time 
-#use always_valid for variables that can be used at all times, such as a bathy 
-
-reader_roms_cnz_dav = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['dep','um','vm'],use_log_profile = True , z0 = 0.001) 
-# Note that to be able to do a log extrapolation, the reader must have depth info
-
-reader_roms_cnz_surface = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_surf_20050101_20050107.nc',variables_to_use = ['us','vs']) # 
-
-reader_roms_cnz_3D = reader_netCDF_MetOcean.Reader(data_pth + 'current_roms_cnz_3D_20050101_20050107.nc',variables_to_use = ['u','v']) #
-
-reader_swan_nzra_surface = reader_netCDF_MetOcean.Reader(data_pth + 'waves_swan_nzra_nz-nzn_20050101_20050107.nc',variables_to_use = ['hs','tp','dpm']) # 
-
-reader_wrf_nzra1_surface = reader_netCDF_MetOcean.Reader(data_pth + 'winds_nzra1_nz_20050101_20050107.nc',variables_to_use = ['ugrd10m','vgrd10m']) # 
+reader_ww3_wave = reader_netCDF_MetOcean.Reader(data_pth + 'ww3_indiano_20150101_201501007.nc') # Use all variables 
+reader_cfsr2_current = reader_netCDF_MetOcean.Reader(data_pth + 'cfsr2_uv_20150101_201501007.nc')  # residual surface current only
 
 # Making customised landmask (Basemap)
 reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=172.0, llcrnrlat=-42.0,
-                    urcrnrlon=175, urcrnrlat=-38.0,
-                    resolution='c', projection='merc') # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)
+                    llcrnrlon=20.0, llcrnrlat=-60.0,
+                    urcrnrlon=60.0, urcrnrlat=-0.0,
+                    resolution='l', projection='merc') # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)
 
-# In general, each variable should be input only once to avoid any confusion (expect ['x_sea_water_velocity','y_sea_water_velocity'])
-# there seems to be some issues when 'dep' input twice for example
 o.add_reader([reader_basemap,reader_roms_cnz_dav,reader_swan_nzra_surface,reader_wrf_nzra1_surface]) # 
-
-
-
- # no vertical diffusion infos available from readers : set fall_back constant values 
-# o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
-
-# all required variables that can be set using o.fall_back are generally listed 
-# below the model class definition  e.g. see /models/sedimentdrift3D.py, line 36
 
 ###############################
 # PARTICLE SEEDING
 ###############################
-
 
 # Seeding some particles
 # lons = np.linspace(3.5, 5.0, 100)
