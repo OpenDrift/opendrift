@@ -2292,7 +2292,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.get_map_background(map, background,
                                             time=times[i])
                 map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                               vmin=vmin, vmax=vmax)
+                               vmin=vmin, vmax=vmax, cmap=cmap)
                 if type(background) is list:
                     map.quiver(map_x[::skip, ::skip],
                                map_y[::skip, ::skip],
