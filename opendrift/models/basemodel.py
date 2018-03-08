@@ -2284,7 +2284,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.get_map_background(map, background,
                                             time=times[i])
                 map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                               vmin=vmin, vmax=vmax)
+                               vmin=vmin, vmax=vmax, cmap=cmap)
                 if type(background) is list:
                     map.quiver(map_x[::skip, ::skip],
                                map_y[::skip, ::skip],
@@ -2563,7 +2563,7 @@ class OpenDriftSimulation(PhysicsMethods):
              show=True, vmin=None, vmax=None, compare=None,
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
-             surface_color=None, submerged_color=None,
+             surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
@@ -2664,19 +2664,19 @@ class OpenDriftSimulation(PhysicsMethods):
             color_active = 'gray'
 
         map.scatter(x[range(x.shape[0]), index_of_first],
-                    y[range(x.shape[0]), index_of_first],
+                    y[range(x.shape[0]), index_of_first], s=markersize,
                     zorder=10, edgecolor='k', linewidths=.2,
                     color=color_initial, label=label_initial)
         if surface_color is not None:
             color_active = surface_color
             label_active = 'surface'
         map.scatter(x[range(x.shape[0]), index_of_last],
-                    y[range(x.shape[0]), index_of_last],
+                    y[range(x.shape[0]), index_of_last], s=markersize,
                     zorder=3, edgecolor='k', linewidths=.2,
                     color=color_active, label=label_active)
         #if submerged_color is not None:
         #    map.scatter(x[range(x.shape[0]), index_of_last],
-        #                y[range(x.shape[0]), index_of_last],
+        #                y[range(x.shape[0]), index_of_last], s=markersize,
         #                zorder=3, edgecolor='k', linewidths=.2,
         #                color=submerged_color, label='submerged')
 
@@ -2709,6 +2709,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     color_status = 'gray'
                 map.scatter(x_deactivated[indices], y_deactivated[indices],
+                            s=markersize,
                             zorder=zorder, edgecolor='k', linewidths=.1,
                             color=color_status, label=legstr)
 
@@ -2723,6 +2724,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 map.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i] + '-', label='_nolegend_')
                 map.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
                     c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
+                    s=markersize,
                     zorder=3, edgecolor='k', linewidths=.2,
                     color=self.plot_comparison_colors[i])
 
