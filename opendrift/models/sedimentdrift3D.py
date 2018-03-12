@@ -13,6 +13,7 @@
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2018, Simon, MetOcean Solutions Ltd.
 
 import numpy as np
 import logging
