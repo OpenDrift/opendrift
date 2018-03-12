@@ -1027,6 +1027,7 @@ class BaseReader(object):
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)
             map_x, map_y = map(rlon, rlat, inverse=False)
+            data[variable] = np.ma.masked_invalid(data[variable])
             map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
             cbar = map.colorbar()
             cbar.set_label(variable)

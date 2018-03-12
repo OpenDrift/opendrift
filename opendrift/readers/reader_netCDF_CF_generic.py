@@ -251,6 +251,8 @@ class Reader(BaseReader):
         else:
             indx[outside] = 0  # To be masked later
             indy[outside] = 0
+        if indx.min() <= 0 and indx.max() >= self.numx:
+            indx = np.arange(0, self.numx)
 
         variables = {}
 
@@ -341,7 +343,7 @@ class Reader(BaseReader):
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
         if self.global_coverage():
-            if self.xmax + self.delta_x >= 360:
+            if self.xmax + self.delta_x >= 360 and self.xmin > 180:
                 variables['x'][variables['x']>180] -= 360
         
         variables['time'] = nearestTime
