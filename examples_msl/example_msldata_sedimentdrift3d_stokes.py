@@ -39,7 +39,7 @@ reader_basemap = reader_basemap_landmask.Reader(
                     urcrnrlon=60.0, urcrnrlat=-0.0,
                     resolution='l', projection='merc') # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)
 
-o.add_reader([reader_basemap,reader_roms_cnz_dav,reader_swan_nzra_surface,reader_wrf_nzra1_surface]) # 
+o.add_reader([reader_basemap,reader_cfsr2_current]) # reader_ww3_wave
 
 ###############################
 # PARTICLE SEEDING
@@ -50,24 +50,11 @@ o.add_reader([reader_basemap,reader_roms_cnz_dav,reader_swan_nzra_surface,reader
 # lats = np.linspace(60, 61, 100)
 # 
 #  Point release
-lon = 173.7366
-lat = -40.1893
+lon = 39.1915
+lat = -44.3692
 
-#  Rectangle release
-# lons = np.linspace(170.0,170.5, 100) 
-# lats = np.linspace(-39.5,-39.0, 100)
-# lons, lats = np.meshgrid(lons, lats)
-# lons = lons.ravel()
-# lats = lats.ravel()
-#
-
-# Seed oil elements at defined position and time
-
-# o.seed_elements(lons, lats, radius=0, number=10000,
-#                 time=reader_roms_cnz.start_time)
-
-o.seed_elements(lon, lat, radius=0, number=10,time=reader_swan_nzra_surface.start_time,
-                 z=0.0, terminal_velocity = -0.001) # wind_drift_factor = 0.04 ) # age_seconds = 0,)
+o.seed_elements(lon, lat, radius=0, number=10,time=reader_cfsr2_current.start_time,
+                 z=0.0, terminal_velocity = -0.000) # wind_drift_factor = 0.04 ) # age_seconds = 0,)
 
 # specific element variable such as terminal_velocity, can be specified here. 
 # terminal_velocity>0 particle moves up, terminal_velocity<0 particle moves down
@@ -98,7 +85,7 @@ o.set_config('drift:tabularised_stokes_drift_fetch','25000')
 #processes
 o.set_config('processes:verticaladvection' , False) # no vertical current available, so no vertical advection
 o.set_config('processes:resuspension',False) # already False be default but just for reference 
-o.set_config('processes:turbulentmixing', True) 
+o.set_config('processes:turbulentmixing', False) 
 # Note that turbulentmixing include the buoyancy-related settling for now (terminal_velocity)
 # if False, no vertical mixing NOR settling will occur - might need to be changed to allow pure buoyancy-drive settling and skip the vertical mixing computations?
 # 
@@ -106,14 +93,7 @@ o.set_config('processes:turbulentmixing', True)
 o.set_config('turbulentmixing:diffusivitymodel', 'environment') # i.e. specified from model or constant
 o.set_config('turbulentmixing:TSprofiles',False)
 o.set_config('turbulentmixing:timestep', 1800)  
-# if some ocean_vertical_diffusivity!=0, turbulentmixing:timestep should be less than 900 seconds (15min)
-# if ocean_vertical_diffusivity == 0 then the vertical motion will be driven only by buoyancy set by terminal_velocity
-# so this could be set the same time_step as the simulation time_step
 
-# i.e to use a given settling velocity : terminal_velocity, with no added vertical diffusion use :
-# o.fallback_values['ocean_vertical_diffusivity'] = 0.0
-# The time step governing the vertical settling (and mixing if ocean_vertical_diffusivity~=0) is :
-# o.set_config('turbulentmixing:timestep', 1800)  # can be set to same as "run" time step to reproduce ERcore behaviour
 
 o.list_config()
 o.list_configspec()
@@ -122,49 +102,9 @@ o.list_configspec()
 # RUN 
 ###############################
 # import pdb;pdb.set_trace()
-if True:
-    # Running model (until end of driver data)
-    o.run(time_step=1800, end_time = reader_swan_nzra_surface.start_time + timedelta(days = 7.0), outfile='opendrift_sedimentdrift3d_all_inputs.nc',time_step_output = 1800)
-    # the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
-return
-
-###############################
-# TEST CASES = No diffusion - only one particle settling
-###############################
-# o.set_config('drift:scheme','euler') # or 'runge-kutta'
-# o.set_config('drift:stokes_drift', False)
-# o.set_config('drift:use_tabularised_stokes_drift', False)
-# o.set_config('drift:tabularised_stokes_drift_fetch','25000')
-# o.run(time_step=1800, end_time = reader_swan_nzra_surface.start_time + timedelta(days = 7.0), outfile='opendrift_sedimentdrift3d_euler_nostokes.nc',time_step_output = 1800)
-
-# o.set_config('drift:scheme','runge-kutta') # or 'runge-kutta'
-# o.set_config('drift:stokes_drift', False)
-# o.set_config('drift:use_tabularised_stokes_drift', False)
-# o.set_config('drift:tabularised_stokes_drift_fetch','25000')
-# o.run(time_step=1800, end_time = reader_swan_nzra_surface.start_time + timedelta(days = 7.0), outfile='opendrift_sedimentdrift3d_runge-kutta_nostokes.nc',time_step_output = 1800)
-# o.plot()
-
-# o.set_config('drift:scheme','euler') # or 'runge-kutta'
-# o.set_config('drift:stokes_drift', True)
-# o.set_config('drift:use_tabularised_stokes_drift', False)
-# o.set_config('drift:tabularised_stokes_drift_fetch','25000')
-# o.run(time_step=1800, end_time = reader_swan_nzra_surface.start_time + timedelta(days = 7.0), outfile='opendrift_sedimentdrift3d_euler_stokes.nc',time_step_output = 1800)
-# # o.plot()
-# >>Stokes not compute is use_tabularised_stokes_drift:False and no [x,y] stokes components are inputs
-
-# o.set_config('drift:scheme','euler') # or 'runge-kutta'
-# o.set_config('drift:stokes_drift', True)
-# o.set_config('drift:use_tabularised_stokes_drift', True)
-# o.set_config('drift:tabularised_stokes_drift_fetch','25000')
-# o.run(time_step=1800, end_time = reader_swan_nzra_surface.start_time + timedelta(days = 7.0), outfile='opendrift_sedimentdrift3d_euler_stokes_param.nc',time_step_output = 1800)
-# o.plot()
-
-# test windage also - can be input there > o.seed_elements(...wind_drift_factor = 0.02 ....
-# o.set_config('drift:scheme','euler') # or 'runge-kutta'
-# o.set_config('drift:stokes_drift', True)
-# o.set_config('drift:use_tabularised_stokes_drift', True)
-# o.set_config('drift:tabularised_stokes_drift_fetch','25000')
-# o.run(time_step=1800, end_time = reader_swan_nzra_surface.start_time + timedelta(days = 7.0), outfile='opendrift_sedimentdrift3d_euler_stokes_param_windage4prc.nc',time_step_output = 1800)
+# Running model (until end of driver data)
+o.run(time_step=1800, end_time = reader_cfsr2_current.start_time + timedelta(days = 7.0), outfile='opendrift_sedimentdrift3d_all_inputs.nc',time_step_output = 1800)
+# the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
 
 ###############################
 # PLOTS / ANIMATION
@@ -172,6 +112,6 @@ return
 
 
 # Print and plot results
-# print o
+print o
 # o.animation()
-# o.plot()
+o.plot()

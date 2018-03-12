@@ -247,8 +247,9 @@ class Reader(BaseReader):
             'w': 'upward_sea_water_velocity',
             'uso': 'x_sea_water_velocity', #surface layer non-tidal current (5 m below sea level) / surface_geostrophic_eastward_sea_water_velocity
             'vso': 'y_sea_water_velocity', #surface layer non-tidal current (5 m below sea level) / surface_geostrophic_northward_sea_water_velocity
-            'sst': 'sea_water_temperature',
-            'salt': 'sea_water_salinity',
+            'sst': 'sea_water_temperature', # sea surface temperature - cannot be used at the moment
+            'temp': 'sea_water_temperature', # 3D water temperature
+            'salt': 'sea_water_salinity',    # 3D salinity
             'ugrd10m': 'x_wind', # x_wind_10m
             'vgrd10m': 'y_wind', # y_wind_10m        
             'eastward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_x_velocity',
