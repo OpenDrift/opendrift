@@ -1026,6 +1026,17 @@ class BaseReader(object):
             rlon, rlat = self.xy2lonlat(rx, ry)
             map_x, map_y = map(rlon, rlat, inverse=False)
             data[variable] = np.ma.masked_invalid(data[variable])
+            if hasattr(self, 'convolve'):
+                from scipy import ndimage
+                N = self.convolve
+                if isinstance(N, (int, np.integer)):
+                    kernel = np.ones((N, N))
+                    kernel = kernel/kernel.sum()
+                else:
+                    kernel = N
+                logging.debug('Convolving variables with kernel: %s' % kernel)
+                data[variable] = ndimage.convolve(
+                            data[variable], kernel, mode='nearest')
             map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
             cbar = map.colorbar()
             cbar.set_label(variable)
