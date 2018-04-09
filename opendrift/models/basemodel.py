@@ -2560,7 +2560,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return compare_list
 
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
-             show=True, vmin=None, vmax=None, compare=None,
+             show=True, vmin=None, vmax=None, compare=None, cmap='jet',
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
              surface_color=None, submerged_color=None, markersize=20,
@@ -2746,8 +2746,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
             if show_scalar is True:
                 if contourlines is False:
+                    scalar = np.ma.masked_invalid(scalar)
                     map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                                   vmin=vmin, vmax=vmax)
+                                   vmin=vmin, vmax=vmax, cmap=cmap)
                 else:
                     if contourlines is True:
                         CS = map.contour(map_x, map_y, scalar,
@@ -2761,7 +2762,9 @@ class OpenDriftSimulation(PhysicsMethods):
                     map.colorbar(location='bottom', pad='5%', size='3%')
 
             if type(background) is list:
-                map.quiver(map_x[::skip, ::skip], map_y[::skip, ::skip],
+                delta_x = (map_x[1,2] - map_x[1,1])/2.
+                delta_y = (map_y[2,1] - map_y[1,1])/2.
+                map.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
                            u_component[::skip, ::skip],
                            v_component[::skip, ::skip], scale=scale)
 
@@ -2845,7 +2848,22 @@ class OpenDriftSimulation(PhysicsMethods):
         reader_y = reader_y - reader.delta_y
 
         rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
+        if rlons.max() > 360:
+            rlons = rlons - 360
         map_x, map_y = map(rlons, rlats)
+
+        scalar = np.ma.masked_invalid(scalar)
+        if hasattr(reader, 'convolve'):
+            from scipy import ndimage
+            N = reader.convolve
+            if isinstance(N, (int, np.integer)):
+                kernel = np.ones((N, N))
+                kernel = kernel/kernel.sum()
+            else:
+                kernel = N
+            logging.debug('Convolving variables with kernel: %s' % kernel)
+            scalar = ndimage.convolve(
+                scalar, kernel, mode='nearest')
 
         return map_x, map_y, scalar, u_component, v_component
 
