@@ -316,8 +316,7 @@ class Reader(BaseReader):
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
-
-        if hasattr(self, 'z') and (z is not None): 
+        if hasattr(self, 'z') and (z is not None): # 3D interpolation
             # Find z-index range
             # NB: may need to flip if self.z is ascending
             indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
@@ -327,7 +326,7 @@ class Reader(BaseReader):
                                         self.verticalbuffer))
             if len(indz) == 1:
                 indz = indz[0]  # Extract integer to read only one layer
-        else:
+        else: # 2D interpolation
             indz = 0
 
         if indrealization == None:
@@ -596,11 +595,11 @@ class Reader(BaseReader):
                 reader_x, reader_y) is False or \
                 self.var_block_after[str(variables)].covers_positions(
                     reader_x, reader_y) is False:
-                import pdb;pdb.set_trace()
                 logging.warning('Data block from %s not large enough to '
                                 'cover element positions within timestep. '
                                 'Buffer size (%s) must be increased.' %
                                 (self.name, str(self.buffer)))
+                import pdb;pdb.set_trace()
 
             self.timer_end('preparing')
             ############################################################

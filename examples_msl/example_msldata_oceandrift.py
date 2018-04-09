@@ -25,8 +25,8 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 # READERS
 ###############################
 
-# reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc') # this file has several u,v variable which confuses which to use - to fix by specifying which variables to use ? 
-reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz_surf_res200401.nc') # only uso,vso in this one - seems to be recognized ok 
+# reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\metocean\cnz_surf_res200401.nc') # only uso,vso in this one - seems to be recognized ok 
+reader_roms_cnz = reader_netCDF_MetOcean.Reader('C:\Users\simon\Google Drive\R&D\OpenDrift\data_testing\current_roms_cnz_surf_20050101_20050107_new.nc',variables_to_use = ['dep','us','vs']) # only uso,vso in this one - seems to be recognized ok 
 
 # Making customised landmask (Basemap)
 
@@ -62,7 +62,7 @@ lats = lats.ravel()
 #                 time=reader_roms_cnz.start_time)
 
 o.seed_elements(lon, lat, radius=0, number=1000,
-                time=datetime(2004,1,1) ) #
+                time=reader_roms_cnz.start_time ) #
 
 ###############################
 # PHYSICS
@@ -73,7 +73,7 @@ o.seed_elements(lon, lat, radius=0, number=1000,
 # RUN 
 ###############################
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = datetime(2004,1,4), outfile='opendrift.nc',time_step_output = 1800)  
+o.run(time_step=1800, end_time = reader_roms_cnz.start_time + timedelta(days = 1), outfile='opendrift.nc',time_step_output = 1800)  
 # the start time is define by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
 
 ###############################

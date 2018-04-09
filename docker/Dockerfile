@@ -1,8 +1,6 @@
 FROM continuumio/miniconda
 MAINTAINER Simon Weppe <simon@metocean.co.nz>
 
-RUN apt install vim libgl1-mesa-glx
-
 # Install Opendrift
 # This is using my forked version with the edits on the readers/examples for now
 RUN echo "-----------------Install OPENDRIFT-----------------------------------------------" &&\
@@ -34,3 +32,6 @@ RUN echo "-----------------Install Motu-client - For Mercator Data downloads----
     wget "https://github.com/clstoulouse/motu-client-python/releases/download/motu-client-python-1.5.00/motu-client-python-1.5.00-20180223190259664-bin.tar.gz" &&\
     tar xvzf motu-client-python-1.5.00-20180223190259664-bin.tar.gz &&\
     rm *.gz
+
+#RUN apt-get update &&\
+     apt-get install --yes vi libgl1-mesa-glx

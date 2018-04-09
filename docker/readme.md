@@ -6,12 +6,12 @@ INSTALL NOTES
 # to build the docker image :
 
 cd /docker
-docker build -t metocean/opendrift .
+docker build -t metocean/opendrift:simon .
 
 run (interactively) : 
 
-docker run -it metocean/opendrift_simon
-docker run -it -v /home/simon:/home/simon metocean/opendrift # example with a mounted folder
+docker run -it metocean/opendrift:simon
+docker run -it -v /home/simon:/home/simon metocean/opendrift:simon # example with a mounted folder
 
 ------------------
 Following instruction from :

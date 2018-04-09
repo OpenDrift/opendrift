@@ -99,7 +99,7 @@ o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2013,12,1),
 # General variables to be defined lon,lat,z,time ..look in each /elements/element*.py for more properties
 # 
 # 
-import pdb;pdb.set_trace()
+# import pdb;pdb.set_trace()
 
 ###############################
 # PHYSICS
