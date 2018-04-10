@@ -141,6 +141,7 @@ class OpenOil(OpenDriftSimulation):
             try:
                 from oil_library import _get_db_session
                 from oil_library.models import Oil, ImportedRecord
+                from oil_library import sample_oils
             except:
                 raise ImportError(
                     'NOAA oil library must be installed from: '
@@ -159,6 +160,9 @@ class OpenOil(OpenDriftSimulation):
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
+            # append names of "sample_oils" of OilLibrary
+            for so in sample_oils._sample_oils.keys() :
+                self.oiltypes.append(unicode(so)) # using unicode for consistency
         else:
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
@@ -694,8 +698,14 @@ class OpenOil(OpenDriftSimulation):
                 oils = session.query(ADIOS_Oil).filter(
                             ADIOS_Oil.name == oiltype)
                 ADIOS_ids = [oil.adios_oil_id for oil in oils]
+
                 if len(ADIOS_ids) == 0:
-                    raise ValueError('Oil type "%s" not found in NOAA database' % oiltype)
+                    try :
+                        # try to load oiltype even if it wasnt found in the official "oils" database instead of raising error directly
+                        # as it could still be present in sample_oils - there is probably a nicer way to do this
+                        self.oiltype = get_oil_props(oiltype) 
+                    except : 
+                        raise ValueError('Oil type "%s" not found in NOAA database' % oiltype)
                 elif len(ADIOS_ids) == 1:
                     self.oiltype = get_oil_props(oiltype)
                 else:
