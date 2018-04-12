@@ -141,11 +141,22 @@ class Reader(BaseReader):
         y0 = (y - self.bmap_raster.ymin)/self.bmap_raster.resolution
         x0 = np.int32(x0)
         y0 = self.bmap_raster.data.shape[0] - np.int32(y0) - 1
+
+        # if only there is only one particle, 
+        # np.int32(x0) will make x0 an int32, and not an array.  This will make np.clip to fail
+        # This is because 
+        # np.int32(np.array([1])) = 1 , while
+        # np.int32(np.array([1,1]) = array([1,1])
+        # 
+        # convert to array if needed
+        if type(x0) == np.int32: 
+            x0 = np.array([x0])
+            y0 = np.array([y0])
         
         #Clip out of bounds
         np.clip(x0, 0, self.bmap_raster.data.shape[1]-1, out=x0)
         np.clip(y0, 0, self.bmap_raster.data.shape[0]-1, out=y0)
-            
+        
         land = (self.bmap_raster.data[y0, x0] == 0)
         coords = np.flatnonzero(land)
         logging.debug('Checking ' + str(len(coords)) + ' of ' + str(len(x)) + ' coordinates to polygons')
