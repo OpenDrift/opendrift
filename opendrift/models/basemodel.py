@@ -36,8 +36,9 @@ try:
     matplotlib.rcParams['legend.scatterpoints'] = 1
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
-        #print 'No display found. Using non-interactive Agg backend'
-        matplotlib.use('agg')
+        print 'No display found. Using non-interactive Agg backend'
+        # matplotlib.use('agg')
+        matplotlib.use('Tkagg') # not sure why but using 'agg' doesnt work for some examples 
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -522,15 +523,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def performance(self):
         '''Report the time spent on various tasks'''
 
-        outStr = '--------------------\n'
-        outStr += 'Reader performance:\n'
-        for r in self.readers:
-            reader = self.readers[r]
-            outStr += '--------------------\n'
-            outStr += r + '\n'
-            outStr += reader.performance()
-
-        outStr += '--------------------\n'
+        outStr = '---------------------------\n'
         outStr += 'Performance:\n'
         for category, time in self.timing.iteritems():
             timestr = str(time)[0:str(time).find('.') + 2]
@@ -547,6 +540,13 @@ class OpenDriftSimulation(PhysicsMethods):
             outStr += '%s%7s %s\n' % (indent, timestr, category)
 
         outStr += '--------------------\n'
+        outStr += 'Reader performance:\n'
+        for r in self.readers:
+            reader = self.readers[r]
+            outStr += '--------------------\n'
+            outStr += r + '\n'
+            outStr += reader.performance()
+
         return outStr
 
     def add_reader(self, readers, variables=None):
@@ -750,8 +750,11 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.debug('----------------------------------------')
             reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
+
             # For each reader:
+
             for reader_name in reader_group:
+
                 logging.debug('Calling reader ' + reader_name)
                 logging.debug('----------------------------------------')
                 self.timer_start('main loop:readers:' +
@@ -812,7 +815,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             # len(missing_indices) since 2 points might have been added and not removed
                             env_profiles[var][np.ix_(z_ind, missing_indices)] = \
                                 np.ma.masked_invalid(env_profiles_tmp[var][z_ind,0:len(missing_indices)]).astype('float32')
-
+                
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
                     try:
@@ -1984,25 +1987,17 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time = self.time + self.time_step
 
             except Exception as e:
-                message = ('The simulation stopped before requested '
-                           'end time was reached.')
-                logging.warning(message)
-                self.store_message(message)
                 logging.info('========================')
                 logging.info('End of simulation:')
                 logging.info(e)
                 logging.info(traceback.format_exc())
-                logging.info(self.get_messages())
                 if not hasattr(self, 'environment'):
-                    sys.exit('Simulation aborted. ' +
-                             self.get_messages())
+                    sys.exit('Simulation aborted.')
                 logging.info('========================')
                 if stop_on_error is True:
-                    sys.exit('Stopping on error. ' +
-                             self.get_messages())
+                    sys.exit('Stopping on error')
                 if self.steps_calculation <= 1:
-                    raise ValueError('Simulation stopped within '
-                        'first timestep. ' + self.get_messages())
+                    raise ValueError('Simulation stopped within first timestep')
                 break
 
         self.timer_end('main loop')
@@ -2102,8 +2097,6 @@ class OpenDriftSimulation(PhysicsMethods):
         if len(missing_variables) > 0:
             logging.warning('Missing variables: ' +
                             str(missing_variables))
-            self.store_message('Missing variables: ' +
-                               str(missing_variables))
 
     def index_of_activation_and_deactivation(self):
         """Return the indices when elements were seeded and deactivated."""
@@ -2115,7 +2108,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def set_up_map(self, buffer=.1, delta_lat=None, **kwargs):
         """Generate Basemap instance on which trajectories are plotted."""
-
         lons, lats = self.get_lonlats()
 
         # Initialise map
@@ -2337,7 +2329,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 return points, cd['points_other']
             else:
                 return points
-
+        
         # Find map coordinates and plot points with empty data
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
@@ -2596,10 +2588,10 @@ class OpenDriftSimulation(PhysicsMethods):
             linecolor: name of variable to be used for coloring trajectories.
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
         """
-
+        
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, **kwargs)
-
+        
         # The more elements, the more transparent we make the lines
         min_alpha = 0.1
         max_elements = 5000.0
@@ -2670,6 +2662,7 @@ class OpenDriftSimulation(PhysicsMethods):
             label_active = None
             color_initial = 'gray'
             color_active = 'gray'
+
         map.scatter(x[range(x.shape[0]), index_of_first],
                     y[range(x.shape[0]), index_of_first], s=markersize,
                     zorder=10, edgecolor='k', linewidths=.2,
@@ -2794,7 +2787,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self._plot_trajectory_dict(map, trajectory_dict)
 
         #plt.gca().tick_params(labelsize=14)
-
+        
         if filename is not None:
             #plt.savefig(filename, dpi=200)
             plt.savefig(filename)
@@ -3180,9 +3173,6 @@ class OpenDriftSimulation(PhysicsMethods):
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
-        if hasattr(self, 'history'):
-            outStr += self.performance()
-            outStr += '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + \
             '     (OpenDrift version %s)\n' % opendrift.__version__
         outStr += '\t%s active %s particles  (%s deactivated, %s scheduled)\n'\
@@ -3214,31 +3204,25 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time-self.start_time)
                 outStr += '\tOutput steps: %i * %s\n' % (
                     self.steps_output, self.time_step_output)
-        if hasattr(self, 'messages'):
-            outStr += '-------------------\n'
-            outStr += self.get_messages()
+        if hasattr(self, 'history'):
+            outStr += self.performance()
         outStr += '===========================\n'
         return outStr
 
-    def store_message(self, message):
-        """Store important messages to be displayed to user at end."""
-        if not hasattr(self, 'messages'):
-            self.messages = []
-        self.messages.append(message)
-
-    def get_messages(self):
-        """Report any messages stored during simulation."""
-        
-        if hasattr(self, 'messages'):
-            return str(self.messages).strip('[]') + '\n'
-        else:
-            return ''
-
-    def add_halo_readers(self):
+    def add_halo_readers(self, path='/lustre/storeB/project/copernicus/sea/'):
         """Adding some Thredds and file readers in prioritised order"""
 
-        self.add_readers_from_file(self.test_data_folder() +
-            '../../opendrift/scripts/data_sources.txt')
+        readers = [  # Note that order (priority) is important!
+            path + '/romsnorkyst/zdepths1h/NorKyst-800m_ZDEPTHS_his.fc*.nc',
+            path + '/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc*.nc',
+            path + '/mywavewam4/mywavewam4.fc*.nc',
+            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+            'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
+            'http://thredds.met.no/thredds/dodsC/atmos/hirlam/hirlam12_be',
+            'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be']
+
+        self.add_readers_from_list(readers, timeout=5)
 
     def _save_animation(self, anim, filename, fps):
         logging.info('Saving animation to ' + filename + '...')

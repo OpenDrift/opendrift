@@ -39,7 +39,7 @@ except:
                           ' please install from '
                           'https://code.google.com/p/pyproj/')
 
-# Som valid (but extreme) ranges for checking that values are reasonable
+# Some valid (but extreme) ranges for checking that values are reasonable
 standard_names = {
     'x_wind': {'valid_min': -50, 'valid_max': 50},
     'y_wind': {'valid_min': -50, 'valid_max': 50},
@@ -112,6 +112,8 @@ class BaseReader(object):
         'surface_geostrophic_northward_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity',
         'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'x_sea_water_velocity',
         'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity'}
+        # ocean_vertical_diffusivity
+        # ocean_horizontal_diffusivity
 
     def __init__(self):
         # Common constructor for all readers

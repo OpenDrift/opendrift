@@ -141,6 +141,7 @@ class OpenOil(OpenDriftSimulation):
             try:
                 from oil_library import _get_db_session
                 from oil_library.models import Oil, ImportedRecord
+                from oil_library import sample_oils
             except:
                 raise ImportError(
                     'NOAA oil library must be installed from: '
@@ -159,6 +160,9 @@ class OpenOil(OpenDriftSimulation):
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
+            # append names of "sample_oils" of OilLibrary
+            for so in sample_oils._sample_oils.keys() :
+                self.oiltypes.append(unicode(so)) # using unicode for consistency
         else:
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
@@ -598,11 +602,9 @@ class OpenOil(OpenDriftSimulation):
 
         return oil_budget
 
-    def plot_oil_budget(self, filename=None, ax=None):
+    def plot_oil_budget(self, filename=None):
 
-        if ax==None:
-            plt.close()
-
+        plt.close()
         if self.time_step.days < 0:  # Backwards simulation
             fig = plt.figure(figsize=(10, 6.))
             plt.text(0.1, 0.5, 'Oil weathering deactivated for '
@@ -624,14 +626,10 @@ class OpenOil(OpenDriftSimulation):
 
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds()/3600. for t in time_relative])
+        fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
 
-        if ax==None:
-            fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
-            # Left axis showing oil mass
-            ax1 = fig.add_subplot(111)
-        else:
-            ax1 = ax
-
+        # Left axis showing oil mass
+        ax1 = fig.add_subplot(111)
         # Hack: make some emply plots since fill_between does not support label
         if np.sum(b['mass_dispersed']) > 0:
             ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
@@ -700,15 +698,21 @@ class OpenOil(OpenDriftSimulation):
                 oils = session.query(ADIOS_Oil).filter(
                             ADIOS_Oil.name == oiltype)
                 ADIOS_ids = [oil.adios_oil_id for oil in oils]
+
                 if len(ADIOS_ids) == 0:
-                    raise ValueError('Oil type "%s" not found in NOAA database' % oiltype)
+                    try :
+                        # try to load oiltype even if it wasnt found in the official "oils" database instead of raising error directly
+                        # as it could still be present in sample_oils - there is probably a nicer way to do this
+                        self.oiltype = get_oil_props(oiltype) 
+                    except : 
+                        raise ValueError('Oil type "%s" not found in NOAA database' % oiltype)
                 elif len(ADIOS_ids) == 1:
                     self.oiltype = get_oil_props(oiltype)
                 else:
                     logging.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
                     self.oiltype = OilProps(oils[0])
             except Exception as e:
-                logging.warning(e)
+                print e
             return
 
         if oiltype not in self.oiltypes:
