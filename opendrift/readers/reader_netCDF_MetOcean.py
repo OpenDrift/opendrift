@@ -297,7 +297,7 @@ class Reader(BaseReader):
                     standard_name = self.variable_aliases[var_name]
                 self.variable_mapping[standard_name] = str(var_name) 
         
-        # For now we can't differenciate the different kinds of currents (i.e. tide, resiudal, total)...as it seems opendrift only expect general (u,v) currents
+        # For now we can't differenciate the different kinds of currents (i.e. tide, residual, total)...as it seems opendrift only expect general (u,v) currents
         # All different currents are therefore mapped to x_sea_water_velocity, y_water_velocity for now
         # Here we have added an option variables_to_use to allow specifying which variables to use in a file
         # example : reader_roms_cnz_depth = reader_netCDF_MetOcean.Reader('C:\metocean\cnz19800801_00z_surf.nc',variables_to_use = ['dep','um','vm']) 
