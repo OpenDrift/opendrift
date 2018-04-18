@@ -138,8 +138,9 @@ class Reader(BaseReader):
         #return [self.map.is_land(x0, y0) for x0,y0 in zip(x,y)]  # uncomment for simulation in lakes
         x0 = (x - self.bmap_raster.xmin)/self.bmap_raster.resolution
         y0 = (y - self.bmap_raster.ymin)/self.bmap_raster.resolution
-        x0 = np.int32(x0)
-        y0 = self.bmap_raster.data.shape[0] - np.int32(y0) - 1
+        x0 = x0.astype(np.int32)
+        y0 = y0.astype(np.int32)
+        y0 = self.bmap_raster.data.shape[0] - y0 - 1
         
         #Clip out of bounds
         np.clip(x0, 0, self.bmap_raster.data.shape[1]-1, out=x0)
