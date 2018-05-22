@@ -24,13 +24,10 @@ o.seed_elements(12.5, 68.5, z=-40, radius=2000, number=500,
 
 # Adjusting some configuration
 o.set_config('processes:turbulentmixing', True)
-o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
-#o.set_config('turbulentmixing:diffusivitymodel', 'environment') # use eddy diffusivity from ocean model 
-
-# Vertical resolution and time step should be adjusted so to avoid getting
-# output warnings like 'DEBUG: WARNING! some elements have p+q>1.'
-o.set_config('turbulentmixing:timestep', 10.) # seconds
-o.set_config('turbulentmixing:verticalresolution', 2.) # m
+#o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
+o.set_config('turbulentmixing:diffusivitymodel', 'environment') # use eddy diffusivity from ocean model 
+# Vertical mixing requires fast time step
+o.set_config('turbulentmixing:timestep', 60.) # seconds
 
 # Running model (until end of driver data)
 o.run(steps=6*2, time_step=1800)

@@ -132,6 +132,11 @@ class OpenOil(OpenDriftSimulation):
                       'SLEIPNER CONDENSATE, STATOIL',
                       'STATFJORD BLEND, STATOIL', 'VARG, STATOIL']
 
+    # Workaround as ADIOS oil library uses
+    # max water fraction of 0.9 for all crude oils
+    max_water_fraction  = {
+        'MARINE GAS OIL 500 ppm S 2017': 0.1}
+
 
     def __init__(self, weathering_model='default', *args, **kwargs):
 
@@ -492,6 +497,12 @@ class OpenOil(OpenDriftSimulation):
         emul_constant = self.oiltype.bullwinkle
         # max water content fraction - get from database
         Y_max = self.oiltype.get('emulsion_water_fraction_max')
+        if self.oil_name in self.max_water_fraction:
+            max_water_fraction = self.max_water_fraction[self.oil_name]
+            logging.debug('Overriding max water fraxtion with value %f instead of default %f'
+                          % (max_water_fraction, Y_max))
+            Y_max = max_water_fraction
+        # emulsion
         if Y_max <= 0:
             logging.debug('Oil does not emulsify, returning.')
             return
