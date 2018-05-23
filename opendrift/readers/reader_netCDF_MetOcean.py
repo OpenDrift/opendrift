@@ -476,7 +476,7 @@ class Reader(BaseReader):
 
     # this will overload the get_variables_interpolated from basereader.py
     # to allow applying log profile correction
-    #evntually this may be a nice feature to add the basereader ?
+    # eventually this may be a nice feature to add the basereader ?
     def get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
                                    lon=None, lat=None, z=None,

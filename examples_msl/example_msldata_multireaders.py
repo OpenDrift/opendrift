@@ -36,13 +36,13 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 #use always_valid for variables that can be used at all times, such as a bathy 
 
 # residual currents
-reader_roms_bob_res3D = reader_netCDF_MetOcean.Reader('C:/metocean/roms_bob_3D_res201312.nc',variables_to_use = ['uo','vo']) # 
+reader_roms_res3D = reader_netCDF_MetOcean.Reader('F:/metocean/0000_OMV_drillcuttings/opendrift_modelling/flow_fields/roms_cnz-residual_3D_20040101.nc',variables_to_use = ['uo','vo']) # 
 # contents of reader can be check by calling reader_roms_bob_res3D - this  will show which variables it includes, timing, levels, extents etc.. etc..
 
 # tidal currents
-reader_roms_bob_tide = reader_netCDF_MetOcean.Reader('C:/metocean/bob_tide_20131201.nc',variables_to_use = ['ut','vt']) # 
+reader_roms_tide = reader_netCDF_MetOcean.Reader('F:/metocean/0000_OMV_drillcuttings/opendrift_modelling/flow_fields/nz_tide_20040101.nc',variables_to_use = ['ut','vt']) # 
 
-o.add_reader([reader_roms_bob_res3D,reader_roms_bob_tide]) #
+o.add_reader([reader_roms_res3D,reader_roms_tide]) #
 # note the order in which 'readers' are specified matters - the entered first will be used as first choice, second one as fallback etc... 
 
 
@@ -74,8 +74,8 @@ o.list_environment_variables()
 # lats = np.linspace(60, 61, 100)
 # 
 #  Point release
-lon = 85.9888
-lat = 11.4011
+lon = 173.652299949710
+lat = -38.626275006462530
 
 #  Rectangle release
 # lons = np.linspace(170.0,170.5, 100) 
@@ -90,7 +90,7 @@ lat = 11.4011
 # o.seed_elements(lons, lats, radius=0, number=10000,
 #                 time=reader_roms_cnz.start_time)
 
-o.seed_elements(lon, lat, radius=0, number=1000,time=datetime(2013,12,1),
+o.seed_elements(lon, lat, radius=0, number=1000,time=reader_roms_res3D.start_time,
                  z=0.0, terminal_velocity = -0.001) #, wind_drift_factor = 0, age_seconds = 0,)
 
 # specific element variable such as terminal_velocity, can be specified here. 
@@ -139,7 +139,7 @@ o.set_config('turbulentmixing:timestep', 1800)
 ###############################
 
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = datetime(2013,12,2), outfile='opendrift_adding_currents.nc',time_step_output = 1800)
+o.run(time_step=1800, end_time = reader_roms_res3D.end_time, outfile='opendrift_adding_currents.nc',time_step_output = 1800)
 # the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
 
 

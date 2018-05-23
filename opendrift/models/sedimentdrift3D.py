@@ -156,7 +156,7 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
             # add_water_velocity = False by default
             if 'x_sea_water_velocity' in variable_group and len(reader_group)>1:
             # i.e. the "current" variables interpolated are ['x_sea_water_velocity','y_sea_water_velocity']
-            # and there are several readers for these : allow addition
+            # and there are several readers for these variables: allow addition of currents
                 add_water_velocity = True 
             #--------------------------------------------------------------------------------
 
@@ -187,7 +187,7 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
                     if 'env_tmp' in locals() and add_water_velocity and 'x_sea_water_velocity' in reader.variables: 
                         # adding a special case when we add  ['x_sea_water_velocity','y_sea_water_velocity']
                         # this happens only if :
-                        # env_tmp exists, which means a first interpoloation round happened
+                        # env_tmp exists, which means a first interpolation round happened
                         # there are more than 1 "reader" for the velocities, and
                         # we do want to use the velocity from that reader (possibly specified by variables_to_use when calling the reader)
                         #
