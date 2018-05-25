@@ -67,8 +67,14 @@ class TestOil(unittest.TestCase):
                 if oil == 'SKRUGARD' and windspeed == 3:
                     continue
                 o = OpenOil3D(loglevel=30, weathering_model='noaa')
+                oilname = oil
+                if oil not in o.oiltypes:
+                    if oilname == 'SKRUGARD':
+                        oilname = 'SKRUGARD 2012'
+                    elif oilname == 'SMORBUKK KONDENSAT':
+                        oilname = 'SMORBUKK KONDENSAT 2003'
                 o.seed_elements(lon=4.8, lat=60, number=100,
-                                time=datetime.now(), oiltype=oil)
+                                time=datetime.now(), oiltype=oilname)
                 o.set_config('processes:dispersion', True)
                 o.set_config('wave_entrainment:droplet_size_distribution', 'Exponential')
                 o.set_config('turbulentmixing:timestep', 10)
@@ -116,8 +122,9 @@ class TestOil(unittest.TestCase):
                      'NOAA OilLibrary is needed')
     def test_no_dispersion(self):
         o = OpenOil3D(loglevel=50, weathering_model='noaa')
+
         o.seed_elements(lon=4.8, lat=60, number=100,
-                        time=datetime.now(), oiltype='SKRUGARD')
+                        time=datetime.now(), oiltype='SIRTICA')
         o.set_config('processes:dispersion', False)
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 8
@@ -135,10 +142,14 @@ class TestOil(unittest.TestCase):
         for droplet_distribution in ['Johansen et al. (2015)',
                                      'Exponential']:
             o = OpenOil3D(loglevel=50, weathering_model='noaa')
+            if 'SKRUGARD' in o.oiltypes:
+                oiltype = 'SKRUGARD'
+            else:
+                oiltype = 'SKRUGARD 2012'
             o.set_config('wave_entrainment:droplet_size_distribution',
                          droplet_distribution)
             o.seed_elements(lon=4.8, lat=60, number=100,
-                            time=datetime.now(), oiltype='SKRUGARD')
+                            time=datetime.now(), oiltype=oiltype)
             o.fallback_values['land_binary_mask'] = 0
             o.fallback_values['x_wind'] = 8
             o.fallback_values['y_wind'] = 0
