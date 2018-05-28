@@ -863,7 +863,6 @@ class Reader(BaseReader):
         ###########################
         # Return added interpolated data 
         ###########################
-        import pdb;pdb.set_trace()
         return env, env_profiles
 
 
