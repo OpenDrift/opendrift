@@ -42,7 +42,16 @@ reader_roms_res3D = reader_netCDF_MetOcean.Reader('F:/metocean/0000_OMV_drillcut
 # tidal currents
 reader_roms_tide = reader_netCDF_MetOcean.Reader('F:/metocean/0000_OMV_drillcuttings/opendrift_modelling/flow_fields/nz_tide_20040101.nc',variables_to_use = ['ut','vt']) # 
 
-o.add_reader([reader_roms_res3D,reader_roms_tide]) #
+reader_cur_total = reader_roms_tide + reader_roms_res3D
+
+# reader_cur_total.get_variables_interpolated(variables = ['x_sea_water_velocity'],lon=173.65,lat=-38.62,z=0)
+
+reader_basemap = reader_basemap_landmask.Reader(
+                llcrnrlon=165, llcrnrlat=-47.97, 
+                urcrnrlon=179.9, urcrnrlat=-33.02,   
+                resolution='c', projection='merc') # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)
+
+o.add_reader([reader_basemap,reader_cur_total]) #
 # note the order in which 'readers' are specified matters - the entered first will be used as first choice, second one as fallback etc... 
 
 
