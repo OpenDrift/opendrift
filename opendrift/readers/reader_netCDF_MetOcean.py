@@ -324,16 +324,17 @@ class Reader(BaseReader):
         # can easily be extended for other additions where relevant
         if 'x_sea_water_velocity' in self.variables and \
            'x_sea_water_velocity' in reader_to_add.variables and \
-           'y_sea_water_velocity' in reader_to_add.variables and \
+           'y_sea_water_velocity' in self.variables and \
            'y_sea_water_velocity' in reader_to_add.variables :
 
-            logging.debug('Adding currents from reader %s and %s' % (self.name,reader_to_add.name) )
+            logging.debug('Adding currents from readers : %s and %s' % (self.name,reader_to_add.name) )
             
             if not hasattr(self,'readers_to_add'):
                 self.readers_to_add = [] # pre-allocate
-                self.interp_first_pass = True # switch used later in get_variables_interpolated
+                self.use_multireader_interp = True # switch used later in get_variables_interpolated()
 
-            self.readers_to_add.append(reader_to_add) # add field to exising reader (self)
+            self.readers_to_add.append(reader_to_add) # add field to existing reader (self)
+        
         # this is probably not a real "add" overloading in pythonic sense
         # since we simply add a new attribute "readers_to_add" to self containing the other readers to add
         # These can be accessed as self.readers_to_add[0],self.readers_to_add[1] etc...
@@ -508,8 +509,8 @@ class Reader(BaseReader):
     
 
 
-    # this will overload the get_variables_interpolated from basereader.py
-    # to allow applying log profile correction
+    # this will overload the get_variables_interpolated() from basereader.py
+    # to allow applying log profile correction, adding readers etc..
     # eventually this may be a nice feature to add the basereader ?
     def get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
@@ -518,20 +519,17 @@ class Reader(BaseReader):
         self.timer_start('total')
         self.timer_start('preparing')
       
-        if hasattr(self,'readers_to_add') and self.interp_first_pass: 
-            # special case when we need to add current from two or more readers
-            # the function get_variables_interpolated_multireaders calls 
-            # get_variables_interpolated for the multplie readers to add
-            self.interp_first_pass = False
+        if hasattr(self,'readers_to_add') and self.use_multireader_interp: 
+            # "special" case when we need to add currents from two or more readers
+            # We use the function get_variables_interpolated_multireaders() which calls 
+            # get_variables_interpolated() for the two or more readers to add.
 
             env,env_profiles = self.get_variables_interpolated_multireaders(variables, profiles=profiles, \
                                    profiles_depth=profiles_depth, time=time, \
                                    lon=lon, lat=lat, z=z, \
                                    block=block, rotate_to_proj=rotate_to_proj)
-            return env, env_profiles 
-
-
-
+            # import pdb;pdb.set_trace()
+            return env, env_profiles
 
         # Raise error if time not not within coverage of reader
         if not self.covers_time(time):
@@ -840,6 +838,10 @@ class Reader(BaseReader):
         # used when a reader is made up of an addition of readers i.e. cur_tot = cur_tide + cur_res
         # only functional for currents for now : [x_sea_water_velocity,y_sea_water_velocity]
 
+        self.use_multireader_interp = False 
+        # switch to False so that the standard get_variables_interpolated() is used 
+        # i.e. it doesnt go to get_variables_interpolated_multireaders()
+
         # first reader
         env,env_profiles = self.get_variables_interpolated(variables, profiles=profiles, \
                                    profiles_depth=profiles_depth, time=time, \
@@ -852,6 +854,7 @@ class Reader(BaseReader):
                                    profiles_depth=profiles_depth, time=time, \
                                    lon=lon, lat=lat, z=z, \
                                    block=block, rotate_to_proj=rotate_to_proj)
+            logging.debug('Adding currents from reader %s' % (reader.name))
             # add to existing env,env_profiles data
             env['x_sea_water_velocity'] += env_add['x_sea_water_velocity']
             env['y_sea_water_velocity'] += env_add['y_sea_water_velocity']
@@ -859,6 +862,9 @@ class Reader(BaseReader):
             if env_profiles is not None:
                 env_profiles['x_sea_water_velocity'] += env_profiles_add['x_sea_water_velocity']
                 env_profiles['y_sea_water_velocity'] += env_profiles_add['y_sea_water_velocity']
+        
+        self.use_multireader_interp = True 
+        # set back to true for next interpolation round, i.e. will go to get_variables_interpolated_multireaders()
 
         ###########################
         # Return added interpolated data 
