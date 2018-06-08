@@ -8,8 +8,8 @@
 #  This is also used as a reference case to compare Opendrift trajectories with ERcore trajectories
 # 
 #
-#  This example show how to use the SedimentDrift3D model, which allows modelling horizontal and vertical advection due to currents
-#  horizontal and vertical diffusion (mixing), and buoyancy-related setlling 
+#  This example show how to add readers for the currents
+ # for example the tidal and residual components
 #
 # 
 
@@ -38,66 +38,32 @@ o = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
 # residual currents
 reader_roms_res3D = reader_netCDF_MetOcean.Reader('F:/metocean/0000_OMV_drillcuttings/opendrift_modelling/flow_fields/roms_cnz-residual_3D_20040101.nc',variables_to_use = ['uo','vo']) # 
 # contents of reader can be check by calling reader_roms_bob_res3D - this  will show which variables it includes, timing, levels, extents etc.. etc..
-
 # tidal currents
 reader_roms_tide = reader_netCDF_MetOcean.Reader('F:/metocean/0000_OMV_drillcuttings/opendrift_modelling/flow_fields/nz_tide_20040101.nc',variables_to_use = ['ut','vt']) # 
 
 reader_cur_total = reader_roms_tide + reader_roms_res3D
 
-# reader_cur_total.get_variables_interpolated(variables = ['x_sea_water_velocity'],lon=173.65,lat=-38.62,z=0)
-
 reader_basemap = reader_basemap_landmask.Reader(
-                llcrnrlon=165, llcrnrlat=-47.97, 
-                urcrnrlon=179.9, urcrnrlat=-33.02,   
+                llcrnrlon=172.65, llcrnrlat=-39.6262, 
+                urcrnrlon=174.65, urcrnrlat=-37.6262,   
                 resolution='c', projection='merc') # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)
+
 
 o.add_reader([reader_basemap,reader_cur_total]) #
 # note the order in which 'readers' are specified matters - the entered first will be used as first choice, second one as fallback etc... 
 
-
-## NOTE ----------------------------------------------------
-# 
-# Alternative way to decide which variables in which files (but will not resolve issue when there are several currents (u,v) pairs)
-# 
-# >> when a variable that is required by the model is present in several readers/datasets, we have no control on which one will be used
-# we can force a given reader to use a specified variable , and discard other adding readers one at a time, specifying 'variables
-# e.g
-# reader_1 = reader_netCDF_MetOcean.Reader('file1.nc') # assume file1.nc has variables u,v,hs,tp
-# o.add_reader(reader_1,variables = ['x_sea_water_velocity','y_sea_water_velocity']) # we only want to use u,v
-# reader_2 = reader_netCDF_MetOcean.Reader('file2.nc') # assume file2.nc has variables hs,tp, uwind,vwind
-# o.add_reader(reader_2,variables = ['sea_surface_wave_significant_height']) # we only want to use sea_surface_wave_significant_height from that file
-#-----------------------------------------------------------
-
 # import pdb;pdb.set_trace()
-# play with priority list ??
-
 o.list_environment_variables()
 
 ###############################
 # PARTICLE SEEDING
 ###############################
 
-
-# Seeding some particles
-# lons = np.linspace(3.5, 5.0, 100)
-# lats = np.linspace(60, 61, 100)
-# 
 #  Point release
 lon = 173.652299949710
 lat = -38.626275006462530
 
-#  Rectangle release
-# lons = np.linspace(170.0,170.5, 100) 
-# lats = np.linspace(-39.5,-39.0, 100)
-# lons, lats = np.meshgrid(lons, lats)
-# lons = lons.ravel()
-# lats = lats.ravel()
-#
-
 # Seed oil elements at defined position and time
-
-# o.seed_elements(lons, lats, radius=0, number=10000,
-#                 time=reader_roms_cnz.start_time)
 
 o.seed_elements(lon, lat, radius=0, number=1000,time=reader_roms_res3D.start_time,
                  z=0.0, terminal_velocity = -0.001) #, wind_drift_factor = 0, age_seconds = 0,)
@@ -113,51 +79,53 @@ o.seed_elements(lon, lat, radius=0, number=1000,time=reader_roms_res3D.start_tim
 ###############################
 # PHYSICS
 ###############################
-
-# these will list all possible options for that model
-o.list_config()
-o.list_configspec()
-
-# diffusion - constant in that example
-o.fallback_values['ocean_horizontal_diffusivity'] = 0.5 # specify constant ocean_horizontal_diffusivity in m2.s-1
-o.fallback_values['ocean_vertical_diffusivity'] = 0.0000 # specify constant ocean_vertical_diffusivity in m2.s-1
-
-# drift
-# o.set_config('drift:scheme','euler') # or 'runge-kutta'
-o.set_config('drift:current_uncertainty', 0.0)
-o.set_config('drift:wind_uncertainty', 0.0)
-#processes
-o.set_config('processes:verticaladvection' , False) # no vertical current available, so no vertical advection
-o.set_config('processes:resuspension',False) # already False be default but just for reference 
-o.set_config('processes:turbulentmixing', True) # 
-o.set_config('turbulentmixing:diffusivitymodel', 'environment') # i.e. specified from model or constant
-o.set_config('turbulentmixing:TSprofiles',False)
-o.set_config('turbulentmixing:timestep', 1800)  
-# if some ocean_vertical_diffusivity!=0, turbulentmixing:timestep should be less than 900 seconds (15min)
-# if ocean_vertical_diffusivity == 0 then the vertical motion will be driven only by buoyancy set by terminal_velocity
-# so this could be set the same time_step as the simulation time_step
-
-# i.e to use a given settling velocity : terminal_velocity, with no added vertical diffusion use :
-# o.fallback_values['ocean_vertical_diffusivity'] = 0.0
-# The time step governing the vertical settling (and mixing if ocean_vertical_diffusivity~=0) is :
-# o.set_config('turbulentmixing:timestep', 1800)  # can be set to same as "run" time step to reproduce ERcore behaviour
-
+# Default
 
 ###############################
-# RUN 
+# RUN CASE WITH ADDED CURRENTS : TIDE+RES
 ###############################
 
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = reader_roms_res3D.end_time, outfile='opendrift_adding_currents.nc',time_step_output = 1800)
+o.run(time_step=1800, end_time = reader_roms_res3D.start_time+timedelta(days=3.0), outfile='opendrift_tide_plus_res.nc',time_step_output = 1800)
 # the start time is defined by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
+# o.plot()
+
+#############################################
+# RUN CASES WITH PURE TIDE AND PURE RESIDUALS
+#############################################
+# 
+# TIDE
+# 
+o1 = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
+del reader_roms_tide
+reader_roms_tide = reader_netCDF_MetOcean.Reader('F:/metocean/0000_OMV_drillcuttings/opendrift_modelling/flow_fields/nz_tide_20040101.nc',variables_to_use = ['ut','vt']) # 
+# reader_roms_tide > MUST BE RE-INITIALZED otherwise it will keep adding the residuals...
+o1.add_reader([reader_basemap,reader_roms_tide]) #
+
+o1.seed_elements(lon, lat, radius=0, number=1000,time=reader_roms_res3D.start_time,
+                 z=0.0, terminal_velocity = -0.001) #, wind_drift_factor = 0, age_seconds = 0,)
+
+o1.run(time_step=1800, end_time = reader_roms_res3D.start_time+timedelta(days=3.0), outfile='opendrift_tide_only.nc',time_step_output = 1800)
+# 
+# RESIDUAL
+# 
+o2 = SedimentDrift3D(loglevel=0)  # Set loglevel to 0 for debug information
+o2.add_reader([reader_basemap,reader_roms_res3D]) #
+
+o2.seed_elements(lon, lat, radius=0, number=1000,time=reader_roms_res3D.start_time,
+                 z=0.0, terminal_velocity = -0.001) #, wind_drift_factor = 0, age_seconds = 0,)
+
+o2.run(time_step=1800, end_time = reader_roms_res3D.start_time+timedelta(days=3.0), outfile='opendrift_res_only.nc',time_step_output = 1800)
 
 
 ###############################
 # PLOTS / ANIMATION
 ###############################
-
+import pdb;pdb.set_trace()
 # Print and plot results
-print o
-
-o.animation()
+# o.animation()
 o.plot()
+o1.plot()
+o2.plot()
+o.animation(compare=o1,legend=['tide+res', 'tide only'])
+o.animation(compare=o2, legend=['tide+res', 'residual only'])

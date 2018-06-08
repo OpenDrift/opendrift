@@ -321,6 +321,11 @@ class Reader(BaseReader):
         # Only works for current velocities for now :
         # ['x_sea_water_velocity','y_sea_water_velocity']
         # 
+        # WARNING : For now the "readers_to_add" fields is added to the first reader
+        # input in the addition. If the same reader object is re-used (without deleting it before)
+        # then it will continue to add readers (even if called by its initial name e.g. reader_cur_tide)
+        # 
+        # 
         # can easily be extended for other additions where relevant
         if 'x_sea_water_velocity' in self.variables and \
            'x_sea_water_velocity' in reader_to_add.variables and \

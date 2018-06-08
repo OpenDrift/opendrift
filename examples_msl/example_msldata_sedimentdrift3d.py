@@ -56,9 +56,8 @@ reader_basemap = reader_basemap_landmask.Reader(
 o.add_reader([reader_basemap,reader_roms_cnz_dav,reader_swan_nzra_surface,reader_wrf_nzra1_surface]) # 
 
 
-
- # no vertical diffusion infos available from readers : set fall_back constant values 
-# o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
+# no vertical diffusion infos available from readers : set fall_back constant values 
+o.fallback_values['ocean_vertical_diffusivity'] = 0.0001
 
 # all required variables that can be set using o.fall_back are generally listed 
 # below the model class definition  e.g. see /models/sedimentdrift3D.py, line 36
@@ -107,7 +106,7 @@ o.seed_elements(lon, lat, radius=0, number=10,time=reader_swan_nzra_surface.star
 
 
 # diffusion - constant in that example
-o.fallback_values['ocean_horizontal_diffusivity'] = 0.0 # specify constant ocean_horizontal_diffusivity in m2.s-1
+o.fallback_values['ocean_horizontal_diffusivity'] = 0.5 # specify constant ocean_horizontal_diffusivity in m2.s-1
 o.fallback_values['ocean_vertical_diffusivity'] = 0.0000 # specify constant ocean_vertical_diffusivity in m2.s-1
 
 # drift
