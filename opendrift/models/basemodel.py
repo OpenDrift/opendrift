@@ -2280,7 +2280,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def animation(self, buffer=.2, filename=None, compare=None,
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
-                  colorbar=True, cmap=None,
+                  colorbar=True, cmap=None, density=False, show_elements=True,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
@@ -2298,18 +2298,24 @@ class OpenDriftSimulation(PhysicsMethods):
                                map_y[::skip, ::skip],
                                u_component[::skip, ::skip],
                                v_component[::skip, ::skip], scale=scale)
+
+            if density is True:
+                # Update density plot
+                pm.set_array(H[i,:,:].ravel())
+
             # Move points
-            points.set_offsets(np.c_[x[range(x.shape[0]), i],
-                                     y[range(x.shape[0]), i]])
-            points_deactivated.set_offsets(np.c_[
-                x_deactive[index_of_last_deactivated < i],
-                y_deactive[index_of_last_deactivated < i]])
-            if color is not False:  # Update colors
-                points.set_array(colorarray[:, i])
-                if isinstance(color, basestring):
-                    points_deactivated.set_array(
-                        colorarray_deactivated[
-                            index_of_last_deactivated < i])
+            if show_elements is True:
+                points.set_offsets(np.c_[x[range(x.shape[0]), i],
+                                         y[range(x.shape[0]), i]])
+                points_deactivated.set_offsets(np.c_[
+                    x_deactive[index_of_last_deactivated < i],
+                    y_deactive[index_of_last_deactivated < i]])
+                if color is not False:  # Update colors
+                    points.set_array(colorarray[:, i])
+                    if isinstance(color, basestring):
+                        points_deactivated.set_array(
+                            colorarray_deactivated[
+                                index_of_last_deactivated < i])
 
             if drifter is not None:
                 from bisect import bisect_left
@@ -2324,19 +2330,20 @@ class OpenDriftSimulation(PhysicsMethods):
                     drifter_pos.set_offsets(
                         np.c_[drifter['x'][ind], drifter['y'][ind]])
 
-            if compare is not None:
-                for cd in compare_list:
-                    cd['points_other'].set_offsets(np.c_[
-                        cd['x_other'][range(cd['x_other'].shape[0]), i],
-                        cd['y_other'][range(cd['x_other'].shape[0]), i]])
-                    cd['points_other_deactivated'].set_offsets(np.c_[
-                        cd['x_other_deactive'][
-                            cd['index_of_last_deactivated_other'] < i],
-                        cd['y_other_deactive'][
-                            cd['index_of_last_deactivated_other'] < i]])
-                return points, cd['points_other']
-            else:
-                return points
+            if show_elements is True:
+                if compare is not None:
+                    for cd in compare_list:
+                        cd['points_other'].set_offsets(np.c_[
+                            cd['x_other'][range(cd['x_other'].shape[0]), i],
+                            cd['y_other'][range(cd['x_other'].shape[0]), i]])
+                        cd['points_other_deactivated'].set_offsets(np.c_[
+                            cd['x_other_deactive'][
+                                cd['index_of_last_deactivated_other'] < i],
+                            cd['y_other_deactive'][
+                                cd['index_of_last_deactivated_other'] < i]])
+                    return points, cd['points_other']
+                else:
+                    return points
 
         # Find map coordinates and plot points with empty data
         map, plt, x, y, index_of_first, index_of_last = \
@@ -2408,6 +2415,17 @@ class OpenDriftSimulation(PhysicsMethods):
             if legend != ['', '']:
                 plt.legend(markerscale=2, loc=legend_loc)
 
+        if density is True:
+            # TODO: Unfinished work
+            import matplotlib.cm as cm
+            cma = cm.get_cmap('jet')
+            cma.set_under('w')
+            H, H_submerged, H_stranded, lon_array, lat_array = \
+                self.get_density_array(pixelsize_m=1000)
+            H = H + H_submerged + H_stranded
+            lat_array, lon_array = np.meshgrid(lat_array, lon_array)
+            pm = map.pcolormesh(lon_array, lat_array, H[0,:,:],
+                                latlon=True, vmin=0.1, cmap=cma)
 
         if drifter is not None:
             drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
