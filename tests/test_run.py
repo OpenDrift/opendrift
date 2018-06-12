@@ -603,6 +603,19 @@ class TestRun(unittest.TestCase):
         os.remove(outfile)
         #o.write_netcdf_density_map(outfile)
         #os.remove(outfile)
+
+    def test_plot_animation(self):
+        o = OceanDrift(loglevel=0)
+        o.set_config('general:basemap_resolution', 'c')
+        o.fallback_values['x_sea_water_velocity'] = .5
+        o.fallback_values['y_sea_water_velocity'] = .3
+        o.seed_elements(lon=3, lat=60, radius=1000,
+                        time=datetime.now(), number=100)
+        o.run(steps=5)
+        o.plot(filename='test_plot.png')
+        o.animation(filename='test_plot.mp4')
+        os.remove('test_plot.png')
+        os.remove('test_plot.mp4')
         
 
 if __name__ == '__main__':
