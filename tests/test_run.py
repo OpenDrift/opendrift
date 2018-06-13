@@ -614,6 +614,8 @@ class TestRun(unittest.TestCase):
         o.run(steps=5)
         o.plot(filename='test_plot.png')
         o.animation(filename='test_plot.mp4')
+        assert os.path.exists('test_plot.png')
+        assert os.path.exists('test_plot.mp4')
         os.remove('test_plot.png')
         os.remove('test_plot.mp4')
         
