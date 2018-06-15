@@ -2844,7 +2844,8 @@ class OpenDriftSimulation(PhysicsMethods):
             reader = self.readers[readerName]
             if variable in reader.variables:
                 if time is None or (time>= reader.start_time
-                        and time <= reader.end_time):
+                        and time <= reader.end_time) or (
+                        reader.always_valid is True):
                     break
         if time is None:
             if hasattr(self, 'elements_scheduled_time'):
