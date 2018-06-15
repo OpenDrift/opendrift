@@ -777,11 +777,11 @@ class BaseReader(object):
                 raise ValueError('Variable not available: ' + variable +
                                  '\nAvailable parameters are: ' +
                                  str(self.variables))
-        if self.start_time is not None and time < self.start_time:
+        if (self.start_time is not None and time < self.start_time) and self.always_valid is False:
             raise ValueError('Requested time (%s) is before first available '
                              'time (%s) of %s' % (time, self.start_time,
                                                   self.name))
-        if self.end_time is not None and time > self.end_time:
+        if (self.end_time is not None and time > self.end_time) and self.always_valid is False:
             raise ValueError('Requested time (%s) is after last available '
                              'time (%s) of %s' % (time, self.end_time,
                                                   self.name))
