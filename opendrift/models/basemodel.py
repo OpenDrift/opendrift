@@ -197,7 +197,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if loglevel != 'custom':
             logging.getLogger('').handlers = []
             if logfile is not None:
-                eargs = {'filename': logfile}
+                eargs = {'filename': logfile, 'filemode': 'w'}
             else:
                 eargs = {}
             logging.basicConfig(level=loglevel,
