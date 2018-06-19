@@ -31,6 +31,8 @@ if __name__ == '__main__':
                         help='Buffer around plot in degrees lon/lat.')
     parser.add_argument('-f', dest='outfile',
                         default=None, help='Save animation to filename.')
+    parser.add_argument('-c', dest='color',
+                        default=False, help='Color elements with this parameter.')
 
     args = parser.parse_args()
 
@@ -39,11 +41,11 @@ if __name__ == '__main__':
     print o1
 
     if args.filename2 is None:
-        o1.animation(filename=args.outfile)
+        o1.animation(filename=args.outfile, color=args.color)
     else:
         o2 = opendrift.open(args.filename2)
         print o2
 
         # Animate and compare the two runs
         o1.animation(compare=o2, legend=[args.filename1, args.filename2],
-                     filename=args.outfile)
+                     filename=args.outfile, color=args.color)
