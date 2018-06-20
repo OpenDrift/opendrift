@@ -618,6 +618,19 @@ class TestRun(unittest.TestCase):
         assert os.path.exists('test_plot.mp4')
         os.remove('test_plot.png')
         os.remove('test_plot.mp4')
+
+    def test_retirement(self):
+        o = OceanDrift(loglevel=50)
+        o.set_config('drift:max_age_seconds', 5000)
+        o.fallback_values['x_sea_water_velocity'] = .5
+        o.fallback_values['y_sea_water_velocity'] = .3
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=0, lat=60, number=10,
+                        time=[datetime.now(),
+                              datetime.now() + timedelta(seconds=6000)])
+
+        o.run(time_step=1000, duration=timedelta(seconds=7000))
+        self.assertEqual(o.num_elements_deactivated(), 5)
         
 
 if __name__ == '__main__':

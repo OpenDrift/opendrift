@@ -23,10 +23,7 @@ from opendrift.elements.passivetracer import PassiveTracer
 PassiveTracer.variables = PassiveTracer.add_variables([
                             ('wind_drift_factor', {'dtype': np.float32,
                                                    'unit': '%',
-                                                   'default': 0.02}),
-                            ('age_seconds', {'dtype': np.float32,
-                                             'units': 's',
-                                             'default': 0})])
+                                                   'default': 0.02})])
 
 
 class OceanDrift(OpenDriftSimulation):
@@ -50,9 +47,6 @@ class OceanDrift(OpenDriftSimulation):
 
     def __init__(self, *args, **kwargs):
 
-        self._add_config('drift:max_age_seconds', 'float(min=0, default=None)',
-                         'Time after which particles will be deactivated.')
-
         super(OceanDrift, self).__init__(*args, **kwargs)
 
     #def previous_position_if(self):
@@ -63,20 +57,12 @@ class OceanDrift(OpenDriftSimulation):
     def update(self):
         """Update positions and properties of elements."""
 
-        self.elements.age_seconds += self.time_step.total_seconds()
-
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
         # Advect particles due to wind drag (according to specified
         #                                    wind_drift_factor)
         self.advect_wind()
-
-        # Deactivate elements that exceed a certain age
-        if self.get_config('drift:max_age_seconds') is not None:
-            self.deactivate_elements(self.elements.age_seconds >=
-                                     self.get_config('drift:max_age_seconds'),
-                                     reason='retired')
 
     def seed_along_trajectory(self, lon, lat, time,
                               release_time_interval=None, **kwargs):

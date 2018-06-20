@@ -23,10 +23,7 @@ from opendrift.elements.passivetracer import PassiveTracer
 PassiveTracer.variables = PassiveTracer.add_variables([
                             ('wind_drift_factor', {'dtype': np.float32,
                                                    'unit': '%',
-                                                   'default': 0.0}),
-                            ('age_seconds', {'dtype': np.float32,
-                                             'units': 's',
-                                             'default': 0})])
+                                                   'default': 0.0})])
 
 
 class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
@@ -94,8 +91,6 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
     def update(self):
         """Update positions and properties of elements."""
 
-        self.elements.age_seconds += self.time_step.total_seconds()
-
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
@@ -112,9 +107,3 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
 
         # Vertical advection
         self.vertical_advection()
-
-        # Deactivate elements that exceed a certain age
-        if self.get_config('drift:max_age_seconds') is not None:
-            self.deactivate_elements(self.elements.age_seconds >=
-                                     self.get_config('drift:max_age_seconds'),
-                                     reason='retired')

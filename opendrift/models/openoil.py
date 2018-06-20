@@ -43,9 +43,6 @@ class Oil(LagrangianArray):
         ('wind_drift_factor', {'dtype': np.float32,
                                'units': '%',
                                'default': 0.03}),
-        ('age_seconds', {'dtype': np.float32,
-                         'units': 's',
-                         'default': 0}),
         ('age_exposure_seconds', {'dtype': np.float32,
                                   'units': 's',
                                   'default': 0}),
@@ -322,7 +319,6 @@ class OpenOil(OpenDriftSimulation):
             #self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
 
     def oil_weathering(self):
-        self.elements.age_seconds += self.time_step.total_seconds()
         if self.time_step.days < 0:
             logging.debug('Skipping oil weathering for backwards run')
             return

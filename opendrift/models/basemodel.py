@@ -122,6 +122,7 @@ class OpenDriftSimulation(PhysicsMethods):
             [seed]
                 ocean_only = boolean(default=True)
             [drift]
+                max_age_seconds = float(min=0, default=None)
                 scheme = option('euler', 'runge-kutta', default='euler')
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
@@ -1919,6 +1920,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Release elements
                 self.release_elements()
 
+                self.increase_age_and_retire()
+
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
 
                 # Display time to terminal
@@ -2041,6 +2044,17 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.timer_end('cleaning up')
         self.timer_end('total time')
+
+    def increase_age_and_retire(self):
+        """Increase age of elements, and retire if older than config setting."""
+        # Increase age of elements
+        self.elements.age_seconds += self.time_step.total_seconds()
+
+        # Deactivate elements that exceed a certain age
+        if self.get_config('drift:max_age_seconds') is not None:
+            self.deactivate_elements(self.elements.age_seconds >=
+                                     self.get_config('drift:max_age_seconds'),
+                                     reason='retired')
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""

@@ -54,6 +54,9 @@ class LagrangianArray(object):
                 'default': -1}),  # ID to be assigned by application
         ('status', {'dtype': np.int32,  # Status categories
                     'default': 0}),
+        ('age_seconds', {'dtype': np.float32,
+                         'units': 's',
+                         'default': 0}),
         ('lon', {'dtype': np.float32,
                  'units': 'degrees_east',
                  'standard_name': 'longitude',
