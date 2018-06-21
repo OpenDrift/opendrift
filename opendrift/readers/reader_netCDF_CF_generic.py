@@ -24,7 +24,7 @@ from basereader import BaseReader
 
 class Reader(BaseReader):
 
-    def __init__(self, filename=None, name=None):
+    def __init__(self, filename=None, name=None, proj4=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -48,6 +48,8 @@ class Reader(BaseReader):
             raise ValueError(e)
 
         logging.debug('Finding coordinate variables.')
+        if proj4 is not None:  # If user has provided a projection apriori
+            self.proj4 = proj4
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
             logging.debug('Parsing variable: ' +  var_name)

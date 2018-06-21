@@ -94,6 +94,8 @@ class BaseReader(object):
         'y_wind_10m': 'y_wind',
         'eastward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_x_velocity',
         'northward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_y_velocity',
+        'sea_water_x_velocity': 'x_sea_water_velocity',
+        'sea_water_y_velocity': 'y_sea_water_velocity',
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward_current_velocity': 'x_sea_water_velocity',
