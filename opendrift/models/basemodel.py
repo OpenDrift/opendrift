@@ -130,6 +130,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
                 lift_to_seafloor = boolean(default=True)
+                deactivate_north_of = float(min=-90, max=90, default=None)
+                deactivate_south_of = float(min=-90, max=90, default=None)
+                deactivate_east_of = float(min=-360, max=360, default=None)
+                deactivate_west_of = float(min=-360, max=360, default=None)
                 use_tabularised_stokes_drift = boolean(default=False)
                 tabularised_stokes_drift_fetch = option(5000, 25000, 50000, default=25000)'''
 
@@ -1889,6 +1893,19 @@ class OpenDriftSimulation(PhysicsMethods):
             self.outfile = None
 
         #############################
+        # Check validity domain
+        #############################
+        validity_domain = [
+            self.get_config('drift:deactivate_west_of'),
+            self.get_config('drift:deactivate_east_of'),
+            self.get_config('drift:deactivate_south_of'),
+            self.get_config('drift:deactivate_north_of')]
+        if validity_domain == [None, None, None, None]:
+            self.validity_domain = None
+        else:
+            self.validity_domain = validity_domain
+
+        #############################
         # Model specific preparation
         #############################
         self.prepare_run()
@@ -2056,6 +2073,18 @@ class OpenDriftSimulation(PhysicsMethods):
             self.deactivate_elements(self.elements.age_seconds >=
                                      self.get_config('drift:max_age_seconds'),
                                      reason='retired')
+
+        # Deacticate any elements outside validity domain set by user
+        if self.validity_domain is not None:
+            W, E, S, N = self.validity_domain
+            if W is not None:
+                self.deactivate_elements(self.elements.lon < W, reason='outside')
+            if E is not None:
+                self.deactivate_elements(self.elements.lon > E, reason='outside')
+            if S is not None:
+                self.deactivate_elements(self.elements.lat < S, reason='outside')
+            if N is not None:
+                self.deactivate_elements(self.elements.lat > N, reason='outside')
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""

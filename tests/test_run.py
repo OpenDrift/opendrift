@@ -28,6 +28,7 @@ from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
+from opendrift.readers import reader_oscillating
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
@@ -646,7 +647,7 @@ class TestRun(unittest.TestCase):
         os.remove('test_plot.mp4')
 
     def test_retirement(self):
-        o = OceanDrift(loglevel=50)
+        o = OceanDrift(loglevel=0)
         o.set_config('drift:max_age_seconds', 5000)
         o.fallback_values['x_sea_water_velocity'] = .5
         o.fallback_values['y_sea_water_velocity'] = .3
@@ -657,6 +658,26 @@ class TestRun(unittest.TestCase):
 
         o.run(time_step=1000, duration=timedelta(seconds=7000))
         self.assertEqual(o.num_elements_deactivated(), 5)
+
+    def test_outside_domain(self):
+        o = OceanDrift(loglevel=50)
+        reader_osc_x = reader_oscillating.Reader(
+                'x_sea_water_velocity', amplitude=1,
+                zero_time=datetime.now())
+        reader_osc_y = reader_oscillating.Reader(
+                'y_sea_water_velocity', amplitude=1,
+                zero_time=datetime.now())
+        o.add_reader([reader_osc_x, reader_osc_y])
+        o.set_config('drift:deactivate_east_of', 2.1)
+        o.set_config('drift:deactivate_west_of', 1.9)
+        o.set_config('drift:deactivate_south_of', 59.9)
+        o.set_config('drift:deactivate_north_of', 60.1)
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=2, lat=60, number=1000,
+                        time=datetime.now(), radius=10000)
+        o.run(duration=timedelta(hours=5))
+        self.assertEqual(o.num_elements_deactivated(), 768)
+        self.assertEqual(o.num_elements_active(), 232)
         
 
 if __name__ == '__main__':
