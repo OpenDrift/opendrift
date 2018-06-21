@@ -129,6 +129,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 current_uncertainty_uniform = float(min=0, max=5, default=0)
                 wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
+                lift_to_seafloor = boolean(default=True)
                 use_tabularised_stokes_drift = boolean(default=False)
                 tabularised_stokes_drift_fetch = option(5000, 25000, 50000, default=25000)'''
 

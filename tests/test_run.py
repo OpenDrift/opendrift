@@ -562,6 +562,32 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[0,0], -151.7, 1)  # Seeded at seafloor depth
         self.assertAlmostEqual(z[-1,0], -91.3, 1)  # After some rising
 
+    def test_seed_below_seafloor_deactivating(self):
+        o = OpenOil3D(loglevel=50)
+        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o.add_reader([reader_norkyst])
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
+        lon = 4.5; lat = 62.0
+        o.seed_elements(lon, lat, z=[-5000, -100], time=reader_norkyst.start_time,
+                        density=1000, number=2)
+        o.set_config('drift:lift_to_seafloor', False)  # This time we deactivate
+        o.set_config('processes:turbulentmixing', True)
+        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
+        o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
+        o.run(steps=3, time_step=300, time_step_output=300)
+        z, status = o.get_property('z')
+        self.assertEqual(o.num_elements_total(), 2)
+        self.assertEqual(o.num_elements_active(), 1)
+        self.assertEqual(o.num_elements_deactivated(), 1)
+        self.assertAlmostEqual(z[0,1], -100, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,1], -34.6, 1)  # After some rising
+
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
