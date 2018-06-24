@@ -105,8 +105,8 @@ class LagrangianArray(object):
             raise TypeError('Missing arguments: %s' % str(list(missing_args)))
 
         # Check for redundant arguments
-        redundant_args = set(kwargs.keys() + default_values.keys()) - set(
-            self.variables.keys())
+        redundant_args = set(list(kwargs.keys()) +
+            list(default_values.keys())) - set((self.variables.keys()))
         if redundant_args:
             raise TypeError('Redundant arguments: %s' %
                             str(list(redundant_args)))

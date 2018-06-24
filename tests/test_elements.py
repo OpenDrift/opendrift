@@ -76,8 +76,8 @@ class TestElements(unittest.TestCase):
         # Check that identical scalars remain scalars, arrays are concatenated
         self.assertTrue(hasattr(e1.z, '__len__'))
         self.assertTrue(hasattr(e2.z, '__len__'))
-        self.assertItemsEqual(e1.z, [0, 1, 2, -1])
-        self.assertItemsEqual(e2.lon, [2., 3.])
+        self.assertListEqual(list(e1.z), [0, 1, 2, -1])
+        self.assertListEqual(list(e2.lon), [2., 3.])
         self.assertEqual(e2.lat, 61.0)
 
         self.assertEqual(len(e1), 4)
