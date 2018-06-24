@@ -181,7 +181,8 @@ class OpenOil(OpenDriftSimulation):
 
         # Update config with oiltypes 
         # TODO: add unicode support
-        oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
+        #oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
+        oiltypes = list(self.oiltypes)
         self._add_config('seed:oil_type', oiltypes,
                          'Oil type', overwrite=True)
 
@@ -719,8 +720,7 @@ class OpenOil(OpenDriftSimulation):
             return
 
         if oiltype not in self.oiltypes:
-            raise ValueError('The following oiltypes are available: %s' %
-                             str(self.oiltypes))
+            raise ValueError('Oiltype %s is unknown. The following oiltypes are available: %s' % (oiltype, str(self.oiltypes)))
         indx = self.oiltypes.index(oiltype)
         linenumber = self.oiltypes_linenumbers[indx]
         oilfile = open(self.oiltype_file, 'r')

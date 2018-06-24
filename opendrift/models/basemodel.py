@@ -26,6 +26,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import multiprocessing
 import platform
 import netCDF4
+from future.utils import iteritems
 
 import numpy as np
 import scipy
@@ -543,7 +544,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         outStr += '--------------------\n'
         outStr += 'Performance:\n'
-        for category, time in self.timing.iteritems():
+        for category, time in iteritems(self.timing):
             timestr = str(time)[0:str(time).find('.') + 2]
             for i, c in enumerate(timestr):
                 if c in '123456789.':
@@ -1595,7 +1596,7 @@ class OpenDriftSimulation(PhysicsMethods):
                           (sum(indices)))
         if hasattr(self, 'environment_profiles') and \
                 self.environment_profiles is not None:
-            for varname, profiles in self.environment_profiles.iteritems():
+            for varname, profiles in iteritems(self.environment_profiles):
                 logging.debug('remove items from profile for '+varname)
                 if varname is not 'z':
                     self.environment_profiles[varname] = \
