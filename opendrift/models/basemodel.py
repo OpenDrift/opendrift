@@ -56,6 +56,11 @@ import opendrift
 from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
 from opendrift.models.physics_methods import PhysicsMethods
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 
 class OpenDriftSimulation(PhysicsMethods):
     """Generic trajectory model class, to be extended (subclassed).
@@ -611,14 +616,14 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Add this reader for each of the given variables
             for variable in variables if variables else reader.variables:
-                if variable in self.priority_list:
+                if variable in list(self.priority_list):
                     if reader.name not in self.priority_list[variable]:
                         self.priority_list[variable].append(reader.name)
                 else:
                     self.priority_list[variable] = [reader.name]
 
         # Remove/hide variables not needed by the current trajectory model
-        for variable in self.priority_list:
+        for variable in list(self.priority_list):
             if variable not in self.required_variables:
                 del self.priority_list[variable]
 

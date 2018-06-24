@@ -19,6 +19,7 @@
 
 import unittest
 from datetime import datetime, timedelta
+import numpy as np
 
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_netCDF_CF_generic
@@ -68,8 +69,10 @@ class TestModels(unittest.TestCase):
         s.seed_elements(lon=2, lat=60, time=datetime.now(), number=1,
                         length=80, beam=14, height=25, draft=5)
         s.run(time_step=600, duration=timedelta(hours=4))
-        self.assertAlmostEqual(s.elements.lon, 2.25267706)
-        self.assertAlmostEqual(s.elements.lat, 59.87694775)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            s.elements.lon, 2.25267706))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            s.elements.lat, 59.87694775))
 
     def test_shipdrift_backwards(self):
         """Case above, reversed"""
@@ -87,8 +90,10 @@ class TestModels(unittest.TestCase):
                         time=datetime.now(), number=1,
                         length=80, beam=14, height=25, draft=5)
         s.run(time_step=-600, duration=timedelta(hours=4))
-        self.assertAlmostEqual(s.elements.lon, 2.0, 3)
-        self.assertAlmostEqual(s.elements.lat, 60, 3)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+                s.elements.lon, 2.0, 3))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+                s.elements.lat, 60, 3))
 
 
 

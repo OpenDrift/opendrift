@@ -39,6 +39,11 @@ except:
                           ' please install from '
                           'https://code.google.com/p/pyproj/')
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 # Som valid (but extreme) ranges for checking that values are reasonable
 standard_names = {
     'x_wind': {'valid_min': -50, 'valid_max': 50},

@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
-import noaa_oil_weathering as noaa
+import opendrift.models.noaa_oil_weathering as noaa
 
 
 # Defining the oil element properties
