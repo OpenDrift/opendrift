@@ -2,3 +2,6 @@ numpy>=1.9.0
 scipy>=0.17.0
 matplotlib>=1.1.1
 netCDF4>=1.0.0
+future
+configobj
+pillow
