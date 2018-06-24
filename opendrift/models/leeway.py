@@ -246,7 +246,7 @@ class Leeway(OpenDriftSimulation):
             if substr is not None:
                 if substr.lower() not in description.lower() + objkey.lower():
                     continue
-            print '%i %s %s' % (i+1, objkey, description)
+            print('%i %s %s' % (i+1, objkey, description))
 
     def update(self):
         """Update positions and properties of leeway particles."""

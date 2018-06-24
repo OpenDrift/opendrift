@@ -105,7 +105,7 @@ class TestReaders(unittest.TestCase):
         readers = [reader1, reader2]
 
         for r in readers:
-            print r
+            print(r)
             # Make four points:
             #  1) outside lower left, 2) lower left,  3) center of domain
             #  4) outside upper right
@@ -121,15 +121,15 @@ class TestReaders(unittest.TestCase):
                 self.assertEqual(covered.tolist(), [1, 2])
             else:
                 if covered == [2]:
-                    print '#'*60
-                    print '#'*60
-                    print 'WARNING: A point on the boundary is considered ' \
+                    print('#'*60)
+                    print('#'*60)
+                    print('WARNING: A point on the boundary is considered ' \
                           'outside after conversion x,y -> lon,lat -> x,y. ' \
                           'This is different from "standard", but is due to ' \
                           'rounding differences and not considered to be an ' \
-                          'error. Numpy version is %s' % (np.__version__)
-                    print '#'*60
-                    print '#'*60
+                          'error. Numpy version is %s' % (np.__version__))
+                    print('#'*60)
+                    print('#'*60)
                 else:
                     self.assertTrue(False)  # Should never happen!
 

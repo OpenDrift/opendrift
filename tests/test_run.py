@@ -44,9 +44,9 @@ def gdal_error_handler(err_class, err_num, err_msg):
     }
     err_msg = err_msg.replace('\n',' ')
     err_class = errtype.get(err_class, 'None')
-    print 'Error Number: %s' % (err_num)
-    print 'Error Type: %s' % (err_class)
-    print 'Error Message: %s' % (err_msg)
+    print('Error Number: %s' % (err_num))
+    print('Error Type: %s' % (err_class))
+    print('Error Message: %s' % (err_msg))
 
 try:
     import ogr
@@ -57,11 +57,11 @@ try:
         has_ogr = True
         gdal.PushErrorHandler(gdal_error_handler)
     else:
-        print 'GDAL version >= 2.0 is required:'
+        print('GDAL version >= 2.0 is required:')
         has_ogr = False
 except Exception as e:
-    print 'GDAL is not available:'
-    print e
+    print('GDAL is not available:')
+    print(e)
     has_ogr = False
 
 class TestRun(unittest.TestCase):

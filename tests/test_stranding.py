@@ -104,7 +104,7 @@ class TestStranding(unittest.TestCase):
                             time=reader_osc.zero_time)
             o.run(steps=28, time_step=3600*2)
             #o.plot()
-            print 'Testing stranding: %s' % option
+            print('Testing stranding: %s' % option)
             if len(o.elements) == 1:
                 el = o.elements
             else:

@@ -36,7 +36,7 @@ try:
     matplotlib.rcParams['legend.scatterpoints'] = 1
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
-        #print 'No display found. Using non-interactive Agg backend'
+        #print('No display found. Using non-interactive Agg backend')
         matplotlib.use('agg')
     import matplotlib.pyplot as plt
     from matplotlib import animation
@@ -50,7 +50,7 @@ try:
     from mpl_toolkits import basemap
     Basemap = basemap.Basemap
 except:
-    print 'Basemap is not available, can not make plots'
+    print('Basemap is not available, can not make plots')
 
 import opendrift
 from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
