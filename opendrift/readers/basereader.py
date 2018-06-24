@@ -26,7 +26,7 @@ from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
 import numpy as np
 
-from interpolation import ReaderBlock
+from opendrift.readers.interpolation import ReaderBlock
 
 try:
     import pyproj  # Import pyproj

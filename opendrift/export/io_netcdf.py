@@ -159,8 +159,8 @@ def close(self):
 
         move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
     except Exception as me:
-        print me
-        print 'Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)'
+        print(me)
+        print('Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)')
     
 
 def import_file(self, filename, time=None):
