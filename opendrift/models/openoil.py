@@ -185,9 +185,7 @@ class OpenOil(OpenDriftSimulation):
         self.oil_weathering_model = weathering_model
 
         # Update config with oiltypes 
-        # TODO: add unicode support
-        # Line below breaks Python3 compatibility
-        oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
+        oiltypes = [str(a) for a in self.oiltypes]
         self._add_config('seed:oil_type', oiltypes,
                          'Oil type', overwrite=True)
 
