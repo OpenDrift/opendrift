@@ -45,6 +45,6 @@ o.seed_elements(lons, lats, radius=0, number=10000,
 o.run(steps=66*2, time_step=1800)
 
 # Print and plot results
-print o
+print(o)
 o.animation(filename="example_checkerboard_anim.gif")
 #o.plot()

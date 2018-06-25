@@ -827,7 +827,7 @@ class OpenOil(OpenDriftSimulation):
             c = np.array(pos.split()).astype(np.float)
             lon = c[0::2]
             lat = c[1::2]
-            slicks.append(Polygon(zip(lon, lat)))
+            slicks.append(Polygon(list(zip(lon, lat))))
 
         # Find boundary and area of all patches
         lons = np.array([])
@@ -854,7 +854,7 @@ class OpenOil(OpenDriftSimulation):
             x, y = proj(lon, lat)
 
             area_of_polygon = 0.0
-            for i in xrange(-1, len(x)-1):
+            for i in range(-1, len(x)-1):
                 area_of_polygon += x[i] * (y[i+1] - y[i-1])
             area_of_polygon = abs(area_of_polygon) / 2.0
             slickarea = np.append(slickarea, area_of_polygon)  # in m2

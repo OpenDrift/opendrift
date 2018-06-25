@@ -657,22 +657,27 @@ class OpenDriftSimulation(PhysicsMethods):
 
             if files == []:  # Try with OPeNDAP URL
                 try:  # Check URL accessibility/timeout
-                    import urllib2
-                    request = urllib2.Request(u)
+                    try:
+                        # for python 3
+                        import urllib.request as urllib_request
+                    except ImportError:
+                        # for python 2
+                        import urllib2 as urllib_request
+                    request = urllib_request.Request(u)
                     try:  # netrc
                         import netrc
                         import base64
-                        parts = urllib2.urlparse.urlparse(u)
+                        parts = urllib_request.urlparse.urlparse(u)
                         login, account, password = netrc.netrc().authenticators(parts.netloc)
                         creds = base64.encodestring('%s:%s' % (login, password)).strip()
                         request.add_header("Authorization", "Basic %s" % creds)
                         logging.info('Applied NETRC credentials')
                     except:
                         logging.info('Could not apply NETRC credentials')
-                    urllib2.urlopen(request, timeout=timeout)
+                    urllib_request.urlopen(request, timeout=timeout)
                 except Exception as e:
                     # Error code 400 is expected!
-                    if not isinstance(e, urllib2.HTTPError) or e.code != 400:
+                    if not isinstance(e, urllib_request.HTTPError) or e.code != 400:
                         logging.warning('ULR %s not accessible: ' % u + str(e))
                         continue
                     try:
@@ -2632,10 +2637,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Find map coordinates of comparison simulations
             cd['x_other'], cd['y_other'] = \
-                map(other.history['lon'], other.history['lat'])
+                map(other.history['lon'].copy(), other.history['lat'].copy())
             cd['x_other_deactive'], cd['y_other_deactive'] = \
-                map(other.elements_deactivated.lon,
-                    other.elements_deactivated.lat)
+                map(other.elements_deactivated.lon.copy(),
+                    other.elements_deactivated.lat.copy())
             cd['firstlast'] = np.ma.notmasked_edges(
                 cd['x_other'], axis=1)
             cd['index_of_last_other'] = cd['firstlast'][1][1]

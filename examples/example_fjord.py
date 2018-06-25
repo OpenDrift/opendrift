@@ -36,6 +36,6 @@ o.seed_elements(lon, lat, radius=50, number=5000, time=time, objectType=objType)
 o.run(steps=66*12, time_step=300)
 
 # Print and plot results
-print o
+print(o)
 o.plot()
 o.animation()

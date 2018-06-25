@@ -24,7 +24,7 @@ import numpy as np
 z = -np.random.rand(1000)*50  # Giving elements a random depth
 o.seed_elements(lon, lat, z=z, radius=0, number=1000, time=time)
 
-print o
+print(o)
 
 # Adjusting some configuration
 o.set_config('drift:current_uncertainty', .1)
@@ -35,6 +35,6 @@ o.run(steps=66*2, time_step=1800, outfile='openoil.nc',
       export_buffer_length=5)  # Writing to netCDF file every 5 time steps
 
 # Print and plot results
-print o
+print(o)
 o.plot(linecolor='z')  # Color lines according to depth
 o.animation()

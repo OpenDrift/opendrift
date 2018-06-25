@@ -40,5 +40,5 @@ for i in range(num_steps+1):
 o.run(steps=66*4, time_step=900)
 
 # Print and plot results
-print o
+print(o)
 o.animation()

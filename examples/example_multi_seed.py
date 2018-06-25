@@ -38,6 +38,6 @@ o.seed_elements([3.6, 4.4], [61.5, 61.2], radius=[1000, 10000],
 o.run(steps=50*4, time_step=900)
 
 # Print and plot results
-print o
+print(o)
 o.plot()
 o.animation()

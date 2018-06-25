@@ -29,5 +29,5 @@ o.set_config('processes:turbulentmixing', True)  # Otherwise also no updrift
 o.run(steps=12*2, time_step=300, time_step_output=300)
 
 # Print and plot results
-print o
+print(o)
 o.animation_profile()

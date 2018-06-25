@@ -38,6 +38,6 @@ o.set_config('drift:wind_uncertainty', 2)
 o.run(steps=66*4, time_step=900, outfile='openoil.nc')
 
 # Print and plot results
-print o
+print(o)
 o.animation()
 o.plot()

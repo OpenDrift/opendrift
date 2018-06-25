@@ -10,7 +10,7 @@ if not os.path.exists('openoil.nc'):
                      'netCDF file to be imported.')
 
 o = opendrift.open('openoil.nc')
-print o
+print(o)
 
 o.plot()
 o.plot_property('mass_oil')

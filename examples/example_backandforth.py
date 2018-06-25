@@ -30,7 +30,7 @@ o.seed_elements(lon, lat, radius=1000, number=100, time=time)
 o.run(steps=50*4, time_step=900, outfile=ncfile)
 
 # Print and plot results
-print o
+print(o)
 o.plot(buffer=.2, filename='forward.png')
 
 #################
@@ -51,9 +51,9 @@ o.schedule_elements(elements_final, time_final)
 o.run(steps=50*4, time_step=-900)
 
 # Print and plot results
-print o
+print(o)
 o.plot(buffer=.2, filename='backward.png')
 os.remove(ncfile)
-print '#############################################'
-print 'Compare plots forward.png and backward.png'
-print '#############################################'
+print('#############################################')
+print('Compare plots forward.png and backward.png')
+print('#############################################')

@@ -31,9 +31,9 @@ lw.seed_elements(lon, lat, radius=[1000, 10000], number=5000,
 
 # Running model
 lw.run(steps=66*4, time_step=900)
-print lw
+print(lw)
 
 # Print and plot results
-print lw
+print(lw)
 lw.plot()
 lw.animation()

@@ -28,7 +28,7 @@ time = reader_arctic.start_time
 o.seed_elements(lon, lat, radius=7000, number=3000, time=time)
 o.fallback_values['y_wind'] = 4  # Adding some northwards wind
 
-print o
+print(o)
 
 # Adjusting some configuration
 o.set_config('general:basemap_resolution',  'i')
@@ -40,9 +40,9 @@ o.set_config('drift:wind_uncertainty',  5)
 
 # Running model (until end of driver data)
 o.run(duration=timedelta(days=4), time_step=3600)
-print o.readers['basemap_landmask']
+print(o.readers['basemap_landmask'])
 
 # Print and plot results
-print o
+print(o)
 o.animation()
 o.plot(background='sea_ice_area_fraction')

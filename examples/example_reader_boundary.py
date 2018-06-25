@@ -42,5 +42,5 @@ o.seed_elements(lons, lats, radius=0, number=2500,
 o.run(steps=16*4, time_step=900)
 
 # Print and plot results
-print o
+print(o)
 o.animation()
