@@ -14,6 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+from io import open
 import os
 import numpy as np
 from datetime import datetime
@@ -24,6 +25,10 @@ from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
 import opendrift.models.noaa_oil_weathering as noaa
 
+try:
+    from itertools import izip as zip
+except ImportError:
+    pass
 
 # Defining the oil element properties
 class Oil(LagrangianArray):
@@ -165,7 +170,7 @@ class OpenOil(OpenDriftSimulation):
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
                 '/oilprop.dat'
-            oilprop = open(self.oiltype_file)
+            oilprop = open(self.oiltype_file, 'r', encoding='utf-8')
             oiltypes = []
             linenumbers = []
             for i, line in enumerate(oilprop.readlines()):
@@ -181,8 +186,8 @@ class OpenOil(OpenDriftSimulation):
 
         # Update config with oiltypes 
         # TODO: add unicode support
-        #oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
-        oiltypes = list(self.oiltypes)
+        # Line below breaks Python3 compatibility
+        oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
         self._add_config('seed:oil_type', oiltypes,
                          'Oil type', overwrite=True)
 

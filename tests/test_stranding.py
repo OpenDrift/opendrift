@@ -19,6 +19,7 @@
 
 import unittest
 from datetime import datetime, timedelta
+import numpy as np
 
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_basemap_landmask
@@ -110,7 +111,8 @@ class TestStranding(unittest.TestCase):
             else:
                 el = o.elements_deactivated
             self.assertEqual(o.status_categories[int(el.status)], status[i])
-            self.assertAlmostEqual(el.lon, lons[i], 2)
+            self.assertIsNone(np.testing.assert_array_almost_equal(
+                el.lon, lons[i], 2))
 
 
 if __name__ == '__main__':

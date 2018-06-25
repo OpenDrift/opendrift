@@ -246,7 +246,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 cs += '\n' + '['*(i+1) + s + ']'*(i+1)
             else:
                 cs += '\n\t' + s + ' = ' + value
-        newconf = configobj.ConfigObj(configspec=cs.split('\n'))
+        newconf = configobj.ConfigObj(configspec=cs.split('\n'),
+                    encoding='utf8')
         newconf.validate(validate.Validator())
         if not hasattr(self, 'configobj'):
             self.configobj = newconf
@@ -265,7 +266,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def _add_configstring(self, configstring):
         """Add several configuration items from string (INI-format)."""
-        newconf = configobj.ConfigObj(configspec=configstring.split('\n'))
+        newconf = configobj.ConfigObj(configspec=configstring.split('\n'),                      encoding='utf8')
         newconf.validate(validate.Validator())
         if not hasattr(self, 'configobj'):
             self.configobj = newconf
@@ -1890,7 +1891,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if self.export_variables is not None:
             history_dtype_fields = [f for f in history_dtype_fields
                                     if f[0] in self.export_variables]
-            for m in self.history_metadata:
+            for m in list(self.history_metadata):
                 if m not in self.export_variables:
                     del self.history_metadata[m]
 

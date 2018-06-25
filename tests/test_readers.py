@@ -215,10 +215,11 @@ class TestReaders(unittest.TestCase):
         testlon = np.array((14.0, 20.0, 20.1, 4, 5))
         testlat = np.array((70.1, 76.0, 76.1, 60, 60))
         testz = np.random.uniform(0, 0, len(testlon))
-        self.assertItemsEqual([0], reader_nordic.covers_positions(
-                                    testlon, testlat, testz))
-        self.assertItemsEqual([0, 1, 2], reader_arctic.covers_positions(
-                                    testlon, testlat, testz))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            [0], reader_nordic.covers_positions(testlon, testlat, testz)))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            [0, 1, 2],
+            reader_arctic.covers_positions(testlon, testlat, testz)))
         o.seed_elements(testlon, testlat, testz, time=reader_nordic.start_time)
         o.fallback_values['land_binary_mask'] = 0
         env, env_profiles, missing = \
@@ -229,7 +230,8 @@ class TestReaders(unittest.TestCase):
         self.assertAlmostEqual(env['sea_water_temperature'][0], 4.267, 2)
         self.assertAlmostEqual(env['sea_water_temperature'][1], 0.468122, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
-        self.assertItemsEqual(missing, [False,False,False,False,False])
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            missing, [False,False,False,False,False]))
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,0],
                                4.267, 2)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,4], 10)
@@ -244,7 +246,8 @@ class TestReaders(unittest.TestCase):
                               testlon, testlat, testz,
                               ['sea_water_temperature'])
         self.assertTrue(env_profiles2 is not None)
-        self.assertEqual(env_profiles2.keys(), ['z', 'sea_water_temperature'])
+        self.assertEqual(set(env_profiles2.keys()),
+            set(['z', 'sea_water_temperature']))
         # Get separate data, without profile
         env3, env_profiles3, missing3 = \
             o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
@@ -261,16 +264,12 @@ class TestReaders(unittest.TestCase):
                               testlon, testlat, testz,
                               ['sea_water_temperature'])
 
-        self.assertItemsEqual(env['x_sea_water_velocity'],
-                              env2['x_sea_water_velocity'])
-        #print env_profiles['sea_water_temperature'], '1'*50
-        #print env_profiles2['sea_water_temperature'], '2'*50
-        #print env_profiles4['sea_water_temperature'], '4'*50
-        # Test below should also pass, To be fixed
-        #self.assertItemsEqual(env_profiles['sea_water_temperature'].ravel(),
-        #                      env_profiles2['sea_water_temperature'].ravel())
-        self.assertItemsEqual(env_profiles2['sea_water_temperature'].ravel(),
-                              env_profiles4['sea_water_temperature'].ravel())
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            env['x_sea_water_velocity'],
+            env2['x_sea_water_velocity']))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            env_profiles2['sea_water_temperature'].ravel(),
+            env_profiles4['sea_water_temperature'].ravel()))
 
 
     def test_constant_reader(self):

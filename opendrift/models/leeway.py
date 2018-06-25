@@ -14,6 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+from builtins import range
 import os
 import logging
 from collections import OrderedDict
@@ -103,7 +104,7 @@ class Leeway(OpenDriftSimulation):
         objproptxt = objprop_file.readlines()
         objprop_file.close()
         self.leewayprop = OrderedDict({})
-        for i in xrange(len(objproptxt)//3+1):
+        for i in range(len(objproptxt)//3+1):
             # Stop at first blank line
             if not objproptxt[i*3].strip():
                 break
@@ -180,7 +181,7 @@ class Leeway(OpenDriftSimulation):
         dwstd = self.leewayprop[objectType]['DWSTD']
         rdw = np.zeros(number)
         epsdw = np.zeros(number)
-        for i in xrange(number):
+        for i in range(number):
             rdw[i] = np.random.randn(1)
             epsdw[i] = rdw[i]*dwstd
             # Avoid negative downwind slopes

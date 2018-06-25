@@ -17,7 +17,7 @@
 from datetime import datetime
 import numpy as np
 
-from basereader import BaseReader
+from opendrift.readers.basereader import BaseReader
 
 
 class Reader(BaseReader):
