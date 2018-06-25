@@ -2249,7 +2249,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 map.drawparallels(np.arange(np.floor(map.latmin),
                                             np.ceil(map.latmax), 1),
                                   labels=[0, 1, 1, 0])
-        x, y = map(lons, lats)
+        x, y = map(lons.copy(), lats.copy())
 
         try:
             firstlast = np.ma.notmasked_edges(x, axis=1)

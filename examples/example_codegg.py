@@ -33,7 +33,7 @@ o.set_config('turbulentmixing:timestep', 60.) # seconds
 o.run(steps=6*2, time_step=1800)
 
 # Print and plot results
-print o
+print(o)
 
 o.plot()
 o.animation()
