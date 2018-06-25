@@ -93,7 +93,7 @@ def close(self):
     self.outfile.variables['status'].flag_values = \
         np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
     self.outfile.variables['status'].flag_meanings = \
-        "".join(self.status_categories)
+        " ".join(self.status_categories)
     # Write timesteps to file
     self.outfile.time_coverage_end = str(self.time)
     timeStr = 'seconds since 1970-01-01 00:00:00'
