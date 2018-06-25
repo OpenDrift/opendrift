@@ -138,10 +138,11 @@ class TestRun(unittest.TestCase):
                         time=norkyst.start_time)
         o3.run(steps=4*3, time_step=timedelta(minutes=15))
         # Check that we get some difference with Runge-Kutta:
-        self.assertAlmostEqual((o2.elements.lon-o.elements.lon).max(),
-                                0.0015, 3)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            (o2.elements.lon-o.elements.lon).max(), 0.0015, 3))
         # Check that runs with Euler are identical
-        self.assertEqual((o3.elements.lon-o.elements.lon).max(), 0)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            (o3.elements.lon-o.elements.lon).max(), 0))
 
     def test_seed_polygon(self):
         o = OceanDrift(loglevel=20)
@@ -308,8 +309,9 @@ class TestRun(unittest.TestCase):
                         time=norkyst.start_time)
         o2.run(steps=40, export_buffer_length=6,
                outfile='export_step_interval.nc')
-        self.assertItemsEqual(o1.history['lon'].compressed(),
-                              o2.history['lon'].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o1.history['lon'].compressed(),
+            o2.history['lon'].compressed()))
         # Finally check when steps is multiple of export_buffer_length
         o3 = OceanDrift(loglevel=20)
         o3.add_reader(norkyst)
@@ -325,8 +327,9 @@ class TestRun(unittest.TestCase):
                         time=norkyst.start_time)
         o4.run(steps=42, export_buffer_length=6,
                outfile='export_step_interval.nc')
-        self.assertItemsEqual(o3.history['lon'].compressed(),
-                              o4.history['lon'].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o3.history['lon'].compressed(),
+            o4.history['lon'].compressed()))
         os.remove('export_step_interval.nc')
 
     def test_buffer_length_stranding(self):
@@ -355,10 +358,12 @@ class TestRun(unittest.TestCase):
                time_step=900,
                time_step_output=3600,
                outfile='test_buffer_length_stranding.nc')
-        self.assertItemsEqual(o1.history['lon'].compressed(),
-                              o2.history['lon'].compressed())
-        self.assertItemsEqual(o1.history['status'].compressed(),
-                              o2.history['status'].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o1.history['lon'].compressed(),
+            o2.history['lon'].compressed()))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o1.history['status'].compressed(),
+            o2.history['status'].compressed()))
         os.remove('test_buffer_length_stranding.nc')
 
     def test_output_time_step(self):
@@ -393,10 +398,12 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o1.history.shape, (100,25))
         self.assertEqual(o2.history.shape, (100,13))
         # Check that start and end conditions (longitudes) are idential
-        self.assertItemsEqual(o1.history['lon'][:,24].compressed(), 
-                              o2.history['lon'][:,12].compressed())
-        self.assertItemsEqual(o1.history['lon'][:,0].compressed(),
-                              o2.history['lon'][:,0].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o1.history['lon'][:,24].compressed(), 
+            o2.history['lon'][:,12].compressed()))
+        self.assertIsNone(np.testing.assert_array_equal(
+            o1.history['lon'][:,0].compressed(),
+            o2.history['lon'][:,0].compressed()))
         # Check that also run imported from file is identical
         o1i = OceanDrift(loglevel=20)
         o1i.io_import_file('test_time_step30.nc')
@@ -404,8 +411,9 @@ class TestRun(unittest.TestCase):
         o2i.io_import_file('test_time_step60.nc')
         os.remove('test_time_step30.nc')
         os.remove('test_time_step60.nc')
-        self.assertItemsEqual(o2i.history['lon'][:,12].compressed(),
-                              o2.history['lon'][:,12].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o2i.history['lon'][:,12].compressed(),
+            o2.history['lon'][:,12].compressed()))
         # Check number of activated elements
         self.assertEqual(o1.num_elements_total(), o2.num_elements_total())
         self.assertEqual(o1.num_elements_total(), o1i.num_elements_total())
@@ -467,8 +475,10 @@ class TestRun(unittest.TestCase):
         o1.add_reader([norkyst, arome, basemap])
         o1.seed_elements(lon, lat, time=norkyst.start_time)
         o1.run(steps=30)
-        self.assertAlmostEqual(o.elements.lon, o1.elements.lon, 2)
-        self.assertAlmostEqual(o.elements.lat, o1.elements.lat, 2)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.lon, o1.elements.lon, 2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.lat, o1.elements.lat, 2))
         # Third run
         # Check that this is identical to run 1 if projection set equal
         o2 = OceanDrift(loglevel=50)
@@ -476,7 +486,8 @@ class TestRun(unittest.TestCase):
         o2.seed_elements(lon, lat, time=norkyst.start_time)
         o2.set_projection(basemap.proj4)
         o2.run(steps=30)
-        self.assertEqual(o.elements.lon, o2.elements.lon)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.lon, o2.elements.lon))
 
     def test_seed_seafloor(self):
         o = OpenOil3D(loglevel=30)
@@ -617,7 +628,8 @@ class TestRun(unittest.TestCase):
         # Check that element has not penetrated seafloor
         self.assertFalse(o.elements.z <
                          -o.environment.sea_floor_depth_below_sea_level)
-        self.assertAlmostEqual(o.elements.z, -160.06, 1)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.z, -160.06, 1))
 
     def test_seed_on_land(self):
         o = OceanDrift(loglevel=0)

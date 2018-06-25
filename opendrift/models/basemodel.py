@@ -1400,7 +1400,7 @@ class OpenDriftSimulation(PhysicsMethods):
             return
         if len(lons) != len(lats):
             raise ValueError('lon and lat arrays must have same length.')
-        poly = Polygon(zip(lons, lats), closed=True)
+        poly = Polygon(list(zip(lons, lats)), closed=True)
         # Place N points within the polygons
         proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f '
                            '+lon_0=%f +R=6370997.0 +units=m +ellps=WGS84'
@@ -1412,7 +1412,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lat = lonlat[:, 1]
         x, y = proj(lon, lat)
         area = 0.0
-        for i in xrange(-1, len(x)-1):
+        for i in range(-1, len(x)-1):
             area += x[i] * (y[i+1] - y[i-1])
         area = abs(area) / 2
 
@@ -1526,8 +1526,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     # Alternative if OGR is not built with GEOS support
                     r = geom.GetGeometryRef(0)
-                    lons = [r.GetX(j) for j in xrange(r.GetPointCount())]
-                    lats = [r.GetY(j) for j in xrange(r.GetPointCount())]
+                    lons = [r.GetX(j) for j in range(r.GetPointCount())]
+                    lats = [r.GetY(j) for j in range(r.GetPointCount())]
 
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
                 num_seeded += num_elements
