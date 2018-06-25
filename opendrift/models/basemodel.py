@@ -1276,7 +1276,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
                                         number, radians=False)
                 # Seed cone recursively
-                lon, lat = zip(*conelonlats)
+                lon, lat = list(zip(*conelonlats))
                 lon = np.atleast_1d(lon)
                 lat = np.atleast_1d(lat)
                 if len(radius_array) == 1:
@@ -2307,10 +2307,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
         coastsegs_new = []
         for c in map_orig.coastsegs:
-            xc, yc = zip(*c)
+            xc, yc = list(zip(*c))
             newxc = tuple(xce - xoff for xce in xc)
             newyc = tuple(yce - yoff for yce in yc)
-            coastsegs_new.append(zip(newxc, newyc))
+            coastsegs_new.append(list(zip(newxc, newyc)))
         map.coastsegs = coastsegs_new
 
         map.coastpolygontypes = map_orig.coastpolygontypes
