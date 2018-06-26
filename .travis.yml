@@ -50,9 +50,7 @@ before_install:
         cd ..;
     fi
   - export PATH=$condapath
-  - if [[ $SCIPY == "1.0" ]]; then
-        conda config --add channels conda-forge;
-    fi
+  - conda config --add channels conda-forge;
   - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
 install:
   - conda install --yes -c dan_blanchard python-coveralls
