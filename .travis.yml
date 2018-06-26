@@ -41,7 +41,9 @@ before_install:
         download=/$HOME/download3;
     fi
   - if [ ! -e $condabin ]; then
-        sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
+        if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
+            sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
+        fi
         mkdir -p $download;
         cd $download;
         wget -c $condaURL -O miniconda.sh;
