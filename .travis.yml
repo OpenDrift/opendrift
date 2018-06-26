@@ -5,7 +5,7 @@ addons:
     - gfortran
 python:
   - 2.7
-  - 3.6
+  - 3.5
 env:
   - NUMPY=1.7    SCIPY=0.11   NETCDF=1.0   MATPLOTLIB=1.3
   - NUMPY=1.8.2  SCIPY=0.13.3 NETCDF=1.1   MATPLOTLIB=1.3 # Ubuntu 14.04
@@ -34,11 +34,13 @@ before_install:
         condabin=$HOME/miniconda2/bin;
         condapath=/home/travis/miniconda2/bin:$PATH;    
         download=/$HOME/download2;
-    elif [ $TRAVIS_PYTHON_VERSION == 3.6 ]; then
+        export PYTHONPATH="$HOME/.miniconda2/lib/python2.7:$HOME/.miniconda2/lib/python2.7/site-packages:$PYTHONPATH";
+    elif [ $TRAVIS_PYTHON_VERSION == 3.5 ]; then
         condaURL=https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh;
         condabin=$HOME/miniconda3/bin;
         condapath=/home/travis/miniconda3/bin:$PATH;    
         download=/$HOME/download3;
+        export PYTHONPATH="$HOME/.miniconda3/lib/python3.5:$HOME/.miniconda3/lib/python3.5/site-packages:$PYTHONPATH";
     fi
   - if [ ! -e $condabin ]; then
         if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
