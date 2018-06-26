@@ -37,7 +37,7 @@ before_install:
         condabin=$HOME/miniconda3/bin;
         condapath=/home/travis/miniconda3/bin:$PATH;    
     fi
-  - if [ ! -e $condabin ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
+  - if [ ! -e $condabin ]; then
         sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
         mkdir -p download;
         cd download;
