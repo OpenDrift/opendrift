@@ -54,7 +54,7 @@ before_install:
 install:
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
   - conda config --add channels conda-forge
-  - conda install -c conda-forge coveralls 
+  - conda install --yes -c conda-forge coveralls 
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
         mkdir -p oillibrary;
