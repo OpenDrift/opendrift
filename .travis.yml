@@ -43,7 +43,7 @@ before_install:
   - if [ ! -e $condabin ]; then
         if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
             sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
-        fi
+        fi;
         mkdir -p $download;
         cd $download;
         wget -c $condaURL -O miniconda.sh;
