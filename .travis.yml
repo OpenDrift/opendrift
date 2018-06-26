@@ -50,7 +50,6 @@ before_install:
         cd ..;
     fi
   - export PATH=$condapath
-  - conda config --add channels conda-forge;
   - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
 install:
   - conda install --yes -c dan_blanchard python-coveralls
