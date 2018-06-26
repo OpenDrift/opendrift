@@ -53,8 +53,7 @@ The original container recipe (Dockerfile) and documentation are provided [here]
 ## Singularity
 
 We will now walk through dumping the Docker layers (you might know Docker images are composed
-of layers, like a cake!) into a Singularity container. Why would you want a Singularity container? It 
-doesn't have the security issues of Docker, and could be used on a shared resource.
+of layers, like a cake!) into a Singularity container. Why would you want a Singularity container? It doesn't have the security issues of Docker, and could be used on a shared resource.
 
 
 ## Installation
