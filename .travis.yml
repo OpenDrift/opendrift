@@ -25,12 +25,17 @@ cache:
   directories:
     - $HOME/download
     - $HOME/miniconda2
+    - $HOME/miniconda3
 sudo: required
 before_install:
   - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         condaURL=https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh;
         condabin=$HOME/miniconda2/bin;
         condapath=/home/travis/miniconda2/bin:$PATH;    
+    elif [ $TRAVIS_PYTHON_VERSION == 3.5 ]; then
+        condaURL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        condabin=$HOME/miniconda3/bin;
+        condapath=/home/travis/miniconda3/bin:$PATH;    
     fi
   - if [ ! -e $condabin ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
@@ -41,7 +46,7 @@ before_install:
         ./miniconda.sh -b -f;
         cd ..;
     fi
-  - export PATH=/home/travis/miniconda2/bin:$PATH
+  - export PATH=$condapath
   - if [[ $SCIPY == "1.0" ]]; then
         conda config --add channels conda-forge;
     fi
