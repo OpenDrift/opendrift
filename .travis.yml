@@ -52,10 +52,9 @@ before_install:
   - export PATH=$condapath
   - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
 install:
-  - conda install --yes -c dan_blanchard python-coveralls
-  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB
+  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
   - conda config --add channels conda-forge
-  - conda install --yes basemap=1.0.7 netcdf4=$NETCDF configobj
+  - conda install -c conda-forge coveralls 
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
         mkdir -p oillibrary;
