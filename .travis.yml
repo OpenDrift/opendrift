@@ -53,6 +53,7 @@ before_install:
     fi
   - export PATH=$condapath
   - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
+  - echo $PATH, $PYTHONPATH, $condapath, $TRAVIS_PYTHON_VERSION
 install:
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
   - conda install --yes nomkl
