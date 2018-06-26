@@ -27,11 +27,16 @@ cache:
     - $HOME/miniconda2
 sudo: required
 before_install:
-  - if [ ! -e $HOME/miniconda2/bin ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
+  - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
+        condaURL=https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh;
+        condabin=$HOME/miniconda2/bin;
+        condapath=/home/travis/miniconda2/bin:$PATH;    
+    if
+  - if [ ! -e $condabin ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
         mkdir -p download;
         cd download;
-        wget -c https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh -O miniconda.sh;
+        wget -c $condaURL -O miniconda.sh;
         chmod +x miniconda.sh;
         ./miniconda.sh -b -f;
         cd ..;
@@ -44,7 +49,7 @@ before_install:
 install:
   - conda install --yes -c dan_blanchard python-coveralls
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
-  - if [[ ! -e $HOME/oillibrary ]]; then
+  - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
         mkdir -p oillibrary;
         cd oillibrary;
