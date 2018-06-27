@@ -68,9 +68,10 @@ install:
         conda install --yes -c noaa-orr-erd unit_conversion>=2.5.4;
         python setup.py install;
     fi
-  - conda install --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj
-  - conda install --yes -c conda-forge coveralls basemap basemap-data-hires
-  - cd /home/travis/build/OpenDrift/opendrift
+  - conda install --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj;
+  - conda install --yes -c conda-forge coveralls basemap basemap-data-hires;
+  - cd /home/travis/build/OpenDrift/opendrift;
+  - python setup.py install;
 script: coverage run --source=opendrift setup.py test
 after_success:
   - coveralls
