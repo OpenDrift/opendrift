@@ -34,7 +34,6 @@ before_install:
         condabin=$HOME/miniconda2/bin;
         condapath=/home/travis/miniconda2/bin:$PATH;    
         download=/$HOME/download2;
-        export PYTHONPATH="$HOME/.miniconda2/lib/python2.7:$HOME/.miniconda2/lib/python2.7/site-packages:$PYTHONPATH";
     elif [ $TRAVIS_PYTHON_VERSION == 3.5 ]; then
         condaURL=https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh;
         condabin=$HOME/miniconda3/bin;
@@ -51,7 +50,6 @@ before_install:
         cd ..;
     fi
   - export PATH=$condapath
-  - export PYTHONPATH=$PYTHONPATH:$HOME/oillibrary/OilLibrary
   - echo $PATH
   - echo $PYTHONPATH
 install:
@@ -67,7 +65,7 @@ install:
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
         conda install --yes --no-update-dependencies --force --file conda_requirements.txt;
-        python setup.py develop --user;
+        python setup.py develop;
     fi
   - cd /home/travis/build/OpenDrift/opendrift
 script: coverage run --source=opendrift setup.py test
