@@ -52,7 +52,6 @@ before_install:
   - echo $PATH
   - echo $PYTHONPATH
 install:
-  - conda config --add channels conda-forge
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
         mkdir -p oillibrary;
@@ -60,7 +59,6 @@ install:
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
         conda install --yes -c conda-forge numpy=$NUMPY scipy=$SCIPY;
-        conda config --add channels noaa-orr-erd;
         conda install --yes -c conda-forge SQLAlchemy=1.1;
         conda install --yes -c noaa-orr-erd zope.sqlalchemy=0.7.7 awesome-slugify>=1.6.5;
         conda install --yes -c conda-forge pytest>=2.9.2;
@@ -70,8 +68,8 @@ install:
         python setup.py install;
     fi
   - conda config --get channels;
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj;
-  - conda install --yes -c conda-forge coveralls basemap basemap-data-hires;
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj basemap coveralls;
+  - conda install --yes -c conda-forge basemap-data-hires;
   - cd /home/travis/build/OpenDrift/opendrift;
   - python setup.py install;
 script: coverage run --source=opendrift setup.py test
