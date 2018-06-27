@@ -56,18 +56,17 @@ before_install:
   - echo $PYTHONPATH
 install:
   - conda install --yes libpq libxml2 libxslt libffi;
-  - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj
   - conda config --add channels conda-forge
-  - conda install --yes -c conda-forge coveralls 
+  - conda install --yes -c conda-forge coveralls basemap
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
         mkdir -p oillibrary;
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        pip install -r requirements.txt;
+        conda install --yes --file conda_requirements.txt
         python setup.py develop --user;
-        conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj;
     fi
   - cd /home/travis/build/OpenDrift/opendrift
 script: coverage run --source=opendrift setup.py test
