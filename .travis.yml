@@ -55,7 +55,7 @@ before_install:
   - echo $PATH
   - echo $PYTHONPATH
 install:
-  - conda install --yes libpq libxml2 libxslt libldap2 libsasl2 libffi;
+  - conda install --yes libpq libxml2 libxslt libffi;
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
   - conda config --add channels conda-forge
   - conda install --yes -c conda-forge coveralls 
