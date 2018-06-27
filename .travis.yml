@@ -62,8 +62,8 @@ install:
         cd OilLibrary;
         conda install --yes -c conda-forge numpy=$NUMPY scipy=$SCIPY;
         conda config --add channels noaa-orr-erd;
-        conda install --yes -c conda-forge SQLAlchemy>=1.0.13;
-        conda install --yes -c noaa-orr-erd zope.sqlalchemy>=0.7.7 awesome-slugify>=1.6.5;
+        conda install --yes -c conda-forge SQLAlchemy=1.1;
+        conda install --yes -c noaa-orr-erd zope.sqlalchemy=0.7.7 awesome-slugify>=1.6.5;
         conda install --yes -c conda-forge pytest>=2.9.2;
         conda install --yes repoze.lru>=0.6;
         conda install --yes -c noaa-orr-erd unit_conversion>=2.5.4;
