@@ -39,7 +39,6 @@ before_install:
         condabin=$HOME/miniconda3/bin;
         condapath=/home/travis/miniconda3/bin:$PATH;    
         download=/$HOME/download3;
-        export PYTHONPATH="$HOME/.miniconda3/lib/python3.5:$HOME/.miniconda3/lib/python3.5/site-packages:$PYTHONPATH";
     fi
   - if [ ! -e $condabin ]; then
         mkdir -p $download;
