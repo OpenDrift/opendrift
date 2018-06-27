@@ -29,7 +29,6 @@ cache:
     - $HOME/miniconda3
 sudo: required
 before_install:
-  - conda install --yes libpq-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
   - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         condaURL=https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh;
         condabin=$HOME/miniconda2/bin;
@@ -56,6 +55,7 @@ before_install:
   - echo $PATH
   - echo $PYTHONPATH
 install:
+  - conda install --yes libpq-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
   - conda install --yes hdf4 python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB basemap=1.0.7 netcdf4=$NETCDF configobj
   - conda config --add channels conda-forge
   - conda install --yes -c conda-forge coveralls 
