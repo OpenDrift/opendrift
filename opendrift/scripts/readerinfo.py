@@ -59,17 +59,17 @@ if __name__ == '__main__':
 
     for reader in readers:
         try:
-            print 'Testing %s...' % reader.__file__
+            print('Testing %s...' % reader.__file__)
             r = reader.Reader(args.filename)
-            print r
+            print(r)
             break
         except Exception as me:
             if args.e is True:
-                print me
+                print(me)
                 import traceback
-                print traceback.format_exc()
-                print '---------------------------------------'
-            print '...not applicable.'
+                print(traceback.format_exc())
+                print('---------------------------------------')
+            print('...not applicable.')
 
     if not 'r' in locals():            
         sys.exit('No readers applicable for ' + args.filename)

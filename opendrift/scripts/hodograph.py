@@ -53,17 +53,17 @@ if __name__ == '__main__':
 
     for reader in readers:
         try:
-            print 'Testing %s...' % reader.__file__
+            print('Testing %s...' % reader.__file__)
             r = reader.Reader(args.filename)
-            print r
+            print(r)
             break
         except Exception as me:
             if args.e is True:
-                print me
+                print(me)
                 import traceback
-                print traceback.format_exc()
-                print '---------------------------------------'
-            print '...not applicable.'
+                print(traceback.format_exc())
+                print('---------------------------------------')
+            print('...not applicable.')
 
     if not 'r' in locals():            
         sys.exit('No readers applicable for ' + args.filename)
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     u_comp = uv['x_sea_water_velocity'][:,i,j]
     v_comp = uv['y_sea_water_velocity'][:,i,j]
     depth = uv['sea_floor_depth_below_sea_level'][i,j]
-    print depth, 'depth'
+    print(depth, 'depth')
     u_comp = u_comp[0:sum(~u_comp.mask)]
     v_comp = v_comp[0:sum(~v_comp.mask)]
 
