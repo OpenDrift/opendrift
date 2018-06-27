@@ -69,7 +69,7 @@ install:
         conda install --yes setuptools_scm;
         python setup.py install;
     fi
-  - conda config --show channels;
+  - conda config --get channels;
   - conda install --yes python=$TRAVIS_PYTHON_VERSION hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj;
   - conda install --yes -c conda-forge coveralls basemap basemap-data-hires;
   - cd /home/travis/build/OpenDrift/opendrift;
