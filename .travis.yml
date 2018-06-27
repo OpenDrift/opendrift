@@ -65,7 +65,7 @@ install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        conda install --yes --file conda_requirements.txt
+        conda install --yes --file conda_requirements.txt;
         python setup.py develop --user;
     fi
   - cd /home/travis/build/OpenDrift/opendrift
