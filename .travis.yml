@@ -64,7 +64,8 @@ install:
         cd oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
-        conda install --yes --no-update-dependencies --force --file conda_requirements.txt;
+        conda install --yes SQLAlchemy zope.sqlalchemy repoze.lru 
+        conda install --yes -c noaa-orr-erd awesome-slugify unit_conversion
         python setup.py develop;
     fi
   - cd /home/travis/build/OpenDrift/opendrift
