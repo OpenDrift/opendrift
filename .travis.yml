@@ -35,7 +35,7 @@ before_install:
         condapath=/home/travis/miniconda2/bin:$PATH;    
         download=/$HOME/download2;
         export PYTHONPATH="$HOME/.miniconda2/lib/python2.7:$HOME/.miniconda2/lib/python2.7/site-packages:$PYTHONPATH";
-        sudo apt-get install libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
+        sudo apt-get install libpq-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev;
     elif [ $TRAVIS_PYTHON_VERSION == 3.5 ]; then
         condaURL=https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh;
         condabin=$HOME/miniconda3/bin;
