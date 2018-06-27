@@ -66,6 +66,7 @@ install:
         conda install --yes -c conda-forge pytest>=2.9.2;
         conda install --yes repoze.lru>=0.6;
         conda install --yes -c noaa-orr-erd unit_conversion>=2.5.4;
+        conda install --yes setuptools_scm;
         python setup.py install;
     fi
   - conda install --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj;
