@@ -34,7 +34,7 @@ before_install:
         condapath=/home/travis/miniconda2/bin:$PATH;    
         download=/$HOME/download2;
     elif [ $TRAVIS_PYTHON_VERSION == 3.5 ]; then
-        condaURL=https://repo.continuum.io/miniconda/Miniconda3-4.5.1-Linux-x86_64.sh;
+        condaURL=https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh;
         condabin=$HOME/miniconda3/bin;
         condapath=/home/travis/miniconda3/bin:$PATH;    
         download=/$HOME/download3;
