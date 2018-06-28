@@ -1590,7 +1590,7 @@ class OpenDriftSimulation(PhysicsMethods):
         #try:
         #    len(indices)
         #except:
-        if indices == [] or len(indices) == 0 or sum(indices) == 0:
+        if len(indices) == 0 or sum(indices) == 0:
             logging.debug('No elements to deactivate')
             return  # No elements scheduled for deactivation
         # Basic, but some more housekeeping will be required later
