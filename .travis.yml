@@ -52,8 +52,8 @@ before_install:
   - echo $PATH
   - echo $PYTHONPATH
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION
   - conda config --append channels conda-forge
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
         mkdir -p oillibrary;
@@ -70,8 +70,7 @@ install:
         python setup.py install;
     fi
   - conda config --get channels;
-  - conda install --yes numpy=$NUMPY scipy=$SCIPY hdf4 netcdf4=$NETCDF matplotlib=$MATPLOTLIB configobj;
-  - conda install --yes -c conda-forge basemap basemap-data-hires coveralls;
+  - conda install --yes basemap basemap-data-hires numpy=$NUMPY scipy=$SCIPY hdf4 netcdf4=$NETCDF matplotlib=$MATPLOTLIB configobj coveralls;
   - cd /home/travis/build/OpenDrift/opendrift;
   - python setup.py install;
 script: coverage run --source=opendrift setup.py test
