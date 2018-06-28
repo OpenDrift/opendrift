@@ -73,7 +73,6 @@ install:
   - conda install --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj;
   - conda install --yes -c conda-forge coveralls basemap=$BASEMAP basemap-data-hires nomkl;
   - cd /home/travis/build/OpenDrift/opendrift;
-  - python setup.py install;
-script: coverage run --source=opendrift setup.py test
+script: coverage run testall
 after_success:
   - coveralls
