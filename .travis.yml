@@ -70,7 +70,7 @@ install:
         python setup.py install;
     fi
   - conda config --get channels;
-  - conda install --yes basemap basemap-data-hires numpy=$NUMPY scipy=$SCIPY hdf4 netcdf4=$NETCDF matplotlib=$MATPLOTLIB configobj coveralls;
+  - conda install --yes -c conda-forge basemap=1.0.8 basemap-data-hires numpy=$NUMPY scipy=$SCIPY hdf4 netcdf4=$NETCDF matplotlib=$MATPLOTLIB configobj coveralls;
   - cd /home/travis/build/OpenDrift/opendrift;
   - python setup.py install;
 script: coverage run --source=opendrift setup.py test
