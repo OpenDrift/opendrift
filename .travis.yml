@@ -52,7 +52,7 @@ before_install:
   - echo $PYTHONPATH
 install:
   - conda config --append channels conda-forge
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION
+  - conda install -q --yes python=$TRAVIS_PYTHON_VERSION
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
         mkdir -p oillibrary;
@@ -60,12 +60,12 @@ install:
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
         conda install -q --yes -c conda-forge numpy=$NUMPY scipy=$SCIPY;
-        conda install --yes -c conda-forge SQLAlchemy=1.1;
-        conda install --yes -c noaa-orr-erd zope.sqlalchemy=0.7.7 awesome-slugify>=1.6.5;
-        conda install --yes -c conda-forge pytest>=2.9.2;
-        conda install --yes repoze.lru>=0.6;
-        conda install --yes -c noaa-orr-erd unit_conversion>=2.5.4;
-        conda install --yes setuptools_scm;
+        conda install -q --yes -c conda-forge SQLAlchemy=1.1;
+        conda install -q --yes -c noaa-orr-erd zope.sqlalchemy=0.7.7 awesome-slugify>=1.6.5;
+        conda install -q --yes -c conda-forge pytest>=2.9.2;
+        conda install -q --yes repoze.lru>=0.6;
+        conda install -q --yes -c noaa-orr-erd unit_conversion>=2.5.4;
+        conda install -q --yes setuptools_scm;
         python setup.py install;
     fi
   - conda config --get channels;
