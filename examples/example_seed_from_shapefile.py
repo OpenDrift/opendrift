@@ -29,6 +29,6 @@ o.set_config('drift:wind_uncertainty', 4) # Adding some diffusion
 o.run(steps=50, time_step=3600)
 
 # Print and plot results
-print o
+print(o)
 o.plot()
 o.animation()

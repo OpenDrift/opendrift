@@ -1,3 +1,4 @@
+from future.utils import iteritems
 import sys
 from datetime import datetime, timedelta
 import string
@@ -92,7 +93,7 @@ def close(self):
     self.outfile.variables['status'].flag_values = \
         np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
     self.outfile.variables['status'].flag_meanings = \
-        string.join(self.status_categories)
+        " ".join(self.status_categories)
     # Write timesteps to file
     self.outfile.time_coverage_end = str(self.time)
     timeStr = 'seconds since 1970-01-01 00:00:00'
@@ -119,7 +120,7 @@ def close(self):
 
     # Write additionaly metadata attributes, if given
     if hasattr(self, 'metadata_dict'):
-        for key, value in self.metadata_dict.iteritems():
+        for key, value in iteritems(self.metadata_dict):
             self.outfile.setncattr(key, str(value))
 
     self.outfile.close()  # Finally close file
@@ -131,14 +132,14 @@ def close(self):
         logging.debug('Making netCDF file CDM compliant with fixed dimensions')
         with Dataset(self.outfile_name) as src, \
                 Dataset(self.outfile_name + '_tmp', 'w') as dst:
-            for name, dimension in src.dimensions.iteritems():
+            for name, dimension in iteritems(src.dimensions):
                 if name=='trajectory':
                     # Truncate dimension length to  number actually seeded
                     dst.createDimension(name, self.num_elements_activated())
                 else:
                     dst.createDimension(name, len(dimension))
 
-            for name, variable in src.variables.iteritems():
+            for name, variable in iteritems(src.variables):
                 dstVar = dst.createVariable(name, variable.datatype,
                                              variable.dimensions)
                 srcVar = src.variables[name]
@@ -159,8 +160,8 @@ def close(self):
 
         move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
     except Exception as me:
-        print me
-        print 'Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)'
+        print(me)
+        print('Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)')
     
 
 def import_file(self, filename, time=None):

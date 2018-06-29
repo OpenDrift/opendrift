@@ -43,9 +43,10 @@ o.run(end_time=reader_norkyst.end_time, time_step=1800,
       export_variables=['mass_oil'])
 
 # Print and plot results
-print o
+print(o)
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
 o.animation()
+o.animation(density=True, show_elements=False)
 #o.animation(filename='openoil_time_seed.gif')
 o.plot()
 #o.plot_property('mass_oil')

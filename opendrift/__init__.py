@@ -141,7 +141,7 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
             o2.io_import_file('o1.nc')
             return o1, o2
         except:
-            print 'Could not import'
+            print('Could not import')
     lon = np.atleast_1d(lon)
     if len(lon) == 1:
         lon = [lon[0], lon[0]]
@@ -158,13 +158,13 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
     radius = np.atleast_1d(radius)
 
     for i in (0, 1):
-        print i
+        print(i)
         o = cls()
         o.add_readers_from_list(readers)
         if seed_time is None:
-            print dir(o)
-            print o.readers
-            print type(o.readers)
+            print(dir(o))
+            print(o.readers)
+            print(type(o.readers))
             for r in o.readers:
                 seed_time = o.readers[r].start_time
                 break
@@ -172,8 +172,8 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
                         radius=radius, time=seed_time)
         if time_step_output is None:
             time_step_output = time_step
-        print o
-        print duration, time_step, time_step_output
+        print(o)
+        print(duration, time_step, time_step_output)
         #stop
         eargs = {'outfile': 'o%d.nc' % i}
         o.run(duration=duration, time_step=time_step,

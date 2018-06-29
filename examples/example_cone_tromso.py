@@ -29,7 +29,7 @@ time = [reader_arome.start_time,
 o.seed_elements(lon, lat, radius=[100, 500], number=10000,
                 time=time, cone=True)
 
-print o
+print(o)
 
 # Adjusting some configuration
 o.set_config('processes:dispersion', True)
@@ -40,7 +40,7 @@ o.set_config('processes:emulsification', True)
 o.run(steps=66*2, time_step=1800)
 
 # Print and plot results
-print o
+print(o)
 o.plot()
 o.animation()
 #o.animation(filename='oilspill_tromsoe.mp4')

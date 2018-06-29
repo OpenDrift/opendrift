@@ -36,7 +36,7 @@ except:
 from matplotlib.collections import PolyCollection
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-from basereader import BaseReader
+from opendrift.readers.basereader import BaseReader
 
 RasterizedBasemap = collections.namedtuple('RasterizedBasemap', 'xmin xmax ymin ymax resolution data')
 

@@ -20,7 +20,7 @@ o.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 o.run(steps=20)
 
 # Store final field of x-component of current
-original_current = reader_norkyst.var_block_after["['y_sea_water_velocity', 'x_sea_water_velocity']"].data_dict['x_sea_water_velocity'].copy()
+original_current = reader_norkyst.var_block_after[list(reader_norkyst.var_block_after.keys())[0]].data_dict['x_sea_water_velocity'].copy()
 
 # For the second run, the NorKyst currents are convolved with a kernel,
 # effectively lowering the spatial resolution.
@@ -47,6 +47,6 @@ plt.title('Final, convolved current field (x-component)')
 plt.show()
 
 # Print and plot results
-print o
+print(o)
 o.animation(compare=o2, legend=[
     'Original currents', 'Current convoled with kernel of size %s' % N])

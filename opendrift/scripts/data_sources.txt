@@ -10,6 +10,7 @@ http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.
 http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc
 /lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc
 http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be
-#http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z
+http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/data/forecasts/FMRC_best.ncd
+http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z
 http://data.ncof.co.uk/thredds/dodsC/METOFFICE-GLO-AF-PHYS-HOURLY-CUR
 http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd

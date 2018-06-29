@@ -39,8 +39,8 @@ Sd = np.log(10.)*sd
 DV_50 = np.median(droplet_diameters)
 DN_50 = np.exp( np.log(DV_50) - 3*Sd**2 ) 
 
-print 'DV_50: %f' % DV_50
-print 'DN_50: %f' % DN_50
+print('DV_50: %f' % DV_50)
+print('DN_50: %f' % DN_50)
 
 ################## Plotting ##########################
 plt.figure(figsize=[14,14])

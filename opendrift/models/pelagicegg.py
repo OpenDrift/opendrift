@@ -36,9 +36,6 @@ class PelagicEgg(Lagrangian3DArray):
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 1028.}),
-        ('age_seconds', {'dtype': np.float32,
-                         'units': 's',
-                         'default': 0.}),
         ('hatched', {'dtype': np.float32,
                      'units': '',
                      'default': 0.})])
@@ -199,9 +196,6 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
     def update(self):
         """Update positions and properties of buoyant particles."""
-
-        # Update element age
-        self.elements.age_seconds += self.time_step.total_seconds()
 
         # Turbulent Mixing
         self.update_terminal_velocity()

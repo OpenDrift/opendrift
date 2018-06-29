@@ -32,7 +32,7 @@ o.seed_elements(lon, lat, radius=0, number=30*30, time=time)
 o.run(steps=24*2, time_step=3600)
 
 # Print and plot results
-print o
+print(o)
 o.plot()
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'])
 o.animation()

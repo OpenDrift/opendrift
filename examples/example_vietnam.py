@@ -23,12 +23,12 @@ time = datetime.now()
 o.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 
 # Run model
-print o
+print(o)
 o.run(duration=timedelta(days=5),
       time_step=timedelta(minutes=15),
       time_step_output=timedelta(hours=3))
 
 # Print and plot results
-print o
+print(o)
 o.plot()
 o.animation()

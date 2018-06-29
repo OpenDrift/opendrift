@@ -14,7 +14,7 @@
 # 
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-from elements import LagrangianArray
+from opendrift.elements import LagrangianArray
 
 
 class PassiveTracer(LagrangianArray):

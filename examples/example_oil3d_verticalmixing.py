@@ -42,7 +42,7 @@ else:
 ###########################
 # Print and plot results
 ###########################
-print o
+print(o)
 
 o.plot(linecolor='z')
 o.plot_oil_budget()

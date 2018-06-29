@@ -53,8 +53,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
     def __init__(self, *args, **kwargs):
 
         configspec_oceandrift3D = '''
-            [drift]
-                max_age_seconds = float(min=0, default=None)
             [processes]
                 turbulentmixing = boolean(default=True)
                 verticaladvection = boolean(default=True)

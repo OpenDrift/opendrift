@@ -28,6 +28,7 @@ from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
+from opendrift.readers import reader_oscillating
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
@@ -43,9 +44,9 @@ def gdal_error_handler(err_class, err_num, err_msg):
     }
     err_msg = err_msg.replace('\n',' ')
     err_class = errtype.get(err_class, 'None')
-    print 'Error Number: %s' % (err_num)
-    print 'Error Type: %s' % (err_class)
-    print 'Error Message: %s' % (err_msg)
+    print('Error Number: %s' % (err_num))
+    print('Error Type: %s' % (err_class))
+    print('Error Message: %s' % (err_msg))
 
 try:
     import ogr
@@ -56,11 +57,11 @@ try:
         has_ogr = True
         gdal.PushErrorHandler(gdal_error_handler)
     else:
-        print 'GDAL version >= 2.0 is required:'
+        print('GDAL version >= 2.0 is required:')
         has_ogr = False
 except Exception as e:
-    print 'GDAL is not available:'
-    print e
+    print('GDAL is not available:')
+    print(e)
     has_ogr = False
 
 class TestRun(unittest.TestCase):
@@ -137,10 +138,11 @@ class TestRun(unittest.TestCase):
                         time=norkyst.start_time)
         o3.run(steps=4*3, time_step=timedelta(minutes=15))
         # Check that we get some difference with Runge-Kutta:
-        self.assertAlmostEqual((o2.elements.lon-o.elements.lon).max(),
-                                0.0015, 3)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            (o2.elements.lon-o.elements.lon).max(), 0.0015, 3))
         # Check that runs with Euler are identical
-        self.assertEqual((o3.elements.lon-o.elements.lon).max(), 0)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            (o3.elements.lon-o.elements.lon).max(), 0))
 
     def test_seed_polygon(self):
         o = OceanDrift(loglevel=20)
@@ -307,8 +309,9 @@ class TestRun(unittest.TestCase):
                         time=norkyst.start_time)
         o2.run(steps=40, export_buffer_length=6,
                outfile='export_step_interval.nc')
-        self.assertItemsEqual(o1.history['lon'].compressed(),
-                              o2.history['lon'].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o1.history['lon'].compressed(),
+            o2.history['lon'].compressed()))
         # Finally check when steps is multiple of export_buffer_length
         o3 = OceanDrift(loglevel=20)
         o3.add_reader(norkyst)
@@ -324,8 +327,9 @@ class TestRun(unittest.TestCase):
                         time=norkyst.start_time)
         o4.run(steps=42, export_buffer_length=6,
                outfile='export_step_interval.nc')
-        self.assertItemsEqual(o3.history['lon'].compressed(),
-                              o4.history['lon'].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o3.history['lon'].compressed(),
+            o4.history['lon'].compressed()))
         os.remove('export_step_interval.nc')
 
     def test_buffer_length_stranding(self):
@@ -354,10 +358,12 @@ class TestRun(unittest.TestCase):
                time_step=900,
                time_step_output=3600,
                outfile='test_buffer_length_stranding.nc')
-        self.assertItemsEqual(o1.history['lon'].compressed(),
-                              o2.history['lon'].compressed())
-        self.assertItemsEqual(o1.history['status'].compressed(),
-                              o2.history['status'].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o1.history['lon'].compressed(),
+            o2.history['lon'].compressed()))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o1.history['status'].compressed(),
+            o2.history['status'].compressed()))
         os.remove('test_buffer_length_stranding.nc')
 
     def test_output_time_step(self):
@@ -392,10 +398,12 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o1.history.shape, (100,25))
         self.assertEqual(o2.history.shape, (100,13))
         # Check that start and end conditions (longitudes) are idential
-        self.assertItemsEqual(o1.history['lon'][:,24].compressed(), 
-                              o2.history['lon'][:,12].compressed())
-        self.assertItemsEqual(o1.history['lon'][:,0].compressed(),
-                              o2.history['lon'][:,0].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o1.history['lon'][:,24].compressed(), 
+            o2.history['lon'][:,12].compressed()))
+        self.assertIsNone(np.testing.assert_array_equal(
+            o1.history['lon'][:,0].compressed(),
+            o2.history['lon'][:,0].compressed()))
         # Check that also run imported from file is identical
         o1i = OceanDrift(loglevel=20)
         o1i.io_import_file('test_time_step30.nc')
@@ -403,8 +411,9 @@ class TestRun(unittest.TestCase):
         o2i.io_import_file('test_time_step60.nc')
         os.remove('test_time_step30.nc')
         os.remove('test_time_step60.nc')
-        self.assertItemsEqual(o2i.history['lon'][:,12].compressed(),
-                              o2.history['lon'][:,12].compressed())
+        self.assertIsNone(np.testing.assert_array_equal(
+            o2i.history['lon'][:,12].compressed(),
+            o2.history['lon'][:,12].compressed()))
         # Check number of activated elements
         self.assertEqual(o1.num_elements_total(), o2.num_elements_total())
         self.assertEqual(o1.num_elements_total(), o1i.num_elements_total())
@@ -466,8 +475,10 @@ class TestRun(unittest.TestCase):
         o1.add_reader([norkyst, arome, basemap])
         o1.seed_elements(lon, lat, time=norkyst.start_time)
         o1.run(steps=30)
-        self.assertAlmostEqual(o.elements.lon, o1.elements.lon, 2)
-        self.assertAlmostEqual(o.elements.lat, o1.elements.lat, 2)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.lon, o1.elements.lon, 2))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.lat, o1.elements.lat, 2))
         # Third run
         # Check that this is identical to run 1 if projection set equal
         o2 = OceanDrift(loglevel=50)
@@ -475,7 +486,8 @@ class TestRun(unittest.TestCase):
         o2.seed_elements(lon, lat, time=norkyst.start_time)
         o2.set_projection(basemap.proj4)
         o2.run(steps=30)
-        self.assertEqual(o.elements.lon, o2.elements.lon)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.lon, o2.elements.lon))
 
     def test_seed_seafloor(self):
         o = OpenOil3D(loglevel=30)
@@ -562,6 +574,32 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[0,0], -151.7, 1)  # Seeded at seafloor depth
         self.assertAlmostEqual(z[-1,0], -91.3, 1)  # After some rising
 
+    def test_seed_below_seafloor_deactivating(self):
+        o = OpenOil3D(loglevel=50)
+        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o.add_reader([reader_norkyst])
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
+        lon = 4.5; lat = 62.0
+        o.seed_elements(lon, lat, z=[-5000, -100], time=reader_norkyst.start_time,
+                        density=1000, number=2)
+        o.set_config('drift:lift_to_seafloor', False)  # This time we deactivate
+        o.set_config('processes:turbulentmixing', True)
+        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
+        o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
+        o.run(steps=3, time_step=300, time_step_output=300)
+        z, status = o.get_property('z')
+        self.assertEqual(o.num_elements_total(), 2)
+        self.assertEqual(o.num_elements_active(), 1)
+        self.assertEqual(o.num_elements_deactivated(), 1)
+        self.assertAlmostEqual(z[0,1], -100, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,1], -34.6, 1)  # After some rising
+
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
@@ -590,7 +628,8 @@ class TestRun(unittest.TestCase):
         # Check that element has not penetrated seafloor
         self.assertFalse(o.elements.z <
                          -o.environment.sea_floor_depth_below_sea_level)
-        self.assertAlmostEqual(o.elements.z, -160.06, 1)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.z, -160.06, 1))
 
     def test_seed_on_land(self):
         o = OceanDrift(loglevel=0)
@@ -603,6 +642,54 @@ class TestRun(unittest.TestCase):
         os.remove(outfile)
         #o.write_netcdf_density_map(outfile)
         #os.remove(outfile)
+
+    def test_plot_animation(self):
+        o = OceanDrift(loglevel=0)
+        o.set_config('general:basemap_resolution', 'c')
+        o.fallback_values['x_sea_water_velocity'] = .5
+        o.fallback_values['y_sea_water_velocity'] = .3
+        o.seed_elements(lon=3, lat=60, radius=1000,
+                        time=datetime.now(), number=100)
+        o.run(steps=5)
+        o.plot(filename='test_plot.png')
+        o.animation(filename='test_plot.mp4')
+        assert os.path.exists('test_plot.png')
+        assert os.path.exists('test_plot.mp4')
+        os.remove('test_plot.png')
+        os.remove('test_plot.mp4')
+
+    def test_retirement(self):
+        o = OceanDrift(loglevel=0)
+        o.set_config('drift:max_age_seconds', 5000)
+        o.fallback_values['x_sea_water_velocity'] = .5
+        o.fallback_values['y_sea_water_velocity'] = .3
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=0, lat=60, number=10,
+                        time=[datetime.now(),
+                              datetime.now() + timedelta(seconds=6000)])
+
+        o.run(time_step=1000, duration=timedelta(seconds=7000))
+        self.assertEqual(o.num_elements_deactivated(), 5)
+
+    def test_outside_domain(self):
+        o = OceanDrift(loglevel=50)
+        reader_osc_x = reader_oscillating.Reader(
+                'x_sea_water_velocity', amplitude=1,
+                zero_time=datetime.now())
+        reader_osc_y = reader_oscillating.Reader(
+                'y_sea_water_velocity', amplitude=1,
+                zero_time=datetime.now())
+        o.add_reader([reader_osc_x, reader_osc_y])
+        o.set_config('drift:deactivate_east_of', 2.1)
+        o.set_config('drift:deactivate_west_of', 1.9)
+        o.set_config('drift:deactivate_south_of', 59.9)
+        o.set_config('drift:deactivate_north_of', 60.1)
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=2, lat=60, number=1000,
+                        time=datetime.now(), radius=10000)
+        o.run(duration=timedelta(hours=5))
+        self.assertEqual(o.num_elements_deactivated(), 768)
+        self.assertEqual(o.num_elements_active(), 232)
         
 
 if __name__ == '__main__':

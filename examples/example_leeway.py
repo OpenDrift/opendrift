@@ -47,7 +47,7 @@ lw.set_projection('+proj=merc')
 lw.run(steps=60*4, time_step=900)
 
 # Print and plot results
-print lw
+print(lw)
 lw.animation()
 #lw.animation(filename='leeway.gif')
 lw.plot()

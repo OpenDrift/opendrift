@@ -58,7 +58,7 @@ o.run(steps=4*20, time_step=900, export_buffer_length=10,
       outfile='oil_budget.nc')
 
 # Print and plot results
-print o
+print(o)
 o.plot_oil_budget()
 o.plot_property('water_fraction')
 o.plot_property('water_fraction', mean=True)

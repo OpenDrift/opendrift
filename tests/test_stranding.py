@@ -19,6 +19,7 @@
 
 import unittest
 from datetime import datetime, timedelta
+import numpy as np
 
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_basemap_landmask
@@ -104,13 +105,14 @@ class TestStranding(unittest.TestCase):
                             time=reader_osc.zero_time)
             o.run(steps=28, time_step=3600*2)
             #o.plot()
-            print 'Testing stranding: %s' % option
+            print('Testing stranding: %s' % option)
             if len(o.elements) == 1:
                 el = o.elements
             else:
                 el = o.elements_deactivated
             self.assertEqual(o.status_categories[int(el.status)], status[i])
-            self.assertAlmostEqual(el.lon, lons[i], 2)
+            self.assertIsNone(np.testing.assert_array_almost_equal(
+                el.lon, lons[i], 2))
 
 
 if __name__ == '__main__':

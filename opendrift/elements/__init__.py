@@ -1,1 +1,1 @@
-from elements import LagrangianArray
+from opendrift.elements.elements import LagrangianArray

@@ -46,20 +46,20 @@ if __name__ == '__main__':
         source = 'file'
         o.set_config('general:basemap_resolution', 'h')
 
-    print '#'*40
-    print 'Running %s test:\n %s elements\n %s hours\n input data from %s' % (
-                mode, number, hours, source)
-    print '#'*40
+    print('#'*40)
+    print('Running %s test:\n %s elements\n %s hours\n input data from %s' % (
+                mode, number, hours, source))
+    print('#'*40)
 
     o.add_readers_from_list(readers, timeout=5)
     o.seed_elements(lon=4.6, lat=59.7, time=start_time,
                     number=number, radius=3000)
 
-    print o
+    print(o)
     o.run(duration=timedelta(hours=hours), time_step=900,
           time_step_output=3600, outfile='performance_test_oil.nc')
 
-    print o
+    print(o)
     #o.plot()
     #o.animation()
     #o.animation_profile()

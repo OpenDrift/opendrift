@@ -23,6 +23,11 @@ import json
 from opendrift.models.openoil import OpenOil, Oil
 from opendrift.models.opendrift3D import OpenDrift3DSimulation
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 
 # Defining the oil element properties
 class Oil3D(Oil):

@@ -48,14 +48,14 @@ o3.run(duration=timedelta(hours=12), time_step=900)
 ###########################
 # Plotting and comparing
 ###########################
-print '#######################'
-print 'Entrainment rate (heavy)', np.mean(o2.oil_wave_entrainment_rate())
-print 'Entrainment rate (light)', np.mean(o3.oil_wave_entrainment_rate())
-print 'Viscosity (heavy)', np.mean(o2.elements.viscosity)
-print 'Viscosity (light)', np.mean(o3.elements.viscosity)
-print 'Density (heavy)', np.mean(o2.elements.density)
-print 'Density (light)', np.mean(o3.elements.density)
-print '#######################'
+print('#######################')
+print('Entrainment rate (heavy)', np.mean(o2.oil_wave_entrainment_rate()))
+print('Entrainment rate (light)', np.mean(o3.oil_wave_entrainment_rate()))
+print('Viscosity (heavy)', np.mean(o2.elements.viscosity))
+print('Viscosity (light)', np.mean(o3.elements.viscosity))
+print('Density (heavy)', np.mean(o2.elements.density))
+print('Density (light)', np.mean(o3.elements.density))
+print('#######################')
 
 o2.plot_oil_budget()
 o3.plot_oil_budget()

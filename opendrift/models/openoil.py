@@ -14,6 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+from io import open
 import os
 import numpy as np
 from datetime import datetime
@@ -22,8 +23,12 @@ import matplotlib.pyplot as plt
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
-import noaa_oil_weathering as noaa
+import opendrift.models.noaa_oil_weathering as noaa
 
+try:
+    from itertools import izip as zip
+except ImportError:
+    pass
 
 # Defining the oil element properties
 class Oil(LagrangianArray):
@@ -43,9 +48,6 @@ class Oil(LagrangianArray):
         ('wind_drift_factor', {'dtype': np.float32,
                                'units': '%',
                                'default': 0.03}),
-        ('age_seconds', {'dtype': np.float32,
-                         'units': 's',
-                         'default': 0}),
         ('age_exposure_seconds', {'dtype': np.float32,
                                   'units': 's',
                                   'default': 0}),
@@ -172,7 +174,7 @@ class OpenOil(OpenDriftSimulation):
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
                 '/oilprop.dat'
-            oilprop = open(self.oiltype_file)
+            oilprop = open(self.oiltype_file, 'r', encoding='utf-8')
             oiltypes = []
             linenumbers = []
             for i, line in enumerate(oilprop.readlines()):
@@ -187,8 +189,7 @@ class OpenOil(OpenDriftSimulation):
         self.oil_weathering_model = weathering_model
 
         # Update config with oiltypes 
-        # TODO: add unicode support
-        oiltypes = [a.encode('ascii','ignore') for a in self.oiltypes]
+        oiltypes = [str(a) for a in self.oiltypes]
         self._add_config('seed:oil_type', oiltypes,
                          'Oil type', overwrite=True)
 
@@ -326,7 +327,6 @@ class OpenOil(OpenDriftSimulation):
             #self.deactivate_elements(droplet_size < 5E-7, reason='dispersed')
 
     def oil_weathering(self):
-        self.elements.age_seconds += self.time_step.total_seconds()
         if self.time_step.days < 0:
             logging.debug('Skipping oil weathering for backwards run')
             return
@@ -727,8 +727,7 @@ class OpenOil(OpenDriftSimulation):
             return
 
         if oiltype not in self.oiltypes:
-            raise ValueError('The following oiltypes are available: %s' %
-                             str(self.oiltypes))
+            raise ValueError('Oiltype %s is unknown. The following oiltypes are available: %s' % (oiltype, str(self.oiltypes)))
         indx = self.oiltypes.index(oiltype)
         linenumber = self.oiltypes_linenumbers[indx]
         oilfile = open(self.oiltype_file, 'r')
@@ -832,7 +831,7 @@ class OpenOil(OpenDriftSimulation):
             c = np.array(pos.split()).astype(np.float)
             lon = c[0::2]
             lat = c[1::2]
-            slicks.append(Polygon(zip(lon, lat)))
+            slicks.append(Polygon(list(zip(lon, lat))))
 
         # Find boundary and area of all patches
         lons = np.array([])
@@ -859,7 +858,7 @@ class OpenOil(OpenDriftSimulation):
             x, y = proj(lon, lat)
 
             area_of_polygon = 0.0
-            for i in xrange(-1, len(x)-1):
+            for i in range(-1, len(x)-1):
                 area_of_polygon += x[i] * (y[i+1] - y[i-1])
             area_of_polygon = abs(area_of_polygon) / 2.0
             slickarea = np.append(slickarea, area_of_polygon)  # in m2

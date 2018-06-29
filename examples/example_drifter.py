@@ -49,7 +49,7 @@ o.run(time_step=timedelta(minutes=15),
 ###########################
 # Print and plot results
 ###########################
-print o
+print(o)
 o.animation()
 
 # Plot trajectories, colored by the wind_drift_factor of each element

@@ -41,6 +41,6 @@ o.set_config('drift:wind_uncertainty', 1)
 o.run(steps=66*2, time_step=1800)
 
 # Print and plot results
-print o
+print(o)
 o.plot()
 o.animation()

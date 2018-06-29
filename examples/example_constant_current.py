@@ -17,11 +17,11 @@ time = datetime(2015, 9, 22, 6, 0, 0)
 # Seed elements at defined position and time
 o.seed_elements(lon, lat, radius=5000, number=100, time=time)
 
-print o
+print(o)
 
 # Running model for 50 hours
 o.run(steps=50)
 
 # Print and plot results
-print o
+print(o)
 o.plot()

@@ -20,8 +20,8 @@ from bisect import bisect_left, bisect_right
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
-from basereader import BaseReader, vector_pairs_xy
-from roppy import depth
+from opendrift.readers.basereader import BaseReader, vector_pairs_xy
+from opendrift.readers.roppy import depth
 
 
 class Reader(BaseReader):

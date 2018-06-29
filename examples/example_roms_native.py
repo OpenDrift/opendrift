@@ -27,12 +27,12 @@ lon = 12.0; lat = 68.3;
 # Seed oil elements at defined position and time
 o.seed_elements(lon, lat, radius=0, number=10, z=np.linspace(0, -150, 10), time=time)
 
-print o
+print(o)
 
 # Running model
 o.run(time_step=3600)
 
 # Print and plot results
-print o
+print(o)
 o.plot(linecolor='z')
 #o.animation()

@@ -399,8 +399,11 @@ class PhysicsMethods(object):
         if 'sea_floor_depth_below_sea_level' not in self.priority_list:
             return
         sea_floor_depth = self.sea_floor_depth()
-        self.elements.z[np.where(self.elements.z < -sea_floor_depth)] = \
-            -sea_floor_depth[np.where(self.elements.z < -sea_floor_depth)]
+        below = self.elements.z < -sea_floor_depth
+        if self.get_config('drift:lift_to_seafloor') is True:
+            self.elements.z[below] = -sea_floor_depth[below]
+        else:
+            self.deactivate_elements(below, reason='seafloor')
 
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''

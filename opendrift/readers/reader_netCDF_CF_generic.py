@@ -19,12 +19,12 @@ import logging
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
-from basereader import BaseReader
+from opendrift.readers.basereader import BaseReader
 
 
 class Reader(BaseReader):
 
-    def __init__(self, filename=None, name=None):
+    def __init__(self, filename=None, name=None, proj4=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -48,6 +48,8 @@ class Reader(BaseReader):
             raise ValueError(e)
 
         logging.debug('Finding coordinate variables.')
+        if proj4 is not None:  # If user has provided a projection apriori
+            self.proj4 = proj4
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
             logging.debug('Parsing variable: ' +  var_name)
@@ -156,12 +158,12 @@ class Reader(BaseReader):
         rel_delta_y = np.abs((rel_delta_y.max() -
                               rel_delta_y.min())/self.delta_y)
         if rel_delta_x > 0.05:  # Allow 5 % deviation
-            print rel_delta_x
-            print x[1::] - x[0:-1]
+            print(rel_delta_x)
+            print(x[1::] - x[0:-1])
             raise ValueError('delta_x is not constant!')
         if rel_delta_y > 0.05:
-            print rel_delta_y
-            print y[1::] - y[0:-1]
+            print(rel_delta_y)
+            print(y[1::] - y[0:-1])
             raise ValueError('delta_y is not constant!')
         self.x = x  # Store coordinate vectors
         self.y = y

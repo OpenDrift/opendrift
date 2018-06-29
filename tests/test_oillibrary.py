@@ -57,7 +57,7 @@ class TestOil(unittest.TestCase):
                              o.elements.mass_evaporated.max())
             self.assertTrue(o.elements.mass_evaporated.min() > 0)
             self.assertTrue(o.elements.mass_evaporated.max() <= 1)
-            print oiltype, o.elements.mass_evaporated.min()
+            print(oiltype, o.elements.mass_evaporated.min())
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
@@ -89,9 +89,9 @@ class TestOil(unittest.TestCase):
                 actual_dispersed = b['mass_dispersed']/b['mass_total']
                 actual_submerged = b['mass_submerged']/b['mass_total']
                 actual_evaporated = b['mass_evaporated']/b['mass_total']
-                print 'Dispersion fraction %f for ' \
-                      '%s and wind speed %f' % \
-                      (actual_dispersed[-1], oil, windspeed)
+                print('Dispersion fraction %f for '
+                      '%s and wind speed %f' % 
+                      (actual_dispersed[-1], oil, windspeed))
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
                     fraction_submerged = 0

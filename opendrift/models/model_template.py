@@ -85,7 +85,7 @@ class ModelTemplate(OpenDriftSimulation):
 
         # Here any preprocessing may be performed,
         # e.g. importing external data from file.
-        print 'preprocessing...'
+        print('preprocessing...')
 
         # Constructor of parent class must always be called
         # to perform some necessary common initialisation tasks

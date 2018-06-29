@@ -14,8 +14,8 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-
-from basereader import BaseReader
+from future.utils import iteritems
+from opendrift.readers.basereader import BaseReader
 import numpy as np
 
 
@@ -25,7 +25,7 @@ class Reader(BaseReader):
     def __init__(self, parameter_value_map):
         '''init with a map {'variable_name': value, ...}'''
 
-        for key, var in parameter_value_map.iteritems():
+        for key, var in iteritems(parameter_value_map):
             parameter_value_map[key] = np.atleast_1d(var)
         self._parameter_value_map = parameter_value_map
         self.variables = parameter_value_map.keys()

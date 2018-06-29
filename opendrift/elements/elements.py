@@ -54,6 +54,9 @@ class LagrangianArray(object):
                 'default': -1}),  # ID to be assigned by application
         ('status', {'dtype': np.int32,  # Status categories
                     'default': 0}),
+        ('age_seconds', {'dtype': np.float32,
+                         'units': 's',
+                         'default': 0}),
         ('lon', {'dtype': np.float32,
                  'units': 'degrees_east',
                  'standard_name': 'longitude',
@@ -101,8 +104,8 @@ class LagrangianArray(object):
         if missing_args:
             raise TypeError('Missing arguments: %s' % str(list(missing_args)))
         # Check for redundant arguments
-        redundant_args = set(kwargs.keys() + default_values.keys()) - set(
-            self.variables.keys())
+        redundant_args = set(list(kwargs.keys()) +
+            list(default_values.keys())) - set((self.variables.keys()))
         if redundant_args:
             raise TypeError('Redundant arguments: %s' %
                             str(list(redundant_args)))

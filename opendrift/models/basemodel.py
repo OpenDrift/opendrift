@@ -26,6 +26,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import multiprocessing
 import platform
 import netCDF4
+from future.utils import iteritems
 
 import numpy as np
 import scipy
@@ -36,9 +37,11 @@ try:
     matplotlib.rcParams['legend.scatterpoints'] = 1
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
+            
         print 'No display found. Using non-interactive Agg backend'
         # matplotlib.use('agg')
         matplotlib.use('Tkagg') # not sure why but using 'agg' doesnt work for some examples 
+
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -51,11 +54,16 @@ try:
     from mpl_toolkits import basemap
     Basemap = basemap.Basemap
 except:
-    print 'Basemap is not available, can not make plots'
+    print('Basemap is not available, can not make plots')
 
 import opendrift
 from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
 from opendrift.models.physics_methods import PhysicsMethods
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 
 class OpenDriftSimulation(PhysicsMethods):
@@ -123,12 +131,18 @@ class OpenDriftSimulation(PhysicsMethods):
             [seed]
                 ocean_only = boolean(default=True)
             [drift]
+                max_age_seconds = float(min=0, default=None)
                 scheme = option('euler', 'runge-kutta', default='euler')
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
                 current_uncertainty_uniform = float(min=0, max=5, default=0)
                 wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
+                lift_to_seafloor = boolean(default=True)
+                deactivate_north_of = float(min=-90, max=90, default=None)
+                deactivate_south_of = float(min=-90, max=90, default=None)
+                deactivate_east_of = float(min=-360, max=360, default=None)
+                deactivate_west_of = float(min=-360, max=360, default=None)
                 use_tabularised_stokes_drift = boolean(default=False)
                 tabularised_stokes_drift_fetch = option(5000, 25000, 50000, default=25000)'''
 
@@ -198,7 +212,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if loglevel != 'custom':
             logging.getLogger('').handlers = []
             if logfile is not None:
-                eargs = {'filename': logfile}
+                eargs = {'filename': logfile, 'filemode': 'w'}
             else:
                 eargs = {}
             logging.basicConfig(level=loglevel,
@@ -235,7 +249,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 cs += '\n' + '['*(i+1) + s + ']'*(i+1)
             else:
                 cs += '\n\t' + s + ' = ' + value
-        newconf = configobj.ConfigObj(configspec=cs.split('\n'))
+        newconf = configobj.ConfigObj(configspec=cs.split('\n'),
+                    encoding='utf8')
         newconf.validate(validate.Validator())
         if not hasattr(self, 'configobj'):
             self.configobj = newconf
@@ -254,7 +269,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def _add_configstring(self, configstring):
         """Add several configuration items from string (INI-format)."""
-        newconf = configobj.ConfigObj(configspec=configstring.split('\n'))
+        newconf = configobj.ConfigObj(configspec=configstring.split('\n'),                      encoding='utf8')
         newconf.validate(validate.Validator())
         if not hasattr(self, 'configobj'):
             self.configobj = newconf
@@ -525,7 +540,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         outStr = '---------------------------\n'
         outStr += 'Performance:\n'
-        for category, time in self.timing.iteritems():
+        for category, time in iteritems(self.timing):
             timestr = str(time)[0:str(time).find('.') + 2]
             for i, c in enumerate(timestr):
                 if c in '123456789.':
@@ -605,14 +620,14 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Add this reader for each of the given variables
             for variable in variables if variables else reader.variables:
-                if variable in self.priority_list:
+                if variable in list(self.priority_list):
                     if reader.name not in self.priority_list[variable]:
                         self.priority_list[variable].append(reader.name)
                 else:
                     self.priority_list[variable] = [reader.name]
 
         # Remove/hide variables not needed by the current trajectory model
-        for variable in self.priority_list:
+        for variable in list(self.priority_list):
             if variable not in self.required_variables:
                 del self.priority_list[variable]
 
@@ -625,6 +640,7 @@ class OpenDriftSimulation(PhysicsMethods):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
         from opendrift.readers.reader_netCDF_CF_generic import Reader
+        from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
         for u in urls:
             files = glob.glob(u)
             for f in files:  # Regular file
@@ -632,26 +648,38 @@ class OpenDriftSimulation(PhysicsMethods):
                     r = Reader(f)
                     self.add_reader(r)
                 except:
-                    logging.warning('%s is not a netCDF file recognised by '
+                    logging.warning('%s is not a netCDF CF file recognised by '
                                     'OpenDrift' % f)
+                    try:
+                        r = Reader_ROMS_native(f)
+                        self.add_reader(r)
+                    except:
+                        logging.warning('%s is also not a ROMS netCDF file recognised by '
+                                        'OpenDrift' % f)
+
             if files == []:  # Try with OPeNDAP URL
                 try:  # Check URL accessibility/timeout
-                    import urllib2
-                    request = urllib2.Request(u)
+                    try:
+                        # for python 3
+                        import urllib.request as urllib_request
+                    except ImportError:
+                        # for python 2
+                        import urllib2 as urllib_request
+                    request = urllib_request.Request(u)
                     try:  # netrc
                         import netrc
                         import base64
-                        parts = urllib2.urlparse.urlparse(u)
+                        parts = urllib_request.urlparse.urlparse(u)
                         login, account, password = netrc.netrc().authenticators(parts.netloc)
                         creds = base64.encodestring('%s:%s' % (login, password)).strip()
                         request.add_header("Authorization", "Basic %s" % creds)
                         logging.info('Applied NETRC credentials')
                     except:
                         logging.info('Could not apply NETRC credentials')
-                    urllib2.urlopen(request, timeout=timeout)
+                    urllib_request.urlopen(request, timeout=timeout)
                 except Exception as e:
                     # Error code 400 is expected!
-                    if not isinstance(e, urllib2.HTTPError) or e.code != 400:
+                    if not isinstance(e, urllib_request.HTTPError) or e.code != 400:
                         logging.warning('ULR %s not accessible: ' % u + str(e))
                         continue
                     try:
@@ -1238,7 +1266,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 td = (time[1]-time[0])/(number-1)  # timestep between points
                 if len(td) == 1:
                     td = td[0]
-                time_array = [time[0] + i*td for i in range(number)]
+                time_array = [time[0] + i*td for i in range(number[0])]
                 indx_time_end = np.cumsum(number_array, dtype=int)
                 indx_time_start = np.append([0], indx_time_end[0:-1])
                 time_array2 = [time_array[int(indx_time_start[i]):
@@ -1258,7 +1286,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
                                         number, radians=False)
                 # Seed cone recursively
-                lon, lat = zip(*conelonlats)
+                lon, lat = list(zip(*conelonlats))
                 lon = np.atleast_1d(lon)
                 lat = np.atleast_1d(lat)
                 if len(radius_array) == 1:
@@ -1382,7 +1410,7 @@ class OpenDriftSimulation(PhysicsMethods):
             return
         if len(lons) != len(lats):
             raise ValueError('lon and lat arrays must have same length.')
-        poly = Polygon(zip(lons, lats), closed=True)
+        poly = Polygon(list(zip(lons, lats)), closed=True)
         # Place N points within the polygons
         proj = pyproj.Proj('+proj=aea +lat_1=%f +lat_2=%f +lat_0=%f '
                            '+lon_0=%f +R=6370997.0 +units=m +ellps=WGS84'
@@ -1394,7 +1422,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lat = lonlat[:, 1]
         x, y = proj(lon, lat)
         area = 0.0
-        for i in xrange(-1, len(x)-1):
+        for i in range(-1, len(x)-1):
             area += x[i] * (y[i+1] - y[i-1])
         area = abs(area) / 2
 
@@ -1508,8 +1536,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     # Alternative if OGR is not built with GEOS support
                     r = geom.GetGeometryRef(0)
-                    lons = [r.GetX(j) for j in xrange(r.GetPointCount())]
-                    lats = [r.GetY(j) for j in xrange(r.GetPointCount())]
+                    lons = [r.GetX(j) for j in range(r.GetPointCount())]
+                    lats = [r.GetY(j) for j in range(r.GetPointCount())]
 
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
                 num_seeded += num_elements
@@ -1567,7 +1595,7 @@ class OpenDriftSimulation(PhysicsMethods):
         #try:
         #    len(indices)
         #except:
-        if indices == [] or len(indices) == 0 or sum(indices) == 0:
+        if len(indices) == 0 or sum(indices) == 0:
             logging.debug('No elements to deactivate')
             return  # No elements scheduled for deactivation
         # Basic, but some more housekeeping will be required later
@@ -1579,7 +1607,7 @@ class OpenDriftSimulation(PhysicsMethods):
                           (sum(indices)))
         if hasattr(self, 'environment_profiles') and \
                 self.environment_profiles is not None:
-            for varname, profiles in self.environment_profiles.iteritems():
+            for varname, profiles in iteritems(self.environment_profiles):
                 logging.debug('remove items from profile for '+varname)
                 if varname is not 'z':
                     self.environment_profiles[varname] = \
@@ -1873,7 +1901,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if self.export_variables is not None:
             history_dtype_fields = [f for f in history_dtype_fields
                                     if f[0] in self.export_variables]
-            for m in self.history_metadata:
+            for m in list(self.history_metadata):
                 if m not in self.export_variables:
                     del self.history_metadata[m]
 
@@ -1888,6 +1916,19 @@ class OpenDriftSimulation(PhysicsMethods):
             self.io_init(outfile, times=self.expected_steps_output)
         else:
             self.outfile = None
+
+        #############################
+        # Check validity domain
+        #############################
+        validity_domain = [
+            self.get_config('drift:deactivate_west_of'),
+            self.get_config('drift:deactivate_east_of'),
+            self.get_config('drift:deactivate_south_of'),
+            self.get_config('drift:deactivate_north_of')]
+        if validity_domain == [None, None, None, None]:
+            self.validity_domain = None
+        else:
+            self.validity_domain = validity_domain
 
         #############################
         # Model specific preparation
@@ -1921,6 +1962,8 @@ class OpenDriftSimulation(PhysicsMethods):
             try:
                 # Release elements
                 self.release_elements()
+
+                self.increase_age_and_retire()
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
 
@@ -2036,6 +2079,29 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.timer_end('cleaning up')
         self.timer_end('total time')
+
+    def increase_age_and_retire(self):
+        """Increase age of elements, and retire if older than config setting."""
+        # Increase age of elements
+        self.elements.age_seconds += self.time_step.total_seconds()
+
+        # Deactivate elements that exceed a certain age
+        if self.get_config('drift:max_age_seconds') is not None:
+            self.deactivate_elements(self.elements.age_seconds >=
+                                     self.get_config('drift:max_age_seconds'),
+                                     reason='retired')
+
+        # Deacticate any elements outside validity domain set by user
+        if self.validity_domain is not None:
+            W, E, S, N = self.validity_domain
+            if W is not None:
+                self.deactivate_elements(self.elements.lon < W, reason='outside')
+            if E is not None:
+                self.deactivate_elements(self.elements.lon > E, reason='outside')
+            if S is not None:
+                self.deactivate_elements(self.elements.lat < S, reason='outside')
+            if N is not None:
+                self.deactivate_elements(self.elements.lat > N, reason='outside')
 
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
@@ -2182,7 +2248,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 map.drawparallels(np.arange(np.floor(map.latmin),
                                             np.ceil(map.latmax), 1),
                                   labels=[0, 1, 1, 0])
-        x, y = map(lons, lats)
+        x, y = map(lons.copy(), lats.copy())
 
         try:
             firstlast = np.ma.notmasked_edges(x, axis=1)
@@ -2240,10 +2306,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
         coastsegs_new = []
         for c in map_orig.coastsegs:
-            xc, yc = zip(*c)
+            xc, yc = list(zip(*c))
             newxc = tuple(xce - xoff for xce in xc)
             newyc = tuple(yce - yoff for yce in yc)
-            coastsegs_new.append(zip(newxc, newyc))
+            coastsegs_new.append(list(zip(newxc, newyc)))
         map.coastsegs = coastsegs_new
 
         map.coastpolygontypes = map_orig.coastpolygontypes
@@ -2272,7 +2338,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def animation(self, buffer=.2, filename=None, compare=None,
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
-                  colorbar=True, cmap=None,
+                  colorbar=True, cmap=None, density=False, show_elements=True,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
@@ -2290,18 +2356,24 @@ class OpenDriftSimulation(PhysicsMethods):
                                map_y[::skip, ::skip],
                                u_component[::skip, ::skip],
                                v_component[::skip, ::skip], scale=scale)
+
+            if density is True:
+                # Update density plot
+                pm.set_array(H[i,:,:].ravel())
+
             # Move points
-            points.set_offsets(np.c_[x[range(x.shape[0]), i],
-                                     y[range(x.shape[0]), i]])
-            points_deactivated.set_offsets(np.c_[
-                x_deactive[index_of_last_deactivated < i],
-                y_deactive[index_of_last_deactivated < i]])
-            if color is not False:  # Update colors
-                points.set_array(colorarray[:, i])
-                if isinstance(color, basestring):
-                    points_deactivated.set_array(
-                        colorarray_deactivated[
-                            index_of_last_deactivated < i])
+            if show_elements is True:
+                points.set_offsets(np.c_[x[range(x.shape[0]), i],
+                                         y[range(x.shape[0]), i]])
+                points_deactivated.set_offsets(np.c_[
+                    x_deactive[index_of_last_deactivated < i],
+                    y_deactive[index_of_last_deactivated < i]])
+                if color is not False:  # Update colors
+                    points.set_array(colorarray[:, i])
+                    if isinstance(color, basestring):
+                        points_deactivated.set_array(
+                            colorarray_deactivated[
+                                index_of_last_deactivated < i])
 
             if drifter is not None:
                 from bisect import bisect_left
@@ -2316,6 +2388,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     drifter_pos.set_offsets(
                         np.c_[drifter['x'][ind], drifter['y'][ind]])
 
+<<<<<<< HEAD
             if compare is not None:
                 for cd in compare_list:
                     cd['points_other'].set_offsets(np.c_[
@@ -2330,6 +2403,23 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 return points
         
+=======
+            if show_elements is True:
+                if compare is not None:
+                    for cd in compare_list:
+                        cd['points_other'].set_offsets(np.c_[
+                            cd['x_other'][range(cd['x_other'].shape[0]), i],
+                            cd['y_other'][range(cd['x_other'].shape[0]), i]])
+                        cd['points_other_deactivated'].set_offsets(np.c_[
+                            cd['x_other_deactive'][
+                                cd['index_of_last_deactivated_other'] < i],
+                            cd['y_other_deactive'][
+                                cd['index_of_last_deactivated_other'] < i]])
+                    return points, cd['points_other']
+                else:
+                    return points
+
+>>>>>>> upstream/master
         # Find map coordinates and plot points with empty data
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
@@ -2400,6 +2490,17 @@ class OpenDriftSimulation(PhysicsMethods):
             if legend != ['', '']:
                 plt.legend(markerscale=2, loc=legend_loc)
 
+        if density is True:
+            # TODO: Unfinished work
+            import matplotlib.cm as cm
+            cma = cm.get_cmap('jet')
+            cma.set_under('w')
+            H, H_submerged, H_stranded, lon_array, lat_array = \
+                self.get_density_array(pixelsize_m=1000)
+            H = H + H_submerged + H_stranded
+            lat_array, lon_array = np.meshgrid(lat_array, lon_array)
+            pm = map.pcolormesh(lon_array, lat_array, H[0,:,:],
+                                latlon=True, vmin=0.1, cmap=cma)
 
         if drifter is not None:
             drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
@@ -2547,10 +2648,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Find map coordinates of comparison simulations
             cd['x_other'], cd['y_other'] = \
-                map(other.history['lon'], other.history['lat'])
+                map(other.history['lon'].copy(), other.history['lat'].copy())
             cd['x_other_deactive'], cd['y_other_deactive'] = \
-                map(other.elements_deactivated.lon,
-                    other.elements_deactivated.lat)
+                map(other.elements_deactivated.lon.copy(),
+                    other.elements_deactivated.lat.copy())
             cd['firstlast'] = np.ma.notmasked_edges(
                 cd['x_other'], axis=1)
             cd['index_of_last_other'] = cd['firstlast'][1][1]
@@ -2819,7 +2920,8 @@ class OpenDriftSimulation(PhysicsMethods):
             reader = self.readers[readerName]
             if variable in reader.variables:
                 if time is None or (time>= reader.start_time
-                        and time <= reader.end_time):
+                        and time <= reader.end_time) or (
+                        reader.always_valid is True):
                     break
         if time is None:
             if hasattr(self, 'elements_scheduled_time'):

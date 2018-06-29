@@ -1,5 +1,6 @@
 import logging
 
+from future.utils import iteritems
 import numpy as np
 from scipy.ndimage import map_coordinates
 import scipy.ndimage as ndimage
@@ -268,7 +269,7 @@ class ReaderBlock():
         env_dict = {}
         if profiles is not []:
             profiles_dict = {'z': self.z}
-        for varname, data in self.data_dict.iteritems():
+        for varname, data in iteritems(self.data_dict):
             nearest = False
             if varname == 'land_binary_mask':
                 nearest = True

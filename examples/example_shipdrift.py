@@ -24,8 +24,8 @@ time = datetime.now()
 o.seed_elements(lon, lat, radius=1000, number=1000, time=time,
                 length=80.0, beam=10.0, height=9.0, draft=4.0)
 
-print o.elements_scheduled
-print o
+print(o.elements_scheduled)
+print(o)
 
 #o.set_projection('+proj=merc')
 
@@ -33,6 +33,6 @@ print o
 o.run(steps=24, stop_on_error=True)
 
 # Print and plot results
-print o
+print(o)
 o.plot(linecolor='orientation')
 #o.animation()

@@ -25,6 +25,7 @@ config = {
         'matplotlib',
         'netCDF4',
         'pillow',
+        'future',
         'basemap'
     ],
     'packages': find_packages(),

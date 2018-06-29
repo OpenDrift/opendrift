@@ -64,7 +64,7 @@ def run_test(out_q, path):
     try:
         temp_module = imp.load_source('module.name', path)
     except:
-        print "FAILED"
+        print("FAILED")
     end = timer()
     
     # Write out total time
@@ -110,7 +110,7 @@ def main():
             var = out_q.get(timeout=600)
             results.append(var)
         except Queue.Empty:
-            print "Failed - No result after timeout!"
+            print("Failed - No result after timeout!")
             exit
         #printResults(var)
         

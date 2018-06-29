@@ -16,7 +16,7 @@
 
 import numpy as np
 
-from basereader import BaseReader, pyproj
+from opendrift.readers.basereader import BaseReader, pyproj
 
 
 class Reader(BaseReader):

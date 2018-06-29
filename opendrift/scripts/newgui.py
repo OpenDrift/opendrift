@@ -303,7 +303,7 @@ class OpenDriftGUI(tk.Tk):
         self.dianadir = '/vol/vvfelles/opendrift/output/'
         if os.path.exists(self.dianadir):
             self.has_diana = True
-            print 'Diana is available!'
+            print('Diana is available!')
             self.outputdir = '/vol/vvfelles/opendrift/output_native/'
         else:
             self.has_diana = False
@@ -314,9 +314,9 @@ class OpenDriftGUI(tk.Tk):
         o = OpenOil3D()
 
         for m in self.available_models:
-            print m
-            print opendrift.get_model(m)
-            print opendrift.get_model(m)()
+            print(m)
+            print(opendrift.get_model(m))
+            print(opendrift.get_model(m)())
 
         ##########
         # RUN
@@ -359,21 +359,21 @@ class OpenDriftGUI(tk.Tk):
             self.oljetype.set('')
             self.o = ShipDrift()
 
-        print dir(self.config)
+        print(dir(self.config))
         for con in self.config.winfo_children():
             con.destroy()
         self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
         self.con.grid(row=0, column=1, rowspan=1)
-        print dir(self.config)
+        print(dir(self.config))
         for i, cs in enumerate(self.o._config_hashstrings()):
             tk.Label(self.config, text=cs).grid(row=i, column=1, rowspan=1)
 
-        print 'Setting model: ' + model
-        print self.o.list_configspec()
+        print('Setting model: ' + model)
+        print(self.o.list_configspec())
         #default, minimum, maximum, options = self.o.get_configspec_default_min_max('seed:oil_type')
         #print default
         sc = self.o.get_seed_config()
-        print sc
+        print(sc)
         self.seed_input = {}
         self.seed_input_var = {}
         self.seed_input_label = {}
@@ -402,19 +402,19 @@ class OpenDriftGUI(tk.Tk):
 
     def show_help(self):
         help_url = 'https://github.com/OpenDrift/opendrift/wiki/Graphical-User-Interface'
-        print 'Opening help website:\n' + help_url
+        print('Opening help website:\n' + help_url)
         import webbrowser
         webbrowser.open(help_url)
 
     def check_seeding(self):
-        print '#'*50
-        print 'Hang on, plot is comming in a few seconds...'
+        print('#'*50)
+        print('Hang on, plot is comming in a few seconds...')
         mapres = self.mapresvar.get()[0]
         if mapres == 'f':
-            print '...actually more like 30 seconds for full resolution coastline....'
+            print('...actually more like 30 seconds for full resolution coastline....')
             if self.has_diana is True:
-                print 'Du far ta deg ein liten trall mens du ventar.'
-        print '#'*50
+                print('Du far ta deg ein liten trall mens du ventar.')
+        print('#'*50)
         month = np.int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(np.int(self.yearvar.get()), month,
                               np.int(self.datevar.get()),
@@ -453,7 +453,7 @@ class OpenDriftGUI(tk.Tk):
         try:
             self.budgetbutton.destroy()
         except Exception as e:
-            print e
+            print(e)
             pass
         month = np.int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(np.int(self.yearvar.get()), month,
@@ -484,7 +484,7 @@ class OpenDriftGUI(tk.Tk):
             o = Leeway(loglevel=0)
             for ln, lc in enumerate(self.leewaycategories):
                 if self.oljetype.get() == lc.strip().replace('>', ''):
-                    print 'Leeway object category: ' + lc
+                    print('Leeway object category: ' + lc)
                     break
             o.seed_elements(lon=lon, lat=lat, number=5000,
                             radius=radius, time=start_time,
@@ -526,7 +526,7 @@ class OpenDriftGUI(tk.Tk):
 
         o.run(steps=duration, time_step=time_step,
               time_step_output=time_step, **extra_args)
-        print o
+        print(o)
 
         if self.has_diana is True:
             diana_filename = self.dianadir + '/opendrift_' + \
