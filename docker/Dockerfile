@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y build-essential \
 
 # Updates and Installs
 RUN pip install --upgrade pip
+RUN /opt/conda/bin/conda update openssl ca-certificates certifi
 RUN /opt/conda/bin/conda install --yes hdf4 numpy scipy matplotlib basemap \
                                        netcdf4 configobj pillow gdal pyproj ffmpeg
 

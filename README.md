@@ -13,8 +13,8 @@ See the wiki for description and installation: https://github.com/opendrift/open
 docker
 ======
 
-The [Dockerfile](Dockerfile) provided will allow you to build a reproducible container
+The folder of [Dockerfiles](docker) provided will allow you to build a reproducible container
 to deploy opendrift, either as a Docker container (ideal for your local machine) or
 import into a [Singularity](https://singularityware.github.io) container (ideal for use
 on a shared resource). For instructions on building and usage, see the 
-[container documentation](docs/containers.md).
+[container documentation](docker/README.md).

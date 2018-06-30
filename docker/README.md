@@ -4,7 +4,10 @@ In this tutorial we will walk through building a Docker container with opendrift
 and then interacting with it. If desired, you can use this same container to 
 create a [Singularity image](https://singularityware.github.io) that is usable on
 a shared resource cluster. We will do the latter by pulling the image on Docker Hub
-directly into a Singularity container.
+directly into a Singularity container. This folder contains two Dockerfiles:
+
+ - [Dockerfile](Dockerfile): builds a vanilla container with just opendrift
+ - [Dockerfile.oil](Dockerfile.oil) builds the same container with opendrift + NOAA oillibrary for oil simulations.
 
 ## Docker 
 
@@ -19,20 +22,27 @@ to the name of the container (on Docker Hub it coincides with a `<username><repo
 ```bash
 ## This is how the container was build
 $ docker build -t vanessa/opendrift .
+
+## NOAA OILLibrary
+$ docker build -f Dockerfile.oil -t vanessa/opendrift-oil .
 ```
 
 ### Pre-built
-If you don't want to take this step, the container is [provided on Docker Hub](https://hub.docker.com/r/vanessa/opendrift/) and you can just run or pull it. These containers were built locally and pushed directly,
+If you don't want to take this step, the containers are provided on Dockerhub, ([opendrift](https://hub.docker.com/r/vanessa/opendrift/),[opendrift-oil](https://hub.docker.com/r/vanessa/opendrift-oil/)) and you can just run or pull either of them. 
+These containers were built locally and pushed directly,
 and currently there are the following versions:
 
  - **vanessa/opendrift:1.0.3** refers to version 1.0.3
- - **vanessa/opendrift:latest** also refers to version 1.0.3 (it's the only one so far)
-
+ - **vanessa/opendrift:1.0.4** refers to version 1.0.4
+ - **vanessa/opendrift:latest** also refers to version 1.0.4
+ - **vanessa/opendrift-oil:1.0.4** refers to version 1.0.4
+ - **vanessa/opendrift-oil:latest** also refers to version 1.0.4
 
 This means that you can skip the build step above! If you want to pull a particular version:
 
 ```bash
-$ docker pull vanessa/opendrift:1.0.3
+$ docker pull vanessa/opendrift:1.0.4
+$ docker pull vanessa/opendrift-oil:1.0.4
 ```
 
 And if there is a newer/older version you'd like to request built, if the OpenDrift maintainers
@@ -40,7 +50,8 @@ are not providing it, please reach out to [@vsoch](https://www.github.com/vsoch)
 an updated version for you.
 
 ### Usage
-Likely you will want to interact with the software, and you can do this via 
+We will show usage examples for the base container, and you can change the name if you
+desire to use a different container or version (the tag). Likely you will want to interact with the software, and you can do this via 
 an interactive (i) terminal (t) session:
 
 ```bash
@@ -120,7 +131,7 @@ Python 2.7.15 |Anaconda, Inc.| (default, May  1 2018, 23:32:55)
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import opendrift
 >>> opendrift.__version__
-'1.0.3'
+'1.0.4'
 ```
 
 To execute a command to the container from the outside (on the host without shelling
