@@ -35,7 +35,7 @@ for case in ['oil', 'leeway']:  # test two models
                 args = {'objectType': 32}
 
             o.add_readers_from_list(readers, timeout=5)
-            print o
+            print(o)
 
             #lons=[-0.8, 0.4]; lats=[59.9, 59.95] # NorKyst border
             #lons=[4.8, 5.1]; lats=[59.9, 59.95] # Western Norway coast
@@ -49,11 +49,11 @@ for case in ['oil', 'leeway']:  # test two models
                             number=1000, radius = [0, 1000],
                             cone=True, **args)
 
-            print o
+            print(o)
             o.run(duration=timedelta(hours=24), time_step=timestep,
                   time_step_output=1800, outfile='halo_test.nc')
 
-            print o
+            print(o)
             o.animation()
             if case == 'oil':
                 o.plot()
