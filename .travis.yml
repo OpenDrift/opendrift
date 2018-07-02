@@ -53,7 +53,7 @@ before_install:
 install:
   - conda config --append channels conda-forge
   - conda install -q --yes openssl ca-certificates certifi
-  - conda update -q -yes openssl ca-certificates certifi
+  - conda update -q --yes openssl ca-certificates certifi
   - conda install -q --yes python=$TRAVIS_PYTHON_VERSION
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
