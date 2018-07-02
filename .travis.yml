@@ -29,7 +29,7 @@ cache:
 sudo: required
 before_install:
   - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
-        condaURL=https://repo.continuum.io/miniconda/Miniconda2-4.3.21-Linux-x86_64.sh;
+        condaURL=https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh;
         condabin=$HOME/miniconda2/bin;
         condapath=/home/travis/miniconda2/bin:$PATH;    
         download=/$HOME/download2;
@@ -52,8 +52,6 @@ before_install:
   - echo $PYTHONPATH
 install:
   - conda config --append channels conda-forge
-  - conda install -q --yes openssl ca-certificates certifi
-  - conda update -q --yes openssl ca-certificates certifi
   - conda install -q --yes python=$TRAVIS_PYTHON_VERSION
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
