@@ -53,7 +53,7 @@ before_install:
   - echo $PYTHONPATH
 install:
   - conda config --append channels conda-forge
-  - conda install -q --yes python=$TRAVIS_PYTHON_VERSION
+  - conda install -q --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION
   - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         cd $HOME;
         mkdir -p oillibrary;
@@ -66,7 +66,7 @@ install:
         conda install -q --yes -c conda-forge pytest>=2.9.2;
         conda install -q --yes repoze.lru>=0.6;
         conda install -q --yes -c noaa-orr-erd unit_conversion>=2.5.4;
-        conda install -q --yes setuptools_scm;
+        conda install -q --yes -c conda-forge setuptools_scm;
         python setup.py install;
     fi
   - conda config --get channels;
