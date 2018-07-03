@@ -887,3 +887,77 @@ class OpenOil(OpenDriftSimulation):
         kwargs['lon'] = lonpoints
         kwargs['lat'] = latpoints
         self.seed_elements(time=oil_time, **kwargs)
+
+    def seed_from_geotiff_thickness(self, filename, number=50000,
+                                    *args, **kwargs):
+        '''Seed from files as provided by Prof. Chuanmin Hu'''
+
+        import gdal
+        import ogr
+
+        if not 'time' is kwargs:
+            try:  # get time from filename
+                timestr = filename[-28:-13]
+                print timestr
+                time = datetime.strptime(
+                        filename[-28:-13], '%Y%m%d.%H%M%S')
+                logging.info('Parsed time from filename: %s' % time)
+            except:
+                time = datetime.now()
+                logging.warning('Could not pase time from filename, '
+                                'using present time: %s' % time)
+
+        ds = gdal.Open(filename)
+        
+        srcband = ds.GetRasterBand(1)
+        data = srcband.ReadAsArray()
+
+        thickness_microns = [0.08, 0.8, 8]  # cat 1, 2, 3
+        categories = [1, 2, 3]  # categories
+
+        # Make memory raster bands for each category
+        memrastername = filename + '.mem'
+        memdriver = gdal.GetDriverByName('MEM')
+        mem_ds = memdriver.CreateCopy(memrastername, ds)
+        for cat in categories:
+            mem_ds.AddBand(gdal.GDT_Byte)
+            mem_band = mem_ds.GetRasterBand(cat)
+            mem_band.WriteArray(data==cat)
+
+        # Make memory polygons for each category
+        drv = ogr.GetDriverByName('MEMORY')
+        mem_vector_ds = [0,0,0]
+        mem_vector_layers = [0,0,0]
+        for cat in categories:
+            memshapename = filename + '%i.mem' % cat
+            mem_vector_ds[cat-1] = drv.CreateDataSource(memshapename)
+            mem_vector_layers[cat-1] = \
+                mem_vector_ds[cat-1].CreateLayer(
+                    'thickness%i' % cat, srs=None)
+            gdal.Polygonize(mem_ds.GetRasterBand(cat), None,
+                            mem_vector_layers[cat-1],
+                            -1, [], callback=None)
+
+        total_area = np.zeros(len(categories))
+        layers = [0,0,0]
+        for cat in categories:
+            memshapename = filename + '%i.shp' % cat
+            layers[cat-1] = mem_vector_layers[cat-1]
+            areas = np.zeros(layers[cat-1].GetFeatureCount())
+            for i, feature in enumerate(layers[cat-1]):
+                areas[i] = feature.GetGeometryRef().GetArea()
+            # Delete largest polygon, which is outer border
+            outer = np.where(areas==max(areas))[0]
+            areas[outer] = 0
+            total_area[cat-1] = np.sum(areas)
+            layers[cat-1].DeleteFeature(outer)
+            layers[cat-1].ResetReading()
+            
+        # Calculate how many elements to be seeded for each category
+        areas_weighted = total_area*thickness_microns
+        numbers = number*areas_weighted/np.sum(areas_weighted)
+        numbers = np.round(numbers).astype(int)
+
+        for i, num in enumerate(numbers):
+            self.seed_from_shapefile([mem_vector_layers[i]],
+                number=num, time=time, *args, **kwargs)

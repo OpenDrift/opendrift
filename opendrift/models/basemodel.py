@@ -1442,10 +1442,12 @@ class OpenDriftSimulation(PhysicsMethods):
             ind = nx.points_inside_poly(points, poly.xy)
         else:
             ind = Path(poly.xy).contains_points(points)
-        if len(ind) == 1:  # If a single point, we seed it anyway
-            ind = [True]
-        lonpoints = np.append(lonpoints, lon[ind])
-        latpoints = np.append(latpoints, lat[ind])
+        if not any(ind):  # No elements are inside, we seed on border
+            lonpoints = np.append(lonpoints, lons[0:number])
+            latpoints = np.append(latpoints, lats[0:number])
+        else:
+            lonpoints = np.append(lonpoints, lon[ind])
+            latpoints = np.append(latpoints, lat[ind])
         if len(ind) == 0:
             logging.info('Small or irregular polygon, using center point.')
             lonpoints = np.atleast_1d(np.mean(lons))
@@ -1484,7 +1486,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
         targetSRS = osr.SpatialReference()
         targetSRS.ImportFromEPSG(4326)
-        s = ogr.Open(shapefile)
+        try:
+            s = ogr.Open(shapefile)
+        except:
+            s = shapefile
 
         for layer in s:
             if layername is not None and layer.GetName() != layername:
@@ -1507,15 +1512,19 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Loop first through all features to determine total area
             total_area = 0
-            for f in featurenum:
+            layer.ResetReading()
+            for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)  # Note 1-indexing, not 0
-                total_area += feature.GetGeometryRef().GetArea()
+                if feature is not None:
+                    total_area += feature.GetGeometryRef().GetArea()
             layer.ResetReading()  # Rewind to first layer
             logging.info('Total area of all polygons: %s m2' % total_area)
 
             num_seeded = 0
             for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)
+                if feature is None:
+                    continue
                 geom = feature.GetGeometryRef()
                 num_elements = np.int(number*geom.GetArea()/total_area)
                 if f == featurenum[-1]:
@@ -2350,6 +2359,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
+                  density_pixelsize_m=1000,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
@@ -2490,7 +2500,7 @@ class OpenDriftSimulation(PhysicsMethods):
             cma = cm.get_cmap('jet')
             cma.set_under('w')
             H, H_submerged, H_stranded, lon_array, lat_array = \
-                self.get_density_array(pixelsize_m=1000)
+                self.get_density_array(pixelsize_m=density_pixelsize_m)
             H = H + H_submerged + H_stranded
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
             pm = map.pcolormesh(lon_array, lat_array, H[0,:,:],

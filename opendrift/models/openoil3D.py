@@ -171,7 +171,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                     pointer[kw] = data[0]
                     pointer2[kw] = data[1]
                 else:
-                    logging.info('Not adding array %s to metadata' % kw)
+                    pass
+                    #logging.info('Not adding array %s to metadata' % kw)
             else:
                 self.add_metadata('seed_' + kw, str(data))
                 seed_json[kw] = data
