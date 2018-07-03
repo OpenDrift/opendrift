@@ -898,7 +898,6 @@ class OpenOil(OpenDriftSimulation):
         if not 'time' is kwargs:
             try:  # get time from filename
                 timestr = filename[-28:-13]
-                print timestr
                 time = datetime.strptime(
                         filename[-28:-13], '%Y%m%d.%H%M%S')
                 logging.info('Parsed time from filename: %s' % time)
