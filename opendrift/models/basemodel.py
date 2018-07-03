@@ -1442,6 +1442,8 @@ class OpenDriftSimulation(PhysicsMethods):
             ind = nx.points_inside_poly(points, poly.xy)
         else:
             ind = Path(poly.xy).contains_points(points)
+        if len(ind) == 1:  # If a single point, we seed it anyway
+            ind = [True]
         lonpoints = np.append(lonpoints, lon[ind])
         latpoints = np.append(latpoints, lat[ind])
         if len(ind) == 0:
@@ -1522,7 +1524,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     num_elements = number - num_seeded
                 logging.info('\tSeeding %s elements within polygon number %s' %
                              (num_elements, featurenum[i]))
-                geom.Transform(coordTrans)
+                try:
+                    geom.Transform(coordTrans)
+                except:
+                    pass
                 b = geom.GetBoundary()
                 if b is not None:
                     points = b.GetPoints()
