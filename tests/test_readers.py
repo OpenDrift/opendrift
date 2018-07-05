@@ -28,6 +28,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_constant
+from opendrift.readers import reader_lazy
 from opendrift.models.pelagicegg import PelagicEggDrift
 
 
@@ -69,6 +70,13 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(o.priority_list['x_wind'],
                          [o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset'])
+
+    def test_lazy_reader(self):
+        r = reader_lazy.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        print(r)
+        self.assertEqual(len(r.covers_positions([15], [69])), 1)
+        self.assertEqual(len(r.covers_positions([0], [0])), 0)
 
     def test_automatic_basemap(self):
         self.assertRaises(ValueError, o.run)
