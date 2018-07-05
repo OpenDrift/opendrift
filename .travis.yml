@@ -24,8 +24,6 @@ matrix:
 cache:
   directories:
     - $HOME/download
-    - $HOME/miniconda
-    - $HOME/oillibrary
 sudo: false
 before_install:
   - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
@@ -33,25 +31,23 @@ before_install:
     elif [ $TRAVIS_PYTHON_VERSION == 3.5 ]; then
         condaURL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh;
     fi
-  - download=/$HOME/download;
-  - if [ ! -e $HOME/miniconda/bin ]; then
-        mkdir -p $download;
-        cd $download;
+  - if [ ! -d $HOME/download/miniconda ]; then
+        mkdir -p $HOME/download;
+        cd $HOME/download;
         wget -c $condaURL -O miniconda.sh;
         chmod +x miniconda.sh;
-        ./miniconda.sh -b -f -p $HOME/miniconda/;
+        ./miniconda.sh -b -f -p $HOME/download/miniconda/;
         cd ..;
     fi
-  - export PATH=/home/travis/miniconda/bin:$PATH;
+  - export PATH=$HOME/download/miniconda/bin:$PATH;
   - echo $PATH
   - echo $PYTHONPATH
 install:
   - conda config --append channels conda-forge
   - conda install -q --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION
-  - if [ ! -e $HOME/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
-        cd $HOME;
-        mkdir -p oillibrary;
-        cd oillibrary;
+  - if [ ! -d $HOME/download/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
+        mkdir -p $HOME/download/oillibrary;
+        cd $HOME/download/oillibrary;
         git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git;
         cd OilLibrary;
         conda install -q --yes -c conda-forge numpy=$NUMPY scipy=$SCIPY;
@@ -65,7 +61,7 @@ install:
     fi
   - conda config --get channels;
   - conda install -q --yes -c conda-forge future hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj;
-  - conda install -q --yes -c conda-forge coveralls basemap=$BASEMAP basemap-data-hires nomkl gdal;
+  - conda install -q --yes -c conda-forge coveralls basemap=$BASEMAP basemap-data-hires nomkl gdal=2.2.2;
   - cd /home/travis/build/OpenDrift/opendrift;
 script: coverage run -m unittest discover -s tests/
 after_success:
