@@ -638,8 +638,6 @@ class OpenDriftSimulation(PhysicsMethods):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
         from opendrift.readers.reader_netCDF_CF_generic import Reader
-        from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
-        from opendrift.readers.reader_grib import Reader as Reader_grib
         for u in urls:
             files = glob.glob(u)
             for f in files:  # Regular file
@@ -650,12 +648,14 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.warning('%s is not a netCDF CF file recognised by '
                                     'OpenDrift' % f)
                     try:
+                        from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
                         r = Reader_ROMS_native(f)
                         self.add_reader(r)
                     except:
                         logging.warning('%s is also not a ROMS netCDF file recognised by '
                                         'OpenDrift' % f)
                         try:
+                            from opendrift.readers.reader_grib import Reader as Reader_grib
                             r = Reader_grib(f)
                             self.add_reader(r)
                         except:

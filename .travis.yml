@@ -23,10 +23,9 @@ matrix:
     - env: NUMPY=1.9    SCIPY=0.17   NETCDF=1.1   MATPLOTLIB=1.4 BASEMAP=1.0.8
 cache:
   directories:
-    - $HOME/download2
-    - $HOME/download3
-    - $HOME/miniconda2
-    - $HOME/miniconda3
+    - $HOME/download
+    - $HOME/miniconda
+    - $HOME/oillibrary
 sudo: false
 before_install:
   - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
@@ -40,12 +39,15 @@ before_install:
         condapath=/home/travis/miniconda3/bin:$PATH;    
         download=/$HOME/download3;
     fi
+  - condabin=$HOME/miniconda/bin;
+  - condapath=/home/travis/miniconda/bin:$PATH;    
+  - download=/$HOME/download;
   - if [ ! -e $condabin ]; then
         mkdir -p $download;
         cd $download;
         wget -c $condaURL -O miniconda.sh;
         chmod +x miniconda.sh;
-        ./miniconda.sh -b -f;
+        ./miniconda.sh -b -f -p $HOME/miniconda/;
         cd ..;
     fi
   - export PATH=$condapath
