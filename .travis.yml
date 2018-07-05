@@ -23,7 +23,7 @@ matrix:
     - env: NUMPY=1.9    SCIPY=0.17   NETCDF=1.1   MATPLOTLIB=1.4 BASEMAP=1.0.8
 cache:
   directories:
-    - $HOME/download
+    - $HOME/download/oillibrary
 sudo: false
 before_install:
   - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then

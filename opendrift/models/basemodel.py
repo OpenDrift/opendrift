@@ -637,62 +637,69 @@ class OpenDriftSimulation(PhysicsMethods):
     def add_readers_from_list(self, urls, timeout=10):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
-        from opendrift.readers.reader_netCDF_CF_generic import Reader
-        for u in urls:
-            files = glob.glob(u)
-            for f in files:  # Regular file
+        readers = [self._reader_fom_url(u, timeout) for u in urls]
+        self.add_reader([r for r in readers if r is not None])
+
+    def _reader_fom_url(self, url, timeout=10):
+        '''Make readers from a list of URLs or paths to netCDF datasets'''
+
+        files = glob.glob(url)
+        for f in files:  # Regular file
+            try:
+                from opendrift.readers.reader_netCDF_CF_generic import Reader
+                r = Reader(f)
+                return r
+                
+            except:
+                logging.warning('%s is not a netCDF CF file recognised by '
+                                'OpenDrift' % f)
                 try:
-                    r = Reader(f)
-                    self.add_reader(r)
+                    from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
+                    r = Reader_ROMS_native(f)
+                    return r
                 except:
-                    logging.warning('%s is not a netCDF CF file recognised by '
+                    logging.warning('%s is also not a ROMS netCDF file recognised by '
                                     'OpenDrift' % f)
                     try:
-                        from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
-                        r = Reader_ROMS_native(f)
-                        self.add_reader(r)
+                        from opendrift.readers.reader_grib import Reader as Reader_grib
+                        r = Reader_grib(f)
+                        return r
                     except:
-                        logging.warning('%s is also not a ROMS netCDF file recognised by '
+                        logging.warning('%s is also not a GRIB file recognised by '
                                         'OpenDrift' % f)
-                        try:
-                            from opendrift.readers.reader_grib import Reader as Reader_grib
-                            r = Reader_grib(f)
-                            self.add_reader(r)
-                        except:
-                            logging.warning('%s is also not a GRIB file recognised by '
-                                            'OpenDrift' % f)
 
-            if files == []:  # Try with OPeNDAP URL
-                try:  # Check URL accessibility/timeout
-                    try:
-                        # for python 3
-                        import urllib.request as urllib_request
-                    except ImportError:
-                        # for python 2
-                        import urllib2 as urllib_request
-                    request = urllib_request.Request(u)
-                    try:  # netrc
-                        import netrc
-                        import base64
-                        parts = urllib_request.urlparse.urlparse(u)
-                        login, account, password = netrc.netrc().authenticators(parts.netloc)
-                        creds = base64.encodestring('%s:%s' % (login, password)).strip()
-                        request.add_header("Authorization", "Basic %s" % creds)
-                        logging.info('Applied NETRC credentials')
-                    except:
-                        logging.info('Could not apply NETRC credentials')
-                    urllib_request.urlopen(request, timeout=timeout)
+        if files == []:  # Try with OPeNDAP URL
+            try:  # Check URL accessibility/timeout
+                try:
+                    # for python 3
+                    import urllib.request as urllib_request
+                except ImportError:
+                    # for python 2
+                    import urllib2 as urllib_request
+                request = urllib_request.Request(url)
+                try:  # netrc
+                    import netrc
+                    import base64
+                    parts = urllib_request.urlparse.urlparse(u)
+                    login, account, password = netrc.netrc().authenticators(parts.netloc)
+                    creds = base64.encodestring('%s:%s' % (login, password)).strip()
+                    request.add_header("Authorization", "Basic %s" % creds)
+                    logging.info('Applied NETRC credentials')
+                except:
+                    logging.info('Could not apply NETRC credentials')
+                urllib_request.urlopen(request, timeout=timeout)
+            except Exception as e:
+                # Error code 400 is expected!
+                if not isinstance(e, urllib_request.HTTPError) or e.code != 400:
+                    logging.warning('ULR %s not accessible: ' % url + str(e))
+                    return None
+                try:
+                    r = Reader(url)
+                    return r
                 except Exception as e:
-                    # Error code 400 is expected!
-                    if not isinstance(e, urllib_request.HTTPError) or e.code != 400:
-                        logging.warning('ULR %s not accessible: ' % u + str(e))
-                        continue
-                    try:
-                        r = Reader(u)
-                        self.add_reader(r)
-                    except Exception as e:
-                        logging.warning('%s is not a netCDF file recognised '
-                                        'by OpenDrift: %s' % (u, str(e)))
+                    logging.warning('%s is not a netCDF file recognised '
+                                    'by OpenDrift: %s' % (url, str(e)))
+                    return None
 
     def add_readers_from_file(self, filename, timeout=10):
         fp = open(filename, 'r')
