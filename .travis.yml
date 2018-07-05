@@ -61,7 +61,7 @@ install:
     fi
   - conda config --get channels;
   - conda install -q --yes -c conda-forge future hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj;
-  - conda install -q --yes -c conda-forge coveralls basemap=$BASEMAP basemap-data-hires nomkl gdal=2.2.2;
+  - conda install -q --yes -c conda-forge coveralls basemap=$BASEMAP basemap-data-hires nomkl xerces-c gdal;
   - cd /home/travis/build/OpenDrift/opendrift;
 script: coverage run -m unittest discover -s tests/
 after_success:
