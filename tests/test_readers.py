@@ -56,6 +56,20 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(o.priority_list['x_sea_water_velocity'],
                          ['roms native'])
 
+        # Test add_readers_from_list
+        o = OceanDrift(loglevel=20)
+        o.add_readers_from_list([
+            o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc',
+            'www.nonexisting.com',
+            o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset'])
+        self.assertEqual(o.priority_list['x_sea_water_velocity'],
+                         ['roms native'])
+        self.assertEqual(o.priority_list['x_wind'],
+                         [o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset'])
+
     def test_automatic_basemap(self):
         self.assertRaises(ValueError, o.run)
         o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
