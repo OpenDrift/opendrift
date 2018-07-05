@@ -44,7 +44,7 @@ before_install:
   - echo $PYTHONPATH
 install:
   - conda config --append channels conda-forge
-  - conda install -q --yes -c conda-forge gdal
+  - conda install -q --yes -c anaconda gdal
   - conda install -q --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION
   - if [ ! -d $HOME/download/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         mkdir -p $HOME/download/oillibrary;
