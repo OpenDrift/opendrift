@@ -42,6 +42,7 @@ before_install:
         ./miniconda.sh -b -f -p $HOME/miniconda/;
         cd ..;
     fi
+  - export PATH=/home/travis/miniconda/bin:$PATH;
   - echo $PATH
   - echo $PYTHONPATH
 install:
