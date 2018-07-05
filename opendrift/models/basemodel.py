@@ -639,6 +639,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         from opendrift.readers.reader_netCDF_CF_generic import Reader
         from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
+        from opendrift.readers.reader_grib import Reader as Reader_grib
         for u in urls:
             files = glob.glob(u)
             for f in files:  # Regular file
@@ -654,6 +655,12 @@ class OpenDriftSimulation(PhysicsMethods):
                     except:
                         logging.warning('%s is also not a ROMS netCDF file recognised by '
                                         'OpenDrift' % f)
+                        try:
+                            r = Reader_grib(f)
+                            self.add_reader(r)
+                        except:
+                            logging.warning('%s is also not a GRIB file recognised by '
+                                            'OpenDrift' % f)
 
             if files == []:  # Try with OPeNDAP URL
                 try:  # Check URL accessibility/timeout
@@ -2359,9 +2366,26 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
-                  density_pixelsize_m=1000,
+                  density_pixelsize_m=1000, unitfactor=1,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
+
+        if cmap is None:
+            cmap = 'jet'
+        if isinstance(cmap, basestring):
+            cmap = matplotlib.cm.get_cmap(cmap)
+
+        if color is False and background is None and density is False:
+            colorbar = False
+
+        if isinstance(density, basestring):
+            # Density field is weighted by this variable
+            # TODO: not yet implemented!
+            density_weight = density
+            density = True
+        else:
+            if density is True:
+                density_weight = None
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
@@ -2432,6 +2456,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if color is not False:
             if isinstance(color, basestring):
                 colorarray = self.get_property(color)[0].T
+                colorarray = colorarray*unitfactor
                 colorarray_deactivated = \
                     getattr(self.elements_deactivated, color)
             else:
@@ -2444,14 +2469,8 @@ class OpenDriftSimulation(PhysicsMethods):
             map_x, map_y, scalar, u_component, v_component = \
                 self.get_map_background(map, background,
                                         time=self.start_time)
-            map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                           vmin=vmin, vmax=vmax)
-            if colorbar is True:
-                if clabel is None:
-                    map.colorbar(size='3%', pad='5%', location='bottom')
-                else:
-                    map.colorbar(label=clabel, size='3%', pad='5%',
-                                 location='bottom')
+            bg = map.pcolormesh(map_x, map_y, scalar, alpha=1,
+                                vmin=vmin, vmax=vmax, cmap=cmap)
 
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
@@ -2495,16 +2514,14 @@ class OpenDriftSimulation(PhysicsMethods):
                 plt.legend(markerscale=2, loc=legend_loc)
 
         if density is True:
-            # TODO: Unfinished work
-            import matplotlib.cm as cm
-            cma = cm.get_cmap('jet')
-            cma.set_under('w')
+            cmap.set_under('w')
             H, H_submerged, H_stranded, lon_array, lat_array = \
-                self.get_density_array(pixelsize_m=density_pixelsize_m)
+                self.get_density_array(pixelsize_m=density_pixelsize_m,
+                                       weight=density_weight)
             H = H + H_submerged + H_stranded
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
             pm = map.pcolormesh(lon_array, lat_array, H[0,:,:],
-                                latlon=True, vmin=0.1, cmap=cma)
+                                latlon=True, vmin=0.1, cmap=cmap)
 
         if drifter is not None:
             drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
@@ -2516,14 +2533,24 @@ class OpenDriftSimulation(PhysicsMethods):
             plt.gcf(), plot_timestep, blit=False,
             frames=x.shape[1], interval=50)
 
-        if colorbar is True and color is not False:
-            if isinstance(color, basestring) or clabel is not None:
+        if colorbar is True:
+            if color is not False:
+                if isinstance(color, basestring) or clabel is not None:
+                    if clabel is None:
+                        clabel = color
+                item = points
+            elif density is not False:
+                item = pm
                 if clabel is None:
-                    clabel = color
-                cb = map.colorbar(label=clabel, location='bottom',
+                    clabel = 'density'
+            elif background is not None:
+                #cb = plt.colorbar()
+                item = bg
+                if clabel is None:
+                    clabel = 'density'
+
+            cb = map.colorbar(item, label=clabel, location='bottom',
                                   size='3%', pad='5%')
-            else:
-                cb = plt.colorbar()
             cb.set_alpha(1)
             cb.draw_all()
 
@@ -2893,9 +2920,7 @@ class OpenDriftSimulation(PhysicsMethods):
         #plt.gca().tick_params(labelsize=14)
 
         if filename is not None:
-            #plt.savefig(filename, dpi=200)
             plt.savefig(filename)
-            plt.close()
         else:
             if show is True:
                 plt.show()

@@ -911,8 +911,8 @@ class OpenOil(OpenDriftSimulation):
         srcband = ds.GetRasterBand(1)
         data = srcband.ReadAsArray()
 
-        thickness_microns = [0.08, 0.8, 8]  # cat 1, 2, 3
-        categories = [1, 2, 3]  # categories
+        thickness_microns = [0.04, 0.44, 4.4, 16]  # NB: approximate
+        categories = [1, 2, 3, 4]  # categories
 
         # Make memory raster bands for each category
         memrastername = filename + '.mem'
@@ -925,8 +925,8 @@ class OpenOil(OpenDriftSimulation):
 
         # Make memory polygons for each category
         drv = ogr.GetDriverByName('MEMORY')
-        mem_vector_ds = [0,0,0]
-        mem_vector_layers = [0,0,0]
+        mem_vector_ds = [0]*len(categories)
+        mem_vector_layers = [0]*len(categories)
         for cat in categories:
             memshapename = filename + '%i.mem' % cat
             mem_vector_ds[cat-1] = drv.CreateDataSource(memshapename)
@@ -938,7 +938,7 @@ class OpenOil(OpenDriftSimulation):
                             -1, [], callback=None)
 
         total_area = np.zeros(len(categories))
-        layers = [0,0,0]
+        layers = [0]*len(categories)
         for cat in categories:
             memshapename = filename + '%i.shp' % cat
             layers[cat-1] = mem_vector_layers[cat-1]
@@ -959,4 +959,5 @@ class OpenOil(OpenDriftSimulation):
 
         for i, num in enumerate(numbers):
             self.seed_from_shapefile([mem_vector_layers[i]],
+                oil_film_thickness=thickness_microns[i]/1000000.,
                 number=num, time=time, *args, **kwargs)
