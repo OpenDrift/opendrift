@@ -131,6 +131,8 @@ class BaseReader(object):
         self.always_valid = False  # Set to True if a single field should
                                    # be valid at all times
 
+        self.is_lazy = False  # Generally False
+
         # Set projection for coordinate transformations
         self.simulation_SRS = False  # Avoid unnecessary vector rotation
         if hasattr(self, 'proj'):

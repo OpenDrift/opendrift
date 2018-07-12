@@ -14,7 +14,9 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import logging
 from opendrift.readers.basereader import BaseReader
+from opendrift.readers import reader_from_url
 
 
 class Reader(object):
@@ -24,23 +26,37 @@ class Reader(object):
         self._args = args
         self._kwargs = kwargs
         self.initialised = False
-        print('Delaying initialisation')
+        self._lazyname = 'LazyReader: ' + args[0]
+        logging.debug('Delaying initialisation of ' + self._lazyname)
 
     def __getattr__(self, name):
         if self.initialised is False:
-            print('Initialising...')
-            from opendrift.models.oceandrift import OceanDrift
-            o = OceanDrift()
-            self.reader = o._reader_fom_url(self._args[0])
-            if self.reader is None:
-                raise ValueError('Reader could not be initialised') 
-            else:
-                self.initialised = True
-        return object.__getattribute__(self.reader, name)
+            if name == 'name':
+                return self._lazyname
+            if name == 'is_lazy':
+                return True
+            self.initialise()
+
+        try:
+            return object.__getattribute__(self.reader, name)
+        except:
+            return object.__getattribute__(self, name)
         
     def get_variables(self, *args, **kwargs):
-        pass
+        return self.reader.get_variables(*args, **kwargs)
+
+    def initialise(self):
+        logging.debug('Initialising: ' + self._lazyname)
+        self.reader = reader_from_url(self._args[0])
+        if self.reader is None:
+            raise ValueError('Reader could not be initialised') 
+        else:
+            logging.debug('Reader initialised: ' + self.reader.name) 
+            self.initialised = True
 
     def __repr__(self):
-        return 'Lazy reader:\n%s\n%s' % (
-                     self._args, self._kwargs)
+        if self.initialised is True:
+            return self.reader.__repr__()
+        else:
+            return 'Lazy reader:\n%s\n%s' % (
+                        self._args, self._kwargs)
