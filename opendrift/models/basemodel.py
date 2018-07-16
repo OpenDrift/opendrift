@@ -1546,6 +1546,52 @@ class OpenDriftSimulation(PhysicsMethods):
         # Finally seed at calculated positions
         self.seed_elements(lonpoints, latpoints, **kwargs)
 
+    def seed_from_wkt(self, wkt, number, **kwargs):
+        """Seeds elements within (multi)polygons from WKT"""
+
+        try:
+            import ogr
+            import osr
+        except Exception as e:
+            logging.warning(e)
+            raise ValueError('OGR library is needed to parse WKT')
+
+        geom = ogr.CreateGeometryFromWkt(wkt)
+        total_area = 0
+        for i in range(0, geom.GetGeometryCount()):
+            g = geom.GetGeometryRef(i)
+            total_area += g.GetArea()
+        
+        logging.info('Total area of all polygons: %s m2' % total_area)
+        num_seeded = 0
+        for i in range(0, geom.GetGeometryCount()):
+            g = geom.GetGeometryRef(i)
+            num_elements = np.int(number*g.GetArea()/total_area)
+            if i == geom.GetGeometryCount()-1:
+                # For the last feature we seed the remaining number,
+                # avoiding difference due to rounding:
+                num_elements = number - num_seeded
+            logging.info('\tSeeding %s elements within polygon number %s' %
+                         (num_elements, str(i)))
+            try:
+                g.Transform(coordTrans)
+            except:
+                pass
+            b = g.GetBoundary()
+            if b is not None:
+                points = b.GetPoints()
+                lons = [p[0] for p in points]
+                lats = [p[1] for p in points]
+            else:
+                # Alternative if OGR is not built with GEOS support
+                r = g.GetGeometryRef(0)
+                lons = [r.GetX(j) for j in range(r.GetPointCount())]
+                lats = [r.GetY(j) for j in range(r.GetPointCount())]
+
+            self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+            num_seeded += num_elements
+
+
     def seed_from_shapefile(self, shapefile, number,
                             layername=None, featurenum=None, **kwargs):
         """Seeds elements within contours read from a shapefile"""
