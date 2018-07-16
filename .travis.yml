@@ -38,8 +38,9 @@ before_install:
   - echo $PATH
   - echo $PYTHONPATH
 install:
+  - sudo apt-get install ffmpeg
   - conda config --append channels conda-forge
-  - conda install -q --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION ffmpeg
+  - conda install -q --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION
   - if [ ! -d $HOME/download/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
         mkdir -p $HOME/download/oillibrary;
         cd $HOME/download/oillibrary;
