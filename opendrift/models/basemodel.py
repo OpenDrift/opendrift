@@ -126,6 +126,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 use_basemap_landmask = boolean(default=True)
                 basemap_resolution = option('f', 'h', 'i', 'c', default='h')
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
+                time_step_minutes = integer(min=1, max=1440, default=60)
+                time_step_output_minutes = integer(min=1, max=1440, default=None)
             [seed]
                 ocean_only = boolean(default=True)
             [drift]
@@ -1752,7 +1754,7 @@ class OpenDriftSimulation(PhysicsMethods):
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
-    def run(self, time_step=3600, steps=None, time_step_output=None,
+    def run(self, time_step=None, steps=None, time_step_output=None,
             duration=None, end_time=None, outfile=None, export_variables=None,
             export_buffer_length=100, stop_on_error=False):
         """Start a trajectory simulation, after initial configuration.
@@ -1889,12 +1891,18 @@ class OpenDriftSimulation(PhysicsMethods):
         ########################
         # Simulation time step
         ########################
+        if time_step is None:
+            time_step = timedelta(minutes=self.get_config('general:time_step_minutes'))
         if type(time_step) is not timedelta:
             # Time step may be given in seconds, as alternative to timedelta
             time_step = timedelta(seconds=time_step)
         self.time_step = time_step
         if time_step_output is None:
-            self.time_step_output = self.time_step
+            time_step_output = self.get_config('general:time_step_output_minutes')
+            if time_step_output is None:
+                self.time_step_output = self.time_step
+            else:
+                self.time_step_output = timedelta(minutes=time_step_output)
         else:
             if type(time_step_output) is timedelta:
                 self.time_step_output = time_step_output

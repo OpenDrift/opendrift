@@ -447,6 +447,46 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o1.num_elements_deactivated(),
                          o2i.num_elements_deactivated())
 
+    def test_time_step_config(self):
+        # Default
+        o = OceanDrift(loglevel=50)
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=4, lat=60, time=datetime.now())
+        o.run(steps=2)
+        self.assertEqual(o.time_step.total_seconds(), 3600)
+        self.assertEqual(o.time_step_output.total_seconds(), 3600)
+        # Setting time_step
+        o = OceanDrift(loglevel=50)
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=4, lat=60, time=datetime.now())
+        o.run(steps=2, time_step=1800)
+        self.assertEqual(o.time_step.total_seconds(), 1800)
+        # Setting time_step and time_step_output
+        o = OceanDrift(loglevel=50)
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=4, lat=60, time=datetime.now())
+        o.run(steps=2, time_step=1800, time_step_output=3600)
+        self.assertEqual(o.time_step.total_seconds(), 1800)
+        self.assertEqual(o.time_step_output.total_seconds(), 3600)
+        # time_step from config
+        o = OceanDrift(loglevel=50)
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=4, lat=60, time=datetime.now())
+        o.set_config('general:time_step_minutes', 15)
+        o.run(steps=2)
+        self.assertEqual(o.time_step.total_seconds(), 900)
+        self.assertEqual(o.time_step_output.total_seconds(), 900)
+        # time_step and time_step_output from config
+        o = OceanDrift(loglevel=50)
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=4, lat=60, time=datetime.now())
+        o.set_config('general:time_step_minutes', 15)
+        o.set_config('general:time_step_output_minutes', 120)
+        o.run(steps=2)
+        self.assertEqual(o.time_step.total_seconds(), 900)
+        self.assertEqual(o.time_step_output.total_seconds(), 7200)
+
+
     def test_reader_boundary(self):
         # Check that the element outside reader coverage is
         # not deactivated if fallback value exist
@@ -673,11 +713,12 @@ class TestRun(unittest.TestCase):
                         time=datetime.now(), number=100)
         o.run(steps=5)
         o.plot(filename='test_plot.png')
-        o.animation(filename='test_plot.mp4')
+        # Temporarily skipping mp4 due to bug in Conda
+        #o.animation(filename='test_plot.mp4')
         assert os.path.exists('test_plot.png')
-        assert os.path.exists('test_plot.mp4')
+        #assert os.path.exists('test_plot.mp4')
         os.remove('test_plot.png')
-        os.remove('test_plot.mp4')
+        #os.remove('test_plot.mp4')
 
     def test_retirement(self):
         o = OceanDrift(loglevel=0)
