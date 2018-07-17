@@ -103,8 +103,12 @@ class TestRun(unittest.TestCase):
         o.add_reader([basemap, norkyst])
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 0
+        o.set_config('seed:oil_type', 'SNORRE B')
         o.seed_elements(5, 63, number=5,
                         time=norkyst.start_time - 24*timedelta(hours=24))
+        # Check that the oiltype is taken from config
+        self.assertEqual(o.oil_name, o.get_config('seed:oil_type'))
+        self.assertEqual(o.oil_name, 'SNORRE B')
         with self.assertRaises(ValueError):
             o.run(steps=3, time_step=timedelta(minutes=15))
 
@@ -145,16 +149,19 @@ class TestRun(unittest.TestCase):
             (o3.elements.lon-o.elements.lon).max(), 0))
 
     def test_seed_polygon(self):
-        o = OceanDrift(loglevel=20)
+        o = OpenOil3D(loglevel=0)
         number = 10
         lonvec = np.array([2, 3, 3, 2])
         latvec = np.array([60, 60, 61, 61])
         time=datetime(2015, 1, 1, 12, 5, 17)
-        o.seed_within_polygon(lonvec, latvec, number=number, time=time,
-                              wind_drift_factor=.09)
+        o.set_config('seed:oil_type', 'HEIDRUN')
+        o.seed_within_polygon(lonvec, latvec, number=number,
+                              time=time, wind_drift_factor=.09)
         self.assertEqual(o.num_elements_scheduled(), number)
         self.assertEqual(o.elements_scheduled_time[0], time)
         self.assertAlmostEqual(o.elements_scheduled.wind_drift_factor, .09)
+        # Check that oil type is taken fom config
+        self.assertEqual(o.oil_name, 'HEIDRUN')
 
     def test_seed_polygon_timespan(self):
         o = OceanDrift(loglevel=20)

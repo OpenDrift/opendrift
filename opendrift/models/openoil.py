@@ -754,8 +754,8 @@ class OpenOil(OpenDriftSimulation):
             self.set_config('seed:oil_type', kwargs['oiltype'])
             del kwargs['oiltype']
         else:
-            logging.warning('Oil type not specified, using default: ' +
-                            self.get_config('seed:oil_type'))
+            logging.info('Oil type not specified, using default: ' +
+                         self.get_config('seed:oil_type'))
         self.set_oiltype(self.get_config('seed:oil_type'))
 
         if self.oil_weathering_model == 'noaa':
