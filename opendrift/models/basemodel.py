@@ -821,8 +821,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 reader = 'NotNone'
                 while reader is not None:
                     reader = self._initialise_next_lazy_reader()
-                    if self.discard_reader_if_not_relevant(reader):
-                        reader is None
+                    if reader is not None:
+                        if self.discard_reader_if_not_relevant(reader):
+                            reader = None
                     if reader is not None:
                         if (reader.covers_time(self.time) and
                                 len(reader.covers_positions(
