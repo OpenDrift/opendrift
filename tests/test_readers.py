@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from opendrift.models.oceandrift import OceanDrift
+from opendrift.models.leeway import Leeway
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
@@ -133,6 +134,23 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(len(o._lazy_readers()), 2)
         self.assertEqual(len(o.discarded_readers), 1)
 
+    #def test_oildrift_backwards(self):
+    #    o = OpenOil3D(loglevel=20)
+    #    reader_constant_wind = \
+    #        reader_constant.Reader({'x_wind':5, 'y_wind': 6})
+    #    o.add_reader(reader_constant_wind)
+
+    #    o.add_readers_from_list(reader_list, lazy=True)
+
+    #    self.assertEqual(len(o._lazy_readers()), 4)
+    #    o.set_config('general:basemap_resolution', 'c')
+    #    o.seed_elements(lon=14, lat=67.85,
+    #                    time=datetime(2016, 2, 2, 12))
+    #    o.set_config()
+    #    o.run(steps=5)
+    #    self.assertEqual(len(o._lazy_readers()), 2)
+    #    self.assertEqual(len(o.discarded_readers), 1)
+
     #def test_lazy_reader_oildrift_real(self):
     #    o = OpenOil3D(loglevel=0)
     #    o.add_readers_from_file(o.test_data_folder() +
@@ -146,8 +164,7 @@ class TestReaders(unittest.TestCase):
 
     def test_lazy_reader_leeway_compare(self):
 
-        from opendrift.models.leeway import Leeway
-        o1 = Leeway(loglevel=0, logfile='o1.txt')
+        o1 = Leeway(loglevel=0)
         #o1.fallback_values['land_binary_mask'] = 0
         o1.required_variables = [r for r in o1.required_variables
                                  if r != 'land_binary_mask']
@@ -156,7 +173,7 @@ class TestReaders(unittest.TestCase):
         o1.seed_elements(lat=67.85, lon=14, time=time)
         o1.run(steps=5)
 
-        o2 = Leeway(loglevel=20, logfile='o2.txt')
+        o2 = Leeway(loglevel=20)
         #o2.fallback_values['land_binary_mask'] = 0
         o2.required_variables = [r for r in o1.required_variables
                                  if r != 'land_binary_mask']
@@ -174,6 +191,22 @@ class TestReaders(unittest.TestCase):
                 tolerance = 5
             self.assertIsNone(np.testing.assert_array_almost_equal(
                 o1.history[var], o2.history[var], tolerance))
+
+    def test_constant_and_lazy_reader_leeway(self):
+        cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
+        cc = reader_constant.Reader({'x_sea_water_velocity':0,
+                                     'y_sea_water_velocity': .2})
+
+        o = Leeway(loglevel=20)
+        o.set_config('general:basemap_resolution', 'c')
+        o.add_reader([cw, cc])
+        o.add_readers_from_list(reader_list)
+        o.fallback_values['x_sea_water_velocity'] = 0.0
+        o.fallback_values['y_sea_water_velocity'] = 0.1
+        time = datetime(2016,2,2,12)
+        o.seed_elements(lat=67.85, lon=14, time=time)
+        o.run(steps=2)
+        self.assertAlmostEqual(o.elements.lat[0], 67.8791, 3)
 
     def test_automatic_basemap(self):
         self.assertRaises(ValueError, o.run)

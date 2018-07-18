@@ -786,6 +786,8 @@ class OpenDriftSimulation(PhysicsMethods):
         for var in self.priority_list:
             self.priority_list[var] = [r for r in
                 self.priority_list[var] if r != readername]
+            if len(self.priority_list[var]) == 0:
+                del self.priority_list[var]
 
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
@@ -2191,7 +2193,6 @@ class OpenDriftSimulation(PhysicsMethods):
         #############################
         # Add some metadata
         #############################
-        readers = self.priority_list
         for var in self.required_variables:
             keyword = 'reader_' + var
             if var not in self.priority_list:
