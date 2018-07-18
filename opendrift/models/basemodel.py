@@ -815,9 +815,9 @@ class OpenDriftSimulation(PhysicsMethods):
             if hasattr(self, 'desired_variables'):
                 missing_variables = list(set(missing_variables) - 
                                          set(self.desired_variables))
-            logging.debug('Variables not covered by any reader: ' +
-                          str(missing_variables))
             if len(missing_variables) > 0:
+                logging.debug('Variables not covered by any reader: ' +
+                              str(missing_variables))
                 reader = 'NotNone'
                 while reader is not None:
                     reader = self._initialise_next_lazy_reader()
