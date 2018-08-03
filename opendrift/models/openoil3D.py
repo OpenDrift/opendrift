@@ -71,6 +71,18 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         'upward_sea_water_velocity'
         ]
 
+    # Desired variables do not require initialisation of Lazy readers
+    desired_variables = [
+        'sea_surface_wave_significant_height',
+        'sea_surface_wave_stokes_drift_x_velocity',
+        'sea_surface_wave_stokes_drift_y_velocity',
+        'sea_surface_wave_period_at_variance_spectral_density_maximum',
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
+        'sea_ice_area_fraction',
+        'ocean_vertical_diffusivity',
+        'upward_sea_water_velocity'
+        ]
+
     required_profiles = ['sea_water_temperature',
                          'sea_water_salinity',
                          'ocean_vertical_diffusivity']
@@ -171,7 +183,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                     pointer[kw] = data[0]
                     pointer2[kw] = data[1]
                 else:
-                    logging.info('Not adding array %s to metadata' % kw)
+                    pass
+                    #logging.info('Not adding array %s to metadata' % kw)
             else:
                 self.add_metadata('seed_' + kw, str(data))
                 seed_json[kw] = data

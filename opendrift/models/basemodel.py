@@ -37,7 +37,6 @@ try:
     matplotlib.rcParams['legend.scatterpoints'] = 1
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
-            
         print 'No display found. Using non-interactive Agg backend'
         # matplotlib.use('agg')
         matplotlib.use('Tkagg') # not sure why but using 'agg' doesnt work for some examples 
@@ -58,6 +57,7 @@ except:
 
 import opendrift
 from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
+from opendrift.readers import reader_from_url
 from opendrift.models.physics_methods import PhysicsMethods
 
 try:
@@ -128,6 +128,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 use_basemap_landmask = boolean(default=True)
                 basemap_resolution = option('f', 'h', 'i', 'c', default='h')
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
+                time_step_minutes = integer(min=1, max=1440, default=60)
+                time_step_output_minutes = integer(min=1, max=1440, default=None)
             [seed]
                 ocean_only = boolean(default=True)
             [drift]
@@ -177,7 +179,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self._add_configstring(self.configspec_basemodel)
 
         # Dict to store readers
-        self.readers = {}  # Dictionary, key=name, value=reader object
+        self.readers = OrderedDict()  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
         self.use_block = True  # Set to False if interpolation left to reader
 
@@ -525,7 +527,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timers[category] = None
 
     def format_timedelta(self, timedelta):
-        '''Format timedelta nicely for printing'''
+        '''Format timedelta nicely for display'''
         timestr = str(timedelta)[0:str(timedelta).find('.') + 2]
         for i, c in enumerate(timestr):
             if c in '123456789.':
@@ -538,7 +540,21 @@ class OpenDriftSimulation(PhysicsMethods):
     def performance(self):
         '''Report the time spent on various tasks'''
 
+<<<<<<< HEAD
         outStr = '---------------------------\n'
+=======
+        outStr = '--------------------\n'
+        outStr += 'Reader performance:\n'
+        for r in self.readers:
+            reader = self.readers[r]
+            if reader.is_lazy:
+                continue
+            outStr += '--------------------\n'
+            outStr += r + '\n'
+            outStr += reader.performance()
+
+        outStr += '--------------------\n'
+>>>>>>> upstream/master
         outStr += 'Performance:\n'
         for category, time in iteritems(self.timing):
             timestr = str(time)[0:str(time).find('.') + 2]
@@ -584,7 +600,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         for reader in readers:
             # Check if input class is of correct type
-            if not isinstance(reader, BaseReader):
+            if not isinstance(reader, BaseReader) and \
+                    not hasattr(reader, '_lazyname'):
                 raise TypeError('Please provide Reader object')
 
             # Check that reader class contains the requested variables
@@ -605,10 +622,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Horizontal buffer of reader must be large enough to cover
             # the distance possibly covered by elements within a time step
-            reader.set_buffer_size(max_speed=self.max_speed)
+            if not reader.is_lazy:
+                reader.set_buffer_size(max_speed=self.max_speed)
 
             self.readers[reader.name] = reader
-            if self.proj is None:
+            if self.proj is None and not reader.is_lazy:
                 if reader.proj4 is not None and reader.proj4 != 'None':
                     self.set_projection(reader.proj4)
                     logging.debug('Using srs for common grid: %s' %
@@ -619,12 +637,13 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.debug('Added reader ' + reader.name)
 
             # Add this reader for each of the given variables
-            for variable in variables if variables else reader.variables:
-                if variable in list(self.priority_list):
-                    if reader.name not in self.priority_list[variable]:
-                        self.priority_list[variable].append(reader.name)
-                else:
-                    self.priority_list[variable] = [reader.name]
+            if reader.is_lazy is False:
+                for variable in variables if variables else reader.variables:
+                    if variable in list(self.priority_list):
+                        if reader.name not in self.priority_list[variable]:
+                            self.priority_list[variable].append(reader.name)
+                    else:
+                        self.priority_list[variable] = [reader.name]
 
         # Remove/hide variables not needed by the current trajectory model
         for variable in list(self.priority_list):
@@ -636,64 +655,23 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
 
-    def add_readers_from_list(self, urls, timeout=10):
+    def add_readers_from_list(self, urls, timeout=10, lazy=True):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
-        from opendrift.readers.reader_netCDF_CF_generic import Reader
-        from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
-        for u in urls:
-            files = glob.glob(u)
-            for f in files:  # Regular file
-                try:
-                    r = Reader(f)
-                    self.add_reader(r)
-                except:
-                    logging.warning('%s is not a netCDF CF file recognised by '
-                                    'OpenDrift' % f)
-                    try:
-                        r = Reader_ROMS_native(f)
-                        self.add_reader(r)
-                    except:
-                        logging.warning('%s is also not a ROMS netCDF file recognised by '
-                                        'OpenDrift' % f)
+        if lazy is True:
+            from opendrift.readers.reader_lazy import Reader
+            readers = [Reader(u) for u in urls]
+            self.add_reader(readers)
+            return
 
-            if files == []:  # Try with OPeNDAP URL
-                try:  # Check URL accessibility/timeout
-                    try:
-                        # for python 3
-                        import urllib.request as urllib_request
-                    except ImportError:
-                        # for python 2
-                        import urllib2 as urllib_request
-                    request = urllib_request.Request(u)
-                    try:  # netrc
-                        import netrc
-                        import base64
-                        parts = urllib_request.urlparse.urlparse(u)
-                        login, account, password = netrc.netrc().authenticators(parts.netloc)
-                        creds = base64.encodestring('%s:%s' % (login, password)).strip()
-                        request.add_header("Authorization", "Basic %s" % creds)
-                        logging.info('Applied NETRC credentials')
-                    except:
-                        logging.info('Could not apply NETRC credentials')
-                    urllib_request.urlopen(request, timeout=timeout)
-                except Exception as e:
-                    # Error code 400 is expected!
-                    if not isinstance(e, urllib_request.HTTPError) or e.code != 400:
-                        logging.warning('ULR %s not accessible: ' % u + str(e))
-                        continue
-                    try:
-                        r = Reader(u)
-                        self.add_reader(r)
-                    except Exception as e:
-                        logging.warning('%s is not a netCDF file recognised '
-                                        'by OpenDrift: %s' % (u, str(e)))
+        readers = [reader_from_url(u, timeout) for u in urls]
+        self.add_reader([r for r in readers if r is not None])
 
-    def add_readers_from_file(self, filename, timeout=10):
+    def add_readers_from_file(self, filename, timeout=10, lazy=True):
         fp = open(filename, 'r')
         sources = fp.readlines()
         sources = [line.strip() for line in sources if line[0] != '#']
-        self.add_readers_from_list(sources, timeout)
+        self.add_readers_from_list(sources, timeout, lazy=lazy)
 
     def list_environment_variables(self):
         """Return list of all variables provided by the added readers."""
@@ -744,6 +722,86 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return variable_groups, reader_groups, missing_variables
 
+    def _lazy_readers(self):
+        return [r for r in self.readers
+                if self.readers[r].is_lazy is True]
+
+    def _unlazy_readers(self):
+        return [r for r in self.readers
+                if self.readers[r].is_lazy is False]
+
+    def _initialise_next_lazy_reader(self):
+        '''Returns reader if successful and None if no more readers'''
+
+        lazy_readers = self._lazy_readers()
+
+        if len(lazy_readers) == 0:
+            return None
+
+        lazyname = lazy_readers[0]
+        reader = self.readers[lazyname]
+
+        try:
+            reader.initialise()
+        except Exception as e:
+            logging.debug(e)
+            logging.warning('Reader could not be initialised, and is'
+                            ' discarded: ' + lazyname)
+            self.discard_reader(reader)
+            return self._initialise_next_lazy_reader()  # Call self
+    
+        reader.set_buffer_size(max_speed=self.max_speed)
+        # Update reader lazy name with actual name
+        self.readers[reader.name] = \
+            self.readers.pop(lazyname)
+        for var in reader.variables:
+            if var in list(self.priority_list):
+                self.priority_list[var].append(reader.name)
+            else:
+                self.priority_list[var] = [reader.name]
+        # Remove variables not needed
+        for variable in list(self.priority_list):
+            if variable not in self.required_variables:
+                del self.priority_list[variable]
+
+        return reader
+
+    def earliest_time(self):
+        return min(self.start_time, self.expected_end_time)
+
+    def latest_time(self):
+        return min(self.start_time, self.expected_end_time)
+
+    def discard_reader_if_not_relevant(self, reader):
+        if reader.start_time is not None and (
+                (reader.start_time > self.latest_time() or
+                 reader.end_time < self.earliest_time())):
+            logging.debug('Reader does not cover simulation period')
+            self.discard_reader(reader)
+            return True
+        if len(set(self.required_variables) &
+               set(reader.variables)) == 0:
+            logging.debug('Reader does not contain any relevant variables')
+            self.discard_reader(reader)
+            return True
+        return False
+
+    def discard_reader(self, reader):
+        readername = reader.name
+        logging.debug('Discarding reader: ' + readername)
+        del self.readers[readername]
+        if not hasattr(self, 'discarded_readers'):
+            self.discarded_readers = [readername]
+        else:
+            self.discarded_readers.append(readername)
+
+        # Remove from priority list
+        for var in self.priority_list:
+            self.priority_list[var] = [r for r in
+                self.priority_list[var] if r != readername]
+            if len(self.priority_list[var]) == 0:
+                del self.priority_list[var]
+
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
 
@@ -762,6 +820,35 @@ class OpenDriftSimulation(PhysicsMethods):
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon))*np.nan, dtype=dtype)
+
+        # Initialise more lazy readers if necessary
+        missing_variables = ['missingvar']
+        while (len(missing_variables) > 0 and
+               len(self._lazy_readers()) > 0):
+            variable_groups, reader_groups, missing_variables = \
+                self.get_reader_groups(variables)
+            if hasattr(self, 'desired_variables'):
+                missing_variables = list(set(missing_variables) - 
+                                         set(self.desired_variables))
+            if len(missing_variables) > 0:
+                logging.debug('Variables not covered by any reader: ' +
+                              str(missing_variables))
+                reader = 'NotNone'
+                while reader is not None:
+                    reader = self._initialise_next_lazy_reader()
+                    if reader is not None:
+                        if self.discard_reader_if_not_relevant(reader):
+                            reader = None
+                    if reader is not None:
+                        if (reader.covers_time(self.time) and
+                                len(reader.covers_positions(
+                                self.elements.lon,
+                                self.elements.lat)) > 0):
+                            missing_variables = list(
+                                set(missing_variables) -
+                                set(reader.variables))
+                            if len(missing_variables) == 0:
+                                break  # We cover now all variables
 
         # For each variable/reader group:
         variable_groups, reader_groups, missing_variables = \
@@ -788,6 +875,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.timer_start('main loop:readers:' +
                                  reader_name.replace(':', '<colon>'))
                 reader = self.readers[reader_name]
+                if reader.is_lazy:
+                    import sys; sys.exit('Should not happen')
                 if not reader.covers_time(time):
                     logging.debug('\tOutside time coverage of reader.')
                     continue
@@ -818,6 +907,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.info('========================')
                     self.timer_end('main loop:readers:' +
                                    reader_name.replace(':', '<colon>'))
+                    if reader_name == reader_group[-1]:
+                        if self._initialise_next_lazy_reader() is not None:
+                            return self.get_environment(variables,
+                                        time, lon, lat, z, profiles)
                     continue
 
                 # Copy retrieved variables to env array, and mask nan-values
@@ -882,6 +975,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     logging.debug('Data missing for %i elements.' %
                                   (len(missing_indices)))
+                    if len(self._lazy_readers()) > 0:
+                        import sys;
+                        sys.exit('Lazy readers available, should be initialised here')
 
         logging.debug('---------------------------------------')
         logging.debug('Finished processing all variable groups')
@@ -1447,8 +1543,12 @@ class OpenDriftSimulation(PhysicsMethods):
             ind = nx.points_inside_poly(points, poly.xy)
         else:
             ind = Path(poly.xy).contains_points(points)
-        lonpoints = np.append(lonpoints, lon[ind])
-        latpoints = np.append(latpoints, lat[ind])
+        if not any(ind):  # No elements are inside, we seed on border
+            lonpoints = np.append(lonpoints, lons[0:number])
+            latpoints = np.append(latpoints, lats[0:number])
+        else:
+            lonpoints = np.append(lonpoints, lon[ind])
+            latpoints = np.append(latpoints, lat[ind])
         if len(ind) == 0:
             logging.info('Small or irregular polygon, using center point.')
             lonpoints = np.atleast_1d(np.mean(lons))
@@ -1466,6 +1566,52 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Finally seed at calculated positions
         self.seed_elements(lonpoints, latpoints, **kwargs)
+
+    def seed_from_wkt(self, wkt, number, **kwargs):
+        """Seeds elements within (multi)polygons from WKT"""
+
+        try:
+            import ogr
+            import osr
+        except Exception as e:
+            logging.warning(e)
+            raise ValueError('OGR library is needed to parse WKT')
+
+        geom = ogr.CreateGeometryFromWkt(wkt)
+        total_area = 0
+        for i in range(0, geom.GetGeometryCount()):
+            g = geom.GetGeometryRef(i)
+            total_area += g.GetArea()
+        
+        logging.info('Total area of all polygons: %s m2' % total_area)
+        num_seeded = 0
+        for i in range(0, geom.GetGeometryCount()):
+            g = geom.GetGeometryRef(i)
+            num_elements = np.int(number*g.GetArea()/total_area)
+            if i == geom.GetGeometryCount()-1:
+                # For the last feature we seed the remaining number,
+                # avoiding difference due to rounding:
+                num_elements = number - num_seeded
+            logging.info('\tSeeding %s elements within polygon number %s' %
+                         (num_elements, str(i)))
+            try:
+                g.Transform(coordTrans)
+            except:
+                pass
+            b = g.GetBoundary()
+            if b is not None:
+                points = b.GetPoints()
+                lons = [p[0] for p in points]
+                lats = [p[1] for p in points]
+            else:
+                # Alternative if OGR is not built with GEOS support
+                r = g.GetGeometryRef(0)
+                lons = [r.GetX(j) for j in range(r.GetPointCount())]
+                lats = [r.GetY(j) for j in range(r.GetPointCount())]
+
+            self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+            num_seeded += num_elements
+
 
     def seed_from_shapefile(self, shapefile, number,
                             layername=None, featurenum=None, **kwargs):
@@ -1487,7 +1633,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
         targetSRS = osr.SpatialReference()
         targetSRS.ImportFromEPSG(4326)
-        s = ogr.Open(shapefile)
+        try:
+            s = ogr.Open(shapefile)
+        except:
+            s = shapefile
 
         for layer in s:
             if layername is not None and layer.GetName() != layername:
@@ -1510,15 +1659,19 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Loop first through all features to determine total area
             total_area = 0
-            for f in featurenum:
+            layer.ResetReading()
+            for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)  # Note 1-indexing, not 0
-                total_area += feature.GetGeometryRef().GetArea()
+                if feature is not None:
+                    total_area += feature.GetGeometryRef().GetArea()
             layer.ResetReading()  # Rewind to first layer
             logging.info('Total area of all polygons: %s m2' % total_area)
 
             num_seeded = 0
             for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)
+                if feature is None:
+                    continue
                 geom = feature.GetGeometryRef()
                 num_elements = np.int(number*geom.GetArea()/total_area)
                 if f == featurenum[-1]:
@@ -1527,7 +1680,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     num_elements = number - num_seeded
                 logging.info('\tSeeding %s elements within polygon number %s' %
                              (num_elements, featurenum[i]))
-                geom.Transform(coordTrans)
+                try:
+                    geom.Transform(coordTrans)
+                except:
+                    pass
                 b = geom.GetBoundary()
                 if b is not None:
                     points = b.GetPoints()
@@ -1617,7 +1773,7 @@ class OpenDriftSimulation(PhysicsMethods):
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
-    def run(self, time_step=3600, steps=None, time_step_output=None,
+    def run(self, time_step=None, steps=None, time_step_output=None,
             duration=None, end_time=None, outfile=None, export_variables=None,
             export_buffer_length=100, stop_on_error=False):
         """Start a trajectory simulation, after initial configuration.
@@ -1709,6 +1865,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Check if any readers have same SRS as simulation
         for reader in self.readers.values():
+            if reader.is_lazy:
+                continue
             readerSRS = reader.proj.srs.replace(' +ellps=WGS84', '').strip()
             simulationSRS = self.proj.srs.replace(' +ellps=WGS84', '').strip()
             if readerSRS == simulationSRS:
@@ -1731,7 +1889,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 for var in has_fallback:
                     logging.info('\t%s: %f' % (var, self.fallback_values[var]))
             #else:
-            if len(has_no_fallback) > 0:# == missing_variables:
+            if len(has_no_fallback) > 0 and len(self._lazy_readers()) == 0:# == missing_variables:
                 logging.warning('No readers added for the following variables: '
                                 + str(has_no_fallback))
                 raise ValueError('Readers must be added for the '
@@ -1752,12 +1910,18 @@ class OpenDriftSimulation(PhysicsMethods):
         ########################
         # Simulation time step
         ########################
+        if time_step is None:
+            time_step = timedelta(minutes=self.get_config('general:time_step_minutes'))
         if type(time_step) is not timedelta:
             # Time step may be given in seconds, as alternative to timedelta
             time_step = timedelta(seconds=time_step)
         self.time_step = time_step
         if time_step_output is None:
-            self.time_step_output = self.time_step
+            time_step_output = self.get_config('general:time_step_output_minutes')
+            if time_step_output is None:
+                self.time_step_output = self.time_step
+            else:
+                self.time_step_output = timedelta(minutes=time_step_output)
         else:
             if type(time_step_output) is timedelta:
                 self.time_step_output = time_step_output
@@ -1807,6 +1971,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.time_step.total_seconds()
         self.expected_steps_output = int(self.expected_steps_output)
         self.expected_steps_calculation = int(self.expected_steps_calculation)
+        self.expected_end_time = self.start_time + self.expected_steps_calculation*self.time_step
 
         ##############################################################
         # If no basemap has been added, we determine it dynamically
@@ -1935,27 +2100,10 @@ class OpenDriftSimulation(PhysicsMethods):
         #############################
         self.prepare_run()
 
-        #############################
-        # Add some metadata
-        #############################
-        self.add_metadata('simulation_time', datetime.now())
-        readers = self.priority_list
-        for var in self.required_variables:
-            keyword = 'reader_' + var
-            if var not in self.priority_list:
-                self.add_metadata(keyword, self.fallback_values[var])
-            else:
-                readers = self.priority_list[var]
-                if readers[0].startswith('constant_reader'):
-                    self.add_metadata(keyword, self.readers[readers[
-                                0]]._parameter_value_map[var][0])
-                else:
-                    self.add_metadata(keyword,
-                                      self.priority_list[var])
-
         ##########################
         # Main loop
         ##########################
+        self.add_metadata('simulation_time', datetime.now())
         self.timer_end('preparing main loop')
         self.timer_start('main loop')
         for i in range(self.expected_steps_calculation):
@@ -2049,6 +2197,22 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.interact_with_coastline()
         self.state_to_buffer()  # Append final status to buffer
+
+        #############################
+        # Add some metadata
+        #############################
+        for var in self.required_variables:
+            keyword = 'reader_' + var
+            if var not in self.priority_list:
+                self.add_metadata(keyword, self.fallback_values[var])
+            else:
+                readers = self.priority_list[var]
+                if readers[0].startswith('constant_reader'):
+                    self.add_metadata(keyword, self.readers[readers[
+                                0]]._parameter_value_map[var][0])
+                else:
+                    self.add_metadata(keyword,
+                                      self.priority_list[var])
 
         if outfile is not None:
             logging.debug('Writing and closing output file: %s' % outfile)
@@ -2339,8 +2503,26 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
+                  density_pixelsize_m=1000, unitfactor=1,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
+
+        if cmap is None:
+            cmap = 'jet'
+        if isinstance(cmap, basestring):
+            cmap = matplotlib.cm.get_cmap(cmap)
+
+        if color is False and background is None and density is False:
+            colorbar = False
+
+        if isinstance(density, basestring):
+            # Density field is weighted by this variable
+            # TODO: not yet implemented!
+            density_weight = density
+            density = True
+        else:
+            if density is True:
+                density_weight = None
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
@@ -2428,6 +2610,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if color is not False:
             if isinstance(color, basestring):
                 colorarray = self.get_property(color)[0].T
+                colorarray = colorarray*unitfactor
                 colorarray_deactivated = \
                     getattr(self.elements_deactivated, color)
             else:
@@ -2440,14 +2623,8 @@ class OpenDriftSimulation(PhysicsMethods):
             map_x, map_y, scalar, u_component, v_component = \
                 self.get_map_background(map, background,
                                         time=self.start_time)
-            map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                           vmin=vmin, vmax=vmax)
-            if colorbar is True:
-                if clabel is None:
-                    map.colorbar(size='3%', pad='5%', location='bottom')
-                else:
-                    map.colorbar(label=clabel, size='3%', pad='5%',
-                                 location='bottom')
+            bg = map.pcolormesh(map_x, map_y, scalar, alpha=1,
+                                vmin=vmin, vmax=vmax, cmap=cmap)
 
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
@@ -2491,16 +2668,14 @@ class OpenDriftSimulation(PhysicsMethods):
                 plt.legend(markerscale=2, loc=legend_loc)
 
         if density is True:
-            # TODO: Unfinished work
-            import matplotlib.cm as cm
-            cma = cm.get_cmap('jet')
-            cma.set_under('w')
+            cmap.set_under('w')
             H, H_submerged, H_stranded, lon_array, lat_array = \
-                self.get_density_array(pixelsize_m=1000)
+                self.get_density_array(pixelsize_m=density_pixelsize_m,
+                                       weight=density_weight)
             H = H + H_submerged + H_stranded
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
             pm = map.pcolormesh(lon_array, lat_array, H[0,:,:],
-                                latlon=True, vmin=0.1, cmap=cma)
+                                latlon=True, vmin=0.1, cmap=cmap)
 
         if drifter is not None:
             drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
@@ -2512,14 +2687,24 @@ class OpenDriftSimulation(PhysicsMethods):
             plt.gcf(), plot_timestep, blit=False,
             frames=x.shape[1], interval=50)
 
-        if colorbar is True and color is not False:
-            if isinstance(color, basestring) or clabel is not None:
+        if colorbar is True:
+            if color is not False:
+                if isinstance(color, basestring) or clabel is not None:
+                    if clabel is None:
+                        clabel = color
+                item = points
+            elif density is not False:
+                item = pm
                 if clabel is None:
-                    clabel = color
-                cb = map.colorbar(label=clabel, location='bottom',
+                    clabel = 'density'
+            elif background is not None:
+                #cb = plt.colorbar()
+                item = bg
+                if clabel is None:
+                    clabel = 'density'
+
+            cb = map.colorbar(item, label=clabel, location='bottom',
                                   size='3%', pad='5%')
-            else:
-                cb = plt.colorbar()
             cb.set_alpha(1)
             cb.draw_all()
 
@@ -2890,9 +3075,7 @@ class OpenDriftSimulation(PhysicsMethods):
         #plt.gca().tick_params(labelsize=14)
         
         if filename is not None:
-            #plt.savefig(filename, dpi=200)
             plt.savefig(filename)
-            plt.close()
         else:
             if show is True:
                 plt.show()
@@ -3296,8 +3479,19 @@ class OpenDriftSimulation(PhysicsMethods):
             outStr += 'Readers not added for the following variables:\n'
             for variable in sorted(self.missing_variables()):
                 outStr += '  ' + variable + '\n'
+
+        lazy_readers = [r for r in self.readers
+                            if self.readers[r].is_lazy is True]
+        if len(lazy_readers) > 0:
+            outStr += '---\nLazy readers:\n'
+            for lr in lazy_readers:
+                outStr += '  ' + lr + '\n'
+        if hasattr(self, 'discarded_readers'):
+            outStr += '\nDiscarded readers:\n'
+            for dr in self.discarded_readers:
+                outStr += '  ' + dr + '\n'
         if hasattr(self, 'time'):
-            outStr += 'Time:\n'
+            outStr += '\nTime:\n'
             outStr += '\tStart: %s\n' % (self.start_time)
             outStr += '\tPresent: %s\n' % (self.time)
             if hasattr(self, 'time_step'):

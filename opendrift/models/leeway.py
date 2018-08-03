@@ -135,15 +135,29 @@ class Leeway(OpenDriftSimulation):
         super(Leeway, self).__init__(*args, **kwargs)
 
     def seed_elements(self, lon, lat, radius=0, number=1, time=None,
-                      objectType=1, cone=None):
+                      objectType=None, cone=None):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own objectType (number),
         # but so far we only use one for each sim
         # objtype = np.ones(number)*objectType
         # Note: cone is not used, simply to provide same interface as others
 
-        logging.info('Seeding elements of object type %i: %s' %
-                     (objectType, self.leewayprop[objectType]['OBJKEY']))
+        if objectType is None:
+            object_name = self.get_config('seed:object_type')
+            # Get number from name
+            found = False
+            for objectType in range(1, len(self.leewayprop)+1):
+                if self.leewayprop[objectType]['OBJKEY'] == object_name or(
+                    self.leewayprop[objectType]['Description'] == object_name):
+                    found = True
+                    break
+            if found is False:
+                logging.info(self.list_configspec())
+                raise ValueError('Object %s not available' % objectType)
+
+        logging.info('Seeding elements of object type %i: %s (%s)' %
+                     (objectType, self.leewayprop[objectType]['OBJKEY'],
+                      self.leewayprop[objectType]['Description']))
 
         # Probability of jibing (4 % per hour)
         pjibe = 0.04

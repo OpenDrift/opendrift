@@ -39,6 +39,18 @@ class TestLeeway(unittest.TestCase):
                          '>>Medical waste, syringes, small')
         self.assertEqual(self.lee.leewayprop[objectType]['DWSLOPE'], 1.79)
 
+    def test_leeway_config_object(self):
+        """Check that correct object type is fetched from config"""
+        l = Leeway(loglevel=20)
+        l.set_config('seed:object_type', 'Surf board with person')
+        l.seed_elements(lon=4.5, lat=60, number=100,
+                        time=datetime(2015, 1, 1))
+        objType = l.elements_scheduled.objectType
+        self.assertEqual(l.leewayprop[objType]['Description'],
+                         'Surf board with person') 
+        self.assertEqual(l.leewayprop[objType]['OBJKEY'],
+                         'PERSON-POWERED-VESSEL-2') 
+
     def test_leewayrun(self):
         """Test the expected Leeway left/right split."""
         self.lee = Leeway(loglevel=30)

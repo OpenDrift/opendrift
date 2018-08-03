@@ -32,6 +32,8 @@ lw.add_reader(reader_arome,
               variables=['x_wind', 'y_wind'])
 lw.add_reader(reader_basemap,
               variables=['land_binary_mask'])
+lw.fallback_values['x_sea_water_velocity'] = 0
+lw.fallback_values['y_sea_water_velocity'] = 0
 
 # Seeding some particles
 lon = 4.5; lat = 60.0; # Outside Bergen
