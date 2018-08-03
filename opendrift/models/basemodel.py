@@ -540,21 +540,6 @@ class OpenDriftSimulation(PhysicsMethods):
     def performance(self):
         '''Report the time spent on various tasks'''
 
-<<<<<<< HEAD
-        outStr = '---------------------------\n'
-=======
-        outStr = '--------------------\n'
-        outStr += 'Reader performance:\n'
-        for r in self.readers:
-            reader = self.readers[r]
-            if reader.is_lazy:
-                continue
-            outStr += '--------------------\n'
-            outStr += r + '\n'
-            outStr += reader.performance()
-
-        outStr += '--------------------\n'
->>>>>>> upstream/master
         outStr += 'Performance:\n'
         for category, time in iteritems(self.timing):
             timestr = str(time)[0:str(time).find('.') + 2]
@@ -2570,22 +2555,22 @@ class OpenDriftSimulation(PhysicsMethods):
                     drifter_pos.set_offsets(
                         np.c_[drifter['x'][ind], drifter['y'][ind]])
 
-<<<<<<< HEAD
-            if compare is not None:
-                for cd in compare_list:
-                    cd['points_other'].set_offsets(np.c_[
-                        cd['x_other'][range(cd['x_other'].shape[0]), i],
-                        cd['y_other'][range(cd['x_other'].shape[0]), i]])
-                    cd['points_other_deactivated'].set_offsets(np.c_[
-                        cd['x_other_deactive'][
-                            cd['index_of_last_deactivated_other'] < i],
-                        cd['y_other_deactive'][
-                            cd['index_of_last_deactivated_other'] < i]])
-                return points, cd['points_other']
-            else:
-                return points
+# <<<<<<< HEAD
+#             if compare is not None:
+#                 for cd in compare_list:
+#                     cd['points_other'].set_offsets(np.c_[
+#                         cd['x_other'][range(cd['x_other'].shape[0]), i],
+#                         cd['y_other'][range(cd['x_other'].shape[0]), i]])
+#                     cd['points_other_deactivated'].set_offsets(np.c_[
+#                         cd['x_other_deactive'][
+#                             cd['index_of_last_deactivated_other'] < i],
+#                         cd['y_other_deactive'][
+#                             cd['index_of_last_deactivated_other'] < i]])
+#                 return points, cd['points_other']
+#             else:
+#                 return points
         
-=======
+# =======
             if show_elements is True:
                 if compare is not None:
                     for cd in compare_list:
@@ -2601,7 +2586,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     return points
 
->>>>>>> upstream/master
+# >>>>>>> upstream/master
         # Find map coordinates and plot points with empty data
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)

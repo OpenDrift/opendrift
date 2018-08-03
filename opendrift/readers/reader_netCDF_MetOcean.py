@@ -269,7 +269,7 @@ class Reader(BaseReader):
         # variable_mapping provides the names of the variable to be used for each of the opendrift-convention variable names
         # this is the "opposite" of the self.variable_aliases above
         # i.e. if you need 'sea_surface_height' within opendrift, use variable 'el' in the netcdf file
-
+        
         for var_name in self.Dataset.variables:
             
             if var_name in [self.xname, self.yname,'lev'] :
@@ -286,8 +286,11 @@ class Reader(BaseReader):
 
             var = self.Dataset.variables[var_name]
             attributes = var.ncattrs()
+
             
-            if 'standard_name' in attributes:
+            if False :#'standard_name' in attributes:
+                # for MetOcean datasets force the use of the 'var_name' to map the alias
+                # instead of standard_name - see below
                 standard_name = str(var.__dict__['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
@@ -296,6 +299,7 @@ class Reader(BaseReader):
                 if var_name in self.variable_aliases:  # Mapping if needed, not this will be true only if var_name is found in the self.variable_aliases first column
                     standard_name = self.variable_aliases[var_name]
                 self.variable_mapping[standard_name] = str(var_name) 
+            
         
         # For now we can't differenciate the different kinds of currents (i.e. tide, residual, total)...as it seems opendrift only expect general (u,v) currents
         # All different currents are therefore mapped to x_sea_water_velocity, y_water_velocity for now
