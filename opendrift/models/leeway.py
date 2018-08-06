@@ -321,7 +321,10 @@ class Leeway(OpenDriftSimulation):
             ' 3.00\n'  # OpenDrift version
             '# Object class id & name:\n'
             'objectClassId  objectClassName\n')
-        objtype = self.elements.objectType[0]
+        try:
+            objtype = self.elements.objectType[0]
+        except:
+            objtype = self.elements_deactivated.objectType[0]
         f.write(' %i\t%s\n' % (objtype,
                 self.leewayprop[objtype]['OBJKEY']))
         f.write(
