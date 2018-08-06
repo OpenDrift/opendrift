@@ -760,7 +760,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return min(self.start_time, self.expected_end_time)
 
     def discard_reader_if_not_relevant(self, reader):
-        if reader.start_time is not None and (
+        if hasattr(self, 'expected_endtime') and reader.start_time is not None and (
                 (reader.start_time > self.latest_time() or
                  reader.end_time < self.earliest_time())):
             logging.debug('Reader does not cover simulation period')
@@ -789,6 +789,14 @@ class OpenDriftSimulation(PhysicsMethods):
             if len(self.priority_list[var]) == 0:
                 del self.priority_list[var]
 
+    def discard_irrelevant_readers(self):
+        for readername in self.readers:
+            reader = self.readers[readername]
+            if reader.is_lazy:
+                continue
+            if self.discard_reader_if_not_relevant(reader):
+                logging.debug('DISCARDED: ' + readername)
+
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
 
@@ -807,6 +815,9 @@ class OpenDriftSimulation(PhysicsMethods):
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon))*np.nan, dtype=dtype)
+
+        # Discard any existing readers which are not relevant
+        self.discard_irrelevant_readers()
 
         # Initialise more lazy readers if necessary
         missing_variables = ['missingvar']
@@ -863,6 +874,11 @@ class OpenDriftSimulation(PhysicsMethods):
                     import sys; sys.exit('Should not happen')
                 if not reader.covers_time(time):
                     logging.debug('\tOutside time coverage of reader.')
+                    if reader_name == reader_group[-1]:
+                        if self._initialise_next_lazy_reader() is not None:
+                            logging.debug('Missing variables: calling get_environment recursively')
+                            return self.get_environment(variables,
+                                        time, lon, lat, z, profiles)
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
@@ -893,6 +909,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                    reader_name.replace(':', '<colon>'))
                     if reader_name == reader_group[-1]:
                         if self._initialise_next_lazy_reader() is not None:
+                            logging.debug('Missing variables: calling get_environment recursively')
                             return self.get_environment(variables,
                                         time, lon, lat, z, profiles)
                     continue
