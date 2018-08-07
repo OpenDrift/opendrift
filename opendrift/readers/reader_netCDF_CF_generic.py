@@ -91,6 +91,8 @@ class Reader(BaseReader):
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
                     unitfactor = 1000
+                elif units == '100  km':
+                    unitfactor = 100000
                 else:
                     unitfactor = 1
                 x = var[:]*unitfactor
@@ -102,6 +104,8 @@ class Reader(BaseReader):
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
                     unitfactor = 1000
+                elif units == '100  km':
+                    unitfactor = 100000
                 else:
                     unitfactor = 1
                 self.unitfactor = unitfactor
