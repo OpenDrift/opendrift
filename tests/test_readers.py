@@ -134,6 +134,30 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(len(o._lazy_readers()), 2)
         self.assertEqual(len(o.discarded_readers), 1)
 
+    #def test_lazy_readers_and_corrupt_data(self):
+    #    o = OceanDrift(loglevel=0)
+
+    #    o.add_readers_from_list([o.test_data_folder() +
+    #        '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc'])
+
+    #    reader_constant_current_corrupt = \
+    #        reader_constant.Reader({'x_sea_water_velocity': np.nan,
+    #                                'y_sea_water_velocity': np.nan})
+    #    o.add_reader(reader_constant_current_corrupt)
+    #    o.add_readers_from_list([o.test_data_folder() +
+    #        '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc'])
+
+    #    print o
+    #    o.seed_elements(lon=14.5, lat=68, time=datetime(2016,2,4))
+    #    o.fallback_values['x_wind'] = 0
+    #    o.fallback_values['y_wind'] = 0
+    #    del o.fallback_values['x_sea_water_velocity']
+    #    del o.fallback_values['y_sea_water_velocity']
+    #    o.fallback_values['land_binary_mask'] = 0
+    #    print o
+    #    o.run(steps=1)
+
+
     #def test_oildrift_backwards(self):
     #    o = OpenOil3D(loglevel=20)
     #    reader_constant_wind = \
@@ -438,6 +462,63 @@ class TestReaders(unittest.TestCase):
         #o.add_reader([cw, cc, cs, r])
         o.seed_elements(lon=4, lat=60, time=r.start_time, number=5)
         o.run(steps=3)
+
+    def test_clip_domain(self):
+        o = OceanDrift(loglevel=50)
+        r1 = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        r1.clip_boundary_pixels(20)
+        r2 = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        self.assertEqual(r2.shape, (151, 81))
+        self.assertEqual(r1.shape, (111, 41))
+        self.assertEqual(r1.xmin, 20)
+
+        o1 = OceanDrift(loglevel=50)
+        del o1.fallback_values['x_sea_water_velocity']
+        o1.add_reader(r1)
+        o1.seed_elements(lon=15, lat=70.1, time=r1.start_time)
+        o1.fallback_values['land_binary_mask'] = 0
+        o1.run(time_step=3600*3, duration=timedelta(hours=48))
+        o2 = OceanDrift(loglevel=50)
+        del o2.fallback_values['x_sea_water_velocity']
+        o2.add_reader(r2)
+        o2.seed_elements(lon=15, lat=70.1, time=r1.start_time)
+        o2.fallback_values['land_binary_mask'] = 0
+        o2.run(time_step=3600*3, duration=timedelta(hours=48))
+        # Compare
+        lat1 = o1.get_property('lat')[0]
+        lat2 = o2.get_property('lat')[0]
+        self.assertEqual(len(lat1), 14)
+        self.assertEqual(len(lat2), 17)
+        self.assertIsNone(np.testing.assert_allclose(
+                            lat1[0:13], lat2[0:13]))
+        # Test reader netCDF_CF_generic
+        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        self.assertEqual(r.shape, (301, 201))
+        o3 = OceanDrift(loglevel=50)
+        del o3.fallback_values['x_sea_water_velocity']
+        o3.fallback_values['land_binary_mask'] = 0
+        o3.add_reader(r)
+        o3.seed_elements(lon=4.36, lat=61.7, time=r.start_time)
+        o3.run(steps=24)
+        r.clip_boundary_pixels(10)
+        self.assertEqual(r.shape, (281, 181))
+        o4 = OceanDrift(loglevel=50)
+        del o4.fallback_values['x_sea_water_velocity']
+        o4.fallback_values['land_binary_mask'] = 0
+        o4.add_reader(r)
+        o4.seed_elements(lon=4.36, lat=61.7, time=r.start_time)
+        o4.run(steps=24)
+        # Compare
+        lat3 = o3.get_property('lat')[0]
+        lat4 = o4.get_property('lat')[0]
+        self.assertEqual(len(lat3), 25)
+        self.assertEqual(len(lat4), 13)
+        self.assertIsNone(np.testing.assert_allclose(
+                            lat3[0:12], lat4[0:12]))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -237,8 +237,11 @@ class Reader(BaseReader):
                 indrealization = None
 
         # Find indices corresponding to requested x and y
-        indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
-        indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
+        if hasattr(self, 'clipped'):
+            clipped = self.clipped
+        else: clipped = 0
+        indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
+        indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
         # If x or y coordinates are decreasing, we need to flip
         if self.x[0] > self.x[-1]:
             indx = len(self.x) - indx

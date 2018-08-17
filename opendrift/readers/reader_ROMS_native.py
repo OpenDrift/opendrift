@@ -203,8 +203,11 @@ class Reader(BaseReader):
             z = np.atleast_1d(0)
 
         # Find horizontal indices corresponding to requested x and y
-        indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
-        indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
+        if hasattr(self, 'clipped'):
+            clipped = self.clipped
+        else: clipped = 0
+        indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
+        indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
         indx[outside] = 0  # To be masked later
         indy[outside] = 0
         indx_el = indx
