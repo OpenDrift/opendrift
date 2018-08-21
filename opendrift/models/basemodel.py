@@ -1335,7 +1335,10 @@ class OpenDriftSimulation(PhysicsMethods):
                              'to number of points.')
 
         if num_points == 1 and number is None:
-            number = 1
+            try:
+                number = len(time)
+            except:
+                number = 1
 
         if num_points > 1:
             ###############################
@@ -1943,6 +1946,9 @@ class OpenDriftSimulation(PhysicsMethods):
         ########################
         # Simulation duration
         ########################
+        if time_step.days < 0:
+            logging.info('Backwards simulation, starting from last seeded element')
+            self.start_time = self.elements_scheduled_time.max()
         if (duration is not None and end_time is not None) or \
             (duration is not None and steps is not None) or \
                 (steps is not None and end_time is not None):

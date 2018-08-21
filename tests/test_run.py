@@ -753,6 +753,19 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_deactivated(), 768)
         self.assertEqual(o.num_elements_active(), 232)
         
+    def test_seed_time_backwards_run(self):
+        o = OceanDrift(loglevel=20)
+        o.set_config('drift:max_age_seconds', 2000)
+        o.fallback_values['x_sea_water_velocity'] = .5
+        o.fallback_values['y_sea_water_velocity'] = .3
+        o.fallback_values['land_binary_mask'] = 0
+        time = [datetime(2018,1,1,i) for i in range(10)]
+        o.seed_elements(lon=0, lat=60, time=time)
+        o.seed_elements(lon=1, lat=60, time=datetime(2018,1,1,7))
+        o.run(end_time=datetime(2018,1,1,2), time_step=-1800)
+        self.assertEqual(o.num_elements_scheduled(), 3)
+        self.assertEqual(o.num_elements_active(), 8)
+        self.assertEqual(o.steps_calculation, 14)
 
 if __name__ == '__main__':
     unittest.main()
