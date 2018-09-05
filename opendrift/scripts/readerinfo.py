@@ -24,6 +24,7 @@
 
 import sys
 import argparse
+import numpy as np
 
 try:
     from opendrift.readers import reader_netCDF_CF_generic
@@ -78,4 +79,4 @@ if __name__ == '__main__':
         if args.variable is None:
             r.plot()
         else:
-            r.plot(args.variable, vmin=args.vmin, vmax=args.vmax)
+            r.plot(args.variable, vmin=np.float(args.vmin), vmax=np.float(args.vmax))
