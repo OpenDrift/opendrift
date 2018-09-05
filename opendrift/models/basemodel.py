@@ -2849,7 +2849,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
-             contourlines=False, trajectory_dict=None, colorbar=True,
+             contourlines=False, trajectory_dict=None, colorbar=True, linewidth=1,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
@@ -2897,10 +2897,10 @@ class OpenDriftSimulation(PhysicsMethods):
                             numleg = 2
                         legend = ['Simulation %d' % (i+1) for i in
                                   range(numleg)]
-                    map.plot(x.T[:,0], y.T[:,0], color='gray', alpha=alpha, label=legend[0])
-                    map.plot(x.T, y.T, color='gray', alpha=alpha, label='_nolegend_')
+                    map.plot(x.T[:,0], y.T[:,0], color='gray', alpha=alpha, label=legend[0], linewidth=linewidth)
+                    map.plot(x.T, y.T, color='gray', alpha=alpha, label='_nolegend_', linewidth=linewidth)
                 else:
-                    map.plot(x.T, y.T, color='gray', alpha=alpha)
+                    map.plot(x.T, y.T, color='gray', alpha=alpha, linewidth=linewidth)
             else:
                 # Color lines according to given parameter
                 try:
@@ -3006,8 +3006,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     legstr = legend[i+1]
                 else:
                     legstr = None
-                map.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i] + '-', label=legstr)
-                map.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i] + '-', label='_nolegend_')
+                map.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i] + '-', label=legstr, linewidth=linewidth)
+                map.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i] + '-', label='_nolegend_', linewidth=linewidth)
                 map.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
                     c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
                     s=markersize,
