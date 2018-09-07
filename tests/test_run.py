@@ -553,12 +553,13 @@ class TestRun(unittest.TestCase):
     def test_seed_seafloor(self):
         o = OpenOil3D(loglevel=30)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        # Adding reader as lazy, to test seafloor seeding
+        o.add_readers_from_list([o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc'])
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 0
         o.fallback_values['x_sea_water_velocity'] = 0
         o.fallback_values['y_sea_water_velocity'] = 0
-        o.add_reader([reader_norkyst])
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000)

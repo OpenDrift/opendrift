@@ -1411,7 +1411,8 @@ class OpenDriftSimulation(PhysicsMethods):
             if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
                     and kwargs['z'][0:8] == 'seafloor':
                 # We need to fetch seafloor depth from reader
-                if 'sea_floor_depth_below_sea_level' not in self.priority_list:
+                if ('sea_floor_depth_below_sea_level' not in self.priority_list
+                    ) and len(self._lazy_readers()) == 0:
                     raise ValueError('A reader providing the variable '
                                      'sea_floor_depth_below_sea_level must be '
                                      'added before seeding elements at seafloor.')
@@ -1419,6 +1420,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     t = time[0]
                 else:
                     t = time
+                if not hasattr(self, 'time'):
+                    self.time = time
                 env, env_profiles, missing = \
                     self.get_environment(['sea_floor_depth_below_sea_level'],
                                          time=t, lon=lon, lat=lat,
@@ -1473,7 +1476,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 and kwargs['z'][0:8] == 'seafloor':
             # We need to fetch seafloor depth from reader
             # Unfortunately, this is duplication of code above
-            if 'sea_floor_depth_below_sea_level' not in self.priority_list:
+            if ('sea_floor_depth_below_sea_level' not in self.priority_list
+                    ) and len(self._lazy_readers()) == 0:
                 raise ValueError('A reader providing the variable '
                                  'sea_floor_depth_below_sea_level must be '
                                  'added before seeding elements at seafloor.')
@@ -1481,6 +1485,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 t = time[0]
             else:
                 t = time
+            if not hasattr(self, 'time'):
+                self.time = time
             env, env_profiles, missing = \
                 self.get_environment(['sea_floor_depth_below_sea_level'],
                                      t, kwargs['lon'], kwargs['lat'],
