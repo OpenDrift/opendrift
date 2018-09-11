@@ -130,12 +130,16 @@ class Leeway(OpenDriftSimulation):
                         p in self.leewayprop]
         self._add_config('seed:object_type', descriptions, 'Object type',
                          overwrite=True)
+        # Default jibe probability is 4% per hour
+        self._add_config('seed:jibeProbability',
+                         'float(min=0, max=1, default=0.04)',
+                         'Jibe probability', overwrite=True)
 
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
 
     def seed_elements(self, lon, lat, radius=0, number=1, time=None,
-                      objectType=None, cone=None):
+                      objectType=None, cone=None, jibeProbability=None):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own objectType (number),
         # but so far we only use one for each sim
@@ -158,9 +162,6 @@ class Leeway(OpenDriftSimulation):
         logging.info('Seeding elements of object type %i: %s (%s)' %
                      (objectType, self.leewayprop[objectType]['OBJKEY'],
                       self.leewayprop[objectType]['Description']))
-
-        # Probability of jibing (4 % per hour)
-        pjibe = 0.04
 
         if time is None:
             # Use first time of first reader if time is not given for seeding
@@ -230,7 +231,8 @@ class Leeway(OpenDriftSimulation):
         # crosswindEps = np.zeros(number)
 
         # Jibe probability
-        jibeProbability = ones*pjibe
+        if jibeProbability is None:
+            jibeProbability = self.get_config('seed:jibeProbability')
 
         # Store seed data for ASCII format output
         self.ascii = {
