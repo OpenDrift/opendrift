@@ -37,9 +37,10 @@ before_install:
   - export PATH=$HOME/download/miniconda/bin:$PATH;
   - echo $PATH
   - echo $PYTHONPATH
-install:
   - conda create --yes --name OPENDRIFT
+  - sudo ln -s /home/travis/download/miniconda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
   - conda activate --yes OPENDRIFT
+install:
   - conda config --append channels conda-forge
   - conda install -q --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION;
   - if [ ! -d $HOME/download/oillibrary ] && [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
