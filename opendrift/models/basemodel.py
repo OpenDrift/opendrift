@@ -1421,7 +1421,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     t = time
                 if not hasattr(self, 'time'):
-                    self.time = time
+                    self.time = t
                 env, env_profiles, missing = \
                     self.get_environment(['sea_floor_depth_below_sea_level'],
                                          time=t, lon=lon, lat=lat,
@@ -1486,7 +1486,7 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 t = time
             if not hasattr(self, 'time'):
-                self.time = time
+                self.time = t
             env, env_profiles, missing = \
                 self.get_environment(['sea_floor_depth_below_sea_level'],
                                      t, kwargs['lon'], kwargs['lat'],
