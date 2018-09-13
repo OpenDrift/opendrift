@@ -34,12 +34,9 @@ before_install:
         ./miniconda.sh -b -f -p $HOME/download/miniconda/;
         cd ..;
     fi
-  - export PATH=$HOME/download/miniconda/bin:$PATH;
   - echo $PATH
   - echo $PYTHONPATH
   - conda create --yes --name OPENDRIFT
-  - sudo ln -s /home/travis/download/miniconda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
-  - conda activate
   - conda activate --yes OPENDRIFT
 install:
   - conda config --append channels conda-forge
