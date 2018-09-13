@@ -36,6 +36,8 @@ before_install:
     fi
   - echo $PATH
   - echo $PYTHONPATH
+  - . $HOME/download/miniconda/etc/profile.d/conda.sh
+  - conda activate base
   - conda create --yes --name OPENDRIFT
   - conda activate --yes OPENDRIFT
 install:
