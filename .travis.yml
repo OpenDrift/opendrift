@@ -39,7 +39,7 @@ before_install:
   - . $HOME/download/miniconda/etc/profile.d/conda.sh
   - conda activate base
   - conda create --yes --name OPENDRIFT
-  - conda activate --yes OPENDRIFT
+  - conda activate OPENDRIFT
 install:
   - conda config --append channels conda-forge
   - conda install -q --yes -c conda-forge python=$TRAVIS_PYTHON_VERSION;
