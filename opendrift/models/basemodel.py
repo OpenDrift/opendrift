@@ -883,6 +883,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                  reader_name.replace(':', '<colon>'))
                 reader = self.readers[reader_name]
                 if reader.is_lazy:
+                    logging.warning('Reader is lazy, should not happen')
                     import sys; sys.exit('Should not happen')
                 if not reader.covers_time(time):
                     logging.debug('\tOutside time coverage of reader.')
@@ -989,8 +990,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     logging.debug('Data missing for %i elements.' %
                                   (len(missing_indices)))
                     if len(self._lazy_readers()) > 0:
-                        import sys;
-                        sys.exit('Lazy readers available, should be initialised here')
+                        if self._initialise_next_lazy_reader() is not None:
+                            logging.warning('Missing variables: calling get_environment recursively')
+                            return self.get_environment(variables,
+                                time, lon, lat, z, profiles)
 
         logging.debug('---------------------------------------')
         logging.debug('Finished processing all variable groups')
