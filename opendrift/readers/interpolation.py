@@ -198,6 +198,17 @@ vertical_interpolation_methods = {
     'linear': Linear1DInterpolator}
 
 
+def fill_NaN_towards_seafloor(array):
+    """Extrapolate NaN-values (missing) towards seafloor"""
+    filled = False
+    for i in range(1, array.shape[0]):
+        mask = np.isnan(array[i,:,:])
+        if np.sum(mask) > 0:
+            array[i, mask] = array[i-1, mask]
+            filled = True
+    return filled
+
+
 ###########################
 # ReaderBlock
 ###########################
@@ -224,6 +235,7 @@ class ReaderBlock():
             self.z = None
 
         # Mask any extremely large values, e.g. if missing netCDF _Fill_value
+        filled_variables = set()
         for var in self.data_dict:
             if isinstance(self.data_dict[var], np.ma.core.MaskedArray):
                 self.data_dict[var] = np.ma.masked_outside(
@@ -231,6 +243,17 @@ class ReaderBlock():
                 # Convert masked arrays to numpy arrays
                 self.data_dict[var] = np.ma.filled(self.data_dict[var],
                                                    fill_value=np.nan)
+            # Fill missing data towards seafloor if 3D
+            if isinstance(self.data_dict[var], (list,)):
+                logging.warning('Ensemble data currently not extrapolated towards seafloor')
+            elif self.data_dict[var].ndim == 3:
+                filled = fill_NaN_towards_seafloor(self.data_dict[var])
+                if filled is True:
+                    filled_variables.add(var)
+                
+        if len(filled_variables) > 0:
+            logging.debug('Filled NaN-values toward seafloor for :'
+                          + str(list(filled_variables)))
 
         # Set 1D (vertical) and 2D (horizontal) interpolators
         try:

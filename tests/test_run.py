@@ -768,5 +768,19 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_active(), 8)
         self.assertEqual(o.steps_calculation, 14)
 
+    def test_oil_mixed_to_seafloor(self):
+        o = OpenOil3D(loglevel=30)
+        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o.add_reader(norkyst)
+        o.set_config('processes:evaporation', False)
+        o.fallback_values['x_wind'] = 25
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['ocean_vertical_diffusivity'] = 0.9
+        o.seed_elements(lon=5.38, lat=62.77, time=norkyst.start_time,
+                        number=100, radius=5000)
+        o.run(end_time=norkyst.end_time)
+        self.assertEqual(o.num_elements_active(), 100)
+
 if __name__ == '__main__':
     unittest.main()

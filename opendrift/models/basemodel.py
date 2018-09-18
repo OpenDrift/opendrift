@@ -1763,6 +1763,9 @@ class OpenDriftSimulation(PhysicsMethods):
             reason_number
         logging.debug('%s elements scheduled for deactivation (%s)' %
                       (sum(indices), reason))
+        logging.debug('\t(z: %f to %f)' %
+            (self.elements.z[indices].min(),
+             self.elements.z[indices].max()))
 
     def remove_deactivated_elements(self):
         """Moving deactivated elements from self.elements
