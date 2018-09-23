@@ -52,7 +52,7 @@ install:
         conda install -q --yes -c conda-forge SQLAlchemy=1.1;
         conda install -q --yes -c noaa-orr-erd zope.sqlalchemy=0.7.7 awesome-slugify>=1.6.5;
         conda install -q --yes -c conda-forge pytest>=2.9.2;
-        conda install -q --yes repoze.lru>=0.6;
+        conda install -q --yes backports.functools_lru_cache>=1.5;
         conda install -q --yes -c noaa-orr-erd unit_conversion>=2.5.4;
         conda install -q --yes -c conda-forge setuptools_scm;
         python setup.py install;
