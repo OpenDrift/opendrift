@@ -3594,3 +3594,14 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Could not save animation:')
             logging.info(e)
             logging.debug(traceback.format_exc())
+
+    def calculate_lyapunov_exponents(self, lons, lats, time,
+                                     time_step=1800, duration=3600*3):
+        
+        self.seed_elements(lons=lons.ravel(), lats=lats.ravel(),
+                           time=time)
+        
+        self.run(duration=duration, time_step=time_step)
+        bm = self.readers['basemap_landmask']
+        x0, y0 = bm(lons, lats)
+        f_x1, f_x2 = self.history['lon'].T[-1].reshape(X.shape), ot.history['lat'].T[-1].reshape(X.shape)

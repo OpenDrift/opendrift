@@ -46,6 +46,34 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
     return stokes_u, stokes_v, stokes_speed
 
 
+def ftle(X, Y, delta=1):
+    """Calculate Finite Time Lyapunov Exponents"""
+    # From Johannes Rohrs
+    nx = X.shape[0]
+    ny = X.shape[1]
+    J = np.empty([nx,ny,2,2],np.float)
+    FTLE = np.empty([nx,ny],np.float)
+    
+    # gradient
+    dx = np.gradient(X) 
+    dy = np.gradient(Y) 
+
+    # Jacobian
+    J[:,:,0,0] = dx[0] / 2*delta
+    J[:,:,1,0] = dy[0] / 2*delta
+    J[:,:,0,1] = dx[1] / 2*delta
+    J[:,:,1,1] = dy[1] / 2*delta
+
+    for i in range(0,nx):
+        for j in range(0,ny):       
+            # Green-Cauchy tensor
+            D = np.dot(np.transpose(J[i,j]), J[i,j])
+            # its largest eigenvalue
+            lamda = LA.eigvals(D)
+            FTLE[i,j] = max(lamda)
+
+    return FTLE
+
 class PhysicsMethods(object):
     """Physics methods to be inherited by OpenDriftSimulation class"""
 
