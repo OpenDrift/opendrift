@@ -2312,12 +2312,15 @@ class OpenDriftSimulation(PhysicsMethods):
         steps_calculation_float = \
             (self.steps_calculation * self.time_step.total_seconds() /
              self.time_step_output.total_seconds()) + 1
-        self.steps_output = int(np.floor(steps_calculation_float))
+        if self.time_step <= timedelta(seconds=1):
+            self.steps_output = int(np.round(steps_calculation_float))
+        else:
+            self.steps_output = int(np.floor(steps_calculation_float))
 
         ID_ind = self.elements.ID - 1
         time_ind = self.steps_output - 1 - self.steps_exported
 
-        if steps_calculation_float.is_integer():
+        if steps_calculation_float.is_integer() or self.time_step < timedelta(seconds=1):
             element_ind = range(len(ID_ind))  # We write all elements
         else:
             deactivated = np.where(self.elements.status != 0)[0]
