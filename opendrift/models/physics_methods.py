@@ -69,7 +69,7 @@ def ftle(X, Y, delta=1):
             # Green-Cauchy tensor
             D = np.dot(np.transpose(J[i,j]), J[i,j])
             # its largest eigenvalue
-            lamda = LA.eigvals(D)
+            lamda = np.linalg.eigvals(D)
             FTLE[i,j] = max(lamda)
 
     return FTLE

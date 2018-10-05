@@ -3595,13 +3595,52 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info(e)
             logging.debug(traceback.format_exc())
 
-    def calculate_lyapunov_exponents(self, lons, lats, time,
-                                     time_step=1800, duration=3600*3):
+    def calculate_lyapunov_exponents(self, latmin=None, latmax=None, 
+                                     lonmin=None, lonmax=None,
+                                     time=None, bm=None, delta=2000,
+                                     time_step=1800,
+                                     duration=3600*3):
+
+        import scipy.ndimage as ndimage
+        from physics_methods import ftle
+
+        if not isinstance(duration, timedelta):
+            duration = timedelta(seconds=duration)
         
-        self.seed_elements(lons=lons.ravel(), lats=lats.ravel(),
-                           time=time)
-        
+        if bm is None:
+            try:
+                bm = self.readers['basemap_landmask']
+            except:
+                from opendrift.readers import reader_basemap_landmask
+                reader_basemap = reader_basemap_landmask.Reader(
+                    llcrnrlon=lonmin, urcrnrlon=lonmax,
+                    llcrnrlat=np.maximum(-89, latmin),
+                    urcrnrlat=np.minimum(89, latmax),
+                    resolution=self.get_config(
+                        'general:basemap_resolution'),
+                    projection='merc')
+
+                self.add_reader(reader_basemap)
+                bm = self.readers['basemap_landmask'].map
+
+        xs = np.arange(bm.llcrnrx, bm.urcrnrx, delta)
+        ys = np.arange(bm.llcrnry, bm.urcrnry, delta)
+        X, Y = np.meshgrid(xs, ys)
+        lons, lats = bm(X, Y, inverse=True)
+
+        self.seed_elements(lons.ravel(), lats.ravel(), time=time)
         self.run(duration=duration, time_step=time_step)
-        bm = self.readers['basemap_landmask']
         x0, y0 = bm(lons, lats)
-        f_x1, f_x2 = self.history['lon'].T[-1].reshape(X.shape), ot.history['lat'].T[-1].reshape(X.shape)
+        f_x1, f_y1 = bm(self.history['lon'].T[-1].reshape(X.shape),
+                        self.history['lat'].T[-1].reshape(X.shape))
+
+        # make mask for particles that have not moved (on land)
+        ltres = 70
+        ds = np.sqrt((f_x1-x0)**2 + (f_y1-y0)**2)
+        landmask = ndimage.binary_dilation(ds<10.)
+        RLCS = np.log(ftle(f_x1,f_y1))
+        RLCS[landmask] = 0
+        lowmask = RLCS < np.percentile(RLCS,ltres)
+        RLCS[lowmask] = np.nan
+        plt.imshow(RLCS, interpolation='nearest')
+        plt.show()
