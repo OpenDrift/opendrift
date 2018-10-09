@@ -2548,7 +2548,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
-                  density_pixelsize_m=1000, unitfactor=1,
+                  density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
@@ -2557,7 +2557,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if isinstance(cmap, basestring):
             cmap = matplotlib.cm.get_cmap(cmap)
 
-        if color is False and background is None and density is False:
+        if color is False and background is None and lcs is None and density is False:
             colorbar = False
 
         if isinstance(density, basestring):
@@ -2583,6 +2583,12 @@ class OpenDriftSimulation(PhysicsMethods):
                                map_y[::skip, ::skip],
                                u_component[::skip, ::skip],
                                v_component[::skip, ::skip], scale=scale)
+
+            if lcs is not None:
+                map_x, map_y = map(lcs['lon'], lcs['lat'])
+                map.pcolormesh(
+                    map_x, map_y, lcs['RLCS'][i,:,:], alpha=1,
+                    vmin=vmin, vmax=vmax, cmap=cmap)
 
             if density is True:
                 # Update density plot
@@ -2653,6 +2659,14 @@ class OpenDriftSimulation(PhysicsMethods):
                                         time=self.start_time)
             bg = map.pcolormesh(map_x, map_y, scalar, alpha=1,
                                 vmin=vmin, vmax=vmax, cmap=cmap)
+
+        if lcs is not None:
+            if vmin is None:
+                vmin = lcs['RLCS'].min()
+                vmax = lcs['RLCS'].max()
+            map_x, map_y = map(lcs['lon'], lcs['lat'])
+            lcsh = map.pcolormesh(map_x, map_y, lcs['ALCS'][0,:,:],
+                                  vmin=vmin, vmax=vmax, cmap=cmap)
 
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
@@ -2725,6 +2739,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 item = pm
                 if clabel is None:
                     clabel = 'density'
+            elif lcs is not False:
+                item = lcsh
+                if clabel is None:
+                    clabel = 'LCS'
             elif background is not None:
                 #cb = plt.colorbar()
                 item = bg
@@ -2732,7 +2750,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     clabel = 'density'
 
             cb = map.colorbar(item, label=clabel, location='bottom',
-                                  size='3%', pad='5%')
+                              size='3%', pad='5%')
             cb.set_alpha(1)
             cb.draw_all()
 
@@ -3598,52 +3616,61 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info(e)
             logging.debug(traceback.format_exc())
 
-    def calculate_lyapunov_exponents(self, latmin=None, latmax=None, 
-                                     lonmin=None, lonmax=None,
-                                     time=None, bm=None, delta=2000,
-                                     time_step=1800,
-                                     duration=3600*3):
+    def calculate_ftle(self, reader=None, delta=None,
+                       time=None, time_step=None, duration=None):
 
+        if reader is None:
+            logging.info('No reader provided, using first available:')
+            reader = self.readers.items()[0][1]
+            logging.info(reader.name)
         import scipy.ndimage as ndimage
         from physics_methods import ftle
 
         if not isinstance(duration, timedelta):
             duration = timedelta(seconds=duration)
-        
-        if bm is None:
-            try:
-                bm = self.readers['basemap_landmask']
-            except:
-                from opendrift.readers import reader_basemap_landmask
-                reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=lonmin, urcrnrlon=lonmax,
-                    llcrnrlat=np.maximum(-89, latmin),
-                    urcrnrlat=np.minimum(89, latmax),
-                    resolution=self.get_config(
-                        'general:basemap_resolution'),
-                    projection='merc')
 
-                self.add_reader(reader_basemap)
-                bm = self.readers['basemap_landmask'].map
-
-        xs = np.arange(bm.llcrnrx, bm.urcrnrx, delta)
-        ys = np.arange(bm.llcrnry, bm.urcrnry, delta)
+        xs = np.arange(reader.xmin, reader.xmax, delta)
+        ys = np.arange(reader.ymin, reader.ymax, delta)
         X, Y = np.meshgrid(xs, ys)
-        lons, lats = bm(X, Y, inverse=True)
+        lons, lats = reader.xy2lonlat(X, Y)
 
-        self.seed_elements(lons.ravel(), lats.ravel(), time=time)
-        self.run(duration=duration, time_step=time_step)
-        x0, y0 = bm(lons, lats)
-        f_x1, f_y1 = bm(self.history['lon'].T[-1].reshape(X.shape),
-                        self.history['lat'].T[-1].reshape(X.shape))
+        if time is None:
+            time = reader.start_time
+        if not isinstance(time, list):
+            time = [time]
+        # dictionary to hold LCS calculation
+        lcs = {'time': time, 'lon': lons, 'lat':lats}
+        lcs['RLCS'] = np.zeros((len(time), len(ys), len(xs)))
+        lcs['ALCS'] = np.zeros((len(time), len(ys), len(xs)))
+        for i, t in enumerate(time):
+            logging.info('Calculating LCS for ' + str(t))
+            # Forwards
+            self.reset()
+            self.seed_elements(lons.ravel(), lats.ravel(), time=t)
+            self.run(duration=duration, time_step=time_step)
+            f_x1, f_y1 = reader.lonlat2xy(
+                self.history['lon'].T[-1].reshape(X.shape),
+                self.history['lat'].T[-1].reshape(X.shape))
+            lcs['RLCS'][i,:] = np.log(ftle(f_x1, f_y1))
+            # Backwards
+            self.reset()
+            self.seed_elements(lons.ravel(), lats.ravel(), time=t)
+            self.run(duration=duration, time_step=-time_step)
+            b_x1, b_y1 = reader.lonlat2xy(
+                self.history['lon'].T[-1].reshape(X.shape),
+                self.history['lat'].T[-1].reshape(X.shape))
+            lcs['ALCS'][i,:] = np.log(ftle(b_x1, b_y1))
 
-        # make mask for particles that have not moved (on land)
-        ltres = 70
-        ds = np.sqrt((f_x1-x0)**2 + (f_y1-y0)**2)
-        landmask = ndimage.binary_dilation(ds<10.)
-        RLCS = np.log(ftle(f_x1,f_y1))
-        RLCS[landmask] = 0
-        lowmask = RLCS < np.percentile(RLCS,ltres)
-        RLCS[lowmask] = np.nan
-        plt.imshow(RLCS, interpolation='nearest')
-        plt.show()
+        lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
+        lcs['ALCS'] = np.ma.masked_invalid(lcs['ALCS'])
+
+        return lcs
+
+    def reset(self):
+        """Preparing OpenDrift object for new run"""
+        if not hasattr(self, 'start_time'):
+            logging.info('Nothing to reset')
+            return
+
+        del self.start_time
+        del self.history

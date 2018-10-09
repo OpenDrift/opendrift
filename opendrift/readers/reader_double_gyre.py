@@ -24,7 +24,7 @@ class Reader(BaseReader):
     """Analytical current field with double gyre"""
 
     def __init__(self, initial_time=datetime(2000,1,1,0,0),
-                 epsilon=0.25, omega=0.628, A=0.1,
+                 epsilon=0.1, omega=0.628, A=0.25,
                  proj4='+proj=stere +lat_0=0 +lon_0=0 +lat_ts=0 ' +
                        '+units=m +a=6.371e+06 +e=0 +no_defs'):
 
@@ -66,7 +66,7 @@ class Reader(BaseReader):
         a = self.epsilon*np.sin(self.omega*t) 
         b = 1-2*self.epsilon*np.sin(self.omega*t)
         f = a*x*x + b*x
-        dfdx = 2*a*x
+        dfdx = 2*a*x + b
 
         variables['x_sea_water_velocity'] = -np.pi*self.A*np.sin(np.pi*f)*np.cos(np.pi*y)
         variables['y_sea_water_velocity'] = np.pi*self.A*np.cos(np.pi*f)*np.sin(np.pi*y)*dfdx

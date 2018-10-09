@@ -96,6 +96,14 @@ class TestReaders(unittest.TestCase):
                         wind_drift_factor=.1)
         o.run(steps=5)
         lon3 = o.get_property('lon')[0]
+        # Fourth run, with different time
+        o.reset()  # Reset is needed due to new start_time
+        o.seed_elements(lon=14, lat=67.85,
+                        time=datetime(2016, 2, 2, 13),
+                        wind_drift_factor=.1)
+        o.run(steps=5)
+        lon4 = o.get_property('lon')[0]
+
         # Check results
         self.assertEqual(lon1[-1][0], lon2[-1][0])
         self.assertNotEqual(lon3[-1][0], lon2[-1][0])
