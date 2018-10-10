@@ -104,6 +104,8 @@ class BaseReader(object):
         'sea_water_y_velocity': 'y_sea_water_velocity',
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'northward_sea_water_velocity': 'y_sea_water_velocity',
+        'surface_eastward_sea_water_velocity': 'x_sea_water_velocity',
+        'surface_northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward_current_velocity': 'x_sea_water_velocity',
         'northward_current_velocity': 'y_sea_water_velocity',
         'eastward_tidal_current': 'x_sea_water_velocity',
