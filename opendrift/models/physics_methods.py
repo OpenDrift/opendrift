@@ -59,10 +59,10 @@ def ftle(X, Y, delta=1):
     dy = np.gradient(Y) 
 
     # Jacobian
-    J[:,:,0,0] = dx[0] / 2*delta
-    J[:,:,1,0] = dy[0] / 2*delta
-    J[:,:,0,1] = dx[1] / 2*delta
-    J[:,:,1,1] = dy[1] / 2*delta
+    J[:,:,0,0] = dx[0] / (2*delta)
+    J[:,:,1,0] = dy[0] / (2*delta)
+    J[:,:,0,1] = dx[1] / (2*delta)
+    J[:,:,1,1] = dy[1] / (2*delta)
 
     for i in range(0,nx):
         for j in range(0,ny):       

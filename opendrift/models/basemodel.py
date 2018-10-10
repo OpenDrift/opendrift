@@ -3642,6 +3642,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lcs = {'time': time, 'lon': lons, 'lat':lats}
         lcs['RLCS'] = np.zeros((len(time), len(ys), len(xs)))
         lcs['ALCS'] = np.zeros((len(time), len(ys), len(xs)))
+        T = np.abs(duration.total_seconds())
         for i, t in enumerate(time):
             logging.info('Calculating LCS for ' + str(t))
             # Forwards
@@ -3651,15 +3652,16 @@ class OpenDriftSimulation(PhysicsMethods):
             f_x1, f_y1 = reader.lonlat2xy(
                 self.history['lon'].T[-1].reshape(X.shape),
                 self.history['lat'].T[-1].reshape(X.shape))
-            lcs['RLCS'][i,:] = np.log(ftle(f_x1, f_y1))
+            lcs['RLCS'][i,:] = np.log(np.sqrt(ftle(f_x1-X, f_y1-Y, delta)))/T
             # Backwards
             self.reset()
-            self.seed_elements(lons.ravel(), lats.ravel(), time=t)
+            self.seed_elements(lons.ravel(), lats.ravel(),
+                               time=t+duration)
             self.run(duration=duration, time_step=-time_step)
             b_x1, b_y1 = reader.lonlat2xy(
                 self.history['lon'].T[-1].reshape(X.shape),
                 self.history['lat'].T[-1].reshape(X.shape))
-            lcs['ALCS'][i,:] = np.log(ftle(b_x1, b_y1))
+            lcs['ALCS'][i,:] = np.log(np.sqrt(ftle(b_x1-X, b_y1-Y, delta)))/T
 
         lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
         lcs['ALCS'] = np.ma.masked_invalid(lcs['ALCS'])
