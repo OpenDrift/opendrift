@@ -2587,7 +2587,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if lcs is not None:
                 map_x, map_y = map(lcs['lon'], lcs['lat'])
                 map.pcolormesh(
-                    map_x, map_y, lcs['RLCS'][i,:,:], alpha=1,
+                    map_x, map_y, lcs['ALCS'][i,:,:], alpha=1,
                     vmin=vmin, vmax=vmax, cmap=cmap)
 
             if density is True:
@@ -2662,8 +2662,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if lcs is not None:
             if vmin is None:
-                vmin = lcs['RLCS'].min()
-                vmax = lcs['RLCS'].max()
+                vmin = lcs['ALCS'].min()
+                vmax = lcs['ALCS'].max()
             map_x, map_y = map(lcs['lon'], lcs['lat'])
             lcsh = map.pcolormesh(map_x, map_y, lcs['ALCS'][0,:,:],
                                   vmin=vmin, vmax=vmax, cmap=cmap)
@@ -3617,7 +3617,8 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.debug(traceback.format_exc())
 
     def calculate_ftle(self, reader=None, delta=None,
-                       time=None, time_step=None, duration=None):
+                       time=None, time_step=None, duration=None,
+                       RLCS=True, ALCS=True):
 
         if reader is None:
             logging.info('No reader provided, using first available:')
@@ -3646,22 +3647,24 @@ class OpenDriftSimulation(PhysicsMethods):
         for i, t in enumerate(time):
             logging.info('Calculating LCS for ' + str(t))
             # Forwards
-            self.reset()
-            self.seed_elements(lons.ravel(), lats.ravel(), time=t)
-            self.run(duration=duration, time_step=time_step)
-            f_x1, f_y1 = reader.lonlat2xy(
-                self.history['lon'].T[-1].reshape(X.shape),
-                self.history['lat'].T[-1].reshape(X.shape))
-            lcs['RLCS'][i,:] = np.log(np.sqrt(ftle(f_x1-X, f_y1-Y, delta)))/T
+            if RLCS is True:
+                self.reset()
+                self.seed_elements(lons.ravel(), lats.ravel(), time=t)
+                self.run(duration=duration, time_step=time_step)
+                f_x1, f_y1 = reader.lonlat2xy(
+                    self.history['lon'].T[-1].reshape(X.shape),
+                    self.history['lat'].T[-1].reshape(X.shape))
+                lcs['RLCS'][i,:] = np.log(np.sqrt(ftle(f_x1-X, f_y1-Y, delta)))/T
             # Backwards
-            self.reset()
-            self.seed_elements(lons.ravel(), lats.ravel(),
-                               time=t+duration)
-            self.run(duration=duration, time_step=-time_step)
-            b_x1, b_y1 = reader.lonlat2xy(
-                self.history['lon'].T[-1].reshape(X.shape),
-                self.history['lat'].T[-1].reshape(X.shape))
-            lcs['ALCS'][i,:] = np.log(np.sqrt(ftle(b_x1-X, b_y1-Y, delta)))/T
+            if ALCS is True:
+                self.reset()
+                self.seed_elements(lons.ravel(), lats.ravel(),
+                                   time=t+duration)
+                self.run(duration=duration, time_step=-time_step)
+                b_x1, b_y1 = reader.lonlat2xy(
+                    self.history['lon'].T[-1].reshape(X.shape),
+                    self.history['lat'].T[-1].reshape(X.shape))
+                lcs['ALCS'][i,:] = np.log(np.sqrt(ftle(b_x1-X, b_y1-Y, delta)))/T
 
         lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
         lcs['ALCS'] = np.ma.masked_invalid(lcs['ALCS'])
