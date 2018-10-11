@@ -132,7 +132,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 ocean_only = boolean(default=True)
             [drift]
                 max_age_seconds = float(min=0, default=None)
-                scheme = option('euler', 'runge-kutta', default='euler')
+                scheme = option('euler', 'runge-kutta', 'runge-kutta4', default='euler')
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
                 current_uncertainty_uniform = float(min=0, max=5, default=0)
@@ -302,8 +302,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 matches = difflib.get_close_matches(value, elements)
                 if len(matches) > 0:
                     suggestion = '\nDid you mean any of these?\n%s' % str(matches)
-                else:
-                    suggestion = ''
+            else:
+                suggestion = ''
             raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
 
     def _config_hash_to_dict(self, hashstring):

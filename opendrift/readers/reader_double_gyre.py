@@ -35,10 +35,10 @@ class Reader(BaseReader):
         self.proj = pyproj.Proj(proj4)
 
         self.return_block = False
-        self.xmin = 0
-        self.xmax = 2
-        self.ymin = 0
-        self.ymax = 1
+        self.xmin = 0.
+        self.xmax = 2.
+        self.ymin = 0.
+        self.ymax = 1.
         self.A = A
         self.epsilon=epsilon
         self.omega=omega
