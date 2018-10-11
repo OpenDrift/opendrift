@@ -3649,12 +3649,13 @@ class OpenDriftSimulation(PhysicsMethods):
             # Forwards
             if RLCS is True:
                 self.reset()
-                self.seed_elements(lons.ravel(), lats.ravel(), time=t)
+                self.seed_elements(lons.ravel(), lats.ravel(),
+                                   time=t)
                 self.run(duration=duration, time_step=time_step)
                 f_x1, f_y1 = reader.lonlat2xy(
                     self.history['lon'].T[-1].reshape(X.shape),
                     self.history['lat'].T[-1].reshape(X.shape))
-                lcs['RLCS'][i,:] = np.log(np.sqrt(ftle(f_x1-X, f_y1-Y, delta)))/T
+                lcs['RLCS'][i,:,:] = ftle(f_x1-X, f_y1-Y, delta, T)
             # Backwards
             if ALCS is True:
                 self.reset()
@@ -3664,10 +3665,12 @@ class OpenDriftSimulation(PhysicsMethods):
                 b_x1, b_y1 = reader.lonlat2xy(
                     self.history['lon'].T[-1].reshape(X.shape),
                     self.history['lat'].T[-1].reshape(X.shape))
-                lcs['ALCS'][i,:] = np.log(np.sqrt(ftle(b_x1-X, b_y1-Y, delta)))/T
+                lcs['ALCS'][i,:,:] = ftle(b_x1-X, b_y1-Y, delta, T)
 
         lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
         lcs['ALCS'] = np.ma.masked_invalid(lcs['ALCS'])
+        # Flipping ALCS left-right. Not sure why this is needed
+        lcs['ALCS'] = lcs['ALCS'][:,::-1,::-1]
 
         return lcs
 

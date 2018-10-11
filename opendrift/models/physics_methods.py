@@ -46,7 +46,7 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
     return stokes_u, stokes_v, stokes_speed
 
 
-def ftle(X, Y, delta=1):
+def ftle(X, Y, delta, duration):
     """Calculate Finite Time Lyapunov Exponents"""
     # From Johannes Rohrs
     nx = X.shape[0]
@@ -70,7 +70,7 @@ def ftle(X, Y, delta=1):
             D = np.dot(np.transpose(J[i,j]), J[i,j])
             # its largest eigenvalue
             lamda = np.linalg.eigvals(D)
-            FTLE[i,j] = max(lamda)
+            FTLE[i,j] = np.log(np.sqrt(max(lamda)))/np.abs(duration)
 
     return FTLE
 
