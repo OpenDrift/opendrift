@@ -72,7 +72,7 @@ def ftle(X, Y, delta=1):
             lamda = np.linalg.eigvals(D)
             FTLE[i,j] = max(lamda)
 
-    return FTLE[::-1,::-1]
+    return FTLE
 
 class PhysicsMethods(object):
     """Physics methods to be inherited by OpenDriftSimulation class"""

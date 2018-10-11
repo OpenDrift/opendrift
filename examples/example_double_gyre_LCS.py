@@ -21,18 +21,18 @@ print double_gyre
 o.add_reader(double_gyre)
 
 lcs = o.calculate_ftle(time=double_gyre.initial_time,
-                       time_step=timedelta(seconds=.1),
-                       duration=timedelta(seconds=5),
+                       time_step=timedelta(seconds=.5),
+                       duration=timedelta(seconds=15),
                        delta=.01)
 
-# These plots should reproduce Mov 12 on this page (but they dont):
+# These plots should reproduce Mov 12 on this page:
 # http://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
 plt.subplot(2,1,1)
-plt.imshow(lcs['RLCS'][0,:], interpolation='nearest', cmap='jet')
+plt.imshow(lcs['RLCS'][0,:], interpolation='nearest', cmap='jet', origin='lower')
 plt.colorbar()
 plt.title('Repelling LCS (forwards)')
 plt.subplot(2,1,2)
-plt.imshow(lcs['ALCS'][0,:], interpolation='nearest', cmap='jet')
+plt.imshow(lcs['ALCS'][0,:], interpolation='nearest', cmap='jet', origin='lower')
 plt.colorbar()
 plt.title('Attracting LCS (backwards)')
 plt.show()
