@@ -2894,7 +2894,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
-             contourlines=False, trajectory_dict=None, colorbar=True, linewidth=1,
+             contourlines=False, trajectory_dict=None, colorbar=True, linewidth=1, lcs=None, show_particles=True,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
@@ -2994,55 +2994,57 @@ class OpenDriftSimulation(PhysicsMethods):
             label_active = None
             color_initial = 'gray'
             color_active = 'gray'
-        map.scatter(x[range(x.shape[0]), index_of_first],
-                    y[range(x.shape[0]), index_of_first], s=markersize,
-                    zorder=10, edgecolor='k', linewidths=.2,
-                    color=color_initial, label=label_initial)
-        if surface_color is not None:
-            color_active = surface_color
-            label_active = 'surface'
-        map.scatter(x[range(x.shape[0]), index_of_last],
-                    y[range(x.shape[0]), index_of_last], s=markersize,
-                    zorder=3, edgecolor='k', linewidths=.2,
-                    color=color_active, label=label_active)
-        #if submerged_color is not None:
-        #    map.scatter(x[range(x.shape[0]), index_of_last],
-        #                y[range(x.shape[0]), index_of_last], s=markersize,
-        #                zorder=3, edgecolor='k', linewidths=.2,
-        #                color=submerged_color, label='submerged')
+        if show_particles is True:
+            map.scatter(x[range(x.shape[0]), index_of_first],
+                        y[range(x.shape[0]), index_of_first],
+                        s=markersize,
+                        zorder=10, edgecolor='k', linewidths=.2,
+                        color=color_initial, label=label_initial)
+            if surface_color is not None:
+                color_active = surface_color
+                label_active = 'surface'
+            map.scatter(x[range(x.shape[0]), index_of_last],
+                        y[range(x.shape[0]), index_of_last], s=markersize,
+                        zorder=3, edgecolor='k', linewidths=.2,
+                        color=color_active, label=label_active)
+            #if submerged_color is not None:
+            #    map.scatter(x[range(x.shape[0]), index_of_last],
+            #                y[range(x.shape[0]), index_of_last], s=markersize,
+            #                zorder=3, edgecolor='k', linewidths=.2,
+            #                color=submerged_color, label='submerged')
 
-        x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
-                                           self.elements_deactivated.lat)
-        # Plot deactivated elements, labeled by deactivation reason
-        for statusnum, status in enumerate(self.status_categories):
-            if status == 'active':
-                continue  # plotted above
-            if status not in self.status_colors:
-                # If no color specified, pick an unused one
-                for color in ['red', 'blue', 'green', 'black', 'gray',
-                              'cyan', 'DarkSeaGreen', 'brown']:
-                    if color not in self.status_colors.values():
-                        self.status_colors[status] = color
-                        break
-            indices = np.where(self.elements_deactivated.status == statusnum)
-            if len(indices[0]) > 0:
-                if (status == 'seeded_on_land' or
-                    status == 'seeded_at_nodata_position'):
-                    zorder = 11
-                else:
-                    zorder = 3
-                if compare is not None:
-                    legstr = None
-                else:
-                    legstr = '%s (%i)' % (status, len(indices[0]))
-                if compare is None:
-                    color_status = self.status_colors[status]
-                else:
-                    color_status = 'gray'
-                map.scatter(x_deactivated[indices], y_deactivated[indices],
-                            s=markersize,
-                            zorder=zorder, edgecolor='k', linewidths=.1,
-                            color=color_status, label=legstr)
+            x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
+                                               self.elements_deactivated.lat)
+            # Plot deactivated elements, labeled by deactivation reason
+            for statusnum, status in enumerate(self.status_categories):
+                if status == 'active':
+                    continue  # plotted above
+                if status not in self.status_colors:
+                    # If no color specified, pick an unused one
+                    for color in ['red', 'blue', 'green', 'black', 'gray',
+                                  'cyan', 'DarkSeaGreen', 'brown']:
+                        if color not in self.status_colors.values():
+                            self.status_colors[status] = color
+                            break
+                indices = np.where(self.elements_deactivated.status == statusnum)
+                if len(indices[0]) > 0:
+                    if (status == 'seeded_on_land' or
+                        status == 'seeded_at_nodata_position'):
+                        zorder = 11
+                    else:
+                        zorder = 3
+                    if compare is not None:
+                        legstr = None
+                    else:
+                        legstr = '%s (%i)' % (status, len(indices[0]))
+                    if compare is None:
+                        color_status = self.status_colors[status]
+                    else:
+                        color_status = 'gray'
+                    map.scatter(x_deactivated[indices], y_deactivated[indices],
+                                s=markersize,
+                                zorder=zorder, edgecolor='k', linewidths=.1,
+                                color=color_status, label=legstr)
 
         if compare is not None:
             cd = self._get_comparison_xy_for_plots(map, compare)
@@ -3098,6 +3100,12 @@ class OpenDriftSimulation(PhysicsMethods):
                 map.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
                            u_component[::skip, ::skip],
                            v_component[::skip, ::skip], scale=scale)
+
+        if lcs is not None:
+            map_x_lcs, map_y_lcs = map(lcs['lon'], lcs['lat'])
+            map.pcolormesh(
+                map_x_lcs, map_y_lcs, lcs['ALCS'][0,:,:], alpha=1,
+                vmin=vmin, vmax=vmax, cmap=cmap)
 
         if title is not None:
             if title is 'auto':
@@ -3682,3 +3690,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         del self.start_time
         del self.history
+        del self.elements
+        self.elements_deactivated = self.ElementType()  # Empty array
+        self.elements = self.ElementType()  # Empty array
+

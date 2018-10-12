@@ -14,7 +14,7 @@ from opendrift.models.oceandrift import OceanDrift
 # Setting some parameters
 duration = timedelta(seconds=15)  # T
 time_step=timedelta(seconds=.5)
-time_step_output=timedelta(seconds=1)
+time_step_output=timedelta(seconds=.5)
 delta=.01  # spatial resolution
 steps = int(duration.total_seconds()/
             time_step_output.total_seconds() + 1)
