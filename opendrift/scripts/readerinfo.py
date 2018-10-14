@@ -79,4 +79,13 @@ if __name__ == '__main__':
         if args.variable is None:
             r.plot()
         else:
-            r.plot(args.variable, vmin=np.float(args.vmin), vmax=np.float(args.vmax))
+            if args.vmin is None:
+                vmin = None
+            else:
+                vmin = np.float(args.vmin)
+            if args.vmax is None:
+                vmax = None
+            else:
+                vmax = np.float(args.vmax)
+            
+            r.plot(args.variable, vmin=vmin, vmax=vmax)
