@@ -713,13 +713,15 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon=3, lat=60, radius=1000,
                         time=datetime.now(), number=100)
         o.run(steps=5)
+        # Plot
         o.plot(filename='test_plot.png')
-        # Temporarily skipping mp4 due to bug in Conda
-        #o.animation(filename='test_plot.mp4')
         assert os.path.exists('test_plot.png')
-        #assert os.path.exists('test_plot.mp4')
         os.remove('test_plot.png')
-        #os.remove('test_plot.mp4')
+        # Animation
+        # Temporarily skipping mp4 due to bug in Conda
+        o.animation(filename='test_plot.mp4')
+        assert os.path.exists('test_plot.mp4')
+        os.remove('test_plot.mp4')
 
     def test_retirement(self):
         o = OceanDrift(loglevel=0)

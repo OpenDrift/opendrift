@@ -2383,6 +2383,10 @@ class OpenDriftSimulation(PhysicsMethods):
     def set_up_map(self, buffer=.1, delta_lat=None, **kwargs):
         """Generate Basemap instance on which trajectories are plotted."""
 
+        try:  # Clear any existing figure instances
+            plt.close()
+        except:
+            pass
         lons, lats = self.get_lonlats()
 
         # Initialise map
@@ -2552,6 +2556,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
+        start_time = datetime.now()
         if cmap is None:
             cmap = 'jet'
         if isinstance(cmap, basestring):
@@ -2756,6 +2761,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if filename is not None:
             self._save_animation(anim, filename, fps)
+            logging.debug('Time to make animation: %s' % (datetime.now()-start_time))
         else:
             try:
                 plt.show()
@@ -3688,9 +3694,12 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('Nothing to reset')
             return
 
-        del self.start_time
-        del self.history
-        del self.elements
+        for attr in ['start_time', 'history', 'elements']:
+            if hasattr(self, attr):
+                delattr(self, attr)
+        #del self.start_time
+        #del self.history
+        #del self.elements
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
 
