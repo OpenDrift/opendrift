@@ -719,9 +719,9 @@ class TestRun(unittest.TestCase):
         os.remove('test_plot.png')
         # Animation
         # Temporarily skipping mp4 due to bug in Conda
-        o.animation(filename='test_plot.mp4')
-        assert os.path.exists('test_plot.mp4')
-        os.remove('test_plot.mp4')
+        #o.animation(filename='test_plot.mp4')
+        #assert os.path.exists('test_plot.mp4')
+        #os.remove('test_plot.mp4')
 
     def test_retirement(self):
         o = OceanDrift(loglevel=0)
