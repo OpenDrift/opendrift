@@ -43,19 +43,36 @@ class PlastDrift(OceanDrift3D):
 
     required_variables = [
         'x_sea_water_velocity', 'y_sea_water_velocity',
+        'sea_surface_wave_stokes_drift_x_velocity',
+        'sea_surface_wave_stokes_drift_y_velocity',
+        'sea_surface_wave_significant_height',
         'x_wind', 'y_wind',
         'ocean_vertical_diffusivity']
     required_variables.append('land_binary_mask')
 
     fallback_values = {'x_sea_water_velocity': 0,
                        'y_sea_water_velocity': 0,
+                       'sea_surface_wave_stokes_drift_x_velocity': 0,
+                       'sea_surface_wave_stokes_drift_y_velocity': 0,
                        'x_wind': 0,
                        'y_wind': 0,
+                       'sea_surface_wave_significant_height': 0,
                        'ocean_vertical_diffusivity': .02}
+
+    configspecPlastDrift = '''
+        [general]
+            coastline_action = option('none', 'stranding', 'previous', default='previous')
+        [drift]
+            use_tabularised_stokes_drift = boolean(default=True)
+        '''
 
     def __init__(self, *args, **kwargs):
 
+        # Call parent constructor
         super(PlastDrift, self).__init__(*args, **kwargs)
+
+        # Add specific config settings
+        self._add_configstring(self.configspecPlastDrift)
 
 
     def update(self):
@@ -66,8 +83,8 @@ class PlastDrift(OceanDrift3D):
 
         self.update_particle_depth()
 
-        # Advect particles due to wind drag
-        self.advect_wind()
+        # Advect particles due to Stokes drift
+        self.stokes_drift()
 
     def update_particle_depth(self):
 
