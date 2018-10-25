@@ -64,6 +64,8 @@ class PlastDrift(OceanDrift3D):
             coastline_action = option('none', 'stranding', 'previous', default='previous')
         [drift]
             use_tabularised_stokes_drift = boolean(default=True)
+        [turbulentmixing]
+            diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='windspeed_Large1994')
         '''
 
     def __init__(self, *args, **kwargs):
