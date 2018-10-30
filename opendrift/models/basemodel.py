@@ -1055,18 +1055,16 @@ class OpenDriftSimulation(PhysicsMethods):
                     env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and 
                     env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
                         logging.debug('Calculating parameterised stokes drift')
-                        for i in range(len(env['x_wind'])):
-                            env['sea_surface_wave_stokes_drift_x_velocity'][i], \
-                            env['sea_surface_wave_stokes_drift_y_velocity'][i] = \
-                                self.wave_stokes_drift_parameterised((env['x_wind'][i], env['y_wind'][i]),
+                        env['sea_surface_wave_stokes_drift_x_velocity'], \
+                        env['sea_surface_wave_stokes_drift_y_velocity'] = \
+                            self.wave_stokes_drift_parameterised((env['x_wind'], env['y_wind']),
                                 self.get_config('drift:tabularised_stokes_drift_fetch'))
 
                 if (env['sea_surface_wave_significant_height'].max() == 0):
                         logging.debug('Calculating parameterised significant wave height')
-                        for i in range(len(env['x_wind'])):
-                            env['sea_surface_wave_significant_height'][i] = \
-                                self.wave_significant_height_parameterised((env['x_wind'][i], env['y_wind'][i]),
-                                self.get_config('drift:tabularised_stokes_drift_fetch'))
+                        env['sea_surface_wave_significant_height'] = \
+                            self.wave_significant_height_parameterised((env['x_wind'], env['y_wind']),
+                            self.get_config('drift:tabularised_stokes_drift_fetch'))
        
         #############################
         # Add uncertainty/diffusion
