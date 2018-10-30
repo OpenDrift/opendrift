@@ -24,9 +24,12 @@ PassiveTracer.variables = PassiveTracer.add_variables([
     ('wind_drift_factor', {'dtype': np.float32,
                            'unit': '%',
                            'default': 0.02}),
+    ('depth', {'dtype': np.float32,
+               'unit': '%',
+               'default': 0.0}),
     ('terminal_velocity', {'dtype': np.float32,
                            'units': 'm/s',
-                           'default': 0.1})])
+                           'default': 0.01})])
 
 
 class PlastDrift(OceanDrift3D):
@@ -59,10 +62,13 @@ class PlastDrift(OceanDrift3D):
                        'sea_surface_wave_significant_height': 0,
                        'ocean_vertical_diffusivity': .02}
 
+    required_profiles = None
+
     configspecPlastDrift = '''
         [general]
             coastline_action = option('none', 'stranding', 'previous', default='previous')
         [drift]
+            verticaladvection = boolean(default=True)
             use_tabularised_stokes_drift = boolean(default=True)
         [turbulentmixing]
             diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='windspeed_Large1994')
@@ -87,6 +93,11 @@ class PlastDrift(OceanDrift3D):
 
         # Advect particles due to Stokes drift
         self.stokes_drift()
+
+        # We set z to 0 for performance (need only read
+        # surface current), but store it as 'depth' for analysis
+        self.elements.depth = self.elements.z
+        self.elements.z = 0*self.elements.z
 
     def update_particle_depth(self):
 

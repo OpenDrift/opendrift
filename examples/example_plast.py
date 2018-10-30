@@ -36,5 +36,5 @@ o2.run(end_time=end_time, time_step=1800, time_step_output=3600)
 # Print and plot results
 print(o)
 o.animation(compare=o2, legend=['Current + wind/Stokes drift', 'Current only'], filename='plast_current_Stokes.mp4')
-#o.animation(color='z')
-#o.plot_property('z')
+#o.animation(color='depth')
+#o.plot_property('depth')
