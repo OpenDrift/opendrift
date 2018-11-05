@@ -2759,7 +2759,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if filename is not None:
             self._save_animation(anim, filename, fps)
-            logging.debug('Time to make animation: %s' % (datetime.now()-start_time))
+            logging.debug('Time to make animation: %s' %
+                          (datetime.now()-start_time))
         else:
             try:
                 plt.show()
@@ -2924,6 +2925,8 @@ class OpenDriftSimulation(PhysicsMethods):
             linecolor: name of variable to be used for coloring trajectories.
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
         """
+
+        start_time = datetime.now()
 
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, **kwargs)
@@ -3133,6 +3136,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if filename is not None:
             plt.savefig(filename)
+            logging.info('Time to make plot: ' +
+                         str(datetime.now() - start_time))
         else:
             if show is True:
                 plt.show()
@@ -3619,7 +3624,6 @@ class OpenDriftSimulation(PhysicsMethods):
                     for tfile in tmp:
                         os.remove(tfile)
             else:  # MP4
-                logging.info('Saving MP4 animation...')
                 try:
                     try:
                         # For perfrect quality, but larger file size
