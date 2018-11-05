@@ -117,6 +117,9 @@ class OpenOil(OpenDriftSimulation):
             dispersion = boolean(default=True)
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
+        [drift]
+            current_uncertainty = float(min=0, max=5, default=0.05)
+            wind_uncertainty = float(min=0, max=5, default=.5)
     '''
 
     duplicate_oils = ['ALVHEIM BLEND, STATOIL', 'DRAUGEN, STATOIL',
@@ -141,8 +144,6 @@ class OpenOil(OpenDriftSimulation):
 
 
     def __init__(self, weathering_model='default', *args, **kwargs):
-
-        self._add_configstring(self.configspec)
 
         if weathering_model == 'noaa':
             try:
@@ -191,6 +192,9 @@ class OpenOil(OpenDriftSimulation):
 
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
+
+        # Overriding with specific configspec
+        self._add_configstring(self.configspec)
 
     def evaporate(self):
         if self.get_config('processes:evaporation') is True:

@@ -53,6 +53,8 @@ class TestOil(unittest.TestCase):
             o.set_config('processes:evaporation', True)
             o.set_config('processes:emulsification', True)
             o.set_config('processes:turbulentmixing', False)
+            o.set_config('drift:wind_uncertainty', 0)
+            o.set_config('drift:current_uncertainty', 0)
             o.run(steps=3)
             self.assertEqual(o.elements.mass_evaporated.min(),
                              o.elements.mass_evaporated.max())
@@ -135,14 +137,14 @@ class TestOil(unittest.TestCase):
                     meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
                     fraction_dispersed = 0.086
-                    fraction_submerged = 0.280
-                    fraction_evaporated = 0.489
-                    meanlon = 4.8182
+                    fraction_submerged = 0.271
+                    fraction_evaporated = 0.501
+                    meanlon = 4.820
                 elif oil == 'SKRUGARD' and windspeed == 8:
                     fraction_dispersed = 0.133
-                    fraction_submerged = 0.300
-                    fraction_evaporated = 0.188
-                    meanlon = 4.8280
+                    fraction_submerged = 0.243
+                    fraction_evaporated = 0.197
+                    meanlon = 4.832
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
@@ -151,7 +153,7 @@ class TestOil(unittest.TestCase):
                                        fraction_submerged, 2)
                 self.assertAlmostEqual(actual_evaporated[-1],
                                        fraction_evaporated, 2)
-                self.assertAlmostEqual(np.mean(o.elements.lon), meanlon, 4)
+                self.assertAlmostEqual(np.mean(o.elements.lon), meanlon, 3)
                 #o.plot_oil_budget()
 
     @unittest.skipIf(has_oil_library is False,
