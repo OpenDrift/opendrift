@@ -138,6 +138,11 @@ class Leeway(OpenDriftSimulation):
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
 
+        self._add_config('general:time_step_minutes',
+                         'integer(min=1, max=1440, default=10)',
+                         'Time step in minutes',
+                         overwrite=True)
+
     def seed_elements(self, lon, lat, radius=0, number=1, time=None,
                       objectType=None, cone=None, jibeProbability=None):
         """Seed particles in a cone-shaped area over a time period."""

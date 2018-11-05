@@ -261,7 +261,7 @@ class TestReaders(unittest.TestCase):
         time = datetime(2016,2,2,12)
         o.seed_elements(lat=67.85, lon=14, time=time)
         o.run(steps=2)
-        self.assertAlmostEqual(o.elements.lat[0], 67.8791, 3)
+        self.assertAlmostEqual(o.elements.lat[0], 67.8548, 3)
 
     def test_automatic_basemap(self):
         self.assertRaises(ValueError, o.run)

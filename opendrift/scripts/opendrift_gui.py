@@ -366,9 +366,17 @@ class OpenDriftGUI(tk.Tk):
         so = Leeway(loglevel=50)
         so.seed_elements(lon=lon, lat=lat, number=5000,
                          radius=radius, time=start_time)
-        so.set_config('general:basemap_resolution', mapres)         
+        so.set_config('general:basemap_resolution', mapres)
         so.plot(buffer=.5)
         del so
+
+    def save_animation(self):
+        mp4_filename = os.path.expanduser("~") + \
+            '/opendrift_' + self.model.get() + \
+            self.o.start_time.strftime('_%Y%m%d_%H%M.mp4')
+        self.o.animation(filename=mp4_filename)
+        print('Animation saved to:')
+        print(mp4_filename)
 
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
@@ -403,55 +411,58 @@ class OpenDriftGUI(tk.Tk):
         else:
             cone = False
         if self.model.get() == 'Leeway':
-            o = Leeway(loglevel=0)
+            self.o = Leeway(loglevel=0)
             for ln, lc in enumerate(self.leewaycategories):
                 if self.oljetype.get() == lc.strip().replace('>', ''):
                     print('Leeway object category: ' + lc)
                     break
-            o.seed_elements(lon=lon, lat=lat, number=5000,
+            self.o.seed_elements(lon=lon, lat=lat, number=5000,
                             radius=radius, time=start_time,
                             objectType=ln + 1)
         if self.model.get() == 'OpenOil':
-            o = OpenOil3D(weathering_model='noaa', loglevel=0)
-            o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
+            self.o = OpenOil3D(weathering_model='noaa', loglevel=0)
+            self.o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
                             time=start_time, cone=cone,
                             oiltype=self.oljetype.get())
 
-        o.add_readers_from_file(o.test_data_folder() +
+        self.o.add_readers_from_file(self.o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'h')
+        self.o.set_config('general:basemap_resolution', 'h')
 
-        time_step = 1800  # Half hour
+        time_step = self.o.get_config('general:time_step_minutes')*60
         duration = int(self.durationhours.get())*3600/time_step
         if self.directionvar.get() == 'backwards':
             time_step = -time_step
         if self.has_diana is True:
-            extra_args = {'outfile': self.outputdir + '/opendrift_' +                          self.model.get() + o.start_time.strftime(
+            extra_args = {'outfile': self.outputdir + '/opendrift_' +                          self.model.get() + self.o.start_time.strftime(
                                 '_%Y%m%d_%H%M.nc')}
         else:
             extra_args = {}
 
         mapres = self.mapresvar.get()[0]
-        o.set_config('general:basemap_resolution', mapres)         
+        self.o.set_config('general:basemap_resolution', mapres)
 
-        o.run(steps=duration, time_step=time_step,
-              time_step_output=time_step, **extra_args)
-        print(o)
+        self.o.run(steps=duration, time_step=time_step,
+              time_step_output=3600, **extra_args)
+        print(self.o)
 
         if self.has_diana is True:
             diana_filename = self.dianadir + '/opendrift_' + \
-                self.model.get() + o.start_time.strftime(
+                self.model.get() + self.o.start_time.strftime(
                                 '_%Y%m%d_%H%M.nc')
-            o.write_netcdf_density_map(diana_filename)
+            self.o.write_netcdf_density_map(diana_filename)
             tk.Button(self.master, text='Show in Diana',
                       command=lambda: os.system('diana &')
                       ).grid(row=8, column=2, sticky=tk.W, pady=4)
+        #tk.Button(self.master, text='Save animation',
+        #          command=self.save_animation).grid(
+        #            row=8, column=3, sticky=tk.W, pady=4)
         tk.Button(self.master, text='Animation',
-                  command=o.animation).grid(row=8, column=3,
+                  command=self.o.animation).grid(row=8, column=3,
                                             sticky=tk.W, pady=4)
         if self.model.get() == 'OpenOil':
             self.budgetbutton = tk.Button(self.master,
-                text='Oil Budget', command=o.plot_oil_budget)
+                text='Oil Budget', command=self.o.plot_oil_budget)
             self.budgetbutton.grid(row=8, column=4, sticky=tk.W, pady=4)
 
 

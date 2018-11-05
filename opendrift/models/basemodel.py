@@ -3275,7 +3275,9 @@ class OpenDriftSimulation(PhysicsMethods):
         if pixelsize_m == 'auto':
             lon, lat = self.get_lonlats()
             latspan = lat.max()-lat.min()
-            pixelsize_m=100
+            pixelsize_m=30
+            if latspan > .05:
+                pixelsize_m = 50
             if latspan > .1:
                 pixelsize_m = 300
             if latspan > .3:
