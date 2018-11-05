@@ -3264,8 +3264,24 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return H, H_submerged, H_stranded, lon_array, lat_array
 
-    def write_netcdf_density_map(self, filename, pixelsize_m=300):
+    def write_netcdf_density_map(self, filename, pixelsize_m='auto'):
         '''Write netCDF file with map of particles densities'''
+
+        if pixelsize_m == 'auto':
+            lon, lat = self.get_lonlats()
+            latspan = lat.max()-lat.min()
+            pixelsize_m=100
+            if latspan > .1:
+                pixelsize_m = 300
+            if latspan > .3:
+                pixelsize_m = 500
+            if latspan > .7:
+                pixelsize_m = 1000
+            if latspan > 2:
+                pixelsize_m = 2000
+            if latspan > 5:
+                pixelsize_m = 4000
+
         H, H_submerged, H_stranded, lon_array, lat_array = \
             self.get_density_array(pixelsize_m)
         lon_array = (lon_array[0:-1] + lon_array[1::])/2
