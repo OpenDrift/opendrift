@@ -3707,6 +3707,25 @@ class OpenDriftSimulation(PhysicsMethods):
         lcs['ALCS'] = lcs['ALCS'][:,::-1,::-1]
 
         return lcs
+    
+    def center_of_gravity(self):
+        """
+        calculate center of mass and variance of all elements
+        returns  (lon,lat), variance 
+        where (lon,lat) are the coordinates of the center of mass as 
+        function of time"""
+        #lon,lat = self.get_property('lon')[0], self.get_property('lat')[0]
+        lon,lat = self.history['lon'], self.history['lat']
+        x,y = self.proj(lon, lat)
+        # center of gravity:
+        x_m, y_m = x.mean(axis=0), y.mean(axis=0)
+        center =  self.proj(x_m, y_m, inverse=True)
+        one = np.ones_like(x)
+        # variance:
+        variance = np.mean((x-x_m*one)**2 + (y-y_m*one)**2, axis=0)
+
+        return center,variance
+ 
 
     def reset(self):
         """Preparing OpenDrift object for new run"""
