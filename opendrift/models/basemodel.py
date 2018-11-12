@@ -2742,7 +2742,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 item = pm
                 if clabel is None:
                     clabel = 'density'
-            elif lcs is not False:
+            elif lcs is not None:
                 item = lcsh
                 if clabel is None:
                     clabel = 'LCS'
