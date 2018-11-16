@@ -3708,7 +3708,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return lcs
     
-    def center_of_gravity(self):
+    def center_of_gravity(self, onlysurface=False):
         """
         calculate center of mass and variance of all elements
         returns  (lon,lat), variance 
@@ -3717,12 +3717,17 @@ class OpenDriftSimulation(PhysicsMethods):
         #lon,lat = self.get_property('lon')[0], self.get_property('lat')[0]
         lon,lat = self.history['lon'], self.history['lat']
         x,y = self.proj(lon, lat)
+        if onlysurface==True:
+            z = self.history['z']
+            submerged = z < 0
+            x = np.ma.array(x, mask=submerged)
+            y = np.ma.array(y, mask=submerged)
         # center of gravity:
-        x_m, y_m = x.mean(axis=0), y.mean(axis=0)
+        x_m, y_m = np.ma.mean(x, axis=0), np.ma.mean(y, axis=0)
         center =  self.proj(x_m, y_m, inverse=True)
         one = np.ones_like(x)
         # variance:
-        variance = np.mean((x-x_m*one)**2 + (y-y_m*one)**2, axis=0)
+        variance = np.ma.mean((x-x_m*one)**2 + (y-y_m*one)**2, axis=0)
 
         return center,variance
  
