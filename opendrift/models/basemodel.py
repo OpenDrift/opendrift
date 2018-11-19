@@ -3418,7 +3418,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def plot_environment(self, filename=None):
         """Plot mean wind and current velocities of element of last run."""
         x_wind = self.get_property('x_wind')[0]
-        y_wind = self.get_property('x_wind')[0]
+        y_wind = self.get_property('y_wind')[0]
         wind = np.sqrt(x_wind**2 + y_wind**2)
         x_sea_water_velocity = self.get_property('x_sea_water_velocity')[0]
         y_sea_water_velocity = self.get_property('y_sea_water_velocity')[0]
