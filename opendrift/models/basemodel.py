@@ -3628,23 +3628,22 @@ class OpenDriftSimulation(PhysicsMethods):
             else:  # MP4
                 try:
                     try:
-                        # For perfrect quality, but larger file size
-                        FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
+                        # For perfect quality, but larger file size
+                        FFwriter=animation.FFMpegWriter(fps=fps,
+                            codec='libx264', bitrate=1800,
+                            extra_args=['-profile:v', 'baseline',
+                                        '-pix_fmt', 'yuv420p', '-an'])
                         anim.save(filename, writer=FFwriter)
-                    except:
-                        anim.save(filename, fps=fps, bitrate=1800,
-                                  extra_args=['-pix_fmt', 'yuv420p'])
-                except Exception as e:
-                    logging.info(e)
-                    try:
-                        logging.info('Trying with codec libx264')
-                        anim.save(filename, fps=fps, bitrate=1800,
-                                  extra_args=['-pix_fmt', 'yuv420p',
-                                              '-vcodec', 'libx264'])
                     except Exception as e:
                         logging.info(e)
-                        anim.save(filename, fps=fps)
-                        logging.warning('Animation might not be HTML5 compatible.')
+                        anim.save(filename, fps=fps, bitrate=1800,
+                                  extra_args=['-an',
+                                              '-pix_fmt', 'yuv420p'])
+                except Exception as e:
+                    logging.info(e)
+                    anim.save(filename, fps=fps)
+                    logging.warning('Animation might not be HTML5 compatible.')
+
         except Exception as e:
             logging.info('Could not save animation:')
             logging.info(e)
