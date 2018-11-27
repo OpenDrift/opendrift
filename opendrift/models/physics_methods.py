@@ -46,6 +46,34 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
     return stokes_u, stokes_v, stokes_speed
 
 
+def ftle(X, Y, delta, duration):
+    """Calculate Finite Time Lyapunov Exponents"""
+    # From Johannes Rohrs
+    nx = X.shape[0]
+    ny = X.shape[1]
+    J = np.empty([nx,ny,2,2],np.float)
+    FTLE = np.empty([nx,ny],np.float)
+    
+    # gradient
+    dx = np.gradient(X) 
+    dy = np.gradient(Y) 
+
+    # Jacobian
+    J[:,:,0,0] = dx[0] / (2*delta)
+    J[:,:,1,0] = dy[0] / (2*delta)
+    J[:,:,0,1] = dx[1] / (2*delta)
+    J[:,:,1,1] = dy[1] / (2*delta)
+
+    for i in range(0,nx):
+        for j in range(0,ny):       
+            # Green-Cauchy tensor
+            D = np.dot(np.transpose(J[i,j]), J[i,j])
+            # its largest eigenvalue
+            lamda = np.linalg.eigvals(D)
+            FTLE[i,j] = np.log(np.sqrt(max(lamda)))/np.abs(duration)
+
+    return FTLE
+
 class PhysicsMethods(object):
     """Physics methods to be inherited by OpenDriftSimulation class"""
 
@@ -86,7 +114,7 @@ class PhysicsMethods(object):
 
     def advect_ocean_current(self):
         # Runge-Kutta scheme
-        if self.get_config('drift:scheme') == 'runge-kutta':
+        if self.get_config('drift:scheme')[0:11] == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity
             y_vel = self.environment.y_sea_water_velocity
             # Calculate x,y from lon,lat
@@ -106,8 +134,46 @@ class PhysicsMethods(object):
                 ['x_sea_water_velocity', 'y_sea_water_velocity'],
                 self.time + self.time_step/2,
                 mid_lon, mid_lat, self.elements.z, profiles=None)
-            # Move particles using runge-kutta velocity
-            self.update_positions(mid_env['x_sea_water_velocity'],
+            if self.get_config('drift:scheme') == 'runge-kutta4':
+                logging.debug('Runge-kutta 4th order...')
+                x_vel2 = mid_env['x_sea_water_velocity']
+                y_vel2 = mid_env['y_sea_water_velocity']
+                az2 = np.degrees(np.arctan2(x_vel2, y_vel2))
+                speed2 = np.sqrt(x_vel2*x_vel2 + y_vel2*y_vel2)
+                dist2 = speed2*self.time_step.total_seconds()*.5
+                lon2, lat2, dummy = \
+                    geod.fwd(self.elements.lon,
+                             self.elements.lat,
+                             az2, dist2, radians=False)
+                env2, profiles, missing = self.get_environment(
+                    ['x_sea_water_velocity', 'y_sea_water_velocity'],
+                    self.time + self.time_step/2,
+                    lon2, lat2, self.elements.z, profiles=None)
+                # Third step
+                x_vel3 = env2['x_sea_water_velocity']
+                y_vel3 = env2['y_sea_water_velocity']
+                az3 = np.degrees(np.arctan2(x_vel3, y_vel3))
+                speed3 = np.sqrt(x_vel3*x_vel3 + y_vel3*y_vel3)
+                dist3 = speed3*self.time_step.total_seconds()*.5
+                lon3, lat3, dummy = \
+                    geod.fwd(self.elements.lon,
+                             self.elements.lat,
+                             az3, dist3, radians=False)
+                env3, profiles, missing = self.get_environment(
+                    ['x_sea_water_velocity', 'y_sea_water_velocity'],
+                    self.time + self.time_step,
+                    lon3, lat3, self.elements.z, profiles=None)
+                # Fourth step
+                x_vel4 = env3['x_sea_water_velocity']
+                y_vel4 = env3['y_sea_water_velocity']
+                u4 = (x_vel + 2*x_vel2 + 2* x_vel3 + x_vel4)/6.0
+                v4 = (y_vel + 2*y_vel2 + 2* y_vel3 + y_vel4)/6.0
+                # Move particles using runge-kutta4 velocity
+                self.update_positions(u4, v4)
+
+            else:
+                # Move particles using runge-kutta velocity
+                self.update_positions(mid_env['x_sea_water_velocity'],
                                   mid_env['y_sea_water_velocity'])
         elif self.get_config('drift:scheme') == 'euler':
             # Euler scheme
@@ -195,64 +261,75 @@ class PhysicsMethods(object):
         """
         Parameterise stokes drift based on pre calculated tables and fetch.
         """
-        Wf       = {}
-        Wf[5000] = (0.0173,0.0160,0.0152,0.0145,0.0139,0.0135,
-                    0.0132,0.0129,0.0126,0.0124,0.0122,0.0121,
-                    0.0119,0.0118,0.0117,0.0116,0.0114,0.0113,
-                    0.0112,0.0112,0.0111,0.0110,0.0109,0.0109,
-                    0.0108,0.0107,0.0106,0.0106,0.0106,0.0105)
 
-        Wf[25000] = (0.0173,0.0197,0.0201,0.0185,0.0181,0.0176,
-                     0.0171,0.0167,0.0164,0.0160,0.0158,0.0155,
-                     0.0153,0.0151,0.0149,0.0147,0.0146,0.0144,
-                     0.0143,0.0142,0.0140,0.0139,0.0138,0.0137,
-                     0.0136,0.0135,0.0135,0.0134,0.0133,0.0132)
+        if not hasattr(self, 'stokes_coefficients'):
+            Wf       = {}
+            Wf['5000'] = (0.0173,0.0160,0.0152,0.0145,0.0139,0.0135,
+                        0.0132,0.0129,0.0126,0.0124,0.0122,0.0121,
+                        0.0119,0.0118,0.0117,0.0116,0.0114,0.0113,
+                        0.0112,0.0112,0.0111,0.0110,0.0109,0.0109,
+                        0.0108,0.0107,0.0106,0.0106,0.0106,0.0105)
 
-        Wf[50000] = (0.0173,0.0197,0.0210,0.0216,0.0201,0.0194,
-                     0.0190,0.0186,0.0183,0.0179,0.0176,0.0173,
-                     0.0171,0.0168,0.0166,0.0164,0.0162,0.0160,
-                     0.0159,0.0157,0.0156,0.0155,0.0153,0.0152,
-                     0.0151,0.0150,0.0149,0.0148,0.0147,0.0146)
+            Wf['25000'] = (0.0173,0.0197,0.0201,0.0185,0.0181,0.0176,
+                         0.0171,0.0167,0.0164,0.0160,0.0158,0.0155,
+                         0.0153,0.0151,0.0149,0.0147,0.0146,0.0144,
+                         0.0143,0.0142,0.0140,0.0139,0.0138,0.0137,
+                         0.0136,0.0135,0.0135,0.0134,0.0133,0.0132)
 
-        windSpeed = int(sqrt(wind[0]**2 + wind[1]**2))
-        if windSpeed > 30: windSpeed = 30
-        
-        stokes_drift_x_velocity = \
-            Wf.get(fetch, Wf[25000])[windSpeed] * wind[0]
-        
-        stokes_drift_y_velocity = \
-            Wf.get(fetch, Wf[25000])[windSpeed] * wind[1]
+            Wf['50000'] = (0.0173,0.0197,0.0210,0.0216,0.0201,0.0194,
+                         0.0190,0.0186,0.0183,0.0179,0.0176,0.0173,
+                         0.0171,0.0168,0.0166,0.0164,0.0162,0.0160,
+                         0.0159,0.0157,0.0156,0.0155,0.0153,0.0152,
+                         0.0151,0.0150,0.0149,0.0148,0.0147,0.0146)
+            n = {'5000': 3, '25000':6, '50000': 6}  # Polynom order
+
+            self.stokes_coefficients = {}
+            for f in ['5000', '25000', '50000']:
+                self.stokes_coefficients[f] = np.polyfit(
+                    range(len(Wf[f])), Wf[f], n[f])
+
+        windspeed = np.sqrt(wind[0]**2 + wind[1]**2)
+        windspeed[windspeed>30] = 30
+        wf = np.polyval(self.stokes_coefficients[fetch], windspeed)
+        stokes_drift_x_velocity = wind[0]*wf
+        stokes_drift_y_velocity = wind[1]*wf
 
         return stokes_drift_x_velocity, stokes_drift_y_velocity
+
 
     def wave_significant_height_parameterised(self, wind, fetch):
         """
         Parameterise significant wave height based on pre calculated tables and fetch.
         """
-        Sw       = {}
-        Sw[5000] = (0.030,0.077,0.124,0.170,0.216,0.263,
-                    0.311,0.360,0.409,0.459,0.509,0.560,
-                    0.612,0.664,0.716,0.771,0.823,0.876,
-                    0.932,0.987,1.041,1.095,1.152,1.210,
-                    1.265,1.319,1.375,1.434,1.494,1.552)
+        if not hasattr(self, 'hs_coefficients'):
+            Sw       = {}
+            Sw['5000'] = (0.030,0.077,0.124,0.170,0.216,0.263,
+                        0.311,0.360,0.409,0.459,0.509,0.560,
+                        0.612,0.664,0.716,0.771,0.823,0.876,
+                        0.932,0.987,1.041,1.095,1.152,1.210,
+                        1.265,1.319,1.375,1.434,1.494,1.552)
 
-        Sw[25000] = (0.030,0.122,0.251,0.336,0.442,0.546,
-                     0.650,0.753,0.856,0.959,1.063,1.168,
-                     1.273,1.379,1.486,1.593,1.702,1.811,
-                     1.920,2.030,2.142,2.254,2.366,2.478,
-                     2.592,2.707,2.822,2.936,3.051,3.166)
+            Sw['25000'] = (0.030,0.122,0.251,0.336,0.442,0.546,
+                         0.650,0.753,0.856,0.959,1.063,1.168,
+                         1.273,1.379,1.486,1.593,1.702,1.811,
+                         1.920,2.030,2.142,2.254,2.366,2.478,
+                         2.592,2.707,2.822,2.936,3.051,3.166)
 
-        Sw[50000] = (0.030,0.122,0.274,0.474,0.591,0.724,
-                     0.873,1.021,1.168,1.314,1.460,1.606,
-                     1.752,1.898,2.045,2.192,2.340,2.489,
-                     2.639,2.789,2.940,3.092,3.244,3.397,
-                     3.551,3.706,3.862,4.017,4.173,4.330)
+            Sw['50000'] = (0.030,0.122,0.274,0.474,0.591,0.724,
+                         0.873,1.021,1.168,1.314,1.460,1.606,
+                         1.752,1.898,2.045,2.192,2.340,2.489,
+                         2.639,2.789,2.940,3.092,3.244,3.397,
+                         3.551,3.706,3.862,4.017,4.173,4.330)
 
-        windSpeed = int(sqrt(wind[0]**2 + wind[1]**2))
-        if windSpeed > 30: windSpeed = 30
+            self.hs_coefficients = {}
+            for f in ['5000', '25000', '50000']:
+                self.hs_coefficients[f] = np.polyfit(
+                    range(len(Sw[f])), Sw[f], 1)
 
-        wave_significant_height = \
-            Sw.get(fetch, Sw[25000])[windSpeed]
+        windspeed = np.sqrt(wind[0]**2 + wind[1]**2)
+        windspeed[windspeed>30] = 30
+        wave_significant_height = np.polyval(
+            self.hs_coefficients[fetch], windspeed)
 
         return wave_significant_height
 

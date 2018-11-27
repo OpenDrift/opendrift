@@ -104,6 +104,8 @@ class BaseReader(object):
         'sea_water_y_velocity': 'y_sea_water_velocity',
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'northward_sea_water_velocity': 'y_sea_water_velocity',
+        'surface_eastward_sea_water_velocity': 'x_sea_water_velocity',
+        'surface_northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward_current_velocity': 'x_sea_water_velocity',
         'northward_current_velocity': 'y_sea_water_velocity',
         'eastward_tidal_current': 'x_sea_water_velocity',
@@ -148,7 +150,6 @@ class BaseReader(object):
                 self.proj = fakeproj()
                 self.projected = False
                 logging.info('Making Splines for lon,lat to x,y conversion...')
-
                 block_x, block_y = np.meshgrid(
                     np.arange(self.xmin, self.xmax + 1, 1),
                     np.arange(self.ymin, self.ymax + 1, 1))
@@ -953,6 +954,17 @@ class BaseReader(object):
                 time = str(time)[0:str(time).find('.') + 2]
                 outStr += '%10s  %s\n' % (time, cat)
         return outStr
+
+    def clip_boundary_pixels(self, numpix):
+        '''Trim some (potentially bad) pixels along boundary'''
+        logging.info('Trimming %i pixels from boundary' % numpix)
+        self.xmin = self.xmin+numpix*self.delta_x
+        self.xmax = self.xmax-numpix*self.delta_x
+        self.ymin = self.ymin+numpix*self.delta_y
+        self.ymax = self.ymax-numpix*self.delta_y
+        self.shape = tuple([self.shape[0]-2*numpix,
+                            self.shape[1]-2*numpix])
+        self.clipped = numpix
 
     def plot(self, variable=None, vmin=None, vmax=None,
              filename=None, title=None):

@@ -117,6 +117,9 @@ class OpenOil(OpenDriftSimulation):
             dispersion = boolean(default=True)
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
+        [drift]
+            current_uncertainty = float(min=0, max=5, default=0.05)
+            wind_uncertainty = float(min=0, max=5, default=.5)
     '''
 
     duplicate_oils = ['ALVHEIM BLEND, STATOIL', 'DRAUGEN, STATOIL',
@@ -141,8 +144,6 @@ class OpenOil(OpenDriftSimulation):
 
 
     def __init__(self, weathering_model='default', *args, **kwargs):
-
-        self._add_configstring(self.configspec)
 
         if weathering_model == 'noaa':
             try:
@@ -195,6 +196,9 @@ class OpenOil(OpenDriftSimulation):
 
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
+
+        # Overriding with specific configspec
+        self._add_configstring(self.configspec)
 
     def evaporate(self):
         if self.get_config('processes:evaporation') is True:
@@ -580,6 +584,7 @@ class OpenOil(OpenDriftSimulation):
 
         z, dummy = self.get_property('z')
         mass_oil, status = self.get_property('mass_oil')
+        density = self.get_property('density')[0][0,0]
 
         if 'stranded' not in self.status_categories:
             self.status_categories.append('stranded')
@@ -602,6 +607,7 @@ class OpenOil(OpenDriftSimulation):
         mass_dispersed = np.sum(mass_dispersed, axis=1).filled(0)
 
         oil_budget = {
+            'oil_density': density,
             'mass_dispersed': mass_dispersed,
             'mass_submerged': mass_submerged,
             'mass_surface': mass_surface,
@@ -632,6 +638,7 @@ class OpenOil(OpenDriftSimulation):
         oil_budget = np.row_stack(
             (b['mass_dispersed'], b['mass_submerged'],
              b['mass_surface'], b['mass_stranded'], b['mass_evaporated']))
+        oil_density = b['oil_density']
 
         budget = np.cumsum(oil_budget, axis=0)
 
@@ -672,16 +679,18 @@ class OpenOil(OpenDriftSimulation):
         ax1.set_ylabel('Mass oil  [%s]' %
                        self.elements.variables['mass_oil']['units'])
         ax1.set_xlabel('Time  [hours]')
-        # Right axis showing percent
+        # Right axis showing volume
         ax2 = ax1.twinx()
-        ax2.set_ylim([0, 100])
-        ax2.set_ylabel('Percent')
+        mass_total = b['mass_total'][-1]
+        ax2.set_ylim([0, mass_total/oil_density])
+        ax2.set_ylabel('Volume oil [m3]')
         if not hasattr(self, 'oil_name'):  # TODO
             self.oil_name = 'unknown oiltype'
             # TODO line below is dangerous when importing old files
             self.oil_name = self.get_config('seed:oil_type')
-        plt.title('%s - %s to %s' %
+        plt.title('%s (%.1f kg/m3) - %s to %s' %
                   (self.oil_name,
+                   oil_density,
                    self.start_time.strftime('%Y-%m-%d %H:%M'),
                    self.time.strftime('%Y-%m-%d %H:%M')))
         # Shrink current axis's height by 10% on the bottom

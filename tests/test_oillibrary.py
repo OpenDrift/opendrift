@@ -17,6 +17,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import os
 import unittest
 import logging
 from datetime import datetime, timedelta
@@ -52,12 +53,49 @@ class TestOil(unittest.TestCase):
             o.set_config('processes:evaporation', True)
             o.set_config('processes:emulsification', True)
             o.set_config('processes:turbulentmixing', False)
+            o.set_config('drift:wind_uncertainty', 0)
+            o.set_config('drift:current_uncertainty', 0)
             o.run(steps=3)
             self.assertEqual(o.elements.mass_evaporated.min(),
                              o.elements.mass_evaporated.max())
             self.assertTrue(o.elements.mass_evaporated.min() > 0)
             self.assertTrue(o.elements.mass_evaporated.max() <= 1)
             print(oiltype, o.elements.mass_evaporated.min())
+
+    @unittest.skipIf(has_oil_library is False,
+                     'NOAA OilLibrary is needed')
+    def test_oilbudget(self):
+        for windspeed in [3, 8]:
+            for dispersion in [True, False]:
+                o = OpenOil3D(loglevel=30, weathering_model='noaa')
+                o.fallback_values['x_wind'] = windspeed
+                o.fallback_values['y_wind'] = 0
+                o.fallback_values['x_sea_water_velocity'] = 0
+                o.fallback_values['y_sea_water_velocity'] = 0
+                o.fallback_values['land_binary_mask'] = 0
+                o.set_config('seed:oil_type', 'SIRTICA')
+                o.set_config('processes:dispersion', dispersion)
+                seed_hours=3
+                m3_per_hour=200
+                o.seed_elements(lon=0, lat=60, number=100,
+                                m3_per_hour=m3_per_hour,
+                                time=[datetime.now(),
+                                      datetime.now() +
+                                        timedelta(hours=seed_hours)])
+                o.run(duration=timedelta(hours=4))
+                b = o.get_oil_budget()
+                density = o.get_property('density')[0][0,0]
+                volume = b['mass_total']/density
+                self.assertAlmostEqual(volume[-1],
+                                       seed_hours*m3_per_hour, 2)
+                
+                if dispersion is True:
+                    disp='dispersion'
+                else:
+                    disp='nodispersion'
+                filename = 'oilbudget_%s_%s.png' % (windspeed, disp)
+                o.plot_oil_budget(filename=filename)
+                os.remove(filename)
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
@@ -99,14 +137,14 @@ class TestOil(unittest.TestCase):
                     meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
                     fraction_dispersed = 0.086
-                    fraction_submerged = 0.280
-                    fraction_evaporated = 0.489
-                    meanlon = 4.8182
+                    fraction_submerged = 0.271
+                    fraction_evaporated = 0.501
+                    meanlon = 4.820
                 elif oil == 'SKRUGARD' and windspeed == 8:
                     fraction_dispersed = 0.133
-                    fraction_submerged = 0.300
-                    fraction_evaporated = 0.188
-                    meanlon = 4.8280
+                    fraction_submerged = 0.243
+                    fraction_evaporated = 0.197
+                    meanlon = 4.832
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
@@ -115,7 +153,7 @@ class TestOil(unittest.TestCase):
                                        fraction_submerged, 2)
                 self.assertAlmostEqual(actual_evaporated[-1],
                                        fraction_evaporated, 2)
-                self.assertAlmostEqual(np.mean(o.elements.lon), meanlon, 4)
+                self.assertAlmostEqual(np.mean(o.elements.lon), meanlon, 3)
                 #o.plot_oil_budget()
 
     @unittest.skipIf(has_oil_library is False,
