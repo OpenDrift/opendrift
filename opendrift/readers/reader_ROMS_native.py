@@ -314,8 +314,19 @@ class Reader(BaseReader):
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
                     logging.debug('sigma to z for ' + varname[0])
-                    variables[par] = depth.multi_zslice(
-                        variables[par], z_rho, variables['z'])
+                    if 's2z' not in locals():
+                        variables[par], s2z = depth.multi_zslice(
+                            variables[par], z_rho, variables['z'])
+                        A,C,I,kmax = s2z
+                    else:
+                        # Re-using sigma2z koefficients:
+                        F = np.asarray(variables[par])
+                        Fshape = F.shape
+                        N = F.shape[0]
+                        M = F.size // N
+                        F = F.reshape((N, M))
+                        R = (1-A)*F[(C-1, I)]+A*F[(C, I)]
+                        variables[par] = R.reshape((kmax,) + Fshape[1:])
                     # Nan in input to multi_zslice gives extreme values in output
                     variables[par][variables[par]>1e+9] = np.nan
 
