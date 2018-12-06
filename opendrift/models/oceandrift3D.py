@@ -86,6 +86,8 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
         to be used in turbulent mixing module.
         Using zero for passive particles, i.e. following water particles
         '''
+        
+        # TODO: setting to scalar has lead to trouble - should be array of num_elements
         self.elements.terminal_velocity = 0.
 
     def update(self):
@@ -102,8 +104,9 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
         self.stokes_drift()
 
         # Turbulent Mixing
-        self.update_terminal_velocity()
-        self.vertical_mixing()
+        if self.get_config('processes:turbulentmixing') is True:
+            self.update_terminal_velocity()
+            self.vertical_mixing()
 
         # Vertical advection
         self.vertical_advection()
