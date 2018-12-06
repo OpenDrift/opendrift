@@ -16,6 +16,7 @@
 
 import logging
 from bisect import bisect_left, bisect_right
+from datetime import datetime
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
@@ -57,11 +58,11 @@ class Reader(BaseReader):
             'Vwind': 'y_wind'}
 
         # z-levels to which sigma-layers may be interpolated
-        self.zlevels = [
+        self.zlevels = np.array([
             0, -.5, -1, -3, -5, -10, -25, -50, -75, -100, -150, -200,
             -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
             -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
-            -6500, -7000, -7500, -8000]
+            -6500, -7000, -7500, -8000])
 
         filestr = str(filename)
         if name is None:
@@ -168,6 +169,8 @@ class Reader(BaseReader):
 
         self.name = 'roms native'
 
+        self.precalculate_s2z_coefficients = True
+
         # Find all variables having standard_name
         self.variables = []
         for var_name in self.Dataset.variables:
@@ -233,6 +236,10 @@ class Reader(BaseReader):
                 logging.debug('Reading sea floor depth...')
                 self.sea_floor_depth_below_sea_level = \
                     self.Dataset.variables['h'][:]
+
+                Htot = self.sea_floor_depth_below_sea_level
+                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r)
+
             indxgrid, indygrid = np.meshgrid(indx, indy)
             H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
             z_rho = depth.sdepth(H, self.hc, self.Cs_r)
@@ -314,11 +321,63 @@ class Reader(BaseReader):
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
                     logging.debug('sigma to z for ' + varname[0])
-                    if 's2z' not in locals():
+                    if self.precalculate_s2z_coefficients is True:
+                        M = self.sea_floor_depth_below_sea_level.shape[0]
+                        N = self.sea_floor_depth_below_sea_level.shape[1]
+                        O = len(self.z_rho_tot)
+                        if not hasattr(self, 's2z_A'):
+                            logging.info('Calculating sigma2z-coefficients for whole domain')
+                            starttime = datetime.now()
+                            dummyvar = np.ones((O, M, N))
+                            dummy, self.s2z_total = depth.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
+                            # Store arrays/coefficients
+                            self.s2z_A = self.s2z_total[0].reshape(len(self.zlevels), M, N)
+                            self.s2z_C = self.s2z_total[1].reshape(len(self.zlevels), M, N)
+                            #self.s2z_I = self.s2z_total[2].reshape(M, N)
+                            self.s2z_kmax = self.s2z_total[3]
+                            del self.s2z_total  # Free memory
+                            logging.info('Time: ' + str(datetime.now() - starttime))
+                        if 'A' not in locals():
+                            logging.info('Re-using sigma2z-coefficients')
+                            # Select relevant subset of full arrays
+                            zle = np.arange(zi1, zi2)  # The relevant depth levels
+                            A = self.s2z_A.copy()  # Awkward subsetting to prevent losing one dimension
+                            A = A[:,:,indx]
+                            A = A[:,indy,:]
+                            A = A[zle,:,:]
+                            C = self.s2z_C.copy()
+                            C = C[:,:,indx]
+                            C = C[:,indy,:]
+                            C = C[zle,:,:]
+                            C = C - C.max() + variables[par].shape[0] - 1
+                            C[C<1] = 1
+                            A = A.reshape(len(zle), len(indx)*len(indy))
+                            C = C.reshape(len(zle), len(indx)*len(indy))
+                            I = np.arange(len(indx)*len(indy))
+                            ## Check
+                            #dummyvar2, s2z = depth.multi_zslice(
+                            #    variables[par].copy(), z_rho.copy(), variables['z'])
+                            #print len(zle), variables[par].shape, 'zle, varshape'
+                            #Ac,Cc,Ic,kmaxc = s2z
+                            #print C, 'C'
+                            #print Cc, 'Cc'
+                            #print C.shape, Cc.shape
+                            #if C.max() != Cc.max():
+                            #    print 'WARNING!!'
+                            #    import sys; sys.exit('stop')
+                            kmax = len(zle)  # Must be checked. Or number of sigma-layers?
+                    if 'A' not in locals():
+                        logging.info('Calculating new sigma2z-coefficients')
                         variables[par], s2z = depth.multi_zslice(
                             variables[par], z_rho, variables['z'])
                         A,C,I,kmax = s2z
+                        # Reshaping to compare with subset of full array
+                        #zle = np.arange(zi1, zi2)
+                        #A = A.reshape(len(zle), len(indx), len(indy))
+                        #C = C.reshape(len(zle), len(indx), len(indy))
+                        #I = I.reshape(len(indx), len(indy))
                     else:
+                        logging.info('Applying sigma2z-coefficients')
                         # Re-using sigma2z koefficients:
                         F = np.asarray(variables[par])
                         Fshape = F.shape
@@ -327,6 +386,7 @@ class Reader(BaseReader):
                         F = F.reshape((N, M))
                         R = (1-A)*F[(C-1, I)]+A*F[(C, I)]
                         variables[par] = R.reshape((kmax,) + Fshape[1:])
+
                     # Nan in input to multi_zslice gives extreme values in output
                     variables[par][variables[par]>1e+9] = np.nan
 
