@@ -71,6 +71,7 @@ def versions():
     import sys
     s = '\n------------------------------------------------------\n'
     s += 'Software and hardware:\n'
+    s += '  OpenDrift version %s\n' % __version__
     try:
         from psutil import virtual_memory
         ram = virtual_memory().total/(1024**3)

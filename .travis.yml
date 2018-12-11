@@ -5,17 +5,18 @@ addons:
     - gfortran
 python:
   - 2.7
-  - 3.5
+  - 3.7
 env:
   - NUMPY=1.8.2  SCIPY=0.13.3 NETCDF=1.1   MATPLOTLIB=1.3 BASEMAP=1.0.8 # Ubuntu 14.04
   - NUMPY=1.9    SCIPY=0.17   NETCDF=1.1   MATPLOTLIB=1.4 BASEMAP=1.0.8
   - NUMPY=1.11   SCIPY=0.17   NETCDF=1.2.4 MATPLOTLIB=1.5 BASEMAP=1.0.8
   - NUMPY=1.13.3 SCIPY=1.0    NETCDF=1.3.0 MATPLOTLIB=2.0 BASEMAP=1.1.0
-  - NUMPY=1.15.4 SCIPY=1.1    NETCDF=1.4.2 MATPLOTLIB=3.0.0 BASEMAP=1.2.0 # Bleeding edge
+  - NUMPY=1.15.4 SCIPY=1.1    NETCDF=1.4.2 MATPLOTLIB=3.0.2 BASEMAP=1.2.0 # Bleeding edge
 matrix:
   fast_finish: true
   allow_failures:
     - env: NUMPY=1.8.2  SCIPY=0.13.3 NETCDF=1.1   MATPLOTLIB=1.3 BASEMAP=1.0.8
+    - env: NUMPY=1.9    SCIPY=0.17   NETCDF=1.1   MATPLOTLIB=1.4 BASEMAP=1.0.8
 cache:
   directories:
     - $HOME/download/oillibrary
