@@ -246,7 +246,7 @@ def multi_zslice(F, S, Z):
     # Give the result the correct shape
     R = R.reshape((kmax,) + Fshape[1:])
 
-    return R
+    return R, (A, C, I, kmax)
 
 # ------------------------------------------------------
 

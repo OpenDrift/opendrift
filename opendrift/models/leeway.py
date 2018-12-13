@@ -142,6 +142,10 @@ class Leeway(OpenDriftSimulation):
                          'integer(min=1, max=1440, default=10)',
                          'Time step in minutes',
                          overwrite=True)
+        self._add_config('general:time_step_output_minutes',
+                         'integer(min=1, max=1440, default=60)',
+                         'Output time step in minutes',
+                         overwrite=True)
 
     def seed_elements(self, lon, lat, radius=0, number=1, time=None,
                       objectType=None, cone=None, jibeProbability=None):

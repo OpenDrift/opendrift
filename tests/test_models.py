@@ -29,6 +29,9 @@ from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
 
 
+import opendrift
+print(opendrift.versions())
+
 class TestModels(unittest.TestCase):
     """Tests for OpenDrift models"""
 

@@ -3,9 +3,7 @@ import importlib
 import numpy as np
 import time
 from datetime import timedelta
-
 from .version import __version__
-
 
 # For automated access to available drift classes, e.g. for GUI
 # Hardcoded for now
@@ -62,6 +60,35 @@ def open(filename):
     o.io_import_file(filename)
     logging.info('Returning ' + str(type(o)) + ' object')
     return o
+
+def versions():
+    import multiprocessing
+    import platform
+    import scipy
+    import matplotlib
+    from mpl_toolkits import basemap
+    import netCDF4
+    import sys
+    s = '\n------------------------------------------------------\n'
+    s += 'Software and hardware:\n'
+    s += '  OpenDrift version %s\n' % __version__
+    try:
+        from psutil import virtual_memory
+        ram = virtual_memory().total/(1024**3)
+    except:
+        ram = 'unknown'
+    s += '  %s GB memory\n' % ram
+    s += '  %s processors (%s)\n' % (multiprocessing.cpu_count(),
+                                   platform.processor())
+    s += '  Basemap version %s\n' % basemap.__version__
+    s += '  NumPy version %s\n' % np.__version__
+    s += '  SciPy version %s\n' % scipy.__version__
+    s += '  Matplotlib version %s\n' % matplotlib.__version__
+    s += '  NetCDF4 version %s\n' % netCDF4.__version__
+    s += '  Python version %s\n' % sys.version.replace('\n', '')
+    s += '------------------------------------------------------\n'
+    return s
+    
 
 def import_from_ladim(ladimfile, romsfile):
     """Import Ladim output file as OpenDrift simulation obejct"""
