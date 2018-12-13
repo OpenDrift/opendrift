@@ -2371,14 +2371,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def set_up_map(self, buffer=.1, delta_lat=None, **kwargs):
         """Generate Basemap instance on which trajectories are plotted."""
-<<<<<<< HEAD
-=======
-
         try:  # Clear any existing figure instances
             plt.close()
         except:
             pass
->>>>>>> upstream/master
+
         lons, lats = self.get_lonlats()
 
         # Initialise map
