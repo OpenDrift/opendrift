@@ -549,7 +549,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def performance(self):
         '''Report the time spent on various tasks'''
-
+         # pre-allocate if outStr doesnt exist
+        if 'outStr' not in locals(): outStr = ''
         outStr += 'Performance:\n'
         for category, time in iteritems(self.timing):
             timestr = str(time)[0:str(time).find('.') + 2]
@@ -2915,13 +2916,8 @@ class OpenDriftSimulation(PhysicsMethods):
             linecolor: name of variable to be used for coloring trajectories.
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
         """
-<<<<<<< HEAD
-        
-=======
 
         start_time = datetime.now()
-
->>>>>>> upstream/master
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, **kwargs)
         
@@ -2995,7 +2991,6 @@ class OpenDriftSimulation(PhysicsMethods):
             label_active = None
             color_initial = 'gray'
             color_active = 'gray'
-<<<<<<< HEAD
 
         map.scatter(x[range(x.shape[0]), index_of_first],
                     y[range(x.shape[0]), index_of_first], s=markersize,
@@ -3046,7 +3041,6 @@ class OpenDriftSimulation(PhysicsMethods):
                             s=markersize,
                             zorder=zorder, edgecolor='k', linewidths=.1,
                             color=color_status, label=legstr)
-=======
         if show_particles is True:
             map.scatter(x[range(x.shape[0]), index_of_first],
                         y[range(x.shape[0]), index_of_first],
@@ -3098,8 +3092,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                 s=markersize,
                                 zorder=zorder, edgecolor='k', linewidths=.1,
                                 color=color_status, label=legstr)
->>>>>>> upstream/master
-
+                    
         if compare is not None:
             cd = self._get_comparison_xy_for_plots(map, compare)
             for i, c in enumerate(cd):
