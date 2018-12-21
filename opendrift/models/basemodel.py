@@ -3648,7 +3648,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 try:
                     anim.save(filename, fps=fps, writer='imagemagick')
                 except:  # For old version of matplotlib
-                    anim.save(filename, fps=fps, clear_temp=False)
+                    anim.save(filename, fps=fps)#, clear_temp=False)
                     os.system('convert -delay %i _tmp*.png %s' %
                             (np.abs(self.time_step_output.total_seconds())/
                              3600.*24., filename))

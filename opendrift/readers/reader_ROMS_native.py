@@ -20,6 +20,12 @@ from datetime import datetime
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
+try:
+    import xarray as xr
+    has_xarray = True
+except:
+    has_xarray = False
+has_xarray = False  # Temporary disabled
 
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers.roppy import depth
@@ -75,10 +81,16 @@ class Reader(BaseReader):
             logging.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logging.info('Opening files with MFDataset')
-                self.Dataset = MFDataset(filename)
+                if has_xarray is True:
+                    self.Dataset = xr.open_mfdataset(filename)
+                else:
+                    self.Dataset = MFDataset(filename)
             else:
                 logging.info('Opening file with Dataset')
-                self.Dataset = Dataset(filename, 'r')
+                if has_xarray is True:
+                    self.Dataset = xr.open_dataset(filename)
+                else:
+                    self.Dataset = Dataset(filename, 'r')
         except Exception as e:
             raise ValueError(e)
 
@@ -107,7 +119,10 @@ class Reader(BaseReader):
             try:
                 self.hc = self.Dataset.variables['hc'][:]
             except:
-                self.hc = self.Dataset.variables['hc'][0]
+                if has_xarray is True:
+                    self.hc = self.Dataset.variables['hc'].data  # scalar
+                else:
+                    self.hc = self.Dataset.variables['hc'][0]
 
             self.num_layers = len(self.sigma)
         else:
@@ -146,12 +161,18 @@ class Reader(BaseReader):
             ocean_time = self.Dataset.variables['ocean_time']
         except:
             ocean_time = self.Dataset.variables['time']
-        time_units = ocean_time.__dict__['units']
-        if time_units == 'second':
-            logging.info('Ocean time given as seconds relative to start '
-                         'Setting artifical start time of 1 Jan 2000.')
-            time_units = 'seconds since 2000-01-01 00:00:00'
-        self.times = num2date(ocean_time[:], time_units)
+        if has_xarray:
+            self.times = [datetime.utcfromtimestamp((OT -
+                          np.datetime64('1970-01-01T00:00:00Z')
+                            ) / np.timedelta64(1, 's'))
+                          for OT in ocean_time.data]
+        else:
+            time_units = ocean_time.__dict__['units']
+            if time_units == 'second':
+                logging.info('Ocean time given as seconds relative to start '
+                             'Setting artifical start time of 1 Jan 2000.')
+                time_units = 'seconds since 2000-01-01 00:00:00'
+            self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
         if len(self.times) > 1:
@@ -161,11 +182,18 @@ class Reader(BaseReader):
 
         # x and y are rows and columns for unprojected datasets
         self.xmin = 0.
-        self.xmax = np.float(len(self.Dataset.dimensions['xi_rho'])) - 1
         self.delta_x = 1.
         self.ymin = 0.
-        self.ymax = np.float(len(self.Dataset.dimensions['eta_rho'])) - 1
         self.delta_y = 1.
+        if has_xarray:
+            self.xmax = self.Dataset['xi_rho'].shape[0] - 1.
+            self.ymax = self.Dataset['eta_rho'].shape[0] - 1.
+            self.lon = self.lon.data  # Extract, could be avoided downstream
+            self.lat = self.lat.data
+            self.sigma = self.sigma.data
+        else:
+            self.xmax = np.float(len(self.Dataset.dimensions['xi_rho'])) - 1
+            self.ymax = np.float(len(self.Dataset.dimensions['eta_rho'])) - 1
 
         self.name = 'roms native'
 
@@ -240,8 +268,11 @@ class Reader(BaseReader):
                 Htot = self.sea_floor_depth_below_sea_level
                 self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r)
 
-            indxgrid, indygrid = np.meshgrid(indx, indy)
-            H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
+            if has_xarray is False:
+                indxgrid, indygrid = np.meshgrid(indx, indy)
+                H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
+            else:
+                H = self.sea_floor_depth_below_sea_level[indy, indx]
             z_rho = depth.sdepth(H, self.hc, self.Cs_r)
             # Element indices must be relative to extracted subset
             indx_el = indx_el - indx.min()
@@ -273,23 +304,24 @@ class Reader(BaseReader):
                        self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
 
-            # Automatic masking may lead to trouble for ROMS files
-            # with valid_min/max, _Fill_value or missing_value
-            # https://github.com/Unidata/netcdf4-python/issues/703
-            var.set_auto_maskandscale(False)
+            if has_xarray is not True:
+                # Automatic masking may lead to trouble for ROMS files
+                # with valid_min/max, _Fill_value or missing_value
+                # https://github.com/Unidata/netcdf4-python/issues/703
+                var.set_auto_maskandscale(False)
 
-            try:
-                FillValue = getattr(var, '_FillValue')
-            except:
-                FillValue = None
-            try:
-                scale = getattr(var, 'scale_factor')
-            except:
-                scale = 1
-            try:
-                offset = getattr(var, 'add_offset')
-            except:
-                offset = 0
+                try:
+                    FillValue = getattr(var, '_FillValue')
+                except:
+                    FillValue = None
+                try:
+                    scale = getattr(var, 'scale_factor')
+                except:
+                    scale = 1
+                try:
+                    offset = getattr(var, 'add_offset')
+                except:
+                    offset = 0
 
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
@@ -301,21 +333,22 @@ class Reader(BaseReader):
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-			# Manual scaling, offsetting and masking due to issue with ROMS files
-            logging.debug('Manually masking %s, FillValue %s, scale %s, offset %s' % 
-                (par, FillValue, scale, offset))
-            if FillValue is not None:
-                if var.dtype != FillValue.dtype:
-                    mask = variables[par] == 0
-                    if not 'already_warned' in locals():
-                        logging.warning('Data type of variable (%s) and _FillValue (%s) is not the same. Masking 0-values instead' % (var.dtype, FillValue.dtype))
-                        already_warned = True
-                else:
-                    logging.warning('Masking ' + str(FillValue))
-                    mask = variables[par] == FillValue
-            variables[par] = variables[par]*scale + offset
-            if FillValue is not None:
-                variables[par][mask] = np.nan
+            if has_xarray is False:
+                # Manual scaling, offsetting and masking due to issue with ROMS files
+                logging.debug('Manually masking %s, FillValue %s, scale %s, offset %s' % 
+                    (par, FillValue, scale, offset))
+                if FillValue is not None:
+                    if var.dtype != FillValue.dtype:
+                        mask = variables[par] == 0
+                        if not 'already_warned' in locals():
+                            logging.warning('Data type of variable (%s) and _FillValue (%s) is not the same. Masking 0-values instead' % (var.dtype, FillValue.dtype))
+                            already_warned = True
+                    else:
+                        logging.warning('Masking ' + str(FillValue))
+                        mask = variables[par] == FillValue
+                variables[par] = variables[par]*scale + offset
+                if FillValue is not None:
+                    variables[par][mask] = np.nan
 
             if var.ndim == 4:
                 # Regrid from sigma to z levels
@@ -458,7 +491,10 @@ class Reader(BaseReader):
             if not hasattr(self, 'angle_xi_east'):
                 logging.debug('Reading angle between xi and east...')
                 self.angle_xi_east = self.Dataset.variables['angle'][:]
-            rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
+            if has_xarray is False:
+                rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
+            else:
+                rad = self.angle_xi_east[indy, indx].T
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(
