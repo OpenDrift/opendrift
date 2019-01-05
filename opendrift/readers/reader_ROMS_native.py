@@ -340,9 +340,7 @@ class Reader(BaseReader):
                     mask = self.mask_rho[indygrid, indxgrid]
                 if has_xarray is True:
                     mask = np.asarray(mask)
-                if mask.min() == 1:
-                    print('No mask value found for ' + par)
-                else:
+                if mask.min() == 0 and par != 'land_binary_mask':
                     first_mask_point = np.where(mask.ravel()==0)[0][0]
                     if variables[par].ndim == 3:
                         upper = variables[par][0,:,:]

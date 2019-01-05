@@ -165,6 +165,20 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(len(o._lazy_readers()), 2)
         self.assertEqual(len(o.discarded_readers), 1)
 
+    def test_ROMS_native_stranding(self):
+        o = OceanDrift(loglevel=30)
+        r = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        o.add_reader(r)
+        o.set_config('general:use_basemap_landmask', False)
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 10
+        o.seed_elements(lon=15.2, lat=68.3, time=r.start_time,
+                        wind_drift_factor=.02,
+                        number=10, radius=1000)
+        o.run(steps=8)
+        self.assertEqual(o.num_elements_deactivated(), 4)
+
     #def test_lazy_readers_and_corrupt_data(self):
     #    o = OceanDrift(loglevel=0)
 
