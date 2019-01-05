@@ -150,7 +150,7 @@ class TestReaders(unittest.TestCase):
                       str(type(getattr(rr, att))))
 
     def test_lazy_reader_oildrift(self):
-        o = OpenOil3D(loglevel=20)
+        o = OpenOil3D(loglevel=0)
         reader_constant_wind = \
             reader_constant.Reader({'x_wind':5, 'y_wind': 6})
         o.add_reader(reader_constant_wind)
