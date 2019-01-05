@@ -25,7 +25,7 @@ try:
     has_xarray = True
 except:
     has_xarray = False
-has_xarray = False  # Temporary disabled
+#has_xarray = False  # Temporary disabled
 
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers.roppy import depth
@@ -82,7 +82,9 @@ class Reader(BaseReader):
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logging.info('Opening files with MFDataset')
                 if has_xarray is True:
-                    self.Dataset = xr.open_mfdataset(filename)
+                    self.Dataset = xr.open_mfdataset(filename,
+                        chunks={'ocean_time': 1}, concat_dim='ocean_time',
+                        data_vars='minimal', coords='minimal')
                 else:
                     self.Dataset = MFDataset(filename)
             else:
@@ -299,29 +301,11 @@ class Reader(BaseReader):
             variables['z'] = np.array(self.zlevels[zi1:zi2])
 
         #read_masks = {}  # To store maskes for various grids
+        mask_values = {}
         for par in requested_variables:
             varname = [name for name, cf in
                        self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
-
-            if has_xarray is not True:
-                # Automatic masking may lead to trouble for ROMS files
-                # with valid_min/max, _Fill_value or missing_value
-                # https://github.com/Unidata/netcdf4-python/issues/703
-                var.set_auto_maskandscale(False)
-
-                try:
-                    FillValue = getattr(var, '_FillValue')
-                except:
-                    FillValue = None
-                try:
-                    scale = getattr(var, 'scale_factor')
-                except:
-                    scale = 1
-                try:
-                    offset = getattr(var, 'add_offset')
-                except:
-                    offset = 0
 
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
@@ -333,22 +317,39 @@ class Reader(BaseReader):
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-            if has_xarray is False:
-                # Manual scaling, offsetting and masking due to issue with ROMS files
-                logging.debug('Manually masking %s, FillValue %s, scale %s, offset %s' % 
-                    (par, FillValue, scale, offset))
-                if FillValue is not None:
-                    if var.dtype != FillValue.dtype:
-                        mask = variables[par] == 0
-                        if not 'already_warned' in locals():
-                            logging.warning('Data type of variable (%s) and _FillValue (%s) is not the same. Masking 0-values instead' % (var.dtype, FillValue.dtype))
-                            already_warned = True
+            variables[par] = np.asarray(variables[par])  # If Xarray
+
+            if par not in mask_values:
+                if has_xarray is False:
+                    indxgrid, indygrid = np.meshgrid(indx, indy)
+                else:
+                    indxgrid = indx
+                    indygrid = indy
+                if par == 'x_sea_water_velocity':
+                    if not hasattr(self, 'mask_u'):
+                        self.mask_u = self.Dataset.variables['mask_u'][:]
+                    mask = self.mask_u[indygrid, indxgrid]
+                elif par == 'y_sea_water_velocity':
+                    if not hasattr(self, 'mask_v'):
+                        self.mask_v = self.Dataset.variables['mask_v'][:]
+                    mask = self.mask_v[indygrid, indxgrid]
+                else:
+                    if not hasattr(self, 'mask_rho'):
+                        # For ROMS-Agrif this must perhaps be mask_psi?
+                        self.mask_rho = self.Dataset.variables['mask_rho'][:]
+                    mask = self.mask_rho[indygrid, indxgrid]
+                if has_xarray is True:
+                    mask = np.asarray(mask)
+                if mask.min() == 1:
+                    print('No mask value found for ' + par)
+                else:
+                    first_mask_point = np.where(mask.ravel()==0)[0][0]
+                    if variables[par].ndim == 3:
+                        upper = variables[par][0,:,:]
                     else:
-                        logging.warning('Masking ' + str(FillValue))
-                        mask = variables[par] == FillValue
-                variables[par] = variables[par]*scale + offset
-                if FillValue is not None:
-                    variables[par][mask] = np.nan
+                        upper = variables[par]
+                    mask_values[par] = upper.ravel()[first_mask_point]
+                    variables[par][variables[par]==mask_values[par]] = np.nan
 
             if var.ndim == 4:
                 # Regrid from sigma to z levels
@@ -494,7 +495,7 @@ class Reader(BaseReader):
             if has_xarray is False:
                 rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
             else:
-                rad = self.angle_xi_east[indy, indx].T
+                rad = self.angle_xi_east[indy, indx]
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(

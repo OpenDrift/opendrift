@@ -50,9 +50,9 @@ class TestStranding(unittest.TestCase):
         self.assertEqual(o.elements_deactivated.status.min(), 1)
         self.assertEqual(o.elements_deactivated.status.max(), 1)
         self.assertEqual(o.num_elements_scheduled(), 0)
-        self.assertEqual(o.num_elements_active(), 88)
+        self.assertEqual(o.num_elements_active(), 89)
         self.assertEqual(o.num_elements_activated(), 100)
-        self.assertEqual(o.num_elements_deactivated(), 12)
+        self.assertEqual(o.num_elements_deactivated(), 11)
         self.assertEqual(o.num_elements_total(), 100)
 
     def test_stranding_roms(self):
