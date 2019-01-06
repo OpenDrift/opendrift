@@ -162,6 +162,7 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
         o.run(steps=5)
+        print(o)  # Debug, this fails for old libraries
         self.assertEqual(len(o._lazy_readers()), 2)
         self.assertEqual(len(o.discarded_readers), 1)
 

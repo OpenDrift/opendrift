@@ -307,7 +307,17 @@ class Reader(BaseReader):
                        self.ROMS_variable_mapping.items() if cf == par]
             var = self.Dataset.variables[varname[0]]
 
-            if var.ndim == 2:
+            if par == 'land_binary_mask':
+                if not hasattr(self, 'land_binary_mask'):
+                    # Read landmask for whole domain, for later re-use
+                    self.land_binary_mask = \
+                        1 - self.Dataset.variables['mask_rho'][:]
+                if has_xarray is False:
+                    indxgrid, indygrid = np.meshgrid(indx, indy)
+                    variables[par] = self.land_binary_mask[indygrid, indxgrid]
+                else:
+                    variables[par] = self.land_binary_mask[indy, indx]
+            elif var.ndim == 2:
                 variables[par] = var[indy, indx]
             elif var.ndim == 3:
                 variables[par] = var[indxTime, indy, indx]
@@ -509,10 +519,6 @@ class Reader(BaseReader):
                     variables['y_wind'] = rotate_vectors_angle(
                         variables['x_wind'],
                         variables['y_wind'], rad)
-
-        if 'land_binary_mask' in requested_variables:
-            variables['land_binary_mask'] = \
-                1 - variables['land_binary_mask']
 
         # Masking NaN
         for var in requested_variables:
