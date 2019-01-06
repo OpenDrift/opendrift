@@ -382,10 +382,9 @@ class PhysicsMethods(object):
         # Pierson-Moskowitz if period not available from readers
         # WMO guide to wave analysis and forecasting pp. 14, WMO (1998)
         windspeed = self.wind_speed()
-      
-        omega = 0.877*9.81/(1.17*windspeed)
-        omega[windspeed==0] = 5  # fallback value if no wind speed or Hs
-                                     # just to avoid division by zero
+        # fallback value if no wind speed or Hs to avoid division by zero
+        omega = 5*np.ones(windspeed.shape)
+        omega[windspeed>0] = 0.877*9.81/(1.17*windspeed[windspeed>0])
         return omega
 
     def wave_period(self):
