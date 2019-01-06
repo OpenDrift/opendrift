@@ -1,3 +1,4 @@
+import logging
 import unittest
 import importlib
 import numpy as np
@@ -31,7 +32,6 @@ def open(filename):
     '''Import netCDF output file as OpenDrift object of correct class'''
 
     import os
-    import logging
     import pydoc
     from netCDF4 import Dataset
     if not os.path.exists(filename):
@@ -216,10 +216,11 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
 # Add timer for unittest
 def setUp(self):
     self._started_at = time.time()
+    logging.info('STARTING TEST: {}'.format(self.id()))
 
 def tearDown(self):
     elapsed = time.time() - self._started_at
-    print('TIMING: ({}s) {}'.format(round(elapsed, 2), self.id()))
+    logging.info('TIMING: ({}s) {}'.format(round(elapsed, 2), self.id()))
 
 unittest.TestCase.setUp = setUp
 unittest.TestCase.tearDown = tearDown

@@ -239,7 +239,7 @@ class ReaderBlock():
         for var in self.data_dict:
             if isinstance(self.data_dict[var], np.ma.core.MaskedArray):
                 self.data_dict[var] = np.ma.masked_outside(
-                    self.data_dict[var], -1E+9, 1E+9)
+                    np.ma.masked_invalid(self.data_dict[var]), -1E+9, 1E+9)
                 # Convert masked arrays to numpy arrays
                 self.data_dict[var] = np.ma.filled(self.data_dict[var],
                                                    fill_value=np.nan)
