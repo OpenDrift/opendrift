@@ -152,7 +152,10 @@ class TestReaders(unittest.TestCase):
     def test_lazy_reader_oildrift(self):
         o = OpenOil3D(loglevel=0)
         reader_constant_wind = \
-            reader_constant.Reader({'x_wind':5, 'y_wind': 6})
+            reader_constant.Reader({'x_wind':5, 'y_wind': 6,
+                                    'sea_ice_area_fraction': 0})
+            # Added ice area to prevent problems with masking
+            # with older versions of netCDF library
         o.add_reader(reader_constant_wind)
 
         o.add_readers_from_list(reader_list, lazy=True)
