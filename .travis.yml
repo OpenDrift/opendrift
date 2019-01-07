@@ -64,7 +64,7 @@ install:
   - conda install -q --yes -c conda-forge libgdal gdal coveralls pyproj basemap=$BASEMAP basemap-data-hires nomkl ffmpeg "x264<20180712";
   - conda install -q --yes -c conda-forge netcdf4=$NETCDF;
   - if [ "$XARRAY" ]; then
-        conda install -c conda-forge xarray=$XARRAY
+        conda install -c conda-forge xarray=$XARRAY;
     fi
   - cd /home/travis/build/OpenDrift/opendrift;
 script: coverage run -m unittest discover -s tests/
