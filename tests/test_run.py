@@ -115,7 +115,7 @@ class TestRun(unittest.TestCase):
     def test_runge_kutta(self):
         number = 50
         # With Euler
-        o = OceanDrift3D(loglevel=30, seed=0)
+        o = OceanDrift3D(loglevel=0, seed=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
         o.add_reader([norkyst])
@@ -124,7 +124,7 @@ class TestRun(unittest.TestCase):
                         time=norkyst.start_time)
         o.run(steps=4*3, time_step=timedelta(minutes=15))
         # With Runge-Kutta
-        o2 = OceanDrift3D(loglevel=30, seed=0)
+        o2 = OceanDrift3D(loglevel=0, seed=0)
         o2.fallback_values['land_binary_mask'] = 0
         o2.add_reader([norkyst])
         z=-40*np.random.rand(number)
