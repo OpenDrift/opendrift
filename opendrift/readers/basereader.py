@@ -351,7 +351,9 @@ class BaseReader(object):
             self.nearest_time(time)
         logging.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
                       (time_before, time_after))
-        if time == time_before:
+        # For variables which are not time dependent, we do not care about time
+        static_variables = ['sea_floor_depth_below_sea_level', 'land_binary_mask']
+        if time == time_before or all(v in static_variables for v in variables):
             time_after = None
 
         reader_x, reader_y = self.lonlat2xy(lon[ind_covered],
@@ -372,78 +374,91 @@ class BaseReader(object):
             self.timer_start('preparing')
 
         else:
+            block_before = block_after = None
+            blockvariables_before = variables
+            blockvars_before = str(variables)
+            blockvariables_after = variables
+            blockvars_after = str(variables)
+            for blockvars in self.var_block_before:
+                if all(v in blockvars for v in variables):
+                    block_before = self.var_block_before[blockvars]
+                    blockvariables_before = block_before.data_dict.keys()
+                    blockvars_before = blockvars
+                    break
+                blockvariables_before = variables
+                blockvars_before = str(variables)
+            for blockvars in self.var_block_after:
+                if all(v in blockvars for v in variables):
+                    block_after = self.var_block_after[blockvars]
+                    blockvariables_after = block_after.data_dict.keys()
+                    blockvars_after = blockvars
+                    break
+                
             # Swap before- and after-blocks if matching times
-            if str(variables) in self.var_block_before:
-                block_before_time = self.var_block_before[
-                    str(variables)].time
-                if str(variables) in self.var_block_after:
-                    block_after_time = self.var_block_after[
-                        str(variables)].time
-                    if block_before_time != time_before:
-                        if block_after_time == time_before:
-                            self.var_block_before[str(variables)] = \
-                                self.var_block_after[str(variables)]
-                    if block_after_time != time_after:
-                        if block_before_time == time_before:
-                            self.var_block_after[str(variables)] = \
-                                self.var_block_before[str(variables)]
+            if block_before is not None and block_after is not None:
+                if block_before.time != time_before:
+                    if block_after.time == time_before:
+                        block_before = block_after
+                        self.var_block_before[blockvars_before] = block_before
+                if block_after.time != time_after:
+                    if block_before.time == time_before:
+                        block_after = block_before
+                        self.var_block_after[blockvars_after] = block_after
             # Fetch data, if no buffer is available
-            if (not str(variables) in self.var_block_before) or \
-                    (self.var_block_before[str(variables)].time !=
-                     time_before):
+            if block_before is None or \
+                    block_before.time != time_before:
                 self.timer_end('preparing')
                 reader_data_dict = \
-                    self._get_variables(variables, profiles,
+                    self._get_variables(blockvariables_before, profiles,
                                         profiles_depth, time_before,
                                         reader_x, reader_y, z,
                                         block=block)
                 self.timer_start('preparing')
-                self.var_block_before[str(variables)] = \
+                self.var_block_before[blockvars_before] = \
                     ReaderBlock(reader_data_dict,
                                 interpolation_horizontal=self.interpolation)
                 try:
-                    len_z = len(self.var_block_before[str(variables)].z)
+                    len_z = len(self.var_block_before[blockvars_before].z)
                 except:
                     len_z = 1
                 logging.debug(('Fetched env-block (size %ix%ix%i) ' +
                               'for time before (%s)') %
-                              (len(self.var_block_before[str(variables)].x),
-                               len(self.var_block_before[str(variables)].y),
+                              (len(self.var_block_before[blockvars_before].x),
+                               len(self.var_block_before[blockvars_before].y),
                                len_z, time_before))
-            if not str(variables) in self.var_block_after or \
-                    self.var_block_after[str(variables)].time != time_after:
+                block_before = self.var_block_before[blockvars_before]
+            if block_after is None or block_after.time != time_after:
                 if time_after is None:
-                    self.var_block_after[str(variables)] = \
-                        self.var_block_before[str(variables)]
+                    self.var_block_after[blockvars_after] = \
+                        block_before
                 else:
                     self.timer_end('preparing')
                     reader_data_dict = \
-                        self._get_variables(variables, profiles,
+                        self._get_variables(blockvariables_after, profiles,
                                             profiles_depth, time_after,
                                             reader_x, reader_y, z,
                                             block=block)
                     self.timer_start('preparing')
-                    self.var_block_after[str(variables)] = \
+                    self.var_block_after[blockvars_after] = \
                         ReaderBlock(
                             reader_data_dict,
                             interpolation_horizontal=self.interpolation)
                     try:
-                        len_z = len(self.var_block_after[str(variables)].z)
+                        len_z = len(self.var_block_after[blockvars_after].z)
                     except:
                         len_z = 1
 
                     logging.debug(('Fetched env-block (size %ix%ix%i) ' +
                                   'for time after (%s)') %
-                                  (len(self.var_block_after[
-                                       str(variables)].x),
-                                   len(self.var_block_after[
-                                       str(variables)].y),
+                                  (len(self.var_block_after[blockvars_after].x),
+                                   len(self.var_block_after[blockvars_after].y),
                                    len_z, time_after))
+                    block_after = self.var_block_after[blockvars_after]
 
-            if self.var_block_before[str(variables)].covers_positions(
-                reader_x, reader_y) is False or \
-                self.var_block_after[str(variables)].covers_positions(
-                    reader_x, reader_y) is False:
+            if (block_before is not None and block_before.covers_positions(
+                reader_x, reader_y) is False) or (\
+                block_after is not None and block_after.covers_positions(
+                    reader_x, reader_y) is False):
                 logging.warning('Data block from %s not large enough to '
                                 'cover element positions within timestep. '
                                 'Buffer size (%s) must be increased.' %
@@ -455,19 +470,15 @@ class BaseReader(object):
             ############################################################
             self.timer_start('interpolation')
             logging.debug('Interpolating before (%s) in space  (%s)' %
-                          (self.var_block_before[str(variables)].time,
-                           self.interpolation))
-            env_before, env_profiles_before = self.var_block_before[
-                str(variables)].interpolate(
+                          (block_before.time, self.interpolation))
+            env_before, env_profiles_before = block_before.interpolate(
                     reader_x, reader_y, z, variables,
                     profiles, profiles_depth)
 
             if (time_after is not None) and (time_before != time):
                 logging.debug('Interpolating after (%s) in space  (%s)' %
-                              (self.var_block_after[str(variables)].time,
-                               self.interpolation))
-                env_after, env_profiles_after = self.var_block_after[
-                    str(variables)].interpolate(
+                              (block_after.time, self.interpolation))
+                env_after, env_profiles_after = block_after.interpolate(
                         reader_x, reader_y, z, variables,
                         profiles, profiles_depth)
 
@@ -483,10 +494,8 @@ class BaseReader(object):
                             (time_after - time_before).total_seconds())
             logging.debug(('Interpolating before (%s, weight %.2f) and'
                            '\n\t\t      after (%s, weight %.2f) in time') %
-                          (self.var_block_before[str(variables)].time,
-                           1 - weight_after,
-                           self.var_block_after[str(variables)].time,
-                           weight_after))
+                          (block_before.time, 1 - weight_after,
+                           block_after.time, weight_after))
             env = {}
             for var in variables:
                 # Weighting together, and masking invalid entries
