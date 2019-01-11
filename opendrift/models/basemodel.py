@@ -150,7 +150,7 @@ class OpenDriftSimulation(PhysicsMethods):
     plot_comparison_colors = ['r', 'g', 'b', 'm', 'c', 'y']
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
-                 loglevel=logging.DEBUG, logfile=None):
+                 loglevel=logging.DEBUG, logtime=False, logfile=None):
         """Initialise OpenDriftSimulation
 
         Args:
@@ -169,10 +169,14 @@ class OpenDriftSimulation(PhysicsMethods):
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
                 Use the string 'custom' to configure logging from outside.
+            logtime: if True, a time stamp is given for each logging line.
+                     logtime can also be given as a python time specifier
+                     (e.g. '%H:%M:%S')
         """
 
         # Set default configuration
         self._add_configstring(self.configspec_basemodel)
+        self.show_continuous_performance = False
 
         # Dict to store readers
         self.readers = OrderedDict()  # Dictionary, key=name, value=reader object
@@ -213,9 +217,12 @@ class OpenDriftSimulation(PhysicsMethods):
                 eargs = {'filename': logfile, 'filemode': 'w'}
             else:
                 eargs = {}
-            logging.basicConfig(level=loglevel,
-                                format='%(levelname)s: %(message)s',
-                                **eargs)
+            format = '%(levelname)s: %(message)s'
+            if logtime is not False:
+                format = '%(asctime)s ' + format
+                if logtime is not True:
+                    eargs['datefmt'] = logtime
+            logging.basicConfig(level=loglevel, format=format, **eargs)
 
         # Prepare outfile
         try:
@@ -2126,6 +2133,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
 
+                if self.show_continuous_performance is True:
+                    logging.info(self.performance())
                 # Display time to terminal
                 logging.debug('==================================='*2)
                 logging.info('%s - step %i of %i - %i active elements '

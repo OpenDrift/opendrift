@@ -214,6 +214,7 @@ class Reader(BaseReader):
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False):
 
+        start_time = datetime.now()
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
@@ -328,6 +329,7 @@ class Reader(BaseReader):
                                 self.variable_mapping[par])
 
             variables[par] = np.asarray(variables[par])  # If Xarray
+            start = datetime.now()
 
             if par not in mask_values:
                 if has_xarray is False:
@@ -524,6 +526,8 @@ class Reader(BaseReader):
         for var in requested_variables:
             variables[var] = np.ma.masked_invalid(variables[var])
         
+        logging.debug('Time for ROMS native reader: ' + str(datetime.now()-start_time))
+
         return variables
 
 
