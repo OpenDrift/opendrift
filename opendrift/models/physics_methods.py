@@ -214,10 +214,10 @@ class PhysicsMethods(object):
         if wdfmin == wdfmax:
             logging.debug(
                 'Applying wind drift factor of %s to %i elements '
-                'at surface' % (wdfmin, sum(surface)))
+                'at surface' % (wdfmin, np.sum(surface)))
         else:
             logging.debug('Applying wind drift factor between %s and'                          ' %s to %i elements at surface' %
-                          (wdfmin, wdfmax, sum(surface)))
+                          (wdfmin, wdfmax, np.sum(surface)))
 
         x_wind = self.environment.x_wind.copy()
         y_wind = self.environment.y_wind.copy()

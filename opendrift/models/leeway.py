@@ -308,7 +308,7 @@ class Leeway(OpenDriftSimulation):
         self.elements.crosswindSlope[jib] = - self.elements.crosswindSlope[jib]
         self.elements.orientation[jib] = 1 - self.elements.orientation[jib]
         logging.debug('Jibing %i out of %i elements.' %
-                      (sum(jib), self.num_elements_active()))
+                      (np.sum(jib), self.num_elements_active()))
 
     def export_ascii(self, filename):
         '''Export output to ASCII format of original version'''
