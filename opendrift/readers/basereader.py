@@ -22,6 +22,7 @@ from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
 from datetime import datetime, timedelta
 from collections import OrderedDict
+from multiprocessing import Queue, Process, Manager
 
 from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
@@ -685,9 +686,29 @@ class BaseReader(object):
                 else:
                     return x, y
         else:
-            x = self.spl_x(lon, lat)
-            y = self.spl_y(lon, lat)
-            return (x, y)
+            if len(np.atleast_1d(lon)) > 5000:
+                # For larger arrays, we run in parallel
+                logging.debug('Running lonlat2xy in parallel')
+                manager = Manager()
+                out = manager.dict()
+                def get_x(lon, lat, out):
+                    out[0] = self.spl_x(lon, lat)
+                def get_y(lon, lat, out):
+                    out[1] = self.spl_y(lon, lat)
+                q = Queue()
+                p1 = Process(target=get_x, args=(lon, lat, out))
+                p2 = Process(target=get_y, args=(lon, lat, out))
+                p1.start()
+                p2.start()
+                p1.join()
+                p2.join()
+                return (out[0], out[1])
+            else:
+                # For smaller arrays, we run sequentially
+                logging.debug('Calculating lonlat->xy sequentially')
+                x = self.spl_x(lon, lat)
+                y = self.spl_y(lon, lat)
+                return (x, y)
 
     def y_azimuth(self, lon, lat):
         """Calculate azimuth orientation of the y-axis of the reader SRS."""
