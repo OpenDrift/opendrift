@@ -117,9 +117,7 @@ class PhysicsMethods(object):
         if self.get_config('drift:scheme')[0:11] == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity
             y_vel = self.environment.y_sea_water_velocity
-            # Calculate x,y from lon,lat
-            start_x, start_y = self.lonlat2xy(self.elements.lon,
-                                              self.elements.lat)
+
             # Find midpoint
             az = np.degrees(np.arctan2(x_vel, y_vel))
             speed = np.sqrt(x_vel*x_vel + y_vel*y_vel)

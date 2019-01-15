@@ -858,7 +858,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         if (reader.covers_time(self.time) and
                                 len(reader.covers_positions(
                                 self.elements.lon,
-                                self.elements.lat)) > 0):
+                                self.elements.lat)[0]) > 0):
                             missing_variables = list(
                                 set(missing_variables) -
                                 set(reader.variables))
@@ -1287,7 +1287,7 @@ class OpenDriftSimulation(PhysicsMethods):
         longrid = longrid.ravel()
         latgrid = latgrid.ravel()
         # Remove grid-points not covered by this reader
-        latgrid_covered = land_reader.covers_positions(longrid, latgrid)
+        latgrid_covered = land_reader.covers_positions(longrid, latgrid)[0]
         longrid = longrid[latgrid_covered]
         latgrid = latgrid[latgrid_covered]
         landgrid = o.get_environment(

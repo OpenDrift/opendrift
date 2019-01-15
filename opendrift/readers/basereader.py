@@ -340,7 +340,7 @@ class BaseReader(object):
                              (time, self.start_time, self.end_time, self.name))
 
         # Check which particles are covered (indep of time)
-        ind_covered = self.covers_positions(lon, lat, z)
+        ind_covered, reader_x, reader_y = self.covers_positions(lon, lat, z)
         if len(ind_covered) == 0:
             raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
                               'are outside domain of %s (%s)') %
@@ -357,11 +357,8 @@ class BaseReader(object):
         if time == time_before or all(v in static_variables for v in variables):
             time_after = None
 
-        reader_x, reader_y = self.lonlat2xy(lon[ind_covered],
-                                            lat[ind_covered])
         z = z.copy()[ind_covered]  # Send values and not reference
                                    # to avoid modifications
-
         if block is False or self.return_block is False:
             # Analytical reader, continous in space and time
             self.timer_end('preparing')
@@ -754,7 +751,10 @@ class BaseReader(object):
                                (y >= self.ymin) & (y <= self.ymax) &
                                (z >= zmin) & (z <= zmax))[0]
 
-        return indices
+        try:
+            return indices, x[indices], y[indices]
+        except:
+            return indices, x, y
 
     def global_coverage(self):
         """Return True if global coverage east-west"""
