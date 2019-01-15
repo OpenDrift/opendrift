@@ -1753,7 +1753,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
-        if any(indices) == 0:
+        if any(indices) is False:
             return
         if reason not in self.status_categories:
             self.status_categories.append(reason)
@@ -2157,7 +2157,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
                 self.calculate_missing_environment_variables()
 
-                if any(missing) > 0:
+                if any(missing):
                     self.report_missing_variables()
 
                 self.interact_with_coastline()
