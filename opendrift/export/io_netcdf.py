@@ -67,8 +67,10 @@ def init(self, filename, times=None):
                 if prop in ['lon', 'lat'] and subprop[0] == 'axis':
                     continue
                 var.setncattr(subprop[0], subprop[1])
+    self.outfile.close()  # close file temporarily
 
 def write_buffer(self):
+    self.outfile = Dataset(self.outfile_name, 'a')
     num_steps_to_export = self.steps_output - self.steps_exported
     for prop in self.history_metadata:
         if prop in skip_parameters:
@@ -82,9 +84,10 @@ def write_buffer(self):
     self.history.mask = True  # Reset history array, for new data
     self.steps_exported = self.steps_exported + num_steps_to_export
     self.outfile.sync()  # Flush from memory to disk
+    self.outfile.close()  # close file temporarily
 
 def close(self):
-
+    self.outfile = Dataset(self.outfile_name, 'a')
     # Write status categories metadata
     status_dtype = self.ElementType.variables['status']['dtype']
     self.outfile.variables['status'].valid_range = np.array([0]).astype(
