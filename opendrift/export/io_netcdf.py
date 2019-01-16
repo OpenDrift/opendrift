@@ -42,12 +42,26 @@ def init(self, filename, times=None):
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step_calculation = str(self.time_step)
     self.outfile.time_step_output = str(self.time_step_output)
+
+    # Time
+    self.timeStr = 'seconds since 1970-01-01 00:00:00'
+    self.outfile.variables['time'].units = self.timeStr
+    self.outfile.variables['time'].standard_name = 'time'
+    self.outfile.variables['time'].long_name = 'time'
+    # Apparently axis attribute shall not be given for time, lon and lat
+    #self.outfile.variables['time'].axis = 'T'
+
     # Write config settings
     for key in self._config_hashstrings():
         value = self.get_config(key)
         if isinstance(value, (bool, type(None))):
             value = str(value)
         self.outfile.setncattr('config_' + key, value)
+
+    # Write additionaly metadata attributes, if given
+    if hasattr(self, 'metadata_dict'):
+        for key, value in iteritems(self.metadata_dict):
+            self.outfile.setncattr(key, str(value))
 
     # Add all element properties as variables
     for prop in self.history.dtype.fields:
@@ -67,10 +81,10 @@ def init(self, filename, times=None):
                 if prop in ['lon', 'lat'] and subprop[0] == 'axis':
                     continue
                 var.setncattr(subprop[0], subprop[1])
-    self.outfile.close()  # close file temporarily
 
 def write_buffer(self):
-    self.outfile = Dataset(self.outfile_name, 'a')
+    if self.outfile._isopen == 0:
+        self.outfile = Dataset(self.outfile_name, 'a')
     num_steps_to_export = self.steps_output - self.steps_exported
     for prop in self.history_metadata:
         if prop in skip_parameters:
@@ -78,6 +92,22 @@ def write_buffer(self):
         var = self.outfile.variables[prop]
         var[:, self.steps_exported:self.steps_exported+num_steps_to_export] = \
             self.history[prop][:, 0:num_steps_to_export]
+
+    times = [self.start_time + n*self.time_step_output for n in
+             range(self.steps_exported, self.steps_output)]
+    self.outfile.variables['time'][
+        self.steps_exported:self.steps_exported+len(times)] = \
+            date2num(times, self.timeStr)
+
+    # Write status categories metadata
+    status_dtype = self.ElementType.variables['status']['dtype']
+    self.outfile.variables['status'].valid_range = np.array([0]).astype(
+        status_dtype), \
+        np.array([len(self.status_categories) - 1]).astype(status_dtype)
+    self.outfile.variables['status'].flag_values = \
+        np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
+    self.outfile.variables['status'].flag_meanings = \
+        " ".join(self.status_categories)
 
     logging.info('Wrote %s steps to file %s' % (num_steps_to_export,
                                                 self.outfile_name))
@@ -97,17 +127,8 @@ def close(self):
         np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
     self.outfile.variables['status'].flag_meanings = \
         " ".join(self.status_categories)
-    # Write timesteps to file
+    # Write final timesteps to file
     self.outfile.time_coverage_end = str(self.time)
-    timeStr = 'seconds since 1970-01-01 00:00:00'
-    times = [self.start_time + n*self.time_step_output for n in
-             range(self.steps_output)]
-    self.outfile.variables['time'][0:len(times)] = date2num(times, timeStr)
-    self.outfile.variables['time'].units = timeStr
-    self.outfile.variables['time'].standard_name = 'time'
-    self.outfile.variables['time'].long_name = 'time'
-    # Apparently axis attribute shall not be given for time, lon and lat
-    #self.outfile.variables['time'].axis = 'T'
 
     # Write bounds metadata
     self.outfile.geospatial_lat_min = self.history['lat'].min()
@@ -120,11 +141,6 @@ def close(self):
     self.outfile.geospatial_lon_resolution = 'point'
     self.outfile.runtime = str(datetime.now() -
                                self.timers['total time'])
-
-    # Write additionaly metadata attributes, if given
-    if hasattr(self, 'metadata_dict'):
-        for key, value in iteritems(self.metadata_dict):
-            self.outfile.setncattr(key, str(value))
 
     self.outfile.close()  # Finally close file
 
