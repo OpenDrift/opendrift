@@ -150,7 +150,7 @@ class OpenDriftSimulation(PhysicsMethods):
     plot_comparison_colors = ['r', 'g', 'b', 'm', 'c', 'y']
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
-                 loglevel=logging.DEBUG, logtime=False, logfile=None):
+                 loglevel=logging.DEBUG, logtime='%H:%M:%S', logfile=None):
         """Initialise OpenDriftSimulation
 
         Args:

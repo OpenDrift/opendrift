@@ -22,7 +22,7 @@ from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
 from datetime import datetime, timedelta
 from collections import OrderedDict
-from multiprocessing import Queue, Process, Manager
+from multiprocessing import Process, Manager, cpu_count
 
 from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
@@ -683,23 +683,42 @@ class BaseReader(object):
                 else:
                     return x, y
         else:
-            if len(np.atleast_1d(lon)) > 5000:
-                # For larger arrays, we run in parallel
-                logging.debug('Running lonlat2xy in parallel')
-                manager = Manager()
-                out = manager.dict()
-                def get_x(lon, lat, out):
-                    out[0] = self.spl_x(lon, lat)
-                def get_y(lon, lat, out):
-                    out[1] = self.spl_y(lon, lat)
-                q = Queue()
-                p1 = Process(target=get_x, args=(lon, lat, out))
-                p2 = Process(target=get_y, args=(lon, lat, out))
-                p1.start()
-                p2.start()
-                p1.join()
-                p2.join()
-                return (out[0], out[1])
+            # For larger arrays, we split and calculate in parallel
+            # The number of CPUs to use can be improved/optimised
+            num_elements = len(np.atleast_1d(lon))
+            if num_elements > 100:
+                nproc = 2
+                if num_elements > 1000:
+                    nproc = 4
+                if num_elements > 100000:
+                    nproc = 8
+                if num_elements > 1000000:
+                    nproc = 16
+                cpus = cpu_count()
+                nproc = np.minimum(nproc, cpus-2)
+                nproc = np.maximum(2, nproc)
+                logging.debug('Running lonlat2xy in parallel, using %i of %i CPUs'
+                              % (nproc, cpus))
+                split_lon = np.array_split(lon, nproc)
+                split_lat = np.array_split(lat, nproc)
+                out_x = Manager().dict()
+                out_y = Manager().dict()
+                def get_x(lon_part, lat_part, num):
+                    out_x[num] = self.spl_x(lon_part, lat_part)
+                def get_y(lon_part, lat_part, num):
+                    out_y[num] = self.spl_y(lon_part, lat_part)
+                processes = []
+                for i in range(nproc):
+                    processes.append(Process(target=get_x, args=
+                                     (split_lon[i], split_lat[i], i)))
+                    processes.append(Process(target=get_y, args=
+                                     (split_lon[i], split_lat[i], i)))
+                [p.start() for p in processes]
+                [p.join() for p in processes]
+                x = np.concatenate(out_x)
+                y = np.concatenate(out_y)
+                logging.debug('Completed lonlat2xy in parallel')
+                return (x, y)
             else:
                 # For smaller arrays, we run sequentially
                 logging.debug('Calculating lonlat->xy sequentially')
