@@ -161,6 +161,9 @@ class BaseReader(object):
                 # Reusing x-interpolator (deepcopy) with data for y
                 self.spl_y = copy.deepcopy(self.spl_x)
                 self.spl_y.values[:, 0] = block_y.ravel()
+                # Call interpolator to avoid threading-problem: 
+                # https://github.com/scipy/scipy/issues/8856
+                self.spl_x((0,0)), self.spl_y((0,0))
 
         # Check if there are holes in time domain
         if self.start_time is not None and len(self.times) > 1:
