@@ -95,6 +95,9 @@ class LinearND2DInterpolator():
                 array_ravel[valid])
             # Store valid array, to determine if can be used again
             self.interpolator.valid = valid
+            # Call interpolator to avoid threading-problem: 
+            # https://github.com/scipy/scipy/issues/8856
+            self.interpolator((0,0))
 
         return self.interpolator(self.y, self.x)
         
@@ -181,6 +184,7 @@ class Linear1DInterpolator():
             z_interpolator = interp1d(zgrid, range(len(zgrid)))
         else:  # decreasing values, must flip for interpolator
             z_interpolator = interp1d(zgrid[::-1], range(len(zgrid))[::-1])
+        z_interpolator(z[0])  # to prevent threading issues
         # Indices corresponding to layers above and below
         interp_zi = z_interpolator(z)
         self.index_above = np.floor(interp_zi).astype(np.int)
