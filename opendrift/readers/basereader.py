@@ -692,13 +692,13 @@ class BaseReader(object):
             if num_elements > 100:
                 nproc = 2
                 if num_elements > 1000:
-                    nproc = 4
-                if num_elements > 100000:
-                    nproc = 8
-                if num_elements > 1000000:
                     nproc = 16
+                if num_elements > 100000:
+                    nproc = 32
+                if num_elements > 1000000:
+                    nproc = 64
                 cpus = cpu_count()
-                nproc = np.minimum(nproc, cpus-2)
+                nproc = np.minimum(nproc, cpus-1)
                 nproc = np.maximum(2, nproc)
                 logging.debug('Running lonlat2xy in parallel, using %i of %i CPUs'
                               % (nproc, cpus))
