@@ -3620,6 +3620,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 try:
                     try:
                         # For perfect quality, but larger file size
+                        #FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
                         FFwriter=animation.FFMpegWriter(fps=fps,
                             codec='libx264', bitrate=1800,
                             extra_args=['-profile:v', 'baseline',
