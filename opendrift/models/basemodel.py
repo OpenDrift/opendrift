@@ -2470,7 +2470,7 @@ class OpenDriftSimulation(PhysicsMethods):
         except:
             pass
 
-        return map, plt, x, y, index_of_first, index_of_last
+        return map, plt, np.array(x), np.array(y), index_of_first, index_of_last
 
     def zoom_map(self, buffer=0.2,
                  lonmin=None, lonmax=None, latmin=None, latmax=None):
