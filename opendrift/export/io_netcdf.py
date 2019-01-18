@@ -211,8 +211,9 @@ def import_file(self, filename, time=None):
     # Add environment variables
     self.history_metadata = self.ElementType.variables.copy()
     for env_var in self.required_variables:
-        history_dtype_fields.append((env_var, np.dtype('float32')))
-        self.history_metadata[env_var] = {}
+        if env_var in infile.variables:
+            history_dtype_fields.append((env_var, np.dtype('float32')))
+            self.history_metadata[env_var] = {}
     history_dtype = np.dtype(history_dtype_fields)
 
     # Import whole dataset (history)
