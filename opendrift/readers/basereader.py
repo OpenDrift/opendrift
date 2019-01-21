@@ -143,6 +143,15 @@ class BaseReader(object):
         else:
             if hasattr(self, 'proj4'):
                 self.projected = True
+                origproj4 = self.proj4
+                # Workaround for proj-issue with zero flattening:
+                # https://github.com/OSGeo/proj.4/issues/1191
+                self.proj4 = self.proj4.replace('+e=0.0', '')
+                self.proj4 = self.proj4.replace('+e=0', '')
+                self.proj4 = self.proj4.replace('+f=0.0', '')
+                self.proj4 = self.proj4.replace('+f=0', '')
+                if origproj4 != self.proj4:
+                    logging.info('Removing flattening parameter from proj4; %s -> %s' % (origproj4, self.proj4))
                 self.proj = pyproj.Proj(self.proj4)
             else:
                 self.proj4 = 'None'
