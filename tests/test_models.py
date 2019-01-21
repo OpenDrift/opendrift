@@ -24,6 +24,7 @@ import numpy as np
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
+from opendrift.models.plastdrift import PlastDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
@@ -98,6 +99,20 @@ class TestModels(unittest.TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(
                 s.elements.lat, 60, 3))
 
+    def test_wind_drift_shear(self):
+        """Testing PlastDrift model, with wind-induced current shear"""
+        o = PlastDrift(loglevel=30)
+        o.fallback_values['x_wind'] = 10
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lat=60, lon=5, time=datetime.now(),
+                        number=3,
+                        z = np.array([0, -0.05, -.1]))
+        o.run(duration=timedelta(hours=10))
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+                            o.elements.lon,
+                          [5.013484,5.03395595,5.01149002]))
+        self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2])
 
 
 if __name__ == '__main__':

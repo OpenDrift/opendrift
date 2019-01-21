@@ -173,6 +173,8 @@ class TestOil(unittest.TestCase):
         b = o.get_oil_budget()
         actual_dispersed = b['mass_dispersed']/b['mass_total']
         self.assertAlmostEqual(actual_dispersed[-1], 0)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.lon[0:3], [4.821577, 4.806694, 4.800167]))
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')

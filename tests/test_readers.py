@@ -282,6 +282,7 @@ class TestReaders(unittest.TestCase):
         self.assertAlmostEqual(o.elements.lat[0], 67.8548, 3)
 
     def test_automatic_basemap(self):
+        o = OceanDrift(loglevel=20)
         self.assertRaises(ValueError, o.run)
         o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
         o.set_config('general:basemap_resolution', 'c')  # To make test fast
