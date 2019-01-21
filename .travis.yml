@@ -13,8 +13,8 @@ env:
   - NUMPY=1.15.4 SCIPY=1.1    NETCDF=1.4.2 MATPLOTLIB=3.0.2 BASEMAP=1.2.0 # Bleeding edge
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: NUMPY=1.11   SCIPY=0.17   NETCDF=1.2.4 MATPLOTLIB=1.5 BASEMAP=1.0.8
+#  allow_failures:
+#    - env: NUMPY=1.11   SCIPY=0.17   NETCDF=1.2.4 MATPLOTLIB=1.5 BASEMAP=1.0.8
 cache:
   directories:
     - $HOME/download/oillibrary
