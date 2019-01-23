@@ -31,7 +31,7 @@ class Test(unittest.TestCase):
 
         reader_basemap = reader_basemap_landmask.Reader(
             llcrnrlon=13.5, llcrnrlat=67.1,
-            urcrnrlon=14.5, urcrnrlat=67.7,
+            urcrnrlon=14.6, urcrnrlat=67.7,
             resolution='i', projection='merc')
 
         o = OceanDrift3D(loglevel=30)

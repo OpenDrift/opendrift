@@ -115,7 +115,7 @@ class TestRun(unittest.TestCase):
     def test_runge_kutta(self):
         number = 50
         # With Euler
-        o = OceanDrift3D(loglevel=20, seed=0)
+        o = OceanDrift3D(loglevel=30, seed=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
         o.add_reader([norkyst])
@@ -124,7 +124,8 @@ class TestRun(unittest.TestCase):
                         time=norkyst.start_time)
         o.run(steps=4*3, time_step=timedelta(minutes=15))
         # With Runge-Kutta
-        o2 = OceanDrift3D(loglevel=20, seed=0)
+        o2 = OceanDrift3D(loglevel=30, seed=0)
+        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o2.fallback_values['land_binary_mask'] = 0
         o2.add_reader([norkyst])
         z=-40*np.random.rand(number)
@@ -133,7 +134,7 @@ class TestRun(unittest.TestCase):
         o2.set_config('drift:scheme', 'runge-kutta')
         o2.run(steps=4*3, time_step=timedelta(minutes=15))
         # And finally repeating the initial run to check that indetical
-        o3 = OceanDrift3D(loglevel=20, seed=0)
+        o3 = OceanDrift3D(loglevel=30, seed=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o3.fallback_values['land_binary_mask'] = 0
         o3.add_reader([norkyst])
@@ -144,6 +145,7 @@ class TestRun(unittest.TestCase):
         # Check that we get some difference with Runge-Kutta:
         self.assertIsNone(np.testing.assert_array_almost_equal(
             (o2.elements.lon-o.elements.lon).max(), 0.0015, 3))
+            #(o2.elements.lon-o.elements.lon).max(), 0.013, 3))
         # Check that runs with Euler are identical
         self.assertIsNone(np.testing.assert_array_almost_equal(
             (o3.elements.lon-o.elements.lon).max(), 0))

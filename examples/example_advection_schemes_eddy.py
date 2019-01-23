@@ -28,15 +28,15 @@ runs = []
 leg = []
 i = 0
 for scheme in ['euler', 'runge-kutta', 'runge-kutta4']:
-    for time_step  in [3600, 3600*3]:
-        leg.append(scheme + ', T=%ih' % (time_step/3600.))
+    for time_step  in [1800, 3600*3]:
+        leg.append(scheme + ', T=%.1fh' % (time_step/3600.))
         print(leg[-1])
         o = OceanDrift(loglevel=50)
         o.fallback_values['land_binary_mask'] = 0
         o.set_config('drift:scheme', scheme)
         o.add_reader([fake_eddy, reader_basemap])
         o.seed_elements(lon, lat, time=datetime.now())
-        o.run(duration=timedelta(days=6), time_step=time_step)
+        o.run(duration=timedelta(days=9), time_step=time_step)
         runs.append(o)
         i = i + 1
 

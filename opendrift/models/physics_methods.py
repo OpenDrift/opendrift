@@ -117,9 +117,7 @@ class PhysicsMethods(object):
         if self.get_config('drift:scheme')[0:11] == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity
             y_vel = self.environment.y_sea_water_velocity
-            # Calculate x,y from lon,lat
-            start_x, start_y = self.lonlat2xy(self.elements.lon,
-                                              self.elements.lat)
+
             # Find midpoint
             az = np.degrees(np.arctan2(x_vel, y_vel))
             speed = np.sqrt(x_vel*x_vel + y_vel*y_vel)
@@ -184,8 +182,8 @@ class PhysicsMethods(object):
                              self.get_config('drift:scheme'))
 
     def advect_wind(self):
-        # Elements at ocean surface (z=0) are advected with given percentage
-        # of wind speed. NB: Only basic Euler schema is implemented
+        # Elements at/near ocean surface (z>wind_drift_depth) are advected with given percentage
+        # of wind speed. NB: Only basic Euler scheme is implemented
 
         # Make copy to prevent outside value to be modified
         wind_drift_factor = self.elements.wind_drift_factor.copy()
@@ -201,23 +199,31 @@ class PhysicsMethods(object):
         if len(np.atleast_1d(z)) == 1:
             z = z*np.ones(len(self.elements))
 
-        surface = self.elements.z >= 0
+        try:
+            wind_drift_depth = self.get_config('drift:wind_drift_depth')
+        except:
+            wind_drift_depth = 0
+        if wind_drift_depth == 0:
+            surface_only = True
+        else:
+            wind_drift_depth = np.abs(wind_drift_depth)*np.ones(len(self.elements))
+            surface_only = False
+
+        surface = self.elements.z >= -wind_drift_depth
         if surface.sum() == 0:
-            logging.debug('All elements are entrained, '
-                          'no wind drift.')
+            if surface_only is True:
+                logging.debug('All elements are below surface, no wind-induced shear drift')
+            else:
+                logging.debug('All elements are below %fm, no wind-induced shear drift' % wind_drift_depth[0])
             return
 
         wdf = wind_drift_factor.copy()
+        if surface_only is False:
+            # linear decrease from surface down to wind_drift_depth
+            wdf = wdf*(wind_drift_depth+self.elements.z)/wind_drift_depth
         wdf[~surface] = 0.0
         wdfmin = wdf[surface].min()
         wdfmax = wdf[surface].max()
-        if wdfmin == wdfmax:
-            logging.debug(
-                'Applying wind drift factor of %s to %i elements '
-                'at surface' % (wdfmin, sum(surface)))
-        else:
-            logging.debug('Applying wind drift factor between %s and'                          ' %s to %i elements at surface' %
-                          (wdfmin, wdfmax, sum(surface)))
 
         x_wind = self.environment.x_wind.copy()
         y_wind = self.environment.y_wind.copy()
@@ -229,6 +235,20 @@ class PhysicsMethods(object):
                 y_wind = y_wind - self.environment.y_sea_water_velocity
         except:
             pass
+
+        speed = np.sqrt(x_wind[surface]*x_wind[surface] + y_wind[surface]*y_wind[surface])*wdf[surface]
+
+        if surface_only is True:
+            logging.debug('Advecting %s of %i elements at surface with '
+                          'wind-sheared ocean current (%f m/s - %f m/s)'
+                          % (np.sum(surface), self.num_elements_active(),
+                             speed.min(), speed.max()))
+        else:
+            logging.debug('Advecting %s of %i elements above %.3fm with '
+                          'wind-sheared ocean current (%f m/s - %f m/s)'
+                          % (np.sum(surface), self.num_elements_active(),
+                             wind_drift_depth[0],
+                             speed.min(), speed.max()))
 
         self.update_positions(x_wind*wdf, y_wind*wdf)
 
@@ -382,10 +402,9 @@ class PhysicsMethods(object):
         # Pierson-Moskowitz if period not available from readers
         # WMO guide to wave analysis and forecasting pp. 14, WMO (1998)
         windspeed = self.wind_speed()
-      
-        omega = 0.877*9.81/(1.17*windspeed)
-        omega[windspeed==0] = 5  # fallback value if no wind speed or Hs
-                                     # just to avoid division by zero
+        # fallback value if no wind speed or Hs to avoid division by zero
+        omega = 5*np.ones(windspeed.shape)
+        omega[windspeed>0] = 0.877*9.81/(1.17*windspeed[windspeed>0])
         return omega
 
     def wave_period(self):

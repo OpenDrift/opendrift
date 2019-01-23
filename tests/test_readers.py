@@ -122,15 +122,15 @@ class TestReaders(unittest.TestCase):
         lr = reader_lazy.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         self.assertFalse(lr.initialised)
-        self.assertEqual(len(lr.covers_positions([15], [69])), 1)
-        self.assertEqual(len(lr.covers_positions([0], [0])), 0)
+        self.assertEqual(len(lr.covers_positions([15], [69])[0]), 1)
+        self.assertEqual(len(lr.covers_positions([0], [0])[0]), 0)
         self.assertTrue(lr.initialised)
 
         # Make a corresponding, unlazy reader
         rr = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-        self.assertEqual(len(rr.covers_positions([15], [69])), 1)
-        self.assertEqual(len(rr.covers_positions([0], [0])), 0)
+        self.assertEqual(len(rr.covers_positions([15], [69])[0]), 1)
+        self.assertEqual(len(rr.covers_positions([0], [0])[0]), 0)
 
         # Check that both readers provide the same attributes
         for att in rr.__dict__:
@@ -150,9 +150,12 @@ class TestReaders(unittest.TestCase):
                       str(type(getattr(rr, att))))
 
     def test_lazy_reader_oildrift(self):
-        o = OpenOil3D(loglevel=20)
+        o = OpenOil3D(loglevel=0)
         reader_constant_wind = \
-            reader_constant.Reader({'x_wind':5, 'y_wind': 6})
+            reader_constant.Reader({'x_wind':5, 'y_wind': 6,
+                                    'sea_ice_area_fraction': 0})
+            # Added ice area to prevent problems with masking
+            # with older versions of netCDF library
         o.add_reader(reader_constant_wind)
 
         o.add_readers_from_list(reader_list, lazy=True)
@@ -162,8 +165,23 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
         o.run(steps=5)
+        print(o)  # Debug, this fails for old libraries
         self.assertEqual(len(o._lazy_readers()), 2)
         self.assertEqual(len(o.discarded_readers), 1)
+
+    def test_ROMS_native_stranding(self):
+        o = OceanDrift(loglevel=30)
+        r = reader_ROMS_native.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        o.add_reader(r)
+        o.set_config('general:use_basemap_landmask', False)
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 10
+        o.seed_elements(lon=15.2, lat=68.3, time=r.start_time,
+                        wind_drift_factor=.02,
+                        number=10, radius=1000)
+        o.run(steps=8)
+        self.assertEqual(o.num_elements_deactivated(), 4)
 
     #def test_lazy_readers_and_corrupt_data(self):
     #    o = OceanDrift(loglevel=0)
@@ -264,6 +282,7 @@ class TestReaders(unittest.TestCase):
         self.assertAlmostEqual(o.elements.lat[0], 67.8548, 3)
 
     def test_automatic_basemap(self):
+        o = OceanDrift(loglevel=20)
         self.assertRaises(ValueError, o.run)
         o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
         o.set_config('general:basemap_resolution', 'c')  # To make test fast
@@ -273,12 +292,12 @@ class TestReaders(unittest.TestCase):
         r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         # Element outside reader domain
-        self.assertEqual(len(r.covers_positions(5, 80)), 0)
+        self.assertEqual(len(r.covers_positions(5, 80)[0]), 0)
         x, y = r.lonlat2xy(5, 80)
         self.assertRaises(ValueError, r.check_arguments,
                           'y_sea_water_velocity', r.start_time, x, y, 0)
         # Element inside reader domain
-        self.assertEqual(len(r.covers_positions(5, 60)), 1)
+        self.assertEqual(len(r.covers_positions(5, 60)[0]), 1)
         x, y = r.lonlat2xy(5, 60)
         var, time, x2, y2, z2, outside = \
             r.check_arguments('y_sea_water_velocity', r.start_time, x, y, 0)
@@ -323,7 +342,7 @@ class TestReaders(unittest.TestCase):
             y = np.array([r.ymin - r.delta_y, r.ymin, (r.ymin + r.ymax)/2,
                           r.ymax + r.delta_y])
             lons, lats = r.xy2lonlat(x,  y)
-            covered = r.covers_positions(lons, lats, 0)
+            covered = r.covers_positions(lons, lats, 0)[0]
             if len(covered) != 1:
                 self.assertEqual(covered.tolist(), [1, 2])
             else:
@@ -423,10 +442,10 @@ class TestReaders(unittest.TestCase):
         testlat = np.array((70.1, 76.0, 76.1, 60, 60))
         testz = np.random.uniform(0, 0, len(testlon))
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            [0], reader_nordic.covers_positions(testlon, testlat, testz)))
+            [0], reader_nordic.covers_positions(testlon, testlat, testz)[0]))
         self.assertIsNone(np.testing.assert_array_almost_equal(
             [0, 1, 2],
-            reader_arctic.covers_positions(testlon, testlat, testz)))
+            reader_arctic.covers_positions(testlon, testlat, testz)[0]))
         o.seed_elements(testlon, testlat, testz, time=reader_nordic.start_time)
         o.fallback_values['land_binary_mask'] = 0
         env, env_profiles, missing = \

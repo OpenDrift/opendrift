@@ -20,7 +20,7 @@ print double_gyre
 
 o.add_reader(double_gyre)
 
-lcs = o.calculate_ftle(time=double_gyre.initial_time,
+lcs = o.calculate_ftle(time=double_gyre.initial_time+timedelta(seconds=3),
                        time_step=timedelta(seconds=.5),
                        duration=timedelta(seconds=15),
                        delta=.02)

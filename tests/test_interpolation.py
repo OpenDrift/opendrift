@@ -267,7 +267,9 @@ class TestInterpolation(unittest.TestCase):
                                     x=x, y=y, z=z, block=True)
 
         # Introduce missing values
-        data['x_sea_water_velocity'].mask[[data['x_sea_water_velocity']>.08]] = True
+        data['x_sea_water_velocity'] = np.ma.masked_where(
+            data['x_sea_water_velocity']>.08,
+            data['x_sea_water_velocity'])
 
         b = ReaderBlock(data, interpolation_horizontal='linearND')
 

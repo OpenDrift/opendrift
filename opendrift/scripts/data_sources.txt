@@ -9,5 +9,6 @@ http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
 http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc
 http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be
 http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd
-http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/data/forecasts/FMRC_best.ncd
+http://tds.hycom.org/thredds/dodsC/GLBy0.08/latest
+http://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z
 http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z

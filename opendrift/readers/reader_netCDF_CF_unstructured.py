@@ -237,6 +237,7 @@ class Reader(BaseReader):
             else:
                 # Re-use interpolator for other variables
                 interpolator.values[:,0] = data
+            interpolator((0,0))
 
             variables[par] = interpolator(latsm, lonsm)
 

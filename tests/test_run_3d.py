@@ -55,10 +55,12 @@ class TestRun(unittest.TestCase):
         o.run(steps=5, time_step=3600, time_step_output=3600)
         self.assertEqual(o.num_elements_active(), 100)
         self.assertEqual(o.num_elements_deactivated(), 0)
-        self.assertAlmostEqual(o.elements.lat[0], 71.160, 2)
-        self.assertAlmostEqual(o.elements.z.min(), -41.92, 1)
+        self.assertAlmostEqual(o.elements.lat[0], 71.16, 1)
+        #self.assertAlmostEqual(o.elements.z.min(), -41.92, 1)  # With past ROMS-masking
+        self.assertAlmostEqual(o.elements.z.min(), -40.1, 1)
         self.assertAlmostEqual(o.elements.z.max(), -0.01, 1)
-        self.assertAlmostEqual(o.elements.lon.max(), 14.949, 2)
+        #self.assertAlmostEqual(o.elements.lon.max(), 14.949, 2)
+        self.assertAlmostEqual(o.elements.lon.max(), 14.87, 2)
 
     @unittest.skipIf(thredds_support is False,
                      'NetCDF4 library does not support OPeNDAP')

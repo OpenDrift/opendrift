@@ -27,13 +27,13 @@ class Reader(BaseReader):
 
     def __init__(self, lon=2, lat=66,
                  proj4='+proj=stere +lat_0=90 +lon_0=70 +lat_ts=60 ' +
-                       '+units=m +a=6.371e+06 +e=0 +no_defs'):
+                       '+units=m +a=6.371e+06 +no_defs'):
 
         self.fileName = 'ArtificialOceanEddy'
         self.name = 'ArtificialOceanEddy'
 
         self.proj4 = proj4
-        self.proj = pyproj.Proj(proj4)
+        self.proj = pyproj.Proj(self.proj4)
 
         # Calculate x,y of center of eddy from given lon and lat
         x0, y0 = self.proj(lon, lat)
