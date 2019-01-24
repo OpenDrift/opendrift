@@ -106,7 +106,10 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         to be used in turbulent mixing module.
         stored as an array in self.elements.terminal_velocity
         '''
-        # do nothing 
+        # conserve user-input terminal_velocity
+        #
+        # could include some vertical velocity computation e.g. based on sailinty/temp etc..
+        #
         # self.elements.terminal_velocity = 0.
         pass
 
@@ -172,7 +175,8 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
 
         # Simply move particles with ambient current
         self.advect_ocean_current() # from physics_methods.py
-        # Horizontal diffusion
+
+        # Horizontal diffusion (using diffusion coefficient approach )
         self.horizontal_diffusion()
 
         # Advect particles due to wind drag
@@ -183,21 +187,14 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         self.stokes_drift()
 
         # Turbulent Mixing
-        self.update_terminal_velocity()
-        self.vertical_mixing() # using subroutine from opendrift3D.py
+        self.update_terminal_velocity() # routine keeps user-input one for no
+        self.vertical_mixing() # using subroutine from opendrift3D.py - include buoyancy-related settling and mixing
 
         # Vertical advection
         self.vertical_advection()
 
         # Sediment resuspension checks , if switched on
         # self.sediment_resuspension() - ToDo!
-        # 
-        # 1-find particles on the bottom
-        # 2-compute bed shear stresses
-        # 3-compare to critical_shear_stress
-        # 4-resuspend or stay on seabed depending on 3)
-        #   > probably need to use a cut-off age after which particles are de-activated anyway
-        #   to prevent excessive build-up of "active" particle in the simulations
 
         # Deactivate elements that exceed a certain age
         if self.get_config('drift:max_age_seconds') is not None:
@@ -212,3 +209,15 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
 
         # Note the interaction with shoreline in taken care of by interact_with_coastline in basemodel.py
         # when run() is called
+
+    def sediment_resuspension(self):
+        """
+        Compute ambient bed shear stresses at positions of particles that are (or just touched) the bottom
+        and determine if they can settle or be resuspended based on critical_shear_stress 
+        """
+        # 1-find particles on the bottom
+        # 2-compute bed shear stresses
+        # 3-compare to critical_shear_stress
+        # 4-resuspend or stay on seabed depending on 3)
+        #   > probably need to use a cut-off age after which particles are de-activated anyway
+        #   to prevent excessive build-up of "active" particle in the simulations
