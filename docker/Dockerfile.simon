@@ -1,6 +1,9 @@
 FROM continuumio/miniconda
 MAINTAINER Simon Weppe <simon@metocean.co.nz>
 
+#
+# My version of docker file - better to use "official" one part of main repo by vsochat@stanford.edu for consistency
+#
 # Install Opendrift
 # This is using my forked version with the edits on the readers/examples for now
 RUN echo "-----------------Install OPENDRIFT-----------------------------------------------" &&\

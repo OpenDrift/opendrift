@@ -545,8 +545,9 @@ class Reader(BaseReader):
             raise ValueError('%s is outside time coverage (%s - %s) of %s' %
                              (time, self.start_time, self.end_time, self.name))
 
-        # Check which particles are covered (indep of time)
-        ind_covered = self.covers_positions(lon, lat, z)
+       # Check which particles are covered (indep of time) - align with new code in basereader.py
+        ind_covered, reader_x, reader_y = self.covers_positions(lon, lat, z)
+
         if len(ind_covered) == 0:
             raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
                               'are outside domain of %s (%s)') %
@@ -561,8 +562,6 @@ class Reader(BaseReader):
         if time == time_before:
             time_after = None
 
-        reader_x, reader_y = self.lonlat2xy(lon[ind_covered],
-                                            lat[ind_covered])
         z = z.copy()[ind_covered]  # Send values and not reference
                                    # to avoid modifications
 
@@ -806,7 +805,6 @@ class Reader(BaseReader):
         # Need to build a "readerblock" for 'sea_floor_depth_below_sea_level'
         # to get total water depth a particle locations
         # **this is needed only if we use a log profile, and only once (assuming depth doesnt change over time for now)
-
         if self.use_log_profile and 'x_sea_water_velocity' in variables:
             # build interpolator
             if not hasattr(self,'water_depth_interp'):

@@ -108,7 +108,7 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         '''
         # conserve user-input terminal_velocity
         #
-        # could include some vertical velocity computation e.g. based on sailinty/temp etc..
+        # could include some  more sophisticated calculations of terminal_velocity/settling velocity based on temp/salinity etc..
         #
         # self.elements.terminal_velocity = 0.
         pass
@@ -221,3 +221,122 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         # 4-resuspend or stay on seabed depending on 3)
         #   > probably need to use a cut-off age after which particles are de-activated anyway
         #   to prevent excessive build-up of "active" particle in the simulations
+
+
+# General physics functions---------------------------------------------------------------------------------
+# Could be moved to physics_methods.py once cross-checked / accepted 
+
+def bedshearstress_cw(self,p,time=None,imax=2):
+    """Computation of bed shear stress due to current and waves
+    current-related stress is computed following a drag-coefficient approach
+    wave-related stress is computed following Van Rijn approach
+    combined wave-current mean and max stresses are computed followin Soulsby(1995) approach
+    Arguments:
+      self : Material object, expected to include fields movers, reactors (if input)
+      p: particle positions array (Nx3)
+      time: 
+    Returns:
+      tau_cur : current-related bed shear stress tau_cur
+      tau_cw : combined mean current-wave bed shear stress 
+      tau_max: combined max current-wave bed shear stress tau_max
+      topo : water depth at particle positions (of first mover) 
+    """
+    rhow=1027 # default volumic mass for seawater
+    tau_cur=numpy.tile(0.0,numpy.size(p,0)) # allocate
+    tau_cw=numpy.tile(0.0,numpy.size(p,0)) # allocate
+    tau_max=numpy.tile(0.0,numpy.size(p,0)) # allocate
+    # current-related bed shear stress (sum of all movers)
+    for mover in self.movers[0:]:
+      if mover.topo: # topo needed to define bedshear stress
+        topo=mover.topo.interp(p,None,3)     
+        if (not mover.is3d) and (mover.z0>0): # mover is a 2D-depth averaged current
+          # temporarily set mover.z0 to 0.0 so that mover.interp yields the un-corrected depth-averaged current (direct interpolation, no log profile )
+          # not super elegant, probably a better way to do this - anyway to access GriddedTide or GriddedData from here ?
+          z0_tmp=copy.copy(mover.z0)
+          mover.z0=0.0
+          u2dhim=mover.interp(p,time,imax)   #u2dhim=mover.interp(self,p,time,imax)        
+          mover.z0=z0_tmp
+          u2dhim_mag=(u2dhim[:,0]**2+u2dhim[:,1]**2)**0.5
+          # Drag coefficient for 2D case using water depth and z0 (see COHERENS manual eq.7.2, or Delft3d)
+          Cdrag=( 0.4 /(numpy.log(abs(topo[:,0] /mover.z0))-1) )**2
+          #Now compute the bed shear stress [N/m2] 
+          tau_cur+=rhow*Cdrag*u2dhim_mag**2             
+        elif (mover.is3d) and (mover.z0>0):   # mover is a 3D current field
+          #import pdb;pdb.set_trace()
+          # Assume the first grid point above the bed is assumed to be the top of the logarithmic boundary layer
+          # the log profile extends from that last wet bin level, to the bottom
+          # see COHERENS manual eq 7.1/7.2
+  
+          # find closest "wet" vertical levels at each particle locations
+          bin_lev=numpy.zeros(len(p[:,0]))
+          for lev in mover.lev:
+            bin_lev[topo[:,0]<=lev]=lev
+          #vertical height from last wet vertical bin to seabed
+          zb=bin_lev-topo[:,0]
+          #current computed at last wet vertical bin
+          uub=mover.interp(numpy.vstack((p[:,0],p[:,1],bin_lev)).T,time,imax)
+          uub_mag=(uub[:,0]**2+uub[:,1]**2)**0.5
+          # Drag coefficient for 3D case using zb and z0 (see COHERENS manual eq.7.2, or Delft3d)
+          Cdrag=( 0.4 /(numpy.log(abs(zb /mover.z0))-1) )**2 
+         #Now compute the bed shear stress [N/m2]
+          tau_cur+=rhow*Cdrag*uub_mag**2
+
+    # wave-related bed shear stress
+    if len(self.reactors)>0: # check if wave forcing is included 
+      # for now assume that if reactors exist, they will be correctly input
+      # computation of wave-related and combined bed shear stresses based on code from 
+      #https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/general/phys_fun/bedshearstresses.m 
+      #https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/general/phys_fun/sandandmudtransport.m
+      hs=self.reactors['hs'].interp(p[:1,:],time)[:,0] #wave height
+      tp=self.reactors['tp'].interp(p[:1,:],time)[:,0] #wave period
+      # wave-related roughness
+      # vanRijn 2007 suggests same equations than for current-related roughness where 20* d50 <ksw<150*d50
+      # here we are using nikuradse for consistency with the use of z0 in the mover class for now
+      ksw=30*self.movers[0].z0  
+      topo= self.movers[0].topo.interp(p,None,3)
+      w=2*numpy.pi/tp
+      kh = qkhfs( w, topo[:,0] ) # dispersion relationship
+      Adelta = hs/(2*numpy.sinh(kh)) # peak wave orbital excursion
+      Udelta = (numpy.pi*hs)/(tp*numpy.sinh(kh))  # peak wave orbital velocity
+      fw = numpy.exp(-5.977+5.213*(Adelta/ksw)**-0.194)  # wave-related friction coefficient (van Rijn)
+      fw = numpy.min(fw,0.3)
+      tau_wave = 0.25 * rhow * fw * (Udelta)**2 # wave-related bed shear stress
+      #cycle mean bed shear stress according to Soulsby,1995
+      tau_cw=tau_cur*[1+1.2*(tau_wave/(tau_cur+tau_wave))**3.2]
+      # max bed shear stress during wave cycle
+      tau_max=[tau_wave**2+tau_cur**2]**0.5
+    else:
+      tau_max=tau_cur
+      tau_cw=tau_cur
+    # if (tau_cur==0).any():
+    #   import pdb;pdb.set_trace()
+    return tau_cur,tau_cw,tau_max,topo
+
+#from  https://github.com/csherwood-usgs/crspy/blob/master/crspy.py
+def qkhfs( w, h ):
+    """
+    Quick iterative calculation of kh in gravity-wave dispersion relationship
+    kh = qkhfs(w, h )
+    
+    Input
+        w - angular wave frequency = 2*pi/T where T = wave period [1/s]
+        h - water depth [m]
+    Returns
+        kh - wavenumber * depth [ ]
+    Orbital velocities from kh are accurate to 3e-12 !
+    RL Soulsby (2006) "Simplified calculation of wave orbital velocities"
+    HR Wallingford Report TR 155, February 2006
+    Eqns. 12a - 14
+    """
+    g = 9.81
+    x = w**2.0 *h/g
+    y = numpy.sqrt(x) * (x<1.) + x *(x>=1.)
+    # is this faster than a loop?
+    t = numpy.tanh( y )
+    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
+    t = numpy.tanh( y )
+    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
+    t = numpy.tanh( y )
+    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
+    kh = y
+    return kh
