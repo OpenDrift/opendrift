@@ -57,6 +57,7 @@ class Reader(BaseReader):
     def __init__(self, filename=None, name=None, variables_to_use = None, **kwargs):
         
         self.use_log_profile = False # No extrapolation using logarithmic profile by default
+        self.reader_water_depth = None # optional "water depth reader" passed to reader
 
         # allow direct initialization of class attribute using kwargs
         for key, value in kwargs.items():
@@ -807,22 +808,33 @@ class Reader(BaseReader):
         # to get total water depth a particle locations
         # **this is needed only if we use a log profile, and only once (assuming depth doesnt change over time for now)
         if self.use_log_profile and 'x_sea_water_velocity' in variables:
-            # build water depth interpolator
+            # build water depth interpolator - only once
             if not hasattr(self,'water_depth_interp'):
                 logging.debug('Building ''sea_floor_depth_below_sea_level'' interpolator for logarithmic profile extrapolation')
-                if 'sea_floor_depth_below_sea_level' in self.variables :
+                # water depth is available within file
+                if 'sea_floor_depth_below_sea_level' in self.variables : 
                     water_depth = self._get_variables(['sea_floor_depth_below_sea_level'], profiles,profiles_depth,time,reader_x, reader_y, z,block=block)
                     self.water_depth_interp = ReaderBlock(water_depth,interpolation_horizontal=self.interpolation)
+                    self.water_depth_interp.z = None
                     del water_depth
+                # 'water_depth_reader' was passed when defining the reader
+                elif hasattr(self,'reader_water_depth'): 
+                    water_depth = self.reader_water_depth._get_variables(['sea_floor_depth_below_sea_level'], profiles,profiles_depth,time,reader_x, reader_y, z,block=block)
+                    self.water_depth_interp = ReaderBlock(water_depth,interpolation_horizontal=self.interpolation)
+                    self.water_depth_interp.z = None
+                    del water_depth  
+                # no water depth info available - cannot apply log profile             
                 else:
                     logging.debug('required variable ''sea_floor_depth_below_sea_level'' not available in reader %s' % (self.name))
                     logging.error('can not apply logarithmic profile')
-                    logging.error('set use_log_profile = False, or add depth variable to reader')
+                    logging.error('set use_log_profile = False, add depth variable to netcdf files, or pass reader_water_depth')
                     import pdb;pdb.set_trace()
                     pass
-
+            
             # get total water depth at particle positions (lon,lat)
+            import pdb;pdb.set_trace()
             water_depth_at_part,tmp = self.water_depth_interp.interpolate(lon,lat,variables = ['sea_floor_depth_below_sea_level'])
+            
             del tmp
 
             log_fac = self.logarithmic_current_profile(z, water_depth_at_part['sea_floor_depth_below_sea_level'])
