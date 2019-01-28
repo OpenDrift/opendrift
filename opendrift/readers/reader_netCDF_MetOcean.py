@@ -830,16 +830,15 @@ class Reader(BaseReader):
                     logging.error('set use_log_profile = False, add depth variable to netcdf files, or pass reader_water_depth')
                     import pdb;pdb.set_trace()
                     pass
-            
+
             # get total water depth at particle positions (lon,lat)
-            import pdb;pdb.set_trace()
             water_depth_at_part,tmp = self.water_depth_interp.interpolate(lon,lat,variables = ['sea_floor_depth_below_sea_level'])
             
             del tmp
 
             log_fac = self.logarithmic_current_profile(z, water_depth_at_part['sea_floor_depth_below_sea_level'])
             logging.debug('Applying logarithmic profile to depth-averaged currents')
-            logging.debug('\t\t%s   <- log_ratios[-] ->   %s' % (np.min(log_fac), np.max(log_fac)))
+            logging.debug('\t\t%s   <- log_ratios[-] ->   %s' % (np.nanmin(log_fac), np.nanmax(log_fac)))
             env['x_sea_water_velocity'] = env['x_sea_water_velocity'] * log_fac
             env['y_sea_water_velocity'] = env['y_sea_water_velocity'] * log_fac
                 

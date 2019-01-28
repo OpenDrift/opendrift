@@ -187,7 +187,7 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         self.stokes_drift()
 
         # Turbulent Mixing
-        self.update_terminal_velocity() # routine keeps user-input one for no
+        self.update_terminal_velocity() # routine to estimate settling velocity - simply keeps the user-input one for now 
         self.vertical_mixing() # using subroutine from opendrift3D.py - include buoyancy-related settling and mixing
 
         # Vertical advection
