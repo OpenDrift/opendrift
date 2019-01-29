@@ -204,6 +204,24 @@ class TestOil(unittest.TestCase):
                 #self.assertAlmostEqual(d.mean(), 0.000072158)
                 self.assertAlmostEqual(d.mean(), 0.000653, 2)
 
+#    def test_oil_film_thickness(self):
+#        o = OpenOil3D(loglevel=0, weathering_model='noaa')
+#        o.set_config('general:basemap_resolution', 'c')
+#        o.set_config('drift:wind_uncertainty', 2)
+#        o.set_config('drift:current_uncertainty', .1)
+#        o.set_config('processes:update_oilfilm_thickness', True)
+#        o.fallback_values['land_binary_mask'] = 0
+#        o.fallback_values['x_wind'] = 0
+#        o.fallback_values['y_wind'] = 9
+#        o.fallback_values['x_sea_water_velocity'] = -.1
+#        o.fallback_values['y_sea_water_velocity'] = 0
+#
+#        o.seed_elements(lon=4.5, lat=60, number=5000,
+#                        mass_oil=200,
+#                        oiltype='*GENERIC DIESEL',
+#                        time=datetime.now())
+#        o.run(steps=24)
+#        o.animation(color='oil_film_thickness')
 
 if __name__ == '__main__':
     unittest.main()

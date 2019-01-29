@@ -134,20 +134,20 @@ class Reader(BaseReader):
                 logging.debug('%i ensemble members available'
                               % len(self.realizations))
 
-#        if 'x' not in locals():
-#            if self.lon.ndim == 1:
-#                x = self.lon[:]
-#                self.xname = lon_var_name
-#                self.numx = len(x)
-#            else:
-#                #raise ValueError('Did not find x-coordinate variable')
-#        if 'y' not in locals():
-#            if self.lat.ndim == 1:
-#                y = self.lat[:]
-#                self.yname = lat_var_name
-#                self.numy = len(y)
-#            else:
-#                #raise ValueError('Did not find y-coordinate variable')
+        if 'x' not in locals():
+            if self.lon.ndim == 1:
+                x = self.lon[:]
+                self.xname = lon_var_name
+                self.numx = len(x)
+            else:
+                raise ValueError('Did not find x-coordinate variable')
+        if 'y' not in locals():
+            if self.lat.ndim == 1:
+                y = self.lat[:]
+                self.yname = lat_var_name
+                self.numy = len(y)
+            else:
+                raise ValueError('Did not find y-coordinate variable')
 
         if not hasattr(self, 'unitfactor'):
             self.unitfactor = 1
@@ -190,7 +190,7 @@ class Reader(BaseReader):
                 self.lat = self.lat[:]
                 self.projected = False
 
-        if hasattr(self, 'proj4') and 'latlong' in self.proj4 and self.xmax > 360:
+        if hasattr(self, 'proj4') and 'latlong' in self.proj4 and hasattr(self, 'xmax') and self.xmax > 360:
             logging.info('Longitudes > 360 degrees, subtracting 360')
             self.xmin -= 360
             self.xmax -= 360

@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
 import opendrift.models.noaa_oil_weathering as noaa
+from opendrift.readers.basereader import pyproj
 
 try:
     from itertools import izip as zip
@@ -117,6 +118,7 @@ class OpenOil(OpenDriftSimulation):
             dispersion = boolean(default=True)
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
+            update_oilfilm_thickness = boolean(default=False)
         [drift]
             current_uncertainty = float(min=0, max=5, default=0.05)
             wind_uncertainty = float(min=0, max=5, default=.5)
@@ -195,6 +197,39 @@ class OpenOil(OpenDriftSimulation):
 
         # Overriding with specific configspec
         self._add_configstring(self.configspec)
+
+    def update_surface_oilfilm_thickness(self):
+        from scipy.stats import binned_statistic_2d
+        print('Updating oil film thickness')
+        surface = np.where(self.elements.z == 0)[0]
+        if len(surface) == 0:
+            print('No oil at surface, no film thickness to update')
+            return
+        print('%s of %s elements are at surface' %
+              (len(surface), self.num_elements_active()))
+        meanlon = self.elements.lon[surface].mean()
+        meanlat = self.elements.lat[surface].mean()
+        psproj = pyproj.Proj(
+            '+proj=stere +lat_0=%s +lat_ts=%s +lon_0=%s' %
+            (meanlat, meanlat, meanlon)) 
+        X,Y = psproj(self.elements.lon[surface], self.elements.lat[surface])
+        mass_bin, x_edge, y_edge, binnumber = binned_statistic_2d(
+            X, Y, self.elements.mass_oil[surface],
+            statistic='mean', bins=20)
+        bin_area = (x_edge[1]-x_edge[0])*(y_edge[1]-y_edge[0])
+        oil_density = 1000  # ok approximation here
+        film_thickness = (mass_bin/oil_density)/bin_area
+        max_thickness = 0.01  # 1 cm
+        min_thickness = 1e-9  # 1 nanometer
+        if film_thickness.max() > max_thickness:
+            print('Warning: decreasing thickness to %sm for %s of %s bins' % (max_thickness, np.sum(film_thickness>max_thickness), film_thickness.size))
+        num_too_thin = np.sum((film_thickness<min_thickness) & (film_thickness>0))
+        if num_too_thin > 0:
+            print('Warning: increasing thickness to %sm for %s of %s bins' % (min_thickness, num_too_thin, film_thickness.size))
+
+        # Update thickness
+        self.elements.oil_film_thickness[surface] = \
+            film_thickness.ravel()[binnumber]
 
     def evaporate(self):
         if self.get_config('processes:evaporation') is True:

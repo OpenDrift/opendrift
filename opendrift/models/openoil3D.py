@@ -570,3 +570,6 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         # Horizontal advection (inherited from OpenOil)
         self.advect_oil()
+
+        if self.get_config('processes:update_oilfilm_thickness') is True:
+            self.update_surface_oilfilm_thickness()
