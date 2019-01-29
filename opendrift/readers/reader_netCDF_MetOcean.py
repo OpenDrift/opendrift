@@ -445,7 +445,11 @@ class Reader(BaseReader):
 
         # Store coordinates of returned points
         try:
-            variables['z'] = self.z[indz]
+            # convert ['z'] to non masked array if needed
+            if isinstance(variables['z'], np.ma.MaskedArray):
+                variables['z'] = self.z[indz].data
+            else:
+                variables['z'] = self.z[indz]
         except:
             variables['z'] = None
         if block is True:
@@ -528,7 +532,7 @@ class Reader(BaseReader):
         self.timer_start('total')
         self.timer_start('preparing')
         
-        # By pass to get_variables_interpolated_multireaders if readers to add ------------------------------
+        # Bypass to get_variables_interpolated_multireaders if readers to add ------------------------------
         if hasattr(self,'readers_to_add') and self.use_multireader_interp and 'x_sea_water_velocity' in variables: 
             # "special" case when we need to add currents ['x_sea_water_velocity','y_sea_water_velocity'] from two or more readers
             # by passed otherwise
