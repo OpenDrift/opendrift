@@ -506,7 +506,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # Johansen O, Reed M, Bodsberg NR, Natural dispersion revisited
         # DOI: 10.1016/j.marpolbul.2015.02.026
         # requires oil film thickness
-        if not hasattr(self, 'droplet_spectrum_pdf'):
+        if not hasattr(self, 'droplet_spectrum_pdf') or self.get_config('processes:update_oilfilm_thickness') is True:
             # Generate droplet spectrum as in Johansen et al. (2015)
             logging.debug('Generating wave breaking droplet size spectrum')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
@@ -555,6 +555,9 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     def update(self):
         """Update positions and properties of oil particles."""
 
+        if self.get_config('processes:update_oilfilm_thickness') is True:
+            self.update_surface_oilfilm_thickness()
+
         # Oil weathering (inherited from OpenOil)
         self.oil_weathering()
 
@@ -571,5 +574,3 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # Horizontal advection (inherited from OpenOil)
         self.advect_oil()
 
-        if self.get_config('processes:update_oilfilm_thickness') is True:
-            self.update_surface_oilfilm_thickness()

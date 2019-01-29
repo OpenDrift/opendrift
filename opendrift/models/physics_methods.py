@@ -266,7 +266,8 @@ class PhysicsMethods(object):
             return
 
         if np.max(np.array(
-            self.environment.sea_surface_wave_stokes_drift_x_velocity)) \
+            self.environment.sea_surface_wave_stokes_drift_x_velocity+
+            self.environment.sea_surface_wave_stokes_drift_y_velocity)) \
                 == 0:
             logging.debug('No Stokes drift velocity available')
             return

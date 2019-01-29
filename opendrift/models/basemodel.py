@@ -2542,6 +2542,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
+                  surface_only=True,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
@@ -2634,6 +2635,10 @@ class OpenDriftSimulation(PhysicsMethods):
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer)
         ax = plt.gcf().gca()
+        if surface_only is True:
+            z = self.get_property('z')[0].T
+            x[z<0] = np.nan
+            y[z<0] = np.nan
 
         if color is not False:
             if isinstance(color, basestring):
