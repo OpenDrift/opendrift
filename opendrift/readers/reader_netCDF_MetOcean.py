@@ -445,8 +445,8 @@ class Reader(BaseReader):
 
         # Store coordinates of returned points
         try:
-            # convert ['z'] to non masked array if needed
-            if isinstance(variables['z'], np.ma.MaskedArray):
+            # convert self.z to non masked array if needed
+            if isinstance(self.z, np.ma.MaskedArray):
                 variables['z'] = self.z[indz].data
             else:
                 variables['z'] = self.z[indz]
