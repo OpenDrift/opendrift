@@ -1,6 +1,6 @@
 ########################################################## 
 # Version near identical to vsochat@stanford.edu's 
-# only some path & URL changes to point to my code version
+# only some path & URL changes to point to my source version
 # and align with general metocean practices
 ##########################################################
 
@@ -9,14 +9,10 @@ FROM continuumio/miniconda
 MAINTAINER vsochat@stanford.edu
 
 ## This is how the container was build
-# docker build -t vanessa/opendrift .
+# docker build -f Dockerfile.oil -t vanessa/opendrift-oil .
 
-## The container is provided on Docker Hub
-# https://hub.docker.com/r/vanessa/opendrift/
-# https://github.com/researchapps/sherlock/tree/master/opendrift
-
-## Documentation for opendrift is here
-# https://github.com/opendrift/opendrift/wiki
+# https://hub.docker.com/r/vanessa/opendrift-oil/  # container 
+# https://github.com/opendrift/opendrift/wiki      # documentation
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PATH /source/opendrift/opendrift/scripts:$PATH
@@ -46,11 +42,19 @@ RUN mkdir /source && cd /source && \
     cd opendrift && \
    /opt/conda/bin/python setup.py develop
 
-WORKDIR /code
+# NOAA's OilLibrary for Oil Simulations
+WORKDIR /
+RUN git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git && \
+    /opt/conda/bin/conda install --yes sqlalchemy transaction zope.sqlalchemy pytest && \
+    /opt/conda/bin/conda install --yes -c anaconda repoze.lru && \
+    /opt/conda/bin/conda install --yes -c noaa-orr-erd awesome-slugify unit_conversion && \
+    cd OilLibrary && \
+    /opt/conda/bin/python setup.py install
+
+WORKDIR /source
 
 # Test
 # cd /source/opendrift && ./testall
-
 
 
 ###################################################################
