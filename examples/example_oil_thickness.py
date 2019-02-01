@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 from opendrift.models.openoil3D import OpenOil3D
 
 
 number = 10000
-steps = 20
+timestep = timedelta(minutes=10)
+timestep_output = timedelta(minutes=60)
+duration = timedelta(hours=20)
 mass_oil = 2000  # mass oil per particle
 oiltype = '*GENERIC DIESEL'
+#oiltype = '*GENERIC BUNKER C'
 
 ####################################################
 # First run, where surface oil thickness is updated 
@@ -28,13 +31,15 @@ o1.set_config('wave_entrainment:droplet_size_distribution',
              'Johansen et al. (2015)')
 o1.set_config('drift:wind_uncertainty', 2)
 o1.set_config('drift:current_uncertainty', .1)
+o1.set_config('processes:dispersion', False)
 o1.set_config('processes:update_oilfilm_thickness', True)
 
 o1.seed_elements(lon=4.5, lat=60, number=number,
                 mass_oil=mass_oil, radius=1000,
                 oiltype=oiltype,
                 time=datetime.now())
-o1.run(steps=steps)
+o1.run(time_step=timestep, time_step_output=timestep_output,
+       duration=duration)
 
 # Animation shows how oil thickness evolves,
 # and decreases due to evaporation and spreading
@@ -42,7 +47,6 @@ unitfactor=1e6  # show film thickness in micrometers
 o1.animation(color='oil_film_thickness',
              vmin=1e-7*unitfactor, vmax=1e-4*unitfactor,
              unitfactor=unitfactor, surface_only=True)
-
 ###################################################################
 # Second run, identical but without updating surface oil thickness
 ###################################################################
@@ -54,17 +58,41 @@ o2.set_config('wave_entrainment:droplet_size_distribution',
              'Johansen et al. (2015)')
 o2.set_config('drift:wind_uncertainty', 2)
 o2.set_config('drift:current_uncertainty', .1)
+o2.set_config('processes:dispersion', False)
 o2.set_config('processes:update_oilfilm_thickness', False)
 
 o2.seed_elements(lon=4.5, lat=60, number=number,
                 mass_oil=mass_oil, radius=1000,
                 oiltype=oiltype,
                 time=datetime.now())
-o2.run(steps=steps)
+o2.run(time_step=timestep, time_step_output=timestep_output,
+       duration=duration)
 
 ####################################################
 # Comparison plots
 ####################################################
+o1.plot_oil_budget()
+o2.plot_oil_budget()
+
+# Entrainment
+b1 = o1.get_oil_budget()
+b2 = o2.get_oil_budget()
+plt.plot(b1['mass_surface'], '-r', linewidth=2,
+            label='Surface, updated thickness')
+plt.plot(b1['mass_submerged'], '--r', linewidth=2,
+            label='Submerged, updated thickness')
+plt.plot(b1['mass_evaporated'], '-.r', linewidth=2,
+            label='Evaporated, updated thickness')
+plt.plot(b2['mass_surface'], '-b', linewidth=2,
+            label='Surface, constant thickness')
+plt.plot(b2['mass_submerged'], '--b', linewidth=2,
+            label='Submerged, constant thickness')
+plt.plot(b2['mass_evaporated'], '-.b', linewidth=2,
+            label='Evaporated, constant thickness')
+plt.legend()
+plt.xlabel('Time step')
+plt.show()
+
 # We see that with the updated film thickness,
 # the droplets are getting gradually smaller
 r1 = o1.get_property('diameter')[0]

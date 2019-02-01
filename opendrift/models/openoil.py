@@ -220,7 +220,7 @@ class OpenOil(OpenDriftSimulation):
         mass_bin, x_edge, y_edge, binnumber = binned_statistic_2d(
             X, Y, self.elements.mass_oil[surface],
             expand_binnumbers=True,
-            statistic='sum', bins=20)
+            statistic='sum', bins=100)
         bin_area = (x_edge[1]-x_edge[0])*(y_edge[1]-y_edge[0])
         oil_density = 1000  # ok approximation here
         film_thickness = (mass_bin/oil_density)/bin_area
@@ -952,6 +952,7 @@ class OpenOil(OpenDriftSimulation):
 
         import gdal
         import ogr
+        import osr
 
         if not 'time' is kwargs:
             try:  # get time from filename
@@ -997,12 +998,20 @@ class OpenOil(OpenDriftSimulation):
 
         total_area = np.zeros(len(categories))
         layers = [0]*len(categories)
+
+        src_srs = osr.SpatialReference()
+        src_srs.ImportFromEPSG(4269)
+        tgt_srs = osr.SpatialReference()
+        tgt_srs.ImportFromEPSG(3857)
+        transform = osr.CoordinateTransformation(src_srs, tgt_srs)
         for cat in categories:
             memshapename = filename + '%i.shp' % cat
             layers[cat-1] = mem_vector_layers[cat-1]
             areas = np.zeros(layers[cat-1].GetFeatureCount())
             for i, feature in enumerate(layers[cat-1]):
-                areas[i] = feature.GetGeometryRef().GetArea()
+                geom = feature.GetGeometryRef()
+                geom.Transform(transform)  # To get area in m2
+                areas[i] = geom.GetArea()
             # Delete largest polygon, which is outer border
             outer = np.where(areas==max(areas))[0]
             areas[outer] = 0
@@ -1014,8 +1023,11 @@ class OpenOil(OpenDriftSimulation):
         areas_weighted = total_area*thickness_microns
         numbers = number*areas_weighted/np.sum(areas_weighted)
         numbers = np.round(numbers).astype(int)
+        oil_density = 1000
+        mass_oil = (total_area*thickness_microns/1e6)*oil_density
 
         for i, num in enumerate(numbers):
             self.seed_from_shapefile([mem_vector_layers[i]],
                 oil_film_thickness=thickness_microns[i]/1000000.,
+                mass_oil=mass_oil[i]/num,
                 number=num, time=time, *args, **kwargs)
