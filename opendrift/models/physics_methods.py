@@ -181,6 +181,10 @@ class PhysicsMethods(object):
             raise ValueError('Drift scheme not recognised: ' +
                              self.get_config('drift:scheme'))
 
+    def advect_with_sea_ice(self):
+            self.update_positions(self.environment.sea_ice_x_velocity,
+                                  self.environment.sea_ice_y_velocity)
+
     def advect_wind(self):
         # Elements at/near ocean surface (z>wind_drift_depth) are advected with given percentage
         # of wind speed. NB: Only basic Euler scheme is implemented
@@ -237,6 +241,9 @@ class PhysicsMethods(object):
             pass
 
         speed = np.sqrt(x_wind[surface]*x_wind[surface] + y_wind[surface]*y_wind[surface])*wdf[surface]
+        if speed.max() == 0:
+            logging.debug('No wind for wind-sheared ocean drift')
+            return
 
         if surface_only is True:
             logging.debug('Advecting %s of %i elements at surface with '
@@ -259,7 +266,8 @@ class PhysicsMethods(object):
             return
 
         if np.max(np.array(
-            self.environment.sea_surface_wave_stokes_drift_x_velocity)) \
+            self.environment.sea_surface_wave_stokes_drift_x_velocity+
+            self.environment.sea_surface_wave_stokes_drift_y_velocity)) \
                 == 0:
             logging.debug('No Stokes drift velocity available')
             return

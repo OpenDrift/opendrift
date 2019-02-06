@@ -77,15 +77,16 @@ class Reader(BaseReader):
             if '_CoordinateAxisType' in attributes:
                 CoordinateAxisType = var.__dict__['_CoordinateAxisType']
             if standard_name == 'longitude' or \
+                    CoordinateAxisType == 'Lon' or \
                     long_name == 'longitude':
                 self.lon = var
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
+                    CoordinateAxisType == 'Lat' or \
                     long_name == 'latitude':
                 self.lat = var
                 lat_var_name = var_name
             if axis == 'X' or \
-                    CoordinateAxisType == 'Lon' or \
                     standard_name == 'projection_x_coordinate':
                 self.xname = var_name
                 # Fix for units; should ideally use udunits package
@@ -98,7 +99,6 @@ class Reader(BaseReader):
                 x = var[:]*unitfactor
                 self.numx = var.shape[0] 
             if axis == 'Y' or \
-                    CoordinateAxisType == 'Lat' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
                 # Fix for units; should ideally use udunits package
@@ -151,26 +151,34 @@ class Reader(BaseReader):
 
         if not hasattr(self, 'unitfactor'):
             self.unitfactor = 1
-        self.xmin, self.xmax = x.min(), x.max()
-        self.ymin, self.ymax = y.min(), y.max()
-        self.delta_x = np.abs(x[1] - x[0])
-        self.delta_y = np.abs(y[1] - y[0])
-        rel_delta_x = (x[1::] - x[0:-1])
-        rel_delta_x = np.abs((rel_delta_x.max() -
-                              rel_delta_x.min())/self.delta_x)
-        rel_delta_y = (y[1::] - y[0:-1])
-        rel_delta_y = np.abs((rel_delta_y.max() -
-                              rel_delta_y.min())/self.delta_y)
-        if rel_delta_x > 0.05:  # Allow 5 % deviation
-            print(rel_delta_x)
-            print(x[1::] - x[0:-1])
-            raise ValueError('delta_x is not constant!')
-        if rel_delta_y > 0.05:
-            print(rel_delta_y)
-            print(y[1::] - y[0:-1])
-            raise ValueError('delta_y is not constant!')
-        self.x = x  # Store coordinate vectors
-        self.y = y
+        if 'x' in locals() and 'y' in locals():
+            self.xmin, self.xmax = x.min(), x.max()
+            self.ymin, self.ymax = y.min(), y.max()
+            self.delta_x = np.abs(x[1] - x[0])
+            self.delta_y = np.abs(y[1] - y[0])
+            rel_delta_x = (x[1::] - x[0:-1])
+            rel_delta_x = np.abs((rel_delta_x.max() -
+                                  rel_delta_x.min())/self.delta_x)
+            rel_delta_y = (y[1::] - y[0:-1])
+            rel_delta_y = np.abs((rel_delta_y.max() -
+                                  rel_delta_y.min())/self.delta_y)
+            if rel_delta_x > 0.05:  # Allow 5 % deviation
+                print(rel_delta_x)
+                print(x[1::] - x[0:-1])
+                raise ValueError('delta_x is not constant!')
+            if rel_delta_y > 0.05:
+                print(rel_delta_y)
+                print(y[1::] - y[0:-1])
+                raise ValueError('delta_y is not constant!')
+            self.x = x  # Store coordinate vectors
+            self.y = y
+        else:
+            if hasattr(self, 'lon') and hasattr(self, 'lat'):
+                logging.info('No projection found, using lon/lat arrays')
+                self.xname = lon_var_name
+                self.yname = lat_var_name
+            else:
+                raise ValueError('Neither x/y-coordinates or lon/lat arrays found')
 
         if not hasattr(self, 'proj4'):
             if self.lon.ndim == 1:
@@ -182,7 +190,7 @@ class Reader(BaseReader):
                 self.lat = self.lat[:]
                 self.projected = False
 
-        if 'latlong' in self.proj4 and self.xmax > 360:
+        if hasattr(self, 'proj4') and 'latlong' in self.proj4 and hasattr(self, 'xmax') and self.xmax > 360:
             logging.info('Longitudes > 360 degrees, subtracting 360')
             self.xmin -= 360
             self.xmax -= 360
@@ -243,10 +251,11 @@ class Reader(BaseReader):
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
         # If x or y coordinates are decreasing, we need to flip
-        if self.x[0] > self.x[-1]:
-            indx = len(self.x) - indx
-        if self.y[0] > self.y[-1]:
-            indy = len(self.y) - indy
+        if hasattr(self, 'x'):
+            if self.x[0] > self.x[-1]:
+                indx = len(self.x) - indx
+            if self.y[0] > self.y[-1]:
+                indy = len(self.y) - indy
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
@@ -342,12 +351,14 @@ class Reader(BaseReader):
         except:
             variables['z'] = None
         if block is True:
-            variables['x'] = \
-                self.Dataset.variables[self.xname][indx]*self.unitfactor
-            # Subtracting 1 from indy (not indx) makes Norkyst800
-            # fit better with GSHHS coastline - but unclear why
-            variables['y'] = \
-                self.Dataset.variables[self.yname][indy]*self.unitfactor
+            if self.projected is True:
+                variables['x'] = \
+                    self.Dataset.variables[self.xname][indx]*self.unitfactor
+                variables['y'] = \
+                    self.Dataset.variables[self.yname][indy]*self.unitfactor
+            else:
+                variables['x'] = indx
+                variables['y'] = indy
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y

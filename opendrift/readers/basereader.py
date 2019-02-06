@@ -163,6 +163,12 @@ class BaseReader(object):
                 self.proj = fakeproj()
                 self.projected = False
                 logging.info('Making Splines for lon,lat to x,y conversion...')
+                self.xmin = self.ymin = 0.
+                self.delta_x = self.delta_y = 1.
+                self.xmax = self.lon.shape[1] - 1
+                self.ymax = self.lon.shape[0] - 1
+                self.numx = self.xmax
+                self.numy = self.ymax
                 block_x, block_y = np.meshgrid(
                     np.arange(self.xmin, self.xmax + 1, 1),
                     np.arange(self.ymin, self.ymax + 1, 1))
