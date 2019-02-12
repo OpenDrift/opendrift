@@ -85,7 +85,7 @@ class Reader(BaseReader):
                 logging.info('Opening files with MFDataset')
                 def drop_non_essential_vars_pop(ds):
                     dropvars = [v for v in ds.variables if v not in
-                                self.ROMS_variable_mapping.keys() + gls_param +
+                                list(self.ROMS_variable_mapping.keys()) + gls_param +
                                 ['ocean_time', 's_rho', 'Cs_r', 'hc', 'angle']
                                 and v[0:3] not in ['lon', 'lat', 'mas']]
                     logging.debug('Dropping variables: %s' % dropvars)
