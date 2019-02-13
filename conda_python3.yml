@@ -1,4 +1,4 @@
-name: opendrift_python3
+name: opendrift_p3
 channels:
   - conda-forge
 dependencies:
