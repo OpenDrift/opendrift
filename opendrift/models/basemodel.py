@@ -33,9 +33,10 @@ try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
     matplotlib.rcParams['legend.scatterpoints'] = 1
-    if os.environ.get('DISPLAY','') == '' and \
-            'PYCHARM_HOSTED' not in os.environ:
-        # No display found. Using non-interactive Agg backend.
+    if 'DISPLAY' not in os.environ and \
+            'PYCHARM_HOSTED' not in os.environ and \
+            os.name != 'nt':
+        logging.info('No display found. Using non-interactive Agg backend')
         matplotlib.use('agg')
     import matplotlib.pyplot as plt
     from matplotlib import animation

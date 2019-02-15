@@ -21,9 +21,12 @@ import gc
 import numpy as np
 import collections
 import matplotlib
-if os.environ.get('DISPLAY','') == '':
-    logging.info('No display found. Using non-interactive Agg backend')
-    matplotlib.use('agg')
+if 'DISPLAY' not in os.environ and \
+	'PYCHARM_HOSTED' not in os.environ and \
+    os.name != 'nt':
+    	logging.info('No display found. Using non-interactive Agg backend')
+        matplotlib.use('agg')
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 try:
