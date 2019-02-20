@@ -41,8 +41,9 @@ RUN /opt/conda/bin/conda install --yes hdf4 numpy scipy matplotlib basemap \
 # We need basemap 1.1.0
 RUN /opt/conda/bin/conda install --yes --channel conda-forge basemap basemap-data-hires
 
+# Clone Opendrift code in /source
 RUN mkdir /source && cd /source && \
-    git clone https://github.com/simon-msl/opendrift && \ 
+    git clone https://github.com/simonweppe/opendrift && \ 
     cd opendrift && \
    /opt/conda/bin/python setup.py develop
 
@@ -57,6 +58,9 @@ WORKDIR /code
 # TO DOWNLOAD MERCATOR DATA - Not used for now ###################
 ###################################################################
 # Install motu-client to be able to download MERCATOR/CMEMS data
+# see infos here for easy install with pip:
+# http://marine.copernicus.eu/faq/what-are-the-motu-and-python-requirements/?idpage=169
+#
 # https://github.com/clstoulouse/motu-client-python#Configuration
 #RUN echo "-----------------Install Motu-client - For Mercator Data downloads-----------------" &&\
 #    cd /source &&\
