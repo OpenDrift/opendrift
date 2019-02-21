@@ -2544,7 +2544,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
-                  surface_only=True,
+                  surface_only=False,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
