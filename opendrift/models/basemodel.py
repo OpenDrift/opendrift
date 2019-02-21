@@ -1764,7 +1764,7 @@ class OpenDriftSimulation(PhysicsMethods):
         reason_number = self.status_categories.index(reason)
         #if not hasattr(self.elements.status, "__len__"):
         if len(np.atleast_1d(self.elements.status)) == 1:
-            status = np.asscalar(self.elements.status)
+            status = self.elements.status.item()
             self.elements.status = np.zeros(self.num_elements_active())
             self.elements.status.fill(status)
         # Deactivate elements, if they have not already been deactivated

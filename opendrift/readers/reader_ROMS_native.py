@@ -514,7 +514,7 @@ class Reader(BaseReader):
                 logging.debug('Reading angle between xi and east...')
                 self.angle_xi_east = self.Dataset.variables['angle'][:]
             if has_xarray is False:
-                rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
+                rad = self.angle_xi_east[tuple(np.meshgrid(indy, indx))].T
             else:
                 rad = self.angle_xi_east[indy, indx]
             if 'x_sea_water_velocity' in variables.keys():

@@ -130,6 +130,7 @@ class ShipDrift(OpenDriftSimulation):
                 l = w.readline()
                 self.wforce['D'][o, i, :] = l.split()[0:nbeam]
                 
+        w.close()
         wi_omega, wi_BL, wi_DL = \
             np.meshgrid(self.wforce['omega'],
                         self.wforce['BL'], self.wforce['DL'], indexing='ij')

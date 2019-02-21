@@ -802,6 +802,7 @@ class OpenOil(OpenDriftSimulation):
             tref.append(line[0])
             fref.append(line[1])
             wmax.append(line[3])
+        oilfile.close()
         self.oil_data['tref'] = np.array(tref, dtype='float')*3600.
         self.oil_data['fref'] = np.array(fref, dtype='float')*.01
         self.oil_data['wmax'] = np.array(wmax, dtype='float')
