@@ -173,14 +173,14 @@ class OpenOil(OpenDriftSimulation):
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
                 '/oilprop.dat'
-            oilprop = open(self.oiltype_file, 'r', encoding='utf-8')
             oiltypes = []
             linenumbers = []
-            for i, line in enumerate(oilprop.readlines()):
-                if line[0].isalpha():
-                    oiltype = line.strip()[:-2].strip()
-                    oiltypes.append(oiltype)
-                    linenumbers.append(i)
+            with open(self.oiltype_file) as f:
+                for i, line in enumerate(f):
+                    if line[0].isalpha():
+                        oiltype = line.strip()[:-2].strip()
+                        oiltypes.append(oiltype)
+                        linenumbers.append(i)
             oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
             self.oiltypes = oiltypes
             self.oiltypes_linenumbers = linenumbers

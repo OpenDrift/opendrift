@@ -246,7 +246,7 @@ class Reader(BaseReader):
         try:
             canvas.draw()
             width, height = canvas.get_width_height()
-            rgb_data = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(height, width, 3)
+            rgb_data = np.frombuffer(canvas.tostring_rgb(), dtype='uint8').reshape(height, width, 3)
             data = rgb_data[:,:,1]
             plt.close(fig) #comment this for debugging purposes and replace with plt.show()
             logging.debug('Rasterized size: ' + str([width, height]))
