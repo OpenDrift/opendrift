@@ -1391,6 +1391,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                           int(indx_time_end[i])]
                                for i in range(num_points)]
                 time_array = time_array2  # Subset of times for this point
+            if type(time) == list and len(time) > 2:
+                time_array = time
 
             if cone is True:
                 ###################################################
