@@ -1662,6 +1662,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                                kwargs['timeformat'])
             del kwargs['timeformat']
 
+        num_seeded_before = self.num_elements_scheduled()
+
         targetSRS = osr.SpatialReference()
         targetSRS.ImportFromEPSG(4326)
         try:
@@ -1698,7 +1700,6 @@ class OpenDriftSimulation(PhysicsMethods):
             layer.ResetReading()  # Rewind to first layer
             logging.info('Total area of all polygons: %s m2' % total_area)
 
-            num_seeded = 0
             for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)
                 if feature is None:
@@ -1708,7 +1709,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 if f == featurenum[-1]:
                     # For the last feature we seed the remaining number,
                     # avoiding difference due to rounding:
-                    num_elements = number - num_seeded
+                    num_elements = number - (
+                        self.num_elements_scheduled() -
+                        num_seeded_before)
                 logging.info('\tSeeding %s elements within polygon number %s' %
                              (num_elements, featurenum[i]))
                 try:
@@ -1716,18 +1719,17 @@ class OpenDriftSimulation(PhysicsMethods):
                 except:
                     pass
                 b = geom.GetBoundary()
-                if b is not None:
-                    points = b.GetPoints()
-                    lons = [p[0] for p in points]
-                    lats = [p[1] for p in points]
-                else:
-                    # Alternative if OGR is not built with GEOS support
-                    r = geom.GetGeometryRef(0)
-                    lons = [r.GetX(j) for j in range(r.GetPointCount())]
-                    lats = [r.GetY(j) for j in range(r.GetPointCount())]
+                #if b is not None:
+                #    points = b.GetPoints()
+                #    lons = [p[0] for p in points]
+                #    lats = [p[1] for p in points]
+                #else:
+                # Alternative if OGR is not built with GEOS support
+                r = geom.GetGeometryRef(0)
+                lons = [r.GetX(j) for j in range(r.GetPointCount())]
+                lats = [r.GetY(j) for j in range(r.GetPointCount())]
 
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
-                num_seeded += num_elements
 
     def seed_from_ladim(self, ladimfile, roms):
         """Seed elements from ladim *.rls text file: [time, x, y, z, name]"""
