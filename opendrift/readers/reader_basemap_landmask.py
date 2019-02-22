@@ -130,7 +130,7 @@ class Reader(BaseReader):
                 land[nx.points_inside_poly(points, polygon)] = True
         else:
             for polygon in self.polygons:
-                land += polygon.contains_points(points)
+                land = land + polygon.contains_points(points)
         return land
 
     """
