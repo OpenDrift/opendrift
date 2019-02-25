@@ -233,6 +233,10 @@ class Reader(BaseReader):
         # Aspect gives 1 in high plot
         aspect = (xmax-xmin)/(ymax-ymin)
         resolution_dpi = (ymax-ymin) / resolution_meters
+        while resolution_dpi > 10000:
+            logging.debug('Too large dpi %s, reducing by factor of 2'
+                          % resolution_dpi)
+            resolution_dpi = resolution_dpi / 2
         
         fig.set_dpi(resolution_dpi)
         fig.set_size_inches(aspect, 1)

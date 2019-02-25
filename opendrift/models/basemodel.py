@@ -2025,8 +2025,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 np.radians(np.mean(self.elements_scheduled.lat)))
             from opendrift.readers import reader_basemap_landmask
             reader_basemap = reader_basemap_landmask.Reader(
-                llcrnrlon=self.elements_scheduled.lon.min() - deltalon,
-                urcrnrlon=self.elements_scheduled.lon.max() + deltalon,
+                llcrnrlon=np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                urcrnrlon=np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
                 llcrnrlat=np.maximum(-89, self.elements_scheduled.lat.min() -
                                      deltalat),
                 urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
