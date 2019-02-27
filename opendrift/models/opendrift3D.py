@@ -85,9 +85,13 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             logging.debug('Vertical advection deactivated')
             return
 
-        w = self.environment.upward_sea_water_velocity
-        self.elements.z = np.minimum(0,
-            self.elements.z + w * self.time_step.total_seconds())
+        in_ocean = np.where(self.elements.z<0)[0]
+        if len(in_ocean) > 0:
+            w = self.environment.upward_sea_water_velocity[in_ocean]
+            self.elements.z[in_ocean] = np.minimum(0,
+                self.elements.z[in_ocean] + w * self.time_step.total_seconds())
+        else:
+            logging.debug('No vertical advection for elements at surface')
 
     def prepare_vertical_mixing(self):
         pass  # To be implemented by subclasses as needed
