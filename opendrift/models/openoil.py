@@ -518,6 +518,10 @@ class OpenOil(OpenDriftSimulation):
         if len(surface) == 0:
             logging.debug('All elements submerged, no evaporation')
             return
+        if self.elements.age_seconds[surface].min() > 3600*24:
+            logging.debug('All surface oil elements older than 24 hours, ' +
+                          'skipping further evaporation.')
+            return
         surfaceID = self.elements.ID[surface] - 1    # of any elements
         # Area for each element, repeated for each component
         volume = (self.elements.mass_oil[surface] /
