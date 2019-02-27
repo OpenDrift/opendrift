@@ -1346,8 +1346,8 @@ class OpenDriftSimulation(PhysicsMethods):
         # Make arrays of all input parameters, with one element per
         # lon/lat pair, for sequential seeding
         #################################################################
-        lon = np.atleast_1d(lon)
-        lat = np.atleast_1d(lat)
+        lon = np.atleast_1d(lon).ravel()
+        lat = np.atleast_1d(lat).ravel()
         num_points = len(lon)  # Number of lon/lat pairs
         if number is not None and number < num_points:
             raise ValueError('Number of elements must be greater or equal '
@@ -1363,7 +1363,7 @@ class OpenDriftSimulation(PhysicsMethods):
             ###############################
             # lon and lat are arrays
             ###############################
-            radius_array = np.atleast_1d(radius)
+            radius_array = np.atleast_1d(radius).ravel()
             if len(radius_array) == 1:
                 # If scalar radius is given, apply to all points
                 radius_array = radius_array*np.ones(num_points)
