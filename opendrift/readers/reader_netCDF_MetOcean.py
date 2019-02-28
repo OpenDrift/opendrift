@@ -157,7 +157,8 @@ class Reader(BaseReader):
                     # --------------------------------- 
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
-                time = var[:]
+                time = var[:] 
+                # time will be incorrect if we read our top copy files that have inconsistent time reference - works good with UDS-queried files though
                 time_units = units
                 self.times = num2date(time, time_units)
                 self.start_time = self.times[0]
