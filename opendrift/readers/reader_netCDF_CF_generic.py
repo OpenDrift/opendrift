@@ -40,7 +40,7 @@ class Reader(BaseReader):
             logging.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logging.info('Opening files with MFDataset')
-                self.Dataset = MFDataset(filename)
+                self.Dataset = MFDataset(filename,aggdim='time')
             else:
                 logging.info('Opening file with Dataset')
                 self.Dataset = Dataset(filename, 'r')

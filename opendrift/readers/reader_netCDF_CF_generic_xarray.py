@@ -23,6 +23,7 @@ import logging
 import numpy as np
 # from netCDF4 import Dataset, MFDataset, num2date
 import xarray
+import pandas
 from opendrift.readers.basereader import BaseReader
 
 
@@ -123,6 +124,7 @@ class Reader(BaseReader):
                 y = var[:]*unitfactor
                 self.numy = var.shape[0] 
             if standard_name == 'depth' or axis == 'Z':
+                self.zname = var_name # added for use later in indexing
                 if var[:].ndim == 1:
                     if 'positive' not in attributes or \
                             var.attrs['positive'] == 'up':
@@ -130,17 +132,23 @@ class Reader(BaseReader):
                     else:
                         self.z = -var[:]
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
+                self.timename = var_name  #added for use later in indexing
+                #
                 # Read and store time coverage (of this particular file)
                 #
                 # the reader normally expects num2date(times,units,calendar='standard')= Return datetime objects given numeric time values
-                # convert xarray time to datetime objects, or....
-                # store as native xarray time and use nice slicing options ??
+                # Key required step is to convert xarray time to python datetime objects to make the xarray use as transparent as possible to rest of code
+                # other option(not prefered) is to store time as native xarray time and use nice slicing options > poses issues in basereader.py..not ideal
                 
                 time_xarray = var #time = var[:] # store xarray time variables - will be used to data selection later on
+                # convert xarray times to python datetime objects to be consistent with other readers
+                datetimeindex= pandas.to_datetime(time_xarray.data)
+                time_datetime=datetimeindex.to_pydatetime()
+ 
                 # time_units = units
-                self.times = time_xarray# self.times = num2date(time, time_units)
-                self.start_time = self.times.data[0]# self.start_time = self.times[0]
-                self.end_time = self.times.data[-1]# self.end_time = self.times[-1]
+                self.times = time_datetime# self.times = num2date(time, time_units)
+                self.start_time = self.times[0]# self.start_time = self.times[0]
+                self.end_time = self.times[-1]# self.end_time = self.times[-1]
                 if len(self.times) > 1:
                     self.time_step = self.times[1] - self.times[0]
                 else:
@@ -230,7 +238,9 @@ class Reader(BaseReader):
 
         # change the `variable_aliases` variable to fit with MetOcean convention (note the mapping was initially defined in basereader.py)
         self.variable_aliases = {
-             # standard mapping from CF_generic########################################
+            # name_in_netcdf_files : name_used_inside_opendrift
+            ##########################################################################
+            # standard mapping from CF_generic########################################
             'sea_water_potential_temperature': 'sea_water_temperature',
             'eastward_wind': 'x_wind',
             'northward_wind': 'y_wind',
@@ -301,10 +311,38 @@ class Reader(BaseReader):
                                            # lev :   vertical levels for ocean models or data
             ###########################################################################
             # Additional mapping for top-copy files on servers ########################
+            'dpt' : 'sea_floor_depth_below_sea_level',
+            'sea_surface_wave_significant_height' : 'sea_surface_wave_significant_height',
+            # icebergs_induced_attenuation_scale_for_waves
+            # sea_surface_wind_wave_mean_from_direction
+            # sea_surface_primary_swell_wave_mean_from_direction
+            # sea_surface_secondary_swell_wave_mean_from_direction
+            # sea_surface_wind_wave_significant_height
+            # sea_surface_primary_swell_wave_significant_height
+            # sea_surface_secondary_swell_wave_significant_height
+            # sea_surface_wind_wave_wavelength_at_variance_spectral_density_maximum
+            # sea_surface_primary_swell_wave_wavelength_at_variance_spectral_density_maximum
+            # sea_surface_secondary_swell_wave_wavelength_at_variance_spectral_density_maximum
+            # sea_surface_wind_wave_period_at_variance_spectral_density_maximum 
+            # sea_surface_primary_swell_wave_period_at_variance_spectral_density_maximum
+            # sea_surface_secondary_swell_wave_period_at_variance_spectral_density_maximum
+            # wind_sea_fraction_in_wind_wave_partition
+            # wind_sea_fraction_in_primary_swell_wave_partition
+            # wind_sea_fraction_in_secondary_swell_wave_partition
+            # sea_surface_wave_directional_spread
+            # sea_surface_wind_wave_mean_period_from_variance_spectral_density_first_frequency_moment
+            # sea_surface_wind_wave_mean_period_from_variance_spectral_density_second_frequency_moment
+            'sea_surface_wave_period_at_variance_spectral_density_maximum' : 'sea_surface_wave_period_at_variance_spectral_density_maximum' ,
+            # wind_sea_fraction
+            # eastward_sea_water_velocity
+            # northward_sea_water_velocity  
+            # eastward_wind_at_10m_above_ground_level
+            # northward_wind_at_10m_above_ground_level
+            # sea_ice_area_fraction            
+            # sea_surface_wind_wave_mean_period_from_variance_spectral_density_inverse_frequency_moment            
+            'sea_surface_wave_mean_from_direction' : 'sea_surface_wave_from_direction'
+            #sea_surface_wave_from_direction_at_variance_spectral_density_maximum
             }
-
-
-
         
         # Find all variables having standard_name - use xarray's data_vars
         self.variable_mapping = {}
@@ -319,7 +357,6 @@ class Reader(BaseReader):
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
-
         self.variables = self.variable_mapping.keys()
 
         # Run constructor of parent Reader class
@@ -328,6 +365,7 @@ class Reader(BaseReader):
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False,
                       indrealization=None):
+        # updated get_variables() function using xarray
 
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
@@ -392,19 +430,38 @@ class Reader(BaseReader):
             continous = False
         else:
             continous = True
-        for par in requested_variables:
-            var = self.Dataset.variables[self.variable_mapping[par]]
+        for par in requested_variables:            
+            # var = self.Dataset.variables[self.variable_mapping[par]] # using netCDF4        
+            var = self.Dataset[self.variable_mapping[par]] # get data as DataArray http://xarray.pydata.org/en/stable/generated/xarray.Dataset.variables.html
+            # other writing :  var = self.Dataset.__getitem__(self.variable_mapping[par])
+            # array([[ 0.18127995,  0.18494217,  0.16418958,  0.12756737,  0.08178961,
+            #          0.0347911 ],
+            #        [ 0.21851253,  0.22156438,  0.19104587,  0.13855403,  0.07995849,
+            #          0.02746666],
+            #          ....
+            da = var.isel(time=indxTime,depth=indz,latitude=indy,longitude=indx) #Return a new DataArray whose dataset is given by integer indexing along the specified dimension(s)
 
+            #subset the data # using xarray API
+            #
+            # this is done using the xarray's function isel() function DataArray.isel(dim_name1=id,dim_name2=id etc...
+            # might be worth saving the dimension name is self() as they may be different from files to files ?
+            #
+            # e.g (self.time_dim_name=indxTime, self.longitude_dim_name=indx, etc...)
+            # dimension names can be obtained with var.coords.keys()
+            # 
+            # self.xname,self.yname
+            # 
             ensemble_dim = None
             if continous is True:
                 if var.ndim == 2:
-                    variables[par] = var[indy, indx]
+                    variables[par] = var.isel(latitude=indy,longitude=indx).values #may need to be isle(self.xname=indx,self.yname=indy) ....# var[indy, indx] 
                 elif var.ndim == 3:
-                    variables[par] = var[indxTime, indy, indx]
+                    variables[par] = var.isel(time=indxTime,latitude=indy,longitude=indx).values #var[indxTime, indy, indx]
                 elif var.ndim == 4:
-                    variables[par] = var[indxTime, indz, indy, indx]
+                    variables[par] = var.isel(time=indxTime,depth=indz,latitude=indy,longitude=indx).values #var[indxTime, indz, indy, indx]
                 elif var.ndim == 5:  # Ensemble data
-                    variables[par] = var[indxTime, indz, indrealization, indy, indx]
+                    # to test with example https://github.com/OpenDrift/opendrift/blob/master/examples/example_ensemble.py
+                    # variables[par] = var.isel(time=indxTime,depth=indz,realization=,latitude=indy,longitude=indx) #var[indxTime, indz, indrealization, indy, indx]
                     ensemble_dim = 0  # Hardcoded ensemble dimension for now
                 else:
                     raise Exception('Wrong dimension of variable: ' +
@@ -462,10 +519,12 @@ class Reader(BaseReader):
             variables['z'] = None
         if block is True:
             if self.projected is True:
-                variables['x'] = \
-                    self.Dataset.variables[self.xname][indx]*self.unitfactor
-                variables['y'] = \
-                    self.Dataset.variables[self.yname][indy]*self.unitfactor
+                # variables['x'] = \
+                #     self.Dataset.variables[self.xname][indx]*self.unitfactor
+                # variables['y'] = \
+                #     self.Dataset.variables[self.yname][indy]*self.unitfactor
+                variables['x'] = self.Dataset[self.xname].isel(longitude=indx).values*self.unitfactor # using xarray API
+                variables['y'] = self.Dataset[self.yname].isel(latitude=indy).values*self.unitfactor  # using xarray API
             else:
                 variables['x'] = indx
                 variables['y'] = indy
