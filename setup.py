@@ -18,16 +18,16 @@ config = {
     'download_url': 'https://github.com/OpenDrift/opendrift',
     'version': __version__,
     'license': 'GPLv2',
-    'install_requires': [
-        'configobj',
-        'numpy',
-        'scipy',
-        'matplotlib',
-        'netCDF4',
-        'pillow',
-        'future',
-        'basemap'
-    ],
+    #'install_requires': [
+    #    'configobj',
+    #    'numpy',
+    #    'scipy',
+    #    'matplotlib',
+    #    'netCDF4',
+    #    'pillow',
+    #    'future',
+    #    'basemap'
+    #],
     'packages': find_packages(),
     'include_package_data': True,
     'test_suite': 'setup.opendrift_tests',
