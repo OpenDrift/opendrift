@@ -350,11 +350,17 @@ class Reader(BaseReader):
                     indygrid = indy
                 if par == 'x_sea_water_velocity':
                     if not hasattr(self, 'mask_u'):
-                        self.mask_u = self.Dataset.variables['mask_u'][:]
+                        if 'mask_u' in self.Dataset.variables:
+                            self.mask_u = self.Dataset.variables['mask_u'][:]
+                        else:
+                            self.mask_u = self.Dataset.variables['mask_rho'][:]
                     mask = self.mask_u[indygrid, indxgrid]
                 elif par == 'y_sea_water_velocity':
                     if not hasattr(self, 'mask_v'):
-                        self.mask_v = self.Dataset.variables['mask_v'][:]
+                        if 'mask_v' in self.Dataset.variables:
+                            self.mask_v = self.Dataset.variables['mask_v'][:]
+                        else:
+                            self.mask_v = self.Dataset.variables['mask_rho'][:]
                     mask = self.mask_v[indygrid, indxgrid]
                 else:
                     if not hasattr(self, 'mask_rho'):
