@@ -45,10 +45,29 @@ class Reader(BaseReader):
             logging.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logging.info('Opening files with xarray.open_mfdataset')
-                self.Dataset = xarray.open_mfdataset(filename)
+                # self.Dataset = xarray.open_mfdataset(filename)
+                # this seems slow ..maybe because of this :
+                # https://github.com/pydata/xarray/issues/1385
+                # an option could be :
+                # ds = xarray.open_mfdataset(filename,decode_cf=False)
+                # self.Dataset = xarray.decode_cf(ds)
+                # 
+                # Use "chunks" to load data - faster !!
+                # chunks size may need to be defined based on size of dimensions ?
+                # but that would mean opening the dataset first..
+                # or option is to chunk later  e.g. self.Dataset = self.Dataset.chunk({'latitude': 100, 'longitude': 100})
+                #  https://www.unidata.ucar.edu/blogs/developer/entry/chunking_data_why_it_matters
+                # 
+                # In our case we will always query spatial 2D data blocks at specified times , which will then be used for interpolation
+                # For [time,lat,lon] data, best option could be :  daily(24h) chunks of data , further chunked in the lon/lat dimensions ?
+                # For [time,lev,lat,lon] data best option could be have 24h, 1-level chunks of data , further chunked in the lon/lat dimensions ?
+                # 
+                # import pdb;pdb.set_trace() 
+                #  use hard-coded chunks size for now
+                self.Dataset = xarray.open_mfdataset(filename, chunks={'time':24, 'depth':1, 'longitude':100, 'latitude':100}, autoclose=True)
             else:
                 logging.info('Opening file with xarray.open_dataset')
-                self.Dataset = xarray.open_dataset(filename)
+                self.Dataset = xarray.open_dataset(filename, chunks={'time':24, 'depth':1, 'longitude':100, 'latitude':100}, autoclose=True)
         except Exception as e:
             raise ValueError(e)
         logging.debug('Finding coordinate variables.')
