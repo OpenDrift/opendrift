@@ -94,10 +94,10 @@ if __name__ == '__main__':
         variables = [var for var in r.variables if var not in ('time')]
         data = r.get_variables(variables, time, x, y, z=0, block=True)
         for var in variables:
-            print '%s : %s' % (var, data[var][i,j])
+            print('%s : %s' % (var, data[var][i,j]))
         if 'x_wind' in variables and 'y_wind' in variables:
-            print 'windspeed : %s' % np.sqrt(
-                data['x_wind'][i,j]**2 + data['y_wind'][i,j]**2)
+            print('windspeed : %s' % np.sqrt(
+                data['x_wind'][i,j]**2 + data['y_wind'][i,j]**2))
 
     if args.variable != 'noplot':
         if args.variable is None:
