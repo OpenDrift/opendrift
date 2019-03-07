@@ -138,6 +138,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
                 lift_to_seafloor = boolean(default=True)
+                truncate_ocean_model_below_m = float(min=0, max=10000, default=None)
                 deactivate_north_of = float(min=-90, max=90, default=None)
                 deactivate_south_of = float(min=-90, max=90, default=None)
                 deactivate_east_of = float(min=-360, max=360, default=None)
@@ -837,6 +838,14 @@ class OpenDriftSimulation(PhysicsMethods):
         # Discard any existing readers which are not relevant
         self.discard_irrelevant_readers()
 
+        truncate_depth = self.get_config('drift:truncate_ocean_model_below_m')
+        if truncate_depth is not None:
+            logging.debug('Truncating ocean models below %s m' % truncate_depth)
+            z = z.copy()
+            z[z<-truncate_depth] = -truncate_depth
+            if self.required_profiles_z_range is not None:
+                self.required_profiles_z_range[self.required_profiles_z_range<-truncate_depth] = -truncate_depth
+
         # Initialise more lazy readers if necessary
         missing_variables = ['missingvar']
         while (len(missing_variables) > 0 and
@@ -954,6 +963,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                 len(env_profiles['z'])-1,
                                 len(env_profiles_tmp['z'])-1))
                             # len(missing_indices) since 2 points might have been added and not removed
+                            env_profiles_tmp[var] = np.ma.atleast_2d(env_profiles_tmp[var])
                             env_profiles[var][np.ix_(z_ind, missing_indices)] = \
                                 np.ma.masked_invalid(env_profiles_tmp[var][z_ind,0:len(missing_indices)]).astype('float32')
 

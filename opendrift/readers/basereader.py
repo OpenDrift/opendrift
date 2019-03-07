@@ -300,7 +300,6 @@ class BaseReader(object):
         - monitor time spent by this reader
         - convert any numpy arrays to masked arrays
         """
-
         logging.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
         if profiles is not None and block is True:
@@ -544,6 +543,8 @@ class BaseReader(object):
                 for var in env_profiles_before.keys():
                     if var == 'z':
                         continue
+                    env_profiles_before[var]=np.atleast_2d(env_profiles_before[var])
+                    env_profiles_after[var]=np.atleast_2d(env_profiles_after[var])
                     env_profiles[var] = (
                         env_profiles_before[var][0:numlayers, :] *
                         (1 - weight_after) +

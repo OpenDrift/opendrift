@@ -185,10 +185,12 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # prepare vertical interpolation coordinates
         #z_i = range(Kprofiles.shape[0])
         z_i = range(self.environment_profiles['z'].shape[0])
-        #print len(self.environment_profiles['z']), len(z_i)
-        z_index = interp1d(-self.environment_profiles['z'],
-                           z_i, bounds_error=False,
-                           fill_value=(0,len(z_i)-1))  # Extrapolation
+        if len(z_i) == 1:
+            z_index = 0
+        else:
+            z_index = interp1d(-self.environment_profiles['z'],
+                               z_i, bounds_error=False,
+                               fill_value=(0,len(z_i)-1))  # Extrapolation
 
         # internal loop for fast time step of vertical mixing model
         # random walk needs faster time step compared
@@ -219,7 +221,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
 
 
             dz = 1e-3
-            zi = z_index(-self.elements.z+0.5*dz)
+            if z_index == 0:
+                zi = 0*self.elements.z
+            else:
+                zi = z_index(-self.elements.z+0.5*dz)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
@@ -230,7 +235,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 (1-weight_upper)
 
             # diffusivity K at depth z-dz
-            zi = z_index(-self.elements.z-0.5*dz)
+            if z_index == 0:
+                zi = 0*self.elements.z
+            else:
+                zi = z_index(-self.elements.z-0.5*dz)
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
@@ -244,7 +252,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             dKdz = (K1 - K2) / dz
 
             # K at depth z+dKdz*dt/2 
-            zi = z_index(-(self.elements.z+dKdz*dt_mix/2))
+            if z_index == 0:
+                zi = 0*self.elements.z
+            else:
+                zi = z_index(-(self.elements.z+dKdz*dt_mix/2))
             upper = np.maximum(np.floor(zi).astype(np.int), 0)
             lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)

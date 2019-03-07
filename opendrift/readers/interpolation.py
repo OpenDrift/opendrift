@@ -324,6 +324,8 @@ class ReaderBlock():
                 env_dict[varname] = self.interpolator1d(horizontal)
             else:
                 env_dict[varname] = horizontal
+        if 'z' in profiles_dict:
+            profiles_dict['z'] = np.atleast_1d(profiles_dict['z'])
 
         return env_dict, profiles_dict
 
