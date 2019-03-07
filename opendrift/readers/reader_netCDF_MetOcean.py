@@ -361,16 +361,32 @@ class Reader(BaseReader):
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
+
         if hasattr(self, 'z') and (z is not None): # 3D interpolation
-            # Find z-index range
-            # NB: may need to flip if self.z is ascending
-            indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
-            indz = np.arange(np.maximum(0, indices.min() - 1 -
-                                        self.verticalbuffer),
-                             np.minimum(len(self.z), indices.max() + 1 +
-                                        self.verticalbuffer))
+        
+            # "self.z"  : contains the vertical levels of the dataset, surface=0, negative down
+            #           : expected to be ordered as surface-most to deeper-most
+            #      
+            # "z"  : are the particle depths - z=0 at surface, z<0 if below water
+            # 
+            
+            # Find z-index ranges that includes all particles
+            # NB: may need to flip if self.z is ascending (original comment)
+            # 
+            # np.searchsorted(a,v) finds indices where elements V should be inserted in A to maintain order, assuming A is sorted in ascending order.
+            # 
+
+            if self.z[0]>self.z[1] : # self.z is "descending" - surface-most layer first then going deeper
+                indices = np.searchsorted(-self.z, [-z.min(), -z.max()]) 
+            else : # self.z is "ascending" - bottom-most layer first then going towards surface
+                indices = np.searchsorted(self.z, [z.min(), z.max()]) 
+
+            indz = np.arange(np.maximum(0, indices.min() - 1 - self.verticalbuffer),
+                             np.minimum(len(self.z), indices.max() + 1 + self.verticalbuffer))
             if len(indz) == 1:
+                # in that case indz is single closest layer to particle z
                 indz = indz[0]  # Extract integer to read only one layer
+                
         else: # 2D interpolation
             indz = 0
 
@@ -465,6 +481,7 @@ class Reader(BaseReader):
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
         variables['time'] = nearestTime
+
         return variables
 
     def nearest_time(self, time):
