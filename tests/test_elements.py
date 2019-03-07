@@ -46,7 +46,7 @@ class TestElements(unittest.TestCase):
         A0 = LagrangianArray()
         self.assertEqual(len(A0), 0)
         self.assertFalse(A0)
-        self.assertFalse(A0.lon)
+        self.assertTrue(len(A0.lon)==0)
 
     def test_move(self):
         A1 = LagrangianArray(lon = [4.1], lat = [60.1])

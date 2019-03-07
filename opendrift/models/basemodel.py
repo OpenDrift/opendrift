@@ -33,6 +33,7 @@ try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
     matplotlib.rcParams['legend.scatterpoints'] = 1
+
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
         print 'No display found. Using non-interactive Agg backend'
@@ -1347,8 +1348,8 @@ class OpenDriftSimulation(PhysicsMethods):
         # Make arrays of all input parameters, with one element per
         # lon/lat pair, for sequential seeding
         #################################################################
-        lon = np.atleast_1d(lon)
-        lat = np.atleast_1d(lat)
+        lon = np.atleast_1d(lon).ravel()
+        lat = np.atleast_1d(lat).ravel()
         num_points = len(lon)  # Number of lon/lat pairs
         if number is not None and number < num_points:
             raise ValueError('Number of elements must be greater or equal '
@@ -1364,7 +1365,7 @@ class OpenDriftSimulation(PhysicsMethods):
             ###############################
             # lon and lat are arrays
             ###############################
-            radius_array = np.atleast_1d(radius)
+            radius_array = np.atleast_1d(radius).ravel()
             if len(radius_array) == 1:
                 # If scalar radius is given, apply to all points
                 radius_array = radius_array*np.ones(num_points)
@@ -1393,6 +1394,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                           int(indx_time_end[i])]
                                for i in range(num_points)]
                 time_array = time_array2  # Subset of times for this point
+            if type(time) == list and len(time) > 2:
+                time_array = time
 
             if cone is True:
                 ###################################################
@@ -1661,6 +1664,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                                kwargs['timeformat'])
             del kwargs['timeformat']
 
+        num_seeded_before = self.num_elements_scheduled()
+
         targetSRS = osr.SpatialReference()
         targetSRS.ImportFromEPSG(4326)
         try:
@@ -1697,7 +1702,6 @@ class OpenDriftSimulation(PhysicsMethods):
             layer.ResetReading()  # Rewind to first layer
             logging.info('Total area of all polygons: %s m2' % total_area)
 
-            num_seeded = 0
             for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)
                 if feature is None:
@@ -1707,7 +1711,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 if f == featurenum[-1]:
                     # For the last feature we seed the remaining number,
                     # avoiding difference due to rounding:
-                    num_elements = number - num_seeded
+                    num_elements = number - (
+                        self.num_elements_scheduled() -
+                        num_seeded_before)
                 logging.info('\tSeeding %s elements within polygon number %s' %
                              (num_elements, featurenum[i]))
                 try:
@@ -1715,18 +1721,17 @@ class OpenDriftSimulation(PhysicsMethods):
                 except:
                     pass
                 b = geom.GetBoundary()
-                if b is not None:
-                    points = b.GetPoints()
-                    lons = [p[0] for p in points]
-                    lats = [p[1] for p in points]
-                else:
-                    # Alternative if OGR is not built with GEOS support
-                    r = geom.GetGeometryRef(0)
-                    lons = [r.GetX(j) for j in range(r.GetPointCount())]
-                    lats = [r.GetY(j) for j in range(r.GetPointCount())]
+                #if b is not None:
+                #    points = b.GetPoints()
+                #    lons = [p[0] for p in points]
+                #    lats = [p[1] for p in points]
+                #else:
+                # Alternative if OGR is not built with GEOS support
+                r = geom.GetGeometryRef(0)
+                lons = [r.GetX(j) for j in range(r.GetPointCount())]
+                lats = [r.GetY(j) for j in range(r.GetPointCount())]
 
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
-                num_seeded += num_elements
 
     def seed_from_ladim(self, ladimfile, roms):
         """Seed elements from ladim *.rls text file: [time, x, y, z, name]"""
@@ -1763,7 +1768,7 @@ class OpenDriftSimulation(PhysicsMethods):
         reason_number = self.status_categories.index(reason)
         #if not hasattr(self.elements.status, "__len__"):
         if len(np.atleast_1d(self.elements.status)) == 1:
-            status = np.asscalar(self.elements.status)
+            status = self.elements.status.item()
             self.elements.status = np.zeros(self.num_elements_active())
             self.elements.status.fill(status)
         # Deactivate elements, if they have not already been deactivated
@@ -2022,8 +2027,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 np.radians(np.mean(self.elements_scheduled.lat)))
             from opendrift.readers import reader_basemap_landmask
             reader_basemap = reader_basemap_landmask.Reader(
-                llcrnrlon=self.elements_scheduled.lon.min() - deltalon,
-                urcrnrlon=self.elements_scheduled.lon.max() + deltalon,
+                llcrnrlon=np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                urcrnrlon=np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
                 llcrnrlat=np.maximum(-89, self.elements_scheduled.lat.min() -
                                      deltalat),
                 urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
@@ -2534,7 +2539,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
-                  surface_only=True,
+                  surface_only=False,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 

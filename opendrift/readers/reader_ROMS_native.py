@@ -70,6 +70,8 @@ class Reader(BaseReader):
             -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
             -6500, -7000, -7500, -8000])
 
+        gls_param = ['gls_cmu0', 'gls_p', 'gls_m', 'gls_n']
+
         filestr = str(filename)
         if name is None:
             self.name = filestr
@@ -81,9 +83,18 @@ class Reader(BaseReader):
             logging.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logging.info('Opening files with MFDataset')
+                def drop_non_essential_vars_pop(ds):
+                    dropvars = [v for v in ds.variables if v not in
+                                list(self.ROMS_variable_mapping.keys()) + gls_param +
+                                ['ocean_time', 's_rho', 'Cs_r', 'hc', 'angle']
+                                and v[0:3] not in ['lon', 'lat', 'mas']]
+                    logging.debug('Dropping variables: %s' % dropvars)
+                    ds = ds.drop(dropvars)
+                    return ds
                 if has_xarray is True:
                     self.Dataset = xr.open_mfdataset(filename,
                         chunks={'ocean_time': 1}, concat_dim='ocean_time',
+                        preprocess=drop_non_essential_vars_pop,
                         data_vars='minimal', coords='minimal')
                 else:
                     self.Dataset = MFDataset(filename)
@@ -150,9 +161,9 @@ class Reader(BaseReader):
 
         try:  # Check for GLS parameters (diffusivity)
             self.gls_parameters = {}
-            for gls_param in ['gls_cmu0', 'gls_p', 'gls_m', 'gls_n']:
-                self.gls_parameters[gls_param] = \
-                    self.Dataset.variables[gls_param][()]
+            for gls_par in gls_param:
+                self.gls_parameters[gls_par] = \
+                    self.Dataset.variables[gls_par][()]
             logging.info('Read GLS parameters from file.')
         except Exception as e:
             logging.info(e)
@@ -339,11 +350,17 @@ class Reader(BaseReader):
                     indygrid = indy
                 if par == 'x_sea_water_velocity':
                     if not hasattr(self, 'mask_u'):
-                        self.mask_u = self.Dataset.variables['mask_u'][:]
+                        if 'mask_u' in self.Dataset.variables:
+                            self.mask_u = self.Dataset.variables['mask_u'][:]
+                        else:
+                            self.mask_u = self.Dataset.variables['mask_rho'][:]
                     mask = self.mask_u[indygrid, indxgrid]
                 elif par == 'y_sea_water_velocity':
                     if not hasattr(self, 'mask_v'):
-                        self.mask_v = self.Dataset.variables['mask_v'][:]
+                        if 'mask_v' in self.Dataset.variables:
+                            self.mask_v = self.Dataset.variables['mask_v'][:]
+                        else:
+                            self.mask_v = self.Dataset.variables['mask_rho'][:]
                     mask = self.mask_v[indygrid, indxgrid]
                 else:
                     if not hasattr(self, 'mask_rho'):
@@ -503,7 +520,7 @@ class Reader(BaseReader):
                 logging.debug('Reading angle between xi and east...')
                 self.angle_xi_east = self.Dataset.variables['angle'][:]
             if has_xarray is False:
-                rad = self.angle_xi_east[np.meshgrid(indy, indx)].T
+                rad = self.angle_xi_east[tuple(np.meshgrid(indy, indx))].T
             else:
                 rad = self.angle_xi_east[indy, indx]
             if 'x_sea_water_velocity' in variables.keys():

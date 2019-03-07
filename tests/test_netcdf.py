@@ -34,7 +34,7 @@ class Test(unittest.TestCase):
             urcrnrlon=14.6, urcrnrlat=67.7,
             resolution='i', projection='merc')
 
-        o = OceanDrift3D(loglevel=30)
+        o = OceanDrift3D(loglevel=0)
         o.set_config('general:basemap_resolution', 'i')
         nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic_subset_day*.nc')

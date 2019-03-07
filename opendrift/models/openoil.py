@@ -177,14 +177,14 @@ class OpenOil(OpenDriftSimulation):
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
                 '/oilprop.dat'
-            oilprop = open(self.oiltype_file, 'r', encoding='utf-8')
             oiltypes = []
             linenumbers = []
-            for i, line in enumerate(oilprop.readlines()):
-                if line[0].isalpha():
-                    oiltype = line.strip()[:-2].strip()
-                    oiltypes.append(oiltype)
-                    linenumbers.append(i)
+            with open(self.oiltype_file) as f:
+                for i, line in enumerate(f):
+                    if line[0].isalpha():
+                        oiltype = line.strip()[:-2].strip()
+                        oiltypes.append(oiltype)
+                        linenumbers.append(i)
             oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
             self.oiltypes = oiltypes
             self.oiltypes_linenumbers = linenumbers
@@ -522,6 +522,10 @@ class OpenOil(OpenDriftSimulation):
         if len(surface) == 0:
             logging.debug('All elements submerged, no evaporation')
             return
+        if self.elements.age_seconds[surface].min() > 3600*24:
+            logging.debug('All surface oil elements older than 24 hours, ' +
+                          'skipping further evaporation.')
+            return
         surfaceID = self.elements.ID[surface] - 1    # of any elements
         # Area for each element, repeated for each component
         volume = (self.elements.mass_oil[surface] /
@@ -806,6 +810,7 @@ class OpenOil(OpenDriftSimulation):
             tref.append(line[0])
             fref.append(line[1])
             wmax.append(line[3])
+        oilfile.close()
         self.oil_data['tref'] = np.array(tref, dtype='float')*3600.
         self.oil_data['fref'] = np.array(fref, dtype='float')*.01
         self.oil_data['wmax'] = np.array(wmax, dtype='float')

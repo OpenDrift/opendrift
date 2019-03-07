@@ -709,42 +709,50 @@ class BaseReader(object):
             # For larger arrays, we split and calculate in parallel
             # The number of CPUs to use can be improved/optimised
             num_elements = len(np.atleast_1d(lon))
-            if num_elements > 100:
-                nproc = 2
-                if num_elements > 1000:
-                    nproc = 16
-                if num_elements > 100000:
-                    nproc = 32
-                if num_elements > 1000000:
-                    nproc = 64
-                cpus = cpu_count()
-                nproc = np.minimum(nproc, cpus-1)
-                nproc = np.maximum(2, nproc)
-                logging.debug('Running lonlat2xy in parallel, using %i of %i CPUs'
-                              % (nproc, cpus))
-                split_lon = np.array_split(lon, nproc)
-                split_lat = np.array_split(lat, nproc)
-                out_x = Manager().dict()
-                out_y = Manager().dict()
-                def get_x(lon_part, lat_part, num):
-                    out_x[num] = self.spl_x(lon_part, lat_part)
-                def get_y(lon_part, lat_part, num):
-                    out_y[num] = self.spl_y(lon_part, lat_part)
-                processes = []
-                for i in range(nproc):
-                    processes.append(Process(target=get_x, args=
-                                     (split_lon[i], split_lat[i], i)))
-                    processes.append(Process(target=get_y, args=
-                                     (split_lon[i], split_lat[i], i)))
-                [p.start() for p in processes]
-                [p.join() for p in processes]
-                x = np.concatenate(out_x)
-                y = np.concatenate(out_y)
-                logging.debug('Completed lonlat2xy in parallel')
-                return (x, y)
+            if num_elements > 100 and not hasattr(self, 'multiptocessing_fail'):
+                try:
+                    nproc = 2
+                    if num_elements > 1000:
+                        nproc = 16
+                    if num_elements > 100000:
+                        nproc = 32
+                    if num_elements > 1000000:
+                        nproc = 64
+                    cpus = cpu_count()
+                    nproc = np.minimum(nproc, cpus-1)
+                    nproc = np.maximum(2, nproc)
+                    logging.debug('Running lonlat2xy in parallel, using %i of %i CPUs'
+                                  % (nproc, cpus))
+                    split_lon = np.array_split(lon, nproc)
+                    split_lat = np.array_split(lat, nproc)
+                    out_x = Manager().dict()
+                    out_y = Manager().dict()
+                    def get_x(lon_part, lat_part, num):
+                        out_x[num] = self.spl_x(lon_part, lat_part)
+                    def get_y(lon_part, lat_part, num):
+                        out_y[num] = self.spl_y(lon_part, lat_part)
+                    processes = []
+                    for i in range(nproc):
+                        processes.append(Process(target=get_x, args=
+                                         (split_lon[i], split_lat[i], i)))
+                        processes.append(Process(target=get_y, args=
+                                         (split_lon[i], split_lat[i], i)))
+                    [p.start() for p in processes]
+                    [p.join() for p in processes]
+                    x = np.concatenate(out_x)
+                    y = np.concatenate(out_y)
+                    logging.debug('Completed lonlat2xy in parallel')
+                    return (x, y)
+                except Exception as e:
+                    logging.warning('Parallelprocessing failed:')
+                    logging.warning(e)
+                    self.multiptocessing_fail = True
             else:
-                # For smaller arrays, we run sequentially
-                logging.debug('Calculating lonlat->xy sequentially')
+                if hasattr(self, 'multiptocessing_fail'):
+                    logging.warning('Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy')
+                else:
+                    # For smaller arrays, we run sequentially
+                    logging.debug('Calculating lonlat->xy sequentially')
                 x = self.spl_x(lon, lat)
                 y = self.spl_y(lon, lat)
                 return (x, y)

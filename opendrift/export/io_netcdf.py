@@ -101,9 +101,8 @@ def write_buffer(self):
 
     # Write status categories metadata
     status_dtype = self.ElementType.variables['status']['dtype']
-    self.outfile.variables['status'].valid_range = np.array([0]).astype(
-        status_dtype), \
-        np.array([len(self.status_categories) - 1]).astype(status_dtype)
+    self.outfile.variables['status'].valid_range = np.array(
+        (0, len(self.status_categories) - 1)).astype(status_dtype)
     self.outfile.variables['status'].flag_values = \
         np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
     self.outfile.variables['status'].flag_meanings = \
@@ -120,9 +119,8 @@ def close(self):
     self.outfile = Dataset(self.outfile_name, 'a')
     # Write status categories metadata
     status_dtype = self.ElementType.variables['status']['dtype']
-    self.outfile.variables['status'].valid_range = np.array([0]).astype(
-        status_dtype), \
-        np.array([len(self.status_categories) - 1]).astype(status_dtype)
+    self.outfile.variables['status'].valid_range = np.array(
+        (0, len(self.status_categories) - 1)).astype(status_dtype)
     self.outfile.variables['status'].flag_values = \
         np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
     self.outfile.variables['status'].flag_meanings = \

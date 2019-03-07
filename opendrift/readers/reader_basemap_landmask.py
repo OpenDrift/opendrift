@@ -21,7 +21,9 @@ import gc
 import numpy as np
 import collections
 import matplotlib
-if os.environ.get('DISPLAY','') == '':
+if ('DISPLAY' not in os.environ and
+	    'PYCHARM_HOSTED' not in os.environ and
+        os.name != 'nt'):
     logging.info('No display found. Using non-interactive Agg backend')
     # matplotlib.use('agg')
     matplotlib.use('Tkagg')
@@ -129,7 +131,7 @@ class Reader(BaseReader):
                 land[nx.points_inside_poly(points, polygon)] = True
         else:
             for polygon in self.polygons:
-                land += polygon.contains_points(points)
+                land = land + polygon.contains_points(points)
         return land
 
     """
@@ -233,6 +235,10 @@ class Reader(BaseReader):
         # Aspect gives 1 in high plot
         aspect = (xmax-xmin)/(ymax-ymin)
         resolution_dpi = (ymax-ymin) / resolution_meters
+        while resolution_dpi > 10000:
+            logging.debug('Too large dpi %s, reducing by factor of 2'
+                          % resolution_dpi)
+            resolution_dpi = resolution_dpi / 2
         
         fig.set_dpi(resolution_dpi)
         fig.set_size_inches(aspect, 1)
@@ -246,7 +252,7 @@ class Reader(BaseReader):
         try:
             canvas.draw()
             width, height = canvas.get_width_height()
-            rgb_data = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(height, width, 3)
+            rgb_data = np.frombuffer(canvas.tostring_rgb(), dtype='uint8').reshape(height, width, 3)
             data = rgb_data[:,:,1]
             plt.close(fig) #comment this for debugging purposes and replace with plt.show()
             logging.debug('Rasterized size: ' + str([width, height]))

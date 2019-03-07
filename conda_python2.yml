@@ -1,0 +1,19 @@
+name: opendrift_p2
+channels:
+  - conda-forge
+dependencies:
+  - python=2.7
+  - matplotlib>=2.2.3
+  - numpy>=1.15.4
+  - scipy>=1.2.0
+  - basemap>=1.2.0
+  - basemap-data-hires
+  - future
+  - ffmpeg
+  - pillow
+  - pyproj
+  - configobj
+  - libgdal>=2.3.3
+  - gdal>=2.3.3
+  - pip:
+    - git+https://github.com/Unidata/netcdf4-python.git@master

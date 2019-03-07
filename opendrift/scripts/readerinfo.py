@@ -24,6 +24,7 @@
 
 import sys
 import argparse
+from datetime import datetime
 import numpy as np
 
 try:
@@ -55,6 +56,12 @@ if __name__ == '__main__':
                         help='Maximum value for colorbar')
     parser.add_argument('-e', action='store_true',
                         help='Report errors on failure.')
+    parser.add_argument('-lon', dest='lon', default=None,
+                        help='Report data from position.')
+    parser.add_argument('-lat', dest='lat', default=None,
+                        help='Report data from position.')
+    parser.add_argument('-time', dest='time', default=None,
+                        help='Report data from position at time [YYYYmmddHHMM].')
 
     args = parser.parse_args()
 
@@ -74,6 +81,23 @@ if __name__ == '__main__':
 
     if not 'r' in locals():            
         sys.exit('No readers applicable for ' + args.filename)
+
+    if args.lon is not None:
+        if args.lon is None or args.time is None:
+            raise ValueError('Both lon, lat and time must be given')
+        lon = np.atleast_1d(float(args.lon))
+        lat = np.atleast_1d(float(args.lat))
+        x,y = r.lonlat2xy(lon, lat)
+        time = datetime.strptime(args.time, '%Y%m%d%H%M')
+        r.buffer=3
+        i=3; j=3  # center of block
+        variables = [var for var in r.variables if var not in ('time')]
+        data = r.get_variables(variables, time, x, y, z=0, block=True)
+        for var in variables:
+            print('%s : %s' % (var, data[var][i,j]))
+        if 'x_wind' in variables and 'y_wind' in variables:
+            print('windspeed : %s' % np.sqrt(
+                data['x_wind'][i,j]**2 + data['y_wind'][i,j]**2))
 
     if args.variable != 'noplot':
         if args.variable is None:

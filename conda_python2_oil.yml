@@ -1,0 +1,29 @@
+name: opendrift_p2_oil
+channels:
+  - conda-forge
+  - NOAA-ORR-ERD
+  - defaults
+dependencies:
+  - python=2.7
+  - matplotlib>=2.2.3
+  - numpy>=1.15.4
+  - scipy>=1.2.0
+  - basemap>=1.2.0
+  - basemap-data-hires
+  - future
+  - ffmpeg
+  - pillow
+  - pyproj
+  - configobj
+  - libgdal>=2.3.3
+  - gdal>=2.3.3
+  - gitpython
+  - SQLAlchemy>=1.0.13
+  - zope.sqlalchemy>=0.7.7
+  - awesome-slugify>=1.6.5
+  - pytest>=2.9.2
+  - backports.functools_lru_cache>=1.5
+  - unit_conversion>=2.5.4
+  - pip:
+    - git+https://github.com/NOAA-ORR-ERD/OilLibrary.git@master
+    - git+https://github.com/Unidata/netcdf4-python.git@master
