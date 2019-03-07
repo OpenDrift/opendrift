@@ -91,7 +91,8 @@ if __name__ == '__main__':
         time = datetime.strptime(args.time, '%Y%m%d%H%M')
         r.buffer=3
         i=3; j=3  # center of block
-        variables = [var for var in r.variables if var not in ('time')]
+        variables = [var for var in r.variables if
+                     var not in ('time') and 'time' not in var]
         data = r.get_variables(variables, time, x, y, z=0, block=True)
         for var in variables:
             print('%s : %s' % (var, data[var][i,j]))
