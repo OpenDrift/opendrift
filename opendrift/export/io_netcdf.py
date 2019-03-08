@@ -234,11 +234,7 @@ def import_file(self, filename, time=None):
         if var in self.ElementType.variables:
             kwargs[var] = self.history[var][
                 np.arange(len(index_of_last)), index_of_last]
-    # Import element IDs, which are named 'trajectory' in netCDF CF convention
-    try:
-        kwargs['ID'] = infile.variables['trajectory'][:]
-    except:
-        kwargs['ID'] = np.arange(num_elements)
+    kwargs['ID'] = np.arange(len(kwargs['lon'])) + 1
     self.elements = self.ElementType(**kwargs)
     self.elements_deactivated = self.ElementType()
 
