@@ -61,9 +61,9 @@ lons, lats = np.meshgrid(lons, lats)
 lons = lons.ravel()
 lats = lats.ravel()
 
-# CHECK READER INTERPOLATION
+# CHECK READER INTERPOLATION 
 #  seems to return correct velocities provided that input lat/lon are using same covention as reader itself i.e. 0<lon<360, or -180<lon<180
-#cfsr
+# cfsr
 # v = reader_cfsr.get_variables(['y_sea_water_velocity', 'x_sea_water_velocity'], time=reader_cfsr.start_time, x=lons, y=lats, z=depth, block=True)
 # b = ReaderBlock(v, interpolation_horizontal='linearND')
 # env, prof = b.interpolate(lons,lats,depth, ['y_sea_water_velocity', 'x_sea_water_velocity'])
@@ -73,12 +73,40 @@ lats = lats.ravel()
 # b1 = ReaderBlock(v1, interpolation_horizontal='linearND')
 # env1, prof1 = b1.interpolate(lons,lats,depth, ['y_sea_water_velocity', 'x_sea_water_velocity'])
 # print env1
+
+# interpolation seems smooth across the 180 degT line
+# import matplotlib.pyplot as plt
+# plt.ion()
+# plt.plot(lons,env1['x_sea_water_velocity'],'.')
+# plt.show()
+# plt.plot(lons,env1['y_sea_water_velocity'],'+')
+# plt.show()
 #
-# import pdb;pdb.set_trace()
 # Seed oil elements at defined position and time
 
-o.seed_elements(lons, lats, z=depth, radius=0, number=1000,
-                time = reader_cfsr.start_time, wind_drift_factor = 0.5) # large wind_drift_factor to make particles drift past 180 degT
+o.seed_elements(lons, lats, z=depth, radius=0, number=1000, time = reader_cfsr.start_time, wind_drift_factor = 0.5) # large wind_drift_factor to make particles drift past 180 degT
+
+if False:
+    # tests
+    o.elements_scheduled
+
+    # check interpolatio of first time step
+    v0 = reader_cfsr.get_variables(['y_sea_water_velocity', 'x_sea_water_velocity'], time=reader_cfsr.start_time, x=o.elements_scheduled.lon, y=o.elements_scheduled.lat, z=depth, block=True)
+    # o.elements_scheduled.lon>180 are taken care of internally in get_variables()
+    b0 = ReaderBlock(v0, interpolation_horizontal='linearND')
+
+    import pdb;pdb.set_trace()
+
+    # try to convert coordinates of reader block ?
+    # b0.x[np.where(b0.x>180)] = b0.x[np.where(b0.x>180)]-360
+    # env0, prof0 = b0.interpolate(o.elements_scheduled.lon,o.elements_scheduled.lat,depth, ['y_sea_water_velocity', 'x_sea_water_velocity'])
+    # or try convert the queried x,y of particles instead 
+    o.elements_scheduled.lon[np.where(o.elements_scheduled.lon<0)] = 360 + o.elements_scheduled.lon[np.where(o.elements_scheduled.lon<0)]
+    env1, prof1 = b0.interpolate(o.elements_scheduled.lon,o.elements_scheduled.lat,depth, ['y_sea_water_velocity', 'x_sea_water_velocity'])
+    import matplotlib.pyplot as plt
+    plt.ion()
+    plt.plot(lons,env0['x_sea_water_velocity'],'.')
+
 
 ###############################
 # PHYSICS

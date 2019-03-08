@@ -121,9 +121,9 @@ class Reader(BaseReader):
                 # search "lon_0_360" if needed
                 if  min(self.lon[:])>=0 : 
                 # reader longitude using convention :  0<lon<360, or has longitude between 0 and +180 only
-                    self.lon_0_360 = True
+                    self.has_lon_0_360 = True
                 else:
-                    self.lon_0_360 = False    
+                    self.has_lon_0_360 = False    
 
             if standard_name == 'latitude' or \
                     long_name == 'latitude' or standard_name == 'lat' or var_name == 'lat':
@@ -405,8 +405,8 @@ class Reader(BaseReader):
                 
         # Find indices corresponding to requested x and y
         # indx = np.floor((x-self.xmin)/self.delta_x).astype(int) # original code
-        if self.lon_0_360 :
-            indx = np.floor((self.longitude_0_360(x)-self.xmin)/self.delta_x).astype(int) 
+        if self.has_lon_0_360 :
+            indx = np.floor((self.to_longitude_0_360(x)-self.xmin)/self.delta_x).astype(int) 
         else:
             indx = np.floor((x-self.xmin)/self.delta_x).astype(int) 
        
@@ -495,7 +495,6 @@ class Reader(BaseReader):
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
         variables['time'] = nearestTime
-        
         return variables
 
     def nearest_time(self, time):
@@ -576,13 +575,13 @@ class Reader(BaseReader):
         else:
             # at this stage 'lon' follows the convention -180<lon<180
             # need to account for reader(s) that may use 0<lon<360 instead
-            if not self.lon_0_360 :
+            if not self.has_lon_0_360 :
             # simple case - no overlap of 180W
                 indices = np.where((x >= self.xmin) & (x <= self.xmax) &
                                (y >= self.ymin) & (y <= self.ymax) &
                                (z >= zmin) & (z <= zmax))[0]
-            elif self.lon_0_360: #reader longitude using convention :  0<lon<360, or has longitude between 0 and +180 only
-                x360 = self.longitude_0_360(x) # convert opendrift x ([-180,180]) to [0,360] convention
+            elif self.has_lon_0_360: #reader longitude using convention :  0<lon<360, or has longitude between 0 and +180 only
+                x360 = self.to_longitude_0_360(x) # convert opendrift x ([-180,180]) to [0,360] convention
                 indices = np.where((x360 >= self.xmin) & (x360 <= self.xmax) &
                                    (y >= self.ymin) & (y <= self.ymax) &
                                    (z >= zmin) & (z <= zmax))[0]
@@ -602,6 +601,12 @@ class Reader(BaseReader):
         self.timer_start('total')
         self.timer_start('preparing')
         
+        # convert lon,lat positions to fit with reader conventions i.e. 0<lon<360 or -180<lon<180
+        # so that interpolation is handled correctly
+        # opendrit internally uses -180<lon<180 i.e. at this stage -180<lon<180
+        if self.has_lon_0_360:
+            lon = self.to_longitude_0_360(lon) 
+
         #----------------------------------------------------------------------------------------------------
         # Bypass the function to get to get_variables_interpolated_multireaders() if there are readers to add
         if hasattr(self,'readers_to_add') and self.use_multireader_interp and 'x_sea_water_velocity' in variables: 
@@ -1005,7 +1010,7 @@ class Reader(BaseReader):
 
 
 
-    def longitude_0_360(self,lon180):
+    def to_longitude_0_360(self,lon180):
         '''
         converts  longitude to different convention
         -180<longitude<180 toward 0<longitude<360
