@@ -844,6 +844,8 @@ class OpenDriftSimulation(PhysicsMethods):
             z = z.copy()
             z[z<-truncate_depth] = -truncate_depth
             if self.required_profiles_z_range is not None:
+                self.required_profiles_z_range = np.array(
+                    self.required_profiles_z_range)
                 self.required_profiles_z_range[self.required_profiles_z_range<-truncate_depth] = -truncate_depth
 
         # Initialise more lazy readers if necessary
