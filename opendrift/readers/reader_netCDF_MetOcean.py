@@ -116,6 +116,15 @@ class Reader(BaseReader):
                     long_name == 'longitude' or standard_name == 'lon' or var_name == 'lon':
                 self.lon = var
                 lon_var_name = var_name
+                # adding a flag to inform on longitude convention [0,360] or [-180,180]
+                # used further below on covers_positions and longitude index selection
+                # search "lon_0_360" if needed
+                if  min(self.lon[:])>=0 : 
+                # reader longitude using convention :  0<lon<360, or has longitude between 0 and +180 only
+                    self.lon_0_360 = True
+                else:
+                    self.lon_0_360 = False    
+
             if standard_name == 'latitude' or \
                     long_name == 'latitude' or standard_name == 'lat' or var_name == 'lat':
                 self.lat = var
@@ -310,10 +319,9 @@ class Reader(BaseReader):
         # other variables will be discarded  
         
         self.variables = self.variable_mapping.keys() # check that it does the right thing here
-
+        
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
-
 
     def __add__(self,reader_to_add):
         # function to overload the standard "add" (or '+') function
@@ -363,7 +371,7 @@ class Reader(BaseReader):
             self.nearest_time(time)
 
         if hasattr(self, 'z') and (z is not None): # 3D interpolation
-        
+
             # "self.z"  : contains the vertical levels of the dataset, surface=0, negative down
             #           : expected to be ordered as surface-most to deeper-most
             #      
@@ -375,11 +383,10 @@ class Reader(BaseReader):
             # 
             # np.searchsorted(a,v) finds indices where elements V should be inserted in A to maintain order, assuming A is sorted in ascending order.
             # 
-
             if self.z[0]>self.z[1] : # self.z is "descending" - surface-most layer first then going deeper
                 indices = np.searchsorted(-self.z, [-z.min(), -z.max()]) 
             else : # self.z is "ascending" - bottom-most layer first then going towards surface
-                indices = np.searchsorted(self.z, [z.min(), z.max()]) 
+                indices = np.searchsorted(self.z, [z.min(), z.max()])
 
             indz = np.arange(np.maximum(0, indices.min() - 1 - self.verticalbuffer),
                              np.minimum(len(self.z), indices.max() + 1 + self.verticalbuffer))
@@ -395,10 +402,17 @@ class Reader(BaseReader):
                 indrealization = range(len(self.realizations))
             else:
                 indrealization = None
-
+                
         # Find indices corresponding to requested x and y
-        indx = np.floor((x-self.xmin)/self.delta_x).astype(int)
+        # indx = np.floor((x-self.xmin)/self.delta_x).astype(int) # original code
+        if self.lon_0_360 :
+            indx = np.floor((self.longitude_0_360(x)-self.xmin)/self.delta_x).astype(int) 
+        else:
+            indx = np.floor((x-self.xmin)/self.delta_x).astype(int) 
+       
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
+        # 
+
         # If x or y coordinates are decreasing, we need to flip
         if self.x[0] > self.x[-1]:
             indx = len(self.x) - indx
@@ -419,7 +433,7 @@ class Reader(BaseReader):
 
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
-
+            
             ensemble_dim = None
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
@@ -481,7 +495,7 @@ class Reader(BaseReader):
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
         variables['time'] = nearestTime
-
+        
         return variables
 
     def nearest_time(self, time):
@@ -537,7 +551,45 @@ class Reader(BaseReader):
         return nearest_time, time_before, time_after,\
             indx_nearest, indx_before, indx_after
 
-    
+ 
+    def covers_positions(self, lon, lat, z=0):
+        """Return indices of input points covered by reader.
+           
+           Overloads covers_positions() from basereader.py
+           to account for netcdf files where 0<longitude<360
+
+        """
+        # Calculate x,y coordinates from lon,lat
+        x, y = self.lonlat2xy(lon, lat)
+        # Only checking vertical coverage if zmin, zmax is defined
+        zmin = -np.inf
+        zmax = np.inf
+        if hasattr(self, 'zmin') and self.zmin is not None:
+            zmin = self.zmin
+        if hasattr(self, 'zmax') and self.zmax is not None:
+            zmax = self.zmax
+
+        if self.global_coverage():
+            # We need only check north-south and z coverage
+            indices = np.where((y >= self.ymin) & (y <= self.ymax) &
+                               (z >= zmin) & (z <= zmax))[0]
+        else:
+            # at this stage 'lon' follows the convention -180<lon<180
+            # need to account for reader(s) that may use 0<lon<360 instead
+            if not self.lon_0_360 :
+            # simple case - no overlap of 180W
+                indices = np.where((x >= self.xmin) & (x <= self.xmax) &
+                               (y >= self.ymin) & (y <= self.ymax) &
+                               (z >= zmin) & (z <= zmax))[0]
+            elif self.lon_0_360: #reader longitude using convention :  0<lon<360, or has longitude between 0 and +180 only
+                x360 = self.longitude_0_360(x) # convert opendrift x ([-180,180]) to [0,360] convention
+                indices = np.where((x360 >= self.xmin) & (x360 <= self.xmax) &
+                                   (y >= self.ymin) & (y <= self.ymax) &
+                                   (z >= zmin) & (z <= zmax))[0]
+        try:
+            return indices, x[indices], y[indices]
+        except:
+            return indices, x, y   
 
 
     # this will overload the get_variables_interpolated() from basereader.py
@@ -550,7 +602,8 @@ class Reader(BaseReader):
         self.timer_start('total')
         self.timer_start('preparing')
         
-        # Bypass to get_variables_interpolated_multireaders if readers to add ------------------------------
+        #----------------------------------------------------------------------------------------------------
+        # Bypass the function to get to get_variables_interpolated_multireaders() if there are readers to add
         if hasattr(self,'readers_to_add') and self.use_multireader_interp and 'x_sea_water_velocity' in variables: 
             # "special" case when we need to add currents ['x_sea_water_velocity','y_sea_water_velocity'] from two or more readers
             # by passed otherwise
@@ -678,7 +731,11 @@ class Reader(BaseReader):
                                 'cover element positions within timestep. '
                                 'Buffer size (%s) must be increased.' %
                                 (self.name, str(self.buffer)))
-                import pdb;pdb.set_trace()
+                # import pdb;pdb.set_trace()
+                # note the covers_positions() of a "reader block" object may not work correctly
+                # 0<lon<360 i.e. return false while it is should be true
+                # Not critical - simply ensure buffer is larhe enough by setting 
+                # o.max_speed = 5 m/s for example
 
             self.timer_end('preparing')
             ############################################################
@@ -946,3 +1003,15 @@ class Reader(BaseReader):
         log_fac = ( np.log(part_z_above_seabed / self.z0) ) / ( np.log(np.abs(total_depth)/self.z0)-1 ) # total_depth must be positive, hence the abs()
         return log_fac
 
+
+
+    def longitude_0_360(self,lon180):
+        '''
+        converts  longitude to different convention
+        -180<longitude<180 toward 0<longitude<360
+
+        '''
+
+        lon360 = lon180.copy() # convert lon to [0-360] convention
+        lon360[np.where(lon360<0)] = 360+ lon360[np.where(lon360<0)]
+        return lon360
