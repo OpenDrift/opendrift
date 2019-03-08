@@ -2559,7 +2559,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
-                  surface_only=False,
+                  surface_only=False, markersize=20,
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
@@ -2695,11 +2695,11 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             c = []
         points = map.scatter([], [], color=c, zorder=10,
-                             edgecolor='', cmap=cmap,
+                             edgecolor='', cmap=cmap, s=markersize,
                              vmin=vmin, vmax=vmax, label=legend[0])
         # Plot deactivated elements, with transparency
         points_deactivated = map.scatter([], [], color=c, zorder=9,
-                                         vmin=vmin, vmax=vmax,
+                                         vmin=vmin, vmax=vmax, s=markersize,
                                          edgecolor='', alpha=.3)
         x_deactive, y_deactive = map(self.elements_deactivated.lon,
                                      self.elements_deactivated.lat)
@@ -2716,11 +2716,13 @@ class OpenDriftSimulation(PhysicsMethods):
                 cd['points_other'] = \
                     map.scatter([], [], color=
                                 self.plot_comparison_colors[cn],
+                                s=markersize,
                                 label=legstr, zorder=10)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
                     map.scatter([], [], alpha=.3, zorder=9, color=
-                                self.plot_comparison_colors[cn])
+                                self.plot_comparison_colors[cn],
+                                s=markersize)
 
             if legend != ['', '']:
                 plt.legend(markerscale=2, loc=legend_loc)
