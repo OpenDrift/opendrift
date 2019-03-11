@@ -118,7 +118,7 @@ class Reader(BaseReader):
                 lon_var_name = var_name
                 # adding a flag to inform on longitude convention [0,360] or [-180,180]
                 # used further below on covers_positions and longitude index selection
-                # search "lon_0_360" if needed
+                # search "has_lon_0_360" if needed
                 if  min(self.lon[:])>=0 : 
                 # reader longitude using convention :  0<lon<360, or has longitude between 0 and +180 only
                     self.has_lon_0_360 = True

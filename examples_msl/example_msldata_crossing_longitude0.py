@@ -22,17 +22,18 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 ###############################
 # READERS
 ###############################
-reader_cfsr = reader_netCDF_MetOcean.Reader('E:/metocean/0440_Tawhaki1_drillcuttings/opendrift_modelling/cfsr_ocean_nz_20040101.nc') # data goes across the 180deg longitude, and use 0<lon<360
+reader_nsea = reader_netCDF_MetOcean.Reader('C:/metocean/GitHub/opendrift/examples_msl/test_nsea_roms.nc') # data goes across the 180deg longitude, and use 0<lon<360
+# >> urlwrite('http://uds1.rag.metocean.co.nz:9191/uds?&var=um,vm&bnd=-2.0,2.0,50.0,52.0&time=20040101.000000z,20040201.000000z&dset=roms_nsea_surf&fmt=nc&dt=6.0','test_nsea_roms2.nc')
 
 # Making customised landmask (Basemap)
 
 reader_basemap = reader_basemap_landmask.Reader(
-                llcrnrlon=160.25, llcrnrlat=-50.75, 
-                urcrnrlon=189.75, urcrnrlat=-33.02,   
+                llcrnrlon=-2.0, llcrnrlat=50.0, 
+                urcrnrlon=2.0, urcrnrlat=52.0,   
                 resolution='l', projection='merc') # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)    
 
 o.max_speed =10.0 # must be before the add_readers() function !
-o.add_reader([reader_basemap,reader_cfsr])
+o.add_reader([reader_basemap,reader_nsea])
 
 o.fallback_values['x_wind'] = 0. # strong westerly wind to make particle drift past 180degT and check behaviour
 o.fallback_values['y_wind'] = 0.
@@ -48,38 +49,39 @@ o.fallback_values['y_wind'] = 0.
 # lats = np.linspace(60, 61, 100)
 # 
 #  Point release
-lon = 181.0; lat = -45.5;z=-16.0
+# lon = 181.0; lat = -45.5;z=-16.0
 #  Rectangle release
-lons = np.linspace(179.0,181.0, 100) 
-lats = np.linspace(-45.,-46., 10)
+lons = np.linspace(-1.0,1.0, 100) 
+lats = np.linspace(50.,52.0, 100)
 # these lon/lat spread across both roms_nz and cfsr data
-depth = -np.linspace(0.,0., 1000) # surface=0, negative down
+depth = -np.linspace(0.,0., 10000) # surface=0, negative down
 
 lons, lats = np.meshgrid(lons, lats)
 
 lons = lons.ravel()
 lats = lats.ravel()
 
+
 # CHECK READER INTERPOLATION 
 #  seems to return correct velocities provided that input lat/lon are using same covention as reader itself i.e. 0<lon<360, or -180<lon<180
-# cfsr
-# v = reader_cfsr.get_variables(['y_sea_water_velocity', 'x_sea_water_velocity'], time=reader_cfsr.start_time, x=lons, y=lats, z=depth, block=True)
-# b = ReaderBlock(v, interpolation_horizontal='linearND')
-# env, prof = b.interpolate(lons,lats,depth, ['y_sea_water_velocity', 'x_sea_water_velocity'])
-# print env
-# interpolation seems smooth across the 180 degT line
+v = reader_nsea.get_variables(['y_sea_water_velocity', 'x_sea_water_velocity'], time=reader_nsea.start_time, x=lons, y=lats, z=depth, block=True)
+b = ReaderBlock(v, interpolation_horizontal='linearND')
+env, prof = b.interpolate(lons,lats,depth, ['y_sea_water_velocity', 'x_sea_water_velocity'])
+print env
+# import pdb;pdb.set_trace()
+
+# interpolation seems smooth across the 0 degT line
 # import matplotlib.pyplot as plt
 # plt.ion()
-# plt.plot(lons,env1['x_sea_water_velocity'],'.')
+# plt.plot(lons,env['x_sea_water_velocity'],'.')
 # plt.show()
-# plt.plot(lons,env1['y_sea_water_velocity'],'+')
+# plt.plot(lons,env['y_sea_water_velocity'],'+')
 # plt.show()
-#
+
 # Seed oil elements at defined position and time
 
-o.seed_elements(lons, lats, z=depth, radius=0, number=1000, time = reader_cfsr.start_time, wind_drift_factor = 0.5) # large wind_drift_factor to make particles drift past 180 degT
+o.seed_elements(lons, lats, z=depth, radius=0, number=10000, time = reader_nsea.start_time, wind_drift_factor = 0.5) # large wind_drift_factor to make particles drift past 180 degT
 
-import pdb;pdb.set_trace()
 
 if False:
     # tests
@@ -98,7 +100,7 @@ if False:
     import matplotlib.pyplot as plt
     plt.ion()
     plt.plot(lons,env0['x_sea_water_velocity'],'.')
-
+###############################
 # PHYSICS
 ###############################
 # o.set_config('driftcurrent_uncertainty', .1)
@@ -107,7 +109,7 @@ o.set_config('drift:scheme','runge-kutta4')
 # RUN 
 ###############################
 # Running model (until end of driver data)
-o.run(time_step=1800, end_time = reader_cfsr.start_time + timedelta(days = 3), outfile='opendrift_test_longitude180_crossing.nc',time_step_output = 1800)  
+o.run(time_step=1800, end_time = reader_nsea.start_time + timedelta(days = 3), outfile='opendrift_test_longitude0_crossing.nc',time_step_output = 1800)  
 # the start time is define by seed_elements, the end_time is defined by either steps=number of step, duration = timedelta, or end_time= datetime
 
 ###############################
