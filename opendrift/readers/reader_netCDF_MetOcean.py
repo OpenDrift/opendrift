@@ -369,7 +369,7 @@ class Reader(BaseReader):
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
-
+            
         if hasattr(self, 'z') and (z is not None): # 3D interpolation
 
             # "self.z"  : contains the vertical levels of the dataset, surface=0, negative down

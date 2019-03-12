@@ -260,7 +260,8 @@ class Reader(BaseReader):
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
             if self.global_coverage():
-                indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+                # indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+                indx = np.arange(np.max([0, indx.min()-buffer]),np.min([indx.max()+buffer, self.numx]))
             else:
                 indx = np.arange(np.max([0, indx.min()-buffer]),
                                  np.min([indx.max()+buffer, self.numx]))
@@ -282,6 +283,7 @@ class Reader(BaseReader):
             continous = False
         else:
             continous = True
+        
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
 

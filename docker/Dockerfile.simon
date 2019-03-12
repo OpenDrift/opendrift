@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y build-essential \
 RUN pip install --upgrade pip
 RUN /opt/conda/bin/conda update openssl ca-certificates certifi
 RUN /opt/conda/bin/conda install --yes hdf4 numpy scipy matplotlib basemap \
-                                       netcdf4 configobj pillow gdal pyproj ffmpeg
+                                       netcdf4 configobj pillow gdal pyproj ffmpeg future
 
 # We need basemap 1.1.0
 RUN /opt/conda/bin/conda install --yes --channel conda-forge basemap basemap-data-hires

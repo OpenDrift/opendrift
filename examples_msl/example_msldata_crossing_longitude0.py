@@ -1,9 +1,7 @@
 #!usrbinenv python
 
-#  This script is based on httpsgithub.comOpenDriftopendrifttreemasterexamplesexample_grid.py
-#  The aim is to test the use of reader_netCDF_MetOcean which allows using MetOcean data in OpenDrift
-#   
-#  This is also used as a reference case to compare Opendrift trajectories with ERcore trajectories
+# This scripts tests what happens when particle cross the 0deg line and that :
+# > the READER has longitude between [-180,180]
 # 
 
 import numpy as np
