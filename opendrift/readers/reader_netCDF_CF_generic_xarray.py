@@ -480,29 +480,37 @@ class Reader(BaseReader):
                     variables[par] = var.isel(time=indxTime,depth=indz,latitude=indy,longitude=indx).values #var[indxTime, indz, indy, indx]
                 elif var.ndim == 5:  # Ensemble data
                     # to test with example https://github.com/OpenDrift/opendrift/blob/master/examples/example_ensemble.py
-                    # variables[par] = var.isel(time=indxTime,depth=indz,realization=,latitude=indy,longitude=indx) #var[indxTime, indz, indrealization, indy, indx]
+                    variables[par] = var.isel(time=indxTime,depth=indz,realization=indrealization,latitude=indy,longitude=indx) #var[indxTime, indz, indrealization, indy, indx]
                     ensemble_dim = 0  # Hardcoded ensemble dimension for now
                 else:
                     raise Exception('Wrong dimension of variable: ' +
                                     self.variable_mapping[par])
             else:  # We need to read left and right parts separately
                 if var.ndim == 2:
-                    left = var[indy, indx_left]
-                    right = var[indy, indx_right]
+                    # left = var[indy, indx_left]
+                    # right = var[indy, indx_right]
+                    left = var.isel(latitude=indy,longitude=indx_left).values
+                    right = var.isel(latitude=indy,longitude=indx_right).values
                     variables[par] = np.ma.concatenate((left, right), 1)
                 elif var.ndim == 3:
-                    left = var[indxTime, indy, indx_left]
-                    right = var[indxTime, indy, indx_right]
+                    # left = var[indxTime, indy, indx_left]
+                    # right = var[indxTime, indy, indx_right]
+                    left = var.isel(time=indxTime,latitude=indy,longitude=indx_left).values
+                    right = var.isel(time=indxTime,latitude=indy,longitude=indx_right).values
                     variables[par] = np.ma.concatenate((left, right), 1)
                 elif var.ndim == 4:
-                    left = var[indxTime, indz, indy, indx_left]
-                    right = var[indxTime, indz, indy, indx_right]
+                    # left = var[indxTime, indz, indy, indx_left]
+                    # right = var[indxTime, indz, indy, indx_right]
+                    left = var.isel(time=indxTime,depth=indz,latitude=indy,longitude=indx_left).values
+                    right = var.isel(time=indxTime,depth=indz,latitude=indy,longitude=indx_right).values
                     variables[par] = np.ma.concatenate((left, right), 2)
                 elif var.ndim == 5:  # Ensemble data
-                    left = var[indxTime, indz, indrealization,
-                               indy, indx_left]
-                    right = var[indxTime, indz, indrealization,
-                                indy, indx_right]
+                    # left = var[indxTime, indz, indrealization,
+                    #            indy, indx_left]
+                    # right = var[indxTime, indz, indrealization,
+                    #             indy, indx_right]
+                    left = var.isel(time=indxTime,depth=indz,realization=indrealization,latitude=indy,longitude=indx_left).values
+                    right = var.isel(time=indxTime,depth=indz,realization=indrealization,latitude=indy,longitude=indx_right).values
                     variables[par] = np.ma.concatenate((left, right), 3)
 
             # If 2D array is returned due to the fancy slicing
