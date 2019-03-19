@@ -85,6 +85,7 @@ class Reader(BaseReader):
             raise ValueError(e)
 
         logging.debug('Finding coordinate variables.')
+        
         # Find x, y and z coordinates
 
         for var_name in self.Dataset.variables:
@@ -119,7 +120,8 @@ class Reader(BaseReader):
                 # adding a flag to inform on longitude convention [0,360] or [-180,180]
                 # used further below on covers_positions and longitude index selection
                 # search "has_lon_0_360" if needed
-                if  min(self.lon[:])>=0 : 
+
+                if  (self.lon[:]>=0).all() and (self.lon[:]<=360).all() : 
                 # reader longitude using convention :  0<lon<360, or has longitude between 0 and +180 only
                     self.has_lon_0_360 = True
                 else:
@@ -186,6 +188,10 @@ class Reader(BaseReader):
                 x = self.lon[:]
                 self.xname = lon_var_name
                 self.numx = len(x)
+            # elif self.lon.ndim == 2: # added
+            #     x = self.lon[:]
+            #     self.xname = lon_var_name
+            #     self.numx = x.shape[0]#len(x)
             else:
                 raise ValueError('Did not find x-coordinate variable')
         if 'y' not in locals():
@@ -193,6 +199,10 @@ class Reader(BaseReader):
                 y = self.lat[:]
                 self.yname = lat_var_name
                 self.numy = len(y)
+            # elif self.lat.ndim == 2: # added
+            #     y = self.lat[:]
+            #     self.yname = lat_var_name
+            #     self.numy = y.shape[1]#len(x)
             else:
                 raise ValueError('Did not find y-coordinate variable')
 
@@ -208,6 +218,7 @@ class Reader(BaseReader):
         rel_delta_y = (y[1::] - y[0:-1])
         rel_delta_y = np.abs((rel_delta_y.max() -
                               rel_delta_y.min())/self.delta_y)
+
         if rel_delta_x > 0.05:  # Allow 5 % deviation
             print rel_delta_x
             print x[1::] - x[0:-1]
