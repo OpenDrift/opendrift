@@ -16,10 +16,31 @@
 
 import logging
 
+import pyproj
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
 from opendrift.readers.basereader import BaseReader
+
+def proj_from_CF_dict(c):
+    if not 'grid_mapping_name' in c:
+        raise ValueError('grid_mapping not given in dictionary')
+    gm = c['grid_mapping_name']
+
+    if gm == 'polar_stereographic':
+        if 'earth_radius' in c:
+            earth_radius = c['earth_radius']
+        else:
+            earth_radius = 6371000.
+        proj4 = '+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s} +units=m +a={!s} +no_defs'.format('stere',
+            c['latitude_of_projection_origin'],
+            c['longitude_of_projection_origin'],
+            c['straight_vertical_longitude_from_pole'],
+            earth_radius)
+
+    proj = pyproj.Proj(proj4)
+
+    return proj4, proj
 
 
 class Reader(BaseReader):
@@ -66,6 +87,15 @@ class Reader(BaseReader):
                 for att in attributes:
                     if 'proj4' in att:
                         self.proj4 = str(var.__getattr__(att))
+                    else:
+                        if 'grid_mapping_name' in att:
+                            mapping_dict = var.__dict__
+                            print('Parsing CF grid mapping dictionary: ' + str(mapping_dict))
+                            try:
+                                self.proj4, proj = proj_from_CF_dict(mapping_dict)
+                            except:
+                                logging.warning('Could not parse CF grid_mapping')
+                            
             if 'standard_name' in attributes:
                 standard_name = var.__dict__['standard_name']
             if 'long_name' in attributes:

@@ -56,6 +56,7 @@ standard_names = {
 # Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
 vector_pairs_xy = [
     ['x_wind', 'y_wind'],
+    ['sea_ice_x_velocity', 'sea_ice_y_velocity'],
     ['x_sea_water_velocity', 'y_sea_water_velocity'],
     ['sea_surface_wave_stokes_drift_x_velocity',
      'sea_surface_wave_stokes_drift_y_velocity']
