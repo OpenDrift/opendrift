@@ -23,6 +23,9 @@ from netCDF4 import Dataset, MFDataset, num2date
 from opendrift.readers.basereader import BaseReader
 
 def proj_from_CF_dict(c):
+
+    # This method should be extended to other projections:
+    # http://cfconventions.org/wkt-proj-4.html
     if not 'grid_mapping_name' in c:
         raise ValueError('grid_mapping not given in dictionary')
     gm = c['grid_mapping_name']
@@ -32,11 +35,16 @@ def proj_from_CF_dict(c):
             earth_radius = c['earth_radius']
         else:
             earth_radius = 6371000.
+        lon_0 = 0  # default, but dangerous
+        for l0 in ['longitude_of_projection_origin', 'longitude_of_central_meridian', 'straight_vertical_longitude_from_pole']:
+            if l0 in c:
+                lon_0 = c[l0]
+        if 'latitude_of_origin' in c:
+            lat_ts = c['latitude_of_origin']
+        else:
+            lat_ts = c['latitude_of_projection_origin']
         proj4 = '+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s} +units=m +a={!s} +no_defs'.format('stere',
-            c['latitude_of_projection_origin'],
-            c['longitude_of_projection_origin'],
-            c['straight_vertical_longitude_from_pole'],
-            earth_radius)
+            c['latitude_of_projection_origin'], lon_0, lat_ts, earth_radius)
 
     proj = pyproj.Proj(proj4)
 
