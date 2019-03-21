@@ -6,6 +6,7 @@
 http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
 http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc
 http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
+http://thredds.met.no/thredds/dodsC/topaz/dataset-topaz4-arc-unmasked-be
 http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc
 http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be
 http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd
