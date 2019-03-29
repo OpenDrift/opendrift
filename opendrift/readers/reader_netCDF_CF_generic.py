@@ -98,7 +98,7 @@ class Reader(BaseReader):
                     else:
                         if 'grid_mapping_name' in att:
                             mapping_dict = var.__dict__
-                            print('Parsing CF grid mapping dictionary: ' + str(mapping_dict))
+                            logging.debug('Parsing CF grid mapping dictionary: ' + str(mapping_dict))
                             try:
                                 self.proj4, proj = proj_from_CF_dict(mapping_dict)
                             except:
@@ -322,6 +322,13 @@ class Reader(BaseReader):
         else:
             continous = True
         for par in requested_variables:
+            if hasattr(self, 'rotate_mapping') and par in self.rotate_mapping:
+                logging.debug('Using %s to retrieve %s' %
+                    (self.rotate_mapping[par], par))
+                if par not in self.variable_mapping:
+                    self.variable_mapping[par] = \
+                        self.variable_mapping[
+                            self.rotate_mapping[par]]
             var = self.Dataset.variables[self.variable_mapping[par]]
 
             ensemble_dim = None
@@ -406,5 +413,12 @@ class Reader(BaseReader):
                 variables['x'][variables['x']>180] -= 360
         
         variables['time'] = nearestTime
+
+        # Rotate any east/north vectors if necessary
+        if hasattr(self, 'rotate_mapping'):
+            if self.y_is_north() is True:
+                logging.debug('North is up, no rotation necessary')
+            else:
+                self.rotate_variable_dict(variables)
 
         return variables

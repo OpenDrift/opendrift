@@ -96,34 +96,26 @@ class BaseReader(object):
     # presuming coordinate system then is lon-lat for equivalence
     variable_aliases = {
         'sea_water_potential_temperature': 'sea_water_temperature',
-        'eastward_wind': 'x_wind',
-        'northward_wind': 'y_wind',
         'x_wind_10m': 'x_wind',
         'y_wind_10m': 'y_wind',
-        'eastward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_x_velocity',
-        'northward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_y_velocity',
         'sea_water_x_velocity': 'x_sea_water_velocity',
-        'sea_water_y_velocity': 'y_sea_water_velocity',
-        'eastward_sea_water_velocity': 'x_sea_water_velocity',
-        'northward_sea_water_velocity': 'y_sea_water_velocity',
-        'surface_eastward_sea_water_velocity': 'x_sea_water_velocity',
-        'surface_northward_sea_water_velocity': 'y_sea_water_velocity',
-        'eastward_current_velocity': 'x_sea_water_velocity',
-        'northward_current_velocity': 'y_sea_water_velocity',
-        'eastward_tidal_current': 'x_sea_water_velocity',
-        'northward_tidal_current': 'y_sea_water_velocity',
-        'eastward_ekman_current_velocity': 'x_sea_water_velocity',
-        'northward_ekman_current_velocity': 'y_sea_water_velocity',
-        'eastward_geostrophic_current_velocity': 'x_sea_water_velocity',
-        'northward_geostrophic_current_velocity': 'y_sea_water_velocity',
-        'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
-        'northward_eulerian_current_velocity': 'y_sea_water_velocity',
-        'surface_geostrophic_eastward_sea_water_velocity': 'x_sea_water_velocity',
-        'surface_geostrophic_northward_sea_water_velocity': 'y_sea_water_velocity',
-        'surface_geostrophic_eastward_sea_water_velocity_assuming_sea_level_for_geoid': 'x_sea_water_velocity',
-        'surface_geostrophic_northward_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity',
-        'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'x_sea_water_velocity',
-        'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity'}
+        'sea_water_y_velocity': 'y_sea_water_velocity'
+        }
+
+    xy2eastnorth_mapping = {
+        'x_sea_water_velocity': ['eastward_sea_water_velocity', 'surface_eastward_sea_water_velocity',
+                                 'eastward_current_velocity', 'eastward_tidal_current',
+                                 'eastward_ekman_current_velocity', 'eastward_geostrophic_current_velocity',
+                                 'eastward_eulerian_current_velocity', 'surface_geostrophic_eastward_sea_water_velocity',
+                                 'surface_geostrophic_eastward_sea_water_velocity_assuming_sea_level_for_geoid',
+                                 'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
+        'y_sea_water_velocity': ['northward_sea_water_velocity', 'surface_northward_sea_water_velocity',
+                                 'northward_current_velocity', 'northward_tidal_current',
+                                 'northward_ekman_current_velocity', 'northward_geostrophic_current_velocity',
+                                 'northward_eulerian_current_velocity', 'surface_geostrophic_northward_sea_water_velocity',
+                                 'surface_geostrophic_northward_sea_water_velocity_assuming_sea_level_for_geoid',
+                                 'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
+        'x_wind': 'eastward_wind', 'y_wind': 'northward_wind'}
 
     def __init__(self):
         # Common constructor for all readers
@@ -206,6 +198,24 @@ class BaseReader(object):
             self.shape = None
 
         self.set_buffer_size(max_speed=5)  # To be overriden by user/model
+
+        # Check if there are east/north-oriented vectors
+        for var in self.variables:
+            for xvar, eastnorthvar in self.xy2eastnorth_mapping.items():
+                if xvar in self.variables:
+                    continue  # We have both x/y and east/north components
+                if var in eastnorthvar:
+                    logging.info('Variable %s will be rotated from %s' % (xvar, var))
+                    self.variables.append(xvar)
+                    if not hasattr(self, 'rotate_mapping'):
+                        self.rotate_mapping = {}
+                    self.rotate_mapping[xvar] = var
+
+    def y_is_north(self):
+        if self.proj.is_latlong() or '+proj=merc' in self.proj.srs:
+            return True
+        else:
+            return False
 
     def set_buffer_size(self, max_speed, max_vertical_speed=None):
         '''Adjust buffer to minimise data block size needed to cover elements'''
@@ -622,6 +632,17 @@ class BaseReader(object):
         self.timer_end('masking')
         self.timer_end('total')
         return env, env_profiles
+
+    def rotate_variable_dict(self, variables, proj_from='+proj=latlong', proj_to=None):
+        for vectorpair in vector_pairs_xy:
+            if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
+                if proj_to is None:
+                    proj_to = self.proj
+                logging.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
+                variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
+                    variables['x'], variables['y'],
+                    variables[vectorpair[0]], variables[vectorpair[1]],
+                    proj_from, proj_to)
 
     def rotate_vectors(self, reader_x, reader_y,
                        u_component, v_component,
