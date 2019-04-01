@@ -664,6 +664,8 @@ class OpenDriftSimulation(PhysicsMethods):
     def add_readers_from_list(self, urls, timeout=10, lazy=True):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
+        if isinstance(urls, basestring):
+            urls = [urls]
         if lazy is True:
             from opendrift.readers.reader_lazy import Reader
             readers = [Reader(u) for u in urls]
