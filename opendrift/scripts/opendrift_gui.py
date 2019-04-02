@@ -179,7 +179,7 @@ class OpenDriftGUI(tk.Tk):
         ##########
         # Time
         ##########
-        now = datetime.now()
+        now = datetime.utcnow()
         tk.Label(self.end, text='Day', bg='gray').grid(row=2, column=0)
         tk.Label(self.end, text='Month', bg='gray').grid(row=2, column=1)
         tk.Label(self.end, text='Year', bg='gray').grid(row=2, column=2)
