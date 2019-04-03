@@ -571,18 +571,18 @@ class TestReaders(unittest.TestCase):
                             lat3[0:12], lat4[0:12]))
                             
     def test_reader_current_from_track(self):
-    	"""Check if extrapolated currents are of expected value"""
-    	obslon = [3.1, 3.123456]
-    	obslat = [61.1, 61.132198]
-    	obstime = [datetime(2015, 11, 16, 0), datetime(2015, 11, 16, 6)]
-		
-        o = OceanDrift(loglevel=50)
-    	reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
-    		   		'16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+        """Check if extrapolated currents are of expected value"""
+        obslon = [3.1, 3.123456]
+        obslat = [61.1, 61.132198]
+        obstime = [datetime(2015, 11, 16, 0), datetime(2015, 11, 16, 6)]
 
-    	reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
-    				wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
-    	self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.22070706,8)
+        o = OceanDrift(loglevel=50)
+        reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+                    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+
+        reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
+                    wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
+        self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.22070706,8)
 
 
 if __name__ == '__main__':
