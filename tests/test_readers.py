@@ -576,8 +576,8 @@ class TestReaders(unittest.TestCase):
     	obslat = [61.1, 61.132198]
     	obstime = [datetime(2015, 11, 16, 0), datetime(2015, 11, 16, 6)]
 		
-    	reader_wind = reader_netCDF_CF_generic.Reader( 
-    		   '/Users/Ole/PycharmProjects/MET/opendrift/tests/test_data/'+
+        o = OceanDrift(loglevel=50)
+    	reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     		   		'16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
     	reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
