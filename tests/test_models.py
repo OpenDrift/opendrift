@@ -115,8 +115,9 @@ class TestModels(unittest.TestCase):
                           [5.013484,5.03395595,5.01149002]))
         self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2])
 
-    def test_current_profile_openberg(self):
-    	"""Check if weighting array is set correctly"""
+    def test_openberg(self):
+    	"""Check if weighting array is set correctly 
+    		and if model returns expected positions"""
     	o = OpenBerg(loglevel=50)
 
     	reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
@@ -134,6 +135,9 @@ class TestModels(unittest.TestCase):
 		
     	for indx in range(len(arr)):
     		self.assertAlmostEqual(o.uw_weighting[indx],arr[indx],8)
+    	
+    	self.assertAlmostEqual(o.history['lon'].data[0][1],3.9921231,7)
+    	self.assertAlmostEqual(o.history['lat'].data[0][1],62.0108299,7)
 
 
 if __name__ == '__main__':
