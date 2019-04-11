@@ -113,9 +113,6 @@ class OpenBerg(OpenDriftSimulation):
             
         self.update_positions(net_x_swv,net_y_swv)
             
-        # Deactivate icebergs on land
-        self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                 reason='stranded')
 
     def prepare_run(self):
         """	Model spesific preparations.
