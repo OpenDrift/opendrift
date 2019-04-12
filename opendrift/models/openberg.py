@@ -12,8 +12,9 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2019, Ole Baadshaug, MET Norway.
-# Design based on the studies of Ron Saper, Carleton University Canada.
+# Copyright 2019, Ole Baadshaug, MET Norway & Ron Saper, Carleton University Canada.
+#
+# Caveat: This copyright will not interfere with the open nature of OpenDrift and OpenBerg
 
 import logging
 
@@ -124,7 +125,7 @@ class OpenBerg(OpenDriftSimulation):
         	NB! This version of OpenBerg does not allow for seeding of iceberg elements
         	of different sizes.
         	
-        	Also controles that the model treates readers without block data correctly.
+        	Also controles that the model handles readers without block data correctly.
         """
         # Retrieve profile provided in z dimension by reader  
         variable_groups, reader_groups, missing_variables = \

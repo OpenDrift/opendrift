@@ -12,8 +12,9 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2019, Ole Baadshaug, MET Norway.
-# Design based on the studies of Ron Saper, Carleton University Canada.
+# Copyright 2019, Ole Baadshaug, MET Norway & Ron Saper, Carleton University Canada.
+#
+# Caveat: This copyright will not interfere with the open nature of OpenDrift and OpenBerg
 
 import numpy as np
 from datetime import timedelta, datetime
