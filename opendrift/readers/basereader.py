@@ -518,7 +518,7 @@ class BaseReader(object):
         #######################
         self.timer_start('interpolation_time')
         env_profiles = None
-        if (time_after is not None) and (time_before != time):
+        if (time_after is not None) and (time_before != time) and self.return_block is True:
             weight_after = ((time - time_before).total_seconds() /
                             (time_after - time_before).total_seconds())
             logging.debug(('Interpolating before (%s, weight %.2f) and'
