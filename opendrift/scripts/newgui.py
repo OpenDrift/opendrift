@@ -96,9 +96,8 @@ class OpenDriftGUI(tk.Tk):
         #######################################################
         tk.Label(self.top, text='Simulation type').grid(row=0, column=0)
         self.model = tk.StringVar()
-        models = ['OpenOil', 'Leeway']
         models = opendrift.get_model_names()
-        self.model.set(models[0])
+        self.model.set(models[1])
         self.modeldrop = tk.OptionMenu(self.top, self.model,
                                        *(models), command=self.set_model)
         self.modeldrop.grid(row=0, column=1)
@@ -148,7 +147,7 @@ class OpenDriftGUI(tk.Tk):
         ##########
         # Time
         ##########
-        now = datetime.now()
+        now = datetime.utcnow()
         tk.Label(self.start, text='Day').grid(row=2, column=0)
         tk.Label(self.start, text='Month').grid(row=2, column=1)
         tk.Label(self.start, text='Year').grid(row=2, column=2)
@@ -214,7 +213,7 @@ class OpenDriftGUI(tk.Tk):
         ##########
         # Time
         ##########
-        now = datetime.now()
+        now = datetime.utcnow()
         tk.Label(self.end, text='Day', bg='gray').grid(row=2, column=0)
         tk.Label(self.end, text='Month', bg='gray').grid(row=2, column=1)
         tk.Label(self.end, text='Year', bg='gray').grid(row=2, column=2)
@@ -480,44 +479,55 @@ class OpenDriftGUI(tk.Tk):
             cone = True
         else:
             cone = False
+
         if self.model.get() == 'Leeway':
             o = Leeway(loglevel=0)
             for ln, lc in enumerate(self.leewaycategories):
                 if self.oljetype.get() == lc.strip().replace('>', ''):
                     print('Leeway object category: ' + lc)
                     break
-            o.seed_elements(lon=lon, lat=lat, number=5000,
-                            radius=radius, time=start_time,
-                            objectType=ln + 1)
-        if self.model.get() == 'OpenOil':
+            #extra_seed_args = {'objectType': ln + 1}
+        elif self.model.get() == 'OpenOil':
             o = OpenOil3D(weathering_model='noaa', loglevel=0)
-            o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
-                            time=start_time, cone=cone,
-                            oiltype=self.oljetype.get())
+            #extra_seed_args = {'oiltype': self.oljetype.get()}
+        elif self.model.get() == 'ShipDrift':
+            o = ShipDrift(loglevel=0)
 
-        readers = [  # Note that order (priority) is important!
-            '/lustre/storeA/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-            '/lustre/storeA/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-            '/lustre/storeA/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
-            '/lustre/storeA/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
-            '/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
-            'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z',
-            'http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd']
-        o.add_readers_from_list(readers)
+        extra_seed_args = {}
+        for se in self.seed_input:
+            if se == 'ocean_only':
+                continue  # To be fixed/removed
+            val = self.seed_input[se].get()
+            try:
+                extra_seed_args[se] = np.float(val)
+            except:
+                extra_seed_args[se] = val
+            o.set_config('seed:' + se, val)
+        print(extra_seed_args)
+        #stop
+        if 'object_type' in extra_seed_args:
+            extra_seed_args['objectType'] = extra_seed_args['object_type']
+            del extra_seed_args['object_type']
+
+        extra_seed_args = {}
+        o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
+                        time=start_time, cone=cone,
+                        **extra_seed_args)
+
+        print(o.elements_scheduled)
+        o.add_readers_from_file(o.test_data_folder() +
+            '../../opendrift/scripts/data_sources.txt')
         o.set_config('general:basemap_resolution', 'h')
 
-        time_step = 1800  # Half hour
+        #time_step = o.get_config('general:time_step_minutes')*60
+        time_step = 900  # 15 minutes
+        time_step_output = timedelta(minutes=30)
         duration = int(self.durationhours.get())*3600/time_step
         if self.directionvar.get() == 'backwards':
             time_step = -time_step
         if self.has_diana is True:
-            extra_args = {'outfile': self.outputdir + '/opendrift_' +                          self.model.get() + o.start_time.strftime(
-                                '_%Y%m%d_%H%M.nc')}
+            extra_args = {'outfile': self.outputdir + '/opendrift_' +
+                self.model.get() + o.start_time.strftime('_%Y%m%d_%H%M.nc')}
         else:
             extra_args = {}
 
@@ -525,7 +535,7 @@ class OpenDriftGUI(tk.Tk):
         o.set_config('general:basemap_resolution', mapres)         
 
         o.run(steps=duration, time_step=time_step,
-              time_step_output=time_step, **extra_args)
+              time_step_output=time_step_output, **extra_args)
         print(o)
 
         if self.has_diana is True:

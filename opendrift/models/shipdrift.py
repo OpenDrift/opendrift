@@ -92,9 +92,9 @@ class ShipDrift(OpenDriftSimulation):
 
     configspec = '''
         [seed]
-            length = float(min=1, max=500, default=50)
+            length = float(min=1, max=500, default=80)
             height = float(min=1, max=50, default=12)
-            draft = float(min=1, max=20, default=8)
+            draft = float(min=1, max=20, default=4)
             beam = float(min=1, max=30, default=10)
         '''
 
