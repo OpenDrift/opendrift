@@ -177,6 +177,12 @@ class BaseReader(object):
                 self.spl_x((0,0)), self.spl_y((0,0))
 
         # Check if there are holes in time domain
+        if not hasattr(self, 'time_step'):
+            self.time_step = None
+        if not hasattr(self, 'start_time'):
+            self.start_time = None
+        if not hasattr(self, 'end_time'):
+            self.end_time = None
         if self.start_time is not None and len(self.times) > 1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
