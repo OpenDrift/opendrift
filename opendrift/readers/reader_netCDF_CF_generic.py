@@ -102,7 +102,7 @@ class Reader(BaseReader):
                             try:
                                 self.proj4, proj = proj_from_CF_dict(mapping_dict)
                             except:
-                                logging.warning('Could not parse CF grid_mapping')
+                                logging.info('Could not parse CF grid_mapping')
                             
             if 'standard_name' in attributes:
                 standard_name = var.__dict__['standard_name']
