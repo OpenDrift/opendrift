@@ -299,18 +299,21 @@ class OpenDriftSimulation(PhysicsMethods):
                 ds = ds[s]
         valid = self.configobj.validate(validate.Validator())
         if self.configobj.validate(validate.Validator()) is not True:
-            if hasattr(self, 'oil_types') or hasattr(self, 'leewayprop'):
+            if hasattr(self, 'oiltypes') or hasattr(self, 'leewayprop'):
                 # Provide some suggestion if config is very long list (e.g. oiltype/leewaycategory)
-                if hasattr(self, 'oil_types'):
+                if hasattr(self, 'oiltypes'):
                     elements = self.oiltypes
                 elif hasattr(self, 'leewayprop'):
                     elements = [self.leewayprop[la]['OBJKEY'] for la in self.leewayprop]
                 import difflib
-                matches = difflib.get_close_matches(value, elements)
+                matches = difflib.get_close_matches(value, elements, n=20, cutoff=.3)
+                containing = [el for el in elements if value in el]
+                matches = list(set(matches) | set(containing))
                 if len(matches) > 0:
+                    matches.sort()
                     suggestion = '\nDid you mean any of these?\n%s' % str(matches)
-            else:
-                suggestion = ''
+                else:
+                    suggestion = ''
             raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
 
     def _config_hash_to_dict(self, hashstring):
