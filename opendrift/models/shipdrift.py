@@ -148,7 +148,8 @@ class ShipDrift(OpenDriftSimulation):
         num = kwargs['number']
         for var in ['length', 'height', 'draft', 'beam']:
             if var not in kwargs:
-                kwargs[var] = self.ElementType.variables[var]['default']
+                #kwargs[var] = self.ElementType.variables[var]['default']
+                kwargs[var] = self.get_config('seed:' + var)
             kwargs[var] = np.atleast_1d(kwargs[var])
             if len(kwargs[var] == 1):
                 kwargs[var] = kwargs[var]*np.ones(num)

@@ -312,8 +312,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 if len(matches) > 0:
                     matches.sort()
                     suggestion = '\nDid you mean any of these?\n%s' % str(matches)
-                else:
-                    suggestion = ''
+            else:
+                suggestion = ''
             raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
 
     def _config_hash_to_dict(self, hashstring):

@@ -74,19 +74,16 @@ class OpenDriftGUI(tk.Tk):
         self.duration = tk.Frame(self.seed, bd=2,
                                  relief=tk.FLAT, padx=5, pady=5)
         self.duration.grid(row=5, column=1)
-        self.seed_frame = tk.Frame(self.seed, bd=2,
-                                   relief=tk.FLAT, padx=5, pady=0)
-        self.seed_frame.grid(row=4, columnspan=8, sticky='nsew')
         self.output = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
-        self.output.grid(row=7, column=2, columnspan=8, sticky='nsew')
+        self.output.grid(row=7, column=0, columnspan=8, sticky='nsew')
 
 
         ##########################
         self.title('OpenDrift')
-        o = OpenOil3D(weathering_model='noaa', location='NORWAY')
+        self.o = OpenOil3D(weathering_model='noaa', location='NORWAY')
         try:
-            img = ImageTk.PhotoImage(Image.open(o.test_data_folder() +
+            img = ImageTk.PhotoImage(Image.open(self.o.test_data_folder() +
                                      '../../docs/opendrift_logo.png'))
             panel = tk.Label(self.seed, image=img)
             panel.image = img
@@ -97,7 +94,7 @@ class OpenDriftGUI(tk.Tk):
         tk.Label(self.top, text='Simulation type').grid(row=0, column=0)
         self.model = tk.StringVar()
         models = opendrift.get_model_names()
-        self.model.set(models[1])
+        self.model.set(models[0])
         self.modeldrop = tk.OptionMenu(self.top, self.model,
                                        *(models), command=self.set_model)
         self.modeldrop.grid(row=0, column=1)
@@ -105,16 +102,6 @@ class OpenDriftGUI(tk.Tk):
         help_button = tk.Button(self.top, text='Help',
                                 command=self.show_help)
         help_button.grid(row=0, column=2, padx=50)
-
-        self.categoryLabel = tk.Label(self.seed, text='Oil type')
-        self.categoryLabel.grid(row=1, column=0)
-        oljetyper = o.oiltypes
-        self.oljetype = tk.StringVar()
-        self.oljetype.set(oljetyper[0])
-        self.categorydrop = ttk.Combobox(self.seed, width=50,
-                                         textvariable=self.oljetype,
-                                         values=oljetyper)
-        self.categorydrop.grid(row=1, column=1)
 
         ##########
         # Release
@@ -304,23 +291,21 @@ class OpenDriftGUI(tk.Tk):
             self.has_diana = True
             print('Diana is available!')
             self.outputdir = '/vol/vvfelles/opendrift/output_native/'
+            startbutton = 'PEIS PAO'
         else:
             self.has_diana = False
+            startbutton = 'START'
 
         ##############
         # Initialise
         ##############
-        o = OpenOil3D()
-
-        for m in self.available_models:
-            print(m)
-            print(opendrift.get_model(m))
-            print(opendrift.get_model(m)())
+        #o = OpenOil3D()
+        self.set_model(self.available_models[0])
 
         ##########
         # RUN
         ##########
-        tk.Button(self.seed, text='PEIS PAO', bg='green',
+        tk.Button(self.seed, text=startbutton, bg='green',
                   command=self.run_opendrift).grid(row=8, column=1,
                                               sticky=tk.W, pady=4)
 
@@ -337,51 +322,44 @@ class OpenDriftGUI(tk.Tk):
         self.ehourvar.set(self.hourvar.get())
         self.eminutevar.set(self.minutevar.get())
 
+    def handle_result(self, command):
+        print(command)
+        if command == 'saveanimation':
+            self.o.animation(filename='test.mp4')
+        elif command == 'saveplot':
+            #self.o.plot()
+            self.o.plot(filename='test.png')
+        print('Finished')
+
     def set_model(self, model):
         if model == 'OpenOil':
-            self.categoryLabel['text'] = 'Oil type'
-            self.oljetype.set('')
             self.o = OpenOil3D(weathering_model='noaa', location='NORWAY')
-            self.categorydrop['values'] = self.o.oiltypes
-            self.oljetype.set(self.o.oiltypes[0])
         elif model == 'Leeway':
-            self.categoryLabel['text'] = 'Object type'
-            self.oljetype.set('')
             self.o = Leeway()
-            self.leewaycategories = [
-                self.o.leewayprop[c]['Description'].strip().
-                replace('>', '') for c in self.o.leewayprop]
-            self.categorydrop['values'] = self.leewaycategories
-            self.oljetype.set(self.leewaycategories[0])
         elif model == 'ShipDrift':
-            self.categoryLabel['text'] = 'Object type'
-            self.oljetype.set('')
             self.o = ShipDrift()
 
-        print(dir(self.config))
         for con in self.config.winfo_children():
             con.destroy()
         self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
         self.con.grid(row=0, column=1, rowspan=1)
-        print(dir(self.config))
         for i, cs in enumerate(self.o._config_hashstrings()):
             tk.Label(self.config, text=cs).grid(row=i, column=1, rowspan=1)
 
         print('Setting model: ' + model)
         print(self.o.list_configspec())
-        #default, minimum, maximum, options = self.o.get_configspec_default_min_max('seed:oil_type')
-        #print default
         sc = self.o.get_seed_config()
         print(sc)
         self.seed_input = {}
         self.seed_input_var = {}
         self.seed_input_label = {}
-        self.seed_frame.destroy()
         self.seed_frame = tk.Frame(self.seed, bd=2,
                                    relief=tk.FLAT, padx=5, pady=0)
-        self.seed_frame.grid(row=4, columnspan=8, sticky='nsew')
+        self.seed_frame.grid(row=6, columnspan=8, sticky='nsew')
         # FIND
         for num, i in enumerate(sc):
+            if i in ['ocean_only', 'jibeProbability']:
+                continue  # workaround, should be avoided in future
             self.seed_input_label[i] = tk.Label(self.seed_frame,
                                                 text=i + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
@@ -481,17 +459,17 @@ class OpenDriftGUI(tk.Tk):
             cone = False
 
         if self.model.get() == 'Leeway':
-            o = Leeway(loglevel=0)
-            for ln, lc in enumerate(self.leewaycategories):
-                if self.oljetype.get() == lc.strip().replace('>', ''):
-                    print('Leeway object category: ' + lc)
-                    break
+            self.o = Leeway(loglevel=0)
+            #for ln, lc in enumerate(self.leewaycategories):
+            #    if self.oljetype.get() == lc.strip().replace('>', ''):
+            #        print('Leeway object category: ' + lc)
+            #        break
             #extra_seed_args = {'objectType': ln + 1}
         elif self.model.get() == 'OpenOil':
-            o = OpenOil3D(weathering_model='noaa', loglevel=0)
+            self.o = OpenOil3D(weathering_model='noaa', loglevel=0)
             #extra_seed_args = {'oiltype': self.oljetype.get()}
         elif self.model.get() == 'ShipDrift':
-            o = ShipDrift(loglevel=0)
+            self.o = ShipDrift(loglevel=0)
 
         extra_seed_args = {}
         for se in self.seed_input:
@@ -502,22 +480,19 @@ class OpenDriftGUI(tk.Tk):
                 extra_seed_args[se] = np.float(val)
             except:
                 extra_seed_args[se] = val
-            o.set_config('seed:' + se, val)
-        print(extra_seed_args)
-        #stop
+            self.o.set_config('seed:' + se, val)
         if 'object_type' in extra_seed_args:
             extra_seed_args['objectType'] = extra_seed_args['object_type']
             del extra_seed_args['object_type']
 
         extra_seed_args = {}
-        o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
+        self.o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
                         time=start_time, cone=cone,
                         **extra_seed_args)
 
-        print(o.elements_scheduled)
-        o.add_readers_from_file(o.test_data_folder() +
+        self.o.add_readers_from_file(self.o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'h')
+        self.o.set_config('general:basemap_resolution', 'h')
 
         #time_step = o.get_config('general:time_step_minutes')*60
         time_step = 900  # 15 minutes
@@ -527,32 +502,41 @@ class OpenDriftGUI(tk.Tk):
             time_step = -time_step
         if self.has_diana is True:
             extra_args = {'outfile': self.outputdir + '/opendrift_' +
-                self.model.get() + o.start_time.strftime('_%Y%m%d_%H%M.nc')}
+                self.model.get() + self.o.start_time.strftime('_%Y%m%d_%H%M.nc')}
         else:
             extra_args = {}
 
         mapres = self.mapresvar.get()[0]
-        o.set_config('general:basemap_resolution', mapres)         
+        self.o.set_config('general:basemap_resolution', mapres)         
 
-        o.run(steps=duration, time_step=time_step,
+        self.o.run(steps=duration, time_step=time_step,
               time_step_output=time_step_output, **extra_args)
-        print(o)
+        print(self.o)
 
         if self.has_diana is True:
             diana_filename = self.dianadir + '/opendrift_' + \
-                self.model.get() + o.start_time.strftime(
+                self.model.get() + self.o.start_time.strftime(
                                 '_%Y%m%d_%H%M.nc')
-            o.write_netcdf_density_map(diana_filename)
+            self.o.write_netcdf_density_map(diana_filename)
             tk.Button(self.seed, text='Show in Diana',
                       command=lambda: os.system('diana &')
                       ).grid(row=8, column=2, sticky=tk.W, pady=4)
         tk.Button(self.seed, text='Animation',
-                  command=o.animation).grid(row=8, column=3,
+                  command=self.o.animation).grid(row=8, column=3,
                                             sticky=tk.W, pady=4)
         if self.model.get() == 'OpenOil':
             self.budgetbutton = tk.Button(self.seed,
-                text='Oil Budget', command=o.plot_oil_budget)
+                text='Oil Budget', command=self.o.plot_oil_budget)
             self.budgetbutton.grid(row=8, column=4, sticky=tk.W, pady=4)
+        self.results = tk.Frame(self.seed, bd=2, bg='red',
+                               relief=tk.FLAT, padx=5, pady=0)
+        self.results.grid(row=7, column=3, columnspan=1, sticky='sew')
+        tk.Button(self.results, text='Save animation',
+                  command=lambda: self.handle_result(
+                    'saveanimation')).grid(row=1, column=0)
+        tk.Button(self.results, text='Save plot',
+                  command=lambda: self.handle_result(
+                    'saveplot')).grid(row=2, column=0)
 
 
 if __name__ == '__main__':
