@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from matplotlib import pyplot as plt
 import sys
 import os
 from datetime import datetime, timedelta
@@ -8,12 +9,10 @@ import numpy as np
 from PIL import ImageTk, Image
 import Tkinter as tk
 import ttk
-import opendrift.models
+import opendrift
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.leeway import Leeway
 from opendrift.models.shipdrift import ShipDrift
-from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.readers import reader_basemap_landmask
 
 
 class TextRedirector(object):
@@ -76,8 +75,11 @@ class OpenDriftGUI(tk.Tk):
         self.duration.grid(row=5, column=1)
         self.output = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
-        self.output.grid(row=7, column=0, columnspan=8, sticky='nsew')
+        self.output.grid(row=7, column=0, columnspan=7, sticky='nsew')
 
+        self.results = tk.Frame(self.seed, bd=2,
+                               relief=tk.FLAT, padx=5, pady=0)
+        self.results.grid(row=6, column=7, columnspan=1, sticky='ew')
 
         ##########################
         self.title('OpenDrift')
@@ -262,7 +264,7 @@ class OpenDriftGUI(tk.Tk):
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
         self.durationhours.grid(row=5, column=1)
-        self.durationhours.insert(0, 12)
+        self.durationhours.insert(0, 4)
         tk.Label(self.duration, text=' hours ').grid(row=5, column=2)
 
         self.directionvar = tk.StringVar()
@@ -276,12 +278,12 @@ class OpenDriftGUI(tk.Tk):
         # Output box
         ##############
         self.text = tk.Text(self.output, wrap="word", height=18)
-        self.text.grid(row=6, columnspan=8, sticky='nsew')
+        self.text.grid(row=6, columnspan=6, sticky='nsw')
         self.text.tag_configure("stderr", foreground="#b22222")
         sys.stdout = TextRedirector(self.text, "stdout")
         sys.stderr = TextRedirector(self.text, "stderr")
         s = tk.Scrollbar(self)
-        s.grid(row=6, column=8, sticky='ns')
+        s.grid(row=6, column=6, sticky='ns')
         s.config(command=self.text.yview)
         self.text.config(yscrollcommand=s.set)
 
@@ -323,13 +325,37 @@ class OpenDriftGUI(tk.Tk):
         self.eminutevar.set(self.minutevar.get())
 
     def handle_result(self, command):
-        print(command)
+        
+        from os.path import expanduser
+        homefolder = expanduser("~")
+        filename = homefolder + '/' + self.simulationname
+
+        if command[0:4] == 'save':
+            plt.switch_backend('agg')
+        elif command[0:4] == 'show':
+            plt.switch_backend('TkAgg')
+
         if command == 'saveanimation':
-            self.o.animation(filename='test.mp4')
+            filename = filename + '.mp4'
+            self.o.animation(filename=filename)
+            print('='*30 + '\nAnimation saved to file:\n'
+                  + filename + '\n' + '='*30)
+        elif command == 'showanimation':
+            self.o.animation()
         elif command == 'saveplot':
-            #self.o.plot()
-            self.o.plot(filename='test.png')
-        print('Finished')
+            filename = filename + '.png'
+            self.o.plot(filename=filename)
+            print('='*30 + '\nPlot saved to file:\n'
+                  + filename + '\n' + '='*30)
+        elif command == 'showplot':
+            self.o.plot()
+        elif command == 'showoilbudget':
+            self.o.plot_oil_budget()
+        elif command == 'saveoilbudget':
+            filename = filename + '_oilbudget.png'
+            self.o.plot_oil_budget(filename=filename)
+            print('='*30 + '\nPlot saved to file: '
+                  + filename + '\n' + '='*30)
 
     def set_model(self, model):
         if model == 'OpenOil':
@@ -492,7 +518,6 @@ class OpenDriftGUI(tk.Tk):
 
         self.o.add_readers_from_file(self.o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        self.o.set_config('general:basemap_resolution', 'h')
 
         #time_step = o.get_config('general:time_step_minutes')*60
         time_step = 900  # 15 minutes
@@ -508,36 +533,43 @@ class OpenDriftGUI(tk.Tk):
 
         mapres = self.mapresvar.get()[0]
         self.o.set_config('general:basemap_resolution', mapres)         
+        self.simulationname = 'opendrift_' + self.model.get() + \
+            self.o.start_time.strftime('_%Y%m%d_%H%M')
 
+        # Starting simulation run
         self.o.run(steps=duration, time_step=time_step,
               time_step_output=time_step_output, **extra_args)
         print(self.o)
 
-        if self.has_diana is True:
-            diana_filename = self.dianadir + '/opendrift_' + \
-                self.model.get() + self.o.start_time.strftime(
-                                '_%Y%m%d_%H%M.nc')
-            self.o.write_netcdf_density_map(diana_filename)
-            tk.Button(self.seed, text='Show in Diana',
-                      command=lambda: os.system('diana &')
-                      ).grid(row=8, column=2, sticky=tk.W, pady=4)
-        tk.Button(self.seed, text='Animation',
-                  command=self.o.animation).grid(row=8, column=3,
-                                            sticky=tk.W, pady=4)
-        if self.model.get() == 'OpenOil':
-            self.budgetbutton = tk.Button(self.seed,
-                text='Oil Budget', command=self.o.plot_oil_budget)
-            self.budgetbutton.grid(row=8, column=4, sticky=tk.W, pady=4)
-        self.results = tk.Frame(self.seed, bd=2, bg='red',
+        self.results = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
-        self.results.grid(row=7, column=3, columnspan=1, sticky='sew')
+        self.results.grid(row=7, column=3, columnspan=1, sticky='ew')
+        tk.Button(self.results, text='Show animation',
+                  command=lambda: self.handle_result(
+                    'showanimation')).grid(row=1, column=1)
         tk.Button(self.results, text='Save animation',
                   command=lambda: self.handle_result(
-                    'saveanimation')).grid(row=1, column=0)
+                    'saveanimation')).grid(row=2, column=1)
+        tk.Button(self.results, text='Show plot',
+                  command=lambda: self.handle_result(
+                    'showplot')).grid(row=3, column=1)
         tk.Button(self.results, text='Save plot',
                   command=lambda: self.handle_result(
-                    'saveplot')).grid(row=2, column=0)
+                    'saveplot')).grid(row=4, column=1)
+        if self.model.get() == 'OpenOil':
+            tk.Button(self.results, text='Save oil budget',
+                      command=lambda: self.handle_result(
+                        'saveoilbudget')).grid(row=5, column=1)
+            tk.Button(self.results, text='Show oil budget',
+                      command=lambda: self.handle_result(
+                        'showoilbudget')).grid(row=6, column=1)
 
+        if self.has_diana is True:
+            diana_filename = self.dianadir + self.simulationname + '.nc'
+            self.o.write_netcdf_density_map(diana_filename)
+            tk.Button(self.results, text='Show in Diana',
+                      command=lambda: os.system('diana &')
+                      ).grid(row=8, column=1)
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()

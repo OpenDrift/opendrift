@@ -2568,6 +2568,9 @@ class OpenDriftSimulation(PhysicsMethods):
                   legend=None, legend_loc='best', fps=10):
         """Animate last run."""
 
+        if self.num_elements_total() == 0:
+            raise ValueError('Please run simulation before animating')
+
         start_time = datetime.now()
         if cmap is None:
             cmap = 'jet'
@@ -2945,6 +2948,9 @@ class OpenDriftSimulation(PhysicsMethods):
             linecolor: name of variable to be used for coloring trajectories.
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
         """
+
+        if self.num_elements_total() == 0:
+            raise ValueError('Please run simulation before plotting')
 
         start_time = datetime.now()
 
