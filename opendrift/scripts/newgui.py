@@ -371,6 +371,10 @@ class OpenDriftGUI(tk.Tk):
         self.con.grid(row=0, column=1, rowspan=1)
         for i, cs in enumerate(self.o._config_hashstrings()):
             tk.Label(self.config, text=cs).grid(row=i, column=1, rowspan=1)
+        try:
+            self.results.destroy()
+        except:
+            pass
 
         print('Setting model: ' + model)
         print(self.o.list_configspec())
@@ -541,6 +545,7 @@ class OpenDriftGUI(tk.Tk):
               time_step_output=time_step_output, **extra_args)
         print(self.o)
 
+        self.results.destroy()
         self.results = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
         self.results.grid(row=7, column=3, columnspan=1, sticky='ew')

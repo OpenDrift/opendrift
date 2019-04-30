@@ -62,6 +62,8 @@ class TestModels(unittest.TestCase):
     def test_shipdrift(self):
         """Sintef case study"""
         s = ShipDrift(loglevel=50)
+        s.set_config('drift:current_uncertainty', 0)
+        s.set_config('drift:wind_uncertainty', 0)
         c = reader_constant.Reader({
             'sea_surface_wave_significant_height': 5,
             'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 11,

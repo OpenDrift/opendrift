@@ -96,12 +96,13 @@ class ShipDrift(OpenDriftSimulation):
             height = float(min=1, max=50, default=12)
             draft = float(min=1, max=20, default=4)
             beam = float(min=1, max=30, default=10)
+        [drift]
+            current_uncertainty = float(min=0, max=5, default=0.05)
+            wind_uncertainty = float(min=0, max=5, default=.5)
         '''
 
 
     def __init__(self, *args, **kwargs):
-
-        self._add_configstring(self.configspec)
 
         # Read ship properties
         d = os.path.dirname(os.path.realpath(__file__))
@@ -142,6 +143,9 @@ class ShipDrift(OpenDriftSimulation):
              self.wforce['D'].ravel())
 
         super(ShipDrift, self).__init__(*args, **kwargs)
+
+        self._add_configstring(self.configspec)
+
 
     def seed_elements(self, *args, **kwargs):
         
