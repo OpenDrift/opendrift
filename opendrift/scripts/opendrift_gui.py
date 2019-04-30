@@ -264,7 +264,7 @@ class OpenDriftGUI(tk.Tk):
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
         self.durationhours.grid(row=5, column=1)
-        self.durationhours.insert(0, 4)
+        self.durationhours.insert(0, 12)
         tk.Label(self.duration, text=' hours ').grid(row=5, column=2)
 
         self.directionvar = tk.StringVar()
