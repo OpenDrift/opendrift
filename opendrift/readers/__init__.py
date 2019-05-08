@@ -63,4 +63,12 @@ def reader_from_url(url, timeout=10):
             except Exception as e:
                 logging.warning('%s is not a netCDF file recognised '
                                 'by OpenDrift: %s' % (url, str(e)))
+                try:
+                    from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
+                    r = Reader_ROMS_native(url)
+                    return r
+                except Exception as e:
+                    logging.warning('%s is also not a ROMS netCDF file recognised by '
+                                    'OpenDrift: %s' % (url, str(e)))
+
                 return None
