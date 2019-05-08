@@ -103,6 +103,10 @@ def gls_tke(s):
     kmix = ki + kwave
     depths = s.environment_profiles['z']
     Kprofiles, N = sp.meshgrid(kmix, depths)
+    try:
+        Kprofiles = Kprofiles.filled()
+    except:
+        pass
 
     return Kprofiles
 
