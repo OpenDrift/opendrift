@@ -1768,6 +1768,205 @@ class OpenDriftSimulation(PhysicsMethods):
         self.schedule_elements(elements, time)
 
 
+    def elements_on_ice(self, indices, reason='on_ice'):
+        """Schedule deactivated particles for deletion (at end of step)"""
+        import copy
+
+        if any(indices) is False:
+            return
+
+        if reason not in self.status_categories:
+            self.status_categories.append(reason)
+            logging.debug('Added status %s' % (reason))
+        reason_number = self.status_categories.index(reason)
+        #if not hasattr(self.elements.status, "__len__"):
+
+        if len(np.atleast_1d(self.elements.status)) == 1:
+            status = self.elements.status.item()
+            self.elements.status = np.zeros(self.num_elements_active())
+            self.elements.status.fill(status)
+        # Deactivate elements, if they have not already been deactivated
+        self.elements.status[indices & (self.elements.status ==0)] = \
+            reason_number
+        logging.debug('%s elements scheduled for deactivation (%s)' %
+                    (np.sum(indices), reason))
+        logging.debug('\t(z: %f to %f)' %
+            (self.elements.z[indices].min(), self.elements.z[indices].max()))
+
+            # All particles scheduled for deletion
+        indices = (self.elements.status != 0)
+        print(indices)
+        #try:
+        #    len(indices)
+        #except:
+        if len(indices) == 0 or np.sum(indices) == 0:
+            logging.debug('No elements to deactivate')
+            return  # No elements scheduled for deactivation     
+            
+        ###################################################
+        ### AQUI MUDA COMO AS PARTICULAS SAO ADVECTADAS ###
+        ###################################################
+        
+        # Identifies particles in a region where sea ice area fraction is < 0.x #
+        not_in_ice = [i for i in self.environment.sea_ice_area_fraction if i < 0.4]
+        
+        if not not_in_ice: # if len of len(not_in_ice) == 0, i.e., all particles are in ice 
+            pass
+
+        else:
+            # Dada a lista not_in_ice, que eh uma sub-lista gerada atraves de uma condicao 
+            # imposta sobre a lista de todas as particulas, aqui identifica os indexes dos 
+            # valores de not_in_ice que tambem estao presentes na lista total original.  
+            
+            j = list(self.environment.sea_ice_area_fraction)
+
+            # Take the index in the original list of values (j) that corresponds to 
+            # each value found above (for i < 6 - not_in_ice)
+            not_in_ice_idx = [index for index, item in enumerate(j) if item in not_in_ice]
+            
+            # Reactivate elements
+            self.elements.status[not_in_ice_idx] = 0
+        
+            # Ocean adv.
+            x_ocean_vel = (self.environment.x_sea_water_velocity[not_in_ice_idx]).tolist()
+            y_ocean_vel = (self.environment.y_sea_water_velocity[not_in_ice_idx]).tolist()
+
+            # Sea ice vel. 
+            
+            '''
+            factor = (self.environment.sea_ice_area_fraction[not_in_ice_idx])
+            '''
+
+            self.environment.sea_ice_x_velocity[not_in_ice_idx] = 0
+            self.environment.sea_ice_y_velocity[not_in_ice_idx] = 0
+            
+            not_ice_x = ((self.environment.sea_ice_x_velocity[not_in_ice_idx])).tolist()
+            not_ice_y = ((self.environment.sea_ice_y_velocity[not_in_ice_idx])).tolist()
+            
+            # Wind 
+            wind_drift_factor = 0.03
+            fac = np.ones(np.shape(not_in_ice_idx))*(wind_drift_factor)
+                
+            self.elements.wind_drift_factor[not_in_ice_idx] = fac
+
+            y_wind = (self.environment.y_wind[not_in_ice_idx]).tolist()
+            x_wind = (self.environment.x_wind[not_in_ice_idx]).tolist()
+
+            # Stokes Drift
+            stk_dft_x = (self.environment.sea_surface_wave_stokes_drift_x_velocity[not_in_ice_idx]).tolist()  
+            stk_dft_y = (self.environment.sea_surface_wave_stokes_drift_y_velocity[not_in_ice_idx]).tolist()  
+
+        ##############
+        ### IN ICE ###
+        ##############
+        in_ice = [i for i in self.environment.sea_ice_area_fraction if i >= 0.4]
+
+        if not in_ice: # if len of (in_ice) == 0, i.e., all particles are in open ocean
+            pass
+        else:
+            k = self.environment.sea_ice_area_fraction
+            in_ice_idx = [index for index, item in enumerate(k) if item in in_ice]
+            
+            # Reactivate elements
+            self.elements.status[in_ice_idx] = 0
+
+            ### Apply factors ###
+
+            # Ocean adv.
+            '''
+            factor = (1 - self.environment.sea_ice_area_fraction[in_ice_idx])
+            x_ocean_vel_ice = ((self.environment.x_sea_water_velocity[in_ice_idx])*factor).tolist()
+            y_ocean_vel_ice = ((self.environment.y_sea_water_velocity[in_ice_idx])*factor).tolist()
+            '''
+            self.environment.x_sea_water_velocity[in_ice_idx] = 0
+            self.environment.y_sea_water_velocity[in_ice_idx] = 0
+
+            x_ocean_vel_ice = ((self.environment.x_sea_water_velocity[in_ice_idx])).tolist()
+            y_ocean_vel_ice = ((self.environment.y_sea_water_velocity[in_ice_idx])).tolist()
+
+            # Sea ice vel.
+            factor1 = (self.environment.sea_ice_area_fraction[in_ice_idx])
+            ice_x = ((self.environment.sea_ice_x_velocity[in_ice_idx])).tolist()
+            ice_y = ((self.environment.sea_ice_y_velocity[in_ice_idx])).tolist()
+
+            # Wind 
+            wind_drift_factor = 0.02
+
+            ### theta = np.deg2rad(30) ###
+            fac1 = np.ones(np.shape(in_ice_idx))*(wind_drift_factor)
+            self.elements.wind_drift_factor[in_ice_idx] = fac1
+            
+            y_wind_ice = (self.environment.y_wind[in_ice_idx]).tolist()
+            x_wind_ice = (self.environment.x_wind[in_ice_idx]).tolist()
+
+            # Wave forcing
+            stk_dft_ice_x = (self.environment.sea_surface_wave_stokes_drift_x_velocity[in_ice_idx]).tolist()  
+            stk_dft_ice_y = (self.environment.sea_surface_wave_stokes_drift_y_velocity[in_ice_idx]).tolist()  
+
+        ### if particles are solely in ice , i.e., not_in_ice = 0 ###
+        if len(not_in_ice) == 0:
+                self.environment.x_wind = x_wind_ice
+                self.environment.y_wind = y_wind_ice
+
+                self.environment.x_sea_water_velocity = x_ocean_vel_ice
+                self.environment.y_sea_water_velocity = y_ocean_vel_ice
+
+                self.environment.sea_ice_x_velocity = ice_x
+                self.environment.sea_ice_y_velocity = ice_y
+
+                self.environment.sea_surface_wave_stokes_drift_x_velocity = stk_dft_ice_x
+                self.environment.sea_surface_wave_stokes_drift_y_velocity = stk_dft_ice_y
+                print('\n velocity in ice is: \n')
+                print(self.environment.x_sea_water_velocity)    
+
+        ### if particles are solely on open ocean, i.e., in_ice = 0 ###
+        elif len(in_ice) == 0:
+                self.environment.x_wind = x_wind
+                self.environment.y_wind = y_wind
+
+                self.environment.x_sea_water_velocity = x_ocean_vel
+                self.environment.y_sea_water_velocity = y_ocean_vel
+
+                self.environment.sea_ice_x_velocity = not_ice_x
+                self.environment.sea_ice_y_velocity = not_ice_y
+
+                self.environment.sea_surface_wave_stokes_drift_x_velocity = stk_dft_x
+                self.environment.sea_surface_wave_stokes_drift_y_velocity = stk_dft_y
+                
+                print('\n velocity in ocean is: \n')
+                print(self.environment.x_sea_water_velocity)    
+
+        ### if particles are both in ice and open water ###
+        else:
+            ### Aqui junta os valores ###
+            for i in range (0, len(in_ice)):
+                x_wind.insert(in_ice_idx[i], x_wind_ice[i])
+                y_wind.insert(in_ice_idx[i], y_wind_ice[i])
+
+                x_ocean_vel.insert(in_ice_idx[i], x_ocean_vel_ice[i])
+                y_ocean_vel.insert(in_ice_idx[i], y_ocean_vel_ice[i])
+
+                not_ice_x.insert(in_ice_idx[i], ice_x[i])
+                not_ice_y.insert(in_ice_idx[i], ice_y[i])
+
+                stk_dft_x.insert(in_ice_idx[i], stk_dft_ice_x[i])
+                stk_dft_y.insert(in_ice_idx[i], stk_dft_ice_y[i])
+
+            self.environment.x_wind = x_wind
+            self.environment.y_wind = y_wind
+
+            self.environment.x_sea_water_velocity = x_ocean_vel
+            self.environment.y_sea_water_velocity = y_ocean_vel
+
+            self.environment.sea_ice_x_velocity = not_ice_x
+            self.environment.sea_ice_y_velocity = not_ice_y
+
+            self.environment.sea_surface_wave_stokes_drift_x_velocity = stk_dft_x
+            self.environment.sea_surface_wave_stokes_drift_y_velocity = stk_dft_y
+
+            print('\n\n\n BOTH \n\n\n')
+
+
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
         if any(indices) is False:
