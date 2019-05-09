@@ -58,7 +58,7 @@ def gls_tke(s):
 
     if not hasattr(s, 'gls_parameters'):
         logging.info('Searching readers for GLS parameters...')
-        for reader_name, reader in s.readers.iteritems():
+        for reader_name, reader in s.readers.items():
             if hasattr(reader, 'gls_parameters'):
                 s.gls_parameters = reader.gls_parameters
                 logging.info('Found gls-parameters in ' + reader_name)
