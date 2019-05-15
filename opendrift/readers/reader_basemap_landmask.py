@@ -21,6 +21,7 @@ import gc
 import numpy as np
 import collections
 import matplotlib
+matplotlib.use('Tkagg')
 if ('DISPLAY' not in os.environ and
 	    'PYCHARM_HOSTED' not in os.environ and
         os.name != 'nt'):
