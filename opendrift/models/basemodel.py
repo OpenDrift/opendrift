@@ -439,7 +439,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def interact_with_coastline(self):
         """Coastline interaction according to configuration setting"""
         i = self.get_config('general:coastline_action')
-        if not hasattr(self.environment, 'land_binary_mask'):
+        if not hasattr(self, 'environment') or not hasattr(self.environment, 'land_binary_mask'):
             return
         if i == 'none':  # Do nothing
             return
