@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3
+FROM continuumio/miniconda
 
 MAINTAINER vsochat@stanford.edu
 
@@ -10,6 +10,7 @@ MAINTAINER vsochat@stanford.edu
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PATH /code/opendrift/opendrift/scripts:$PATH
+ENV PATH /opt/conda/envs/env/bin:$PATH
 
 # Dependencies for opendrift
 RUN apt-get update && apt-get install -y build-essential \
@@ -26,12 +27,11 @@ RUN pip install --upgrade pip
 RUN mkdir /code
 ADD . /code
 WORKDIR /code
-RUN /opt/conda/bin/conda env create -f conda_python3.yml && \
+RUN /opt/conda/bin/conda env create -f conda_python2.yml && \
      conda init bash && \
-     conda activate opendrift_p3 && \
+     conda activate opendrift_p2 && \
      /opt/conda/bin/python setup.py develop && \
-     echo "source activate env opendrift_py3" > ~/.bashrc
-WORKDIR /code
+     echo "source activate env opendrift_py2" > ~/.bashrc
 
 # Test
 # cd /code/opendrift && ./testall

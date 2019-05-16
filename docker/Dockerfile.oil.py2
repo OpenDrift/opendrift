@@ -2,9 +2,6 @@ FROM continuumio/miniconda
 
 MAINTAINER vsochat@stanford.edu
 
-## This is how the container was build
-# docker build -f Dockerfile.oil -t vanessa/opendrift-oil .
-
 # https://hub.docker.com/r/vanessa/opendrift-oil/  # container 
 # https://github.com/opendrift/opendrift/wiki      # documentation
 
@@ -22,19 +19,15 @@ RUN apt-get update && apt-get install -y build-essential \
                                          gdal-bin && \
                                          ldconfig
 
-# Updates and Installs
 RUN pip install --upgrade pip
-RUN /opt/conda/bin/conda update openssl ca-certificates certifi
-RUN /opt/conda/bin/conda install --yes hdf4 numpy scipy matplotlib basemap \
-                                       netcdf4 configobj pillow gdal pyproj ffmpeg
-
-# We need basemap 1.1.0
-RUN /opt/conda/bin/conda install --yes --channel conda-forge basemap basemap-data-hires
-
-RUN mkdir /code && cd /code && \
-    git clone https://www.github.com/opendrift/opendrift && \ 
-    cd opendrift && \
-   /opt/conda/bin/python setup.py develop
+RUN mkdir /code
+ADD . /code
+WORKDIR /code
+RUN /opt/conda/bin/conda env create -f conda_python2_oil.yml && \
+     conda init bash && \
+     conda activate opendrift_p2_oil && \
+     /opt/conda/bin/python setup.py develop && \
+     echo "source activate env opendrift_p2_oil" > ~/.bashrc
 
 # NOAA's OilLibrary for Oil Simulations
 WORKDIR /
