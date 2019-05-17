@@ -10,7 +10,6 @@ MAINTAINER vsochat@stanford.edu
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PATH /code/opendrift/opendrift/scripts:$PATH
-ENV PATH /opt/conda/envs/env/bin:$PATH
 
 # Dependencies for opendrift
 RUN apt-get update && apt-get install -y build-essential \
@@ -27,11 +26,13 @@ RUN pip install --upgrade pip
 RUN mkdir /code
 ADD . /code
 WORKDIR /code
-RUN /opt/conda/bin/conda env create -f conda_python2.yml && \
-     conda init bash && \
-     conda activate opendrift_p2 && \
-     /opt/conda/bin/python setup.py develop && \
-     echo "source activate env opendrift_py2" > ~/.bashrc
+
+RUN /opt/conda/bin/conda env create -f conda_python2.yml
+RUN /bin/bash -c '''. activate opendrift_p2 && \
+    python setup.py develop && \
+    echo "source activate opendrift_p2" > ~/.bashrc'''
+
+WORKDIR /code
 
 # Test
-# cd /code/opendrift && ./testall
+RUN /bin/bash -c ". activate opendrift_p2 && cd /code && ./testall"
