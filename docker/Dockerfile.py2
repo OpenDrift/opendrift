@@ -9,6 +9,7 @@ MAINTAINER vsochat@stanford.edu
 # https://github.com/opendrift/opendrift/wiki
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV DISPLAY :0
 ENV PATH /code/opendrift/opendrift/scripts:$PATH
 
 # Dependencies for opendrift
