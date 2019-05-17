@@ -9,7 +9,6 @@ MAINTAINER vsochat@stanford.edu
 # https://github.com/opendrift/opendrift/wiki
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV DISPLAY :0
 ENV PATH /code/opendrift/opendrift/scripts:$PATH
 
 # Dependencies for opendrift
@@ -36,4 +35,4 @@ RUN /bin/bash -c '''. activate opendrift_p2 && \
 WORKDIR /code
 
 # Test
-RUN /bin/bash -c ". activate opendrift_p2 && cd /code && ./testall"
+# RUN /bin/bash -c ". activate opendrift_p2 && cd /code && ./testall"
