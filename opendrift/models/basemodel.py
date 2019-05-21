@@ -2750,7 +2750,7 @@ class OpenDriftSimulation(PhysicsMethods):
             H = H + H_submerged + H_stranded
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
             pm = map.pcolormesh(lon_array, lat_array, H[0,:,:],
-                                latlon=True, vmin=0.1, cmap=cmap)
+                                latlon=True, vmin=0.1, vmax=vmax, cmap=cmap)
 
         if drifter is not None:
             drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
