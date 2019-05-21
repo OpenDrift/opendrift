@@ -2118,7 +2118,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.steps_exported = 0
 
         if outfile is not None:
-            self.io_init(outfile, times=self.expected_steps_output)
+            self.io_init(outfile)
         else:
             self.outfile = None
 
@@ -2389,6 +2389,13 @@ class OpenDriftSimulation(PhysicsMethods):
         firstlast = np.ma.notmasked_edges(self.history['lon'], axis=1)
         index_of_activation = firstlast[0][1]
         index_of_deactivation = firstlast[1][1]
+        if len(index_of_deactivation) < self.history['lon'].shape[0]:
+            missingind = np.setdiff1d(
+                np.arange(0, self.history['lon'].shape[0]),
+                firstlast[0][0])
+            logging.warning('%s elements were never seeded, removing from history array' % len(missingind))
+            self.history = self.history[firstlast[0][0], :]
+
         return index_of_activation, index_of_deactivation
 
     def set_up_map(self, buffer=.1, delta_lat=None, **kwargs):
@@ -2401,10 +2408,10 @@ class OpenDriftSimulation(PhysicsMethods):
         lons, lats = self.get_lonlats()
 
         # Initialise map
-        lonmin = lons.min() - buffer*2
-        lonmax = lons.max() + buffer*2
-        latmin = lats.min() - buffer
-        latmax = lats.max() + buffer
+        lonmin = np.nanmin(lons) - buffer*2
+        lonmax = np.nanmax(lons) + buffer*2
+        latmin = np.nanmin(lats) - buffer
+        latmax = np.nanmax(lats) + buffer
         if 'basemap_landmask' in self.readers:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
@@ -3245,12 +3252,12 @@ class OpenDriftSimulation(PhysicsMethods):
         lat = self.get_property('lat')[0]
         times = self.get_time_array()[0]
         deltalat = pixelsize_m/111000.0  # m to degrees
-        deltalon = deltalat/np.cos(np.radians((lat.min() +
-                                               lat.max())/2))
-        lat_array = np.arange(lat.min()-deltalat,
-                              lat.max()+deltalat, deltalat)
-        lon_array = np.arange(lon.min()-deltalat,
-                              lon.max()+deltalon, deltalon)
+        deltalon = deltalat/np.cos(np.radians((np.nanmin(lat) +
+                                               np.nanmax(lat))/2))
+        lat_array = np.arange(np.nanmin(lat)-deltalat,
+                              np.nanmax(lat)+deltalat, deltalat)
+        lon_array = np.arange(np.nanmin(lon)-deltalat,
+                              np.nanmax(lon)+deltalon, deltalon)
         bins=(lon_array, lat_array)
         z = self.get_property('z')[0]
         if weight is not None:
@@ -3506,10 +3513,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def get_property(self, propname):
         """Get property from history, sorted by status."""
-        prop = self.history[propname].copy()
-        status = self.history['status'].copy()
         index_of_first, index_of_last = \
             self.index_of_activation_and_deactivation()
+        prop = self.history[propname].copy()
+        status = self.history['status'].copy()
         j = np.arange(status.shape[1])
         # Fill arrays with last value before deactivation
         for i in range(status.shape[0]):

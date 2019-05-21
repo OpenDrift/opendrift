@@ -28,7 +28,7 @@ def get_model(model_name):
                 return model
 
 
-def open(filename):
+def open(filename, times=None):
     '''Import netCDF output file as OpenDrift object of correct class'''
 
     import os
@@ -57,7 +57,7 @@ def open(filename):
         from models import oceandrift3D
         cls = oceandrift3D.OceanDrift3D
     o = cls()
-    o.io_import_file(filename)
+    o.io_import_file(filename, times)
     logging.info('Returning ' + str(type(o)) + ' object')
     return o
 
