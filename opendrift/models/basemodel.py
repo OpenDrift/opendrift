@@ -2929,7 +2929,9 @@ class OpenDriftSimulation(PhysicsMethods):
     def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
-             contourlines=False, trajectory_dict=None, colorbar=True, linewidth=1, lcs=None, show_particles=True,
+             contourlines=False, trajectory_dict=None, colorbar=True,
+             linewidth=1, lcs=None, show_particles=True,
+             density_pixelsize_m=1000,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
@@ -2971,7 +2973,7 @@ class OpenDriftSimulation(PhysicsMethods):
         alpha = np.max((min_alpha, alpha))
         if legend is False:
             legend = None
-        if hasattr(self, 'history'):
+        if hasattr(self, 'history') and linewidth != 0:
             # Plot trajectories
             if linecolor is None:
                 if compare is not None and legend is not None:
@@ -3113,8 +3115,17 @@ class OpenDriftSimulation(PhysicsMethods):
                 time = self.time - self.time_step_output
             else:
                 time = None
-            map_x, map_y, scalar, u_component, v_component = \
-                self.get_map_background(map, background, time=time)
+            if background == 'residence':
+                scalar,lon_res,lat_res = self.get_residence_time(
+                    pixelsize_m=density_pixelsize_m)
+                scalar[scalar==0] = np.nan
+                lon_res, lat_res = np.meshgrid(lon_res[0:-1], lat_res[0:-1])
+                lon_res = lon_res.T
+                lat_res = lat_res.T
+                map_x, map_y = map(lon_res, lat_res, inverse=False)
+            else:
+                map_x, map_y, scalar, u_component, v_component = \
+                    self.get_map_background(map, background, time=time)
                                         #self.time_step_output)
 
             if show_scalar is True:
@@ -3301,6 +3312,12 @@ class OpenDriftSimulation(PhysicsMethods):
                                weights=weights, bins=bins)
 
         return H, H_submerged, H_stranded, lon_array, lat_array
+
+    def get_residence_time(self, pixelsize_m):
+        H,H_sub, H_str,lon_array,lat_array = \
+            self.get_density_array(pixelsize_m)
+        residence = np.sum(H, axis=0)
+        return residence, lon_array, lat_array
 
     def write_netcdf_density_map(self, filename, pixelsize_m='auto'):
         '''Write netCDF file with map of particles densities'''
