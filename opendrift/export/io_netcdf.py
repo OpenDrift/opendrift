@@ -16,7 +16,7 @@ from netCDF4 import Dataset, num2date, date2num
 skip_parameters = ['ID']  # Do not write to file
 
 
-def init(self, filename, times=None):
+def init(self, filename):
 
     self.outfile_name = filename
     self.outfile = Dataset(filename, 'w')
@@ -112,6 +112,7 @@ def write_buffer(self):
                                                 self.outfile_name))
     self.history.mask = True  # Reset history array, for new data
     self.steps_exported = self.steps_exported + num_steps_to_export
+    self.outfile.steps_exported = self.steps_exported
     self.outfile.sync()  # Flush from memory to disk
     self.outfile.close()  # close file temporarily
 
@@ -181,14 +182,22 @@ def close(self):
         print('Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)')
     
 
-def import_file(self, filename, time=None):
+def import_file(self, filename, times=None):
 
+    logging.debug('Importing from ' + filename)
     infile = Dataset(filename, 'r')
+    # 'times' can be used to import subset. Not yet implemented.
+    if times is None and hasattr(infile, 'steps_exported'):
+        self.steps_output = infile.steps_exported
+    else:
+        self.steps_output = len(infile.dimensions['time'])
+    
     self.start_time = num2date(infile.variables['time'][0],
                                infile.variables['time'].units)
     if len(infile.variables['time']) > 1:
-        self.end_time = num2date(infile.variables['time'][-1],
-                             infile.variables['time'].units)
+        self.end_time = num2date(
+            infile.variables['time'][self.steps_output-1],
+            infile.variables['time'].units)
         self.time_step_output = num2date(infile.variables['time'][1],
             infile.variables['time'].units) - self.start_time
     else:
@@ -198,8 +207,7 @@ def import_file(self, filename, time=None):
     self.status_categories = infile.variables['status'].flag_meanings.split()
 
     num_elements = len(infile.dimensions['trajectory'])
-    num_timesteps = len(infile.dimensions['time'])
-    self.steps_output = num_timesteps
+
     dtype = np.dtype([(var[0], var[1]['dtype'])
                       for var in self.ElementType.variables.items()])
 
@@ -216,14 +224,15 @@ def import_file(self, filename, time=None):
 
     # Import whole dataset (history)
     self.history = np.ma.array(
-        np.zeros([num_elements, num_timesteps]),
+        np.zeros([num_elements, self.steps_output]),
         dtype=history_dtype, mask=[True])
     for var in infile.variables:
         if var in ['time', 'trajectory']:
             continue
         try:
-            self.history[var] = infile.variables[var][:, :]
-        except:
+            self.history[var] = infile.variables[var][:, 0:self.steps_output]
+        except Exception as e:
+            logging.info(e)
             pass
 
     # Initialise elements from given (or last) state/time
@@ -234,11 +243,7 @@ def import_file(self, filename, time=None):
         if var in self.ElementType.variables:
             kwargs[var] = self.history[var][
                 np.arange(len(index_of_last)), index_of_last]
-    # Import element IDs, which are named 'trajectory' in netCDF CF convention
-    try:
-        kwargs['ID'] = infile.variables['trajectory'][:]
-    except:
-        kwargs['ID'] = np.arange(num_elements)
+    kwargs['ID'] = np.arange(len(kwargs['lon'])) + 1
     self.elements = self.ElementType(**kwargs)
     self.elements_deactivated = self.ElementType()
 

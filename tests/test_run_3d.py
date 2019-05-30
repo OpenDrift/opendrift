@@ -17,6 +17,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import numpy as np
 import unittest
 from datetime import datetime, timedelta
 import netCDF4
@@ -25,6 +26,7 @@ from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.pelagicegg import PelagicEggDrift
+from opendrift.models.oceandrift3D import OceanDrift3D
 
 try:
     netCDF4.Dataset('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
@@ -36,7 +38,7 @@ except:
 class TestRun(unittest.TestCase):
 
     def test_reader_boundary(self):
-        o = PelagicEggDrift(loglevel=20)
+        o = PelagicEggDrift(loglevel=0)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc') 
         ######################################################
@@ -77,6 +79,47 @@ class TestRun(unittest.TestCase):
         o.set_config('turbulentmixing:timestep', 5)
         o.run(steps=5, time_step=3600,
               time_step_output=3600)
+
+
+    def test_truncate_ocean_model(self):
+        o = OceanDrift3D(loglevel=30)
+        reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + \
+            '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        o.add_reader(reader_nordic)
+        o.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
+                        z=np.linspace(-90, 0, 10),
+                        time=reader_nordic.start_time)
+        o.set_config('general:use_basemap_landmask', False)
+        o.run(steps=5)
+
+        o2 = OceanDrift3D(loglevel=30)
+        o2.add_reader(reader_nordic)
+        o2.set_config('drift:truncate_ocean_model_below_m', 50)
+        o2.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
+                        z=np.linspace(-90, 0, 10),
+                        time=reader_nordic.start_time)
+        o2.set_config('general:use_basemap_landmask', False)
+        o2.run(steps=5)
+    
+        o3 = OceanDrift3D(loglevel=30)
+        o3.add_reader(reader_nordic)
+        o3.set_config('drift:truncate_ocean_model_below_m', 50)
+        o3.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
+                        z=np.linspace(-90, 0, 10),
+                        time=reader_nordic.start_time)
+        o3.set_config('general:use_basemap_landmask', False)
+        o3.run(steps=5)
+    
+        # Final depths should not be affected
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            o.elements.z, o3.elements.z))
+        # Surface elements should not be affected
+        self.assertEqual(o.elements.lat[-1], o3.elements.lat[-1])
+        # Elements at 90m depth should be somewht affected
+        self.assertNotEqual(o.elements.lat[0], o3.elements.lat[0])
+        # For second run, only elements below 50m should be equal
+        self.assertEqual(o2.elements.lat[1], o2.elements.lat[2])
+        self.assertNotEqual(o2.elements.lat[8], o2.elements.lat[9])
 
 
 if __name__ == '__main__':

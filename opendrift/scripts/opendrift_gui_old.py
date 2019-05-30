@@ -8,10 +8,8 @@ import numpy as np
 from PIL import ImageTk, Image
 import Tkinter as tk
 import ttk
-import opendrift.models
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.leeway import Leeway
-from opendrift.models.shipdrift import ShipDrift
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_basemap_landmask
 
@@ -34,70 +32,25 @@ class TextRedirector(object):
 class OpenDriftGUI(tk.Tk):
 
     def __init__(self):
-
-        # Available models
-        self.available_models = opendrift.get_model_names()
-
         tk.Tk.__init__(self)
-        
-        ##################
-        # Layout frames
-        ##################
-        self.n = ttk.Notebook(self.master)
-        self.n.grid()
-        self.seed = ttk.Frame(self.n)
-        self.config = ttk.Frame(self.n)
-        self.n.add(self.seed, text='Seeding')
-        self.n.add(self.config, text='Config')
-
-        # Top
-        self.top = tk.Frame(self.seed,
-                            relief=tk.FLAT, pady=25, padx=25)
-        self.top.grid(row=0, column=1, rowspan=1)
-        # Config
-        self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
-        self.con.grid(row=0, column=1, rowspan=1)
-        # Time start and end
-        self.start_t = tk.Frame(self.seed, relief=tk.FLAT)
-        self.start_t.grid(row=2, column=0, rowspan=1)
-        self.end_t = tk.Frame(self.seed, relief=tk.FLAT)
-        self.end_t.grid(row=3, column=0, rowspan=1)
-        self.start = tk.Frame(self.seed, bg='lightgray', bd=2,
-                              relief=tk.SUNKEN, pady=5, padx=5)
-        self.start.grid(row=2, column=1, rowspan=1)
-        self.end = tk.Frame(self.seed, bg='gray', bd=2,
-                            relief=tk.SUNKEN, padx=5, pady=5)
-        self.end.grid(row=3, column=1)
-        self.coastline = tk.Frame(self.seed, bd=2,
-                                 relief=tk.FLAT, padx=5, pady=0)
-        self.coastline.grid(row=4, column=1)
-        self.duration = tk.Frame(self.seed, bd=2,
-                                 relief=tk.FLAT, padx=5, pady=5)
-        self.duration.grid(row=5, column=1)
-        self.seed_frame = tk.Frame(self.seed, bd=2,
-                                   relief=tk.FLAT, padx=5, pady=0)
-        self.seed_frame.grid(row=4, columnspan=8, sticky='nsew')
-        self.output = tk.Frame(self.seed, bd=2,
-                               relief=tk.FLAT, padx=5, pady=0)
-        self.output.grid(row=7, column=2, columnspan=8, sticky='nsew')
-
-
-        ##########################
         self.title('OpenDrift')
         o = OpenOil3D(weathering_model='noaa', location='NORWAY')
         try:
             img = ImageTk.PhotoImage(Image.open(o.test_data_folder() +
                                      '../../docs/opendrift_logo.png'))
-            panel = tk.Label(self.seed, image=img)
+            panel = tk.Label(self.master, image=img)
             panel.image = img
             panel.grid(row=0, column=0)
         except:
             pass # Could not display logo
-        #######################################################
+
+        self.top = tk.Frame(self.master,
+                            relief=tk.FLAT, pady=25, padx=25)
+        self.top.grid(row=0, column=1, rowspan=1)
+
         tk.Label(self.top, text='Simulation type').grid(row=0, column=0)
         self.model = tk.StringVar()
         models = ['OpenOil', 'Leeway']
-        models = opendrift.get_model_names()
         self.model.set(models[0])
         self.modeldrop = tk.OptionMenu(self.top, self.model,
                                        *(models), command=self.set_model)
@@ -107,12 +60,12 @@ class OpenDriftGUI(tk.Tk):
                                 command=self.show_help)
         help_button.grid(row=0, column=2, padx=50)
 
-        self.categoryLabel = tk.Label(self.seed, text='Oil type')
+        self.categoryLabel = tk.Label(self.master, text='Oil type')
         self.categoryLabel.grid(row=1, column=0)
         oljetyper = o.oiltypes
         self.oljetype = tk.StringVar()
         self.oljetype.set(oljetyper[0])
-        self.categorydrop = ttk.Combobox(self.seed, width=50,
+        self.categorydrop = ttk.Combobox(self.master, width=50,
                                          textvariable=self.oljetype,
                                          values=oljetyper)
         self.categorydrop.grid(row=1, column=1)
@@ -120,8 +73,13 @@ class OpenDriftGUI(tk.Tk):
         ##########
         # Release
         ##########
+        self.start_t = tk.Frame(self.master, relief=tk.FLAT)
+        self.start_t.grid(row=2, column=0, rowspan=1)
         startlabel = tk.Label(self.start_t, text="\n\nStart release\n\n")
         startlabel.grid(row=0, column=0)
+        self.start = tk.Frame(self.master, bg='lightgray', bd=2,
+                              relief=tk.SUNKEN, pady=5, padx=5)
+        self.start.grid(row=2, column=1, rowspan=1)
 
         tk.Label(self.start, text='Longitude').grid(row=0, column=1)
         tk.Label(self.start, text='Latitude').grid(row=0, column=0)
@@ -148,7 +106,7 @@ class OpenDriftGUI(tk.Tk):
         ##########
         # Time
         ##########
-        now = datetime.now()
+        now = datetime.utcnow()
         tk.Label(self.start, text='Day').grid(row=2, column=0)
         tk.Label(self.start, text='Month').grid(row=2, column=1)
         tk.Label(self.start, text='Year').grid(row=2, column=2)
@@ -197,8 +155,15 @@ class OpenDriftGUI(tk.Tk):
         ###############
         # Release End
         ###############
+        self.end_t = tk.Frame(self.master, relief=tk.FLAT)
         endlabel = tk.Label(self.end_t, text="\n\nEnd release\n\n")
         endlabel.grid(row=0, column=0)
+        self.end_t.grid(row=3, column=0, rowspan=1)
+
+        self.end = tk.Frame(self.master, bg='gray', bd=2,
+                            relief=tk.SUNKEN, padx=5, pady=5)
+        self.end.grid(row=3, column=1)
+
         tk.Label(self.end, text='Longitude', bg='gray').grid(row=0, column=1)
         tk.Label(self.end, text='Latitude', bg='gray').grid(row=0, column=0)
         tk.Label(self.end, text='Radius [m]', bg='gray').grid(row=0, column=2)
@@ -214,7 +179,7 @@ class OpenDriftGUI(tk.Tk):
         ##########
         # Time
         ##########
-        now = datetime.now()
+        now = datetime.utcnow()
         tk.Label(self.end, text='Day', bg='gray').grid(row=2, column=0)
         tk.Label(self.end, text='Month', bg='gray').grid(row=2, column=1)
         tk.Label(self.end, text='Year', bg='gray').grid(row=2, column=2)
@@ -264,6 +229,9 @@ class OpenDriftGUI(tk.Tk):
         #######################
         # Simulation duration
         #######################
+        self.coastline = tk.Frame(self.master, bd=2,
+                                 relief=tk.FLAT, padx=5, pady=0)
+        self.coastline.grid(row=4, column=1)
         tk.Label(self.coastline, text='Coastline resolution ').grid(
                  row=4, column=1)
         self.mapresvar = tk.StringVar()
@@ -272,6 +240,9 @@ class OpenDriftGUI(tk.Tk):
         self.mapres.grid(row=4, column=2)
         self.mapresvar.set('high')
         
+        self.duration = tk.Frame(self.master, bd=2,
+                                 relief=tk.FLAT, padx=5, pady=5)
+        self.duration.grid(row=5, column=1)
         tk.Label(self.duration, text='Run simulation ').grid(row=5, column=0)
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
@@ -289,7 +260,7 @@ class OpenDriftGUI(tk.Tk):
         ##############
         # Output box
         ##############
-        self.text = tk.Text(self.output, wrap="word", height=18)
+        self.text = tk.Text(self, wrap="word", height=18)
         self.text.grid(row=6, columnspan=8, sticky='nsew')
         self.text.tag_configure("stderr", foreground="#b22222")
         sys.stdout = TextRedirector(self.text, "stdout")
@@ -313,15 +284,10 @@ class OpenDriftGUI(tk.Tk):
         ##############
         o = OpenOil3D()
 
-        for m in self.available_models:
-            print(m)
-            print(opendrift.get_model(m))
-            print(opendrift.get_model(m)())
-
         ##########
         # RUN
         ##########
-        tk.Button(self.seed, text='PEIS PAO', bg='green',
+        tk.Button(self.master, text='PEIS PAO', bg='green',
                   command=self.run_opendrift).grid(row=8, column=1,
                                               sticky=tk.W, pady=4)
 
@@ -345,7 +311,8 @@ class OpenDriftGUI(tk.Tk):
             self.o = OpenOil3D(weathering_model='noaa', location='NORWAY')
             self.categorydrop['values'] = self.o.oiltypes
             self.oljetype.set(self.o.oiltypes[0])
-        elif model == 'Leeway':
+
+        if model == 'Leeway':
             self.categoryLabel['text'] = 'Object type'
             self.oljetype.set('')
             self.o = Leeway()
@@ -354,51 +321,6 @@ class OpenDriftGUI(tk.Tk):
                 replace('>', '') for c in self.o.leewayprop]
             self.categorydrop['values'] = self.leewaycategories
             self.oljetype.set(self.leewaycategories[0])
-        elif model == 'ShipDrift':
-            self.categoryLabel['text'] = 'Object type'
-            self.oljetype.set('')
-            self.o = ShipDrift()
-
-        print(dir(self.config))
-        for con in self.config.winfo_children():
-            con.destroy()
-        self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
-        self.con.grid(row=0, column=1, rowspan=1)
-        print(dir(self.config))
-        for i, cs in enumerate(self.o._config_hashstrings()):
-            tk.Label(self.config, text=cs).grid(row=i, column=1, rowspan=1)
-
-        print('Setting model: ' + model)
-        print(self.o.list_configspec())
-        #default, minimum, maximum, options = self.o.get_configspec_default_min_max('seed:oil_type')
-        #print default
-        sc = self.o.get_seed_config()
-        print(sc)
-        self.seed_input = {}
-        self.seed_input_var = {}
-        self.seed_input_label = {}
-        self.seed_frame.destroy()
-        self.seed_frame = tk.Frame(self.seed, bd=2,
-                                   relief=tk.FLAT, padx=5, pady=0)
-        self.seed_frame.grid(row=4, columnspan=8, sticky='nsew')
-        # FIND
-        for num, i in enumerate(sc):
-            self.seed_input_label[i] = tk.Label(self.seed_frame,
-                                                text=i + '\t')
-            self.seed_input_label[i].grid(row=num, column=0)
-            self.seed_input_var[i] = tk.StringVar()
-            if type(sc[i]['options']) is list:
-                self.seed_input[i] = ttk.Combobox(
-                    self.seed_frame, width=50,
-                    textvariable=self.seed_input_var[i],
-                    values=sc[i]['options'])
-                self.seed_input_var[i].set(sc[i]['default'])
-            else:
-                self.seed_input[i] = tk.Entry(
-                    self.seed_frame, textvariable=self.seed_input_var[i],
-                    width=6, justify=tk.RIGHT)
-                self.seed_input[i].insert(0, sc[i]['default'])
-            self.seed_input[i].grid(row=num, column=1)
 
     def show_help(self):
         help_url = 'https://github.com/OpenDrift/opendrift/wiki/Graphical-User-Interface'
@@ -444,9 +366,17 @@ class OpenDriftGUI(tk.Tk):
         so = Leeway(loglevel=50)
         so.seed_elements(lon=lon, lat=lat, number=5000,
                          radius=radius, time=start_time)
-        so.set_config('general:basemap_resolution', mapres)         
+        so.set_config('general:basemap_resolution', mapres)
         so.plot(buffer=.5)
         del so
+
+    def save_animation(self):
+        mp4_filename = os.path.expanduser("~") + \
+            '/opendrift_' + self.model.get() + \
+            self.o.start_time.strftime('_%Y%m%d_%H%M.mp4')
+        self.o.animation(filename=mp4_filename)
+        print('Animation saved to:')
+        print(mp4_filename)
 
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
@@ -481,67 +411,58 @@ class OpenDriftGUI(tk.Tk):
         else:
             cone = False
         if self.model.get() == 'Leeway':
-            o = Leeway(loglevel=0)
+            self.o = Leeway(loglevel=0)
             for ln, lc in enumerate(self.leewaycategories):
                 if self.oljetype.get() == lc.strip().replace('>', ''):
                     print('Leeway object category: ' + lc)
                     break
-            o.seed_elements(lon=lon, lat=lat, number=5000,
+            self.o.seed_elements(lon=lon, lat=lat, number=5000,
                             radius=radius, time=start_time,
                             objectType=ln + 1)
         if self.model.get() == 'OpenOil':
-            o = OpenOil3D(weathering_model='noaa', loglevel=0)
-            o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
+            self.o = OpenOil3D(weathering_model='noaa', loglevel=0)
+            self.o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
                             time=start_time, cone=cone,
                             oiltype=self.oljetype.get())
 
-        readers = [  # Note that order (priority) is important!
-            '/lustre/storeA/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-            '/lustre/storeA/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-            '/lustre/storeA/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
-            '/lustre/storeA/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
-            '/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
-            'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z',
-            'http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd']
-        o.add_readers_from_list(readers)
-        o.set_config('general:basemap_resolution', 'h')
+        self.o.add_readers_from_file(self.o.test_data_folder() +
+            '../../opendrift/scripts/data_sources.txt')
+        self.o.set_config('general:basemap_resolution', 'h')
 
-        time_step = 1800  # Half hour
+        time_step = self.o.get_config('general:time_step_minutes')*60
         duration = int(self.durationhours.get())*3600/time_step
         if self.directionvar.get() == 'backwards':
             time_step = -time_step
         if self.has_diana is True:
-            extra_args = {'outfile': self.outputdir + '/opendrift_' +                          self.model.get() + o.start_time.strftime(
+            extra_args = {'outfile': self.outputdir + '/opendrift_' +                          self.model.get() + self.o.start_time.strftime(
                                 '_%Y%m%d_%H%M.nc')}
         else:
             extra_args = {}
 
         mapres = self.mapresvar.get()[0]
-        o.set_config('general:basemap_resolution', mapres)         
+        self.o.set_config('general:basemap_resolution', mapres)
 
-        o.run(steps=duration, time_step=time_step,
-              time_step_output=time_step, **extra_args)
-        print(o)
+        self.o.run(steps=duration, time_step=time_step,
+              time_step_output=3600, **extra_args)
+        print(self.o)
 
         if self.has_diana is True:
             diana_filename = self.dianadir + '/opendrift_' + \
-                self.model.get() + o.start_time.strftime(
+                self.model.get() + self.o.start_time.strftime(
                                 '_%Y%m%d_%H%M.nc')
-            o.write_netcdf_density_map(diana_filename)
-            tk.Button(self.seed, text='Show in Diana',
+            self.o.write_netcdf_density_map(diana_filename)
+            tk.Button(self.master, text='Show in Diana',
                       command=lambda: os.system('diana &')
                       ).grid(row=8, column=2, sticky=tk.W, pady=4)
-        tk.Button(self.seed, text='Animation',
-                  command=o.animation).grid(row=8, column=3,
+        #tk.Button(self.master, text='Save animation',
+        #          command=self.save_animation).grid(
+        #            row=8, column=3, sticky=tk.W, pady=4)
+        tk.Button(self.master, text='Animation',
+                  command=self.o.animation).grid(row=8, column=3,
                                             sticky=tk.W, pady=4)
         if self.model.get() == 'OpenOil':
-            self.budgetbutton = tk.Button(self.seed,
-                text='Oil Budget', command=o.plot_oil_budget)
+            self.budgetbutton = tk.Button(self.master,
+                text='Oil Budget', command=self.o.plot_oil_budget)
             self.budgetbutton.grid(row=8, column=4, sticky=tk.W, pady=4)
 
 

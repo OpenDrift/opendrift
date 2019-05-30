@@ -92,16 +92,17 @@ class ShipDrift(OpenDriftSimulation):
 
     configspec = '''
         [seed]
-            length = float(min=1, max=500, default=50)
+            length = float(min=1, max=500, default=80)
             height = float(min=1, max=50, default=12)
-            draft = float(min=1, max=20, default=8)
+            draft = float(min=1, max=20, default=4)
             beam = float(min=1, max=30, default=10)
+        [drift]
+            current_uncertainty = float(min=0, max=5, default=0.05)
+            wind_uncertainty = float(min=0, max=5, default=.5)
         '''
 
 
     def __init__(self, *args, **kwargs):
-
-        self._add_configstring(self.configspec)
 
         # Read ship properties
         d = os.path.dirname(os.path.realpath(__file__))
@@ -143,12 +144,16 @@ class ShipDrift(OpenDriftSimulation):
 
         super(ShipDrift, self).__init__(*args, **kwargs)
 
+        self._add_configstring(self.configspec)
+
+
     def seed_elements(self, *args, **kwargs):
         
         num = kwargs['number']
         for var in ['length', 'height', 'draft', 'beam']:
             if var not in kwargs:
-                kwargs[var] = self.ElementType.variables[var]['default']
+                #kwargs[var] = self.ElementType.variables[var]['default']
+                kwargs[var] = self.get_config('seed:' + var)
             kwargs[var] = np.atleast_1d(kwargs[var])
             if len(kwargs[var] == 1):
                 kwargs[var] = kwargs[var]*np.ones(num)

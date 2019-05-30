@@ -6,6 +6,7 @@ dependencies:
   - matplotlib>=3.0.2
   - numpy>=1.15.4
   - scipy>=1.2.0
+  - netcdf4>=1.4.3
   - basemap>=1.2.0
   - basemap-data-hires
   - future
@@ -15,5 +16,3 @@ dependencies:
   - configobj
   - libgdal>=2.3.3
   - gdal>=2.3.3
-  - pip:
-    - git+https://github.com/Unidata/netcdf4-python.git@master

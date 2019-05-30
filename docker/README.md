@@ -2,60 +2,62 @@
 
 In this tutorial we will walk through building a Docker container with opendrift,
 and then interacting with it. If desired, you can use this same container to 
-create a [Singularity image](https://singularityware.github.io) that is usable on
+create a [Singularity image](https://www.sylabs.io/guides/3.0/user-guide/) that is usable on
 a shared resource cluster. We will do the latter by pulling the image on Docker Hub
 directly into a Singularity container. This folder contains two Dockerfiles:
 
- - [Dockerfile](Dockerfile): builds a vanilla container with just opendrift
- - [Dockerfile.oil](Dockerfile.oil) builds the same container with opendrift + NOAA oillibrary for oil simulations.
+ - [Dockerfile](Dockerfile): builds a vanilla container with just opendrift, Python 3
+ - [Dockerfile](Dockerfile.py2): builds a vanilla container with just opendrift, Python 2
+ - [Dockerfile.oil.py2](Dockerfile.oil) builds the same container with opendrift + NOAA oillibrary for oil simulations.
 
-## Docker 
+## Pull
 
-You should first [install Docker](https://docs.docker.com/install/) so that you 
-can build images on your host. 
+These images are available on Docker Hub as [opendrift/opendrift](https://hub.docker.com/r/opendrift/opendrift)
+and [opendrift/opendrift-oil](https://hub.docker.com/r/opendrift/opendrift-oil),
+built via the [circle](../.circleci/config.yml) continuous integration setup, and instructions are provided
+below for building locally. You should look at the "tags" tab of each to determine the
+version of Open Drift and Python that you are interested in. For example:
 
-### Build
-To build the image, after cloning the repository,
-from the base of the repo issue this command, where `vanessa/opendrift` refers
-to the name of the container (on Docker Hub it coincides with a `<username><reponame>`
+ - **opendrift/opendrift:latest** refers to OpenDrift (latest version) with Python 3
+ - **opendrift/opendrift:py3-** refers to OpenDrift (latest version) with Python 3
+ - **opendrift/opendrift:py2-** refers to OpenDrift (latest version) with Python 2
+ - **opendrift/opendrift:py3-v1.0.7-** refers to OpenDrift (version 1.0.7) with Python 3
+ - **opendrift/opendrift:py2-v1.0.7-** refers to OpenDrift (version 1.0.7) with Python 2
+ - **opendrift/opendrift-oil:latest-** refers to OpenDrift with oil (latest version) with Python 2
+ - **opendrift/opendrift-oil:py2-** refers to OpenDrift with oil (latest version) with Python 2
+ - **opendrift/opendrift-oil:v1.0.7-** refers to OpenDrift with oil (version 1.0.7) with Python 2
+ - **opendrift/opendrift-oil:py2-v1.0.7-** refers to OpenDrift with oil (version 1.0.7) with Python 2
+
+If you want to pull a particular version:
 
 ```bash
-## This is how the container was build
-$ docker build -t vanessa/opendrift .
+$ docker pull opendrift/opendrift:py3-1.0.7
+```
+
+## Build
+
+If needed, you can develop locally! You should first [install Docker](https://docs.docker.com/install/) so that you 
+can build images on your host. To build the image, after cloning the repository,
+from the base of the repo issue this command, where `opendrift/opendrift` refers
+to the name of the container (on Docker Hub it coincides with a `<username><reponame>`
+You should select the name of the file that you want to build (e.g., docker/Dockerfile)
+and then build as follows:
+
+```bash
+$ docker build -f docker/Dockerfile -t opendrift/opendrift .
 
 ## NOAA OILLibrary
-$ docker build -f Dockerfile.oil -t vanessa/opendrift-oil .
+$ docker build -f docker/Dockerfile.oil -t opendrift/opendrift-oil .
 ```
-
-### Pre-built
-If you don't want to take this step, the containers are provided on Dockerhub, ([opendrift](https://hub.docker.com/r/vanessa/opendrift/),[opendrift-oil](https://hub.docker.com/r/vanessa/opendrift-oil/)) and you can just run or pull either of them. 
-These containers were built locally and pushed directly,
-and currently there are the following versions:
-
- - **vanessa/opendrift:1.0.3** refers to version 1.0.3
- - **vanessa/opendrift:1.0.4** refers to version 1.0.4
- - **vanessa/opendrift:latest** also refers to version 1.0.4
- - **vanessa/opendrift-oil:1.0.4** refers to version 1.0.4
- - **vanessa/opendrift-oil:latest** also refers to version 1.0.4
-
-This means that you can skip the build step above! If you want to pull a particular version:
-
-```bash
-$ docker pull vanessa/opendrift:1.0.4
-$ docker pull vanessa/opendrift-oil:1.0.4
-```
-
-And if there is a newer/older version you'd like to request built, if the OpenDrift maintainers
-are not providing it, please reach out to [@vsoch](https://www.github.com/vsoch) and she will be happy to build and push
-an updated version for you.
 
 ### Usage
+
 We will show usage examples for the base container, and you can change the name if you
 desire to use a different container or version (the tag). Likely you will want to interact with the software, and you can do this via 
 an interactive (i) terminal (t) session:
 
 ```bash
-$ docker run -it vanessa/opendrift
+$ docker run -it opendrift/opendrift
 ```
 
 The original container recipe (Dockerfile) and documentation are provided [here](https://github.com/researchapps/sherlock/tree/master/opendrift) if you need to ask for help from the creator.
@@ -83,11 +85,11 @@ to be somewhere that you **do** have room. For example, it may be the folder def
 $ export SINGULARITY_CACHEDIR=$SCRATCH/.singularity
 ```
 
-Next, we will pull the Docker Image for OpenDrift from [Docker Hub](https://hub.docker.com/vanessa/opendrift/)
+Next, we will pull the Docker Image for OpenDrift from [Docker Hub](https://hub.docker.com/opendrift/opendrift/)
 directly into a Singularity container. You actually don't need to be a superuser (root / sudo) to do this.
 
 ```bash
-$ singularity pull --name opendrift.simg docker://vanessa/opendrift
+$ singularity pull --name opendrift.sif docker://opendrift/opendrift
 ```
 
 ### Using the image
@@ -96,13 +98,7 @@ is used, but I can show you where it is. First, shell inside to explore!
 
 
 ```bash
-$ singularity shell opendrift.simg
-python
-Python 2.7.15 |Anaconda, Inc.| (default, May  1 2018, 23:32:55) 
-[GCC 7.2.0] on linux2
-Type "help", "copyright", "credits" or "license" for more information.
->>> import opendrift
->>> 
+$ singularity shell opendrift.sif
 ```
 
 
@@ -111,9 +107,9 @@ where the repository was cloned. Here is an example of running directly (without
 pull the latest tag:
 
 ```bash
-$ docker run -it vanessa/opendrift
-Unable to find image 'vanessa/opendrift:latest' locally
-latest: Pulling from vanessa/opendrift
+$ docker run -it opendrift/opendrift
+Unable to find image 'opendrift/opendrift:latest' locally
+latest: Pulling from opendrift/opendrift
 cc1a78bfd46b: Already exists 
 bad124d5894e: Pull complete 
 ab2b0b173074: Pull complete 
@@ -124,7 +120,7 @@ d58a7f3e3615: Pull complete
 4c17ec80ca72: Pull complete 
 aae597ea9e38: Pull complete 
 Digest: sha256:33807a79ced6ca9c0960bd942e9d12381c7f1066feb75c5c6992ae5b8802f94c
-Status: Downloaded newer image for vanessa/opendrift:latest
+Status: Downloaded newer image for opendrift/opendrift:latest
 (base) root@d7ca5fe730b8:/code# python
 Python 2.7.15 |Anaconda, Inc.| (default, May  1 2018, 23:32:55) 
 [GCC 7.2.0] on linux2
@@ -139,7 +135,7 @@ inside) you can use exec:
 
 
 ```bash
-[vsochat@sh-08-37 ~]$ singularity exec opendrift.simg python myscript.py
+[vsochat@sh-08-37 ~]$ singularity exec opendrift.sif python myscript.py
 ```
 
 The opendrift software (this repository) can be found at `/code/opendrift` in the container.

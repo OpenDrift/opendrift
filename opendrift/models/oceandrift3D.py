@@ -48,10 +48,13 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
         'sea_surface_wave_stokes_drift_y_velocity',
         'sea_surface_wave_period_at_variance_spectral_density_maximum',
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-        'sea_floor_depth_below_sea_level'
+        'surface_downward_x_stress',
+        'surface_downward_y_stress',
+        'turbulent_kinetic_energy',
+        'turbulent_generic_length_scale',
+        'sea_floor_depth_below_sea_level',
+        'land_binary_mask'
         ]
-
-    required_variables.append('land_binary_mask')
 
     required_profiles = ['ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
@@ -69,6 +72,10 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
         'y_wind': 0,
         'upward_sea_water_velocity': 0,
         'ocean_vertical_diffusivity': 0.02,
+        'surface_downward_x_stress': 0,
+        'surface_downward_y_stress': 0,
+        'turbulent_kinetic_energy': 0,
+        'turbulent_generic_length_scale': 0,
         'sea_floor_depth_below_sea_level': 10000
         }
 

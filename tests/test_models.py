@@ -21,6 +21,7 @@ import unittest
 from datetime import datetime, timedelta
 import numpy as np
 
+from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
@@ -28,7 +29,7 @@ from opendrift.models.plastdrift import PlastDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
-
+from opendrift.models.openberg import OpenBerg
 
 import opendrift
 print(opendrift.versions())
@@ -61,6 +62,8 @@ class TestModels(unittest.TestCase):
     def test_shipdrift(self):
         """Sintef case study"""
         s = ShipDrift(loglevel=50)
+        s.set_config('drift:current_uncertainty', 0)
+        s.set_config('drift:wind_uncertainty', 0)
         c = reader_constant.Reader({
             'sea_surface_wave_significant_height': 5,
             'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 11,
@@ -113,6 +116,30 @@ class TestModels(unittest.TestCase):
                             o.elements.lon,
                           [5.013484,5.03395595,5.01149002]))
         self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2])
+
+    def test_openberg(self):
+    	"""Check if weighting array is set correctly 
+    		and if model returns expected positions"""
+    	o = OpenBerg(loglevel=50)
+
+    	reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+    	   '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+		   
+    	reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3., llcrnrlat=60.,
+                        urcrnrlon=5., urcrnrlat=63.5, resolution='c',
+                        projection='gall') 
+    
+    	o.add_reader([reader_current,reader_basemap])
+    	o.seed_elements(4.,62.,time=reader_current.start_time)
+    	o.run(steps=1)
+		
+    	arr=[0.16072658,0.16466097,0.17384121,0.17325179,0.1715925,0.15592695]
+		
+    	for indx in range(len(arr)):
+    		self.assertAlmostEqual(o.uw_weighting[indx],arr[indx],8)
+    	
+    	self.assertAlmostEqual(o.history['lon'].data[0][1],3.9921231,3)
+    	self.assertAlmostEqual(o.history['lat'].data[0][1],62.0108299,3)
 
 
 if __name__ == '__main__':

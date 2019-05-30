@@ -16,10 +16,39 @@
 
 import logging
 
+import pyproj
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
 from opendrift.readers.basereader import BaseReader
+
+def proj_from_CF_dict(c):
+
+    # This method should be extended to other projections:
+    # http://cfconventions.org/wkt-proj-4.html
+    if not 'grid_mapping_name' in c:
+        raise ValueError('grid_mapping not given in dictionary')
+    gm = c['grid_mapping_name']
+
+    if gm == 'polar_stereographic':
+        if 'earth_radius' in c:
+            earth_radius = c['earth_radius']
+        else:
+            earth_radius = 6371000.
+        lon_0 = 0  # default, but dangerous
+        for l0 in ['longitude_of_projection_origin', 'longitude_of_central_meridian', 'straight_vertical_longitude_from_pole']:
+            if l0 in c:
+                lon_0 = c[l0]
+        if 'latitude_of_origin' in c:
+            lat_ts = c['latitude_of_origin']
+        else:
+            lat_ts = c['latitude_of_projection_origin']
+        proj4 = '+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s} +units=m +a={!s} +no_defs'.format('stere',
+            c['latitude_of_projection_origin'], lon_0, lat_ts, earth_radius)
+
+    proj = pyproj.Proj(proj4)
+
+    return proj4, proj
 
 
 class Reader(BaseReader):
@@ -66,6 +95,15 @@ class Reader(BaseReader):
                 for att in attributes:
                     if 'proj4' in att:
                         self.proj4 = str(var.__getattr__(att))
+                    else:
+                        if 'grid_mapping_name' in att:
+                            mapping_dict = var.__dict__
+                            logging.debug('Parsing CF grid mapping dictionary: ' + str(mapping_dict))
+                            try:
+                                self.proj4, proj = proj_from_CF_dict(mapping_dict)
+                            except:
+                                logging.info('Could not parse CF grid_mapping')
+                            
             if 'standard_name' in attributes:
                 standard_name = var.__dict__['standard_name']
             if 'long_name' in attributes:
@@ -260,7 +298,7 @@ class Reader(BaseReader):
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
             if self.global_coverage():
-                # indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+                #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
                 indx = np.arange(np.max([0, indx.min()-buffer]),np.min([indx.max()+buffer, self.numx]))
             else:
                 indx = np.arange(np.max([0, indx.min()-buffer]),
@@ -285,6 +323,13 @@ class Reader(BaseReader):
             continous = True
         
         for par in requested_variables:
+            if hasattr(self, 'rotate_mapping') and par in self.rotate_mapping:
+                logging.debug('Using %s to retrieve %s' %
+                    (self.rotate_mapping[par], par))
+                if par not in self.variable_mapping:
+                    self.variable_mapping[par] = \
+                        self.variable_mapping[
+                            self.rotate_mapping[par]]
             var = self.Dataset.variables[self.variable_mapping[par]]
 
             ensemble_dim = None
@@ -369,5 +414,12 @@ class Reader(BaseReader):
                 variables['x'][variables['x']>180] -= 360
         
         variables['time'] = nearestTime
+
+        # Rotate any east/north vectors if necessary
+        if hasattr(self, 'rotate_mapping'):
+            if self.y_is_north() is True:
+                logging.debug('North is up, no rotation necessary')
+            else:
+                self.rotate_variable_dict(variables)
 
         return variables

@@ -56,6 +56,7 @@ standard_names = {
 # Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
 vector_pairs_xy = [
     ['x_wind', 'y_wind'],
+    ['sea_ice_x_velocity', 'sea_ice_y_velocity'],
     ['x_sea_water_velocity', 'y_sea_water_velocity'],
     ['sea_surface_wave_stokes_drift_x_velocity',
      'sea_surface_wave_stokes_drift_y_velocity']
@@ -95,36 +96,26 @@ class BaseReader(object):
     # presuming coordinate system then is lon-lat for equivalence
     variable_aliases = {
         'sea_water_potential_temperature': 'sea_water_temperature',
-        'eastward_wind': 'x_wind',
-        'northward_wind': 'y_wind',
         'x_wind_10m': 'x_wind',
         'y_wind_10m': 'y_wind',
-        'eastward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_x_velocity',
-        'northward_surface_stokes_drift': 'sea_surface_wave_stokes_drift_y_velocity',
         'sea_water_x_velocity': 'x_sea_water_velocity',
-        'sea_water_y_velocity': 'y_sea_water_velocity',
-        'eastward_sea_water_velocity': 'x_sea_water_velocity',
-        'northward_sea_water_velocity': 'y_sea_water_velocity',
-        'surface_eastward_sea_water_velocity': 'x_sea_water_velocity',
-        'surface_northward_sea_water_velocity': 'y_sea_water_velocity',
-        'eastward_current_velocity': 'x_sea_water_velocity',
-        'northward_current_velocity': 'y_sea_water_velocity',
-        'eastward_tidal_current': 'x_sea_water_velocity',
-        'northward_tidal_current': 'y_sea_water_velocity',
-        'eastward_ekman_current_velocity': 'x_sea_water_velocity',
-        'northward_ekman_current_velocity': 'y_sea_water_velocity',
-        'eastward_geostrophic_current_velocity': 'x_sea_water_velocity',
-        'northward_geostrophic_current_velocity': 'y_sea_water_velocity',
-        'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
-        'northward_eulerian_current_velocity': 'y_sea_water_velocity',
-        'surface_geostrophic_eastward_sea_water_velocity': 'x_sea_water_velocity',
-        'surface_geostrophic_northward_sea_water_velocity': 'y_sea_water_velocity',
-        'surface_geostrophic_eastward_sea_water_velocity_assuming_sea_level_for_geoid': 'x_sea_water_velocity',
-        'surface_geostrophic_northward_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity',
-        'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'x_sea_water_velocity',
-        'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid': 'y_sea_water_velocity'}
-        # ocean_vertical_diffusivity
-        # ocean_horizontal_diffusivity
+        'sea_water_y_velocity': 'y_sea_water_velocity'
+        }
+
+    xy2eastnorth_mapping = {
+        'x_sea_water_velocity': ['eastward_sea_water_velocity', 'surface_eastward_sea_water_velocity',
+                                 'eastward_current_velocity', 'eastward_tidal_current',
+                                 'eastward_ekman_current_velocity', 'eastward_geostrophic_current_velocity',
+                                 'eastward_eulerian_current_velocity', 'surface_geostrophic_eastward_sea_water_velocity',
+                                 'surface_geostrophic_eastward_sea_water_velocity_assuming_sea_level_for_geoid',
+                                 'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
+        'y_sea_water_velocity': ['northward_sea_water_velocity', 'surface_northward_sea_water_velocity',
+                                 'northward_current_velocity', 'northward_tidal_current',
+                                 'northward_ekman_current_velocity', 'northward_geostrophic_current_velocity',
+                                 'northward_eulerian_current_velocity', 'surface_geostrophic_northward_sea_water_velocity',
+                                 'surface_geostrophic_northward_sea_water_velocity_assuming_sea_level_for_geoid',
+                                 'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
+        'x_wind': 'eastward_wind', 'y_wind': 'northward_wind'}
 
     def __init__(self):
         # Common constructor for all readers
@@ -186,6 +177,12 @@ class BaseReader(object):
                 self.spl_x((0,0)), self.spl_y((0,0))
 
         # Check if there are holes in time domain
+        if not hasattr(self, 'time_step'):
+            self.time_step = None
+        if not hasattr(self, 'start_time'):
+            self.start_time = None
+        if not hasattr(self, 'end_time'):
+            self.end_time = None
         if self.start_time is not None and len(self.times) > 1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
@@ -207,6 +204,24 @@ class BaseReader(object):
             self.shape = None
 
         self.set_buffer_size(max_speed=5)  # To be overriden by user/model
+
+        # Check if there are east/north-oriented vectors
+        for var in self.variables:
+            for xvar, eastnorthvar in self.xy2eastnorth_mapping.items():
+                if xvar in self.variables:
+                    continue  # We have both x/y and east/north components
+                if var in eastnorthvar:
+                    logging.info('Variable %s will be rotated from %s' % (xvar, var))
+                    self.variables.append(xvar)
+                    if not hasattr(self, 'rotate_mapping'):
+                        self.rotate_mapping = {}
+                    self.rotate_mapping[xvar] = var
+
+    def y_is_north(self):
+        if self.proj.is_latlong() or '+proj=merc' in self.proj.srs:
+            return True
+        else:
+            return False
 
     def set_buffer_size(self, max_speed, max_vertical_speed=None):
         '''Adjust buffer to minimise data block size needed to cover elements'''
@@ -302,7 +317,6 @@ class BaseReader(object):
         - monitor time spent by this reader
         - convert any numpy arrays to masked arrays
         """
-
         logging.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
         if profiles is not None and block is True:
@@ -510,7 +524,7 @@ class BaseReader(object):
         #######################
         self.timer_start('interpolation_time')
         env_profiles = None
-        if (time_after is not None) and (time_before != time):
+        if (time_after is not None) and (time_before != time) and self.return_block is True:
             weight_after = ((time - time_before).total_seconds() /
                             (time_after - time_before).total_seconds())
             logging.debug(('Interpolating before (%s, weight %.2f) and'
@@ -546,6 +560,8 @@ class BaseReader(object):
                 for var in env_profiles_before.keys():
                     if var == 'z':
                         continue
+                    env_profiles_before[var]=np.atleast_2d(env_profiles_before[var])
+                    env_profiles_after[var]=np.atleast_2d(env_profiles_after[var])
                     env_profiles[var] = (
                         env_profiles_before[var][0:numlayers, :] *
                         (1 - weight_after) +
@@ -622,6 +638,17 @@ class BaseReader(object):
         self.timer_end('masking')
         self.timer_end('total')
         return env, env_profiles
+
+    def rotate_variable_dict(self, variables, proj_from='+proj=latlong', proj_to=None):
+        for vectorpair in vector_pairs_xy:
+            if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
+                if proj_to is None:
+                    proj_to = self.proj
+                logging.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
+                variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
+                    variables['x'], variables['y'],
+                    variables[vectorpair[0]], variables[vectorpair[1]],
+                    proj_from, proj_to)
 
     def rotate_vectors(self, reader_x, reader_y,
                        u_component, v_component,
@@ -1111,7 +1138,7 @@ class BaseReader(object):
         if variable is None:
             boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
             plt.gca().add_patch(boundary)
-# add patch to the map
+        # add patch to the map
         if title is None:
             plt.title(self.name)
         else:

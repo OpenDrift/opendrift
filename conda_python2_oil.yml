@@ -10,6 +10,7 @@ dependencies:
   - scipy>=1.2.0
   - basemap>=1.2.0
   - basemap-data-hires
+  - netcdf4>=1.4.3
   - future
   - ffmpeg
   - pillow
@@ -25,5 +26,4 @@ dependencies:
   - backports.functools_lru_cache>=1.5
   - unit_conversion>=2.5.4
   - pip:
-    - git+https://github.com/NOAA-ORR-ERD/OilLibrary.git@master
-    - git+https://github.com/Unidata/netcdf4-python.git@master
+    - git+https://github.com/knutfrode/OilLibrary.git@master
