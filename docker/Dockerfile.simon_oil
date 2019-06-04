@@ -64,12 +64,16 @@ WORKDIR /source
 # TO DOWNLOAD MERCATOR DATA - Not used for now ###################
 ###################################################################
 # Install motu-client to be able to download MERCATOR/CMEMS data
-# https://github.com/clstoulouse/motu-client-python#Configuration
-#RUN echo "-----------------Install Motu-client - For Mercator Data downloads-----------------" &&\
-#    cd /source &&\
-#    wget "https://github.com/clstoulouse/motu-client-python/releases/download/motu-client-python-1.5.00/motu-client-python-1.5.00-20180223190259664-bin.tar.gz" &&\
-#    tar xvzf motu-client-python-1.5.00-20180223190259664-bin.tar.gz &&\
-#    rm *.gz
+# see infos here for easy install with pip:
+# http://marine.copernicus.eu/faq/what-are-the-motu-and-python-requirements/?idpage=169
+# Motu-Client python files can be installed on your system as a package by using the “pip” package 
+# management system. Simply check your system compatibility/integration with these command lines:
+#
+#python --version# It should return: "Python 2.7.X" or "Python 3.X.X".
+python -m pip install motuclient
+# It should install and display the version of the motuclient package v1.8.1 as of October 2018.
+# To make sure it's working as expected, display the help:
+python -m motuclient --help # If it does return an error, then follow the below workaround.
 #
 #RUN apt-get update &&\
 #     apt-get install --yes vi libgl1-mesa-glx
