@@ -14,150 +14,191 @@ import yaml
 import sys
 from datetime import datetime,timedelta
 import opendrift
-
+import logging
 
 def read_yaml_config(config_yaml_file):
     ''' read a YAML config file for OpenDrift - could be moved to opendrift/__init__.py eventually '''
     try:
         config = yaml.load(open(config_yaml_file).read())
         return config
-    except:
+    except Exception as ex: # handle arbitrary exception
+        logging.error(ex)
+        logging.error('Cannot read ' + config_yaml_file)
         sys.exit('Cannot read ' + config_yaml_file)
 
 def run_opendrift_from_config(config):
     ''' Setup and run opendrit simulation based on input configuration
-        General process is inspired from run_opendrift() from opendrift_gui.py
+        General process is inspired from run_opendrift() from opendrift_gui.py which fetches 
+        all infos from GUI, and then start run
     '''
-
-    # sys.stdout.write('running OpenDrift')
+    #############################################################################################
     # release position and timing
+    #############################################################################################
     start_time = datetime.strptime(config['start_time'],'%d-%m-%Y %H:%M')
     end_time = datetime.strptime(config['end_time'],'%d-%m-%Y %H:%M')
-    sys.stdout.flush()
     lon = config['position']['lon']
-    lat = config['position']['lon']
-    radius = config['position']['lon']
+    lat = config['position']['lat']
+    radius = config['position']['radius']
     z = config['position']['z']
+    nb_parts = config['nb_parts']
+    cone = False
     if 'end_position' in config:
         elon = config['end_position']['elon']
         elat = config['end_position']['elat']
         eradius = config['end_position']['eradius']
         ez = config['end_position']['ez']
-    # check if cone release
-    if lon != elon or lat != elat or start_time != end_time:
-        lon = [lon, elon]
-        lat = [lat, elat]
-        radius = [radius, eradius]
-        start_time = [start_time, end_time]
-        cone = True
+        # check if cone release
+        if lon != elon or lat != elat or start_time != end_time:
+            lon = [lon, elon]
+            lat = [lat, elat]
+            radius = [radius, eradius]
+            start_time = [start_time, end_time]
+            cone = True
+            logging.debug('using cone-release')
+        else:
+            cone = False
+    # we could do something on the z here if required e.g. random within range etc..
+    # probably more check to do expand options e.g release along line, single point but continuous over time etc.. 
+    # 
+    #############################################################################################
+    # model selection 
+    #############################################################################################
+    if 'extra_model_args' not in config.keys():
+        extra_model_args = {}
     else:
-        cone = False
-    # we could do something on the z here if required
-    # e.g. random within range etc..
-   
-    # model selection
+        extra_model_args = config['extra_model_args']
+    logfilename = config['imp'] +config['model']+ '.log'
+    
+    # This could probably be made more generic like the readers' loading part
     if config['model'] == 'Leeway':
         from opendrift.models.leeway import Leeway
-        o = Leeway(loglevel=0)
+        o = Leeway(loglevel=0,logfile = logfilename,**extra_model_args)
         # add extra model arguments if relevant
         #extra_seed_args = {'objectType': ln + 1}
+
     elif config['model'] == 'OceanDrift3D':
         from opendrift.models.oceandrift3D import OceanDrift3D
-        o = OceanDrift3D(loglevel=0)
+        # o = OceanDrift3D(loglevel=0,logfile=logfilename,**extra_model_args) # issue with logfile...not sure why
+        o = OceanDrift3D(loglevel=DEBUG,**extra_model_args)
     elif config['model'] == 'OpenOil3D':
         from opendrift.models.openoil3D import OpenOil3D
-        o = OpenOil3D(weathering_model='noaa', loglevel=0)
-        # use 'noaa' model by default  for now
-        # add extra model argument if relevant
-        # if extra_model_args:
-        #       read which weathering_model is input 'default' or 'noaa'
-        #       and initialize model accordingly
+        if 'weathering_model' in config.keys():
+            o = OpenOil3D(weathering_model=config['weathering_model'],
+                          loglevel=0,logfile=logfilename,**extra_model_args)
+        else:
+            o = OpenOil3D(weathering_model='noaa',
+                          loglevel=0,logfile=logfilename,**extra_model_args)          
+
     elif config['model'] == 'ShipDrift':
         from opendrift.models.shipdrift import ShipDrift
-        o = ShipDrift(loglevel=0)
-
-    import pdb;pdb.set_trace()
-
-    # particle seeding
-     >>> to do !
-    parse extra_seed_args to initialize seeding correctly
-    note these can still be edited further down in config
-
-    extra_seed_args = {}
-    for se in self.seed_input:
-        if se == 'ocean_only':
-            continue  # To be fixed/removed
-        val = self.seed_input[se].get()
-        try:
-            extra_seed_args[se] = np.float(val)
-        except:
-            extra_seed_args[se] = val
-        self.o.set_config('seed:' + se, val)
-    if 'object_type' in extra_seed_args:
-        extra_seed_args['objectType'] = extra_seed_args['object_type']
-        del extra_seed_args['object_type']
-
-
-    extra_seed_args = {}
-    self.o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
-                    time=start_time, cone=cone,
-                    **extra_seed_args)
-
-    self.o.add_readers_from_file(self.o.test_data_folder() +
-        '../../opendrift/scripts/data_sources.txt')
-
-    #time_step = o.get_config('general:time_step_minutes')*60
-    time_step = 900  # 15 minutes
-    time_step_output = timedelta(minutes=30)
-    duration = int(self.durationhours.get())*3600/time_step
-    if self.directionvar.get() == 'backwards':
-        time_step = -time_step
-    if self.has_diana is True:
-        extra_args = {'outfile': self.outputdir + '/opendrift_' +
-            self.model.get() + self.o.start_time.strftime('_%Y%m%d_%H%M.nc')}
+        o = ShipDrift(loglevel=0,logfile=logfilename,**extra_model_args)
+    logging.debug(config['model'] +' initialized')
+    #############################################################################################
+    # particle seeding 
+    #############################################################################################
+    # user-input extra_seed_args is passed as **kwargs to seed_elements() function
+    # >requires knowledge of model, but highly flexible 
+    logging.debug('seeding elements')
+    if 'extra_seed_args' not in config.keys():
+        extra_seed_args = {}
     else:
-        extra_args = {}
+        extra_seed_args = config['extra_seed_args'] # e.g. #extra_seed_args = {'objectType': 26}
+    
+    o.seed_elements(lon=lon, lat=lat, z=z, number=nb_parts, radius=radius,
+                        time=start_time, cone=cone,
+                        **extra_seed_args)
 
-    mapres = self.mapresvar.get()[0]
-    self.o.set_config('general:basemap_resolution', mapres)         
-    self.simulationname = 'opendrift_' + self.model.get() + \
-        self.o.start_time.strftime('_%Y%m%d_%H%M')
+    #############################################################################################
+    # forcing data "readers"
+    #############################################################################################
+    # initial code below > reading from a range of sources specificed in data_sources
+    #o.add_readers_from_file(o.test_data_folder() + '../../opendrift/scripts/data_sources.txt')
+    logging.debug('adding readers')
+    from opendrift.readers import reader_basemap_landmask
+    # Making customised landmask (Basemap)
+    base_map_specs = config['model_frame']
+     # add 'resolution'  and 'projection' items  to dictionary
+    base_map_specs['resolution'] = config['basemap_resolution'] # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)
+    base_map_specs['projection'] = 'merc' 
+    reader_basemap = reader_basemap_landmask.Reader(
+                llcrnrlon= base_map_specs['llcrnrlon'], llcrnrlat=base_map_specs['llcrnrlat'], 
+                urcrnrlon= base_map_specs['urcrnrlon'], urcrnrlat=base_map_specs['urcrnrlat'],  
+                resolution=base_map_specs['resolution'], projection='merc') 
+    o.add_reader(reader_basemap)
+    # use 'merc' projection by default - hardcoded for now
+    # loop through different readers and initialize
+    base_str = 'from opendrift.readers import '
+    for key in config['readers'].keys():
+        if config['readers'][key] is not None:
+            if 'filename' in config['readers'][key]: # use local file(s)
+                for read_cnt,fname in enumerate(config['readers'][key]['filename']):
+                    # import correct reader class
+                    reader_type = config['readers'][key]['reader_type'][read_cnt]
+                    exec(base_str + reader_type + ' as reader_obj',globals(),locals()) # needed to add globals() to make it work
+                    # load reader as reader_obj, then initialize it
+                    if 'options' in config['readers'][key]: # add specific options as **kwargs
+                        opts =  config['readers'][key]['options']
+                    else: # no specific options
+                        opts = {}
 
-    # Starting simulation run
-    self.o.run(steps=duration, time_step=time_step,
-          time_step_output=time_step_output, **extra_args)
-    print(self.o)
+                    read_tmp = reader_obj.Reader(filename=fname,**opts)
+                    #save reader with new name 
+                    exec(key + '_' + str(read_cnt) + '= read_tmp',globals(),locals()) 
+                    del read_tmp
+                    # add reader to OpenDrift object
+                    o.add_reader(eval( key + '_' + str(read_cnt)) )   
+    
+            # elif 'uds' in config['readers'][key]:
+            # elif 'threds' in config['readers'][key]: 
+            # etc...to define depending of needs
+    # adding fallback values / constants
+    if 'fallback_values' in config.keys():
+        for variable in config['fallback_values'].keys():
+            o.fallback_values[variable] = config['fallback_values'][variable]
+    #############################################################################################
+    # set all additional configuration - overwriting if needed
+    #############################################################################################       
+    logging.debug('setting config')
+    for ic,category in enumerate(config['config']):
+        for ip,param in enumerate(config['config'][category]):
+            o.set_config('%s:%s' % (category,param), config['config'][category][param])
+            logging.debug('CONFIG  %s:%s,%s' % (category,param,config['config'][category][param]))
 
-    self.results.destroy()
-    self.results = tk.Frame(self.seed, bd=2,
-                           relief=tk.FLAT, padx=5, pady=0)
-    self.results.grid(row=7, column=3, columnspan=1, sticky='ew')
-    tk.Button(self.results, text='Show animation',
-              command=lambda: self.handle_result(
-                'showanimation')).grid(row=1, column=1)
-    tk.Button(self.results, text='Save animation',
-              command=lambda: self.handle_result(
-                'saveanimation')).grid(row=2, column=1)
-    tk.Button(self.results, text='Show plot',
-              command=lambda: self.handle_result(
-                'showplot')).grid(row=3, column=1)
-    tk.Button(self.results, text='Save plot',
-              command=lambda: self.handle_result(
-                'saveplot')).grid(row=4, column=1)
-    if self.model.get() == 'OpenOil':
-        tk.Button(self.results, text='Save oil budget',
-                  command=lambda: self.handle_result(
-                    'saveoilbudget')).grid(row=5, column=1)
-        tk.Button(self.results, text='Show oil budget',
-                  command=lambda: self.handle_result(
-                    'showoilbudget')).grid(row=6, column=1)
+    #############################################################################################
+    # start run
+    #############################################################################################
+    logging.debug('setting model run')
+    time_step = timedelta(seconds=config['time_step_sec']) 
+    if 'time_step_sec_output' in config.keys():
+        time_step_output = timedelta(seconds=config['time_step_sec_output'])
+    else:
+        time_step_output = timedelta(minutes=30)
+    # duration of run can be specifed by duration or end_time_run
+    if 'duration_hours' in config.keys():
+        duration = timedelta(hours=config['duration_hours'])
+        end_time_run = start_time + duration
+    elif 'end_time_run' in config.keys():
+        end_time_run = datetime.strptime(config['end_time_run'],'%d-%m-%Y %H:%M')      
+    else: # if none input , just use end_time which is end of release
+        end_time_run = end_time
 
-    if self.has_diana is True:
-        diana_filename = self.dianadir + self.simulationname + '.nc'
-        self.o.write_netcdf_density_map(diana_filename)
-        tk.Button(self.results, text='Show in Diana',
-                  command=lambda: os.system('diana &')
-                  ).grid(row=8, column=1)
+    if config['run_backwards']: # run model backwards 
+        time_step = -time_step
+        # here we should have start_time>end_time
+        if start_time < end_time_run:
+            logging.error('start_time must be smaller than end_time if run backwards')
+
+    if 'outfile' not in config.keys():
+        outfile = 'opendrift_' + config['imp'] + '_' + start_time.strftime('%d%m%Y_%H%M')
+    else:
+        outfile = config['outfile']
+
+    # run simulation
+    o.run(stop_on_error = config['stop_on_error'],time_step=time_step,
+          end_time = end_time_run, time_step_output = time_step_output,
+          outfile=outfile)
+          #could use **extra_args like other initialization if needed
+    return o
 
 
 if __name__ == '__main__':
@@ -168,35 +209,22 @@ if __name__ == '__main__':
     parser.add_argument('config_file',
                         help='<Configuration file (YAML-format) with all required infos to run Opendrift>')
     args = parser.parse_args()
+
     # setup opendrift object using specifications in YAML configuration file
-    config = read_yaml_config(args.config_file) #
-    run_opendrift_from_config(config)
-    
-
-    ###############################
-    # RUN 
-    ###############################
-    # Running model
-    # here we could re-use  run_opendrift() from opendrift_gui.py. 
-    # Instead of using the specs from the GUI, we'd use the specs from the config file
-    run_opendrift(config)
-
-
-    o.plot_oil_budget()
-
-###############################
-# PLOTS / ANIMATION
-###############################
-
-    # Print and plot results
+    config = read_yaml_config(args.config_file) 
+    # run simulation
+    o = run_opendrift_from_config(config)
+    # post-process/plots
     print o
-    o.animation()
-    o.plot()
-
-
-
-# def run_opendrift_from_config(config):
-#         # o.run(time_step = 1800, 
-#         #   end_time = reader_roms_cnz_surface.start_time + timedelta(days = 7.0),
-#         #   outfile='opendrift_oil3d_all_inputs.nc',
-#         #   time_step_output = 1800)
+    if config['post_process']['show_plot']:
+        o.plot()
+    if config['post_process']['show_animate']:
+        o.animation()
+    if config['post_process']['show_oil_budget']:
+        o.plot_oil_budget()
+    # if config['post_process']['save_animate']:
+        # o.animation()
+    # if config['post_process']['save_plot']:
+        # o.plot()
+    # if config['post_process']['save_oil_budget']:
+         # o.plot_oil_budget()
