@@ -67,32 +67,30 @@ def run_opendrift_from_config(config):
         extra_model_args = {}
     else:
         extra_model_args = config['extra_model_args']
-    logfilename = config['imp'] +config['model']+ '.log'
     
     # This could probably be made more generic like the readers' loading part
     if config['model'] == 'Leeway':
         from opendrift.models.leeway import Leeway
-        o = Leeway(loglevel=0,logfile = logfilename,**extra_model_args)
+        o = Leeway(loglevel=0,**extra_model_args)
         # add extra model arguments if relevant
         #extra_seed_args = {'objectType': ln + 1}
-
     elif config['model'] == 'OceanDrift3D':
         from opendrift.models.oceandrift3D import OceanDrift3D
         # o = OceanDrift3D(loglevel=0,logfile=logfilename,**extra_model_args) # issue with logfile...not sure why
-        o = OceanDrift3D(loglevel=DEBUG,**extra_model_args)
+        o = OceanDrift3D(loglevel=0,**extra_model_args) #logfile=logfilename
     elif config['model'] == 'OpenOil3D':
         from opendrift.models.openoil3D import OpenOil3D
         if 'weathering_model' in config.keys():
             o = OpenOil3D(weathering_model=config['weathering_model'],
-                          loglevel=0,logfile=logfilename,**extra_model_args)
+                          loglevel=0,**extra_model_args)
         else:
             o = OpenOil3D(weathering_model='noaa',
-                          loglevel=0,logfile=logfilename,**extra_model_args)          
-
+                          loglevel=0,**extra_model_args)          
     elif config['model'] == 'ShipDrift':
         from opendrift.models.shipdrift import ShipDrift
-        o = ShipDrift(loglevel=0,logfile=logfilename,**extra_model_args)
+        o = ShipDrift(loglevel=0,**extra_model_args)
     logging.debug(config['model'] +' initialized')
+    
     #############################################################################################
     # particle seeding 
     #############################################################################################
