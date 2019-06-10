@@ -12,6 +12,9 @@ import numpy as np
 import argparse
 import yaml
 import sys
+sys.path.append('C:\github/toolbox_simon/python_tools')
+import download_metocean_uds
+import download_cmems
 from datetime import datetime,timedelta
 import opendrift
 import logging
@@ -36,6 +39,11 @@ def run_opendrift_from_config(config):
     #############################################################################################
     start_time = datetime.strptime(config['start_time'],'%d-%m-%Y %H:%M')
     end_time = datetime.strptime(config['end_time'],'%d-%m-%Y %H:%M')
+    if start_time == end_time:
+        release_time = start_time # one off release
+    else:
+        release_time = [start_time, end_time] #release over time
+
     lon = config['position']['lon']
     lat = config['position']['lat']
     radius = config['position']['radius']
@@ -52,11 +60,12 @@ def run_opendrift_from_config(config):
             lon = [lon, elon]
             lat = [lat, elat]
             radius = [radius, eradius]
-            start_time = [start_time, end_time]
+            release_time = [start_time, end_time]
             cone = True
             logging.debug('using cone-release')
         else:
             cone = False
+
     # we could do something on the z here if required e.g. random within range etc..
     # probably more check to do expand options e.g release along line, single point but continuous over time etc.. 
     # 
@@ -103,7 +112,7 @@ def run_opendrift_from_config(config):
         extra_seed_args = config['extra_seed_args'] # e.g. #extra_seed_args = {'objectType': 26}
     
     o.seed_elements(lon=lon, lat=lat, z=z, number=nb_parts, radius=radius,
-                        time=start_time, cone=cone,
+                        time=release_time, cone=cone,
                         **extra_seed_args)
 
     #############################################################################################
@@ -128,7 +137,8 @@ def run_opendrift_from_config(config):
     base_str = 'from opendrift.readers import '
     for key in config['readers'].keys():
         if config['readers'][key] is not None:
-            if 'filename' in config['readers'][key]: # use local file(s)
+            if 'filename' in config['readers'][key]: 
+            # 'filename' is either inpit by user in config file, or automatically set during data download
                 for read_cnt,fname in enumerate(config['readers'][key]['filename']):
                     # import correct reader class
                     reader_type = config['readers'][key]['reader_type'][read_cnt]
@@ -208,8 +218,19 @@ if __name__ == '__main__':
                         help='<Configuration file (YAML-format) with all required infos to run Opendrift>')
     args = parser.parse_args()
 
-    # setup opendrift object using specifications in YAML configuration file
+    # setup opendrift simulation object using specifications in YAML configuration file
     config = read_yaml_config(args.config_file) 
+    # download data based on config file - if necessary
+    # check if there are any required download by looking for udshost keyword in config file 
+    if any('udshost' in config['readers'][block].keys() for block in config['readers'].keys()) :
+    # for block in config['readers'].keys():
+        config = download_metocean_uds.download(config_file_opendrift = args.config_file)
+    if any('cmems_download' in config['readers'][block].keys() for block in config['readers'].keys()) :
+        config = download_cmems.download(config_file_opendrift = args.config_file)
+    
+    
+    >> check what happens when cmems and uds data are mixed
+    
     # run simulation
     o = run_opendrift_from_config(config)
     # post-process/plots
