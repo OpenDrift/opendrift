@@ -31,8 +31,6 @@ def read_yaml_config(config_yaml_file):
 
 def run_opendrift_from_config(config):
     ''' Setup and run opendrit simulation based on input configuration
-        General process is inspired from run_opendrift() from opendrift_gui.py which fetches 
-        all infos from GUI, and then start run
     '''
     #############################################################################################
     # release position and timing
@@ -40,9 +38,9 @@ def run_opendrift_from_config(config):
     start_time = datetime.strptime(config['start_time'],'%d-%m-%Y %H:%M')
     end_time = datetime.strptime(config['end_time'],'%d-%m-%Y %H:%M')
     if start_time == end_time:
-        release_time = start_time # one off release
+        release_time = start_time # one-off release
     else:
-        release_time = [start_time, end_time] #release over time
+        release_time = [start_time, end_time] #constant release over time
 
     lon = config['position']['lon']
     lat = config['position']['lat']
@@ -65,7 +63,6 @@ def run_opendrift_from_config(config):
             logging.debug('using cone-release')
         else:
             cone = False
-
     # we could do something on the z here if required e.g. random within range etc..
     # probably more check to do expand options e.g release along line, single point but continuous over time etc.. 
     # 
@@ -92,7 +89,7 @@ def run_opendrift_from_config(config):
         if 'weathering_model' in config.keys():
             o = OpenOil3D(weathering_model=config['weathering_model'],
                           loglevel=0,**extra_model_args)
-        else:
+        else: # default
             o = OpenOil3D(weathering_model='noaa',
                           loglevel=0,**extra_model_args)          
     elif config['model'] == 'ShipDrift':
@@ -119,7 +116,7 @@ def run_opendrift_from_config(config):
     # forcing data "readers"
     #############################################################################################
     # initial code below > reading from a range of sources specificed in data_sources
-    #o.add_readers_from_file(o.test_data_folder() + '../../opendrift/scripts/data_sources.txt')
+    #   o.add_readers_from_file(o.test_data_folder() + '../../opendrift/scripts/data_sources.txt')
     logging.debug('adding readers')
     from opendrift.readers import reader_basemap_landmask
     # Making customised landmask (Basemap)
@@ -138,7 +135,8 @@ def run_opendrift_from_config(config):
     for key in config['readers'].keys():
         if config['readers'][key] is not None:
             if 'filename' in config['readers'][key]: 
-            # 'filename' is either inpit by user in config file, or automatically set during data download
+            # 'filename' is either input by user in config file, 
+            # or automatically set after data download
                 for read_cnt,fname in enumerate(config['readers'][key]['filename']):
                     # import correct reader class
                     reader_type = config['readers'][key]['reader_type'][read_cnt]
@@ -148,7 +146,6 @@ def run_opendrift_from_config(config):
                         opts =  config['readers'][key]['options']
                     else: # no specific options
                         opts = {}
-
                     read_tmp = reader_obj.Reader(filename=fname,**opts)
                     #save reader with new name 
                     exec(key + '_' + str(read_cnt) + '= read_tmp',globals(),locals()) 
@@ -156,9 +153,6 @@ def run_opendrift_from_config(config):
                     # add reader to OpenDrift object
                     o.add_reader(eval( key + '_' + str(read_cnt)) )   
     
-            # elif 'uds' in config['readers'][key]:
-            # elif 'threds' in config['readers'][key]: 
-            # etc...to define depending of needs
     # adding fallback values / constants
     if 'fallback_values' in config.keys():
         for variable in config['fallback_values'].keys():
@@ -197,10 +191,12 @@ def run_opendrift_from_config(config):
             logging.error('start_time must be smaller than end_time if run backwards')
 
     if 'outfile' not in config.keys():
-        outfile = 'opendrift_' + config['imp'] + '_' + start_time.strftime('%d%m%Y_%H%M')
+        outfile = 'opendrift_' + config['imp'] + '_' + start_time.strftime('%d%m%Y_%H%M') + '.nc'
     else:
         outfile = config['outfile']
-
+    
+    if 'stop_on_error' not in config.keys():
+        config['stop_on_error'] = False
     # run simulation
     o.run(stop_on_error = config['stop_on_error'],time_step=time_step,
           end_time = end_time_run, time_step_output = time_step_output,
@@ -221,23 +217,20 @@ if __name__ == '__main__':
     # setup opendrift simulation object using specifications in YAML configuration file
     config = read_yaml_config(args.config_file) 
     # download data based on config file - if necessary
-    # check if there are any required download by looking for udshost keyword in config file 
+
     if any('udshost' in config['readers'][block].keys() for block in config['readers'].keys()) :
-    # for block in config['readers'].keys():
+        # some UDS download required
         config = download_metocean_uds.download(config_file_opendrift = args.config_file)
     if any('cmems_download' in config['readers'][block].keys() for block in config['readers'].keys()) :
+        # some CMEMS download required
         config = download_cmems.download(config_file_opendrift = args.config_file)
-    
-    
-    >> check what happens when cmems and uds data are mixed
-    
     # run simulation
     o = run_opendrift_from_config(config)
     # post-process/plots
     print o
     if config['post_process']['show_plot']:
         o.plot()
-    if config['post_process']['show_animate']:
+    if config['post_process']['show_anim']:
         o.animation()
     if config['post_process']['show_oil_budget']:
         o.plot_oil_budget()

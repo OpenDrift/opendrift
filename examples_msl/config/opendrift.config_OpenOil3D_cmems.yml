@@ -4,10 +4,10 @@
 # pycallable:     schism.wrapper.SCHISMHC
 # 
 # ======================================================================
-imp:  test_OceanDrift3D_CMEMS # implementation name
-model: OceanDrift3D
+imp:  test_OpenOil3D_CMEMS # implementation name
+model: OpenOil3D
 rootdir: 'C:\github\opendrift\examples_msl'# where the simulation will be run
-extra_model_args: {logfile: 'test_OceanDrift3D_CMEMS.log'}#,'weathering_model','noaa'}# these will be passed as **kwargs in __init__() function
+extra_model_args: {logfile: 'test_OpenOil3D_CMEMS.log',weathering_model:'noaa'}
 # e.g. extra_model_args: {logfile: 'test.log','weathering_model','noaa'}
 # ======================================================================
 # release
@@ -20,7 +20,7 @@ time_step_sec: 900 #= 900  # 15 minutes
 time_step_sec_output: 1800 #= timedelta(minutes=30)
 position: {lon: 172.0,lat: -40.0, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2' or 'surface' , or scalar
 # end_position: {elon: 174.1656,elat: -40.3346, eradius: 10.,ez: 0.0} #  optional, final lon,lat,z
-extra_seed_args: {wind_drift_factor: 0.04} # these will be passed as **kwargs in seed_elements() function
+extra_seed_args: {oiltype:xx, wind_drift_factor: 0.04, m3_per_hour: 1000} # these will be passed as **kwargs in seed_elements() function
 # e.g. extra_seed_args: {objectType: 26} # 26 = Life-raft, no ballast
 # frame
 model_frame:    {llcrnrlon: 170.0, llcrnrlat: -42.0 , urcrnrlon: 176.0 , urcrnrlat: -38.0}
@@ -69,14 +69,14 @@ config:
         coastline_action: 'stranding' # option('none', 'stranding', 'previous', default='stranding')
     seed:
         ocean_only: True #boolean(default=True)
+        # oiltype: XX
     drift:
-        scheme: 'runge-kutta4'
+        scheme: 'runge-kutta4' #option('euler', 'runge-kutta4', 'runge-kutta4', default='euler')
         current_uncertainty: 0.025
         wind_uncertainty: 2.0
         # max_age_seconds: float(min=0, default=None)
-        # scheme: option('euler', 'runge-kutta4', 'runge-kutta4', default='euler')
         stokes_drift: True #boolean(default=True)
-        wind_drift_depth: 3.0
+        wind_drift_depth: -3.0
         # current_uncertainty: float(min=0, max=5, default=0)
         # current_uncertainty_uniform: float(min=0, max=5, default=0)
         # wind_uncertainty: float(min=0, max=5, default=0)
@@ -92,6 +92,27 @@ config:
     processes:
         turbulentmixing: False
         verticaladvection: False
+        dispersion: True
+        evaporation: True
+        emulsification: True
+        update_oilfilm_thickness: False
+    input:
+        [[spill]]
+            oil_type = option(%s, default=%s)
+            droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
+            droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
+    wave_entrainment:
+        droplet_size_distribution: 'Johansen et al. (2015)' #= option('Exponential', 'Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
+        entrainment_rate: 'Li et al. (2017)' #= option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Li et al. (2017)')
+    turbulentmixing:
+        timestep: 900 #= float(min=0.1, max=3600, default=60.)
+        verticalresolution: 1. #= float(min=0.01, max=10, default = 1.)
+        diffusivitymodel: 'environment' #= option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
+        TSprofiles: False #= boolean(default=False)
+        droplet_diameter_min_wavebreaking: 1e-5 #= float(default=1e-5, min=1e-8, max=1)
+        droplet_diameter_max_wavebreaking: 2e-3 #= float(default=2e-3, min=1e-8, max=1)
+        droplet_size_exponent: 0 #= float(default=0, min=-10, max=10)
+
 # post-processing
 post_process:
     show_anim:  False

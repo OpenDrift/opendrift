@@ -77,7 +77,7 @@ fallback_values: {ocean_vertical_diffusivity: 0.0001} # used to define constant/
 # ======================================================================
 run_backwards: False
 stop_on_error: True
-outfile: output_config_test.nc #self.outputdir + '/opendrift_'  # could be defined by default from implemtation name ?
+outfile: output_uds.nc #self.outputdir + '/opendrift_'  # could be defined by default from implemtation name ?
 extra_output_args: {} # additional outputs arguments as specified in run()
 # ======================================================================
 # configuration : base inherited from basemodel + model-specific configs 
