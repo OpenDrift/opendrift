@@ -55,7 +55,7 @@ vector_pairs_xy = [
 class Reader(BaseReader):
 
     def __init__(self, filename=None, name=None, variables_to_use = None, **kwargs):
-        
+
         self.use_log_profile = False # No extrapolation using logarithmic profile by default
         self.reader_water_depth = None # optional "water depth reader" passed to reader
 
@@ -258,6 +258,8 @@ class Reader(BaseReader):
             'vm': 'y_sea_water_velocity', # depth-averaged total / northward_sea_water_velocity
             'us': 'x_sea_water_velocity', # surface current total / surface_eastward_sea_water_velocity
             'vs': 'y_sea_water_velocity', # surface current total / surface_northward_sea_water_velocity
+            'uso': 'x_sea_water_velocity', # surface current non-tidal / surface_eastward_sea_water_velocity_assuming_no_tide
+            'vso': 'y_sea_water_velocity', # surface current non-tidal  / surface_northward_sea_water_velocity_assuming_no_tide
             'umo': 'x_sea_water_velocity',# depth-averaged non-tidal / eastward_sea_water_velocity_assuming_no_tide
             'vmo': 'y_sea_water_velocity',# depth-averaged non-tidal / northward_sea_water_velocity_assuming_no_tide
             'ut': 'x_sea_water_velocity', # tide eastward_tidal_current
@@ -293,8 +295,8 @@ class Reader(BaseReader):
         # i.e. if you need 'sea_surface_height' within opendrift, use variable 'el' in the netcdf file
         
         for var_name in self.Dataset.variables:
-            
-            if var_name in [self.xname, self.yname,'lev'] :
+
+            if var_name in [self.xname, self.yname,'lev','time'] :
                  continue  # Skip coordinate variables 
             # if var_name in [self.xname, self.yname] 'depth']: //  not sure why 'dep' is skipped in original reader_netCDF_CF_generic.py, probably refers to levels, rather than depth?
             # 'depth' or 'dep' should not be skipepd to allow mapping 'sea_floor_depth_below_sea_level'
@@ -309,7 +311,6 @@ class Reader(BaseReader):
             var = self.Dataset.variables[var_name]
             attributes = var.ncattrs()
 
-            
             if False :#'standard_name' in attributes:
                 # for MetOcean datasets force the use of the 'var_name' to map the alias
                 # instead of standard_name - see below
@@ -322,7 +323,6 @@ class Reader(BaseReader):
                     standard_name = self.variable_aliases[var_name]
                 self.variable_mapping[standard_name] = str(var_name) 
             
-        
         # For now we can't differenciate the different kinds of currents (i.e. tide, residual, total)...as it seems opendrift only expect general (u,v) currents
         # All different currents are therefore mapped to x_sea_water_velocity, y_water_velocity for now
         # Here we have added an option variables_to_use to allow specifying which variables to use in a file
@@ -330,7 +330,7 @@ class Reader(BaseReader):
         # other variables will be discarded  
         
         self.variables = self.variable_mapping.keys() # check that it does the right thing here
-        
+ 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
@@ -443,8 +443,8 @@ class Reader(BaseReader):
         variables = {}
 
         for par in requested_variables:
-            var = self.Dataset.variables[self.variable_mapping[par]]
-            
+
+            var = self.Dataset.variables[self.variable_mapping[par]]         
             ensemble_dim = None
             if var.ndim == 2:
                 variables[par] = var[indy, indx]
