@@ -7,20 +7,20 @@
 imp:  test_OpenOil3D_CMEMS # implementation name
 model: OpenOil3D
 rootdir: 'C:\github\opendrift\examples_msl'# where the simulation will be run
-extra_model_args: {logfile: 'test_OpenOil3D_CMEMS.log',weathering_model:'noaa'}
+extra_model_args: {logfile: 'test_OpenOil3D_CMEMS.log' , weathering_model: 'noaa'} #, 
 # e.g. extra_model_args: {logfile: 'test.log','weathering_model','noaa'}
 # ======================================================================
 # release
 nb_parts: 1000
-start_time: '01-01-2017 00:00'
+start_time: '01-01-2017 00:00' # day-month-year hour:min
 end_time:   '01-01-2017 00:00'
 # duration_hours: 24.0 #= int(self.durationhours.get())*3600/time_step
-end_time_run: '10-01-2017 00:00' #not used if duration is specified
+end_time_run: '05-01-2017 00:00' #not used if duration is specified
 time_step_sec: 900 #= 900  # 15 minutes
 time_step_sec_output: 1800 #= timedelta(minutes=30)
-position: {lon: 172.0,lat: -40.0, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2' or 'surface' , or scalar
+position: {lon: 172.0,lat: -40.0, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2' or 'surface' , or scalar (negative down)
 # end_position: {elon: 174.1656,elat: -40.3346, eradius: 10.,ez: 0.0} #  optional, final lon,lat,z
-extra_seed_args: {oiltype:xx, wind_drift_factor: 0.04, m3_per_hour: 1000} # these will be passed as **kwargs in seed_elements() function
+extra_seed_args: {oiltype: 'ALGERIAN CONDENSATE', wind_drift_factor: 0.04, m3_per_hour: 1000.0} # these will be passed as **kwargs in seed_elements() function
 # e.g. extra_seed_args: {objectType: 26} # 26 = Life-raft, no ballast
 # frame
 model_frame:    {llcrnrlon: 170.0, llcrnrlat: -42.0 , urcrnrlon: 176.0 , urcrnrlat: -38.0}
@@ -60,7 +60,7 @@ fallback_values: {ocean_vertical_diffusivity: 0.0001} # used to define constant/
 # ======================================================================
 run_backwards: False
 stop_on_error: False
-outfile: output_cmems.nc #self.outputdir + '/opendrift_'  # could be defined by default from implemtation name ?
+outfile: output_cmems_openoil3d.nc #self.outputdir + '/opendrift_'  # could be defined by default from implemtation name ?
 extra_output_args: {} # additional outputs arguments as specified in run()
 # ======================================================================
 # if nothing specfied, default config is used 
@@ -69,14 +69,14 @@ config:
         coastline_action: 'stranding' # option('none', 'stranding', 'previous', default='stranding')
     seed:
         ocean_only: True #boolean(default=True)
-        # oiltype: XX
+        # oiltype: 'GULLFAKS, EXXON' - can be set here instead of extra_seed_args 'ARABIAN MEDIUM, API' 
     drift:
         scheme: 'runge-kutta4' #option('euler', 'runge-kutta4', 'runge-kutta4', default='euler')
         current_uncertainty: 0.025
         wind_uncertainty: 2.0
         # max_age_seconds: float(min=0, default=None)
         stokes_drift: True #boolean(default=True)
-        wind_drift_depth: -3.0
+        # wind_drift_depth: 3.0
         # current_uncertainty: float(min=0, max=5, default=0)
         # current_uncertainty_uniform: float(min=0, max=5, default=0)
         # wind_uncertainty: float(min=0, max=5, default=0)
@@ -90,22 +90,22 @@ config:
         # use_tabularised_stokes_drift: boolean(default=False)
         # tabularised_stokes_drift_fetch: option(5000, 25000, 50000, default=25000)
     processes:
-        turbulentmixing: False
+        turbulentmixing: True
         verticaladvection: False
         dispersion: True
         evaporation: True
         emulsification: True
         update_oilfilm_thickness: False
-    input:
-        [[spill]]
-            oil_type = option(%s, default=%s)
-            droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
-            droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
+    # input:
+    #     [[spill]]
+    #         oil_type = option(%s, default=%s)
+    #         droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
+    #         droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
     wave_entrainment:
         droplet_size_distribution: 'Johansen et al. (2015)' #= option('Exponential', 'Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
         entrainment_rate: 'Li et al. (2017)' #= option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Li et al. (2017)')
     turbulentmixing:
-        timestep: 900 #= float(min=0.1, max=3600, default=60.)
+        timestep: 5 #= float(min=0.1, max=3600, default=60.)
         verticalresolution: 1. #= float(min=0.01, max=10, default = 1.)
         diffusivitymodel: 'environment' #= option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
         TSprofiles: False #= boolean(default=False)

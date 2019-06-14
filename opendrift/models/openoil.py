@@ -19,6 +19,7 @@ import os
 import numpy as np
 from datetime import datetime
 import logging
+import matplotlib; matplotlib.use('Tkagg') #hack to prevent display issues 
 import matplotlib.pyplot as plt
 
 from opendrift.models.basemodel import OpenDriftSimulation
