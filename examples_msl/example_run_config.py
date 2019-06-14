@@ -3,7 +3,7 @@
 # Script to be called when Opendrift is run using a config file 
 # 
 # Usage :
-# python 
+# python example_run_config.py ./config/opendrift.config_oceandrift3d.yml
 #
 # Still in dev....
 # 
@@ -22,6 +22,7 @@ import logging
 def read_yaml_config(config_yaml_file):
     ''' read a YAML config file for OpenDrift - could be moved to opendrift/__init__.py eventually '''
     try:
+        logging.debug('Reading config file: ' + config_yaml_file)
         config = yaml.load(open(config_yaml_file).read())
         return config
     except Exception as ex: # handle arbitrary exception
@@ -31,6 +32,7 @@ def read_yaml_config(config_yaml_file):
 
 def run_opendrift_from_config(config):
     ''' Setup and run opendrit simulation based on input configuration
+        argument "config" is a config dictionary loaded previously by read_yaml_config()
     '''
     #############################################################################################
     # release position and timing
@@ -86,10 +88,9 @@ def run_opendrift_from_config(config):
         o = OceanDrift3D(loglevel=0,**extra_model_args) #logfile=logfilename
     elif config['model'] == 'OpenOil3D':
         from opendrift.models.openoil3D import OpenOil3D
-        if 'weathering_model' in config.keys():
-            o = OpenOil3D(weathering_model=config['weathering_model'],
-                          loglevel=0,**extra_model_args)
-        else: # default
+        if 'weathering_model' in config['extra_model_args'].keys():
+            o = OpenOil3D(loglevel=0,**extra_model_args)
+        else: # use noaa by default
             o = OpenOil3D(weathering_model='noaa',
                           loglevel=0,**extra_model_args)          
     elif config['model'] == 'ShipDrift':
@@ -151,8 +152,8 @@ def run_opendrift_from_config(config):
                     exec(key + '_' + str(read_cnt) + '= read_tmp',globals(),locals()) 
                     del read_tmp
                     # add reader to OpenDrift object
-                    o.add_reader(eval( key + '_' + str(read_cnt)) )   
-    
+                    o.add_reader(eval( key + '_' + str(read_cnt)) ) 
+
     # adding fallback values / constants
     if 'fallback_values' in config.keys():
         for variable in config['fallback_values'].keys():
@@ -163,8 +164,8 @@ def run_opendrift_from_config(config):
     logging.debug('setting config')
     for ic,category in enumerate(config['config']):
         for ip,param in enumerate(config['config'][category]):
-            o.set_config('%s:%s' % (category,param), config['config'][category][param])
             logging.debug('CONFIG  %s:%s,%s' % (category,param,config['config'][category][param]))
+            o.set_config('%s:%s' % (category,param), config['config'][category][param])
 
     #############################################################################################
     # start run
@@ -216,13 +217,15 @@ if __name__ == '__main__':
 
     # setup opendrift simulation object using specifications in YAML configuration file
     config = read_yaml_config(args.config_file) 
-    # download data based on config file - if necessary
 
+    # download data based on config file - if necessary
     if any('udshost' in config['readers'][block].keys() for block in config['readers'].keys()) :
         # some UDS download required
+        logging.debug('Some UDS download required - calling download_metocean_uds.download')
         config = download_metocean_uds.download(config_file_opendrift = args.config_file)
     if any('cmems_download' in config['readers'][block].keys() for block in config['readers'].keys()) :
         # some CMEMS download required
+        logging.debug('Some CMEMS download required - calling download_cmems.download')
         config = download_cmems.download(config_file_opendrift = args.config_file)
     # run simulation
     o = run_opendrift_from_config(config)
