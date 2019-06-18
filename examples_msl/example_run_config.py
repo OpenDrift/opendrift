@@ -8,6 +8,7 @@
 # Still in dev....
 # 
 # 
+import os
 import numpy as np
 import argparse
 import yaml
@@ -22,12 +23,12 @@ import logging
 def read_yaml_config(config_yaml_file):
     ''' read a YAML config file for OpenDrift - could be moved to opendrift/__init__.py eventually '''
     try:
-        logging.debug('Reading config file: ' + config_yaml_file)
+        logging.debug('WRAPPER : Reading config file: ' + config_yaml_file)
         config = yaml.load(open(config_yaml_file).read())
         return config
     except Exception as ex: # handle arbitrary exception
         logging.error(ex)
-        logging.error('Cannot read ' + config_yaml_file)
+        logging.error('WRAPPER : Cannot read ' + config_yaml_file)
         sys.exit('Cannot read ' + config_yaml_file)
 
 def run_opendrift_from_config(config):
@@ -43,13 +44,19 @@ def run_opendrift_from_config(config):
         release_time = start_time # one-off release
     else:
         release_time = [start_time, end_time] #constant release over time
-
     lon = config['position']['lon']
     lat = config['position']['lat']
     radius = config['position']['radius']
     z = config['position']['z']
     nb_parts = config['nb_parts']
-    cone = False
+    # check if we should use cone switch
+    if isinstance(lon,list) or isinstance(lat,list) :
+        cone = True 
+        # this required when lon or lat is a 2-item list 
+        # see /examples/example_seed_demonstration.py
+    else:
+        cone = False
+
     if 'end_position' in config:
         elon = config['end_position']['elon']
         elat = config['end_position']['elat']
@@ -62,9 +69,10 @@ def run_opendrift_from_config(config):
             radius = [radius, eradius]
             release_time = [start_time, end_time]
             cone = True
-            logging.debug('using cone-release')
+            logging.debug('WRAPPER : using cone-release')
         else:
             cone = False
+
     # we could do something on the z here if required e.g. random within range etc..
     # probably more check to do expand options e.g release along line, single point but continuous over time etc.. 
     # 
@@ -73,6 +81,7 @@ def run_opendrift_from_config(config):
     #############################################################################################
     if 'extra_model_args' not in config.keys():
         extra_model_args = {}
+        config['extra_model_args'] = {}
     else:
         extra_model_args = config['extra_model_args']
     
@@ -96,29 +105,14 @@ def run_opendrift_from_config(config):
     elif config['model'] == 'ShipDrift':
         from opendrift.models.shipdrift import ShipDrift
         o = ShipDrift(loglevel=0,**extra_model_args)
-    logging.debug(config['model'] +' initialized')
-    
-    #############################################################################################
-    # particle seeding 
-    #############################################################################################
-    # user-input extra_seed_args is passed as **kwargs to seed_elements() function
-    # >requires knowledge of model, but highly flexible 
-    logging.debug('seeding elements')
-    if 'extra_seed_args' not in config.keys():
-        extra_seed_args = {}
-    else:
-        extra_seed_args = config['extra_seed_args'] # e.g. #extra_seed_args = {'objectType': 26}
-    
-    o.seed_elements(lon=lon, lat=lat, z=z, number=nb_parts, radius=radius,
-                        time=release_time, cone=cone,
-                        **extra_seed_args)
+    logging.debug('WRAPPER : ' + config['model'] +' initialized')
 
     #############################################################################################
     # forcing data "readers"
     #############################################################################################
     # initial code below > reading from a range of sources specificed in data_sources
     #   o.add_readers_from_file(o.test_data_folder() + '../../opendrift/scripts/data_sources.txt')
-    logging.debug('adding readers')
+    logging.debug('WRAPPER : adding readers...')
     from opendrift.readers import reader_basemap_landmask
     # Making customised landmask (Basemap)
     base_map_specs = config['model_frame']
@@ -133,11 +127,15 @@ def run_opendrift_from_config(config):
     # use 'merc' projection by default - hardcoded for now
     # loop through different readers and initialize
     base_str = 'from opendrift.readers import '
+
+    # The order in which readers are specified in the config file matters
+    # for "priority" i.e. input highest res/smaller extents first then lowest res/larger extents
     for key in config['readers'].keys():
         if config['readers'][key] is not None:
             if 'filename' in config['readers'][key]: 
             # 'filename' is either input by user in config file, 
             # or automatically set after data download
+                logging.debug('WRAPPER : adding reader: ' +  key)
                 for read_cnt,fname in enumerate(config['readers'][key]['filename']):
                     # import correct reader class
                     reader_type = config['readers'][key]['reader_type'][read_cnt]
@@ -153,24 +151,41 @@ def run_opendrift_from_config(config):
                     del read_tmp
                     # add reader to OpenDrift object
                     o.add_reader(eval( key + '_' + str(read_cnt)) ) 
-
     # adding fallback values / constants
     if 'fallback_values' in config.keys():
         for variable in config['fallback_values'].keys():
             o.fallback_values[variable] = config['fallback_values'][variable]
+
+    #############################################################################################
+    # particle seeding 
+    #############################################################################################
+    # user-input extra_seed_args is passed as **kwargs to seed_elements() function
+    # >requires knowledge of model, but highly flexible
+    # Note this is located after the forcing fields loading to allow use of 'seafloor' 
+    # or 'seafloor+2' for the vertical z seeding 
+    logging.debug('WRAPPER : seeding elements')
+    if 'extra_seed_args' not in config.keys():
+        extra_seed_args = {}
+    else:
+        extra_seed_args = config['extra_seed_args'] # e.g. #extra_seed_args = {'objectType': 26}
+    
+    o.seed_elements(lon=lon, lat=lat, z=z, number=nb_parts, radius=radius,
+                        time=release_time, cone=cone,
+                        **extra_seed_args)
+
     #############################################################################################
     # set all additional configuration - overwriting if needed
     #############################################################################################       
-    logging.debug('setting config')
+    logging.debug('WRAPPER : setting config')
     for ic,category in enumerate(config['config']):
         for ip,param in enumerate(config['config'][category]):
-            logging.debug('CONFIG  %s:%s,%s' % (category,param,config['config'][category][param]))
+            logging.debug('WRAPPER : CONFIG  %s:%s,%s' % (category,param,config['config'][category][param]))
             o.set_config('%s:%s' % (category,param), config['config'][category][param])
 
     #############################################################################################
     # start run
     #############################################################################################
-    logging.debug('setting model run')
+    logging.debug('WRAPPER : setting model run')
     time_step = timedelta(seconds=config['time_step_sec']) 
     if 'time_step_sec_output' in config.keys():
         time_step_output = timedelta(seconds=config['time_step_sec_output'])
@@ -189,7 +204,7 @@ def run_opendrift_from_config(config):
         time_step = -time_step
         # here we should have start_time>end_time
         if start_time < end_time_run:
-            logging.error('start_time must be smaller than end_time if run backwards')
+            logging.error('WRAPPER : start_time must be smaller than end_time if run backwards')
 
     if 'outfile' not in config.keys():
         outfile = 'opendrift_' + config['imp'] + '_' + start_time.strftime('%d%m%Y_%H%M') + '.nc'
@@ -198,6 +213,7 @@ def run_opendrift_from_config(config):
     
     if 'stop_on_error' not in config.keys():
         config['stop_on_error'] = False
+    
     # run simulation
     o.run(stop_on_error = config['stop_on_error'],time_step=time_step,
           end_time = end_time_run, time_step_output = time_step_output,
@@ -221,12 +237,13 @@ if __name__ == '__main__':
     # download data based on config file - if necessary
     if any('udshost' in config['readers'][block].keys() for block in config['readers'].keys()) :
         # some UDS download required
-        logging.debug('Some UDS download required - calling download_metocean_uds.download')
-        config = download_metocean_uds.download(config_file_opendrift = args.config_file)
+        logging.debug('WRAPPER : Some UDS download required - calling download_metocean_uds.download')
+        config = download_metocean_uds.download(config_dict = config)
     if any('cmems_download' in config['readers'][block].keys() for block in config['readers'].keys()) :
         # some CMEMS download required
-        logging.debug('Some CMEMS download required - calling download_cmems.download')
-        config = download_cmems.download(config_file_opendrift = args.config_file)
+        logging.debug('WRAPPER : Some CMEMS download required - calling download_cmems.download')
+        config = download_cmems.download(config_dict = config)
+    
     # run simulation
     o = run_opendrift_from_config(config)
     # post-process/plots

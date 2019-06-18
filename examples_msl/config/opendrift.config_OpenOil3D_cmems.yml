@@ -7,7 +7,7 @@
 imp:  test_OpenOil3D_CMEMS # implementation name
 model: OpenOil3D
 rootdir: 'C:\github\opendrift\examples_msl'# where the simulation will be run
-extra_model_args: {logfile: 'test_OpenOil3D_CMEMS.log' , weathering_model: 'noaa'} #, 
+# extra_model_args: {logfile: 'test_OpenOil3D_CMEMS.log' , weathering_model: 'noaa'} #, 
 # e.g. extra_model_args: {logfile: 'test.log','weathering_model','noaa'}
 # ======================================================================
 # release
@@ -18,7 +18,9 @@ end_time:   '01-01-2017 00:00'
 end_time_run: '05-01-2017 00:00' #not used if duration is specified
 time_step_sec: 900 #= 900  # 15 minutes
 time_step_sec_output: 1800 #= timedelta(minutes=30)
-position: {lon: 172.0,lat: -40.0, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2' or 'surface' , or scalar (negative down)
+# position: {lon: 172.0,lat: -40.0, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2' , or scalar (negative down)
+position: {lon: 172.0,lat: -40.0, radius: 10. , z: 'seafloor+5' } # z can be 'seafloor' or 'seafloor+2' , or scalar (negative down)
+
 # end_position: {elon: 174.1656,elat: -40.3346, eradius: 10.,ez: 0.0} #  optional, final lon,lat,z
 extra_seed_args: {oiltype: 'ALGERIAN CONDENSATE', wind_drift_factor: 0.04, m3_per_hour: 1000.0} # these will be passed as **kwargs in seed_elements() function
 # e.g. extra_seed_args: {objectType: 26} # 26 = Life-raft, no ballast
@@ -55,6 +57,15 @@ readers:
         timestep: 1.0
         boundary:    [170.0,176.0,-42.0,-38.0] # optional - if not input use a squar of 2x2 deg.
         # options: {use_log_profile: True, z0: 0.001} # will be passed as kwargs to reader's __init__()
+    bathy: # workaround to access depth information even when using CMEMS data - quey timeseries of gridded depth
+        reader_type: [reader_netCDF_MetOcean] #reader_type can be any found in 'from opendrift.readers'  
+        udshost: http://uds1.rag.metocean.co.nz:9191/uds # data needs to be downloaded from UDS
+        dset:    ['roms_nz_surf']
+        vars:    ['dep']
+        datatype: 'hc'
+        timestep: 1.0
+        boundary:    [170.0,176.0,-42.0,-38.0] # optional - if not input use a squar of 2x2 deg.
+        # options: { always_valid: True } # will be passed as kwargs to reader's __init__()
 
 fallback_values: {ocean_vertical_diffusivity: 0.0001} # used to define constant/fall back values
 # ======================================================================
@@ -119,6 +130,6 @@ post_process:
     save_anim:  False
     show_plot:  True
     save_plot:  False
-    show_oil_budget: False
+    show_oil_budget: True
     save_oil_budget: False
     # more to come

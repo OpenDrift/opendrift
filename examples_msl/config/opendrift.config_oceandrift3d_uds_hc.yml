@@ -18,7 +18,7 @@ end_time:   '08-01-2004 00:00'
 end_time_run: '08-01-2004 00:00' #not used if duration is specified
 time_step_sec: 900 #= 900  # 15 minutes
 time_step_sec_output: 1800 #= timedelta(minutes=30)
-position: {lon: 174.1656,lat: -40.3346, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2' or 'surface' , or scalar
+position: {lon: 174.1656,lat: -40.3346, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2', or scalar -50.0
 # end_position: {elon: 174.1656,elat: -40.3346, eradius: 10.,ez: 0.0} #  optional, final lon,lat,z
 extra_seed_args: {} # these will be passed as **kwargs in seed_elements() function
 # e.g. extra_seed_args: {objectType: 26} # 26 = Life-raft, no ballast
