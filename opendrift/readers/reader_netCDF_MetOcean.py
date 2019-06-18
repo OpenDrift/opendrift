@@ -654,7 +654,7 @@ class Reader(BaseReader):
                       (time_before, time_after))
         if time == time_before:
             time_after = None
-
+        
         z = z.copy()[ind_covered]  # Send values and not reference
                                    # to avoid modifications
 
@@ -926,12 +926,15 @@ class Reader(BaseReader):
                     import pdb;pdb.set_trace()
                     pass
 
-            # get total water depth at particle positions (lon,lat)
+            # get total water depth at particle positions (lon,lat) covered by reader
             water_depth_at_part,tmp = self.water_depth_interp.interpolate(lon,lat,variables = ['sea_floor_depth_below_sea_level'])
             
             del tmp
-
-            log_fac = self.logarithmic_current_profile(z, water_depth_at_part['sea_floor_depth_below_sea_level'])
+            log_fac = np.array([1.]*len(lon))# allocate
+            # compute log factor value for particles covered by reader
+            log_fac_covered = self.logarithmic_current_profile(z, water_depth_at_part['sea_floor_depth_below_sea_level'][ind_covered])
+            # update log_fac array with computed values
+            log_fac[ind_covered] = log_fac_covered
             logging.debug('Applying logarithmic profile to depth-averaged currents')
             logging.debug('\t\t%s   <- log_ratios[-] ->   %s' % (np.nanmin(log_fac), np.nanmax(log_fac)))
             env['x_sea_water_velocity'] = env['x_sea_water_velocity'] * log_fac
