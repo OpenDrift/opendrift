@@ -935,7 +935,8 @@ class Reader(BaseReader):
             log_fac_covered = self.logarithmic_current_profile(z, water_depth_at_part['sea_floor_depth_below_sea_level'][ind_covered])
             # update log_fac array with computed values
             log_fac[ind_covered] = log_fac_covered
-            logging.debug('Applying logarithmic profile to depth-averaged currents')
+            logging.debug('Applying logarithmic profile to depth-averaged currents from reader %s' %(self.name) 
+                + ' to %s particles within its coverage' %len(ind_covered) )
             logging.debug('\t\t%s   <- log_ratios[-] ->   %s' % (np.nanmin(log_fac), np.nanmax(log_fac)))
             env['x_sea_water_velocity'] = env['x_sea_water_velocity'] * log_fac
             env['y_sea_water_velocity'] = env['y_sea_water_velocity'] * log_fac

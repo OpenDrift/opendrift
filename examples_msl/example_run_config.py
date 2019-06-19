@@ -85,7 +85,7 @@ def run_opendrift_from_config(config):
     else:
         extra_model_args = config['extra_model_args']
     
-    # This could probably be made more generic like the readers' loading part
+    # This could probably be made more generic like the readers' loading part with eval statements
     if config['model'] == 'Leeway':
         from opendrift.models.leeway import Leeway
         o = Leeway(loglevel=0,**extra_model_args)
@@ -105,6 +105,10 @@ def run_opendrift_from_config(config):
     elif config['model'] == 'ShipDrift':
         from opendrift.models.shipdrift import ShipDrift
         o = ShipDrift(loglevel=0,**extra_model_args)
+    elif config['model'] == 'SedimentDrift3D':
+        from opendrift.models.sedimentdrift3D import SedimentDrift3D
+        o = SedimentDrift3D(loglevel=0,**extra_model_args)
+
     logging.debug('WRAPPER : ' + config['model'] +' initialized')
 
     #############################################################################################
@@ -249,6 +253,7 @@ if __name__ == '__main__':
     # post-process/plots
     print o
     if config['post_process']['show_plot']:
+        import pdb;pdb.set_trace()
         o.plot()
     if config['post_process']['show_anim']:
         o.animation()

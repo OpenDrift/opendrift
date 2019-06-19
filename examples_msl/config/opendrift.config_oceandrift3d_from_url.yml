@@ -1,0 +1,93 @@
+# Template for config file
+# reproduce run found in example_benchmark_regular
+# 
+# pycallable:     schism.wrapper.SCHISMHC
+# 
+# ======================================================================
+imp:  test_config_OpenDrift # implementation name
+model: OceanDrift3D
+rootdir: 'C:\github\opendrift\examples_msl'# where the simulation will be run
+# extra_model_args: {logfile: 'test.log','weathering_model','noaa'}# these will be passed as **kwargs in __init__() function
+# e.g. extra_model_args: {logfile: 'test.log','weathering_model','noaa'}
+# ======================================================================
+# release
+nb_parts: 1000
+start_time: '01-01-2004 00:00'
+end_time:   '08-01-2004 00:00'
+# duration_hours: 24.0 #= int(self.durationhours.get())*3600/time_step
+end_time_run: '08-01-2004 00:00' #not used if duration is specified
+time_step_sec: 900 #= 900  # 15 minutes
+time_step_sec_output: 1800 #= timedelta(minutes=30)
+position: {lon: 174.1656,lat: -40.3346, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2', or scalar -50.0
+# end_position: {elon: 174.1656,elat: -40.3346, eradius: 10.,ez: 0.0} #  optional, final lon,lat,z
+extra_seed_args: {} # these will be passed as **kwargs in seed_elements() function
+# e.g. extra_seed_args: {objectType: 26} # 26 = Life-raft, no ballast
+
+# frame
+model_frame:    {llcrnrlon: 168.0199, llcrnrlat: -42.8449 , urcrnrlon: 177.4601 , urcrnrlat: -37.9051}
+basemap_resolution: 'h' # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)
+# ======================================================================
+# readers
+# specified using {reader_type: reader_filename, ...} reader_type can be any found in 'from opendrift.readers'  
+readers:
+    ocean0: # specify one or several reader_type and filenames - order matters and will govern priority
+        reader_type: [reader_from_url] #reader_type can be any found in 'from opendrift.readers'  
+        # filename: ['F:/metocean/R&D_OpenDrift/benchmark_runs/cnz20040101_00z_surf.nc'] # can be many files
+        url: 'http://uds1.rag.metocean.co.nz:9191/uds' # data needs to be downloaded from UDS
+        dset:    ['roms_cnz_surf']
+        vars:    ['um','vm','dep']
+        datatype: 'hc'
+        timestep: 1.0
+        boundary:    [173.0,175.5,-42.0,-39.0] # optional - if not input use a squar of 2x2 deg.
+        options: {use_log_profile: True, z0: 0.001} # will be passed as kwargs to reader's __init__()
+
+fallback_values: {ocean_vertical_diffusivity: 0.0001} # used to define constant/fall back values
+# ======================================================================
+run_backwards: False
+stop_on_error: True
+outfile: output_uds.nc #self.outputdir + '/opendrift_'  # could be defined by default from implemtation name ?
+extra_output_args: {} # additional outputs arguments as specified in run()
+# ======================================================================
+# configuration : base inherited from basemodel + model-specific configs 
+# e.g.
+# https://github.com/OpenDrift/opendrift/blob/1323f4a47cb16b2ebd818d6c3c302036331e36a7/opendrift/models/basemodel.py#L123
+# https://github.com/OpenDrift/opendrift/blob/1323f4a47cb16b2ebd818d6c3c302036331e36a7/opendrift/models/opendrift3D.py#L55
+# https://github.com/OpenDrift/opendrift/blob/1323f4a47cb16b2ebd818d6c3c302036331e36a7/opendrift/models/opendrift3D.py#L55
+# 
+# if nothing specfied, default config is used 
+config:
+    general:
+        coastline_action: 'stranding' # option('none', 'stranding', 'previous', default='stranding')
+    seed:
+        ocean_only: True #boolean(default=True)
+    drift:
+        scheme: 'runge-kutta4'
+        current_uncertainty: 0.00
+        wind_uncertainty: 2.0
+        # max_age_seconds: float(min=0, default=None)
+        # scheme: option('euler', 'runge-kutta4', 'runge-kutta4', default='euler')
+        # stokes_drift: boolean(default=True)
+        # current_uncertainty: float(min=0, max=5, default=0)
+        # current_uncertainty_uniform: float(min=0, max=5, default=0)
+        # wind_uncertainty: float(min=0, max=5, default=0)
+        # relative_wind: boolean(default=False)
+        # lift_to_seafloor: boolean(default=True)
+        # truncate_ocean_model_below_m: float(min=0, max=10000, default=None)
+        # deactivate_north_of: float(min=-90, max=90, default=None)
+        # deactivate_south_of: float(min=-90, max=90, default=None)
+        # deactivate_east_of: float(min=-360, max=360, default=None)
+        # deactivate_west_of: float(min=-360, max=360, default=None)
+        # use_tabularised_stokes_drift: boolean(default=False)
+        # tabularised_stokes_drift_fetch: option(5000, 25000, 50000, default=25000)
+    processes:
+        turbulentmixing: False
+        verticaladvection: False
+# post-processing
+post_process:
+    show_anim:  False
+    save_anim:  False
+    show_plot:  True
+    save_plot:  False
+    show_oil_budget: False
+    save_oil_budget: False
+    # more to come

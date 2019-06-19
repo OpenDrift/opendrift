@@ -126,7 +126,7 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         Time-Space varying coefficients  'ocean_horizontal_diffusivity' 
         can also be interpolated from an environment object (as in vertical_mixing() )
         
-        * this should not be used in combination with drift:current_uncertainty ~=0 
+        * this should not be used in combination with drift:current_uncertainty > 0 
         * as this model the same process, only with a different approach 
 
         The random component added to the particle position to reproduce turbulent horizontal 
