@@ -1,45 +1,44 @@
 # Template for config file
 # reproduce run found in example_benchmark_regular
 # 
-# pycallable:     schism.wrapper.SCHISMHC
+#  Example based on example_reader_boundary.py
+#  use thredds url as reader data
+# 
+#  could be easily expanded to read a text file with sources
+#  i.e. using add_readers_from_list()
 # 
 # ======================================================================
 imp:  test_config_OpenDrift # implementation name
 model: OceanDrift3D
-rootdir: 'C:\github\opendrift\examples_msl'# where the simulation will be run
+rootdir: 'C:\tests\'# where the simulation will be run
 # extra_model_args: {logfile: 'test.log','weathering_model','noaa'}# these will be passed as **kwargs in __init__() function
 # e.g. extra_model_args: {logfile: 'test.log','weathering_model','noaa'}
 # ======================================================================
 # release
-nb_parts: 1000
-start_time: '01-01-2004 00:00'
-end_time:   '08-01-2004 00:00'
+nb_parts: 100
+start_time: '20-06-2019 00:00'
+end_time:   '20-06-2019 00:00'
 # duration_hours: 24.0 #= int(self.durationhours.get())*3600/time_step
-end_time_run: '08-01-2004 00:00' #not used if duration is specified
+end_time_run: '22-06-2019 00:00' #not used if duration is specified
 time_step_sec: 900 #= 900  # 15 minutes
 time_step_sec_output: 1800 #= timedelta(minutes=30)
-position: {lon: 174.1656,lat: -40.3346, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2', or scalar -50.0
+position: {lon: 11.0,lat: 70.0, radius: 20.,z: 0.0} # z can be 'seafloor' or 'seafloor+2', or scalar -50.0
 # end_position: {elon: 174.1656,elat: -40.3346, eradius: 10.,ez: 0.0} #  optional, final lon,lat,z
 extra_seed_args: {} # these will be passed as **kwargs in seed_elements() function
 # e.g. extra_seed_args: {objectType: 26} # 26 = Life-raft, no ballast
-
 # frame
-model_frame:    {llcrnrlon: 168.0199, llcrnrlat: -42.8449 , urcrnrlon: 177.4601 , urcrnrlat: -37.9051}
+model_frame:    {llcrnrlon: 9.5, llcrnrlat: 68.8 , urcrnrlon: 19.0 , urcrnrlat: 71.2}
 basemap_resolution: 'h' # resolution can be c (crude, the default), l (low), i (intermediate), h (high), f (full)
 # ======================================================================
 # readers
 # specified using {reader_type: reader_filename, ...} reader_type can be any found in 'from opendrift.readers'  
 readers:
     ocean0: # specify one or several reader_type and filenames - order matters and will govern priority
-        reader_type: [reader_from_url] #reader_type can be any found in 'from opendrift.readers'  
-        # filename: ['F:/metocean/R&D_OpenDrift/benchmark_runs/cnz20040101_00z_surf.nc'] # can be many files
-        url: 'http://uds1.rag.metocean.co.nz:9191/uds' # data needs to be downloaded from UDS
-        dset:    ['roms_cnz_surf']
-        vars:    ['um','vm','dep']
-        datatype: 'hc'
-        timestep: 1.0
-        boundary:    [173.0,175.5,-42.0,-39.0] # optional - if not input use a squar of 2x2 deg.
-        options: {use_log_profile: True, z0: 0.001} # will be passed as kwargs to reader's __init__()
+        reader_type: [reader_netCDF_CF_generic] #reader_type can be any found in 'from opendrift.readers'  
+        filename: ['http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be']
+    ocean1: # specify one or several reader_type and filenames - order matters and will govern priority
+        reader_type: [reader_netCDF_CF_generic] #reader_type can be any found in 'from opendrift.readers'  
+        filename: ['http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be'] #
 
 fallback_values: {ocean_vertical_diffusivity: 0.0001} # used to define constant/fall back values
 # ======================================================================
@@ -64,21 +63,6 @@ config:
         scheme: 'runge-kutta4'
         current_uncertainty: 0.00
         wind_uncertainty: 2.0
-        # max_age_seconds: float(min=0, default=None)
-        # scheme: option('euler', 'runge-kutta4', 'runge-kutta4', default='euler')
-        # stokes_drift: boolean(default=True)
-        # current_uncertainty: float(min=0, max=5, default=0)
-        # current_uncertainty_uniform: float(min=0, max=5, default=0)
-        # wind_uncertainty: float(min=0, max=5, default=0)
-        # relative_wind: boolean(default=False)
-        # lift_to_seafloor: boolean(default=True)
-        # truncate_ocean_model_below_m: float(min=0, max=10000, default=None)
-        # deactivate_north_of: float(min=-90, max=90, default=None)
-        # deactivate_south_of: float(min=-90, max=90, default=None)
-        # deactivate_east_of: float(min=-360, max=360, default=None)
-        # deactivate_west_of: float(min=-360, max=360, default=None)
-        # use_tabularised_stokes_drift: boolean(default=False)
-        # tabularised_stokes_drift_fetch: option(5000, 25000, 50000, default=25000)
     processes:
         turbulentmixing: False
         verticaladvection: False

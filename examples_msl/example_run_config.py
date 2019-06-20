@@ -209,11 +209,17 @@ def run_opendrift_from_config(config):
         # here we should have start_time>end_time
         if start_time < end_time_run:
             logging.error('WRAPPER : start_time must be smaller than end_time if run backwards')
+    # prepare output folder if needed
+    if 'rootdir' in config.keys():
+        if not os.path.exists(config['rootdir']):
+            os.mkdir(config['rootdir'])
+    else:
+        config['rootdir'] = os.getcwd()
 
     if 'outfile' not in config.keys():
-        outfile = 'opendrift_' + config['imp'] + '_' + start_time.strftime('%d%m%Y_%H%M') + '.nc'
+        outfile = os.path.join(config['rootdir'], 'opendrift_' + config['imp'] + '_' + start_time.strftime('%d%m%Y_%H%M') + '.nc')
     else:
-        outfile = config['outfile']
+        outfile = os.path.join(config['rootdir'],config['outfile'])
     
     if 'stop_on_error' not in config.keys():
         config['stop_on_error'] = False
@@ -253,7 +259,6 @@ if __name__ == '__main__':
     # post-process/plots
     print o
     if config['post_process']['show_plot']:
-        import pdb;pdb.set_trace()
         o.plot()
     if config['post_process']['show_anim']:
         o.animation()
