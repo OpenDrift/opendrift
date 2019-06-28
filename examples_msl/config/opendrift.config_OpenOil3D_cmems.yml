@@ -18,7 +18,6 @@ end_time:   '01-01-2017 00:00'
 end_time_run: '05-01-2017 00:00' #not used if duration is specified
 time_step_sec: 900 #= 900  # 15 minutes
 time_step_sec_output: 1800 #= timedelta(minutes=30)
-# position: {lon: 172.0,lat: -40.0, radius: 10.,z: 0.0} # z can be 'seafloor' or 'seafloor+2' , or scalar (negative down)
 position: {lon: 172.0,lat: -40.0, radius: 10. , z: 'seafloor+5' } # z can be 'seafloor' or 'seafloor+2' , or scalar (negative down)
 
 # end_position: {elon: 174.1656,elat: -40.3346, eradius: 10.,ez: 0.0} #  optional, final lon,lat,z
@@ -51,7 +50,7 @@ readers:
     wind: # specify one or several reader_type and filenames - order matters and will govern priority
         reader_type: [reader_netCDF_CF_generic] #reader_type can be any found in 'from opendrift.readers'  
         cmems_download: True # data needs to be downloaded from UDS
-        dset:    ['WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004-TDS']
+        dset:    ['WIND_GLO_WIND_L4_REP_OBSERVATIONS_012_006-TDS'] #WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004
         vars:    ['eastward_wind','northward_wind']
         datatype: 'hc'
         timestep: 1.0
@@ -67,7 +66,8 @@ readers:
         boundary:    [170.0,176.0,-42.0,-38.0] # optional - if not input use a squar of 2x2 deg.
         # options: { always_valid: True } # will be passed as kwargs to reader's __init__()
 
-fallback_values: {ocean_vertical_diffusivity: 0.0001} # used to define constant/fall back values
+fallback_values: {ocean_vertical_diffusivity: 0.0001, x_wind: 0.0, y_wind: 0.0} # used to define constant/fall back values
+
 # ======================================================================
 run_backwards: False
 stop_on_error: False

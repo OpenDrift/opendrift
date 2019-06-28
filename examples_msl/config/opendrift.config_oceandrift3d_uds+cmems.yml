@@ -44,7 +44,7 @@ readers:
         reader_type: [reader_netCDF_CF_generic] #reader_type can be any found in 'from opendrift.readers'  
         # filename: ['F:/metocean/R&D_OpenDrift/benchmark_runs/cnz20040101_00z_surf.nc'] # can be many files
         cmems_download: True # data needs to be downloaded from UDS
-        dset:    ['WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004-TDS']
+        dset:    ['WIND_GLO_WIND_L4_REP_OBSERVATIONS_012_006-TDS']
         vars:    ['eastward_wind','northward_wind']
         datatype: 'hc'
         timestep: 1.0

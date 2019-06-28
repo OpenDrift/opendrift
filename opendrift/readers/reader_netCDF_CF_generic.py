@@ -247,7 +247,15 @@ class Reader(BaseReader):
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
-
+            # ------------------------------------
+            # added - if no standard_name attribute is provided,
+            # assume that var_name is standard name
+            else : 
+                standard_name = str(var_name)
+                if standard_name in self.variable_aliases:  # Mapping if needed
+                    standard_name = self.variable_aliases[standard_name]  
+                self.variable_mapping[standard_name] = standard_name 
+            # ------------------------------------
         self.variables = self.variable_mapping.keys()
 
         # Run constructor of parent Reader class

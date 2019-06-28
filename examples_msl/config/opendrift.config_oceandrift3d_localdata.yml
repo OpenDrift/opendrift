@@ -33,8 +33,6 @@ readers:
         filename: ['F:/metocean/R&D_OpenDrift/benchmark_runs/cnz20040101_00z_surf.nc'] # can be many files
         options: {use_log_profile: True, z0: 0.001} # will be passed as kwargs to reader's __init__()
         #vars: [um,vm] #optional to restrict which variables are used
-    meteo:
-    wave:
 
 fallback_values: {ocean_vertical_diffusivity: 0.0001} # used to define constant/fall back values
 # ======================================================================

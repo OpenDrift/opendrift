@@ -20,7 +20,7 @@ time_step_sec: 900 #= 900  # 15 minutes
 time_step_sec_output: 1800 #= timedelta(minutes=30)
 # release along a line that goes across the different ocean readers
 position: {lon: 174.0 , lat: -40.33 , radius: 10.,z: -2.0} # z can be 'seafloor' or 'seafloor+2', or scalar -50.0
-extra_seed_args: {terminal_velocity: -0.001, wind_drift_factor: 0.02,} #high in purpose to make it go across different datasets
+extra_seed_args: {terminal_velocity: -0.001, wind_drift_factor: 0.02} #high in purpose to make it go across different datasets
 # these will be passed as **kwargs in seed_elements() function
 # frame
 model_frame:    {llcrnrlon: 168.0199, llcrnrlat: -42.8449 , urcrnrlon: 177.4601 , urcrnrlat: -37.9051}

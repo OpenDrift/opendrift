@@ -7,7 +7,7 @@
 imp:  test_OceanDrift3D_CMEMS # implementation name
 model: OceanDrift3D
 rootdir: 'C:\github\opendrift\examples_msl'# where the simulation will be run
-extra_model_args: {logfile: 'test_OceanDrift3D_CMEMS.log'}#,'weathering_model','noaa'}# these will be passed as **kwargs in __init__() function
+# extra_model_args: {logfile: 'test_OceanDrift3D_CMEMS.log'}#,'weathering_model','noaa'}# these will be passed as **kwargs in __init__() function
 # e.g. extra_model_args: {logfile: 'test.log','weathering_model','noaa'}
 # ======================================================================
 # release
@@ -38,7 +38,7 @@ readers:
         boundary:    [170.0,176.0,-42.0,-38.0] # optional - if not input use a squar of 2x2 deg.
         # options: {use_log_profile: True, z0: 0.001} # will be passed as kwargs to reader's __init__()
     wave: # specify one or several reader_type and filenames - order matters and will govern priority
-        reader_type: [reader_netCDF_CF_generic] #reader_type can be any found in 'from opendrift.readers'  
+        reader_type: [reader_netCDF_CF_generic] #reader_type can be any found in 'from opendrift.readers'   reader_netCDF_CF_generic
         cmems_download: True # data needs to be downloaded from UDS
         dset:    ['GLOBAL_ANALYSIS_FORECAST_WAV_001_027-TDS']
         vars:    ['VHM0','VTPK','VTM10','VPED','VMDR','VSDX ','VSDY']
@@ -49,7 +49,7 @@ readers:
     wind: # specify one or several reader_type and filenames - order matters and will govern priority
         reader_type: [reader_netCDF_CF_generic] #reader_type can be any found in 'from opendrift.readers'  
         cmems_download: True # data needs to be downloaded from UDS
-        dset:    ['WIND_GLO_WIND_L4_NRT_OBSERVATIONS_012_004-TDS']
+        dset:    ['WIND_GLO_WIND_L4_REP_OBSERVATIONS_012_006-TDS']
         vars:    ['eastward_wind','northward_wind']
         datatype: 'hc'
         timestep: 1.0
@@ -71,12 +71,12 @@ config:
         ocean_only: True #boolean(default=True)
     drift:
         scheme: 'runge-kutta4'
-        current_uncertainty: 0.025
-        wind_uncertainty: 2.0
+        current_uncertainty: 0.1
+        wind_uncertainty: 0.0
         # max_age_seconds: float(min=0, default=None)
         # scheme: option('euler', 'runge-kutta4', 'runge-kutta4', default='euler')
         stokes_drift: True #boolean(default=True)
-        wind_drift_depth: 3.0
+        # wind_drift_depth: 3.0
         # current_uncertainty: float(min=0, max=5, default=0)
         # current_uncertainty_uniform: float(min=0, max=5, default=0)
         # wind_uncertainty: float(min=0, max=5, default=0)
