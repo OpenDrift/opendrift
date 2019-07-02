@@ -199,7 +199,7 @@ class Reader(BaseReader):
         lonmin = x.min() - buffer
         lonmax = x.max() + buffer
         latmin = y.min() - buffer
-        latmax = y.min() + buffer
+        latmax = y.max() + buffer
         c = np.where((self.lon > lonmin) &
                      (self.lon < lonmax) &
                      (self.lat > latmin) &

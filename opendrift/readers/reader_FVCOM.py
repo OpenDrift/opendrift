@@ -205,15 +205,14 @@ class Reader(BaseReader):
         lonmin = x.min() - buffer
         lonmax = x.max() + buffer
         latmin = y.min() - buffer
-        latmax = y.min() + buffer
+        latmax = y.max() + buffer
         c = np.where((self.lon > lonmin) &
                      (self.lon < lonmax) &
                      (self.lat > latmin) &
                      (self.lat < latmax))[0]
-
         # Making a lon-lat grid onto which data is interpolated
-        lonstep = .01  # hardcoded for now
-        latstep = .01  # hardcoded for now
+        lonstep = .01   # hardcoded for now
+        latstep = .005  # hardcoded for now
         lons = np.arange(lonmin, lonmax, lonstep)
         lats = np.arange(latmin, latmax, latstep)
         lonsm, latsm = np.meshgrid(lons, lats)
@@ -230,7 +229,7 @@ class Reader(BaseReader):
             elif var.ndim == 2:
                 data = var[indxTime,c]
             elif var.ndim == 3:
-                data = var[indxTime,0,c]
+                data = var[indxTime,-1,c]
             else:
                 raise ValueError('Wrong dimension of %s: %i' %
                                  (var_name, var.ndim))
@@ -247,5 +246,4 @@ class Reader(BaseReader):
 
             variables[par] = interpolator(latsm, lonsm)
 
-        #print variables
         return variables
