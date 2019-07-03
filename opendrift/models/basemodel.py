@@ -2412,7 +2412,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lonmax = np.nanmax(lons) + buffer*2
         latmin = np.nanmin(lats) - buffer
         latmax = np.nanmax(lats) + buffer
-        if 'basemap_landmask' in self.readers:
+        if 'basemap_landmask' in self.readers and buffer == .1:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
             plt.figure(0, figsize=self.readers['basemap_landmask'].figsize)
