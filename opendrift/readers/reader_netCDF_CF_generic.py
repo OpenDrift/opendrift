@@ -299,6 +299,8 @@ class Reader(BaseReader):
             buffer = self.buffer
             if self.global_coverage():
                 #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+                if indx.min() < 0:  # Primitive fix for crossing 0-meridian
+                    indx = indx + self.numx
                 indx = np.arange(np.max([0, indx.min()-buffer]),np.min([indx.max()+buffer, self.numx]))
             else:
                 indx = np.arange(np.max([0, indx.min()-buffer]),
