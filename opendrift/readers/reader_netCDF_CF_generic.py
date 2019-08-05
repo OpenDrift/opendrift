@@ -116,12 +116,12 @@ class Reader(BaseReader):
                 CoordinateAxisType = var.__dict__['_CoordinateAxisType']
             if standard_name == 'longitude' or \
                     CoordinateAxisType == 'Lon' or \
-                    long_name == 'longitude':
+                    long_name.lower() == 'longitude':
                 self.lon = var
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
                     CoordinateAxisType == 'Lat' or \
-                    long_name == 'latitude':
+                    long_name.lower() == 'latitude':
                 self.lat = var
                 lat_var_name = var_name
             if axis == 'X' or \
