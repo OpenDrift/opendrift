@@ -1613,7 +1613,8 @@ class OpenDriftSimulation(PhysicsMethods):
             latpoints = np.append(latpoints, latpoints[0:missing])
 
         # Finally seed at calculated positions
-        self.seed_elements(lonpoints, latpoints, **kwargs)
+        self.seed_elements(lonpoints, latpoints, number=number,
+                           **kwargs)
 
     def seed_from_wkt(self, wkt, number, **kwargs):
         """Seeds elements within (multi)polygons from WKT"""
