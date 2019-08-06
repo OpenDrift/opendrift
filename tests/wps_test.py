@@ -45,7 +45,7 @@ class TestWPS(unittest.TestCase):
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
     def test_leeway_yesterday(self):
