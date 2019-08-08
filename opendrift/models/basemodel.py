@@ -2571,6 +2571,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
+                  show_trajectories=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20,
                   legend=None, legend_loc='best', fps=10):
@@ -2672,6 +2673,9 @@ class OpenDriftSimulation(PhysicsMethods):
             z = self.get_property('z')[0].T
             x[z<0] = np.nan
             y[z<0] = np.nan
+
+        if show_trajectories is True:
+            map.plot(x.T, y.T, color='gray', alpha=.1)
 
         if color is not False:
             if isinstance(color, basestring):
