@@ -1432,7 +1432,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 radius_array = np.linspace(radius_array[0], radius_array[1],
                                            number)
                 number_array = np.ones(number)
-                time_array = [time[0] + i*td for i in range(number)]
+                #time_array = [time[0] + i*td for i in range(number)]
 
             if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
                     and kwargs['z'][0:8] == 'seafloor':
@@ -1613,7 +1613,8 @@ class OpenDriftSimulation(PhysicsMethods):
             latpoints = np.append(latpoints, latpoints[0:missing])
 
         # Finally seed at calculated positions
-        self.seed_elements(lonpoints, latpoints, **kwargs)
+        self.seed_elements(lonpoints, latpoints, number=number,
+                           **kwargs)
 
     def seed_from_wkt(self, wkt, number, **kwargs):
         """Seeds elements within (multi)polygons from WKT"""
@@ -2412,7 +2413,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lonmax = np.nanmax(lons) + buffer*2
         latmin = np.nanmin(lats) - buffer
         latmax = np.nanmax(lats) + buffer
-        if 'basemap_landmask' in self.readers:
+        if 'basemap_landmask' in self.readers and buffer == .1:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
             plt.figure(0, figsize=self.readers['basemap_landmask'].figsize)
@@ -2570,6 +2571,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
+                  show_trajectories=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20,
                   legend=None, legend_loc='best', fps=10):
@@ -2671,6 +2673,9 @@ class OpenDriftSimulation(PhysicsMethods):
             z = self.get_property('z')[0].T
             x[z<0] = np.nan
             y[z<0] = np.nan
+
+        if show_trajectories is True:
+            map.plot(x.T, y.T, color='gray', alpha=.1)
 
         if color is not False:
             if isinstance(color, basestring):

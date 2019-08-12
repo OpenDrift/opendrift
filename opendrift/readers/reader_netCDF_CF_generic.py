@@ -116,12 +116,12 @@ class Reader(BaseReader):
                 CoordinateAxisType = var.__dict__['_CoordinateAxisType']
             if standard_name == 'longitude' or \
                     CoordinateAxisType == 'Lon' or \
-                    long_name == 'longitude':
+                    long_name.lower() == 'longitude':
                 self.lon = var
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
                     CoordinateAxisType == 'Lat' or \
-                    long_name == 'latitude':
+                    long_name.lower() == 'latitude':
                 self.lat = var
                 lat_var_name = var_name
             if axis == 'X' or \
@@ -299,6 +299,8 @@ class Reader(BaseReader):
             buffer = self.buffer
             if self.global_coverage():
                 #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+                if indx.min() < 0:  # Primitive fix for crossing 0-meridian
+                    indx = indx + self.numx
                 indx = np.arange(np.max([0, indx.min()-buffer]),np.min([indx.max()+buffer, self.numx]))
             else:
                 indx = np.arange(np.max([0, indx.min()-buffer]),

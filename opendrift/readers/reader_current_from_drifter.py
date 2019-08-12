@@ -59,7 +59,7 @@ class Reader(BaseReader):
         self.azimuth, backazimuth, self.dist = \
             g.inv(lon1, lat1, lon2, lat2, radians=False)
         self.speed = []
-        print self.dist
+        print (self.dist)
         for i, t in enumerate(self.dist):
             self.speed.append(self.dist[i] /
                               (times[i+1] - times[i]).total_seconds())
