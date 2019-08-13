@@ -2576,7 +2576,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     np.reshape(self.elements_scheduled.lat, (1, -1))).T
         return lons, lats
 
-    def animation(self, buffer=.2, corners=False, filename=None, compare=None,
+    def animation(self, buffer=.2, corners=None, filename=None, compare=None,
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
