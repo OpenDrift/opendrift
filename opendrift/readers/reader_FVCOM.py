@@ -224,6 +224,7 @@ class Reader(BaseReader):
         # Reader coordinates of subset
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
+            print var
             if var.ndim == 1:
                 data = var[c]
             elif var.ndim == 2:
@@ -233,6 +234,8 @@ class Reader(BaseReader):
             else:
                 raise ValueError('Wrong dimension of %s: %i' %
                                  (var_name, var.ndim))
+
+            print data
 
             if 'interpolator' not in locals():
                 logging.debug('Making interpolator...')

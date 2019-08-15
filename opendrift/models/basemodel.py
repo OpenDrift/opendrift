@@ -2399,8 +2399,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, buffer=.1, delta_lat=None, **kwargs):
-        """Generate Basemap instance on which trajectories are plotted."""
+    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, **kwargs):
+        """Generate Basemap instance on which trajectories are plotted.
+
+           provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection"""
 
         try:  # Clear any existing figure instances
             plt.close()
@@ -2409,11 +2411,18 @@ class OpenDriftSimulation(PhysicsMethods):
         lons, lats = self.get_lonlats()
 
         # Initialise map
-        lonmin = np.nanmin(lons) - buffer*2
-        lonmax = np.nanmax(lons) + buffer*2
-        latmin = np.nanmin(lats) - buffer
-        latmax = np.nanmax(lats) + buffer
-        if 'basemap_landmask' in self.readers and buffer == .1:
+        if corners==None:
+            lonmin = np.nanmin(lons) - buffer*2
+            lonmax = np.nanmax(lons) + buffer*2
+            latmin = np.nanmin(lats) - buffer
+            latmax = np.nanmax(lats) + buffer
+        else:
+            lonmin = corners[0]
+            lonmax = corners[1]
+            latmin = corners[2]
+            latmax = corners[3]
+
+        if 'basemap_landmask' in self.readers and buffer == .1 and corners == None:
             # Using an eventual Basemap already used to check stranding
             map = self.readers['basemap_landmask'].map
             plt.figure(0, figsize=self.readers['basemap_landmask'].figsize)
@@ -2567,7 +2576,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     np.reshape(self.elements_scheduled.lat, (1, -1))).T
         return lons, lats
 
-    def animation(self, buffer=.2, filename=None, compare=None,
+    def animation(self, buffer=.2, corners=None, filename=None, compare=None,
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
@@ -2667,7 +2676,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Find map coordinates and plot points with empty data
         map, plt, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer)
+            self.set_up_map(buffer=buffer,corners=corners)
         ax = plt.gcf().gca()
         if surface_only is True:
             z = self.get_property('z')[0].T
@@ -2931,7 +2940,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return compare_list
 
-    def plot(self, background=None, buffer=.2, linecolor=None, filename=None,
+    def plot(self, background=None, buffer=.2, corners=None, linecolor=None, filename=None,
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
@@ -2969,7 +2978,7 @@ class OpenDriftSimulation(PhysicsMethods):
         start_time = datetime.now()
 
         map, plt, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer, **kwargs)
+            self.set_up_map(buffer=buffer,corners=corners, **kwargs)
 
         # The more elements, the more transparent we make the lines
         min_alpha = 0.1
