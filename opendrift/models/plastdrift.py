@@ -98,11 +98,6 @@ class PlastDrift(OceanDrift3D):
         # Advect particles due to wind-induced shear near surface
         self.advect_wind()
 
-        # We set z to 0 for performance (need only read
-        # surface current), but store it as 'depth' for analysis
-        self.elements.depth = self.elements.z
-        self.elements.z = 0*self.elements.z
-
     def update_particle_depth(self):
 
         w = self.wind_speed()
