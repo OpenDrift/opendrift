@@ -24,9 +24,6 @@ PassiveTracer.variables = PassiveTracer.add_variables([
     ('wind_drift_factor', {'dtype': np.float32,
                            'unit': '%',
                            'default': 0.02}),
-    ('depth', {'dtype': np.float32,
-               'unit': '%',
-               'default': 0.0}),
     ('terminal_velocity', {'dtype': np.float32,
                            'units': 'm/s',
                            'default': 0.01})])
