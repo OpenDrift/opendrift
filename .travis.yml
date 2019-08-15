@@ -60,11 +60,9 @@ install:
         python setup.py install;
     fi
   - conda config --get channels;
-  - conda install -q --yes -c conda-forge future hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj;
-  - conda install -q --yes -c conda-forge libgdal gdal coveralls pyproj basemap=$BASEMAP basemap-data-hires nomkl ffmpeg "x264<20180712";
-  - conda install -q --yes -c conda-forge netcdf4=$NETCDF dask;
+  - conda install -q --yes -c conda-forge future hdf4 numpy=$NUMPY scipy=$SCIPY matplotlib=$MATPLOTLIB netcdf4=$NETCDF configobj libgdal gdal coveralls pyproj basemap=$BASEMAP basemap-data-hires nomkl ffmpeg "x264<20180712" netcdf4=$NETCDF;
   - if [ "$XARRAY" ]; then
-        conda install -q --yes -c conda-forge xarray=$XARRAY;
+        conda install -q --yes -c conda-forge xarray=$XARRAY dask;
     fi
   - conda list;
   - cd /home/travis/build/OpenDrift/opendrift;
