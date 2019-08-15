@@ -211,8 +211,8 @@ class Reader(BaseReader):
                      (self.lat > latmin) &
                      (self.lat < latmax))[0]
         # Making a lon-lat grid onto which data is interpolated
-        lonstep = .01   # hardcoded for now
-        latstep = .005  # hardcoded for now
+        lonstep = .0004   # hardcoded for now
+        latstep = .0002   # hardcoded for now
         lons = np.arange(lonmin, lonmax, lonstep)
         lats = np.arange(latmin, latmax, latstep)
         lonsm, latsm = np.meshgrid(lons, lats)
