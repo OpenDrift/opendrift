@@ -43,7 +43,7 @@ class TestStranding(unittest.TestCase):
         o.set_config('general:basemap_resolution', 'i')
         o.set_config('general:coastline_action', 'stranding')
         o.set_config('turbulentmixing:timestep', 120)
-        o.set_config('turbulentmixing:verticalresolution', 10)
+
         o.max_speed=.1
         o.run(end_time=reader_nordic.end_time, time_step=3600*6)
         self.assertEqual(o.status_categories[1], 'stranded')

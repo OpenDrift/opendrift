@@ -42,7 +42,7 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['y_sea_water_velocity'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 3
-        o.set_config('turbulentmixing:verticalresolution', 2)
+
         o.set_config('turbulentmixing:timestep', 4)
         # Setting droplet size range for subsea blowout
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)
@@ -70,7 +70,6 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['y_sea_water_velocity'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 2.5
-        o.set_config('turbulentmixing:verticalresolution', 2)
         o.set_config('turbulentmixing:timestep', 4)
         # Setting droplet size range for subsea blowout
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)
@@ -151,7 +150,6 @@ class TestPhysics(unittest.TestCase):
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
-        o.set_config('turbulentmixing:verticalresolution', 2)
         o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_property('z')
@@ -173,7 +171,7 @@ class TestPhysics(unittest.TestCase):
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
-        o.set_config('turbulentmixing:verticalresolution', 2)
+
         o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
@@ -194,7 +192,7 @@ class TestPhysics(unittest.TestCase):
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
-        o.set_config('turbulentmixing:verticalresolution', 2)
+
         o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)

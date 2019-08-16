@@ -307,7 +307,7 @@ class TestRun(unittest.TestCase):
         o1.seed_elements(4.1, 63.3, radius=1000, number=100,
                          time=norkyst.start_time)
         o1.set_config('turbulentmixing:timestep', 20.) # seconds
-        o1.set_config('turbulentmixing:verticalresolution', 1.) # m
+
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
         self.assertAlmostEqual(o1.history['z'].min(), -31.9, 1)
@@ -566,7 +566,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000)
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
@@ -588,7 +588,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z='seafloor+50', time=reader_norkyst.start_time,
                         density=1000)
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
@@ -608,7 +608,7 @@ class TestRun(unittest.TestCase):
                         density=1000)
         #o.set_config('turbulentmixing:TSprofiles', True)
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
@@ -629,7 +629,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
                         density=1000)
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
@@ -652,7 +652,7 @@ class TestRun(unittest.TestCase):
                         density=1000, number=2)
         o.set_config('drift:lift_to_seafloor', False)  # This time we deactivate
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
