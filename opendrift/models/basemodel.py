@@ -436,13 +436,25 @@ class OpenDriftSimulation(PhysicsMethods):
     def previous_position_if(self):
         return None
 
-    def interact_with_coastline(self):
+    def interact_with_coastline(self, final=False):
+        if self.num_elements_active() == 0:
+            return
         """Coastline interaction according to configuration setting"""
         i = self.get_config('general:coastline_action')
         if not hasattr(self, 'environment') or not hasattr(self.environment, 'land_binary_mask'):
             return
         if i == 'none':  # Do nothing
             return
+        if final is True:  # Get land_binary_mask for final location
+            en, en_prof, missing = \
+                self.get_environment(['land_binary_mask'],
+                                     self.time,
+                                     self.elements.lon,
+                                     self.elements.lat,
+                                     self.elements.z,
+                                     None)
+            self.environment.land_binary_mask = en.land_binary_mask
+
         if i == 'stranding':  # Deactivate elements on land
             self.deactivate_elements(
                 self.environment.land_binary_mask == 1, reason='stranded')
@@ -2246,7 +2258,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timer_start('cleaning up')
         logging.debug('Cleaning up')
 
-        self.interact_with_coastline()
+        self.interact_with_coastline(final=True)
         self.state_to_buffer()  # Append final status to buffer
 
         #############################
