@@ -1721,34 +1721,39 @@ class OpenDriftSimulation(PhysicsMethods):
                                  layer.GetFeatureCount())
 
             # Loop first through all features to determine total area
-            total_area = 0
             layer.ResetReading()
+            area_srs = osr.SpatialReference()
+            area_srs.ImportFromEPSG(3857)
+            areaTransform = osr.CoordinateTransformation(layer.GetSpatialRef(), area_srs)
+
+            areas = np.zeros(len(featurenum))
             for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)  # Note 1-indexing, not 0
                 if feature is not None:
-                    total_area += feature.GetGeometryRef().GetArea()
+                    gom = feature.GetGeometryRef().Clone()
+                    gom.Transform(areaTransform)
+                    areas[i] = gom.GetArea()
+
+            total_area = np.sum(areas)
             layer.ResetReading()  # Rewind to first layer
             logging.info('Total area of all polygons: %s m2' % total_area)
+            # Find number of points per polygon
+            numbers = np.round(number*areas/total_area).astype(int)
+            numbers[numbers.argmax()] += np.int(number-sum(numbers))
 
             for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)
                 if feature is None:
                     continue
+                num_elements = numbers[i]
                 geom = feature.GetGeometryRef()
-                num_elements = np.int(number*geom.GetArea()/total_area)
-                if f == featurenum[-1]:
-                    # For the last feature we seed the remaining number,
-                    # avoiding difference due to rounding:
-                    num_elements = number - (
-                        self.num_elements_scheduled() -
-                        num_seeded_before)
                 logging.info('\tSeeding %s elements within polygon number %s' %
                              (num_elements, featurenum[i]))
                 try:
                     geom.Transform(coordTrans)
                 except:
                     pass
-                b = geom.GetBoundary()
+                #b = geom.GetBoundary()
                 #if b is not None:
                 #    points = b.GetPoints()
                 #    lons = [p[0] for p in points]
