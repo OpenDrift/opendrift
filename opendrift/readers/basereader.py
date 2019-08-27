@@ -698,7 +698,7 @@ class BaseReader(object):
                 return x, y
             else:
                 if 'ob_tran' in self.proj4:
-                    logging.info('NB: Converting degrees to radians ' +
+                    logging.debug('NB: Converting degrees to radians ' +
                                  'due to ob_tran srs')
                     x = np.radians(np.array(x))
                     y = np.radians(np.array(y))
