@@ -33,6 +33,8 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.pelagicegg import PelagicEggDrift
+from opendrift.models.plastdrift import PlastDrift
+
 
 def gdal_error_handler(err_class, err_num, err_msg):
     errtype = {
@@ -785,6 +787,24 @@ class TestRun(unittest.TestCase):
                         number=100, radius=5000)
         o.run(end_time=norkyst.end_time)
         self.assertEqual(o.num_elements_active(), 100)
+
+    def test_unseeded_elements(self):
+        o = PlastDrift()
+        # Seeding elements for 12 hours, but running only 6
+        time = datetime(2019, 8, 30, 12)
+        o.seed_elements(lon=4.85, lat=60, number=10,
+                        time=[time, time + timedelta(hours=6)],
+                        origin_marker=7)
+        o.seed_elements(lon=4.75, lat=60, number=10,
+                        time=[time, time + timedelta(hours=6)],
+                        origin_marker=8)
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 1
+        o.run(duration=timedelta(hours=3))
+        self.assertEqual(o.history.shape[0], 10)
+        self.assertEqual(o.history.shape[1], 4)
+        self.assertEqual(o.history['origin_marker'].min(), 7)
+        self.assertEqual(o.history['origin_marker'].max(), 8)
 
 if __name__ == '__main__':
     unittest.main()

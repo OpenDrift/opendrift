@@ -2295,8 +2295,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if export_buffer_length is None:
             # Remove columns for unseeded elements in history array
-            self.history = self.history[
-                range(self.num_elements_activated()), :]
+            if self.num_elements_scheduled() > 0:
+                logging.info('Removing %i unseeded elements from history array' %
+                               self.num_elements_scheduled())
+                mask = np.ones(self.history.shape[0], dtype=bool)
+                mask[self.elements_scheduled.ID-1] = False
+                self.history = self.history[mask, :]
+
             # Remove rows for unreached timsteps in history array
             self.history = self.history[:, range(self.steps_output)]
         else:  # If output has been flushed to file during run, we
@@ -2408,11 +2413,15 @@ class OpenDriftSimulation(PhysicsMethods):
         index_of_activation = firstlast[0][1]
         index_of_deactivation = firstlast[1][1]
         if len(index_of_deactivation) < self.history['lon'].shape[0]:
-            missingind = np.setdiff1d(
-                np.arange(0, self.history['lon'].shape[0]),
-                firstlast[0][0])
+            #missingind = np.setdiff1d(
+            #    np.arange(0, self.history['lon'].shape[0]),
+            #    firstlast[0][0])
             logging.warning('%s elements were never seeded, removing from history array' % len(missingind))
-            self.history = self.history[firstlast[0][0], :]
+            shouldnothappen
+            #print('REMOVING')
+            #print(firstlast[0][0])
+            #finito
+            #self.history = self.history[firstlast[0][0], :]
 
         return index_of_activation, index_of_deactivation
 
