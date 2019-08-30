@@ -166,12 +166,14 @@ def close(self):
                                              variable.dimensions)
                 srcVar = src.variables[name]
                 # Truncate data to number actually seeded
-                if self.num_elements_scheduled() > 0:
-                    #if 'trajectory' in variable.dimensions:
-                    if len(variable.dimensions) == 2:
-                        dstVar[:] = srcVar[mask, :] 
+                if 'trajectory' in variable.dimensions:
+                    if self.num_elements_scheduled() > 0:
+                        if len(variable.dimensions) == 2:
+                            dstVar[:] = srcVar[mask, :] 
+                        else:
+                            dstVar[:] = srcVar[mask]  # Copy data
                     else:
-                        dstVar[:] = srcVar[mask]  # Copy data
+                        dstVar[:] = srcVar[:]
                 else:
                     dstVar[:] = srcVar[:]
                 for att in src.variables[name].ncattrs():
