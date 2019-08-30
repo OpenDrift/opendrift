@@ -255,8 +255,8 @@ class Reader(BaseReader):
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
         indx[outside] = 0  # To be masked later
         indy[outside] = 0
-        indx_el = indx
-        indy_el = indy
+        indx_el = indx.copy()
+        indy_el = indy.copy()
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
