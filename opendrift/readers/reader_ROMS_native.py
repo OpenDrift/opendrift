@@ -289,8 +289,8 @@ class Reader(BaseReader):
                 H = self.sea_floor_depth_below_sea_level[indy, indx]
             z_rho = depth.sdepth(H, self.hc, self.Cs_r)
             # Element indices must be relative to extracted subset
-            indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[1]-1)
-            indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[2]-1)
+            indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
+            indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
 
             # Loop to find the layers covering the requested z-values
             indz_min = 0
