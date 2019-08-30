@@ -2740,7 +2740,7 @@ class OpenDriftSimulation(PhysicsMethods):
             c = 'k'
         else:
             c = []
-        points = map.scatter([], [], color=c, zorder=10,
+        points = map.scatter([], [], c=c, zorder=10,
                              edgecolor='', cmap=cmap, s=markersize,
                              vmin=vmin, vmax=vmax, label=legend[0])
         # Plot deactivated elements, with transparency
