@@ -166,7 +166,8 @@ def close(self):
                                              variable.dimensions)
                 srcVar = src.variables[name]
                 # Truncate data to number actually seeded
-                if 'trajectory' in variable.dimensions:
+                if self.num_elements_scheduled() > 0:
+                    #if 'trajectory' in variable.dimensions:
                     if len(variable.dimensions) == 2:
                         dstVar[:] = srcVar[mask, :] 
                     else:
