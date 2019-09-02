@@ -16,3 +16,4 @@ dependencies:
   - configobj
   - libgdal>=2.3.3
   - gdal>=2.3.3
+  - ipython

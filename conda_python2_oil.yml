@@ -25,5 +25,6 @@ dependencies:
   - pytest>=2.9.2
   - backports.functools_lru_cache>=1.5
   - unit_conversion>=2.5.4
+  - ipython
   - pip:
     - git+https://github.com/knutfrode/OilLibrary.git@master
