@@ -248,7 +248,7 @@ class Reader(BaseReader):
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
 
-        self.variables = self.variable_mapping.keys()
+        self.variables = list(self.variable_mapping.keys())
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()

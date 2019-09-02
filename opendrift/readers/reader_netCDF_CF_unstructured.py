@@ -166,7 +166,7 @@ class Reader(BaseReader):
                 self.variable_mapping[fvcom_mapping[var_name]] = \
                     str(var_name)
 
-        self.variables = self.variable_mapping.keys()
+        self.variables = list(self.variable_mapping.keys())
 
         self.xmin = self.lon.min()
         self.xmax = self.lon.max()
