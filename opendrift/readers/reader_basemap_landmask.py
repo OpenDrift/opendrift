@@ -21,13 +21,13 @@ import gc
 import numpy as np
 import collections
 import matplotlib
-matplotlib.use('Tkagg')
+matplotlib.use('Tkagg') # may need to use 'agg' on remote servers
 if ('DISPLAY' not in os.environ and
 	    'PYCHARM_HOSTED' not in os.environ and
         os.name != 'nt'):
     logging.info('No display found. Using non-interactive Agg backend')
     # matplotlib.use('agg')
-    matplotlib.use('Tkagg')
+    matplotlib.use('Tkagg') # may need to use 'agg' on remote servers
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 try:
