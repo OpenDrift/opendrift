@@ -66,8 +66,10 @@ vector_pairs_xy = [
 class fakeproj():
     # For readers with unprojected domain, we emulate a
     # pyproj class with needed functions
-    def is_latlong(self):
-        return False
+    class _crs:
+        is_geographic = False
+
+    crs = _crs()
 
     def __call__(self, x, y, inverse=False):
         # Simply return x and y since these are also row/column indices
@@ -172,7 +174,7 @@ class BaseReader(object):
                 # Reusing x-interpolator (deepcopy) with data for y
                 self.spl_y = copy.deepcopy(self.spl_x)
                 self.spl_y.values[:, 0] = block_y.ravel()
-                # Call interpolator to avoid threading-problem: 
+                # Call interpolator to avoid threading-problem:
                 # https://github.com/scipy/scipy/issues/8856
                 self.spl_x((0,0)), self.spl_y((0,0))
 
@@ -218,7 +220,7 @@ class BaseReader(object):
                     self.rotate_mapping[xvar] = var
 
     def y_is_north(self):
-        if self.proj.is_latlong() or '+proj=merc' in self.proj.srs:
+        if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:
             return True
         else:
             return False
@@ -238,13 +240,13 @@ class BaseReader(object):
             logging.debug('Setting buffer size %i for reader %s, assuming '
                           'a maximum average speed of %g m/s.' %
                           (self.buffer, self.name, max_speed))
-                
+
     def pixel_size(self):
         # Find typical pixel size (e.g. for calculating size of buffer)
         if self.projected is True:
             if hasattr(self, 'delta_x'):
                 pixelsize = self.delta_x
-                if self.proj.is_latlong() is True or \
+                if self.proj.crs.is_geographic is True or \
                         ('ob_tran' in self.proj4) or \
                         ('longlat' in self.proj4) or \
                         ('latlon' in self.proj4):
@@ -428,7 +430,7 @@ class BaseReader(object):
                     blockvariables_after = block_after.data_dict.keys()
                     blockvars_after = blockvars
                     break
-                
+
             # Swap before- and after-blocks if matching times
             if block_before is not None and block_after is not None:
                 if block_before.time != time_before:
@@ -539,7 +541,7 @@ class BaseReader(object):
                                                 env_after[var] * weight_after))
 
                 if var in standard_names.keys():
-                    invalid = np.where((env[var] < standard_names[var]['valid_min']) 
+                    invalid = np.where((env[var] < standard_names[var]['valid_min'])
                                | (env[var] > standard_names[var]['valid_max']))[0]
                     if len(invalid) > 0:
                         logging.warning('Invalid values found for ' + var)
@@ -663,7 +665,7 @@ class BaseReader(object):
         if type(proj_to) is str:
             proj_to = pyproj.Proj(proj_to)
 
-        if proj_from.is_latlong():
+        if proj_from.crs.is_geographic:
                 delta_y = .1  # 0.1 degree northwards
         else:
             delta_y = 10  # 10 m along y-axis
@@ -673,7 +675,7 @@ class BaseReader(object):
                                               proj_to,
                                               reader_x, reader_y + delta_y)
 
-        if proj_to.is_latlong():
+        if proj_to.crs.is_geographic:
             geod = pyproj.Geod(ellps='WGS84')
             rot_angle_vectors_rad = np.radians(
                 geod.inv(x2, y2, x2_delta, y2_delta)[0])
@@ -694,7 +696,7 @@ class BaseReader(object):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
         if self.projected is True:
-            if self.proj.is_latlong():
+            if self.proj.crs.is_geographic:
                 return x, y
             else:
                 if 'ob_tran' in self.proj4:
@@ -724,7 +726,7 @@ class BaseReader(object):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
         if self.projected is True:
-            if self.proj.is_latlong():
+            if self.proj.crs.is_geographic:
                 return lon, lat
             else:
                 x, y = self.proj(lon, lat, inverse=False)
@@ -836,7 +838,7 @@ class BaseReader(object):
     def global_coverage(self):
         """Return True if global coverage east-west"""
 
-        if self.proj.is_latlong() is True and hasattr(self, 'delta_x'):
+        if self.proj.crs.is_geographic is True and hasattr(self, 'delta_x'):
             if (self.xmin - self.delta_x <= 0) and (
                 self.xmax + self.delta_x >= 360):
                 return True  # Global 0 to 360
@@ -997,7 +999,7 @@ class BaseReader(object):
         outStr = '===========================\n'
         outStr += 'Reader: ' + self.name + '\n'
         outStr += 'Projection: \n  ' + self.proj4 + '\n'
-        if self.proj.is_latlong():
+        if self.proj.crs.is_geographic:
             if self.projected is False:
                 outStr += 'Coverage: [pixels]\n'
             else:

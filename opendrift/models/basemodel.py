@@ -508,7 +508,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def lonlat2xy(self, lon, lat):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
-        if self.proj.is_latlong():
+        if self.proj.crs.is_geographic:
             return lon, lat
         else:
             x, y = self.proj(lon, lat, inverse=False)
@@ -522,7 +522,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def xy2lonlat(self, x, y):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        if self.proj.is_latlong():
+        if self.proj.crs.is_geographic:
             return x, y
         else:
             if 'ob_tran' in self.proj4:
@@ -759,7 +759,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             ' discarded: ' + lazyname)
             self.discard_reader(reader)
             return self._initialise_next_lazy_reader()  # Call self
-    
+
         reader.set_buffer_size(max_speed=self.max_speed)
         # Update reader lazy name with actual name
         self.readers[reader.name] = \
@@ -859,7 +859,7 @@ class OpenDriftSimulation(PhysicsMethods):
             variable_groups, reader_groups, missing_variables = \
                 self.get_reader_groups(variables)
             if hasattr(self, 'desired_variables'):
-                missing_variables = list(set(missing_variables) - 
+                missing_variables = list(set(missing_variables) -
                                          set(self.desired_variables))
             if len(missing_variables) > 0:
                 logging.debug('Variables not covered by any reader: ' +
@@ -1074,7 +1074,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 logging.debug('No wind available to calculate Stokes drift')
             else:
                 if 'sea_surface_wave_stokes_drift_x_velocity' not in variables or (
-                    env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and 
+                    env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and
                     env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
                         logging.debug('Calculating parameterised stokes drift')
                         env['sea_surface_wave_stokes_drift_x_velocity'], \
@@ -1087,7 +1087,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         env['sea_surface_wave_significant_height'] = \
                             self.wave_significant_height_parameterised((env['x_wind'], env['y_wind']),
                             self.get_config('drift:tabularised_stokes_drift_fetch'))
-       
+
         #############################
         # Add uncertainty/diffusion
         #############################
@@ -1630,7 +1630,7 @@ class OpenDriftSimulation(PhysicsMethods):
         for i in range(0, geom.GetGeometryCount()):
             g = geom.GetGeometryRef(i)
             total_area += g.GetArea()
-        
+
         logging.info('Total area of all polygons: %s m2' % total_area)
         num_seeded = 0
         for i in range(0, geom.GetGeometryCount()):
@@ -1891,7 +1891,7 @@ class OpenDriftSimulation(PhysicsMethods):
             export_buffer_length = None
 
         # Set projection to latlong if not taken from any of the readers
-        if self.proj is not None and not (self.proj.is_latlong() or
+        if self.proj is not None and not (self.proj.crs.is_geographic or
             'proj=merc' in self.proj.srs):
             for vector_component in vector_pairs_xy:
                 for component in vector_component:
@@ -2381,7 +2381,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def report_missing_variables(self):
         """Issue warning if some environment variables missing."""
-        
+
         missing_variables = []
         for var in self.required_variables:
             if np.isnan(getattr(self.environment, var).min()):
@@ -3586,7 +3586,7 @@ class OpenDriftSimulation(PhysicsMethods):
         azimuth = np.degrees(np.arctan2(x_vel, y_vel))  # Direction of motion
         velocity = np.sqrt(x_vel**2 + y_vel**2)  # Velocity in m/s
 
-        if not self.proj.is_latlong():  # Need to rotate SRS
+        if not self.proj.crs.is_geographic:  # Need to rotate SRS
             # Calculate x,y from lon,lat
             self.elements.x, self.elements.y = self.lonlat2xy(
                 self.elements.lon, self.elements.lat)
@@ -3674,7 +3674,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def get_messages(self):
         """Report any messages stored during simulation."""
-        
+
         if hasattr(self, 'messages'):
             return str(self.messages).strip('[]') + '\n'
         else:
@@ -3784,12 +3784,12 @@ class OpenDriftSimulation(PhysicsMethods):
         lcs['ALCS'] = lcs['ALCS'][:,::-1,::-1]
 
         return lcs
-    
+
     def center_of_gravity(self, onlysurface=False):
         """
         calculate center of mass and variance of all elements
-        returns  (lon,lat), variance 
-        where (lon,lat) are the coordinates of the center of mass as 
+        returns  (lon,lat), variance
+        where (lon,lat) are the coordinates of the center of mass as
         function of time"""
         #lon,lat = self.get_property('lon')[0], self.get_property('lat')[0]
         lon,lat = self.history['lon'], self.history['lat']
@@ -3807,7 +3807,7 @@ class OpenDriftSimulation(PhysicsMethods):
         variance = np.ma.mean((x-x_m*one)**2 + (y-y_m*one)**2, axis=0)
 
         return center,variance
- 
+
 
     def reset(self):
         """Preparing OpenDrift object for new run"""

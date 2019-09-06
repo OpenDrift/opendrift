@@ -290,7 +290,7 @@ class TestReaders(unittest.TestCase):
         o.run(steps=2)
 
     def test_reader_coverage(self):
-        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         # Element outside reader domain
         self.assertEqual(len(r.covers_positions(5, 80)[0]), 0)
@@ -311,7 +311,7 @@ class TestReaders(unittest.TestCase):
 
     def test_outside_reader_time_coverage(self):
         o = PelagicEggDrift()
-        reader = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+        reader = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         o.add_reader(reader)
         o.fallback_values['x_sea_water_velocity'] = 1
@@ -325,7 +325,7 @@ class TestReaders(unittest.TestCase):
     def test_reader_netcdf(self):
         """Check reader functionality."""
 
-        reader1 = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+        reader1 = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         reader2 = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
@@ -362,12 +362,12 @@ class TestReaders(unittest.TestCase):
 
             self.assertTrue(r.covers_time(r.start_time))
             self.assertFalse(r.covers_time(r.start_time - r.time_step))
-            self.assertFalse(r.proj.is_latlong())
+            self.assertFalse(r.proj.crs.is_geographic)
 
 
     def test_vertical_profiles(self):
 
-        norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+        norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         lon = np.array([4.73])
         lat = np.array([62.35])
@@ -390,7 +390,7 @@ class TestReaders(unittest.TestCase):
         z = np.array([0, -33])
         variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
                      'sea_water_temperature']
-        # Call get_variables_interpolated which interpolates both in 
+        # Call get_variables_interpolated which interpolates both in
         # space (horizontally, vertically) and then in time
         data, profiles = norkyst3d.get_variables_interpolated(
                 variables, profiles=['sea_water_temperature'],
@@ -417,7 +417,7 @@ class TestReaders(unittest.TestCase):
         x, y = nordic3d.lonlat2xy(lon, lat)
         variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                      'sea_water_temperature']
-        # Call get_variables_interpolated which interpolates both in 
+        # Call get_variables_interpolated which interpolates both in
         data = nordic3d.get_variables(variables,
                 time = nordic3d.start_time + timedelta(seconds=900),
                 x=x, y=y, z=z, block=True)
@@ -505,10 +505,10 @@ class TestReaders(unittest.TestCase):
         cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
         cc = reader_constant.Reader({'x_sea_water_velocity':0, 'y_sea_water_velocity': .2})
         cs = reader_constant.Reader({'sea_water_temperature': 278})
-        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         o.add_reader([cw, cc, r])
-        # TODO: should check why adding constant reader with 
+        # TODO: should check why adding constant reader with
         #   sea_water_temperature gives Deprecated warning
         #o.add_reader([cw, cc, cs, r])
         o.seed_elements(lon=4, lat=60, time=r.start_time, number=5)
@@ -569,7 +569,7 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(len(lat4), 13)
         self.assertIsNone(np.testing.assert_allclose(
                             lat3[0:12], lat4[0:12]))
-                            
+
     def test_reader_current_from_track(self):
         """Check if extrapolated currents are of expected value"""
         obslon = [3.1, 3.123456]
