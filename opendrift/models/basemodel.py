@@ -433,9 +433,6 @@ class OpenDriftSimulation(PhysicsMethods):
             self.previous_lon[IDs-1] = np.copy(lons)
             self.previous_lat[IDs-1] = np.copy(lats)
 
-    def previous_position_if(self):
-        return None
-
     def interact_with_coastline(self, final=False):
         if self.num_elements_active() == 0:
             return
@@ -459,22 +456,12 @@ class OpenDriftSimulation(PhysicsMethods):
             self.deactivate_elements(
                 self.environment.land_binary_mask == 1, reason='stranded')
         elif i == 'previous':  # Go back to previous position (in water)
-            previous_position_if = self.previous_position_if()
             if self.newly_seeded_IDs is not None:
                 self.deactivate_elements(
                     (self.environment.land_binary_mask == 1) &
                     (self.elements.ID >= self.newly_seeded_IDs[0]),
                     reason='seeded_on_land')
-                if previous_position_if is not None:
-                    self.deactivate_elements((previous_position_if*1 == 1) & (
-                                     self.environment.land_binary_mask == 0),
-                                         reason='seeded_at_nodata_position')
-
-            if previous_position_if is None:
-                on_land = np.where(self.environment.land_binary_mask == 1)[0]
-            else:
-                on_land = np.where((self.environment.land_binary_mask == 1) |
-                                   (previous_position_if == 1))[0]
+            on_land = np.where(self.environment.land_binary_mask == 1)[0]
             if len(on_land) == 0:
                 logging.debug('No elements hit coastline.')
             else:
