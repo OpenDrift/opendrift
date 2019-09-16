@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from PIL import ImageTk, Image
-import Tkinter as tk
-import ttk
+import tkinter as tk
+from tkinter import ttk
 import opendrift
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.leeway import Leeway
@@ -38,7 +38,7 @@ class OpenDriftGUI(tk.Tk):
         self.available_models = opendrift.get_model_names()
 
         tk.Tk.__init__(self)
-        
+
         ##################
         # Layout frames
         ##################
@@ -259,7 +259,7 @@ class OpenDriftGUI(tk.Tk):
                                     *['full', 'high'])
         self.mapres.grid(row=4, column=2)
         self.mapresvar.set('high')
-        
+
         tk.Label(self.duration, text='Run simulation ').grid(row=5, column=0)
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
@@ -325,7 +325,7 @@ class OpenDriftGUI(tk.Tk):
         self.eminutevar.set(self.minutevar.get())
 
     def handle_result(self, command):
-        
+
         from os.path import expanduser
         homefolder = expanduser("~")
         filename = homefolder + '/' + self.simulationname
@@ -451,7 +451,7 @@ class OpenDriftGUI(tk.Tk):
         so = Leeway(loglevel=50)
         so.seed_elements(lon=lon, lat=lat, number=5000,
                          radius=radius, time=start_time)
-        so.set_config('general:basemap_resolution', mapres)         
+        so.set_config('general:basemap_resolution', mapres)
         so.plot(buffer=.5)
         del so
 
@@ -536,7 +536,7 @@ class OpenDriftGUI(tk.Tk):
             extra_args = {}
 
         mapres = self.mapresvar.get()[0]
-        self.o.set_config('general:basemap_resolution', mapres)         
+        self.o.set_config('general:basemap_resolution', mapres)
         self.simulationname = 'opendrift_' + self.model.get() + \
             self.o.start_time.strftime('_%Y%m%d_%H%M')
 
