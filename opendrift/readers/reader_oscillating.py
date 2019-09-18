@@ -31,7 +31,7 @@ class Reader(BaseReader):
         self.amplitude = amplitude
         self.period_seconds = period_seconds
         self.zero_time = zero_time
-        self.proj4 = '+proj=latlong'
+        self.proj4 = '+proj=latlong +datum=WGS84'
         self.xmin = -180
         self.xmax = 180
         self.ymin = -90
