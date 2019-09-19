@@ -610,7 +610,6 @@ class BaseReader(object):
                 if len(vector_pairs) > 0:
                     self.timer_start('rotating vectors')
                     for vector_pair in vector_pairs:
-                        print (env[vector_pair[0]])
                         env[vector_pair[0]], env[vector_pair[1]] = \
                             self.rotate_vectors(reader_x, reader_y,
                                                 env[vector_pair[0]],

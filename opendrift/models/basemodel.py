@@ -490,6 +490,8 @@ class OpenDriftSimulation(PhysicsMethods):
         """Any trajectory model implementation must list needed variables."""
 
     def test_data_folder(self):
+        import warnings
+        warnings.warn ("Use `test_data` fixture", DeprecationWarning)
         import opendrift
         return os.path.abspath(
             os.path.join(os.path.dirname(opendrift.__file__),
