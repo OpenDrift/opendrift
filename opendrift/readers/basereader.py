@@ -610,14 +610,21 @@ class BaseReader(object):
                 if len(vector_pairs) > 0:
                     self.timer_start('rotating vectors')
                     for vector_pair in vector_pairs:
+                        print (env[vector_pair[0]])
                         env[vector_pair[0]], env[vector_pair[1]] = \
                             self.rotate_vectors(reader_x, reader_y,
                                                 env[vector_pair[0]],
                                                 env[vector_pair[1]],
                                                 self.proj, rotate_to_proj)
                         if profiles is not None and vector_pair[0] in profiles:
-                            sys.exit('Rotating profiles of vectors '
-                                     'is not yet implemented')
+                            env_profiles[vector_pair[0]], env_profiles[vector_pair[1]] = \
+                                    self.rotate_vectors (reader_x, reader_y,
+                                            env_profiles[vector_pair[0]],
+                                            env_profiles[vector_pair[1]],
+                                            self.proj,
+                                            rotate_to_proj)
+
+
                     self.timer_end('rotating vectors')
 
         # Masking non-covered pixels
