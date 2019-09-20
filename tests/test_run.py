@@ -95,6 +95,14 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertEqual(o.num_elements_total(), number)
 
+    def test_seed_cone(self):
+        o = OceanDrift(loglevel=20)
+        o.seed_elements(time=[datetime.now(),
+                datetime.now() + timedelta(hours=3)],
+                number=100, cone=True,
+                lat=[60.5, 60.6], lon=[4.4, 4.5])
+        self.assertAlmostEqual(o.elements_scheduled.lon[50], 4.450, 2)
+
     def test_seed_outside_coverage(self):
         """Test seeding"""
         o = OpenOil3D(loglevel=0)
