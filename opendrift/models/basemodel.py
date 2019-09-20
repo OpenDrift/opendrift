@@ -1431,7 +1431,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 radius_array = np.linspace(radius_array[0], radius_array[1],
                                            number)
                 number_array = np.ones(number)
-                #time_array = [time[0] + i*td for i in range(number)]
+                time_array = [time[0] + i*td for i in range(number)]
 
             if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
                     and kwargs['z'][0:8] == 'seafloor':
