@@ -883,8 +883,10 @@ class OpenOil(OpenDriftSimulation):
             time = kwargs['time']
             if type(time) is list:
                 duration_hours = ((time[1] - time[0]).total_seconds())/3600
+                if duration_hours == 0:
+                    duration_hours = 1.
             else:
-                duration_hours = 1  # For instantaneous spill, we use 1h
+                duration_hours = 1.  # For instantaneous spill, we use 1h
             kwargs['mass_oil'] = (kwargs['m3_per_hour']*duration_hours/
                                   num_elements*kwargs['density'])
             del kwargs['m3_per_hour']
