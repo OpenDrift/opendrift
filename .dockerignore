@@ -1,7 +1,6 @@
 # Compiled python modules.
 *.pyc
 __pycache__
-.coverage
 
 # Setuptools distribution folder.
 /dist/

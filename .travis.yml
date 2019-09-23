@@ -64,6 +64,6 @@ install:
     fi
   - conda list;
   - cd /home/travis/build/OpenDrift/opendrift;
-script: coverage run -m unittest discover -s tests/
+script: pytest --cov=opendrift --ignore=tests/benchmark --ignore=tests/wps
 after_success:
   - coveralls

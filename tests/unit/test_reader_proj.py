@@ -19,7 +19,7 @@ def test_rotate_vector (test_data):
     u = [0.26724684, 0.2784934]
     ru, rv = reader_current.rotate_vectors (
             x, y,
-            *u,
+            u[0], u[1],
             reader_current.proj,
             p)
 
