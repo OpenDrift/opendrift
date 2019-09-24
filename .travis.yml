@@ -5,8 +5,9 @@ python:
   - 3.6
 
 env:
-  - NUMPY=1.15.4 SCIPY=1.1 NETCDF=1.4.3 MATPLOTLIB=3.0.2 BASEMAP=1.2.1 XARRAY=0.11.2
-  - NUMPY=1.16.4 SCIPY=1.2 NETCDF=1.5 MATPLOTLIB=3.1 BASEMAP=1.2.1
+  - NUMPY=1.15.4 SCIPY=1.1 NETCDF=1.4.3 MATPLOTLIB=3.0.2 XARRAY=0.11.2
+  - NUMPY=1.16.4 SCIPY=1.2 NETCDF=1.5 MATPLOTLIB=3.1
+  - VANILLA=1
 
 services:
   - docker
@@ -29,8 +30,9 @@ install:
 
 script:
   - docker run -itd --name="opendrift_${TRAVIS_COMMIT}" opendrift:${TRAVIS_COMMIT}
-  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB} basemap=${BASEMAP}"
-  - if [ "$XARRAY" ]; then
+  - if [ ! -z "$VANILLA" ]; then
+      docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB}"; fi
+  - if [ ! -z "$VANILA" && "$XARRAY" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge xarray=$XARRAY dask";
     fi
   - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda list"
