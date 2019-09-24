@@ -703,13 +703,15 @@ class BaseReader(object):
         """
         if self.projected is True:
             if self.proj.crs.is_geographic:
-                return x, y
-            else:
                 if 'ob_tran' in self.proj4:
                     logging.debug('NB: Converting degrees to radians ' +
                                  'due to ob_tran srs')
                     x = np.radians(np.array(x))
                     y = np.radians(np.array(y))
+                    return self.proj(x, y, inverse=True)
+                else:
+                    return x, y
+            else:
                 return self.proj(x, y, inverse=True)
         else:
             np.seterr(invalid='ignore')  # Disable warnings for nan-values
@@ -732,14 +734,14 @@ class BaseReader(object):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
         if self.projected is True:
-            if self.proj.crs.is_geographic:
+            if 'ob_tran' in self.proj4:
+                x, y = self.proj(lon, lat, inverse=False)
+                return np.degrees(x), np.degrees(y)
+            elif self.proj.crs.is_geographic:
                 return lon, lat
             else:
                 x, y = self.proj(lon, lat, inverse=False)
-                if 'ob_tran' in self.proj4:
-                    return np.degrees(x), np.degrees(y)
-                else:
-                    return x, y
+                return x, y
         else:
             # For larger arrays, we split and calculate in parallel
             # The number of CPUs to use can be improved/optimised

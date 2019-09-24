@@ -510,27 +510,27 @@ class OpenDriftSimulation(PhysicsMethods):
     def lonlat2xy(self, lon, lat):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
-        if self.proj.crs.is_geographic:
+        if 'ob_tran' in self.proj4:
+            x, y = self.proj(lon, lat, inverse=False)
+            return np.degrees(x), np.degrees(y)
+        elif self.proj.crs.is_geographic:
             return lon, lat
         else:
             x, y = self.proj(lon, lat, inverse=False)
-            if 'ob_tran' in self.proj4:
-                # NB: should check if ob_tran is sufficient condition;
-                # may need lonlat as well?
-                return np.degrees(x), np.degrees(y)
-            else:
-                return x, y
+            return x, y
 
     def xy2lonlat(self, x, y):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
         if self.proj.crs.is_geographic:
-            return x, y
-        else:
             if 'ob_tran' in self.proj4:
                 logging.info('NB: Converting deg to rad due to ob_tran srs')
                 x = np.radians(np.array(x))
                 y = np.radians(np.array(y))
+                return self.proj(x, y, inverse=True)
+            else:
+                return x, y
+        else:
             return self.proj(x, y, inverse=True)
 
     def timer_start(self, category):
