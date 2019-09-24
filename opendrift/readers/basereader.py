@@ -219,6 +219,21 @@ class BaseReader(object):
                         self.rotate_mapping = {}
                     self.rotate_mapping[xvar] = var
 
+        # Adding variables which may be derived from existing ones
+        print('Adding new variables')
+        self.derived_variables = {}
+        for m in self.environment_mappings:
+            em = self.environment_mappings[m]
+            for i in em['input']:
+                print(i, 'input variable')
+            for i in em['output']:
+                print(i, 'output variable')
+            if em['output'][0] not in self.variables and em['input'][0] in self.variables:
+                print('Adding method!')
+                for v in em['output']:
+                    self.variables.append(v)
+                    self.derived_variables[v] = em['input']
+
     def y_is_north(self):
         if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:
             return True
@@ -311,6 +326,31 @@ class BaseReader(object):
                         interpolation in space and time.
         """
 
+    def get_variables_derived(self, variables, *args, **kwargs):
+        """Wrapper around get_variables, adding derived"""
+        print(variables, 'VAR INN')
+        if isinstance(variables, basestring):
+            variables = [variables]
+        derive_variables = False
+        for var in variables:
+            if var in self.derived_variables:
+                print('Derived: ' + var)
+                fromvars = self.derived_variables[var]
+                print('From: ' + str(fromvars))
+                for v in fromvars:
+                    variables.append(v)
+                # Removing the derived variable name
+                variables = [v for v in variables if v != var]
+                derive_variables = True
+        print(variables, 'updatevar')
+
+        env = self.get_variables(variables, *args, **kwargs)
+        if derive_variables is True:
+            print('Deriving')
+            self.calculate_derived_environment_variables(env)
+
+        return env
+
     def _get_variables(self, variables, profiles, profiles_depth,
                        time, x, y, z, block):
         """Wrapper around reader-specific function get_variables()
@@ -321,6 +361,7 @@ class BaseReader(object):
         """
         logging.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
+
         if profiles is not None and block is True:
             # If profiles are requested for any parameters, we
             # add two fake points at the end of array to make sure that the
@@ -328,7 +369,7 @@ class BaseReader(object):
             x = np.append(x, [x[-1], x[-1]])
             y = np.append(y, [y[-1], y[-1]])
             z = np.append(z, [profiles_depth[0], profiles_depth[1]])
-        env = self.get_variables(variables, time, x, y, z, block)
+        env = self.get_variables_derived(variables, time, x, y, z, block)
 
         # Make sure x and y are floats (and not e.g. int64)
         if 'x' in env.keys():
@@ -365,6 +406,44 @@ class BaseReader(object):
         self.timer_end('reading')
 
         return env
+
+    environment_mappers = []
+
+    def wind_from_speed_and_direction(self, env):
+        print('Wind from speed and direction')
+        env['x_wind'] = env['wind_speed']*10
+        north_wind = env['wind_speed']*np.cos(
+            np.radians(env['wind_to_direction']))
+        east_wind = env['wind_speed']*np.sin(
+            np.radians(env['wind_to_direction']))
+        print(env['wind_speed'].max(), 'WMAX')
+        print(north_wind.max(), 'NMAX')
+        print(east_wind.max(), 'EMAX')
+        print(np.sqrt((north_wind*north_wind + east_wind*east_wind)).max(), 'nywspeedmax')
+        
+        print('Rotating')
+        x,y = np.meshgrid(env['x'], env['y'])
+        env['x_wind'], env['y_wind'] = self.rotate_vectors(
+            x, y,
+            east_wind, north_wind,
+            None, self.proj)
+
+
+    environment_mappings = {
+        'wind_from_speed_and_direction': {
+            'input': ['wind_speed', 'wind_to_direction'],
+            'output': ['x_wind', 'y_wind'],
+            'method': wind_from_speed_and_direction},
+        'testvar': {
+            'input': ['sea_ice_thickness'],
+            'output': ['istjukkleik']}
+        }
+
+    def calculate_derived_environment_variables(self, env):
+
+        print(env.keys(), 'Lyklar')
+        if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
+            self.wind_from_speed_and_direction(env)
 
     def get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
@@ -430,7 +509,7 @@ class BaseReader(object):
                     blockvariables_after = block_after.data_dict.keys()
                     blockvars_after = blockvars
                     break
-
+                
             # Swap before- and after-blocks if matching times
             if block_before is not None and block_after is not None:
                 if block_before.time != time_before:
@@ -1055,7 +1134,11 @@ class BaseReader(object):
                       self.expected_time_steps, self.missing_time_steps)
         outStr += 'Variables:\n'
         for variable in self.variables:
-            outStr += '  ' + variable + '\n'
+            if variable in self.derived_variables:
+                outStr += '  ' + variable + ' - derived from ' + \
+                    str(self.derived_variables[variable]) + '\n'
+            else:
+                outStr += '  ' + variable + '\n'
         outStr += '===========================\n'
         outStr += self.performance()
 
@@ -1159,7 +1242,7 @@ class BaseReader(object):
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables(variable, self.start_time,
+            data = self.get_variables_derived(variable, self.start_time,
                                       rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)
