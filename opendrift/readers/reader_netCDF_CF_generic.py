@@ -116,12 +116,12 @@ class Reader(BaseReader):
                 CoordinateAxisType = var.__dict__['_CoordinateAxisType']
             if standard_name == 'longitude' or \
                     CoordinateAxisType == 'Lon' or \
-                    long_name == 'longitude':
+                    long_name.lower() == 'longitude':
                 self.lon = var
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
                     CoordinateAxisType == 'Lat' or \
-                    long_name == 'latitude':
+                    long_name.lower() == 'latitude':
                 self.lat = var
                 lat_var_name = var_name
             if axis == 'X' or \
@@ -247,6 +247,7 @@ class Reader(BaseReader):
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
+# <<<<<<< HEAD
             # ------------------------------------
             # added - if no standard_name attribute is provided,
             # assume that var_name is standard name
@@ -257,6 +258,10 @@ class Reader(BaseReader):
                 self.variable_mapping[standard_name] = standard_name 
             # ------------------------------------
         self.variables = self.variable_mapping.keys()
+# =======
+
+#         self.variables = list(self.variable_mapping.keys())
+# >>>>>>> upstream/master
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
@@ -307,6 +312,8 @@ class Reader(BaseReader):
             buffer = self.buffer
             if self.global_coverage():
                 #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+                if indx.min() < 0:  # Primitive fix for crossing 0-meridian
+                    indx = indx + self.numx
                 indx = np.arange(np.max([0, indx.min()-buffer]),np.min([indx.max()+buffer, self.numx]))
             else:
                 indx = np.arange(np.max([0, indx.min()-buffer]),

@@ -3,16 +3,20 @@ channels:
   - conda-forge
 dependencies:
   - python=2.7
-  - matplotlib>=2.2.3
+  - matplotlib
   - numpy>=1.15.4
   - scipy>=1.2.0
   - netcdf4>=1.4.3
-  - basemap>=1.2.0
-  - basemap-data-hires
   - future
   - ffmpeg
   - pillow
-  - pyproj
+  - pyproj>=2.2
   - configobj
   - libgdal>=2.3.3
   - gdal>=2.3.3
+  - ipython
+  - pip
+  - pytest
+  - pip:
+    - https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
+

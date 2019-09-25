@@ -2,7 +2,7 @@ FROM continuumio/miniconda
 
 MAINTAINER vsochat@stanford.edu
 
-# https://hub.docker.com/r/vanessa/opendrift-oil/  # container 
+# https://hub.docker.com/r/vanessa/opendrift-oil/  # container
 # https://github.com/opendrift/opendrift/wiki      # documentation
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -10,7 +10,7 @@ ENV PATH /code/opendrift/opendrift/scripts:$PATH
 
 # Dependencies for opendrift
 RUN apt-get update && apt-get install -y build-essential \
-                                         apt-utils \ 
+                                         apt-utils \
                                          unzip \
                                          vim \
                                          git \
@@ -31,15 +31,12 @@ RUN /bin/bash -c '''. activate opendrift_p2_oil && \
 # NOAA's OilLibrary for Oil Simulations
 WORKDIR /
 RUN git clone https://github.com/NOAA-ORR-ERD/OilLibrary.git && \
-    /opt/conda/bin/conda install --yes sqlalchemy transaction zope.sqlalchemy pytest && \
-    /opt/conda/bin/conda install --yes -c anaconda repoze.lru && \
-    /opt/conda/bin/conda install --yes -c noaa-orr-erd awesome-slugify unit_conversion && \
     cd OilLibrary && \
     /bin/bash -c '''. activate opendrift_p2_oil && \
-    pip install gitpython && \
     python setup.py install'''
 
 WORKDIR /code
 
 # Test
 # RUN /bin/bash -c ". activate opendrift_p2_oil && cd /code && ./testall"
+

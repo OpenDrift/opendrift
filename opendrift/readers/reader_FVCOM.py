@@ -31,7 +31,7 @@ from basereader import BaseReader, pyproj
 
 class Reader(BaseReader):
 
-    def __init__(self, filename=None, name=None):
+    def __init__(self, filename=None, name=None, gridfile=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -75,8 +75,15 @@ class Reader(BaseReader):
 
         logging.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
-        for var_name in self.Dataset.variables:
-            var = self.Dataset.variables[var_name]
+        # first check if we have specified a separate grid file
+        if gridfile is None: 
+            self.gridfile = self.Dataset
+        else:
+            self.gridfile = Dataset(gridfile)
+            logging.info('Opening Grid file')
+        # now check content of grid- or datafile
+        for var_name in self.gridfile.variables:
+            var = self.gridfile.variables[var_name]
             if var.ndim > 1:
                 continue  # Coordinates must be 1D-array
             attributes = var.ncattrs()
@@ -91,45 +98,59 @@ class Reader(BaseReader):
                 long_name = var.__dict__['long_name']
             if 'axis' in attributes:
                 axis = var.__dict__['axis']
+            if 'grid' in attributes:
+                grid = var.__dict__['grid']
             if 'units' in attributes:
                 units = var.__dict__['units']
             if '_CoordinateAxisType' in attributes:
                 CoordinateAxisType = var.__dict__['_CoordinateAxisType']
-            if standard_name == 'longitude' or \
-                    long_name == 'longitude' or \
-                    var_name == 'longitude' or \
-                    axis == 'X' or \
-                    CoordinateAxisType == 'Lon' or \
-                    standard_name == 'projection_x_coordinate':
+            # read FVCOM Elements/Center grid ( for u and v):
+            if standard_name == 'longitude' and grid == 'Elems' or \
+                    var_name == 'lonc':
                 self.xname = var_name
-                # Fix for units; should ideally use udunits package
-                if units == 'km':
-                    unitfactor = 1000
-                else:
-                    unitfactor = 1
-                x = var[:]*unitfactor
-                self.unitfactor = unitfactor
                 self.numx = var.shape[0]
-            if standard_name == 'latitude' or \
-                    long_name == 'latitude' or \
-                    var_name == 'latitude' or \
-                    axis == 'Y' or \
-                    CoordinateAxisType == 'Lat' or \
-                    standard_name == 'projection_y_coordinate':
+                x = var[:]
+            if standard_name == 'latitude' and grid == 'Elems' or \
+                    var_name == 'latc':
                 self.yname = var_name
-                # Fix for units; should ideally use udunits package
-                if units == 'km':
-                    unitfactor = 1000
-                else:
-                    unitfactor = 1
-                y = var[:]*unitfactor
                 self.numy = var.shape[0]
-            if standard_name == 'depth' or axis == 'Z':
+                y = var[:]
+            if var_name == 'siglayz_center' and grid == 'Elems':
                 if 'positive' not in var.ncattrs() or \
                         var.__dict__['positive'] == 'up':
                     self.z = var[:]
                 else:
                     self.z = -var[:]
+
+            # todo: read FVCOM Vertices grid ( for tracers)
+            #
+            
+        self.lon = x
+        self.lat = y
+
+        # Find all variables having standard_name
+        self.variable_mapping = {}
+        for var_name in self.Dataset.variables:
+            if var_name in [self.xname, self.yname, 'depth']:
+                continue  # Skip coordinate variables
+            var = self.Dataset.variables[var_name]
+            attributes = var.ncattrs()
+            standard_name = ''
+            long_name = ''
+            axis = ''
+            units = ''
+            CoordinateAxisType = ''
+            if 'standard_name' in attributes:
+                standard_name = var.__dict__['standard_name']
+            if 'long_name' in attributes:
+                long_name = var.__dict__['long_name']
+            if 'axis' in attributes:
+                axis = var.__dict__['axis']
+            if 'grid' in attributes:
+                grid = var.__dict__['grid']
+            if 'units' in attributes:
+                units = var.__dict__['units']
+
             if standard_name == 'time' or axis == 'T' or var_name == 'time':
                 # Read and store time coverage (of this particular file)
                 time = var[:]
@@ -142,21 +163,6 @@ class Reader(BaseReader):
                 else:
                     self.time_step = None
 
-        if 'x' not in locals():
-            raise ValueError('Did not find x-coordinate variable')
-        if 'y' not in locals():
-            raise ValueError('Did not find y-coordinate variable')
-
-        self.lon = x
-        self.lat = y
-
-        # Find all variables having standard_name
-        self.variable_mapping = {}
-        for var_name in self.Dataset.variables:
-            if var_name in [self.xname, self.yname, 'depth']:
-                continue  # Skip coordinate variables
-            var = self.Dataset.variables[var_name]
-            attributes = var.ncattrs()
             if 'standard_name' in attributes:
                 standard_name = str(var.__dict__['standard_name'])
                 if standard_name in variable_aliases:  # Mapping if needed
@@ -204,10 +210,9 @@ class Reader(BaseReader):
                      (self.lon < lonmax) &
                      (self.lat > latmin) &
                      (self.lat < latmax))[0]
-
         # Making a lon-lat grid onto which data is interpolated
-        lonstep = .01  # hardcoded for now
-        latstep = .01  # hardcoded for now
+        lonstep = .0004   # hardcoded for now
+        latstep = .0002   # hardcoded for now
         lons = np.arange(lonmin, lonmax, lonstep)
         lats = np.arange(latmin, latmax, latstep)
         lonsm, latsm = np.meshgrid(lons, lats)
@@ -219,15 +224,18 @@ class Reader(BaseReader):
         # Reader coordinates of subset
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
+            print var
             if var.ndim == 1:
                 data = var[c]
             elif var.ndim == 2:
                 data = var[indxTime,c]
             elif var.ndim == 3:
-                data = var[indxTime,0,c]
+                data = var[indxTime,-1,c]
             else:
                 raise ValueError('Wrong dimension of %s: %i' %
                                  (var_name, var.ndim))
+
+            print data
 
             if 'interpolator' not in locals():
                 logging.debug('Making interpolator...')
@@ -241,5 +249,4 @@ class Reader(BaseReader):
 
             variables[par] = interpolator(latsm, lonsm)
 
-        #print variables
         return variables

@@ -43,7 +43,7 @@ class TestStranding(unittest.TestCase):
         o.set_config('general:basemap_resolution', 'i')
         o.set_config('general:coastline_action', 'stranding')
         o.set_config('turbulentmixing:timestep', 120)
-        o.set_config('turbulentmixing:verticalresolution', 10)
+
         o.max_speed=.1
         o.run(end_time=reader_nordic.end_time, time_step=3600*6)
         self.assertEqual(o.status_categories[1], 'stranded')
@@ -114,6 +114,23 @@ class TestStranding(unittest.TestCase):
             self.assertIsNone(np.testing.assert_array_almost_equal(
                 el.lon, lons[i], 2))
 
+
+    def test_interact_coastline(self):
+        reader_basemap = reader_basemap_landmask.Reader(
+                    llcrnrlon=4.5, llcrnrlat=60.4,
+                    urcrnrlon=6, urcrnrlat=60.6,
+                    resolution='c', projection='merc')
+
+        o = OceanDrift(loglevel=50)
+        o.set_config('general:coastline_action', 'previous')
+        o.add_reader(reader_basemap)
+        o.fallback_values['x_sea_water_velocity'] = .7
+        o.seed_elements(lon=5, lat=60.5, time=datetime.now())
+        o.run(time_step=3600, steps=30)
+        lons = o.history['lon'][0]
+        self.assertAlmostEqual(lons[0], 5, 2)
+        self.assertAlmostEqual(lons[-2], 5.366, 2)
+        self.assertAlmostEqual(lons[-1], 5.366, 2)
 
 if __name__ == '__main__':
     unittest.main()

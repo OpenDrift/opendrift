@@ -68,6 +68,9 @@ class Oil(LagrangianArray):
         ('mass_evaporated', {'dtype': np.float32,
                              'units': 'kg',
                              'default': 0}),
+        ('mass_biodegraded', {'dtype': np.float32,
+                             'units': 'kg',
+                             'default': 0}),
         ('fraction_evaporated', {'dtype': np.float32,
                                  'units': '%',
                                  'default': 0}),
@@ -119,6 +122,7 @@ class OpenOil(OpenDriftSimulation):
             dispersion = boolean(default=True)
             evaporation = boolean(default=True)
             emulsification = boolean(default=True)
+            biodegradation = boolean(default=False)
             update_oilfilm_thickness = boolean(default=False)
         [drift]
             current_uncertainty = float(min=0, max=5, default=0.05)
@@ -320,6 +324,30 @@ class OpenOil(OpenDriftSimulation):
                     self.elements.age_emulsion_seconds,
                     self.oil_data['tref'], self.oil_data['wmax'])
 
+    def biodegradation(self):
+        if self.get_config('processes:biodegradation') is True:
+            '''
+            Oil biodegradation function based on the article:
+            Adcroft et al. (2010), Simulations of underwater plumes of dissolved oil in the Gulf of Mexico.
+            '''
+            logging.debug('Calculating: biodegradation')
+
+            swt = self.environment.sea_water_temperature.copy()
+            swt[swt > 100] -= 273.15 # K to C
+            age0 = self.time_step.total_seconds()/(3600*24)
+
+            tau = (12)*(3**((20-swt)/10)) # Decay rate in days (temperature in Celsius)
+            fraction_biodegraded = (1 - np.exp(-age0/tau))
+            biodegraded_now = self.elements.mass_oil*fraction_biodegraded
+
+            self.elements.mass_biodegraded = self.elements.mass_biodegraded + biodegraded_now
+            self.elements.mass_oil = self.elements.mass_oil - biodegraded_now
+            if self.oil_weathering_model == 'noaa':
+                self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
+                self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_biodegraded[:, np.newaxis])
+            else:
+                pass
+
     def disperse(self):
         if self.get_config('processes:dispersion') is True:
 
@@ -404,6 +432,9 @@ class OpenOil(OpenDriftSimulation):
         # Dispersion
         self.disperse()
 
+        # Biodegradation
+        self.biodegradation()
+
     def prepare_run(self):
 
         if self.oil_weathering_model == 'noaa':
@@ -487,6 +518,11 @@ class OpenOil(OpenDriftSimulation):
             self.timer_start('main loop:updating elements:oil weathering:dispersion')
             self.disperse_noaa()
             self.timer_end('main loop:updating elements:oil weathering:dispersion')
+
+        if self.get_config('processes:biodegradation') is True:
+            self.timer_start('main loop:updating elements:oil weathering:biodegradation')
+            self.biodegradation()
+            self.timer_end('main loop:updating elements:oil weathering:biodegradation')
 
     def disperse_noaa(self):
         logging.debug('    Calculating: dispersion - NOAA')
@@ -659,6 +695,8 @@ class OpenOil(OpenDriftSimulation):
         mass_evaporated = np.sum(mass_evaporated, axis=1).filled(0)
         mass_dispersed, status = self.get_property('mass_dispersed')
         mass_dispersed = np.sum(mass_dispersed, axis=1).filled(0)
+        mass_biodegraded, status = self.get_property('mass_biodegraded')
+        mass_biodegraded = np.sum(mass_biodegraded, axis=1).filled(0)
 
         oil_budget = {
             'oil_density': density,
@@ -667,8 +705,9 @@ class OpenOil(OpenDriftSimulation):
             'mass_surface': mass_surface,
             'mass_stranded': mass_stranded,
             'mass_evaporated': mass_evaporated,
+            'mass_biodegraded': mass_biodegraded,
             'mass_total': (mass_dispersed + mass_submerged +
-                           mass_surface + mass_stranded + mass_evaporated)
+                           mass_surface + mass_stranded + mass_evaporated + mass_biodegraded)
             }
 
         return oil_budget
@@ -691,7 +730,7 @@ class OpenOil(OpenDriftSimulation):
 
         oil_budget = np.row_stack(
             (b['mass_dispersed'], b['mass_submerged'],
-             b['mass_surface'], b['mass_stranded'], b['mass_evaporated']))
+             b['mass_surface'], b['mass_stranded'], b['mass_evaporated'], b['mass_biodegraded']))
         oil_density = b['oil_density']
 
         budget = np.cumsum(oil_budget, axis=0)
@@ -727,6 +766,11 @@ class OpenOil(OpenDriftSimulation):
                           color='skyblue', label='evaporated'))
             ax1.fill_between(time, budget[3, :], budget[4, :],
                              facecolor='skyblue')
+        if np.sum(b['mass_biodegraded']) > 0:
+            ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
+                          color='indigo', label='biodegraded'))
+            ax1.fill_between(time, budget[4, :], budget[5, :],
+                             facecolor='indigo')
 
         ax1.set_ylim([0, budget.max()])
         ax1.set_xlim([0, time.max()])
@@ -754,7 +798,7 @@ class OpenOil(OpenDriftSimulation):
         ax2.set_position([box.x0, box.y0 + box.height * 0.1,
                          box.width, box.height * 0.9])
         ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03), loc=1,
-                   ncol=5, mode="expand", borderaxespad=0., fontsize=10)
+                   ncol=6, mode="expand", borderaxespad=0., fontsize=10)
         if filename is not None:
             plt.savefig(filename)
             plt.close()
@@ -844,8 +888,10 @@ class OpenOil(OpenDriftSimulation):
             time = kwargs['time']
             if type(time) is list:
                 duration_hours = ((time[1] - time[0]).total_seconds())/3600
+                if duration_hours == 0:
+                    duration_hours = 1.
             else:
-                duration_hours = 1  # For instantaneous spill, we use 1h
+                duration_hours = 1.  # For instantaneous spill, we use 1h
             kwargs['mass_oil'] = (kwargs['m3_per_hour']*duration_hours/
                                   num_elements*kwargs['density'])
             del kwargs['m3_per_hour']
@@ -1041,3 +1087,4 @@ class OpenOil(OpenDriftSimulation):
                 oil_film_thickness=thickness_microns[i]/1000000.,
                 mass_oil=mass_oil[i]/num,
                 number=num, time=time, *args, **kwargs)
+

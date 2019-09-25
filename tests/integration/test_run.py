@@ -33,6 +33,8 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.pelagicegg import PelagicEggDrift
+from opendrift.models.plastdrift import PlastDrift
+
 
 def gdal_error_handler(err_class, err_num, err_msg):
     errtype = {
@@ -92,6 +94,14 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_activated(), 0)
         self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertEqual(o.num_elements_total(), number)
+
+    def test_seed_cone(self):
+        o = OceanDrift(loglevel=20)
+        o.seed_elements(time=[datetime.now(),
+                datetime.now() + timedelta(hours=3)],
+                number=100, cone=True,
+                lat=[60.5, 60.6], lon=[4.4, 4.5])
+        self.assertAlmostEqual(o.elements_scheduled.lon[50], 4.450, 2)
 
     def test_seed_outside_coverage(self):
         """Test seeding"""
@@ -307,7 +317,7 @@ class TestRun(unittest.TestCase):
         o1.seed_elements(4.1, 63.3, radius=1000, number=100,
                          time=norkyst.start_time)
         o1.set_config('turbulentmixing:timestep', 20.) # seconds
-        o1.set_config('turbulentmixing:verticalresolution', 1.) # m
+
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
         self.assertAlmostEqual(o1.history['z'].min(), -31.9, 1)
@@ -566,7 +576,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000)
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
@@ -588,7 +598,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z='seafloor+50', time=reader_norkyst.start_time,
                         density=1000)
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
@@ -608,7 +618,7 @@ class TestRun(unittest.TestCase):
                         density=1000)
         #o.set_config('turbulentmixing:TSprofiles', True)
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
@@ -629,7 +639,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
                         density=1000)
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
@@ -652,7 +662,7 @@ class TestRun(unittest.TestCase):
                         density=1000, number=2)
         o.set_config('drift:lift_to_seafloor', False)  # This time we deactivate
         o.set_config('processes:turbulentmixing', True)
-        o.set_config('turbulentmixing:verticalresolution', 1)  # m
+
         o.set_config('turbulentmixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
@@ -785,6 +795,24 @@ class TestRun(unittest.TestCase):
                         number=100, radius=5000)
         o.run(end_time=norkyst.end_time)
         self.assertEqual(o.num_elements_active(), 100)
+
+    def test_unseeded_elements(self):
+        o = PlastDrift()
+        # Seeding elements for 12 hours, but running only 6
+        time = datetime(2019, 8, 30, 12)
+        o.seed_elements(lon=4.85, lat=60, number=10,
+                        time=[time, time + timedelta(hours=6)],
+                        origin_marker=7)
+        o.seed_elements(lon=4.75, lat=60, number=10,
+                        time=[time, time + timedelta(hours=6)],
+                        origin_marker=8)
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 1
+        o.run(duration=timedelta(hours=3))
+        self.assertEqual(o.history.shape[0], 10)
+        self.assertEqual(o.history.shape[1], 4)
+        self.assertEqual(o.history['origin_marker'].min(), 7)
+        self.assertEqual(o.history['origin_marker'].max(), 8)
 
 if __name__ == '__main__':
     unittest.main()

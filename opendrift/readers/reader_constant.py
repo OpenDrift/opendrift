@@ -28,7 +28,7 @@ class Reader(BaseReader):
         for key, var in iteritems(parameter_value_map):
             parameter_value_map[key] = np.atleast_1d(var)
         self._parameter_value_map = parameter_value_map
-        self.variables = parameter_value_map.keys()
+        self.variables = list(parameter_value_map.keys())
         self.proj4 = '+proj=latlong'
         self.xmin = -180
         self.xmax = 180

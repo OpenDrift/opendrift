@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-/usr/bin/env python -m unittest discover tests -p test_*.py
+pytest --ignore=tests/benchmarks --ignore=tests/wps
+

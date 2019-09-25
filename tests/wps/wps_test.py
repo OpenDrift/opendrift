@@ -45,7 +45,7 @@ class TestWPS(unittest.TestCase):
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
     def test_leeway_yesterday(self):
@@ -58,7 +58,7 @@ class TestWPS(unittest.TestCase):
         o.run(steps=15)
         o.export_ascii('leeway_ascii.txt')
         os.remove('leeway_ascii.txt')
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
     def test_leeway_global_today(self):
@@ -69,7 +69,7 @@ class TestWPS(unittest.TestCase):
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
     def test_leeway_global_one_month_ago(self):
@@ -82,7 +82,7 @@ class TestWPS(unittest.TestCase):
         o.run(steps=15)
         o.export_ascii('leeway_ascii.txt')
         os.remove('leeway_ascii.txt')
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
     def test_openoil_today(self):
@@ -93,7 +93,7 @@ class TestWPS(unittest.TestCase):
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
     def test_openoil_yesterday(self):
@@ -104,7 +104,7 @@ class TestWPS(unittest.TestCase):
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
                         time=datetime.now() - timedelta(days=1))
         o.run(steps=15)
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
     def test_openoil_global_today(self):
@@ -115,7 +115,7 @@ class TestWPS(unittest.TestCase):
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
     def test_openoil_global_one_month_ago(self):
@@ -126,7 +126,7 @@ class TestWPS(unittest.TestCase):
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
                         time=datetime.now() - timedelta(days=30))
         o.run(steps=15)
-        print o
+        print (o)
         self.assertEqual(o.steps_calculation, 15)
 
 
@@ -156,7 +156,7 @@ class TestWPS(unittest.TestCase):
     #    o.seed_elements(lon=4, lat=60.0,
     #                    time=datetime(2018, 7, 2, 12))
     #    o.run(steps=5)
-    #    print o
+    #    print (o)
 
 if __name__ == '__main__':
     unittest.main()
