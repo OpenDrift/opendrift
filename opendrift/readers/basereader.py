@@ -410,24 +410,18 @@ class BaseReader(object):
     environment_mappers = []
 
     def wind_from_speed_and_direction(self, env):
-        print('Wind from speed and direction')
-        env['x_wind'] = env['wind_speed']*10
         north_wind = env['wind_speed']*np.cos(
             np.radians(env['wind_to_direction']))
         east_wind = env['wind_speed']*np.sin(
             np.radians(env['wind_to_direction']))
-        print(env['wind_speed'].max(), 'WMAX')
-        print(north_wind.max(), 'NMAX')
-        print(east_wind.max(), 'EMAX')
-        print(np.sqrt((north_wind*north_wind + east_wind*east_wind)).max(), 'nywspeedmax')
-        
-        print('Rotating')
-        x,y = np.meshgrid(env['x'], env['y'])
-        env['x_wind'], env['y_wind'] = self.rotate_vectors(
-            x, y,
-            east_wind, north_wind,
-            None, self.proj)
-
+        env['x_wind'] = east_wind
+        env['y_wind'] = north_wind
+        # Rotating might be necessary generally
+        #x,y = np.meshgrid(env['x'], env['y'])
+        #env['x_wind'], env['y_wind'] = self.rotate_vectors(
+        #    x, y,
+        #    east_wind, north_wind,
+        #    None, self.proj)
 
     environment_mappings = {
         'wind_from_speed_and_direction': {
