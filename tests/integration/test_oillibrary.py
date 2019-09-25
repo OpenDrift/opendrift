@@ -40,6 +40,9 @@ class TestOil(unittest.TestCase):
                      'NOAA OilLibrary is needed')
     def test_oils(self):
         o = OpenOil3D(loglevel=50, weathering_model='noaa')
+
+        assert len(o.oiltypes) >= 1478
+
         for oiltype in o.oiltypes[12:14]:
             if oiltype == 'JP-8':
                 continue
@@ -89,7 +92,7 @@ class TestOil(unittest.TestCase):
                 volume = b['mass_total']/density
                 self.assertAlmostEqual(volume[-1],
                                        seed_hours*m3_per_hour, 2)
-                
+
                 if dispersion is True:
                     disp='dispersion'
                 else:
@@ -129,7 +132,7 @@ class TestOil(unittest.TestCase):
                 actual_submerged = b['mass_submerged']/b['mass_total']
                 actual_evaporated = b['mass_evaporated']/b['mass_total']
                 print('Dispersion fraction %f for '
-                      '%s and wind speed %f' % 
+                      '%s and wind speed %f' %
                       (actual_dispersed[-1], oil, windspeed))
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
