@@ -149,7 +149,7 @@ class OpenDriftSimulation(PhysicsMethods):
     max_speed = 1  # Assumed max average speed of any element
     required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
-    plot_comparison_colors = ['r', 'g', 'b', 'm', 'c', 'y']
+    plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  loglevel=logging.DEBUG, logtime='%H:%M:%S', logfile=None):
@@ -2613,6 +2613,8 @@ class OpenDriftSimulation(PhysicsMethods):
         if color is False and background is None and lcs is None and density is False:
             colorbar = False
 
+        markercolor = self.plot_comparison_colors[0]
+
         if isinstance(density, basestring):
             # Density field is weighted by this variable
             # TODO: not yet implemented!
@@ -2735,7 +2737,7 @@ class OpenDriftSimulation(PhysicsMethods):
             legend = ['']
 
         if color is False:
-            c = 'k'
+            c = markercolor
         else:
             c = []
         points = map.scatter([], [], c=c, zorder=10,
@@ -2759,13 +2761,13 @@ class OpenDriftSimulation(PhysicsMethods):
                     legstr = None
                 cd['points_other'] = \
                     map.scatter([], [], color=
-                                self.plot_comparison_colors[cn],
+                                self.plot_comparison_colors[cn+1],
                                 s=markersize,
                                 label=legstr, zorder=10)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
                     map.scatter([], [], alpha=.3, zorder=9, color=
-                                self.plot_comparison_colors[cn],
+                                self.plot_comparison_colors[cn+1],
                                 s=markersize)
 
             if legend != ['', '']:
@@ -2995,6 +2997,8 @@ class OpenDriftSimulation(PhysicsMethods):
         map, plt, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer,corners=corners, **kwargs)
 
+        markercolor = self.plot_comparison_colors[0]
+
         # The more elements, the more transparent we make the lines
         min_alpha = 0.1
         max_elements = 5000.0
@@ -3069,19 +3073,19 @@ class OpenDriftSimulation(PhysicsMethods):
             map.scatter(x[range(x.shape[0]), index_of_first],
                         y[range(x.shape[0]), index_of_first],
                         s=markersize,
-                        zorder=10, edgecolor='k', linewidths=.2,
+                        zorder=10, edgecolor=markercolor, linewidths=.2,
                         color=color_initial, label=label_initial)
             if surface_color is not None:
                 color_active = surface_color
                 label_active = 'surface'
             map.scatter(x[range(x.shape[0]), index_of_last],
                         y[range(x.shape[0]), index_of_last], s=markersize,
-                        zorder=3, edgecolor='k', linewidths=.2,
+                        zorder=3, edgecolor=markercolor, linewidths=.2,
                         color=color_active, label=label_active)
             #if submerged_color is not None:
             #    map.scatter(x[range(x.shape[0]), index_of_last],
             #                y[range(x.shape[0]), index_of_last], s=markersize,
-            #                zorder=3, edgecolor='k', linewidths=.2,
+            #                zorder=3, edgecolor=markercolor, linewidths=.2,
             #                color=submerged_color, label='submerged')
 
             x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
@@ -3114,7 +3118,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         color_status = 'gray'
                     map.scatter(x_deactivated[indices], y_deactivated[indices],
                                 s=markersize,
-                                zorder=zorder, edgecolor='k', linewidths=.1,
+                                zorder=zorder, edgecolor=markercolor, linewidths=.1,
                                 color=color_status, label=legstr)
 
         if compare is not None:
@@ -3129,7 +3133,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 map.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
                     c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
                     s=markersize,
-                    zorder=3, edgecolor='k', linewidths=.2,
+                    zorder=3, edgecolor=markercolor, linewidths=.2,
                     color=self.plot_comparison_colors[i])
 
         try:
