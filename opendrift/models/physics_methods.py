@@ -248,6 +248,7 @@ class PhysicsMethods(object):
             logging.debug('No wind for wind-sheared ocean drift')
             return
 
+        speed = speed*wdf[surface]
         if surface_only is True:
             logging.debug('Advecting %s of %i elements at surface with '
                           'wind-sheared ocean current (%f m/s - %f m/s)'
