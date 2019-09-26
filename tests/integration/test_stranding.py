@@ -23,6 +23,7 @@ import numpy as np
 
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_cartopy_landmask
 from opendrift.readers import reader_oscillating
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.pelagicegg import PelagicEggDrift
@@ -79,16 +80,16 @@ class TestStranding(unittest.TestCase):
         self.assertEqual(o.num_elements_total(), 100)
 
     def test_stranding_options(self):
-
         reader_osc = reader_oscillating.Reader(
                 'x_sea_water_velocity', amplitude=1,
                 zero_time=datetime.now())
 
-        reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=12, llcrnrlat=67.6,
-                    urcrnrlon=13.6, urcrnrlat=68.1,
-                    resolution='i', projection='merc')
- 
+        # reader_basemap = reader_basemap_landmask.Reader(
+        #             llcrnrlon=12, llcrnrlat=67.6,
+        #             urcrnrlon=13.6, urcrnrlat=68.1,
+        #             resolution='i', projection='merc')
+        reader_basemap = reader_cartopy_landmask.Reader(prepare = True, source = 'naturalearth')
+
         # Three different stranding options, with
         # expected final status and position
         options = ['stranding', 'previous', 'none']
@@ -96,7 +97,7 @@ class TestStranding(unittest.TestCase):
         lons = [12.930, 13.348, 12.444]
 
         for i, option in enumerate(options):
-            o = OceanDrift(loglevel=30)
+            o = OceanDrift(loglevel=00)
             o.set_config('general:coastline_action', option)
             o.add_reader([reader_osc, reader_basemap])
             # Adding northwards drift
@@ -110,18 +111,18 @@ class TestStranding(unittest.TestCase):
                 el = o.elements
             else:
                 el = o.elements_deactivated
+            # o.plot ()
             self.assertEqual(o.status_categories[int(el.status)], status[i])
             self.assertIsNone(np.testing.assert_array_almost_equal(
                 el.lon, lons[i], 2))
 
-
-    def test_interact_coastline(self):
+    def test_interact_coastline_basemap(self):
         reader_basemap = reader_basemap_landmask.Reader(
                     llcrnrlon=4.5, llcrnrlat=60.4,
                     urcrnrlon=6, urcrnrlat=60.6,
                     resolution='c', projection='merc')
 
-        o = OceanDrift(loglevel=50)
+        o = OceanDrift(loglevel=00)
         o.set_config('general:coastline_action', 'previous')
         o.add_reader(reader_basemap)
         o.fallback_values['x_sea_water_velocity'] = .7
@@ -131,6 +132,24 @@ class TestStranding(unittest.TestCase):
         self.assertAlmostEqual(lons[0], 5, 2)
         self.assertAlmostEqual(lons[-2], 5.366, 2)
         self.assertAlmostEqual(lons[-1], 5.366, 2)
+
+    def test_interact_coastline_cartopy(self):
+        reader_cartopy = reader_cartopy_landmask.Reader(prepare = False, source='gshhs',
+                llcrnrlon=4.5, llcrnrlat=60.4,
+                urcrnrlon=6, urcrnrlat=60.6)
+
+        o = OceanDrift(loglevel=00)
+        o.add_reader(reader_cartopy)
+        o.set_config('general:coastline_action', 'previous')
+        o.set_config('general:use_basemap_landmask', False)
+        o.fallback_values['x_sea_water_velocity'] = .7
+        o.seed_elements(lon=5, lat=60.5, time=datetime.now())
+        o.run(time_step=3600, steps=30)
+        lons = o.history['lon'][0]
+        self.assertAlmostEqual(lons[0], 5, 2)
+        self.assertAlmostEqual(lons[-2], 5.366, 2)
+        self.assertAlmostEqual(lons[-1], 5.366, 2)
+
 
 if __name__ == '__main__':
     unittest.main()
