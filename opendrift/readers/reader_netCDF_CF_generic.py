@@ -36,15 +36,33 @@ def proj_from_CF_dict(c):
         else:
             earth_radius = 6371000.
         lon_0 = 0  # default, but dangerous
-        for l0 in ['longitude_of_projection_origin', 'longitude_of_central_meridian', 'straight_vertical_longitude_from_pole']:
+        for l0 in ['longitude_of_projection_origin',
+                   'longitude_of_central_meridian',
+                   'straight_vertical_longitude_from_pole']:
             if l0 in c:
                 lon_0 = c[l0]
         if 'latitude_of_origin' in c:
             lat_ts = c['latitude_of_origin']
         else:
             lat_ts = c['latitude_of_projection_origin']
-        proj4 = '+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s} +units=m +a={!s} +no_defs'.format('stere',
-            c['latitude_of_projection_origin'], lon_0, lat_ts, earth_radius)
+        if 'false_easting' in c:
+            x0 = c['false_easting']
+        else:
+            x0 = 0  # dangerous?
+        if 'false_northing' in c:
+            y0 = c['false_northing']
+        else:
+            y0 = 0  # dangerous: is there a better default?
+        if 'scale_factor_at_projection_origin' in c:
+            k0 = c['scale_factor_at_projection_origin']
+        else:
+            k0 = 1.0
+        proj4 = ('+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s}'
+                 '+k_0={!s} +x_0={!s} +y_0={!s} +units=m +a={!s} '
+                 '+no_defs'.format('stere',
+                                   c['latitude_of_projection_origin'],
+                                   lon_0, lat_ts, k0, x0, y0, earth_radius)
+                 )
 
     proj = pyproj.Proj(proj4)
 
