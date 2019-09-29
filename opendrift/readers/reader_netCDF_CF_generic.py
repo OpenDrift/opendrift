@@ -16,11 +16,19 @@
 
 import logging
 
+from datetime import datetime
 import pyproj
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
 from opendrift.readers.basereader import BaseReader
+
+try:
+    import xarray as xr
+    has_xarray = True
+except:
+    has_xarray = False
+    
 
 def proj_from_CF_dict(c):
 
@@ -87,10 +95,16 @@ class Reader(BaseReader):
             logging.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logging.info('Opening files with MFDataset')
-                self.Dataset = MFDataset(filename)
+                if has_xarray:
+                    self.Dataset = xr.open_mfdataset(filename)
+                else:
+                    self.Dataset = MFDataset(filename)
             else:
                 logging.info('Opening file with Dataset')
-                self.Dataset = Dataset(filename, 'r')
+                if has_xarray:
+                    self.Dataset = xr.open_dataset(filename)
+                else:
+                    self.Dataset = Dataset(filename, 'r')
         except Exception as e:
             raise ValueError(e)
 
@@ -103,7 +117,12 @@ class Reader(BaseReader):
             var = self.Dataset.variables[var_name]
             #if var.ndim > 1:
             #    continue  # Coordinates must be 1D-array
-            attributes = var.ncattrs()
+            if has_xarray:
+                attributes = var.attrs
+                att_dict = var.attrs
+            else:
+                attributes = var.ncattrs()
+                att_dict = var.__dict__
             standard_name = ''
             long_name = ''
             axis = ''
@@ -112,35 +131,52 @@ class Reader(BaseReader):
             if not hasattr(self, 'proj4'):
                 for att in attributes:
                     if 'proj4' in att:
-                        self.proj4 = str(var.__getattr__(att))
+                        if has_xarray:
+                            self.proj4 = str(att_dict[att])
+                        else:
+                            self.proj4 = str(var.__getattr__(att))
                     else:
                         if 'grid_mapping_name' in att:
-                            mapping_dict = var.__dict__
-                            logging.debug('Parsing CF grid mapping dictionary: ' + str(mapping_dict))
+                            mapping_dict = att_dict
+                            logging.debug(
+                                ('Parsing CF grid mapping dictionary:'
+                                ' ' + str(mapping_dict)))
                             try:
-                                self.proj4, proj = proj_from_CF_dict(mapping_dict)
+                                self.proj4, proj =\
+                                    proj_from_CF_dict(mapping_dict)
                             except:
                                 logging.info('Could not parse CF grid_mapping')
                             
             if 'standard_name' in attributes:
-                standard_name = var.__dict__['standard_name']
+                standard_name = att_dict['standard_name']
             if 'long_name' in attributes:
-                long_name = var.__dict__['long_name']
+                long_name = att_dict['long_name']
             if 'axis' in attributes:
-                axis = var.__dict__['axis']
+                axis = att_dict['axis']
             if 'units' in attributes:
-                units = var.__dict__['units']
+                units = att_dict['units']
             if '_CoordinateAxisType' in attributes:
-                CoordinateAxisType = var.__dict__['_CoordinateAxisType']
+                CoordinateAxisType = att_dict['_CoordinateAxisType']
+            # has_xarray checks in each case below to avoid loading
+            # data if it isn't a coord
+            # is there a better way??
             if standard_name == 'longitude' or \
                     CoordinateAxisType == 'Lon' or \
                     long_name.lower() == 'longitude':
-                self.lon = var
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                self.lon = var_data
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
                     CoordinateAxisType == 'Lat' or \
                     long_name.lower() == 'latitude':
-                self.lat = var
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                self.lat = var_data
                 lat_var_name = var_name
             if axis == 'X' or \
                     standard_name == 'projection_x_coordinate':
@@ -152,8 +188,12 @@ class Reader(BaseReader):
                     unitfactor = 100000
                 else:
                     unitfactor = 1
-                x = var[:]*unitfactor
-                self.numx = var.shape[0] 
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                x = var_data*unitfactor
+                self.numx = var_data.shape[0] 
             if axis == 'Y' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
@@ -165,20 +205,37 @@ class Reader(BaseReader):
                 else:
                     unitfactor = 1
                 self.unitfactor = unitfactor
-                y = var[:]*unitfactor
-                self.numy = var.shape[0] 
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                y = var_data*unitfactor
+                self.numy = var_data.shape[0] 
             if standard_name == 'depth' or axis == 'Z':
-                if var[:].ndim == 1:
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                if var_data.ndim == 1:
                     if 'positive' not in attributes or \
-                            var.__dict__['positive'] == 'up':
-                        self.z = var[:]
+                            att_dict['positive'] == 'up':
+                        self.z = var_data
                     else:
-                        self.z = -var[:]
+                        self.z = -var_data
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
-                time = var[:]
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                time = var_data
                 time_units = units
-                self.times = num2date(time, time_units)
+                if has_xarray:
+                    self.times = [datetime.utcfromtimestamp((OT -
+                        np.datetime64('1970-01-01T00:00:00Z')
+                            ) / np.timedelta64(1, 's')) for OT in time]
+                else:
+                    self.times = num2date(time, time_units)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
@@ -186,7 +243,11 @@ class Reader(BaseReader):
                 else:
                     self.time_step = None
             if standard_name == 'realization':
-                self.realizations = var[:]
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                self.realizations = var_data
                 logging.debug('%i ensemble members available'
                               % len(self.realizations))
 
@@ -259,9 +320,14 @@ class Reader(BaseReader):
             if var_name in [self.xname, self.yname, 'depth']:
                 continue  # Skip coordinate variables
             var = self.Dataset.variables[var_name]
-            attributes = var.ncattrs()
+            if has_xarray:
+                attributes = var.attrs
+                att_dict = var.attrs
+            else:
+                attributes = var.ncattrs()
+                att_dict = var.__dict__
             if 'standard_name' in attributes:
-                standard_name = str(var.__dict__['standard_name'])
+                standard_name = str(att_dict['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
