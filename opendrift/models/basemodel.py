@@ -36,7 +36,7 @@ try:
 
     if os.environ.get('DISPLAY','') == '' and \
             'PYCHARM_HOSTED' not in os.environ:
-        print 'No display found. Using non-interactive Agg backend'
+        print('No display found. Using non-interactive Agg backend')
         # matplotlib.use('agg')
         matplotlib.use('Tkagg') # not sure why but using 'agg' doesnt work for some examples 
 

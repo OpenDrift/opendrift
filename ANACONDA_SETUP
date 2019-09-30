@@ -1,0 +1,37 @@
+conda create --name opendrift_simon python=2.7
+conda activate opendrift_simon
+conda install --yes hdf4 numpy scipy matplotlib basemap python=2.7
+conda install --yes netcdf4 configobj pyproj future python=2.7
+conda install --yes --channel menpo ffmpeg  python=2.7
+conda install --yes --channel menpo pillow python=2.7
+conda install --yes --channel conda-forge basemap basemap-data-hires python=2.7
+
+conda install --yes --channel conda-forge gdal libgdal python=2.7
+conda install --yes --channel conda-forge pyproj python=2.7
+
+
+##################
+name: opendrift_p2
+YAML FILE
+##################
+channels:
+  - conda-forge
+dependencies:
+  - python=2.7
+  - matplotlib
+  - numpy>=1.15.4
+  - scipy>=1.2.0
+  - netcdf4>=1.4.3
+  - future
+  - ffmpeg
+  - pillow
+  - pyproj>=2.2
+  - configobj
+  - libgdal>=2.3.3
+  - gdal>=2.3.3
+  - ipython
+  - pip
+  - pytest
+  - pip:
+    - https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
+
