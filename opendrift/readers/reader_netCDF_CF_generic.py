@@ -28,7 +28,7 @@ try:
     has_xarray = True
 except:
     has_xarray = False
-    
+
 
 def proj_from_CF_dict(c):
 
@@ -451,6 +451,9 @@ class Reader(BaseReader):
                                 indy, indx_right]
                     variables[par] = np.ma.concatenate((left, right), 3)
 
+            if has_xarray is True:
+                variables[par] = np.asarray(variables[par])
+
             # If 2D array is returned due to the fancy slicing
             # methods of netcdf-python, we need to take the diagonal
             if variables[par].ndim > 1 and block is False:
@@ -494,6 +497,9 @@ class Reader(BaseReader):
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
+        if has_xarray is True:
+            variables['x'] = np.asarray(variables['x'])
+            variables['y'] = np.asarray(variables['y'])
         if self.global_coverage():
             if self.xmax + self.delta_x >= 360 and self.xmin > 180:
                 variables['x'][variables['x']>180] -= 360
