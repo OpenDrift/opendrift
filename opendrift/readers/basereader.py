@@ -220,16 +220,12 @@ class BaseReader(object):
                     self.rotate_mapping[xvar] = var
 
         # Adding variables which may be derived from existing ones
-        print('Adding new variables')
+        logging.debug('Adding new variable mappings')
         self.derived_variables = {}
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
-            for i in em['input']:
-                print(i, 'input variable')
-            for i in em['output']:
-                print(i, 'output variable')
             if em['output'][0] not in self.variables and em['input'][0] in self.variables:
-                print('Adding method!')
+                logging.debug('Adding method!')
                 for v in em['output']:
                     self.variables.append(v)
                     self.derived_variables[v] = em['input']
@@ -328,25 +324,22 @@ class BaseReader(object):
 
     def get_variables_derived(self, variables, *args, **kwargs):
         """Wrapper around get_variables, adding derived"""
-        print(variables, 'VAR INN')
         if isinstance(variables, basestring):
             variables = [variables]
+        if not isinstance(variables, list):
+            variables = list(variables)
         derive_variables = False
         for var in variables:
             if var in self.derived_variables:
-                print('Derived: ' + var)
                 fromvars = self.derived_variables[var]
-                print('From: ' + str(fromvars))
                 for v in fromvars:
                     variables.append(v)
                 # Removing the derived variable name
                 variables = [v for v in variables if v != var]
                 derive_variables = True
-        print(variables, 'updatevar')
 
         env = self.get_variables(variables, *args, **kwargs)
         if derive_variables is True:
-            print('Deriving')
             self.calculate_derived_environment_variables(env)
 
         return env
@@ -435,7 +428,6 @@ class BaseReader(object):
 
     def calculate_derived_environment_variables(self, env):
 
-        print(env.keys(), 'Lyklar')
         if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
             self.wind_from_speed_and_direction(env)
 
