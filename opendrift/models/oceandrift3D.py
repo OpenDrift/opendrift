@@ -95,7 +95,7 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
         '''
         
         # TODO: setting to scalar has lead to trouble - should be array of num_elements
-        #self.elements.terminal_velocity = 0.
+        self.elements.terminal_velocity = 0.
 
     def update(self):
         """Update positions and properties of elements."""

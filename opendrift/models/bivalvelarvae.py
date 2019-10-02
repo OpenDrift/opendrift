@@ -17,14 +17,13 @@
 
 
 import numpy as np
-
 from opendrift.models.opendrift3D import \
     OpenDrift3DSimulation, Lagrangian3DArray
 from opendrift.elements import LagrangianArray
 import logging
 
 # Defining the  element properties from Pelagicegg model
-class BivalveLarvae(Lagrangian3DArray):
+class BivalveLarvaeObj(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for pelagic eggs/larvae
     """
 
@@ -46,7 +45,7 @@ class BivalveLarvae(Lagrangian3DArray):
                        'default': 0.})])
 
 
-class BivalveLarvaeDrift(OpenDrift3DSimulation):
+class BivalveLarvae(OpenDrift3DSimulation):
     """Buoyant particle trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway
@@ -59,7 +58,7 @@ class BivalveLarvaeDrift(OpenDrift3DSimulation):
         Under construction.
     """
 
-    ElementType = BivalveLarvae
+    ElementType = BivalveLarvaeObj
     # ElementType = BuoyantTracer 
 
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
@@ -121,7 +120,7 @@ class BivalveLarvaeDrift(OpenDrift3DSimulation):
         self._add_configstring(self.configspec_bivalvelarvae)
 
         # Calling general constructor of parent class
-        super(BivalveLarvaeDrift, self).__init__(*args, **kwargs)
+        super(BivalveLarvae, self).__init__(*args, **kwargs)
 
         # By default, eggs do not strand towards coastline
         self.set_config('general:coastline_action', 'previous')
