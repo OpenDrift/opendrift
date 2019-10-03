@@ -79,16 +79,14 @@ class TestStranding(unittest.TestCase):
         self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertEqual(o.num_elements_total(), 100)
 
+    @pytest.mark.slow
     def test_stranding_options(self):
         reader_osc = reader_oscillating.Reader(
                 'x_sea_water_velocity', amplitude=1,
                 zero_time=datetime.now())
 
-        # reader_basemap = reader_basemap_landmask.Reader(
-        #             llcrnrlon=12, llcrnrlat=67.6,
-        #             urcrnrlon=13.6, urcrnrlat=68.1,
-        #             resolution='i', projection='merc')
-        reader_basemap = reader_cartopy_landmask.Reader(prepare = True, source = 'naturalearth')
+        reader_cartopy = reader_cartopy_landmask.Reader(prepare = False,
+                extent = [12, 67.6, 13.6, 68.1], resolution = 'i')
 
         # Three different stranding options, with
         # expected final status and position
@@ -99,7 +97,7 @@ class TestStranding(unittest.TestCase):
         for i, option in enumerate(options):
             o = OceanDrift(loglevel=00)
             o.set_config('general:coastline_action', option)
-            o.add_reader([reader_osc, reader_basemap])
+            o.add_reader([reader_osc, reader_cartopy])
             # Adding northwards drift
             o.fallback_values['y_sea_water_velocity'] = .2
             o.seed_elements(lon=12.2, lat=67.7, radius=0,

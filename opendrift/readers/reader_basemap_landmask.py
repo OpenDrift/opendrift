@@ -90,7 +90,7 @@ class Reader(BaseReader):
             self.polygons = [p.boundary for p in self.map.landpolygons]
         else:
             self.polygons = [Path(p.boundary) for p in self.map.landpolygons]
-            
+
         # Generate rasterized version of polygons for faster checking of stranding
         # (if enabled)
         if (rasterize == True):
@@ -121,7 +121,39 @@ class Reader(BaseReader):
             self.figsize=(11., 11.*aspect_ratio)
             plt.figure(0, figsize=(11., 11.*aspect_ratio))
         ax = plt.axes([.05, .05, .85, .9])
-            
+
+    def zoom_map(self, buffer=0.2,
+                 lonmin=None, lonmax=None, latmin=None, latmax=None):
+        logging.info('Zooming basemap to (%s to %s E), (%s to %s N)' %
+                     (lonmin, lonmax, latmin, latmax) )
+
+        map = Basemap(lonmin, latmin, lonmax, latmax,
+                      resolution=None, projection='merc')
+
+        # Find Basemap offset between new and old maps
+        xo, yo = map(lonmin, latmin, inverse=False)
+        xoo, yoo = self.map(lonmin, latmin, inverse=False)
+        xoff = xoo-xo
+        yoff = yoo-yo
+
+        # Copy polygons and adjust for offsets
+        map.coastpolygons = [
+            (tuple(np.subtract(pol[0], xoff)),
+            tuple(np.subtract(pol[1], yoff))) for pol in
+            self.map.coastpolygons]
+
+        coastsegs_new = []
+        for c in self.map.coastsegs:
+            xc, yc = list(zip(*c))
+            newxc = tuple(xce - xoff for xce in xc)
+            newyc = tuple(yce - yoff for yce in yc)
+            coastsegs_new.append(list(zip(newxc, newyc)))
+        map.coastsegs = coastsegs_new
+
+        map.coastpolygontypes = map_orig.coastpolygontypes
+        map.resolution = map_orig.resolution
+        self.map = map
+
     def on_land_polycheck(self, x, y):
         points = np.c_[x, y]
         land = np.zeros_like(x, dtype=np.bool)
@@ -133,33 +165,32 @@ class Reader(BaseReader):
                 land = land + polygon.contains_points(points)
         return land
 
-    """
-    Returns a vector of booleans with True if the point (x[i], y[i]) is on land
-    """
     def on_land(self, x, y):
+        """
+        Returns a vector of booleans with True if the point (x[i], y[i]) is on land
+        """
         #return [self.map.is_land(x0, y0) for x0,y0 in zip(x,y)]  # uncomment for simulation in lakes
         x0 = (x - self.bmap_raster.xmin)/self.bmap_raster.resolution
         y0 = (y - self.bmap_raster.ymin)/self.bmap_raster.resolution
         x0 = x0.astype(np.int32)
         y0 = y0.astype(np.int32)
         y0 = self.bmap_raster.data.shape[0] - y0 - 1
-        
+
         #Clip out of bounds
         np.clip(x0, 0, self.bmap_raster.data.shape[1]-1, out=x0)
         np.clip(y0, 0, self.bmap_raster.data.shape[0]-1, out=y0)
-            
+
         land = (self.bmap_raster.data[y0, x0] == 0)
         coords = np.flatnonzero(land)
         logging.debug('Checking ' + str(len(coords)) + ' of ' + str(len(x)) + ' coordinates to polygons')
-        
+
         if (len(coords) > 0):
             land[coords] = self.on_land_polycheck(x[coords], y[coords])
-        
+
         return land
 
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, z=None, block=False):
-
         if isinstance(requestedVariables, str):
             requestedVariables = [requestedVariables]
 
@@ -171,7 +202,7 @@ class Reader(BaseReader):
         # Nevertheless, seems not to affect performance
         lon, lat = self.xy2lonlat(x, y)
         x, y = self.map(lon, lat, inverse=False)
-        
+
         if (self.bmap_raster == None):
             insidePoly = self.on_land_polycheck(x, y)
         else:
@@ -183,24 +214,24 @@ class Reader(BaseReader):
         return variables
 
     """
-    Rasterizes a Basemap object into a bitmap with a given resolution 
+    Rasterizes a Basemap object into a bitmap with a given resolution
     (each cell has a size of resolution_meters x resolution_meters)
     """
     @staticmethod
     def gen_land_bitmap(bmap, resolution_meters):
-                
+
         #Get land polygons and bbox of polygons
         polys = []
         xmin = np.finfo(np.float64).max
         xmax = -np.finfo(np.float64).max
         ymin = xmin
         ymax = xmax
-                
+
         logging.debug('Rasterizing Basemap, number of land polys: ' + str(len(bmap.landpolygons)))
         # If no polys: return a zero map
         if (len(bmap.landpolygons) == 0):
             raise Exception('Basemap contains no land polys to rasterize')
-        
+
         for polygon in bmap.landpolygons:
             coords = polygon.get_coords()
             xmin = min(xmin, np.min(coords[:,0]))
@@ -208,27 +239,27 @@ class Reader(BaseReader):
             ymin = min(ymin, np.min(coords[:,1]))
             ymax = max(ymax, np.max(coords[:,1]))
             polys.append(coords)
-            
+
         xmin = np.floor(xmin/resolution_meters)*resolution_meters
         xmax = np.ceil(xmax/resolution_meters)*resolution_meters
         ymin = np.floor(ymin/resolution_meters)*resolution_meters
         ymax = np.ceil(ymax/resolution_meters)*resolution_meters
-        
+
         # For debugging
         logging.debug('Rasterizing Basemap, bounding box: ' + str([xmin, xmax, ymin, ymax]))
-        
+
         # Switch backend to prevent creating an empty figure in notebook
         orig_backend = plt.get_backend()
         plt.switch_backend('agg')
-        
+
         # Create figure to help rasterize
         fig = plt.figure(frameon=False)
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.set_axis_off()
-        fig.add_axes(ax)   
+        fig.add_axes(ax)
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
-        
+
         # Set aspect and resolution
         # Aspect gives 1 in high plot
         aspect = (xmax-xmin)/(ymax-ymin)
@@ -238,14 +269,14 @@ class Reader(BaseReader):
                           % resolution_dpi)
             resolution_meters = resolution_meters*2
             resolution_dpi = (ymax-ymin) / resolution_meters
-        
+
         fig.set_dpi(resolution_dpi)
         fig.set_size_inches(aspect, 1)
-        
+
         # Add polygons
         lc = PolyCollection(polys, facecolor='k', lw=0)
         ax.add_collection(lc)
-        
+
         # Create canvas and rasterize
         canvas = FigureCanvasAgg(fig)
         try:
@@ -257,12 +288,12 @@ class Reader(BaseReader):
             logging.debug('Rasterized size: ' + str([width, height]))
         except MemoryError:
             gc.collect()
-            raise Exception('Basemap rasterized size too large: ' 
-                            + str(aspect*resolution_dpi) + '*' + str(resolution_dpi) 
+            raise Exception('Basemap rasterized size too large: '
+                            + str(aspect*resolution_dpi) + '*' + str(resolution_dpi)
                             + ' cells')
         finally:
             # Reset backend
             plt.switch_backend(orig_backend)
-        
-        
+
+
         return RasterizedBasemap(xmin, xmax, ymin, ymax, resolution_meters, data)

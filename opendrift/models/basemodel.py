@@ -2565,44 +2565,21 @@ class OpenDriftSimulation(PhysicsMethods):
             latmin = lats.min() - buffer
             latmax = lats.max() + buffer
 
-        logging.info('Zooming basemap to (%s to %s E), (%s to %s N)' %
+        logging.info('Zooming landmask to (%s to %s E), (%s to %s N)' %
                      (lonmin, lonmax, latmin, latmax) )
+
         if 'basemap_landmask' in self.readers:
-            self.readers['basemap_landmask'].map_orig = \
-                self.readers['basemap_landmask'].map
+            self.readers['basemap_landmask'].zoom_map(
+                    buffer,
+                    lonmin, lonmax,
+                    latmin, latmax)
+        elif 'cartopy_landmask' in self.readers:
+            self.readers['cartopy_landmask'].zoom_map(
+                    buffer,
+                    lonmin, lonmax,
+                    latmin, latmax)
         else:
             raise ValueError('No basemap readers added.')
-        map = Basemap(lonmin, latmin, lonmax, latmax,
-                      resolution=None, projection='merc')
-        map_orig = self.readers['basemap_landmask'].map_orig  # pointer
-
-        # Find Basemap offset between new and old maps
-        xo, yo = map(lonmin, latmin, inverse=False)
-        xoo, yoo = map_orig(lonmin, latmin, inverse=False)
-        xoff = xoo-xo
-        yoff = yoo-yo
-
-        # Copy polygons and adjust for offsets
-        map.coastpolygons = [
-            (tuple(np.subtract(pol[0], xoff)),
-            tuple(np.subtract(pol[1], yoff))) for pol in
-            map_orig.coastpolygons]
-
-        coastsegs_new = []
-        for c in map_orig.coastsegs:
-            xc, yc = list(zip(*c))
-            newxc = tuple(xce - xoff for xce in xc)
-            newyc = tuple(yce - yoff for yce in yc)
-            coastsegs_new.append(list(zip(newxc, newyc)))
-        map.coastsegs = coastsegs_new
-
-        map.coastpolygontypes = map_orig.coastpolygontypes
-        #map.landpolygons = map_orig.landpolygons
-        #map.lakepolygons = map_orig.lakepolygons
-        #map.boundarylons = map_orig.boundarylons
-        map.resolution = map_orig.resolution
-
-        self.readers['basemap_landmask'].map = map
 
     def get_lonlats(self):
         if hasattr(self, 'history'):
