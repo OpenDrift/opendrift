@@ -14,10 +14,10 @@
 #
 # Copyright 2019, Gaute Hope, MET Norway
 
-import logging
-
 from opendrift.readers.basereader import BaseReader
 
+import logging
+import warnings
 import shapely.vectorized
 from shapely.ops import unary_union
 import cartopy
@@ -69,7 +69,6 @@ class Reader(BaseReader):
             urcrnrlon (float): maxx (Deprecated in favor of extent).
 
             urcrnrlat (float): maxy (Deprecated in favor of extent).
-
         """
         self.__prep__ = prepare
         if source == 'naturalearth':
@@ -95,7 +94,6 @@ class Reader(BaseReader):
         if extent and (llcrnrlat or llcrnrlon or urcrnrlat or urcrnrlon):
             raise Exception ("'extent' cannot be given togheter with any of 'llcrnrlon', ..'")
         elif extent is None and (llcrnrlat or llcrnrlon or urcrnrlat or urcrnrlon):
-            import warnings
             warnings.warn("llcrnrlon, llcrnrlat, et. al. is deprecated for the cartopy reader. Prefer 'extent' in stead.", DeprecationWarning)
             extent = [llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat]
 
@@ -127,6 +125,11 @@ class Reader(BaseReader):
             self.__land__ = shapely.prepared.prep(land_geom)
         else:
             self.__land__ = list(reader.intersecting_geometries(extent))
+
+    def zoom_map(self, buffer=0.2,
+                 lonmin=None, lonmax=None, latmin=None, latmax=None):
+        logging.warning('Zooming not implemented for cartopy reader: (%s to %s E), (%s to %s N)' %
+                     (lonmin, lonmax, latmin, latmax) )
 
     def __on_land__(self, x, y):
         assert isinstance(x, np.ndarray) and isinstance(y, np.ndarray)
