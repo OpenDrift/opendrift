@@ -56,6 +56,8 @@ class Reader(BaseReader):
                  rasterize=True, rasterize_resolution=500):
 
         logging.debug('Creating Basemap...')
+        import warnings
+        warnings.warn("Prefer the cartopy reader for landmasks.", DeprecationWarning)
 
         if projection == 'cyl':  # TODO: should be fixed
             raise ValueError('Cyl projection not supported, as rasterisation needs units of m')
