@@ -6,5 +6,6 @@ future
 configobj
 pillow
 pyproj>=2.2
+cartopy
 https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
 git+https://github.com/OpenDrift/OilLibrary@3f65a60fd4543a8b772622c245b4b3c25d4b8f38
