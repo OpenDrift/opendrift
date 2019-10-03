@@ -71,7 +71,6 @@ class Reader(BaseReader):
             urcrnrlat (float): maxy (Deprecated in favor of extent).
 
         """
-        print ("setting up cartopy")
         self.__prep__ = prepare
         if source == 'naturalearth':
             if resolution is None:
@@ -119,7 +118,6 @@ class Reader(BaseReader):
 
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
-        print ("cartopy setup, xmin, xmax:", self.xmin, self.xmax)
         self.delta_x = None
         self.delta_y = None
 
@@ -129,7 +127,6 @@ class Reader(BaseReader):
             self.__land__ = shapely.prepared.prep(land_geom)
         else:
             self.__land__ = list(reader.intersecting_geometries(extent))
-        print ("setup cartopy")
 
     def __on_land__(self, x, y):
         assert isinstance(x, np.ndarray) and isinstance(y, np.ndarray)
@@ -167,7 +164,6 @@ class Reader(BaseReader):
 
         """
 
-        print ("cart: x,y=", x,y)
         self.check_arguments(requestedVariables, time, x, y, z)
         return { 'land_binary_mask': self.__on_land__(x,y) }
 

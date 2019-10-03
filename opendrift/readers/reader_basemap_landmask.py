@@ -42,8 +42,6 @@ from opendrift.readers.basereader import BaseReader
 RasterizedBasemap = collections.namedtuple('RasterizedBasemap', 'xmin xmax ymin ymax resolution data')
 
 class Reader(BaseReader):
-
-
     name = 'basemap_landmask'
     return_block = False  # Vector based, so checks only individual points
 
