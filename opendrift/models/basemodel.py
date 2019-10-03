@@ -2061,7 +2061,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 np.radians(np.mean(self.elements_scheduled.lat)))
 
             try:
-                import cartopy
                 from opendrift.readers import reader_cartopy_landmask
                 reader_cartopy = reader_cartopy_landmask.Reader(
                         extent = [
