@@ -31,6 +31,16 @@ def test_landmask_setup_prepared(benchmark):
     benchmark(reader_cartopy_landmask.Reader, True)
 
 @pytest.mark.slow
+def test_landmask_setup_prepared_cached(benchmark):
+    reader_cartopy_landmask.Reader (True, True) # force cache to be generated
+    benchmark(reader_cartopy_landmask.Reader, True, True)
+
+@pytest.mark.slow
+def test_landmask_setup_prepared_cached_interres(benchmark):
+    reader_cartopy_landmask.Reader (True, True, resolution = 'i') # force cache to be generated
+    benchmark(reader_cartopy_landmask.Reader, True, True, resolution = 'i')
+
+@pytest.mark.slow
 def test_landmask_setup_prepared_extent(benchmark):
     benchmark(reader_cartopy_landmask.Reader, True, extent = [-8, 50, 2, 59])
 
@@ -72,9 +82,14 @@ def test_unprepared_prepared_matches():
     reader_cartopy = reader_cartopy_landmask.Reader(True, extent = [-8, 50, 2, 59])
     pe = reader_cartopy.__on_land__(x, y)
 
+    reader_cartopy = reader_cartopy_landmask.Reader(True, True) # force cache to be generated
+    reader_cartopy = reader_cartopy_landmask.Reader(True, True)
+    pc = reader_cartopy.__on_land__(x, y)
+
     assert len(up[:]) > 10
     np.testing.assert_array_equal(up, pp)
     np.testing.assert_array_equal(up, pe)
+    np.testing.assert_array_equal(up, pc)
 
 def test_cartopy_plot(tmpdir):
     """ Testing cartopy reader against Basemap (directly) """
