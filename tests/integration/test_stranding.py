@@ -18,6 +18,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
+import pytest
 from datetime import datetime, timedelta
 import numpy as np
 
