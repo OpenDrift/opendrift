@@ -19,7 +19,8 @@ import os
 import glob
 import types
 import traceback
-import logging
+import logging; logging.captureWarnings(True)
+import warnings
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -122,8 +123,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
     configspec_basemodel = '''
             [general]
-                use_basemap_landmask = boolean(default=True)
-                basemap_resolution = option('f', 'h', 'i', 'c', default='h')
+                use_auto_landmask = boolean(default=True)
+                auto_landmask_resolution = option('f', 'h', 'i', 'c', default='h')
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
                 time_step_minutes = integer(min=1, max=1440, default=60)
                 time_step_output_minutes = integer(min=1, max=1440, default=None)
@@ -286,6 +287,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def set_config(self, key, value):
         """Provide a value for a configuration setting"""
+        if key == 'general:use_basemap_landmask':
+            warnings.warn("use_basemap_landmask is deprecated in favor of use_auto_landmask", DeprecationWarning)
+            key = 'general:use_auto_landmask'
+        elif key == 'general:basemap_resolution':
+            warnings.warn("basemap_resolution is deprecated in favor of auto_landmask_resolution", DeprecationWarning)
+            key = 'general:auto_landmask_resolution'
+
         d = self.configobj
         ds = self.configobj.configspec
         for i, s in enumerate(key.split(':')):
@@ -490,7 +498,6 @@ class OpenDriftSimulation(PhysicsMethods):
         """Any trajectory model implementation must list needed variables."""
 
     def test_data_folder(self):
-        import warnings
         warnings.warn ("Use `test_data` fixture", DeprecationWarning)
         import opendrift
         return os.path.abspath(
@@ -1278,7 +1285,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 llcrnrlon=lonmin, urcrnrlon=lonmax,
                 llcrnrlat=np.maximum(-89, latmin),
                 urcrnrlat=np.minimum(89, latmax),
-                resolution=self.get_config('general:basemap_resolution'),
+                resolution=self.get_config('general:auto_landmask_resolution'),
                 projection='merc')
             reader_basemap.name = 'tempreader'
             from opendrift.models.oceandrift import OceanDrift
@@ -2028,21 +2035,23 @@ class OpenDriftSimulation(PhysicsMethods):
         ##############################################################
         # TODO: some more error checking here
         # If Basemap landmask is requested, it shall not be obtained from other readers
-        if self.get_config('general:use_basemap_landmask') is True:
+        if self.get_config('general:use_auto_landmask') is True:
             if 'land_binary_mask' in self.priority_list:
                 if 'basemap_landmask' in self.priority_list['land_binary_mask']:
                     self.priority_list['land_binary_mask'] = ['basemap_landmask']
+                elif 'cartopy_landmask' in self.priority_list['land_binary_mask']:
+                    self.priority_list['land_binary_mask'] = ['cartopy_landmask']
                 else:
                     del self.priority_list['land_binary_mask']
-        if self.get_config('general:use_basemap_landmask') is True and \
+        if self.get_config('general:use_auto_landmask') is True and \
                 ('land_binary_mask' in self.required_variables and \
                 'land_binary_mask' not in self.priority_list \
                 and 'land_binary_mask' not in self.fallback_values):
             logging.info(
-                'Adding a dynamical landmask (resolution "%s") based on '
+                'Adding a dynamical landmask (resolution "%s") with max. priority based on '
                 'assumed maximum speed of %s m/s. '
                 'Adding a customised landmask may be faster...' %
-                (self.get_config('general:basemap_resolution'), self.max_speed))
+                (self.get_config('general:auto_landmask_resolution'), self.max_speed))
             self.timer_start('preparing main loop:making dynamical landmask')
             max_distance = \
                 self.max_speed*self.expected_steps_calculation * \
@@ -2050,17 +2059,34 @@ class OpenDriftSimulation(PhysicsMethods):
             deltalat = max_distance/111000.
             deltalon = deltalat/np.cos(
                 np.radians(np.mean(self.elements_scheduled.lat)))
-            from opendrift.readers import reader_basemap_landmask
-            reader_basemap = reader_basemap_landmask.Reader(
-                llcrnrlon=np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
-                urcrnrlon=np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
-                llcrnrlat=np.maximum(-89, self.elements_scheduled.lat.min() -
-                                     deltalat),
-                urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
-                                     deltalat),
-                resolution=self.get_config('general:basemap_resolution'),
-                projection='merc')
-            self.add_reader(reader_basemap)
+
+            try:
+                import cartopy
+                from opendrift.readers import reader_cartopy_landmask
+                reader_cartopy = reader_cartopy_landmask.Reader(
+                        extent = [
+                            np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                            np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+                            np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+                            np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
+                            ],
+                    resolution=self.get_config('general:auto_landmask_resolution'))
+                self.add_reader(reader_cartopy)
+
+            except ImportError:
+                logging.warning ("cartopy could not be imported, using basemap for automatic landmask.")
+                from opendrift.readers import reader_basemap_landmask
+                reader_basemap = reader_basemap_landmask.Reader(
+                    llcrnrlon=np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                    urcrnrlon=np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+                    llcrnrlat=np.maximum(-89, self.elements_scheduled.lat.min() -
+                                        deltalat),
+                    urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
+                                        deltalat),
+                    resolution=self.get_config('general:auto_landmask_resolution'),
+                    projection='merc')
+                self.add_reader(reader_basemap)
+
             self.dynamical_landmask = True
             self.timer_end('preparing main loop:making dynamical landmask')
         else:
@@ -2461,7 +2487,7 @@ class OpenDriftSimulation(PhysicsMethods):
             ax = plt.axes([.05, .08, .85, .9])  # When colorbar below
             map = Basemap(lonmin, latmin, lonmax, latmax,
                           resolution=
-                            self.get_config('general:basemap_resolution'),
+                            self.get_config('general:auto_landmask_resolution'),
                           projection='merc', area_thresh=0)
 
         map.drawcoastlines(color='gray')
