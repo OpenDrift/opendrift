@@ -18,26 +18,28 @@ from opendrift.readers.basereader import BaseReader
 
 import logging
 import warnings
+import shapely.wkb
 import shapely.vectorized
 from shapely.ops import unary_union
 import cartopy
 import numpy as np
-
+import os.path
 
 class Reader(BaseReader):
     name = 'cartopy_landmask'
     return_block = False
     variables = ['land_binary_mask']
-    proj4: str = None
+    proj4 = None
 
-    __prep__: bool = None
+    __prep__ = None
     __land__ = None
-    _crs_: cartopy.crs.CRS = None
+    _crs_    = None
 
     def __init__(self,
-                 prepare: bool = False,
-                 source: str = 'gshhs',
-                 resolution: str = None,
+                 prepare = False,
+                 cache = None,
+                 source = 'gshhs',
+                 resolution = None,
                  extent = None,
                  llcrnrlon = None,
                  llcrnrlat = None,
@@ -50,6 +52,8 @@ class Reader(BaseReader):
 
             prepare (bool): Optimize landmask by joining all geometries. Speeds up
                 later checks, but slows down initialization (default: False).
+
+            cache (bool): Allow prepared geometries to be cached or restored from cache. Requires prepare to be True. Default: same as prepare.
 
             source (str): Source for landmask. Either 'gshhs' or 'naturalearth'.
                 Default is 'gshhs'.
@@ -71,6 +75,16 @@ class Reader(BaseReader):
             urcrnrlat (float): maxy (Deprecated in favor of extent).
         """
         self.__prep__ = prepare
+        self.__cache__ = cache
+
+        if cache is None and prepare is True:
+            cache = True
+        else:
+            cache = False if cache is None else cache
+
+        if cache and not prepare:
+            raise Exception ("cache can only be used together with prepare")
+
         if source == 'naturalearth':
             if resolution is None:
                 resolution = '10m'
@@ -120,8 +134,30 @@ class Reader(BaseReader):
         self.delta_y = None
 
         if self.__prep__:
-            # XXX: Can be further optimized by saving a cached version
-            land_geom = unary_union(list(reader.intersecting_geometries(extent)))
+            if self.__cache__:
+                # Cache driectory follows # the XDG guidelines found at
+                # https://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
+                writable_dir = os.path.join(os.path.expanduser('~'), '.local', 'share')
+                data_dir = os.path.join(os.environ.get("XDG_DATA_HOME", writable_dir), 'opendrift')
+
+                if not os.path.exists(os.path.join(data_dir, "shapes")):
+                    os.makedirs (os.path.join(data_dir, "shapes"))
+
+                cachef = os.path.join(data_dir, "shapes", "%s_%s_%3.6f%3.6f%3.6f%3.6f.wkb" %
+                        (source, resolution, self.xmin, self.ymin, self.xmax, self.ymax))
+
+                if os.path.exists(cachef):
+                    logging.info("cartopy: loading cache from: %s", cachef)
+                    with open(cachef, 'rb') as fd:
+                        land_geom = shapely.wkb.loads(fd.read())
+                else:
+                    logging.info("cartopy: saving cache to: %s", cachef)
+                    land_geom = unary_union(list(reader.intersecting_geometries(extent)))
+                    with open(cachef, 'wb') as fd:
+                        fd.write(shapely.wkb.dumps(land_geom))
+            else:
+                land_geom = unary_union(list(reader.intersecting_geometries(extent)))
+
             self.__land__ = shapely.prepared.prep(land_geom)
         else:
             self.__land__ = list(reader.intersecting_geometries(extent))
