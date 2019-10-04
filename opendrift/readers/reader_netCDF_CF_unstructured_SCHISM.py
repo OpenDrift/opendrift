@@ -94,7 +94,7 @@ class Reader(BaseReader):
             'elev' : 'sea_surface_height',
             'temp' : 'sea_water_temperature',
             'salt' : 'sea_water_salinity',
-            'zcor' : 'zcor', # time-varying vertical coordinates
+            'zcor' : 'vertical_levels', # time-varying vertical coordinates
             'sigma': 'ocean_s_coordinate'}
             # diffusivity
             # viscosity
@@ -128,9 +128,16 @@ class Reader(BaseReader):
                 self.use_3d = True
             else:
                 self.use_3d = False
+
         if self.use_3d and 'hvel' not in self.Dataset.variables:
             logging.debug('No 3D velocity data in file - cannot find variable ''hvel'' ')
-
+        elif self.use_3d and 'hvel' in self.Dataset.variables:
+            if 'zcor' in self.Dataset.variables: # both hvel and zcor in files - all good
+                self.nb_levels = self.Dataset.variables['hvel'].shape[2] #hvel dimensions : [time,node,lev,2]
+            else:
+                logging.debug('No vertical level information present in file ''zcor'' ... stopping')
+                raise ValueError('variable ''zcor'' must be present in netcdf file to be able to use 3D currents')
+                        
 
         logging.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
@@ -222,7 +229,8 @@ class Reader(BaseReader):
         # This is done using cython-based cKDTree from scipy for quick nearest-neighbor search
         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.html
         logging.debug('Building KDtree for nearest-neighbor search')
-        self.KDtree = cKDTree(np.vstack((self.lon,self.lat)).T)
+        self.reader_KDtree = cKDTree(np.vstack((self.lon,self.lat)).T) 
+        #do we need copy_data=True ..probably not since self.lon,self.lat wont change.
 
         # build convex hull of points for particle-in-mesh checks
         logging.debug('Building convex hull of nodes for particle''s in-mesh checks')
@@ -236,7 +244,7 @@ class Reader(BaseReader):
         # Find all variables having standard_name
         self.variable_mapping = {}
         for var_name in self.Dataset.variables:
-            if var_name in [self.xname, self.yname, 'depth']:
+            if var_name in [self.xname, self.yname]: #'depth'
                 continue  # Skip coordinate variables
             var = self.Dataset.variables[var_name]
             attributes = var.ncattrs()
@@ -295,7 +303,7 @@ class Reader(BaseReader):
             ...Not sure which option would be fastest...to check
 
         """
-
+        
         requested_variables, time, x, y, z, outside = \
             self.check_arguments(requested_variables, time, x, y, z)
 
@@ -323,156 +331,83 @@ class Reader(BaseReader):
                 else:
                     raise ValueError('Wrong dimension of %s: %i' %
                                      (self.variable_mapping[par], var.ndim))
-            else :
+            else :               
                 # requested variables are current velocities
                 # In SCHISM netcdf filesboth [u,v] components are saved 
                 # as two different dimensions of the same variable.
                 var = self.Dataset.variables[self.variable_mapping[par]]
-                if var.ndim == 3: # 2D current data , dimensions [time,node,2]
-                   if par == 'x_sea_water_velocity':
+                if var.ndim == 3: # depth-averaged current data 'dahv' defined at each node and time [time,node,2]
+                    if par == 'x_sea_water_velocity':
                        data = var[indxTime,:,0]
-                   elif par == 'y_sea_water_velocity':
+                    elif par == 'y_sea_water_velocity':
                        data = var[indxTime,:,1]
-                elif var.ndim == 4: # 3D current data , dimensions [time,node,zcor,2]
-                   logging.debug('3D interp not supported yet by reader_netCDF_CF_unstructured_SCHISM')
-                   raise ValueError('Not supported - quitting')
-                   import pdb;pdb.set_trace()
-                   # Need to extract zcor here - find best way to do it...
-                   # we will need to update the dictionary variables['z']
-                   # 
+                    logging.debug('reading 2D velocity data from unstructured reader')
 
-                   # if par == 'x_sea_water_velocity':
-                   #     data = var[indxTime,c,level,0]
-                   # elif par == 'y_sea_water_velocity':
-                   #     data = var[indxTime,c,level,1]
-                else:
-                    raise ValueError('Wrong dimension of %s: %i' %
-                                     (self.variable_mapping[par], var.ndim))
+                elif var.ndim == 4: # #3D current data 'hvel' defined at each node, level, and time [time,node,zcor,2]
+                    if par == 'x_sea_water_velocity':
+                       data = var[indxTime,:,:,0]  #hvel dimensions : [time,node,lev,2]
+                    elif par == 'y_sea_water_velocity':
+                       data = var[indxTime,:,:,1] #hvel dimensions : [time,node,lev,2]
+                    logging.debug('reading 3D velocity data from unstructured reader')
+                    # here an option is to convert that 3D data into a 3-column vector
+                    # [x,y,z] with correct z extracted from 'zcor' variables,
+                    # then pass that array to dictionary variables returned by function
+                    # for future use in  get_variables_interpolated()
+                    #
+                    # 
+                    # get corresponding vertical_levels
+                    try:
+                        vertical_levels = self.Dataset.variables['zcor'][indxTime,:,:]
+                        # depth are negative down consistent with convention used in OpenDrift 
+                        # vertical_levels is masked arrat where "masked" levels are those below seabed  (= 9.9692100e+36)
+                    except:
+                        logging.debug('no vertical level information present in file ''zcor'' ... stopping')
+                        raise ValueError('variable ''zcor'' must be present in netcdf file to be able to use 3D currents')
+                    # now make a long 3-column array [x,y,z] [n_nodes x  3] with all data 
+                    # tile lon/lat data so that array shape match vertical_levels shape
+
+                    lon_tiled = np.tile(self.lon,(self.nb_levels,1)).T # dimensions [node,vertical_levels]
+                    lat_tiled = np.tile(self.lat,(self.nb_levels,1)).T
+                    # arrays are tiled so that lon_tiled[0,:] = return same value i.e. same lon/lat for all z levels 
+                    if lon_tiled.shape != vertical_levels.shape:
+                        import pdb;pdb.set_trace()
+                    # convert to masked array consistent with vertical_levels
+                    lon_tiled_ma = np.ma.array(lon_tiled, mask = vertical_levels.mask) 
+                    lat_tiled_ma = np.ma.array(lat_tiled, mask = vertical_levels.mask)
+                    # flatten arrays and add to dictionary
+                    # note we cannot save to 'x','y','z' as it would break things
+                    # both 2d and 3d are queried in same get_variables() call e.g. depth+3d velocity
+                    # 
+                    #another option could be to force use self.lon rather than data['x'] in get_variables_interpolated() 
+                    # 
+                    # save only good data
+                    variables['x_3d'] = np.ravel(lon_tiled_ma[~vertical_levels.mask]) 
+                    variables['y_3d'] = np.ravel(lat_tiled_ma[~vertical_levels.mask])
+                    variables['z_3d'] = np.ravel(vertical_levels[~vertical_levels.mask])
+                    data = np.ravel(data[~vertical_levels.mask])
 
             variables[par] = data # save all data slice to dictionary with key 'par'
-        
-        #print variables        
+                
         return variables 
 
-
-    def get_variables_depreciated(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
-        """This version mimics what would be output from a regular 
-           grid reader (e.g. reader_netCDF_CF_generic) by returning 
-           data from unstructured grid interpolated to a regular grid
-           that includes all particles (+some buffer)
-
-           The get_variables() method is called inside get_variables_interpolated()
-           which is invoked by model class. The get_variables_interpolated()
-           returns variable data interpolated in space anb time at particle positions
-
-           > Depreciated now - see new get_variables() method that is fetching the native SCHISM data
-           
-        """
-
-        requested_variables, time, x, y, z, outside = \
-            self.check_arguments(requested_variables, time, x, y, z)
-
-        nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
-            self.nearest_time(time)
-
-        x = np.atleast_1d(x)
-        y = np.atleast_1d(y)
-
-        # Finding a subset around the particles, so that
-        # we do not interpolate more points than is needed.
-        # Performance is quite dependent on the given buffer,
-        # but it should not be made too small to make sure
-        # particles are inside box
-        deg2meters = 1.1e5 # approx
-        buffer = .1  # degrees around given positions
-        buffer = .05  # degrees around given positions
-
-        if x.max() <= 360 :
-            buffer = buffer_deg # latlong reference system
-        else:
-            buffer = buffer * deg2meters# projected reference system in meters
-
-        lonmin = x.min() - buffer
-        lonmax = x.max() + buffer
-        latmin = y.min() - buffer
-        latmax = y.max() + buffer
-        c = np.where((self.lon > lonmin) &
-                     (self.lon < lonmax) &
-                     (self.lat > latmin) &
-                     (self.lat < latmax))[0]
-        
-
-        # Making a lon-lat grid onto which data is interpolated
-        lonstep = .01 * 0.25 # hardcoded for now
-        latstep = .01 * 0.25 # hardcoded for now
-        if x.max() >= 360 :
-            lonstep = lonstep * deg2meters
-            latstep = latstep * deg2meters
-        
-        lons = np.arange(lonmin, lonmax, lonstep)
-        lats = np.arange(latmin, latmax, latstep)
-        lonsm, latsm = np.meshgrid(lons, lats)
-
-        # Initialising dictionary to contain data
-        variables = {'x': lons, 'y': lats, 'z': z,
-                     'time': nearestTime}
-
-        # Reader coordinates of subset
-        for par in requested_variables:
-            if par not in ['x_sea_water_velocity','y_sea_water_velocity'] :
-                # standard case - for all variables except current velocities
-                var = self.Dataset.variables[self.variable_mapping[par]]
-                if var.ndim == 1:
-                    data = var[c]
-                elif var.ndim == 2:
-                    data = var[indxTime,c]
-                elif var.ndim == 3:
-                    data = var[indxTime,0,c]
-                else:
-                    raise ValueError('Wrong dimension of %s: %i' %
-                                     (self.variable_mapping[par], var.ndim))
-            else :
-                # requested variables are current velocities
-                # In SCHISM netcdf filesboth [u,v] components are saved 
-                # as two different dimensions of the same variable.
-                var = self.Dataset.variables[self.variable_mapping[par]]
-                if var.ndim == 3: # 2D current data , dimensions [time,node,2]
-                   if par == 'x_sea_water_velocity':
-                       data = var[indxTime,c,0]
-                   elif par == 'y_sea_water_velocity':
-                       data = var[indxTime,c,1]
-                elif var.ndim == 4: # 3D current data , dimensions [time,node,zcor,2]
-                   logging.debug('3D interp not supported yet by reader_netCDF_CF_unstructured_SCHISM')
-                   raise ValueError('Not supported - quitting')
-                   import pdb;pdb.set_trace()
-                   # if par == 'x_sea_water_velocity':
-                   #     data = var[indxTime,c,level,0]
-                   # elif par == 'y_sea_water_velocity':
-                   #     data = var[indxTime,c,level,1]
-                else:
-                    raise ValueError('Wrong dimension of %s: %i' %
-                                     (self.variable_mapping[par], var.ndim))
-
-            # now interpolate extracted data points onto regular grid
-            if 'interpolator' not in locals():
-                logging.debug('Making interpolator...')
-                interpolator = LinearNDInterpolator((self.lat[c],
-                                                     self.lon[c]),
-                                                    data)
-            else:
-                # Re-use interpolator for other variables
-                interpolator.values[:,0] = data
-            interpolator((0,0))
-
-            variables[par] = interpolator(latsm, lonsm)
-        
-        #print variables        
-        return variables
-
     def covers_positions(self, lon, lat, z=0):
-        """Return indices of input points covered by reader."""
+        """Return indices of input points covered by reader.
         
+        For an unstructured reader, this is done by checking that if particle positions are within the convex hull
+        of the mesh nodes. This means it is NOT using the true polygon bounding the mesh ..but this is generally good enough
+        to locate the outer boudary (which is often circular). 
+        >> The convex hull will not be good for the shorelines though, but this 
+        is not critical since coast interaction will be handled by the reader_basemap. 
+        Data tnterpolation might be an issue for particles reaching the land, and not actually flagged as out-of-bounds...
+        To Check...
+
+        Better alternatives could be: 
+            - get the true mesh polygon from netCDF files..doesnt seem to be available.
+            - compute an alpha-shape of mesh nodes (i.e. enveloppe) and use that as polygon. better than convexhull but not perfect 
+                    (shp = alphaShape(double(x),double(y),10000); work well in matlab for example)
+            - workout that outer mesh polygon from a cloud of points...maybe using a more evolved trimesh package ?
+
+        """        
         # weird bug in which x,y become 1e30 sometimes...
         # need to print stuff to make it work...
 
@@ -494,25 +429,27 @@ class Reader(BaseReader):
         # x, y = self.lonlat2xy(lon, lat)
 
         if self.global_coverage():
-            # We need only check north-south and z coverage
-            indices = np.where((y >= self.ymin) & (y <= self.ymax) &
-                               (z >= zmin) & (z <= zmax))[0]
+            pass
+            # unlikely to be used for SCHISM domain
         else:
-            indices = np.where((x >= self.xmin) & (x <= self.xmax) &
-                               (y >= self.ymin) & (y <= self.ymax) &
-                               (z >= zmin) & (z <= zmax))[0]
-        
+            # indices = np.where((x >= self.xmin) & (x <= self.xmax) &
+            #        (y >= self.ymin) & (y <= self.ymax) &
+            #        (z >= zmin) & (z <= zmax))[0]
+
+            # use the Path object (matplotlib) defined in __init__() : self.hull_path
+            in_hull =self.hull_path.contains_points(np.vstack([x,y]).T)
+            indices = np.where(in_hull) 
+
         try:
             return indices, x[indices], y[indices]
         except:
             return indices, x, y
 
-
     def get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
                                    lon=None, lat=None, z=None,
                                    block=False, rotate_to_proj=None):
-        """This function will overloads the get_variables_interpolated() methods
+        """This function will overload the get_variables_interpolated() methods
            available in basereader.py. 
 
            The get_variables_interpolated() from basereader.py used regularly gridded 
@@ -527,10 +464,7 @@ class Reader(BaseReader):
            This will make better use of the high-resolution provided by unstructured grids.
 
         """
-
-# >> objective is to have a method here that overload get_variables_interpolated()
-# using directly the data from SCHISM, and scipy etc..or any other 3d irreg interp routine
-
+        
         self.timer_start('total')
         self.timer_start('preparing')
         # Raise error if time not not within coverage of reader
@@ -564,12 +498,7 @@ class Reader(BaseReader):
         # 
         # general idea is to create a  new "ReaderBlockUnstruct" class that will be called instead of
         # the regular "ReaderBlock" as in basereader.py
-
-
-        # for now we are not doing any kind of caching or re-using, only reading "slices" of netcdf files
-        # and interpolating from that 
-        # This could be potentially improved using a similar approach as what is done
-        # in get_variables_interpolated() from basereader.py
+        # This allows re-using almost the same code a basereader.py for the block_before/block_after
      
         block_before = block_after = None
         blockvariables_before = variables
@@ -613,9 +542,10 @@ class Reader(BaseReader):
             # now use reader_data_dict to initialize 
             # a ReaderBlockUnstruct
             self.timer_start('preparing')
+            logging.debug('initialize ReaderBlockUnstruct var_block_before')
             self.var_block_before[blockvars_before] = \
                 ReaderBlockUnstruct(reader_data_dict,
-                    KDtree = self.KDtree,
+                    KDtree = self.reader_KDtree,
                     interpolation_horizontal=self.interpolation)
             try:
                 len_z = len(self.var_block_before[blockvars_before].z)
@@ -639,9 +569,11 @@ class Reader(BaseReader):
                                         reader_x, reader_y, z,
                                         block=block)
                 self.timer_start('preparing')
+                logging.debug('initialize ReaderBlockUnstruct var_block_after')
                 self.var_block_after[blockvars_after] = \
                     ReaderBlockUnstruct(
                         reader_data_dict,
+                        KDtree = self.reader_KDtree,
                         interpolation_horizontal=self.interpolation)
                 try:
                     len_z = len(self.var_block_after[blockvars_after].z)
@@ -812,12 +744,12 @@ class Reader(BaseReader):
 
         self.timer_end('masking')
         self.timer_end('total')
+
         return env, env_profiles
 
 
-
 ###########################
-# ReaderBlockUnstruct
+# ReaderBlockUnstruct class
 ###########################
 
 # horizontal_interpolation_methods = {
@@ -836,10 +768,10 @@ class ReaderBlockUnstruct():
     """Class to store and interpolate the data from an *unstructured* reader.
        This is the equivalent of ReaderBlock (regular grid) for *unstructured* grids.
 
-       arguments: (in addition to ReaderBlock ones)
+       arguments: (in addition to ReaderBlock)
 
            KDtree : for nearest-neighbor search (initialized using SCHISM nodes in reader's _init_() )
-                    This is read from reader object so that it is not recomputed every time
+                    This is read from reader object, so that it is not recomputed every time
 
     """
 
@@ -860,10 +792,26 @@ class ReaderBlockUnstruct():
             self.z = data_dict['z']
             del self.data_dict['z']
         except:
-            self.z = None
+            self.z = None    
+        # if some 3d data is provided, save additional dict entries
+        if 'z_3d' in data_dict.keys():
+            self.x_3d = data_dict['x_3d']
+            self.y_3d = data_dict['y_3d']
+            self.z_3d = data_dict['z_3d'] 
+            del self.data_dict['x_3d']
+            del self.data_dict['y_3d']
+            del self.data_dict['z_3d']      
 
-        # save KDtree
-        self.KDtree = KDtree
+        # Initialize KDtree(s) 
+        # > save the 2D one by default (initizalied during reader __init__()
+        # > compute and save the time-varying 3D KDtree if relevant     
+        logging.debug('saving reader''s 2D (horizontal) KDtree to ReaderBlockUnstruct')
+        self.block_KDtree = KDtree # KDtree input to function = one computed during reader's __init__()
+        if hasattr(self,'z_3d'):
+            logging.debug('Compute time-varying KDtree for 3D nearest-neighbor search (i.e using ''zcor'') ')
+            self.block_KDtree_3d = cKDTree(np.vstack((self.x_3d,self.y_3d,self.z_3d)).T) 
+            # do we need copy_data=True ..probably not since "data" [self.x_3d,self.y_3d,self.z_3d] 
+            # will not change without the KDtree being recomputed
 
         # Mask any extremely large values, e.g. if missing netCDF _Fill_value
         filled_variables = set()
@@ -886,10 +834,8 @@ class ReaderBlockUnstruct():
             logging.debug('Filled NaN-values toward seafloor for :'
                           + str(list(filled_variables)))
         
-        # below may not be relevant any longer
+        # below probably not be relevant any longer
         if False:
-            # 
-            # 
             # Set 1D (vertical) and 2D (horizontal) interpolators
             try:
                 self.Interpolator2DClass = \
@@ -924,7 +870,7 @@ class ReaderBlockUnstruct():
         # Use the KDtree to interpolate data to [x,y,z] particle positions
 
         # self._initialize_interpolator(x, y, z)
-
+        
         env_dict = {}
         if profiles is not []:
             profiles_dict = {'z': self.z}
@@ -950,59 +896,43 @@ class ReaderBlockUnstruct():
                         horizontal[elnum] = int_full[elnum]
                     else:
                         horizontal[:, elnum] = int_full[:, elnum]
-            # horizontal interpolation
+            # standard data 2D or 3D
             else:
-                
-                # use KDtree to find nearest neighbours and interpolate based on distance
+                # use KDtree to find nearest neighbours and interpolate based on distance, on 2D or 3D
                 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.query.html#scipy.spatial.cKDTree.query
                 nb_closest_nodes = 3
                 DMIN=1.e-10
-                try:
-                    dist,i=self.KDtree.query(np.vstack((x,y)).T,nb_closest_nodes, n_jobs=-1) #quick nearest-neighbor lookup
-                except:
-                    import pdb;pdb.set_trace()
-
-                    ..looks like reference to KDtree is lost somehow...
-                    self.KDtree becomes None ???
-
-                #dist = distance to nodes
-                #i = index of nodes 
-                
-                # 
-                # if i.max()>=np.vstack((x,y)).T.shape[0]: # if max node_id is larger than number of nodes
-                #   raise DataException('Finite element interpolation out of range')
-
+                if data.shape[0] == self.x.shape[0] : # 2D data
+                    #2D KDtree
+                    dist,i=self.block_KDtree.query(np.vstack((x,y)).T,nb_closest_nodes, n_jobs=-1) #quick nearest-neighbor lookup
+                    # dist = distance to nodes / i = index of nodes
+                elif hasattr(self,'z_3d') and (data.shape[0] == self.x_3d.shape[0]) : #3D data
+                    #3D KDtree
+                    dist,i=self.block_KDtree_3d.query(np.vstack((x,y,z)).T,nb_closest_nodes, n_jobs=-1) #quick nearest-neighbor lookup
+                    # dist = distance to nodes / i = index of nodes
                 dist[dist<DMIN]=DMIN
                 fac=(1./dist)
-                
-                # spatial interpolation by applying
-                # distance-based 'fac' to data at nearest nodes 
-                if data.ndim ==1 : # no vertical levels
-                    horizontal = (fac*data.take(i)).sum(-1)/fac.sum(-1)
-                elif dat.ndim==2: # data has vertical levels
-                    # TO DO ! need to use zcor
-                    tmp=(fac*data.take(i,1)).sum(-1)/fac.sum(-1) 
-                    horizontal = interpz(tmp.astype('f'),p[:,2],self.lev)
-                else:
-                    import pdb;pdb.set_trace()
-                    horizontal = (fac*data.take(i)).sum(-1)/fac.sum(-1)
-                
-                # TO DO : mask out of grid points - setting velocities to 0.0
-                # datout[numpy.where(~self.ingrid(p) )] = 0.0 
+                data_interpolated = (fac*data.take(i)).sum(-1)/fac.sum(-1) 
+
+     
+                # # CHECK#################################################
+                # data_KD = np.vstack((self.x_3d,self.y_3d,self.z_3d)).T
+                # data_points_to_find = np.vstack((x,y,z)).T
+                # data_KD[i[0][0],:]
+                # data_points_to_find[0]
+                # ########################################################
  
                 # horizontal = self._interpolate_horizontal_layers(data, nearest=nearest)
-
+            
             if profiles is not None and varname in profiles:
-                profiles_dict[varname] = horizontal
-            if horizontal.ndim > 1:
-                env_dict[varname] = self.interpolator1d(horizontal)
-            else:
-                env_dict[varname] = horizontal
+                profiles_dict[varname] = data_interpolated # horizontal
+            # if horizontal.ndim > 1:
+            #     env_dict[varname] = self.interpolator1d(data_interpolated) #self.interpolator1d(horizontal)
+            # else:
+            env_dict[varname] = data_interpolated #horizontal
+
         if 'z' in profiles_dict:
             profiles_dict['z'] = np.atleast_1d(profiles_dict['z'])
-        
-        self.KDtree
-        import pdb;pdb.set_trace()
 
         return env_dict, profiles_dict
 
@@ -1032,3 +962,159 @@ class ReaderBlockUnstruct():
             return True
         else:
             return False
+
+
+
+# ###################################################################################
+#     def get_variables_depreciated(self, requested_variables, time=None,
+#                       x=None, y=None, z=None, block=False):
+#         """This version mimics what would be output from a regular 
+#            grid reader (e.g. reader_netCDF_CF_generic) by returning 
+#            data from unstructured grid interpolated to a regular grid
+#            that includes all particles (+some buffer)
+
+#            The get_variables() method is called inside get_variables_interpolated()
+#            which is invoked by model class. The get_variables_interpolated()
+#            returns variable data interpolated in space anb time at particle positions
+
+#            > Depreciated now - see new get_variables() method that is fetching the native SCHISM data
+           
+#         """
+
+#         requested_variables, time, x, y, z, outside = \
+#             self.check_arguments(requested_variables, time, x, y, z)
+
+#         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
+#             self.nearest_time(time)
+
+#         x = np.atleast_1d(x)
+#         y = np.atleast_1d(y)
+
+#         # Finding a subset around the particles, so that
+#         # we do not interpolate more points than is needed.
+#         # Performance is quite dependent on the given buffer,
+#         # but it should not be made too small to make sure
+#         # particles are inside box
+#         deg2meters = 1.1e5 # approx
+#         buffer = .1  # degrees around given positions
+#         buffer = .05  # degrees around given positions
+
+#         if x.max() <= 360 :
+#             buffer = buffer_deg # latlong reference system
+#         else:
+#             buffer = buffer * deg2meters# projected reference system in meters
+
+#         lonmin = x.min() - buffer
+#         lonmax = x.max() + buffer
+#         latmin = y.min() - buffer
+#         latmax = y.max() + buffer
+#         c = np.where((self.lon > lonmin) &
+#                      (self.lon < lonmax) &
+#                      (self.lat > latmin) &
+#                      (self.lat < latmax))[0]
+        
+
+#         # Making a lon-lat grid onto which data is interpolated
+#         lonstep = .01 * 0.25 # hardcoded for now
+#         latstep = .01 * 0.25 # hardcoded for now
+#         if x.max() >= 360 :
+#             lonstep = lonstep * deg2meters
+#             latstep = latstep * deg2meters
+        
+#         lons = np.arange(lonmin, lonmax, lonstep)
+#         lats = np.arange(latmin, latmax, latstep)
+#         lonsm, latsm = np.meshgrid(lons, lats)
+
+#         # Initialising dictionary to contain data
+#         variables = {'x': lons, 'y': lats, 'z': z,
+#                      'time': nearestTime}
+
+#         # Reader coordinates of subset
+#         for par in requested_variables:
+#             if par not in ['x_sea_water_velocity','y_sea_water_velocity'] :
+#                 # standard case - for all variables except current velocities
+#                 var = self.Dataset.variables[self.variable_mapping[par]]
+#                 if var.ndim == 1:
+#                     data = var[c]
+#                 elif var.ndim == 2:
+#                     data = var[indxTime,c]
+#                 elif var.ndim == 3:
+#                     data = var[indxTime,0,c]
+#                 else:
+#                     raise ValueError('Wrong dimension of %s: %i' %
+#                                      (self.variable_mapping[par], var.ndim))
+#             else :
+#                 # requested variables are current velocities
+#                 # In SCHISM netcdf filesboth [u,v] components are saved 
+#                 # as two different dimensions of the same variable.
+#                 var = self.Dataset.variables[self.variable_mapping[par]]
+#                 if var.ndim == 3: # 2D current data , dimensions [time,node,2]
+#                    if par == 'x_sea_water_velocity':
+#                        data = var[indxTime,c,0]
+#                    elif par == 'y_sea_water_velocity':
+#                        data = var[indxTime,c,1]
+#                 elif var.ndim == 4: # 3D current data , dimensions [time,node,zcor,2]
+#                    logging.debug('3D interp not supported yet by reader_netCDF_CF_unstructured_SCHISM')
+#                    raise ValueError('Not supported - quitting')
+#                    import pdb;pdb.set_trace()
+#                    # if par == 'x_sea_water_velocity':
+#                    #     data = var[indxTime,c,level,0]
+#                    # elif par == 'y_sea_water_velocity':
+#                    #     data = var[indxTime,c,level,1]
+#                 else:
+#                     raise ValueError('Wrong dimension of %s: %i' %
+#                                      (self.variable_mapping[par], var.ndim))
+
+#             # now interpolate extracted data points onto regular grid
+#             if 'interpolator' not in locals():
+#                 logging.debug('Making interpolator...')
+#                 interpolator = LinearNDInterpolator((self.lat[c],
+#                                                      self.lon[c]),
+#                                                     data)
+#             else:
+#                 # Re-use interpolator for other variables
+#                 interpolator.values[:,0] = data
+#             interpolator((0,0))
+
+#             variables[par] = interpolator(latsm, lonsm)
+        
+#         #print variables        
+#         return variables
+
+#     def covers_positions_depreciated(self, lon, lat, z=0):
+#         """Return indices of input points covered by reader."""
+#         import pdb;pdb.set_trace()
+        
+#         # weird bug in which x,y become 1e30 sometimes...
+#         # need to print stuff to make it work...
+
+#         # Calculate x,y coordinates from lon,lat
+#         print(lon.max()) # if I comment this...[x,y] may become 1e+30..have no idea why
+#                          # it runs fine if I have that print statement ....
+#         # print(lat.max())
+#         x, y = self.lonlat2xy(lon, lat)      
+#         # Only checking vertical coverage if zmin, zmax is defined
+#         zmin = -np.inf
+#         zmax = np.inf
+#         if hasattr(self, 'zmin') and self.zmin is not None:
+#             zmin = self.zmin
+#         if hasattr(self, 'zmax') and self.zmax is not None:
+#             zmax = self.zmax
+
+#         # sometimes x,y will are = 1e30 at this stage..and have no idea why
+#         # recomputing them below seems to fix the issue        
+#         # x, y = self.lonlat2xy(lon, lat)
+
+#         if self.global_coverage():
+#             # We need only check north-south and z coverage
+#             indices = np.where((y >= self.ymin) & (y <= self.ymax) &
+#                                (z >= zmin) & (z <= zmax))[0]
+#         else:
+#             indices = np.where((x >= self.xmin) & (x <= self.xmax) &
+#                                (y >= self.ymin) & (y <= self.ymax) &
+#                                (z >= zmin) & (z <= zmax))[0]
+        
+#         try:
+#             return indices, x[indices], y[indices]
+#         except:
+#             return indices, x, y
