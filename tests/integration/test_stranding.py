@@ -86,8 +86,7 @@ class TestStranding(unittest.TestCase):
                 'x_sea_water_velocity', amplitude=1,
                 zero_time=datetime.now())
 
-        reader_cartopy = reader_cartopy_landmask.Reader(prepare = False,
-                extent = [12, 67.6, 13.6, 68.1], resolution = 'i')
+        reader_cartopy = reader_cartopy_landmask.Reader(resolution = 'i')
 
         # Three different stranding options, with
         # expected final status and position
@@ -133,9 +132,7 @@ class TestStranding(unittest.TestCase):
         self.assertAlmostEqual(lons[-1], 5.366, 2)
 
     def test_interact_coastline_cartopy(self):
-        reader_cartopy = reader_cartopy_landmask.Reader(prepare = False, source='gshhs',
-                llcrnrlon=4.5, llcrnrlat=60.4,
-                urcrnrlon=6, urcrnrlat=60.6)
+        reader_cartopy = reader_cartopy_landmask.Reader()
 
         o = OceanDrift(loglevel=00)
         o.add_reader(reader_cartopy)
