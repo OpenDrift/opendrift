@@ -29,3 +29,4 @@ dependencies:
   - pip:
     - https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
     - git+https://github.com/OpenDrift/OilLibrary.git@python2
+    - opendrift-landmask-data
