@@ -135,7 +135,7 @@ class Reader(BaseReader):
 
         if self.__prep__:
             if self.__cache__:
-                # Cache driectory follows # the XDG guidelines found at
+                # Cache driectory follows the XDG guidelines found at
                 # https://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
                 writable_dir = os.path.join(os.path.expanduser('~'), '.local', 'share')
                 data_dir = os.path.join(os.environ.get("XDG_DATA_HOME", writable_dir), 'opendrift')
@@ -143,7 +143,7 @@ class Reader(BaseReader):
                 if not os.path.exists(os.path.join(data_dir, "shapes")):
                     os.makedirs (os.path.join(data_dir, "shapes"))
 
-                cachef = os.path.join(data_dir, "shapes", "%s_%s_%3.6f%3.6f%3.6f%3.6f.wkb" %
+                cachef = os.path.join(data_dir, "shapes", "%s_%s_%3.6fE%3.6fN%3.6fE%3.6fN.wkb" %
                         (source, resolution, self.xmin, self.ymin, self.xmax, self.ymax))
 
                 if os.path.exists(cachef):
@@ -205,4 +205,17 @@ class Reader(BaseReader):
 
         self.check_arguments(requestedVariables, time, x, y, z)
         return { 'land_binary_mask': self.__on_land__(x,y) }
+
+    @staticmethod
+    def pre_generate_cache():
+        print ("pre generating cache for sources and resolutions for entire world")
+        from concurrent.futures import ProcessPoolExecutor
+        with ProcessPoolExecutor(max_workers=8) as executor:
+            for source in ['gshhs', 'nautralearth']:
+                resolutions = ['c', 'l', 'i', 'h', 'f'] if source == 'gshhs' else \
+                              ['10m', '50m', '110m' ]
+                for resolution in resolutions:
+                    print("preparing cache for %s, resolution '%s'.. this will take a while" % (source, resolution))
+                    executor.submit (Reader, True, True, source, resolution)
+        print("done.")
 
