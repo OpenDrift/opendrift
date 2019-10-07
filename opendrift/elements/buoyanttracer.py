@@ -15,7 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 # from elements import LagrangianArray
-from  passivetracer import PassiveTracer
+from  opendrift.elements.passivetracer import PassiveTracer
 import numpy as np
 
 class BuoyantTracer(PassiveTracer):
