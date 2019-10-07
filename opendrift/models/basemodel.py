@@ -2598,7 +2598,8 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
-                  show_trajectories=False,
+                  show_trajectories=False, density_proj=None,
+                  llcrnrlon=None, llcrnrlat=None, urcrnrlon=None, urcrnrlat=None,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20,
                   legend=None, legend_loc='best', fps=10):
@@ -2780,9 +2781,12 @@ class OpenDriftSimulation(PhysicsMethods):
             cmap.set_under('w')
             H, H_submerged, H_stranded, lon_array, lat_array = \
                 self.get_density_array(pixelsize_m=density_pixelsize_m,
+                                       density_proj=density_proj,
+                                       llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat,
+                                       urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat,
                                        weight=density_weight)
             H = H + H_submerged + H_stranded
-            lat_array, lon_array = np.meshgrid(lat_array, lon_array)
+            #lat_array, lon_array = np.meshgrid(lat_array, lon_array)
             pm = map.pcolormesh(lon_array, lat_array, H[0,:,:],
                                 latlon=True, vmin=0.1, vmax=vmax, cmap=cmap)
 
@@ -3294,39 +3298,59 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return map_x, map_y, scalar, u_component, v_component
 
-    def get_density_array(self, pixelsize_m, weight=None):
+    def get_density_array(self, pixelsize_m, density_proj=None, llcrnrlon=None,llcrnrlat=None,urcrnrlon=None,urcrnrlat=None, weight=None):
+        '''
+        compute a particle concentration map from particle positions
+        Use user defined projection (density_proj=<proj4_string>)
+        or create a lon/lat grid (density_proj=None)
+        '''
+        times = self.get_time_array()[0]
         lon = self.get_property('lon')[0]
         lat = self.get_property('lat')[0]
-        times = self.get_time_array()[0]
-        deltalat = pixelsize_m/111000.0  # m to degrees
-        deltalon = deltalat/np.cos(np.radians((np.nanmin(lat) +
+        if density_proj is None:
+            # if no projection is provided, create a lon/lat grid 
+            deltalat = pixelsize_m/111000.0  # m to degrees
+            deltalon = deltalat/np.cos(np.radians((np.nanmin(lat) +
                                                np.nanmax(lat))/2))
-        lat_array = np.arange(np.nanmin(lat)-deltalat,
+            lat_array = np.arange(np.nanmin(lat)-deltalat,
                               np.nanmax(lat)+deltalat, deltalat)
-        lon_array = np.arange(np.nanmin(lon)-deltalat,
+            lon_array = np.arange(np.nanmin(lon)-deltalat,
                               np.nanmax(lon)+deltalon, deltalon)
-        bins=(lon_array, lat_array)
+            x_array, y_array = lon_array, lat_array
+        else:
+            # create a grid in the specified projection
+            x,y = density_proj(lon, lat)
+            if llcrnrlon is not None:
+                llcrnrx,llcrnry = density_proj(llcrnrlon,llcrnrlat)
+                urcrnrx,urcrnry = density_proj(urcrnrlon,urcrnrlat)
+            else:
+                llcrnrx,llcrnry = density_proj(np.nanmin(lon),np.nanmin(lat))
+                urcrnrx,urcrnry = density_proj(np.nanmax(lon),np.nanmax(lat))
+            x_array = np.arange(llcrnrx,urcrnrx, pixelsize_m)
+            y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
+        bins=(x_array, y_array)
+        outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
         z = self.get_property('z')[0]
         if weight is not None:
             weight_array = self.get_property(weight)[0]
 
         status = self.get_property('status')[0]
-        lon_submerged = lon.copy()
-        lat_submerged = lat.copy()
-        lon_stranded = lon.copy()
-        lat_stranded = lat.copy()
-        lon_submerged[z>=0] = 1000
-        lat_submerged[z>=0] = 1000
-        lon[z<0] = 1000
-        lat[z<0] = 1000
-        H = np.zeros((len(times), len(lon_array) - 1,
-                      len(lat_array) - 1))#.astype(int)
+        x_submerged = x.copy()
+        y_submerged = y.copy()
+        x_stranded = x.copy()
+        y_stranded = y.copy()
+        x_submerged[z>=0] = outsidex
+        y_submerged[z>=0] = outsidey
+        x[z<0] = outsidex
+        y[z<0] = outsidey
+        H = np.zeros((len(times), len(x_array) - 1,
+                      len(y_array) - 1))#.astype(int)
         H_submerged = H.copy()
         H_stranded = H.copy()
         try:
             strandnum = self.status_categories.index('stranded')
-            lon_stranded[status!=strandnum] = 1000
-            lat_stranded[status!=strandnum] = 1000
+            x_stranded[status!=strandnum] = outsidex
+            y_stranded[status!=strandnum] = outsidey
             contains_stranded = True
         except ValueError:
             contains_stranded = False
@@ -3337,16 +3361,20 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 weights = None
             H[i,:,:], dummy, dummy = \
-                np.histogram2d(lon[i,:], lat[i,:],
+                np.histogram2d(x[i,:], y[i,:],
                                weights=weights, bins=bins)
             H_submerged[i,:,:], dummy, dummy = \
-                np.histogram2d(lon_submerged[i,:], lat_submerged[i,:],
+                np.histogram2d(x_submerged[i,:], y_submerged[i,:],
                                weights=weights, bins=bins)
             if contains_stranded is True:
                 H_stranded[i,:,:], dummy, dummy = \
-                np.histogram2d(lon_stranded[i,:], lat_stranded[i,:],
+                np.histogram2d(x_stranded[i,:], y_stranded[i,:],
                                weights=weights, bins=bins)
 
+        if density_proj is not None:
+            Y,X = np.meshgrid(y_array, x_array)
+            lon_array, lat_array = density_proj(X,Y,inverse=True)
+       
         return H, H_submerged, H_stranded, lon_array, lat_array
 
     def get_residence_time(self, pixelsize_m):
@@ -3355,7 +3383,9 @@ class OpenDriftSimulation(PhysicsMethods):
         residence = np.sum(H, axis=0)
         return residence, lon_array, lat_array
 
-    def write_netcdf_density_map(self, filename, pixelsize_m='auto'):
+    def write_netcdf_density_map(self, filename, pixelsize_m='auto',density_proj=None, 
+                                 llcrnrlon=None, llcrnrlat=None, 
+                                 urcrnrlon=None, urcrnrlat=None):
         '''Write netCDF file with map of particles densities'''
 
         if pixelsize_m == 'auto':
@@ -3376,14 +3406,18 @@ class OpenDriftSimulation(PhysicsMethods):
                 pixelsize_m = 4000
 
         H, H_submerged, H_stranded, lon_array, lat_array = \
-            self.get_density_array(pixelsize_m)
-        lon_array = (lon_array[0:-1] + lon_array[1::])/2
-        lat_array = (lat_array[0:-1] + lat_array[1::])/2
+                self.get_density_array(pixelsize_m=pixelsize_m,
+                                       density_proj=density_proj,
+                                       llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat,
+                                       urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat)
+        # calculate center coordinates
+        lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2.
+        lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2.
 
         from netCDF4 import Dataset, date2num
         nc = Dataset(filename, 'w')
-        nc.createDimension('lon', len(lon_array))
-        nc.createDimension('lat', len(lat_array))
+        nc.createDimension('x', lon_array.shape[0])
+        nc.createDimension('y', lon_array.shape[1])
         nc.createDimension('time', H.shape[0])
         times = self.get_time_array()[0]
         timestr = 'seconds since 1970-01-01 00:00:00'
@@ -3392,49 +3426,47 @@ class OpenDriftSimulation(PhysicsMethods):
         nc.variables['time'].units = timestr
         nc.variables['time'].standard_name = 'time'
         # Projection
-        nc.createVariable('projection_lonlat', 'i8')
-        nc.variables['projection_lonlat'].grid_mapping_name = \
-            'latitude_longitude'
-        nc.variables['projection_lonlat'].earth_radius = 6371229.
-        nc.variables['projection_lonlat'].proj4 = \
-            '+proj=longlat +a=6371229 +no_defs'
+
+        nc.createVariable('projection', 'i8')
+        nc.variables['projection'].proj4 = density_proj.definition_string()
         # Coordinates
-        nc.createVariable('lon', 'f8', ('lon',))
-        nc.createVariable('lat', 'f8', ('lat',))
-        nc.variables['lon'][:] = lon_array
+        nc.createVariable('lon', 'f8', ('y','x'))
+        nc.createVariable('lat', 'f8', ('y','x'))
+        nc.variables['lon'][:] = lon_array.T
         nc.variables['lon'].long_name = 'longitude'
         nc.variables['lon'].short_name = 'longitude'
         nc.variables['lon'].units = 'degrees_east'
-        nc.variables['lat'][:] = lat_array
+        nc.variables['lat'][:] = lat_array.T
         nc.variables['lat'].long_name = 'latitude'
         nc.variables['lat'].short_name = 'latitude'
         nc.variables['lat'].units = 'degrees_north'
+
         # Density
         nc.createVariable('density_surface', 'u1',
-                          ('time','lat', 'lon'))
+                          ('time','y', 'x'))
         H = np.swapaxes(H, 1, 2).astype('uint8')
         H = np.ma.masked_where(H==0, H)
         nc.variables['density_surface'][:] = H
         nc.variables['density_surface'].long_name = 'Detection probability'
-        nc.variables['density_surface'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_surface'].grid_mapping = 'projection'
         nc.variables['density_surface'].units = '1'
         # Density submerged
         nc.createVariable('density_submerged', 'u1',
-                          ('time','lat', 'lon'))
+                          ('time','y', 'x'))
         H_sub = np.swapaxes(H_submerged, 1, 2).astype('uint8')
         H_sub = np.ma.masked_where(H_sub==0, H_sub)
         nc.variables['density_submerged'][:] = H_sub
         nc.variables['density_submerged'].long_name = 'Detection probability submerged'
-        nc.variables['density_submerged'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_submerged'].grid_mapping = 'projection'
         nc.variables['density_submerged'].units = '1'
         # Density stranded
         nc.createVariable('density_stranded', 'u1',
-                          ('time','lat', 'lon'))
+                          ('time','y', 'x'))
         H_stranded = np.swapaxes(H_stranded, 1, 2).astype('uint8')
         H_stranded = np.ma.masked_where(H_stranded==0, H_stranded)
         nc.variables['density_stranded'][:] = H_stranded
         nc.variables['density_stranded'].long_name = 'Detection probability stranded'
-        nc.variables['density_stranded'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_stranded'].grid_mapping = 'projection'
         nc.variables['density_stranded'].units = '1'
 
         nc.close()
