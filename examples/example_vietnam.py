@@ -11,7 +11,7 @@ o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 # - Ocean forecast from UK Met Office (FOAM model)
 # - Weather forecast from NOAA/NCEP
 o.add_readers_from_list([
-    'http://data.ncof.co.uk/thredds/dodsC/METOFFICE-GLO-AF-PHYS-HOURLY-CUR',
+    'http://tds.hycom.org/thredds/dodsC/GLBy0.08/latest',
     'http://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
 
 

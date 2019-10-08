@@ -24,12 +24,12 @@ PassiveTracer.variables = PassiveTracer.add_variables([
     ('wind_drift_factor', {'dtype': np.float32,
                            'unit': '%',
                            'default': 0.02}),
-    ('depth', {'dtype': np.float32,
-               'unit': '%',
-               'default': 0.0}),
     ('terminal_velocity', {'dtype': np.float32,
                            'units': 'm/s',
-                           'default': 0.01})])
+                           'default': 0.01}),
+    ('origin_marker', {'dtype': np.int16,
+                       'unit': '',
+                       'default': 0})])
 
 
 class PlastDrift(OceanDrift3D):
@@ -50,7 +50,8 @@ class PlastDrift(OceanDrift3D):
         'sea_surface_wave_stokes_drift_y_velocity',
         'sea_surface_wave_significant_height',
         'x_wind', 'y_wind',
-        'ocean_vertical_diffusivity']
+        'ocean_vertical_diffusivity',
+        'sea_floor_depth_below_sea_level']
     required_variables.append('land_binary_mask')
 
     fallback_values = {'x_sea_water_velocity': 0,
@@ -60,9 +61,11 @@ class PlastDrift(OceanDrift3D):
                        'x_wind': 0,
                        'y_wind': 0,
                        'sea_surface_wave_significant_height': 0,
-                       'ocean_vertical_diffusivity': .02}
+                       'ocean_vertical_diffusivity': .02,
+                       'sea_floor_depth_below_sea_level': 10000}
 
-    required_profiles = None
+    required_profiles = ['ocean_vertical_diffusivity']
+
 
     configspecPlastDrift = '''
         [general]
@@ -72,6 +75,7 @@ class PlastDrift(OceanDrift3D):
             use_tabularised_stokes_drift = boolean(default=True)
             wind_drift_depth = float(min=0, max=10, default=0.1)
         [turbulentmixing]
+            mixingmodel = option('randomwalk', 'analytical', default='analytical')
             diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='windspeed_Large1994')
         '''
 
@@ -98,20 +102,17 @@ class PlastDrift(OceanDrift3D):
         # Advect particles due to wind-induced shear near surface
         self.advect_wind()
 
-        # We set z to 0 for performance (need only read
-        # surface current), but store it as 'depth' for analysis
-        self.elements.depth = self.elements.z
-        self.elements.z = 0*self.elements.z
-
     def update_particle_depth(self):
 
-        w = self.wind_speed()
-        if w.max() == 0:
-            logging.debug('No wind, all ellements at surface')
-            self.elements.z = np.zeros(len(self.elements.z))
-            return
-        logging.debug('Submerging according to wind')
-        self.elements.z = -np.random.exponential(
-            scale=self.environment.ocean_vertical_diffusivity/
-                    self.elements.terminal_velocity,
-            size=self.num_elements_active())
+
+        if self.get_config('turbulentmixing:mixingmodel') == 'randomwalk':
+            logging.debug('Turbulent mixing of particles using random walk')
+            self.vertical_mixing()
+
+
+        if self.get_config('turbulentmixing:mixingmodel') == 'analytical':
+            logging.debug('Submerging according to wind')
+            self.elements.z = -np.random.exponential(
+                scale=self.environment.ocean_vertical_diffusivity/
+                        self.elements.terminal_velocity,
+                size=self.num_elements_active())

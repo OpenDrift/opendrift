@@ -66,8 +66,10 @@ vector_pairs_xy = [
 class fakeproj():
     # For readers with unprojected domain, we emulate a
     # pyproj class with needed functions
-    def is_latlong(self):
-        return False
+    class _crs:
+        is_geographic = False
+
+    crs = _crs()
 
     def __call__(self, x, y, inverse=False):
         # Simply return x and y since these are also row/column indices
@@ -172,7 +174,7 @@ class BaseReader(object):
                 # Reusing x-interpolator (deepcopy) with data for y
                 self.spl_y = copy.deepcopy(self.spl_x)
                 self.spl_y.values[:, 0] = block_y.ravel()
-                # Call interpolator to avoid threading-problem: 
+                # Call interpolator to avoid threading-problem:
                 # https://github.com/scipy/scipy/issues/8856
                 self.spl_x((0,0)), self.spl_y((0,0))
 
@@ -217,8 +219,19 @@ class BaseReader(object):
                         self.rotate_mapping = {}
                     self.rotate_mapping[xvar] = var
 
+        # Adding variables which may be derived from existing ones
+        logging.debug('Adding new variable mappings')
+        self.derived_variables = {}
+        for m in self.environment_mappings:
+            em = self.environment_mappings[m]
+            if em['output'][0] not in self.variables and em['input'][0] in self.variables:
+                logging.debug('Adding method!')
+                for v in em['output']:
+                    self.variables.append(v)
+                    self.derived_variables[v] = em['input']
+
     def y_is_north(self):
-        if self.proj.is_latlong() or '+proj=merc' in self.proj.srs:
+        if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:
             return True
         else:
             return False
@@ -238,13 +251,13 @@ class BaseReader(object):
             logging.debug('Setting buffer size %i for reader %s, assuming '
                           'a maximum average speed of %g m/s.' %
                           (self.buffer, self.name, max_speed))
-                
+
     def pixel_size(self):
         # Find typical pixel size (e.g. for calculating size of buffer)
         if self.projected is True:
             if hasattr(self, 'delta_x'):
                 pixelsize = self.delta_x
-                if self.proj.is_latlong() is True or \
+                if self.proj.crs.is_geographic is True or \
                         ('ob_tran' in self.proj4) or \
                         ('longlat' in self.proj4) or \
                         ('latlon' in self.proj4):
@@ -309,6 +322,28 @@ class BaseReader(object):
                         interpolation in space and time.
         """
 
+    def get_variables_derived(self, variables, *args, **kwargs):
+        """Wrapper around get_variables, adding derived"""
+        if isinstance(variables, basestring):
+            variables = [variables]
+        if not isinstance(variables, list):
+            variables = list(variables)
+        derive_variables = False
+        for var in variables:
+            if var in self.derived_variables:
+                fromvars = self.derived_variables[var]
+                for v in fromvars:
+                    variables.append(v)
+                # Removing the derived variable name
+                variables = [v for v in variables if v != var]
+                derive_variables = True
+
+        env = self.get_variables(variables, *args, **kwargs)
+        if derive_variables is True:
+            self.calculate_derived_environment_variables(env)
+
+        return env
+
     def _get_variables(self, variables, profiles, profiles_depth,
                        time, x, y, z, block):
         """Wrapper around reader-specific function get_variables()
@@ -319,6 +354,7 @@ class BaseReader(object):
         """
         logging.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
+
         if profiles is not None and block is True:
             # If profiles are requested for any parameters, we
             # add two fake points at the end of array to make sure that the
@@ -326,7 +362,7 @@ class BaseReader(object):
             x = np.append(x, [x[-1], x[-1]])
             y = np.append(y, [y[-1], y[-1]])
             z = np.append(z, [profiles_depth[0], profiles_depth[1]])
-        env = self.get_variables(variables, time, x, y, z, block)
+        env = self.get_variables_derived(variables, time, x, y, z, block)
 
         # Make sure x and y are floats (and not e.g. int64)
         if 'x' in env.keys():
@@ -363,6 +399,37 @@ class BaseReader(object):
         self.timer_end('reading')
 
         return env
+
+    environment_mappers = []
+
+    def wind_from_speed_and_direction(self, env):
+        north_wind = env['wind_speed']*np.cos(
+            np.radians(env['wind_to_direction']))
+        east_wind = env['wind_speed']*np.sin(
+            np.radians(env['wind_to_direction']))
+        env['x_wind'] = east_wind
+        env['y_wind'] = north_wind
+        # Rotating might be necessary generally
+        #x,y = np.meshgrid(env['x'], env['y'])
+        #env['x_wind'], env['y_wind'] = self.rotate_vectors(
+        #    x, y,
+        #    east_wind, north_wind,
+        #    None, self.proj)
+
+    environment_mappings = {
+        'wind_from_speed_and_direction': {
+            'input': ['wind_speed', 'wind_to_direction'],
+            'output': ['x_wind', 'y_wind'],
+            'method': wind_from_speed_and_direction},
+        'testvar': {
+            'input': ['sea_ice_thickness'],
+            'output': ['istjukkleik']}
+        }
+
+    def calculate_derived_environment_variables(self, env):
+
+        if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
+            self.wind_from_speed_and_direction(env)
 
     def get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
@@ -539,7 +606,7 @@ class BaseReader(object):
                                                 env_after[var] * weight_after))
 
                 if var in standard_names.keys():
-                    invalid = np.where((env[var] < standard_names[var]['valid_min']) 
+                    invalid = np.where((env[var] < standard_names[var]['valid_min'])
                                | (env[var] > standard_names[var]['valid_max']))[0]
                     if len(invalid) > 0:
                         logging.warning('Invalid values found for ' + var)
@@ -614,8 +681,14 @@ class BaseReader(object):
                                                 env[vector_pair[1]],
                                                 self.proj, rotate_to_proj)
                         if profiles is not None and vector_pair[0] in profiles:
-                            sys.exit('Rotating profiles of vectors '
-                                     'is not yet implemented')
+                            env_profiles[vector_pair[0]], env_profiles[vector_pair[1]] = \
+                                    self.rotate_vectors (reader_x, reader_y,
+                                            env_profiles[vector_pair[0]],
+                                            env_profiles[vector_pair[1]],
+                                            self.proj,
+                                            rotate_to_proj)
+
+
                     self.timer_end('rotating vectors')
 
         # Masking non-covered pixels
@@ -663,7 +736,7 @@ class BaseReader(object):
         if type(proj_to) is str:
             proj_to = pyproj.Proj(proj_to)
 
-        if proj_from.is_latlong():
+        if proj_from.crs.is_geographic:
                 delta_y = .1  # 0.1 degree northwards
         else:
             delta_y = 10  # 10 m along y-axis
@@ -673,7 +746,7 @@ class BaseReader(object):
                                               proj_to,
                                               reader_x, reader_y + delta_y)
 
-        if proj_to.is_latlong():
+        if proj_to.crs.is_geographic:
             geod = pyproj.Geod(ellps='WGS84')
             rot_angle_vectors_rad = np.radians(
                 geod.inv(x2, y2, x2_delta, y2_delta)[0])
@@ -694,14 +767,16 @@ class BaseReader(object):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
         if self.projected is True:
-            if self.proj.is_latlong():
-                return x, y
-            else:
+            if self.proj.crs.is_geographic:
                 if 'ob_tran' in self.proj4:
-                    logging.info('NB: Converting degrees to radians ' +
+                    logging.debug('NB: Converting degrees to radians ' +
                                  'due to ob_tran srs')
                     x = np.radians(np.array(x))
                     y = np.radians(np.array(y))
+                    return self.proj(x, y, inverse=True)
+                else:
+                    return x, y
+            else:
                 return self.proj(x, y, inverse=True)
         else:
             np.seterr(invalid='ignore')  # Disable warnings for nan-values
@@ -724,14 +799,14 @@ class BaseReader(object):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
         if self.projected is True:
-            if self.proj.is_latlong():
+            if 'ob_tran' in self.proj4:
+                x, y = self.proj(lon, lat, inverse=False)
+                return np.degrees(x), np.degrees(y)
+            elif self.proj.crs.is_geographic:
                 return lon, lat
             else:
                 x, y = self.proj(lon, lat, inverse=False)
-                if 'ob_tran' in self.proj4:
-                    return np.degrees(x), np.degrees(y)
-                else:
-                    return x, y
+                return x, y
         else:
             # For larger arrays, we split and calculate in parallel
             # The number of CPUs to use can be improved/optimised
@@ -836,7 +911,7 @@ class BaseReader(object):
     def global_coverage(self):
         """Return True if global coverage east-west"""
 
-        if self.proj.is_latlong() is True and hasattr(self, 'delta_x'):
+        if self.proj.crs.is_geographic is True and hasattr(self, 'delta_x'):
             if (self.xmin - self.delta_x <= 0) and (
                 self.xmax + self.delta_x >= 360):
                 return True  # Global 0 to 360
@@ -997,7 +1072,7 @@ class BaseReader(object):
         outStr = '===========================\n'
         outStr += 'Reader: ' + self.name + '\n'
         outStr += 'Projection: \n  ' + self.proj4 + '\n'
-        if self.proj.is_latlong():
+        if self.proj.crs.is_geographic:
             if self.projected is False:
                 outStr += 'Coverage: [pixels]\n'
             else:
@@ -1045,7 +1120,11 @@ class BaseReader(object):
                       self.expected_time_steps, self.missing_time_steps)
         outStr += 'Variables:\n'
         for variable in self.variables:
-            outStr += '  ' + variable + '\n'
+            if variable in self.derived_variables:
+                outStr += '  ' + variable + ' - derived from ' + \
+                    str(self.derived_variables[variable]) + '\n'
+            else:
+                outStr += '  ' + variable + '\n'
         outStr += '===========================\n'
         outStr += self.performance()
 
@@ -1149,7 +1228,7 @@ class BaseReader(object):
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables(variable, self.start_time,
+            data = self.get_variables_derived(variable, self.start_time,
                                       rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)

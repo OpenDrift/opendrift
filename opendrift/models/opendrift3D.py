@@ -58,7 +58,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 verticaladvection = boolean(default=True)
             [turbulentmixing]
                 timestep = float(min=0.1, max=3600, default=60.)
-                verticalresolution = float(min=0.01, max=10, default = 1.)
                 diffusivitymodel = option('environment', 'zero', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
                 TSprofiles = boolean(default=False)
                 '''

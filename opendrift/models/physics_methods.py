@@ -240,11 +240,15 @@ class PhysicsMethods(object):
         except:
             pass
 
-        speed = np.sqrt(x_wind[surface]*x_wind[surface] + y_wind[surface]*y_wind[surface])*wdf[surface]
+        speed = np.sqrt(x_wind[surface]*x_wind[surface] + y_wind[surface]*y_wind[surface])
+        if wdf[surface].max() == 0:
+            logging.debug('Wind drift factor is 0')
+            return
         if speed.max() == 0:
             logging.debug('No wind for wind-sheared ocean drift')
             return
 
+        speed = speed*wdf[surface]
         if surface_only is True:
             logging.debug('Advecting %s of %i elements at surface with '
                           'wind-sheared ocean current (%f m/s - %f m/s)'

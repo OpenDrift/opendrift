@@ -1,18 +1,30 @@
 name: opendrift_p3
 channels:
   - conda-forge
+  - NOAA-ORR-ERD
 dependencies:
-  - python=3.7.1
-  - matplotlib>=3.0.2
+  - python>=3.7
+  - matplotlib>=3.1
   - numpy>=1.15.4
   - scipy>=1.2.0
   - netcdf4>=1.4.3
-  - basemap>=1.2.0
-  - basemap-data-hires
   - future
   - ffmpeg
   - pillow
-  - pyproj
+  - pyproj>=2.3
   - configobj
   - libgdal>=2.3.3
   - gdal>=2.3.3
+  - gitpython
+  - pip
+  - pytest
+  - pytest-cov
+  - SQLAlchemy>=1.3
+  - zope.sqlalchemy>=1.1
+  - awesome-slugify
+  - unit_conversion>=2.5
+  - ipython
+  - pip:
+    - https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
+    - git+https://github.com/OpenDrift/OilLibrary.git@3f65a60fd4543a8b772622c245b4b3c25d4b8f38
+

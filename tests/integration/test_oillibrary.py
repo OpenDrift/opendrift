@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 
 try:
     from oil_library import get_oil_props
@@ -39,6 +40,9 @@ class TestOil(unittest.TestCase):
                      'NOAA OilLibrary is needed')
     def test_oils(self):
         o = OpenOil3D(loglevel=50, weathering_model='noaa')
+
+        assert len(o.oiltypes) >= 1478
+
         for oiltype in o.oiltypes[12:14]:
             if oiltype == 'JP-8':
                 continue
@@ -88,7 +92,7 @@ class TestOil(unittest.TestCase):
                 volume = b['mass_total']/density
                 self.assertAlmostEqual(volume[-1],
                                        seed_hours*m3_per_hour, 2)
-                
+
                 if dispersion is True:
                     disp='dispersion'
                 else:
@@ -128,7 +132,7 @@ class TestOil(unittest.TestCase):
                 actual_submerged = b['mass_submerged']/b['mass_total']
                 actual_evaporated = b['mass_evaporated']/b['mass_total']
                 print('Dispersion fraction %f for '
-                      '%s and wind speed %f' % 
+                      '%s and wind speed %f' %
                       (actual_dispersed[-1], oil, windspeed))
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
@@ -175,6 +179,28 @@ class TestOil(unittest.TestCase):
         self.assertAlmostEqual(actual_dispersed[-1], 0)
         self.assertIsNone(np.testing.assert_array_almost_equal(
             o.elements.lon[0:3], [4.821577, 4.806694, 4.800167]))
+
+    @unittest.skipIf(has_oil_library is False,
+                     'NOAA OilLibrary is needed')
+    def test_biodegradation(self):
+        o = OpenOil(loglevel=50, weathering_model='noaa')
+
+        o.seed_elements(lon=4.8, lat=60, number=100,
+                        time=datetime.now(), oiltype='SIRTICA')
+        o.set_config('processes:dispersion', True)
+        o.set_config('processes:evaporation', True)
+        o.set_config('processes:emulsification', True)
+        o.set_config('processes:biodegradation', True)
+        o.fallback_values['land_binary_mask'] = 0
+        o.fallback_values['x_wind'] = 0
+        o.fallback_values['y_wind'] = 0
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['y_sea_water_velocity'] = 0
+        o.fallback_values['sea_water_temperature'] = 30
+        o.run(duration=timedelta(days=1), time_step=1800)
+        biodegraded30 = o.elements.mass_biodegraded
+        factor = 0.126 #(1-e^(-1))
+        self.assertAlmostEqual(biodegraded30[-1], factor, 3)
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')

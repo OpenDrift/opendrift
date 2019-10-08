@@ -148,6 +148,10 @@ def close(self):
     # http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/reference/FeatureDatasets/CFpointImplement.html
     try:
         logging.debug('Making netCDF file CDM compliant with fixed dimensions')
+        if self.num_elements_scheduled() > 0:
+            logging.info('Removing %i unseeded elements already written to file' % self.num_elements_scheduled())
+            mask = np.ones(self.history.shape[0], dtype=bool)
+            mask[self.elements_scheduled.ID-1] = False
         with Dataset(self.outfile_name) as src, \
                 Dataset(self.outfile_name + '_tmp', 'w') as dst:
             for name, dimension in iteritems(src.dimensions):
@@ -163,10 +167,13 @@ def close(self):
                 srcVar = src.variables[name]
                 # Truncate data to number actually seeded
                 if 'trajectory' in variable.dimensions:
-                    if len(variable.dimensions) == 2:
-                        dstVar[:] = srcVar[0:self.num_elements_activated(), :] 
+                    if self.num_elements_scheduled() > 0:
+                        if len(variable.dimensions) == 2:
+                            dstVar[:] = srcVar[mask, :] 
+                        else:
+                            dstVar[:] = srcVar[mask]  # Copy data
                     else:
-                        dstVar[:] = srcVar[0:self.num_elements_activated()]  # Copy data
+                        dstVar[:] = srcVar[:]
                 else:
                     dstVar[:] = srcVar[:]
                 for att in src.variables[name].ncattrs():

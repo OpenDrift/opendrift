@@ -1,7 +1,10 @@
-numpy>=1.9.0
-scipy>=0.17.0
-matplotlib>=1.1.1
-netCDF4>=1.0.0
+numpy>=1.15.4
+scipy>=1.2.0
+matplotlib
+netCDF4>=1.4.3
 future
 configobj
 pillow
+pyproj>=2.2
+https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
+git+https://github.com/OpenDrift/OilLibrary@3f65a60fd4543a8b772622c245b4b3c25d4b8f38

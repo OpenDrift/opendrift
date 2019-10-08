@@ -26,12 +26,13 @@ import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
 
-from basereader import BaseReader, pyproj
+from opendrift.readers.basereader import BaseReader, pyproj
 
 
 class Reader(BaseReader):
 
-    def __init__(self, filename=None, name=None):
+    def __init__(self, filename=None, name=None, buffer=0.2,
+                 latstep=0.01, lonstep=0.01):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -40,6 +41,10 @@ class Reader(BaseReader):
             self.name = filestr
         else:
             self.name = name
+
+        self.geobuffer = buffer
+        self.latstep = latstep
+        self.lonstep = lonstep
 
         # Due to misspelled standard_name in
         # some (Akvaplan-NIVA) FVCOM files
@@ -166,7 +171,7 @@ class Reader(BaseReader):
                 self.variable_mapping[fvcom_mapping[var_name]] = \
                     str(var_name)
 
-        self.variables = self.variable_mapping.keys()
+        self.variables = list(self.variable_mapping.keys())
 
         self.xmin = self.lon.min()
         self.xmax = self.lon.max()
@@ -194,22 +199,22 @@ class Reader(BaseReader):
         # Performance is quite dependent on the given buffer,
         # but it should not be made too small to make sure
         # particles are inside box
-        buffer = .1  # degrees around given positions
+        #buffer = .1  # degrees around given positions
 
-        lonmin = x.min() - buffer
-        lonmax = x.max() + buffer
-        latmin = y.min() - buffer
-        latmax = y.max() + buffer
+        lonmin = x.min() - self.geobuffer
+        lonmax = x.max() + self.geobuffer
+        latmin = y.min() - self.geobuffer
+        latmax = y.max() + self.geobuffer
         c = np.where((self.lon > lonmin) &
                      (self.lon < lonmax) &
                      (self.lat > latmin) &
                      (self.lat < latmax))[0]
 
         # Making a lon-lat grid onto which data is interpolated
-        lonstep = .01  # hardcoded for now
-        latstep = .01  # hardcoded for now
-        lons = np.arange(lonmin, lonmax, lonstep)
-        lats = np.arange(latmin, latmax, latstep)
+        #lonstep = .01  # hardcoded for now
+        #latstep = .01  # hardcoded for now
+        lons = np.arange(lonmin, lonmax, self.lonstep)
+        lats = np.arange(latmin, latmax, self.latstep)
         lonsm, latsm = np.meshgrid(lons, lats)
 
         # Initialising dictionary to contain data

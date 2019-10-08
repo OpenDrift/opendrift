@@ -255,8 +255,8 @@ class Reader(BaseReader):
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
         indx[outside] = 0  # To be masked later
         indy[outside] = 0
-        indx_el = indx
-        indy_el = indy
+        indx_el = indx.copy()
+        indy_el = indy.copy()
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
@@ -289,8 +289,8 @@ class Reader(BaseReader):
                 H = self.sea_floor_depth_below_sea_level[indy, indx]
             z_rho = depth.sdepth(H, self.hc, self.Cs_r)
             # Element indices must be relative to extracted subset
-            indx_el = indx_el - indx.min()
-            indy_el = indy_el - indy.min()
+            indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
+            indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
 
             # Loop to find the layers covering the requested z-values
             indz_min = 0
@@ -387,7 +387,7 @@ class Reader(BaseReader):
                         N = self.sea_floor_depth_below_sea_level.shape[1]
                         O = len(self.z_rho_tot)
                         if not hasattr(self, 's2z_A'):
-                            logging.info('Calculating sigma2z-coefficients for whole domain')
+                            logging.debug('Calculating sigma2z-coefficients for whole domain')
                             starttime = datetime.now()
                             dummyvar = np.ones((O, M, N))
                             dummy, self.s2z_total = depth.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
@@ -399,7 +399,7 @@ class Reader(BaseReader):
                             del self.s2z_total  # Free memory
                             logging.info('Time: ' + str(datetime.now() - starttime))
                         if 'A' not in locals():
-                            logging.info('Re-using sigma2z-coefficients')
+                            logging.debug('Re-using sigma2z-coefficients')
                             # Select relevant subset of full arrays
                             zle = np.arange(zi1, zi2)  # The relevant depth levels
                             A = self.s2z_A.copy()  # Awkward subsetting to prevent losing one dimension
@@ -428,7 +428,7 @@ class Reader(BaseReader):
                             #    import sys; sys.exit('stop')
                             kmax = len(zle)  # Must be checked. Or number of sigma-layers?
                     if 'A' not in locals():
-                        logging.info('Calculating new sigma2z-coefficients')
+                        logging.debug('Calculating new sigma2z-coefficients')
                         variables[par], s2z = depth.multi_zslice(
                             variables[par], z_rho, variables['z'])
                         A,C,I,kmax = s2z
@@ -438,7 +438,7 @@ class Reader(BaseReader):
                         #C = C.reshape(len(zle), len(indx), len(indy))
                         #I = I.reshape(len(indx), len(indy))
                     else:
-                        logging.info('Applying sigma2z-coefficients')
+                        logging.debug('Applying sigma2z-coefficients')
                         # Re-using sigma2z koefficients:
                         F = np.asarray(variables[par])
                         Fshape = F.shape

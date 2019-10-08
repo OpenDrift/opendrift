@@ -172,7 +172,7 @@ class Reader(BaseReader):
                 self.variable_mapping[fvcom_mapping[var_name]] = \
                     str(var_name)
 
-        self.variables = self.variable_mapping.keys()
+        self.variables = list(self.variable_mapping.keys())
 
         self.xmin = self.lon.min()
         self.xmax = self.lon.max()
@@ -211,8 +211,8 @@ class Reader(BaseReader):
                      (self.lat > latmin) &
                      (self.lat < latmax))[0]
         # Making a lon-lat grid onto which data is interpolated
-        lonstep = .01   # hardcoded for now
-        latstep = .005  # hardcoded for now
+        lonstep = .0004   # hardcoded for now
+        latstep = .0002   # hardcoded for now
         lons = np.arange(lonmin, lonmax, lonstep)
         lats = np.arange(latmin, latmax, latstep)
         lonsm, latsm = np.meshgrid(lons, lats)
@@ -224,6 +224,7 @@ class Reader(BaseReader):
         # Reader coordinates of subset
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
+            print var
             if var.ndim == 1:
                 data = var[c]
             elif var.ndim == 2:
@@ -233,6 +234,8 @@ class Reader(BaseReader):
             else:
                 raise ValueError('Wrong dimension of %s: %i' %
                                  (var_name, var.ndim))
+
+            print data
 
             if 'interpolator' not in locals():
                 logging.debug('Making interpolator...')

@@ -13,7 +13,7 @@ ENV PATH /code/opendrift/opendrift/scripts:$PATH
 
 # Dependencies for opendrift
 RUN apt-get update && apt-get install -y build-essential \
-                                         apt-utils \ 
+                                         apt-utils \
                                          unzip \
                                          vim \
                                          git \
@@ -34,4 +34,4 @@ RUN /bin/bash -c '''. activate opendrift_p3 && \
 WORKDIR /code
 
 # Test
-RUN /bin/bash -c ". activate opendrift_p3 && cd /code && ./testall"
+# RUN /bin/bash -c ". activate opendrift_p3 && cd /code && ./testall"
