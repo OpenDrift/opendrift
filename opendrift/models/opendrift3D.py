@@ -59,7 +59,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             [turbulentmixing]
                 timestep = float(min=0.1, max=3600, default=60.)
                 verticalresolution = float(min=0.01, max=10, default = 1.)
-                diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
+                diffusivitymodel = option('environment', 'zero', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
                 TSprofiles = boolean(default=False)
                 '''
         self._add_configstring(configspec_oceandrift3D)
@@ -103,6 +103,13 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         surface = np.where(self.elements.z >= 0)
         if len(surface[0]) > 0:
             self.elements.z[surface] = -0.01
+            
+    def bottom_interaction(self):
+        '''To be overloaded by subclasses, e.g. radionuclides in sediments'''
+        # do nothing
+        pass
+    
+    
 
     def surface_wave_mixing(self, time_step_seconds):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
@@ -300,6 +307,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             if len(bottom[0]) > 0:
                 logging.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
                 self.elements.z[bottom] = Zmin[bottom]
+                self.bottom_interaction(Zmin)
  
         self.timer_end('main loop:updating elements:vertical mixing')
 
