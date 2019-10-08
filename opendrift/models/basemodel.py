@@ -3309,8 +3309,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lon = self.get_property('lon')[0]
         lat = self.get_property('lat')[0]
         if density_proj is None: # add default projection with equal-area property 
-            import pyproj
-            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=10.0')
+            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
 
         # create a grid in the specified projection
         x,y = density_proj(lon, lat)
@@ -3318,10 +3317,8 @@ class OpenDriftSimulation(PhysicsMethods):
             llcrnrx,llcrnry = density_proj(llcrnrlon,llcrnrlat)
             urcrnrx,urcrnry = density_proj(urcrnrlon,urcrnrlat)
         else:
-            llcrnrx,llcrnry = density_proj(np.nanmin(lon),np.nanmin(lat))
-            urcrnrx,urcrnry = density_proj(np.nanmax(lon),np.nanmax(lat))
-            llcrnrx,llcrnry = llcrnrx-10*pixelsize_m,llcrnry-10*pixelsize_m
-            urcrnrx,urcrnry = urcrnrx+10*pixelsize_m,urcrnry+10*pixelsize_m
+            llcrnrx,llcrnry = x.min()-pixelsize_m, y.min()-pixelsize_m
+            urcrnrx,urcrnry = x.max()+pixelsize_m, y.max()+pixelsize_m
 
         x_array = np.arange(llcrnrx,urcrnrx, pixelsize_m)
         y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
@@ -3383,7 +3380,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def write_netcdf_density_map(self, filename, pixelsize_m='auto'):
         '''Write netCDF file with map of particles densities on lon/lat grid
         WARNING: this function will produce concentrations on a lon/lat grid,
-        hence refering to a non-equal area grid
+        hence refering to a non-equal area grid.
         '''
 
         if pixelsize_m == 'auto':
@@ -3405,12 +3402,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # use lon/lat projection
         proj = pyproj.Proj('+proj=longlat +a=6371229 +no_defs')
+        pixelsize_m = pixelsize_m/111000. # pixelsize_m is now in degree latitude
 
         H, H_submerged, H_stranded, lon_array, lat_array = \
             self.get_density_array(pixelsize_m, density_proj=proj)
-        lon_array = (lon_array[0:-1,0] + lon_array[1::,0])/2
-        lat_array = (lat_array[0,0:-1] + lat_array[0,1::])/2
-
+        lon_array = (lon_array[0:-1,0] + lon_array[1:,0])/2
+        lat_array = (lat_array[0,0:-1] + lat_array[0,1:])/2
+        
         from netCDF4 import Dataset, date2num
         nc = Dataset(filename, 'w')
         nc.createDimension('lon', len(lon_array))
@@ -3493,8 +3491,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 pixelsize_m = 4000
 
         if density_proj is None: # add default projection with equal-area property 
-            import pyproj
-            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=10.0')
+            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
 
 
         H, H_submerged, H_stranded, lon_array, lat_array = \
