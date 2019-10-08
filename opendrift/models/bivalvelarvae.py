@@ -172,15 +172,16 @@ class BivalveLarvae(OpenDrift3DSimulation):
 
         sea_floor_depth = self.sea_floor_depth()
         below = self.elements.z < -sea_floor_depth
+        
         if self.get_config('drift:lift_to_seafloor') is True:
             self.elements.z[below] = -sea_floor_depth[below]
         else:
             self.deactivate_elements(below, reason='seafloor')
         
-        # Deactivate elements that exceed a certain age
+        # Deactivate elements that touched seabed and have age>min_settlement_age_seconds
         if self.get_config('drift:min_settlement_age_seconds') != 0.0:
             older = self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds')
-            if older.any(): 
+            if older.any():
                 self.deactivate_elements(older & below ,reason='settled_on_bottom')
 
     def interact_with_coastline(self,final = False): 
@@ -237,11 +238,10 @@ class BivalveLarvae(OpenDrift3DSimulation):
             if len(on_land) == 0:
                 logging.debug('No elements hit coastline.')
             else:                
-                logging.debug('%s elements hit coastline, '
-                              'moving back to water' % len(on_land))
-                import pdb;pdb.set_trace()                           
                 if self.get_config('drift:min_settlement_age_seconds') == 0.0 :
-                    # No minimum age input
+                    # No minimum age input, set back to previous position
+                    logging.debug('%s elements hit coastline, '
+                              'moving back to water' % len(on_land))
                     on_land_ID = self.elements.ID[on_land]
                     self.elements.lon[on_land] = \
                         np.copy(self.previous_lon[on_land_ID - 1])
@@ -249,22 +249,24 @@ class BivalveLarvae(OpenDrift3DSimulation):
                         np.copy(self.previous_lat[on_land_ID - 1])
                     self.environment.land_binary_mask[on_land] = 0
                 else:
-                    # Minimum age before settling input
-                    older = np.where( self.elements.age_seconds[on_land]>= self.get_config('drift:min_settlement_age_seconds') )
-                    younger = np.where( self.elements.age_seconds[on_land]< self.get_config('drift:min_settlement_age_seconds') )
-                    on_land_ID = self.elements.ID[on_land]
-                    on_land_ID_to_refloat = self.elements.ID[on_land[younger]]
-                    on_land_ID_to_deactivate = self.elements.ID[on_land[older]]
-                    if on_land_ID_to_refloat.size!= 0 :
-                        # refloat elements younger than min_settlement_age
-                        self.elements.lon[on_land[younger]] = np.copy(self.previous_lon[on_land_ID_to_refloat - 1])  
-                        self.elements.lat[on_land[younger]] = np.copy(self.previous_lat[on_land_ID_to_refloat - 1])
-                        self.environment.land_binary_mask[on_land[younger]] = 0
-                    # deactivate elements older than min_settlement_age
-                    on_land_and_older = (self.environment.land_binary_mask == 1) # allocate to same array size ..there is probably a nicer way to do this
-                    on_land_and_older[:]=False
-                    on_land_and_older[on_land[older]]=True # set to True for the on_land and older particles
+                    # Minimum age before settling was input; check age of particle versus min_settlement_age_seconds
+                    # and strand or recirculate accordingly
+                    on_land_and_younger = (self.environment.land_binary_mask == 1) & (self.elements.age_seconds < self.get_config('drift:min_settlement_age_seconds'))
+                    on_land_and_older = (self.environment.land_binary_mask == 1) & (self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds'))
+
+                    logging.debug('%s elements hit coastline' % len(on_land))
+                    logging.debug('moving %s elements younger than min_settlement_age_seconds back to previous water position' % len(np.where(on_land_and_younger)[0]) )
+                    logging.debug('%s elements older than min_settlement_age_seconds remain stranded on coast' % len(np.where(on_land_and_older)[0]) )
+                    
+                    # refloat elements younger than min_settlement_age back to previous position(s)
+                    if on_land_and_younger.any() :
+                        self.elements.lon[np.where(on_land_and_younger)] = np.copy(self.previous_lon[np.where(on_land_and_younger)])  
+                        self.elements.lat[np.where(on_land_and_younger)] = np.copy(self.previous_lat[np.where(on_land_and_younger)])
+                        self.environment.land_binary_mask[on_land_and_younger] = 0 
+                    # deactivate elements older than min_settlement_age & save position
+                    # ** function expects an array of size consistent with self.elements.lon
                     self.deactivate_elements(on_land_and_older, reason='settled_on_coast')
+
 
     def increase_age_and_retire(self):  ####So that if max_age_seconds is exceeded particle is flagged as died
             """Increase age of elements, and retire if older than config setting."""
