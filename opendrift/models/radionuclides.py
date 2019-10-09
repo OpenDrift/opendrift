@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2015, Magne Simonsen, MET Norway
 
 import numpy as np
 
@@ -20,12 +20,9 @@ from opendrift.models.opendrift3D import \
     OpenDrift3DSimulation, Lagrangian3DArray
 from opendrift.elements import LagrangianArray
 import logging
-from __builtin__ import True
-from numpy.distutils.fcompiler import none
-from ansible.constants import get_config
 
 
-# Defining the oil element properties
+# Defining the radionuclide element properties
 class Radionuclide(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for radionuclides
     """
@@ -34,17 +31,12 @@ class Radionuclide(Lagrangian3DArray):
         ('diameter', {'dtype': np.float32,
                       'units': 'm',
                       'default': 0.}),
-        #              'dissolved':0.,
-        #              'particle':50.e-6}),  
         ('neutral_buoyancy_salinity', {'dtype': np.float32,
                                        'units': '[]',
                                        'default': 31.25}),  # for NEA Cod
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 2650.}),  # Mineral particles
-#         ('hatched', {'dtype': np.float32,
-#                      'units': '',
-#                      'default': 0.}),
         ('specie', {'dtype': np.int32,
                     'units': '',
                     'default': 0})#,
@@ -86,7 +78,6 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                           'turbulent_kinetic_energy',
                           'turbulent_generic_length_scale',
                           'upward_sea_water_velocity',
-                          #'particle_conc',
                           'conc3'
                           ]
 
@@ -117,13 +108,12 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                        'turbulent_kinetic_energy': 0,
                        'turbulent_generic_length_scale': 0,
                        'upward_sea_water_velocity': 0,
-                       #'particle_conc': 1.e-3,
                        'conc3': 1.e-3
                        }
 
     # Default colors for plotting
-    status_colors = {'initial': 'green', 'active': 'blue',
-                     'hatched': 'red', 'eaten': 'yellow', 'died': 'magenta', 'sedimented':'sandybrown'}
+#    status_colors = {'initial': 'green', 'active': 'blue',
+#                     'hatched': 'red', 'eaten': 'yellow', 'died': 'magenta', 'sedimented':'sandybrown'}
     
 #    specie_colors = {'LMM':'blue',
 #                      'Colloid':'Sandybrown',
@@ -134,16 +124,16 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 #                      }
     
 
-    species_all = {
-                    0:{'name':'LMM','color':'blue'},
-                    1:{'name':'Colloid','color':'Sandybrown'},
-                    2:{'name':'Particle reversible','color':'grey'},
-                    3:{'name':'Particle slowly reversible','color':'darkgrey'},
-                    4:{'name':'Particle irreversible','color':'black'},
-                    5:{'name':'Sediment reversible','color':'red'},
-                    6:{'name':'Sediment slowly reversible','color':'lightred'},
-                    7:{'name':'Sediment irreversible','color':'darkred'}
-                    }
+#     species_all = {
+#                     0:{'name':'LMM','color':'blue'},
+#                     1:{'name':'Colloid','color':'Sandybrown'},
+#                     2:{'name':'Particle reversible','color':'grey'},
+#                     3:{'name':'Particle slowly reversible','color':'darkgrey'},
+#                     4:{'name':'Particle irreversible','color':'black'},
+#                     5:{'name':'Sediment reversible','color':'red'},
+#                     6:{'name':'Sediment slowly reversible','color':'lightred'},
+#                     7:{'name':'Sediment irreversible','color':'darkred'}
+#                     }
     
     configspec_radionuclidedrift = '''
         [radionuclide]
@@ -179,13 +169,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
     def specie_num2name(self,num):
-#        return self.species_all[num]['name']
         return self.name_species[num]
 
 
 
     def specie_name2num(self,name):
-        #kktmp = np.where([self.species_all[i]['name']==name for i in self.species_all])[0]
         num = self.name_species.index(name)
         return num
 #       
@@ -210,7 +198,6 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
     def prepare_run(self):
-        print 'Preparing'
         
         self.name_species=[]
         if self.get_config('radionuclide:species:LMM'):
@@ -240,9 +227,9 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         
         self.nspecies      = len(self.name_species)
-        print 'Number of species: {}'.format(self.nspecies)        
+        logging.info( 'Number of species: {}'.format(self.nspecies) )        
         for i,sp in enumerate(self.name_species):
-            print '{:>3} {}'.format( i, sp ) #, self.specie_name2num(sp), self.specie_num2name(i)
+            logging.info( '{:>3} {}'.format( i, sp ) ) 
     
         self.init_transfer_rates()
 
@@ -255,7 +242,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         transfer_setup=self.get_config('radionuclide:transfer_setup')
         
-        print 'transfer setup:', transfer_setup
+        logging.info( 'transfer setup: %s' % transfer_setup)
         
 
         self.transfer_rates = np.zeros([self.nspecies,self.nspecies])
@@ -270,9 +257,6 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             
             
             # Values from Simonsen et al (2019a)
-#            Kd          = 2.0     # distribution coefficient  (m3/kg)
-#            Dc          = 1.16e-5 # desorption rate (1/s)
-#            slow_coeff  = 1.2e-7  # slowly reversible interaction coefficient
             Kd         = self.get_config('radionuclide:transformations:Kd')
             Dc         = self.get_config('radionuclide:transformations:Dc')
             slow_coeff = self.get_config('radionuclide:transformations:slow_coeff')
@@ -322,7 +306,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         # Set diagonal to 0. (not possible to transform to present specie)
         np.fill_diagonal(self.transfer_rates,0.)
         logging.info('nspecies: %s' % self.nspecies)
-        logging.info('Transfer rates: %s' % self.transfer_rates)
+        logging.info('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -378,13 +362,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                 Sprofiles[lower, range(Sprofiles.shape[1])] * \
                 (1-weight_upper)
 
-        # The density difference bettwen a pelagic egg and the ambient water
-        # is regulated by their salinity difference through the
-        # equation of state for sea water.
-        # The Egg has the same temperature as the ambient water and its
-        # salinity is regulated by osmosis through the egg shell.
         DENSw = self.sea_water_density(T=T0, S=S0)
-#        DENSegg = self.sea_water_density(T=T0, S=eggsalinity)
         DENSpart = self.elements.density
         dr = DENSw-DENSpart  # density difference
 
@@ -447,14 +425,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         specie_in  = self.elements.specie.copy()    # for storage of the out speciation
         specie_out = self.elements.specie.copy()    # for storage of the out speciation
         deltat = self.time_step.seconds             # length of a time step
-        #phaseshift = np.array(self.num_elements_total()*[False])  # Denotes which trajectory that shall be transformed
         phaseshift = np.array(self.num_elements_active()*[False])  # Denotes which trajectory that shall be transformed
 
-        #print 'transfer rates', self.elements.transfer_rates1D
         p = 1. - np.exp(-self.elements.transfer_rates1D*deltat)  # Probability for transformation
         psum = np.sum(p,axis=1)
         
-        #ran1=np.random.random(self.num_elements_total())
         ran1=np.random.random(self.num_elements_active())
         
         # Transformation where ran1 < total probability for transformation
@@ -477,8 +452,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         # Set the new speciation
         self.elements.specie=specie_out
         
-        logging.info('old species: %s' % specie_in[phaseshift])
-        logging.info('new species: %s' % specie_out[phaseshift])
+        logging.debug('old species: %s' % specie_in[phaseshift])
+        logging.debug('new species: %s' % specie_out[phaseshift])
         
         # Update radionuclide properties after transformations
         self.update_radionuclide_diameter(specie_in, specie_out)
@@ -557,7 +532,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
 
-    def bottom_interaction(self,Zmin=none):
+    def bottom_interaction(self,Zmin=None):
         ''' Change speciation of radionuclides that reach bottom due to settling. 
         particle specie -> sediment specie '''
         bottom = np.array(np.where(self.elements.z <= Zmin)[0])
@@ -583,10 +558,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         # Radionuclide speciation
         self.update_transfer_rates()
         self.update_speciation()
-        print self.elements.specie
-        print self.elements.diameter
         logging.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
-#        logging.info('          : {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)]))
 
 
         # Turbulent Mixing
@@ -618,3 +590,4 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             self.elements.z[self.elements.specie==self.num_ssrev] = z_before[self.elements.specie==self.num_ssrev]
         if self.get_config('radionuclide:irreversible_fraction'):
             self.elements.z[self.elements.specie==self.num_sirrev] = z_before[self.elements.specie==self.num_sirrev]
+
