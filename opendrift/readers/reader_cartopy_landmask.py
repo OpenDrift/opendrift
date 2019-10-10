@@ -15,7 +15,7 @@
 # Copyright 2019, Gaute Hope, MET Norway
 
 from opendrift.readers.basereader import BaseReader
-import opendrift_landmask_data as old
+import opendrift_landmask_data.contains as cold
 
 import logging
 import warnings
@@ -31,8 +31,6 @@ class Reader(BaseReader):
     variables = ['land_binary_mask']
     proj4 = None
 
-    __land_shapes__ = None
-    __land__ = None
     _crs_    = None
 
     def __init__(self, resolution = 'c'):
@@ -71,14 +69,8 @@ class Reader(BaseReader):
         self.delta_x = None
         self.delta_y = None
 
-        resmap = { 'c': 0, 'l': 1, 'i': 2, 'h': 3, 'f': 4 }
-        cachef = old.GSHHS[resmap[resolution]]
-
-        logging.debug("cartopy: loading cache from: %s", cachef)
-        with open(cachef, 'rb') as fd:
-            self.__land_shapes__ = shapely.wkb.loads(fd.read())
-
-        self.__land__ = shapely.prepared.prep(self.__land_shapes__)
+        # setup landmask
+        self.mask = cold.Landmask()
 
     def zoom_map(self, buffer=0.2,
                  lonmin=None, lonmax=None, latmin=None, latmax=None):
@@ -86,10 +78,7 @@ class Reader(BaseReader):
                      (lonmin, lonmax, latmin, latmax) )
 
     def __on_land__(self, x, y):
-        assert isinstance(x, np.ndarray) and isinstance(y, np.ndarray)
-
-        return np.array(shapely.vectorized.contains(self.__land__, x, y),
-                        dtype=np.bool)
+        return self.mask.contains (x,y)
 
     def get_variables(self, requestedVariables, time = None,
                       x = None, y = None, z = None, block = False):

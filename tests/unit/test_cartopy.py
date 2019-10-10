@@ -33,6 +33,7 @@ def test_landmask_many(benchmark):
     y, x = np.mgrid[50:59:50j, -8:2:100j]
     benchmark(reader_cartopy.__on_land__, x, y)
 
+@pytest.mark.slow
 def test_cartopy_plot(tmpdir):
     """ Testing cartopy reader against Basemap (directly) """
     reader_cartopy = reader_cartopy_landmask.Reader()
@@ -62,9 +63,14 @@ def test_cartopy_plot(tmpdir):
     (bx, by) = pyproj.transform (cproj, bproj, x, y)
     b = [bm.is_land (bbx, bby) for bbx, bby in zip (bx, by)]
 
+    from opendrift_landmask_data import GSHHS
+    from shapely import wkb
+    with open (GSHHS['f'], 'rb') as fd:
+      land = wkb.load(fd)
+
     fig = plt.figure ()
     ax = plt.axes (projection = cartopy.crs.PlateCarree())
-    ax.add_geometries (reader_cartopy.__land_shapes__, cartopy.crs.PlateCarree(), facecolor = 'none', edgecolor='black')
+    ax.add_geometries (land, cartopy.crs.PlateCarree(), facecolor = 'none', edgecolor='black')
 
     ax.scatter (x[c], y[c], c = 'blue', transform = cartopy.crs.PlateCarree(), label = 'cartopy')
     ax.scatter (x[b], y[b], marker = 'x', c = 'green', transform = cartopy.crs.PlateCarree(), label = 'basemap')
@@ -74,7 +80,7 @@ def test_cartopy_plot(tmpdir):
 
     assert len(c) == len(x)
     assert len(c) == len(b)
-    assert np.abs((np.isclose(c, b) == False).sum() / len(c)) <= .025
+    assert np.abs((np.isclose(c, b) == False).sum() / len(c)) <= .028
 
 
 @pytest.mark.slow
