@@ -23,9 +23,6 @@ def test_basemap_setup(benchmark):
 def test_cartopy_setup(benchmark):
     benchmark(reader_cartopy_landmask.Reader)
 
-def test_landmask_setup_prepared_cached_interres(benchmark):
-    benchmark(reader_cartopy_landmask.Reader, resolution = 'i')
-
 def test_landmask_many(benchmark):
     reader_cartopy = reader_cartopy_landmask.Reader()
     import numpy as np
@@ -50,8 +47,6 @@ def test_cartopy_plot(tmpdir):
 
     from mpl_toolkits.basemap import Basemap
     bm = Basemap(projection = 'cyl', resolution = 'c')
-
-    print (reader_cartopy._crs_.globe)
 
     crs = cartopy.crs.PlateCarree(globe = cartopy.crs.Globe())
     cproj = pyproj.Proj (crs.proj4_init)

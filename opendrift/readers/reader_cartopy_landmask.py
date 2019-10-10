@@ -18,52 +18,31 @@ from opendrift.readers.basereader import BaseReader
 import opendrift_landmask_data.contains as cold
 
 import logging
-import warnings
-import shapely.wkb
-import shapely.vectorized
-import cartopy
-import numpy as np
-import os.path
+import pyproj
 
 class Reader(BaseReader):
     name = 'cartopy_landmask'
     return_block = False
     variables = ['land_binary_mask']
     proj4 = None
+    crs   = None
 
-    _crs_    = None
-
-    def __init__(self, resolution = 'c'):
+    def __init__(self):
         """
-        Initialize cartopy land mask using GSHHS dataset.
-
-        Args:
-
-            resolution (str): Resolution category for landmask. Default is
-                'c'. Possible values: 'c', 'l', 'i', 'h', 'f'.
+        Initialize land mask using GSHHS dataset.
         """
-        reader = cartopy.feature.GSHHSFeature(scale = resolution, level = 2) # only used for CRS
 
-        # The cartopy reader CRS is a unit-radian scaled earth, so that lon, lat is equivalent, but
-        # projection conversion between full scale ellipsoids do not work. For that it is better to use
-        # PlateCarree with a WGS84 globe.
-        self._crs_ = reader.crs
-        self.proj4 = self._crs_.proj4_init
+        # this projection is copied from cartopy.PlateCarree()
+        self.proj4 = '+ellps=WGS84 +a=57.29577951308232 +proj=eqc +lon_0=0.0 +no_defs'
+        self.crs   = pyproj.CRS(self.proj4)
 
         super (Reader, self).__init__ ()
 
         # Depth
         self.z = None
 
-        # Time
-        self.start_time = None
-        self.end_time = None
-        self.time_step = None
-
         # Read and store min, max and step of x and y
-        self.xmin, self.ymin = -180, -90
-        self.xmax, self.ymax = 180, 90
-
+        self.xmin, self.ymin, self.xmax, self.ymax = (-180, -90, 180, 90)
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
         self.delta_x = None
