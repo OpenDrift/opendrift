@@ -112,6 +112,12 @@ class Reader(BaseReader):
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logging.info('Opening files with MFDataset')
                 self.Dataset = MFDataset(filename)
+                # in case of issues with file ordering consider imputting an explicit filelist 
+                # to reader, for example:
+                # 
+                # ordered_filelist_1 = []
+                # ordered_filelist_1.extend(glob.glob(data_path + 'schism_marl2008*_00z_3D.nc'))# month block 1
+                # ordered_filelist_1.sort()
             else:
                 logging.info('Opening file with Dataset')
                 self.Dataset = Dataset(filename, 'r')
