@@ -18,6 +18,7 @@ from opendrift.readers.basereader import BaseReader
 import opendrift_landmask_data.contains as cold
 
 import logging
+import warnings
 import pyproj
 
 class Reader(BaseReader):
@@ -27,9 +28,26 @@ class Reader(BaseReader):
     proj4 = None
     crs   = None
 
-    def __init__(self):
+    def __init__(self,
+                 extent = None,
+                 llcrnrlon = None,
+                 llcrnrlat = None,
+                 urcrnrlon = None,
+                 urcrnrlat = None):
         """
         Initialize land mask using GSHHS dataset.
+
+        Args:
+            extent (array): minx, miny, maxx, maxy bounding box in source CRS for which to include
+                geometries. Default None (all geometries).
+
+            llcrnrlon (float): minx (Deprecated in favor of extent).
+
+            llcrnrlat (float): miny (Deprecated in favor of extent).
+
+            urcrnrlon (float): maxx (Deprecated in favor of extent).
+
+            urcrnrlat (float): maxy (Deprecated in favor of extent).
         """
 
         # this projection is copied from cartopy.PlateCarree()
@@ -41,15 +59,26 @@ class Reader(BaseReader):
         # Depth
         self.z = None
 
+        if extent and (llcrnrlat or llcrnrlon or urcrnrlat or urcrnrlon):
+            raise Exception ("'extent' cannot be given togheter with any of 'llcrnrlon', ..'")
+        elif extent is None and (llcrnrlat or llcrnrlon or urcrnrlat or urcrnrlon):
+            warnings.warn("llcrnrlon, llcrnrlat, et. al. is deprecated for the cartopy reader. Prefer 'extent' in stead.", DeprecationWarning)
+            extent = [llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat]
+
         # Read and store min, max and step of x and y
-        self.xmin, self.ymin, self.xmax, self.ymax = (-180, -90, 180, 90)
+        if extent is not None:
+            self.xmin, self.ymin, self.xmax, self.ymax = extent
+        else:
+            self.xmin, self.ymin = -180, -90
+            self.xmax, self.ymax = 180, 90
+
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
         self.delta_x = None
         self.delta_y = None
 
         # setup landmask
-        self.mask = cold.Landmask()
+        self.mask = cold.Landmask(extent)
 
     def zoom_map(self, buffer=0.2,
                  lonmin=None, lonmax=None, latmin=None, latmax=None):
