@@ -119,3 +119,13 @@ def stepfunction(s):
         K[s.environment_profiles['z'] < -20] * 0 + 0.02
     N, Kprofiles = sp.meshgrid(Nparticles, K)
     return Kprofiles
+
+
+
+def zero(s):
+    '''Set eddy diffusivity to zero'''
+    Nparticles = range(s.elements.z.shape[0])
+    K = s.environment_profiles['z'] * 0 
+    N, Kprofiles = sp.meshgrid(Nparticles, K)
+    return Kprofiles
+
