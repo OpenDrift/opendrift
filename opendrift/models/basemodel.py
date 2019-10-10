@@ -2062,8 +2062,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
             try:
                 from opendrift.readers import reader_cartopy_landmask
-                reader_cartopy = reader_cartopy_landmask.Reader(
-                    resolution=self.get_config('general:auto_landmask_resolution'))
+                reader_cartopy = reader_cartopy_landmask.Reader()
                 self.add_reader(reader_cartopy)
 
             except ImportError:

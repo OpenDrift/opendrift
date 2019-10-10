@@ -86,7 +86,7 @@ class TestStranding(unittest.TestCase):
                 'x_sea_water_velocity', amplitude=1,
                 zero_time=datetime.now())
 
-        reader_cartopy = reader_cartopy_landmask.Reader(resolution = 'i')
+        reader_cartopy = reader_cartopy_landmask.Reader()
 
         # Three different stranding options, with
         # expected final status and position
@@ -139,12 +139,12 @@ class TestStranding(unittest.TestCase):
         o.set_config('general:coastline_action', 'previous')
         o.set_config('general:use_basemap_landmask', False)
         o.fallback_values['x_sea_water_velocity'] = .7
-        o.seed_elements(lon=5, lat=60.5, time=datetime.now())
+        o.seed_elements(lon=5, lat=60.49, time=datetime.now())
         o.run(time_step=3600, steps=30)
         lons = o.history['lon'][0]
         self.assertAlmostEqual(lons[0], 5, 2)
-        self.assertAlmostEqual(lons[-2], 5.366, 2)
-        self.assertAlmostEqual(lons[-1], 5.366, 2)
+        self.assertAlmostEqual(lons[-2], 5.092, 2)
+        self.assertAlmostEqual(lons[-1], 5.092, 2)
 
 
 if __name__ == '__main__':
