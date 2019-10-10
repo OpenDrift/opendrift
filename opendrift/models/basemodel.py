@@ -2062,7 +2062,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
             try:
                 from opendrift.readers import reader_cartopy_landmask
-                reader_cartopy = reader_cartopy_landmask.Reader()
+                reader_cartopy = reader_cartopy_landmask.Reader(
+                        extent = [
+                            np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                            np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+                            np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+                            np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
+                            ])
                 self.add_reader(reader_cartopy)
 
             except ImportError:
