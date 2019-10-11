@@ -66,8 +66,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
     ElementType = Radionuclide
 
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_ice_area_fraction',
+#                          'sea_surface_wave_significant_height',
+#                          'sea_ice_area_fraction',
                           'x_wind', 'y_wind', 'land_binary_mask',
                           'sea_floor_depth_below_sea_level',
                           'ocean_vertical_diffusivity',
@@ -94,12 +94,12 @@ class RadionuclideDrift(OpenDrift3DSimulation):
     # The depth range (in m) which profiles shall cover
     required_profiles_z_range = [-120, 0]
 
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_ice_area_fraction': 0,
+    fallback_values = {#'x_sea_water_velocity': 0,
+                       #'y_sea_water_velocity': 0,
+                       #'sea_surface_wave_significant_height': 0,
+                       #'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0,
-                       'sea_floor_depth_below_sea_level': 100,
+                       #'sea_floor_depth_below_sea_level': 100,
                        'ocean_vertical_diffusivity': 0.02,  # m2s-1
                        'sea_water_temperature': 10.,
                        'sea_water_salinity': 34.,
@@ -137,7 +137,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
     
     configspec_radionuclidedrift = '''
         [radionuclide]
-            transfer_setup = option('Bokna_137Cs', 'dummy', default='dummy')
+            transfer_setup = option('Sandnesfj_Al','Bokna_137Cs', 'dummy', default='dummy')
             slowly_fraction = boolean(default=False)
             irreversible_fraction = boolean(default=False)
             dissolved_diameter = float(min=0., max=100.e-6,default=0.)
@@ -145,7 +145,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             particle_diameter_uncertainty = float(min=0., max=100.e-6, default=1.e-7)
             [[species]]
                 LMM                        = boolean(default=False)
+                LMMcation                  = boolean(default=False)
+                LMManion                   = boolean(default=False)
                 Colloid                    = boolean(default=False)
+                Humic_colloid              = boolean(default=False)
+                Polymer                    = boolean(default=False)
                 Particle_reversible        = boolean(default=False)
                 Particle_slowly_reversible = boolean(default=False)
                 Particle_irreversible      = boolean(default=False)
@@ -163,8 +167,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                 corr_factor        = float(min=0., max=10., default=0.1)
                 porosity           = float(min=0., max=1., default=0.6)
                 layer_thick        = float(min=0., max=100., default=1.)
-                desorption_depth   = float(min=0., max=100., default=10.)
-                desorption_depth_uncert = float(min=0., max=100., default=1.)
+                desorption_depth   = float(min=0., max=100., default=1.)
+                desorption_depth_uncert = float(min=0., max=100., default=.5)
             '''
 
 
@@ -187,8 +191,6 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         # Calling general constructor of parent class
         super(RadionuclideDrift, self).__init__(*args, **kwargs)
 
-        # By default, eggs do not strand towards coastline
-        self.set_config('general:coastline_action', 'previous')
         
 
         
@@ -202,8 +204,16 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         self.name_species=[]
         if self.get_config('radionuclide:species:LMM'):
             self.name_species.append('LMM')
+        if self.get_config('radionuclide:species:LMMcation'):
+            self.name_species.append('LMMcation')
+        if self.get_config('radionuclide:species:LMManion'):
+            self.name_species.append('LMManion')
         if self.get_config('radionuclide:species:Colloid'):
             self.name_species.append('Colloid')
+        if self.get_config('radionuclide:species:Humic_colloid'):
+            self.name_species.append('Humic colloid')
+        if self.get_config('radionuclide:species:Polymer'):
+            self.name_species.append('Polymer')
         if self.get_config('radionuclide:species:Particle_reversible'):
             self.name_species.append('Particle reversible')
         if self.get_config('radionuclide:species:Particle_slowly_reversible'):
@@ -246,6 +256,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
 
         self.transfer_rates = np.zeros([self.nspecies,self.nspecies])
+        self.ntransformations = np.zeros([self.nspecies,self.nspecies])
         
         if transfer_setup == 'Bokna_137Cs':
             
@@ -298,13 +309,80 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                 self.transfer_rates[self.num_srev,self.num_ssrev] = 2.e-6
                 self.transfer_rates[self.num_psrev,self.num_prev] = 2.e-7
                 self.transfer_rates[self.num_ssrev,self.num_srev] = 2.e-7
+        
+        elif transfer_setup=='Sandnesfj_Al':
+            # Use values from Simonsen et al (2019b)
+            self.num_lmmanion    = self.specie_name2num('LMManion')
+            self.num_lmmcation   = self.specie_name2num('LMMcation')
+            self.num_humcol      = self.specie_name2num('Humic colloid')
+            self.num_polymer     = self.specie_name2num('Polymer')
+            self.num_prev        = self.specie_name2num('Particle reversible')
+            self.num_srev        = self.specie_name2num('Sediment reversible')
+ 
+            Dc         = self.get_config('radionuclide:transformations:Dc')
+             
+            self.salinity_intervals = [0,1,10,20]
+            
+            # Resize transfer rates array
+            self.transfer_rates = np.zeros([len(self.salinity_intervals),self.transfer_rates.shape[0],self.transfer_rates.shape[1]])
+            
+            # Salinity interval 0-1 psu
+            self.transfer_rates[0,self.num_lmmcation, self.num_humcol]    = 1.2e-5
+            self.transfer_rates[0,self.num_lmmcation, self.num_prev]      = 4.e-6
+            self.transfer_rates[0,self.num_humcol,    self.num_lmmcation] = .3*Dc
+            self.transfer_rates[0,self.num_humcol,    self.num_prev]      = 2.e-6
+            self.transfer_rates[0,self.num_prev,      self.num_lmmcation] = .3*Dc
+            self.transfer_rates[0,self.num_srev,      self.num_lmmcation] = .03*Dc
+            
+            # Salinity interval 1-10 psu
+            self.transfer_rates[1,self.num_lmmcation, self.num_humcol]    = 1.e-5
+            self.transfer_rates[1,self.num_lmmcation, self.num_prev]      = 3.e-6
+            self.transfer_rates[1,self.num_lmmcation, self.num_polymer]   = 1.2e-4
+            self.transfer_rates[1,self.num_humcol,    self.num_lmmcation] = 7.*Dc
+            self.transfer_rates[1,self.num_humcol,    self.num_prev]      = 4.e-6
+            self.transfer_rates[1,self.num_prev,      self.num_lmmcation] = .5*Dc
+            self.transfer_rates[1,self.num_srev,      self.num_lmmcation] = .05*Dc
+            self.transfer_rates[1,self.num_lmmanion,  self.num_polymer]   = 5.e-6
+            self.transfer_rates[1,self.num_polymer,   self.num_lmmanion]  = 12.*Dc
+            self.transfer_rates[1,self.num_polymer,   self.num_prev]      = 2.4e-5
+            
+            # Salinity interval 10-20 psu
+            self.transfer_rates[2,self.num_lmmcation, self.num_humcol]    = 8.e-6
+            self.transfer_rates[2,self.num_lmmcation, self.num_prev]      = 2.e-6
+            self.transfer_rates[2,self.num_lmmcation, self.num_polymer]   = 1.4e-4
+            self.transfer_rates[2,self.num_humcol,    self.num_lmmcation] = 7.*Dc
+            self.transfer_rates[2,self.num_humcol,    self.num_prev]      = 6.e-6
+            self.transfer_rates[2,self.num_prev,      self.num_lmmcation] = .6*Dc
+            self.transfer_rates[2,self.num_srev,      self.num_lmmcation] = .06*Dc
+            self.transfer_rates[2,self.num_lmmanion,  self.num_polymer]   = 5.e-6
+            self.transfer_rates[2,self.num_polymer,   self.num_lmmanion]  = 12.*Dc
+            self.transfer_rates[2,self.num_polymer,   self.num_prev]      = 6.e-5
+            
+            # Salinity interval >20 psu
+            self.transfer_rates[3,self.num_lmmcation, self.num_humcol]    = 6.e-6
+            self.transfer_rates[3,self.num_lmmcation, self.num_prev]      = 1.8e-6
+            self.transfer_rates[3,self.num_lmmcation, self.num_polymer]   = 1.5e-4
+            self.transfer_rates[3,self.num_humcol,    self.num_lmmcation] = 7.*Dc
+            self.transfer_rates[3,self.num_humcol,    self.num_prev]      = 1.e-5
+            self.transfer_rates[3,self.num_prev,      self.num_lmmcation] = .8*Dc
+            self.transfer_rates[3,self.num_srev,      self.num_lmmcation] = .08*Dc
+            self.transfer_rates[3,self.num_lmmanion,  self.num_polymer]   = 5.e-6
+            self.transfer_rates[3,self.num_polymer,   self.num_lmmanion]  = 12.*Dc
+            self.transfer_rates[3,self.num_polymer,   self.num_prev]      = 8.e-5
+            
+            
+            
             
         else:
             logging.ERROR('No transfer setup available')
 
         
         # Set diagonal to 0. (not possible to transform to present specie)
-        np.fill_diagonal(self.transfer_rates,0.)
+        if len(self.transfer_rates.shape) == 3:
+            for ii in range(self.transfer_rates.shape[0]):
+                np.fill_diagonal(self.transfer_rates[ii,:,:],0.)
+        else:
+            np.fill_diagonal(self.transfer_rates,0.)
         logging.info('nspecies: %s' % self.nspecies)
         logging.info('Transfer rates:\n %s' % self.transfer_rates)
 
@@ -394,26 +472,33 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         '''Pick out the correct row from transfer_rates for each element. Modify the 
         transfer rates according to local environmental conditions '''
 
+        transfer_setup=self.get_config('radionuclide:transfer_setup')
+        if transfer_setup == 'Bokna_137Cs' or transfer_setup=='dummy':
+            self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
+            
+            # Only LMM radionuclides close to seabed are allowed to interact with sediments 
+            # minimum height/maximum depth for each particle
+            Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+            interaction_thick = self.get_config('radionuclide:sediment:layer_thick')      # thickness of seabed interaction layer (m)  
+            dist_to_seabed = self.elements.z - Zmin
+            self.elements.transfer_rates1D[(self.elements.specie == self.num_lmm) & 
+                             (dist_to_seabed > interaction_thick), self.num_srev] = 0. 
+            
+                             
+            # Modify particle adsorption according to local particle concentration 
+            # (LMM -> reversible particles)
+            kktmp = self.elements.specie == self.num_lmm
+            self.elements.transfer_rates1D[kktmp, self.num_prev] = \
+                        self.elements.transfer_rates1D[kktmp, self.num_prev] * \
+                        self.environment.conc3[kktmp] / 1.e-3
+    #                    self.environment.particle_conc[kktmp] / 1.e-3
 
-        self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
         
-        # Only LMM radionuclides close to seabed are allowed to interact with sediments 
-        # minimum height/maximum depth for each particle
-        Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
-        interaction_thick = self.get_config('radionuclide:sediment:layer_thick')      # thickness of seabed interaction layer (m)  
-        dist_to_seabed = self.elements.z - Zmin
-        self.elements.transfer_rates1D[(self.elements.specie == self.num_lmm) & 
-                         (dist_to_seabed > interaction_thick), self.num_srev] = 0. 
-        
-                         
-        # Modify particle adsorption according to local particle concentration 
-        # (LMM -> reversible particles)
-        kktmp = self.elements.specie == self.num_lmm
-        self.elements.transfer_rates1D[kktmp, self.num_prev] = \
-                    self.elements.transfer_rates1D[kktmp, self.num_prev] * \
-                    self.environment.conc3[kktmp] / 1.e-3
-#                    self.environment.particle_conc[kktmp] / 1.e-3
-
+        elif transfer_setup=='Sandnesfj_Al':
+            sal = self.environment.sea_water_salinity
+            sali = np.searchsorted(self.salinity_intervals, sal) - 1
+            self.elements.transfer_rates1D = self.transfer_rates[sali,self.elements.specie,:]
+            
 
 
     def update_speciation(self):        
@@ -454,12 +539,22 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         logging.debug('old species: %s' % specie_in[phaseshift])
         logging.debug('new species: %s' % specie_out[phaseshift])
+
+
+        for iin in xrange(self.nspecies):
+            for iout in xrange(self.nspecies):
+                self.ntransformations[iin,iout]+=sum((specie_in[phaseshift]==iin) & (specie_out[phaseshift]==iout))
+                
+        logging.debug('Number of transformations total:\n %s' % self.ntransformations )
+        
         
         # Update radionuclide properties after transformations
         self.update_radionuclide_diameter(specie_in, specie_out)
         self.sorption_to_sediments(specie_in, specie_out)
         self.desorption_from_sediments(specie_in, specie_out)
         
+
+
     
 
     def sorption_to_sediments(self,sp_in=None,sp_out=None):
@@ -467,8 +562,12 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         
         # Set z to local sea depth
-        self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmm)] = \
-         -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmm)]
+        if self.get_config('radionuclide:species:LMM'):
+            self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmm)] = \
+                -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmm)]
+        if self.get_config('radionuclide:species:LMMcation'):
+            self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)] = \
+                -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)]
 
 
 
@@ -479,12 +578,20 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         std = self.get_config('radionuclide:sediment:desorption_depth_uncert')
 
 
-        self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = \
-            self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
-        if std > 0:
-            logging.debug('Adding uncertainty for desorption from sediments: %s m' % std)
-            self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] += np.random.normal(
-                    0, std, sum((sp_out==self.num_lmm) & (sp_in==self.num_srev)))
+        if self.get_config('radionuclide:species:LMM'):
+            self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = \
+                self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
+            if std > 0:
+                logging.debug('Adding uncertainty for desorption from sediments: %s m' % std)
+                self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] += np.random.normal(
+                        0, std, sum((sp_out==self.num_lmm) & (sp_in==self.num_srev)))
+        if self.get_config('radionuclide:species:LMMcation'):
+            self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = \
+                self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
+            if std > 0:
+                logging.debug('Adding uncertainty for desorption from sediments: %s m' % std)
+                self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] += np.random.normal(
+                        0, std, sum((sp_out==self.num_lmmcation) & (sp_in==self.num_srev)))
 
 
 
@@ -523,11 +630,20 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                     0, std, sum((sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)))
  
         # Transfer to LMM
-        self.elements.diameter[(sp_out==self.num_lmm) & (sp_in!=self.num_lmm)] = dia_diss
+        if self.get_config('radionuclide:species:LMM'):
+            self.elements.diameter[(sp_out==self.num_lmm) & (sp_in!=self.num_lmm)] = dia_diss
+        if self.get_config('radionuclide:species:LMManion'):
+            self.elements.diameter[(sp_out==self.num_lmmanion) & (sp_in!=self.num_lmmanion)] = dia_diss
+        if self.get_config('radionuclide:species:LMMcation'):
+            self.elements.diameter[(sp_out==self.num_lmmcation) & (sp_in!=self.num_lmmcation)] = dia_diss
         
         # Transfer to colloids
         if self.get_config('radionuclide:species:Colloid'):
             self.elements.diameter[(sp_out==self.num_col) & (sp_in!=self.num_col)] = dia_diss
+        if self.get_config('radionuclide:species:Humic_colloid'):
+            self.elements.diameter[(sp_out==self.num_humcol) & (sp_in!=self.num_humcol)] = dia_diss
+        if self.get_config('radionuclide:species:Polymer'):
+            self.elements.diameter[(sp_out==self.num_polymer) & (sp_in!=self.num_polymer)] = dia_diss
 
 
 
@@ -538,12 +654,15 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         bottom = np.array(np.where(self.elements.z <= Zmin)[0])
         kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_prev)[0])
         self.elements.specie[bottom[kktmp]] = self.num_srev
+        self.ntransformations[self.num_prev,self.num_srev]+=len(kktmp)
         if self.get_config('radionuclide:slowly_fraction'):
             kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_psrev)[0])
             self.elements.specie[bottom[kktmp]] = self.num_ssrev
+            self.ntransformations[self.num_psrev,self.num_ssrev]+=len(kktmp)
         if self.get_config('radionuclide:irreversible_fraction'):
             kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_pirrev)[0])
             self.elements.specie[bottom[kktmp]] = self.num_sirrev
+            self.ntransformations[self.num_pirrev,self.num_sirrev]+=len(kktmp)
 
 
 
