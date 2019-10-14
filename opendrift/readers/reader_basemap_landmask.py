@@ -189,6 +189,9 @@ class Reader(BaseReader):
 
         return land
 
+    def __on_land__(self, x, y):
+        return self.get_variables('land_binary_mask', x = x, y = y)['land_binary_mask']
+
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, z=None, block=False):
         if isinstance(requestedVariables, str):
