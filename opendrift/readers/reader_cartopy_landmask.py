@@ -27,13 +27,15 @@ class Reader(BaseReader):
     variables = ['land_binary_mask']
     proj4 = None
     crs   = None
+    skippoly = False
 
     def __init__(self,
                  extent = None,
                  llcrnrlon = None,
                  llcrnrlat = None,
                  urcrnrlon = None,
-                 urcrnrlat = None):
+                 urcrnrlat = None,
+                 skippoly = False):
         """
         Initialize land mask using GSHHS dataset.
 
@@ -48,11 +50,14 @@ class Reader(BaseReader):
             urcrnrlon (float): maxx (Deprecated in favor of extent).
 
             urcrnrlat (float): maxy (Deprecated in favor of extent).
+
+            skippoly (bool): use only rasterized landmask to determine whether points are on land.
         """
 
         # this projection is copied from cartopy.PlateCarree()
         self.proj4 = '+ellps=WGS84 +a=57.29577951308232 +proj=eqc +lon_0=0.0 +no_defs'
-        self.crs   = pyproj.CRS(self.proj4)
+        self.crs = pyproj.CRS(self.proj4)
+        self.skippoly = skippoly
 
         super (Reader, self).__init__ ()
 
@@ -86,7 +91,7 @@ class Reader(BaseReader):
                      (lonmin, lonmax, latmin, latmax) )
 
     def __on_land__(self, x, y):
-        return self.mask.contains (x,y)
+        return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)
 
     def get_variables(self, requestedVariables, time = None,
                       x = None, y = None, z = None, block = False):
