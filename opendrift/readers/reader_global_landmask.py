@@ -22,7 +22,12 @@ import warnings
 import pyproj
 
 class Reader(BaseReader):
-    name = 'cartopy_landmask'
+    """
+    The global landmask reader is based on the coastline data from
+    GSHHG (https://www.ngdc.noaa.gov/mgg/shorelines/) optimized for
+    checking against landmasks.
+    """
+    name = 'global_landmask'
     return_block = False
     variables = ['land_binary_mask']
     proj4 = None
@@ -67,7 +72,7 @@ class Reader(BaseReader):
         if extent and (llcrnrlat or llcrnrlon or urcrnrlat or urcrnrlon):
             raise Exception ("'extent' cannot be given togheter with any of 'llcrnrlon', ..'")
         elif extent is None and (llcrnrlat or llcrnrlon or urcrnrlat or urcrnrlon):
-            warnings.warn("llcrnrlon, llcrnrlat, et. al. is deprecated for the cartopy reader. Prefer 'extent' in stead.", DeprecationWarning)
+            warnings.warn("llcrnrlon, llcrnrlat, et. al. is deprecated for the global landmask reader. Prefer 'extent' in stead.", DeprecationWarning)
             extent = [llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat]
 
         # Read and store min, max and step of x and y
@@ -87,7 +92,7 @@ class Reader(BaseReader):
 
     def zoom_map(self, buffer=0.2,
                  lonmin=None, lonmax=None, latmin=None, latmax=None):
-        logging.warning('Zooming not implemented for cartopy reader: (%s to %s E), (%s to %s N)' %
+        logging.warning('Zooming not implemented for global landmask reader: (%s to %s E), (%s to %s N)' %
                      (lonmin, lonmax, latmin, latmax) )
 
     def __on_land__(self, x, y):
