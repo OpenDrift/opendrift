@@ -71,7 +71,7 @@ def test_plot(tmpdir):
     ax.coastlines()
     # ax.set_global()
     # plt.show()
-    plt.savefig(tmpdir + '/cartplot.png')
+    plt.savefig('%s/cartplot.png' % tmpdir)
 
 
 def test_performance_global(benchmark):
