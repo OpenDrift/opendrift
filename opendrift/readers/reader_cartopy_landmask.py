@@ -15,7 +15,7 @@
 # Copyright 2019, Gaute Hope, MET Norway
 
 from opendrift.readers.basereader import BaseReader
-import opendrift_landmask_data.contains as cold
+from opendrift_landmask_data import Landmask
 
 import logging
 import warnings
@@ -83,7 +83,7 @@ class Reader(BaseReader):
         self.delta_y = None
 
         # setup landmask
-        self.mask = cold.Landmask(extent)
+        self.mask = Landmask(extent)
 
     def zoom_map(self, buffer=0.2,
                  lonmin=None, lonmax=None, latmin=None, latmax=None):
