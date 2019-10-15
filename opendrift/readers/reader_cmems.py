@@ -25,7 +25,7 @@ import os
 from datetime import datetime, timedelta
 import numpy as np
 
-from reader_netCDF_CF_generic import Reader as NCReader
+from .reader_netCDF_CF_generic import Reader as NCReader
 
 
 class Reader(NCReader):
