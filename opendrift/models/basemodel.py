@@ -2039,8 +2039,8 @@ class OpenDriftSimulation(PhysicsMethods):
             if 'land_binary_mask' in self.priority_list:
                 if 'basemap_landmask' in self.priority_list['land_binary_mask']:
                     self.priority_list['land_binary_mask'] = ['basemap_landmask']
-                elif 'cartopy_landmask' in self.priority_list['land_binary_mask']:
-                    self.priority_list['land_binary_mask'] = ['cartopy_landmask']
+                elif 'global_landmask' in self.priority_list['land_binary_mask']:
+                    self.priority_list['land_binary_mask'] = ['global_landmask']
                 else:
                     del self.priority_list['land_binary_mask']
         if self.get_config('general:use_auto_landmask') is True and \
@@ -2061,18 +2061,18 @@ class OpenDriftSimulation(PhysicsMethods):
                 np.radians(np.mean(self.elements_scheduled.lat)))
 
             try:
-                from opendrift.readers import reader_cartopy_landmask
-                reader_cartopy = reader_cartopy_landmask.Reader(
+                from opendrift.readers import reader_global_landmask
+                reader_landmask = reader_global_landmask.Reader(
                         extent = [
                             np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
                             np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
                             np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
                             np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
                             ])
-                self.add_reader(reader_cartopy)
+                self.add_reader(reader_landmask)
 
             except ImportError:
-                logging.warning ("cartopy could not be imported, using basemap for automatic landmask.")
+                logging.warning ("global landmask reader could not be imported, falling back to basemap for automatic landmask.")
                 from opendrift.readers import reader_basemap_landmask
                 reader_basemap = reader_basemap_landmask.Reader(
                     llcrnrlon=np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
@@ -2572,8 +2572,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     buffer,
                     lonmin, lonmax,
                     latmin, latmax)
-        elif 'cartopy_landmask' in self.readers:
-            self.readers['cartopy_landmask'].zoom_map(
+        elif 'global_landmask' in self.readers:
+            self.readers['global_landmask'].zoom_map(
                     buffer,
                     lonmin, lonmax,
                     latmin, latmax)

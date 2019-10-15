@@ -2,12 +2,12 @@ import numpy as np
 import pytest
 from . import *
 from opendrift.readers import reader_basemap_landmask
-from opendrift.readers import reader_cartopy_landmask
+from opendrift.readers import reader_global_landmask
 
 @pytest.mark.skip(reason="too different probably due to different masking")
 def test_matches():
-    print("setting up cartopy")
-    reader_cartopy = reader_cartopy_landmask.Reader(
+    print("setting up global landmask")
+    reader_global = reader_global_landmask.Reader(
                         llcrnrlon=18.64, llcrnrlat=69.537,
                         urcrnrlon=19.37, urcrnrlat=69.81)
 
@@ -28,16 +28,16 @@ def test_matches():
     print ("masking against basemap")
     b = reader_basemap.__on_land__(xx,yy)
 
-    print ("masking against cartopy")
-    c = reader_cartopy.__on_land__(xx,yy)
+    print ("masking against global")
+    c = reader_global.__on_land__(xx,yy)
 
     print ("checking")
     np.testing.assert_array_equal(b,c)
 
 @pytest.mark.slow
 def test_plot(tmpdir):
-    print("setting up cartopy")
-    reader_cartopy = reader_cartopy_landmask.Reader(
+    print("setting up global landmask")
+    reader_global = reader_global_landmask.Reader(
                         llcrnrlon=18.64, llcrnrlat=69.537,
                         urcrnrlon=19.37, urcrnrlat=69.81)
 
@@ -63,7 +63,7 @@ def test_plot(tmpdir):
 
     plt.figure()
     ax = plt.axes(projection=ccrs.PlateCarree())
-    c = reader_cartopy.__on_land__(xx,yy).reshape(shp)
+    c = reader_global.__on_land__(xx,yy).reshape(shp)
     # c = reader_basemap.__on_land__(xx,yy).reshape(shp)
     print (c)
     ex = [18.641, 19.369, 69.538, 69.80]
@@ -74,9 +74,9 @@ def test_plot(tmpdir):
     plt.savefig(tmpdir + '/cartplot.png')
 
 
-def test_performance_cartopy(benchmark):
-    print("setting up cartopy")
-    reader_cartopy = reader_cartopy_landmask.Reader(
+def test_performance_global(benchmark):
+    print("setting up global landmask")
+    reader_global = reader_global_landmask.Reader(
                         llcrnrlon=18.64, llcrnrlat=69.537,
                         urcrnrlon=19.37, urcrnrlat=69.81)
 
@@ -91,10 +91,10 @@ def test_performance_cartopy(benchmark):
     print ("points:", len(xx))
 
     # warmup
-    reader_cartopy.__on_land__(xx, yy)
+    reader_global.__on_land__(xx, yy)
 
     print ("masking against cartopy")
-    benchmark(reader_cartopy.__on_land__, xx,yy)
+    benchmark(reader_global.__on_land__, xx,yy)
 
 def test_performance_basemap(benchmark):
     print("setting up basemap")
