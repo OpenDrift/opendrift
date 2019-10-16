@@ -2414,15 +2414,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, **kwargs):
+    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale='auto', **kwargs):
         """Generate Basemap instance on which trajectories are plotted.
 
            provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection"""
 
-        try:  # Clear any existing figure instances
-            plt.close()
-        except:
-            pass
         lons, lats = self.get_lonlats()
 
         # Initialise map
@@ -2437,7 +2433,6 @@ class OpenDriftSimulation(PhysicsMethods):
             latmin = corners[2]
             latmax = corners[3]
 
-        # crs = ccrs.PlateCarree()
         crs = ccrs.Mercator()
 
         meanlat = (latmin + latmax)/2
@@ -2445,15 +2440,15 @@ class OpenDriftSimulation(PhysicsMethods):
             np.float(latmax-latmin) / (np.float(lonmax-lonmin))
         aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
         if aspect_ratio > 1:
-            fig = plt.figure(0, figsize=(10./aspect_ratio, 10.))
+            fig = plt.figure(figsize=(10./aspect_ratio, 10.))
         else:
-            fig = plt.figure(0, figsize=(11., 11.*aspect_ratio))
+            fig = plt.figure(figsize=(11., 11.*aspect_ratio))
 
         ax = fig.add_axes ([.05, .08, .85, .9], projection = crs)
         ax.set_extent ([lonmin, lonmax, latmin, latmax], crs = ccrs.PlateCarree())
         ax.stock_img()
 
-        f = cfeature.GSHHSFeature(scale='h', levels=[1],
+        f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
                 facecolor=cfeature.COLORS['land'])
         ax.add_feature(f)
 
@@ -2869,7 +2864,8 @@ class OpenDriftSimulation(PhysicsMethods):
              linewidth=1, lcs=None, show_particles=True,
              density_pixelsize_m=1000,
              surface_color=None, submerged_color=None, markersize=20,
-             title='auto', legend=True, legend_loc='best', **kwargs):
+             title='auto', legend=True, legend_loc='best', lscale='auto',
+             **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -2892,6 +2888,7 @@ class OpenDriftSimulation(PhysicsMethods):
             vmin, vmax: minimum and maximum values for colors of background.
             linecolor: name of variable to be used for coloring trajectories.
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
+            lscale (string): resolution of land feature ('c', 'l', 'i', 'h', 'f', 'auto'). default is 'auto'.
         """
 
         if self.num_elements_total() == 0:
@@ -2902,7 +2899,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # x, y are longitude, latitude -> i.e. in a Geodetic CRS
         gcrs = ccrs.Geodetic()
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, **kwargs)
+            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, **kwargs)
 
         markercolor = self.plot_comparison_colors[0]
 
@@ -3032,7 +3029,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                 transform = gcrs)
 
         if compare is not None:
-            cd = self._get_comparison_xy_for_plots(map, compare)
+            cd = self._get_comparison_xy_for_plots(compare)
             for i, c in enumerate(cd):
                 if legend != None:
                     legstr = legend[i+1]
