@@ -2437,7 +2437,8 @@ class OpenDriftSimulation(PhysicsMethods):
             latmin = corners[2]
             latmax = corners[3]
 
-        crs = ccrs.PlateCarree()
+        # crs = ccrs.PlateCarree()
+        crs = ccrs.Mercator()
 
         meanlat = (latmin + latmax)/2
         aspect_ratio = \
@@ -2449,14 +2450,14 @@ class OpenDriftSimulation(PhysicsMethods):
             fig = plt.figure(0, figsize=(11., 11.*aspect_ratio))
 
         ax = fig.add_axes ([.05, .08, .85, .9], projection = crs)
-        ax.set_extent ([lonmin, lonmax, latmin, latmax], crs)
+        ax.set_extent ([lonmin, lonmax, latmin, latmax], crs = ccrs.PlateCarree())
         ax.stock_img()
 
         f = cfeature.GSHHSFeature(scale='h', levels=[1],
                 facecolor=cfeature.COLORS['land'])
         ax.add_feature(f)
 
-        gl = ax.gridlines(crs, draw_labels = True)
+        gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
 
         x, y = (lons, lats)
 
