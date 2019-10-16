@@ -96,6 +96,7 @@ def test_performance_global(benchmark):
     print ("masking against cartopy")
     benchmark(reader_global.__on_land__, xx,yy)
 
+@pytest.mark.slow
 def test_performance_basemap(benchmark):
     print("setting up basemap")
     reader_basemap = reader_basemap_landmask.Reader(

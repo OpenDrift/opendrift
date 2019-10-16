@@ -44,6 +44,8 @@ try:
     from matplotlib.patches import Polygon
     from matplotlib.path import Path
     import cartopy
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
 except ImportError:
     print('matplotlib and/or cartopy is not available, can not make plots')
 
@@ -2435,74 +2437,28 @@ class OpenDriftSimulation(PhysicsMethods):
             latmin = corners[2]
             latmax = corners[3]
 
-        if 'basemap_landmask' in self.readers and buffer == .1 and corners == None:
-            # Using an eventual Basemap already used to check stranding
-            map = self.readers['basemap_landmask'].map
-            plt.figure(0, figsize=self.readers['basemap_landmask'].figsize)
-            ax = plt.axes([.05, .05, .85, .9])
-        else:
-            # Otherwise create a new Basemap covering the elements
-            ## Calculate aspect ratio, to minimise whitespace on figures
-            ## Drawback is that empty figure is created in interactive mode
-            meanlat = (latmin + latmax)/2
-            aspect_ratio = \
-                np.float(latmax-latmin) / (np.float(lonmax-lonmin))
-            aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
-            if aspect_ratio > 1:
-                plt.figure(0, figsize=(10./aspect_ratio, 10.))
-            else:
-                plt.figure(0, figsize=(11., 11.*aspect_ratio))
-            #ax = plt.axes([.05,.05,.85,.9])
-            ax = plt.axes([.05, .08, .85, .9])  # When colorbar below
-            map = Basemap(lonmin, latmin, lonmax, latmax,
-                          resolution=
-                            self.get_config('general:auto_landmask_resolution'),
-                          projection='merc', area_thresh=0)
+        crs = ccrs.PlateCarree()
 
-        map.drawcoastlines(color='gray')
-        map.fillcontinents(color='#ddaa99')
-        if delta_lat is None:
-            # Adjusting spacing of lon-lat lines dynamically
-            latspan = map.latmax - map.latmin
-            if latspan > 20:
-                delta_lat = 2
-            elif latspan > 10 and latspan <= 20:
-                delta_lat = 1
-            elif latspan > 1 and latspan <= 10:
-                delta_lat = .5
-            elif latspan > .2 and latspan <= 1:
-                delta_lat = .1
-            else:
-                delta_lat = .01
-            lonspan = map.lonmax - map.lonmin
-            if lonspan > 20:
-                delta_lon = 4
-            elif lonspan > 10 and lonspan <= 20:
-                delta_lon = 2
-            elif lonspan > 3 and lonspan <= 10:
-                delta_lon = 1
-            elif lonspan > 1 and lonspan <= 3:
-                delta_lon = .5
-            elif lonspan > .2 and lonspan <= 1:
-                delta_lon = .1
-            else:
-                delta_lon = .02
-        if delta_lat != 0:
-            map.drawmeridians(np.arange(np.floor(map.lonmin),
-                                        np.ceil(map.lonmax), delta_lon),
-                              labels=[0, 0, 0, 1])
-            try:
-                map.drawparallels(np.arange(np.floor(map.latmin),
-                                            np.ceil(map.latmax), delta_lat),
-                                  labels=[0, 1, 1, 0])
-            except:
-                logging.info('Drawing of parallels failed due to bug in '
-                             'matplotlib, can be fixed as explained here: '
-                'https://sourceforge.net/p/matplotlib/mailman/message/28461289/')
-                map.drawparallels(np.arange(np.floor(map.latmin),
-                                            np.ceil(map.latmax), 1),
-                                  labels=[0, 1, 1, 0])
-        x, y = map(lons.copy(), lats.copy())
+        meanlat = (latmin + latmax)/2
+        aspect_ratio = \
+            np.float(latmax-latmin) / (np.float(lonmax-lonmin))
+        aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
+        if aspect_ratio > 1:
+            fig = plt.figure(0, figsize=(10./aspect_ratio, 10.))
+        else:
+            fig = plt.figure(0, figsize=(11., 11.*aspect_ratio))
+
+        ax = fig.add_axes ([.05, .08, .85, .9], projection = crs)
+        ax.set_extent ([lonmin, lonmax, latmin, latmax], crs)
+        ax.stock_img()
+
+        f = cfeature.GSHHSFeature(scale='h', levels=[1],
+                facecolor=cfeature.COLORS['land'])
+        ax.add_feature(f)
+
+        gl = ax.gridlines(crs, draw_labels = True)
+
+        x, y = (lons, lats)
 
         try:
             firstlast = np.ma.notmasked_edges(x, axis=1)
@@ -2522,7 +2478,7 @@ class OpenDriftSimulation(PhysicsMethods):
         except:
             pass
 
-        return map, plt, x, y, index_of_first, index_of_last
+        return fig, ax, crs, x, y, index_of_first, index_of_last
 
     def get_lonlats(self):
         if hasattr(self, 'history'):
@@ -2876,7 +2832,7 @@ class OpenDriftSimulation(PhysicsMethods):
             except AttributeError:
                 pass
 
-    def _get_comparison_xy_for_plots(self, map, compare):
+    def _get_comparison_xy_for_plots(self, compare):
         if not type(compare) is list:
             compare = [compare]
         compare_list = [{}]*len(compare)
@@ -2893,9 +2849,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Find map coordinates of comparison simulations
             cd['x_other'], cd['y_other'] = \
-                map(other.history['lon'].copy(), other.history['lat'].copy())
+                (other.history['lon'].copy(), other.history['lat'].copy())
             cd['x_other_deactive'], cd['y_other_deactive'] = \
-                map(other.elements_deactivated.lon.copy(),
+                (other.elements_deactivated.lon.copy(),
                     other.elements_deactivated.lat.copy())
             cd['firstlast'] = np.ma.notmasked_edges(
                 cd['x_other'], axis=1)
@@ -2942,7 +2898,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
         start_time = datetime.now()
 
-        map, plt, x, y, index_of_first, index_of_last = \
+        # x, y are longitude, latitude -> i.e. in a Geodetic CRS
+        gcrs = ccrs.Geodetic()
+        fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer,corners=corners, **kwargs)
 
         markercolor = self.plot_comparison_colors[0]
@@ -2965,10 +2923,10 @@ class OpenDriftSimulation(PhysicsMethods):
                             numleg = 2
                         legend = ['Simulation %d' % (i+1) for i in
                                   range(numleg)]
-                    map.plot(x.T[:,0], y.T[:,0], color='gray', alpha=alpha, label=legend[0], linewidth=linewidth)
-                    map.plot(x.T, y.T, color='gray', alpha=alpha, label='_nolegend_', linewidth=linewidth)
+                    ax.plot(x, y, color='gray', alpha=alpha, label=legend[0], linewidth=linewidth, transform = gcrs)
+                    ax.plot(x, y, color='gray', alpha=alpha, label='_nolegend_', linewidth=linewidth, transform = gcrs)
                 else:
-                    map.plot(x.T, y.T, color='gray', alpha=alpha, linewidth=linewidth)
+                    ax.plot(x, y, color='gray', alpha=alpha, linewidth=linewidth, transform = gcrs)
             else:
                 # Color lines according to given parameter
                 try:
@@ -2995,9 +2953,9 @@ class OpenDriftSimulation(PhysicsMethods):
                                         norm=plt.Normalize(lvmin, lvmax))
                     #lc.set_linewidth(3)
                     lc.set_array(param.T[vind, i])
-                    plt.gca().add_collection(lc)
+                    ax.add_collection(lc, transform = gcrs)
                 #axcb = map.colorbar(lc, location='bottom', pad='5%')
-                axcb = map.colorbar(lc, location='bottom', pad='1%')
+                axcb = fig.colorbar(lc, cax = ax, location='bottom', pad='1%')
                 try:  # Add unit to colorbar if available
                     colorbarstring = linecolor + '  [%s]' % \
                         (self.history_metadata[linecolor]['units'])
@@ -3018,25 +2976,27 @@ class OpenDriftSimulation(PhysicsMethods):
             color_initial = 'gray'
             color_active = 'gray'
         if show_particles is True:
-            map.scatter(x[range(x.shape[0]), index_of_first],
+            ax.scatter(x[range(x.shape[0]), index_of_first],
                         y[range(x.shape[0]), index_of_first],
                         s=markersize,
                         zorder=10, edgecolor=markercolor, linewidths=.2,
-                        color=color_initial, label=label_initial)
+                        color=color_initial, label=label_initial,
+                        transform = gcrs)
             if surface_color is not None:
                 color_active = surface_color
                 label_active = 'surface'
-            map.scatter(x[range(x.shape[0]), index_of_last],
+            ax.scatter(x[range(x.shape[0]), index_of_last],
                         y[range(x.shape[0]), index_of_last], s=markersize,
                         zorder=3, edgecolor=markercolor, linewidths=.2,
-                        color=color_active, label=label_active)
+                        color=color_active, label=label_active,
+                        transform = gcrs)
             #if submerged_color is not None:
             #    map.scatter(x[range(x.shape[0]), index_of_last],
             #                y[range(x.shape[0]), index_of_last], s=markersize,
             #                zorder=3, edgecolor=markercolor, linewidths=.2,
             #                color=submerged_color, label='submerged')
 
-            x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
+            x_deactivated, y_deactivated = (self.elements_deactivated.lon,
                                                self.elements_deactivated.lat)
             # Plot deactivated elements, labeled by deactivation reason
             for statusnum, status in enumerate(self.status_categories):
@@ -3064,10 +3024,11 @@ class OpenDriftSimulation(PhysicsMethods):
                         color_status = self.status_colors[status]
                     else:
                         color_status = 'gray'
-                    map.scatter(x_deactivated[indices], y_deactivated[indices],
+                    ax.scatter(x_deactivated[indices], y_deactivated[indices],
                                 s=markersize,
                                 zorder=zorder, edgecolor=markercolor, linewidths=.1,
-                                color=color_status, label=legstr)
+                                color=color_status, label=legstr,
+                                transform = gcrs)
 
         if compare is not None:
             cd = self._get_comparison_xy_for_plots(map, compare)
@@ -3076,13 +3037,13 @@ class OpenDriftSimulation(PhysicsMethods):
                     legstr = legend[i+1]
                 else:
                     legstr = None
-                map.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i] + '-', label=legstr, linewidth=linewidth)
-                map.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i] + '-', label='_nolegend_', linewidth=linewidth)
-                map.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
+                ax.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i] + '-', label=legstr, linewidth=linewidth, transform = gcrs)
+                ax.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i] + '-', label='_nolegend_', linewidth=linewidth, transform = gcrs)
+                ax.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
                     c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
                     s=markersize,
                     zorder=3, edgecolor=markercolor, linewidths=.2,
-                    color=self.plot_comparison_colors[i])
+                    color=self.plot_comparison_colors[i], transform = gcrs)
 
         try:
             if legend is not None:# and compare is None:
@@ -3167,7 +3128,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if show is True:
                 plt.show()
 
-        return map, plt
+        return ax, plt
 
     def _plot_trajectory_dict(self, map, trajectory_dict):
         '''Plot provided trajectory along with simulated'''
