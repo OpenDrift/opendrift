@@ -42,12 +42,7 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
-    have_nx = True
-    try:
-        import matplotlib.nxutils as nx
-    except:
-        have_nx = False
-        from matplotlib.path import Path
+    from matplotlib.path import Path
     from mpl_toolkits import basemap
     Basemap = basemap.Basemap
 except:
@@ -1600,10 +1595,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lon = lon.ravel()
         lat = lat.ravel()
         points = np.c_[lon, lat]
-        if have_nx:
-            ind = nx.points_inside_poly(points, poly.xy)
-        else:
-            ind = Path(poly.xy).contains_points(points)
+        ind = Path(poly.xy).contains_points(points)
         if not any(ind):  # No elements are inside, we seed on border
             lonpoints = np.append(lonpoints, lons[0:number])
             latpoints = np.append(latpoints, lats[0:number])
