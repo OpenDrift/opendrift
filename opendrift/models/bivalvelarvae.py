@@ -174,10 +174,10 @@ class BivalveLarvae(OpenDrift3DSimulation):
         below = self.elements.z < -sea_floor_depth
         
         if self.get_config('drift:lift_to_seafloor') is True:
-            self.elements.z[below] = -sea_floor_depth[below]
+            self.elements.z[below] = np.minimum(-sea_floor_depth[below], -0.1) # make sure particles dont get above water i.e. z>0.0
         else:
             self.deactivate_elements(below, reason='seafloor')
-        
+
         # Deactivate elements that touched seabed and have age>min_settlement_age_seconds
         if self.get_config('drift:min_settlement_age_seconds') != 0.0:
             older = self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds')
