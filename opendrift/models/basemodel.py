@@ -2453,6 +2453,7 @@ class OpenDriftSimulation(PhysicsMethods):
         ax.add_feature(f)
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
+        gl.xlabels_top = False
 
         x, y = (lons, lats)
 
@@ -2498,7 +2499,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   show_trajectories=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20,
-                  legend=None, legend_loc='best', fps=10):
+                  legend=None, legend_loc='best', fps=10, lscale='auto'):
         """Animate last run."""
 
         if self.num_elements_total() == 0:
@@ -2523,6 +2524,9 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             if density is True:
                 density_weight = None
+
+        # x, y are longitude, latitude -> i.e. in a Geodetic CRS
+        gcrs = ccrs.Geodetic()
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
@@ -2592,16 +2596,16 @@ class OpenDriftSimulation(PhysicsMethods):
                     return points
 
         # Find map coordinates and plot points with empty data
-        map, plt, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners)
-        ax = plt.gcf().gca()
+        fig, ax, crs, x, y, index_of_first, index_of_last = \
+            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale)
+
         if surface_only is True:
             z = self.get_property('z')[0].T
             x[z<0] = np.nan
             y[z<0] = np.nan
 
         if show_trajectories is True:
-            map.plot(x.T, y.T, color='gray', alpha=.1)
+            ax.plot(x.T, y.T, color='gray', alpha=.1, transform = gcrs)
 
         if color is not False:
             if isinstance(color, basestring):
@@ -2626,9 +2630,9 @@ class OpenDriftSimulation(PhysicsMethods):
             if vmin is None:
                 vmin = lcs['ALCS'].min()
                 vmax = lcs['ALCS'].max()
-            map_x, map_y = map(lcs['lon'], lcs['lat'])
-            lcsh = map.pcolormesh(map_x, map_y, lcs['ALCS'][0,:,:],
-                                  vmin=vmin, vmax=vmax, cmap=cmap)
+            lcsh = ax.pcolormesh(lcs['lon'], lcs['lat'], lcs['ALCS'][0,:,:],
+                                  vmin=vmin, vmax=vmax, cmap=cmap,
+                                  transform = gcrs)
 
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
@@ -2640,19 +2644,17 @@ class OpenDriftSimulation(PhysicsMethods):
             c = markercolor
         else:
             c = []
-        points = map.scatter([], [], c=c, zorder=10,
+        points = ax.scatter([], [], c=c, zorder=10,
                              edgecolor='', cmap=cmap, s=markersize,
-                             vmin=vmin, vmax=vmax, label=legend[0])
+                             vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
         # Plot deactivated elements, with transparency
-        points_deactivated = map.scatter([], [], color=c, zorder=9,
+        points_deactivated = ax.scatter([], [], color=c, zorder=9,
                                          vmin=vmin, vmax=vmax, s=markersize,
-                                         edgecolor='', alpha=.3)
-        x_deactive, y_deactive = map(self.elements_deactivated.lon,
-                                     self.elements_deactivated.lat)
+                                         edgecolor='', alpha=.3, transform = gcrs)
+        x_deactive, y_deactive = (self.elements_deactivated.lon, self.elements_deactivated.lat)
 
         if compare is not None:
-            compare_list = self._get_comparison_xy_for_plots(
-                                map, compare)
+            compare_list = self._get_comparison_xy_for_plots(compare)
 
             for cn, cd in enumerate(compare_list):
                 if legend != ['']:
@@ -2660,15 +2662,15 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     legstr = None
                 cd['points_other'] = \
-                    map.scatter([], [], color=
+                    ax.scatter([], [], color=
                                 self.plot_comparison_colors[cn+1],
                                 s=markersize,
-                                label=legstr, zorder=10)
+                                label=legstr, zorder=10, transform = gcrs)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    map.scatter([], [], alpha=.3, zorder=9, color=
+                    ax.scatter([], [], alpha=.3, zorder=9, color=
                                 self.plot_comparison_colors[cn+1],
-                                s=markersize)
+                                s=markersize, transform = gcrs)
 
             if legend != ['', '']:
                 plt.legend(markerscale=2, loc=legend_loc)
@@ -2680,14 +2682,14 @@ class OpenDriftSimulation(PhysicsMethods):
                                        weight=density_weight)
             H = H + H_submerged + H_stranded
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
-            pm = map.pcolormesh(lon_array, lat_array, H[0,:,:],
-                                latlon=True, vmin=0.1, vmax=vmax, cmap=cmap)
+            pm = ax.pcolormesh(lon_array, lat_array, H[0,:,:],
+                                latlon=True, vmin=0.1, vmax=vmax, cmap=cmap, transform=gcrs)
 
         if drifter is not None:
-            drifter['x'], drifter['y'] = map(drifter['lon'], drifter['lat'])
+            drifter['x'], drifter['y'] = (drifter['lon'], drifter['lat'])
             #map.plot(drifter['x'], drifter['y'])
-            drifter_pos = map.scatter([], [], color='r',
-                                      zorder=15, label='Drifter')
+            drifter_pos = ax.scatter([], [], color='r',
+                                      zorder=15, label='Drifter', transform = gcrs)
 
         anim = animation.FuncAnimation(
             plt.gcf(), plot_timestep, blit=False,
@@ -2713,7 +2715,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 if clabel is None:
                     clabel = 'density'
 
-            cb = map.colorbar(item, label=clabel, location='bottom',
+            cb = fig.colorbar(item, cax = ax, label=clabel, location='bottom',
                               size='3%', pad='5%')
             cb.set_alpha(1)
             cb.draw_all()
