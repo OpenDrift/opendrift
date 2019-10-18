@@ -2448,13 +2448,31 @@ class OpenDriftSimulation(PhysicsMethods):
         ax.set_extent ([lonmin, lonmax, latmin, latmax], crs = ccrs.PlateCarree())
         ax.stock_img()
 
-        f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
-                facecolor=cfeature.COLORS['land'])
-        ax.add_geometries(f.intersecting_geometries(
-                 [lonmin, lonmax, latmin, latmax]),
-                 f.crs,
-                 facecolor=cfeature.COLORS['land'],
-                 edgecolor='black')
+        if 'land_binary_mask' in self.priority_list:
+            logging.debug ("using existing GSHHS shapes..")
+            rname = self.priority_list['land_binary_mask'][0]
+            landmask = self.readers[rname]
+
+            import shapely
+            from shapely.geometry import box
+            extent = box(lonmin, latmin, lonmax, latmax)
+            extent = shapely.prepared.prep(extent)
+            polys = (p for p in landmask.mask.polys.geoms if extent.intersects(p))
+
+            ax.add_geometries(polys,
+                    ccrs.PlateCarree(),
+                    facecolor=cfeature.COLORS['land'],
+                    edgecolor='black')
+        else:
+            logging.debug ("adding GSHHS shapes..")
+            f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+                    facecolor=cfeature.COLORS['land'])
+            ax.add_geometries(
+                    f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+                    ccrs.PlateCarree(),
+                    facecolor=cfeature.COLORS['land'],
+                    edgecolor='black')
+
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
         gl.xlabels_top = False
