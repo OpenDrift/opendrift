@@ -2450,7 +2450,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
                 facecolor=cfeature.COLORS['land'])
-        ax.add_feature(f)
+        ax.add_geometries(f.intersecting_geometries(
+                 [lonmin, lonmax, latmin, latmax]),
+                 f.crs,
+                 facecolor=cfeature.COLORS['land'],
+                 edgecolor='black')
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
         gl.xlabels_top = False
