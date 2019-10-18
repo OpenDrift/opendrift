@@ -36,7 +36,7 @@ script:
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge xarray=$XARRAY dask";
     fi
   - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda list"
-  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=10"
+  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=10 --benchmark-disable"
 
 after_success:
   - docker cp "opendrift_${TRAVIS_COMMIT}":/code/.coverage .
