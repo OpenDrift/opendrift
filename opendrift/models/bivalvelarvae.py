@@ -221,8 +221,7 @@ class BivalveLarvae(OpenDrift3DSimulation):
         '''
         
         sea_surface_height = self.sea_surface_height() # returns surface elevation at particle positions (>0 above msl, <0 below msl)
-        print(sea_surface_height)
-        import pdb;pdb.set_trace()
+        
         # keep particle just below sea_surface_height (self.elements.z depth are negative down)
         surface = np.where(self.elements.z >= sea_surface_height)
         if len(surface[0]) > 0:
