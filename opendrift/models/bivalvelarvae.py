@@ -102,9 +102,9 @@ class BivalveLarvae(OpenDrift3DSimulation):
                        'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0,
                        'sea_floor_depth_below_sea_level': 100,
-                       'ocean_vertical_diffusivity': 0.02,  # m2s-1
-                       'sea_water_temperature': 10.,
-                       'sea_water_salinity': 34.,
+                       'ocean_vertical_diffusivity': 0.00,  # m2s-1
+                       'sea_water_temperature': 15.,
+                       'sea_water_salinity': 35.,
                        'sea_surface_height': 0.0,
                        'surface_downward_x_stress': 0,
                        'surface_downward_y_stress': 0,
@@ -145,7 +145,7 @@ class BivalveLarvae(OpenDrift3DSimulation):
 #       self.elements.terminal_velocity = W
 
     def sea_surface_height(self):
-        '''Sea surface height for presently active elements
+        '''fetches sea surface height for presently active elements
 
            sea_surface_height > 0 above mean sea level
            sea_surface_height < 0 below mean sea level
@@ -203,8 +203,10 @@ class BivalveLarvae(OpenDrift3DSimulation):
 
             self.elements.z[below] = np.minimum(-sea_floor_depth[below], sea_surface_height[below])
             # make sure particles dont get above water at this stage i.e. z>sea_surface_height
-            # this can happen when reader has negative values
+            # this can happen when reader has negative values for sea_floor_depth
             # e.g. : sea_floor_depth() returns e.g. -2.0 (i.e. wetting-drying points)
+            # 
+            # if sea_surface_height is not available from reader, fallback value is used (=0 by default).
         else:
             self.deactivate_elements(below, reason='seafloor')
 
@@ -225,7 +227,7 @@ class BivalveLarvae(OpenDrift3DSimulation):
         # keep particle just below sea_surface_height (self.elements.z depth are negative down)
         surface = np.where(self.elements.z >= sea_surface_height)
         if len(surface[0]) > 0:
-            self.elements.z[surface] = sea_surface_height -0.01 # set particle z at 0.01m below sea_surface_height
+            self.elements.z[surface] = sea_surface_height[surface] -0.01 # set particle z at 0.01m below sea_surface_height
 
     def interact_with_coastline(self,final = False): 
         """Coastline interaction according to configuration setting
@@ -312,7 +314,12 @@ class BivalveLarvae(OpenDrift3DSimulation):
 
 
     def increase_age_and_retire(self):  ####So that if max_age_seconds is exceeded particle is flagged as died
-            """Increase age of elements, and retire if older than config setting."""
+            """Increase age of elements, and retire if older than config setting.
+
+               >essentially same as increase_age_and_retire() from basemodel.py, 
+               only using a diffrent reason for retiring particles ('died' instead of 'retired')
+               .. could probably be removed...
+            """
             # Increase age of elements
             self.elements.age_seconds += self.time_step.total_seconds()
 
