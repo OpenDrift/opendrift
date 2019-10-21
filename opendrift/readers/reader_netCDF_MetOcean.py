@@ -20,7 +20,7 @@ import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 from bisect import bisect_left
 
-from basereader import BaseReader
+from opendrift.readers.basereader import BaseReader
 from interpolation import ReaderBlock
 
 # This is a reader class for the netcdf file used internally at MetOcean
