@@ -220,12 +220,12 @@ class Reader(BaseReader):
                               rel_delta_y.min())/self.delta_y)
 
         if rel_delta_x > 0.05:  # Allow 5 % deviation
-            print rel_delta_x
-            print x[1::] - x[0:-1]
+            print(rel_delta_x)
+            print(x[1::] - x[0:-1])
             raise ValueError('delta_x is not constant!')
         if rel_delta_y > 0.05:
-            print rel_delta_y
-            print y[1::] - y[0:-1]
+            print(rel_delta_y)
+            print(y[1::] - y[0:-1])
             raise ValueError('delta_y is not constant!')
         self.x = x  # Store coordinate vectors
         self.y = y
