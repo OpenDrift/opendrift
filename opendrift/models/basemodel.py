@@ -2972,12 +2972,12 @@ class OpenDriftSimulation(PhysicsMethods):
                         lvmax = param.max()
                     lc = LineCollection(segments,
                                         cmap=plt.get_cmap('Spectral'),
-                                        norm=plt.Normalize(lvmin, lvmax))
+                                        norm=plt.Normalize(lvmin, lvmax), transform = gcrs)
                     #lc.set_linewidth(3)
                     lc.set_array(param.T[vind, i])
-                    ax.add_collection(lc, transform = gcrs)
+                    ax.add_collection(lc)
                 #axcb = map.colorbar(lc, location='bottom', pad='5%')
-                axcb = fig.colorbar(lc, cax = ax, location='bottom', pad='1%')
+                axcb = fig.colorbar(lc, ax = ax, orientation = 'horizontal')
                 try:  # Add unit to colorbar if available
                     colorbarstring = linecolor + '  [%s]' % \
                         (self.history_metadata[linecolor]['units'])
