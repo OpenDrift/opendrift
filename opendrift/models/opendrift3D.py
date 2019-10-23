@@ -103,12 +103,10 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         if len(surface[0]) > 0:
             self.elements.z[surface] = -0.01
             
-    def bottom_interaction(self):
+    def bottom_interaction(self, Zmin=None):
         '''To be overloaded by subclasses, e.g. radionuclides in sediments'''
         # do nothing
         pass
-    
-    
 
     def surface_wave_mixing(self, time_step_seconds):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
