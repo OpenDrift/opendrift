@@ -2414,7 +2414,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale='auto', **kwargs):
+    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast = False, **kwargs):
         """Generate Basemap instance on which trajectories are plotted.
 
            provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection"""
@@ -2433,20 +2433,35 @@ class OpenDriftSimulation(PhysicsMethods):
             latmin = corners[2]
             latmax = corners[3]
 
-        crs = ccrs.Mercator()
+        if fast:
+            logging.info("using fast plotting, this will make your plots less accurate.")
+
+            import matplotlib.style as mplstyle
+            mplstyle.use(['fast'])
+
+            # use a spherical earth
+            axis = 57.29577951308232  # something to do with pi
+            globe = ccrs.Globe(ellipse = None, semimajor_axis = axis, semiminor_axis = axis)
+            crs = ccrs.Mercator(globe = globe)
+
+            if lscale is None:
+                lscale = 'c'
+        else:
+            crs = ccrs.Mercator()
+            if lscale is None:
+                lscale = 'auto'
 
         meanlat = (latmin + latmax)/2
-        aspect_ratio = \
-            np.float(latmax-latmin) / (np.float(lonmax-lonmin))
+        aspect_ratio = np.float(latmax-latmin) / (np.float(lonmax-lonmin))
         aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
         if aspect_ratio > 1:
             fig = plt.figure(figsize=(10./aspect_ratio, 10.))
         else:
             fig = plt.figure(figsize=(11., 11.*aspect_ratio))
 
-        ax = fig.add_axes ([.05, .08, .85, .9], projection = crs)
-        ax.set_extent ([lonmin, lonmax, latmin, latmax], crs = ccrs.PlateCarree())
-        ax.stock_img()
+        fig.set_tight_layout(True)
+        ax = fig.add_subplot(111, projection = crs)  # need '111' for Python 2
+        ax.set_extent([lonmin, lonmax, latmin, latmax], crs = ccrs.PlateCarree())
 
         if 'land_binary_mask' in self.priority_list:
             logging.debug ("using existing GSHHS shapes..")
@@ -2477,10 +2492,8 @@ class OpenDriftSimulation(PhysicsMethods):
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
         gl.xlabels_top = False
 
-        x, y = (lons, lats)
-
         try:
-            firstlast = np.ma.notmasked_edges(x, axis=1)
+            firstlast = np.ma.notmasked_edges(lons, axis=1)
             index_of_first = firstlast[0][1]
             index_of_last = firstlast[1][1]
         except:
@@ -2497,7 +2510,7 @@ class OpenDriftSimulation(PhysicsMethods):
         except:
             pass
 
-        return fig, ax, crs, x, y, index_of_first, index_of_last
+        return fig, ax, crs, lons, lats, index_of_first, index_of_last
 
     def get_lonlats(self):
         if hasattr(self, 'history'):
@@ -2521,7 +2534,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   show_trajectories=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20,
-                  legend=None, legend_loc='best', fps=10, lscale='auto'):
+                  legend=None, legend_loc='best', fps=10, lscale=None, fast=False):
         """Animate last run."""
 
         if self.num_elements_total() == 0:
@@ -2619,7 +2632,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale)
+            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast)
 
         if surface_only is True:
             z = self.get_property('z')[0].T
@@ -2888,8 +2901,8 @@ class OpenDriftSimulation(PhysicsMethods):
              linewidth=1, lcs=None, show_particles=True,
              density_pixelsize_m=1000,
              surface_color=None, submerged_color=None, markersize=20,
-             title='auto', legend=True, legend_loc='best', lscale='auto',
-             **kwargs):
+             title='auto', legend=True, legend_loc='best', lscale=None,
+             fast=False, **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -2913,6 +2926,7 @@ class OpenDriftSimulation(PhysicsMethods):
             linecolor: name of variable to be used for coloring trajectories.
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
             lscale (string): resolution of land feature ('c', 'l', 'i', 'h', 'f', 'auto'). default is 'auto'.
+            fast (bool): use some optimizations to speed up plotting at the cost of accuracy
         """
 
         if self.num_elements_total() == 0:
@@ -2923,7 +2937,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # x, y are longitude, latitude -> i.e. in a Geodetic CRS
         gcrs = ccrs.Geodetic()
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, **kwargs)
+            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast, **kwargs)
 
         markercolor = self.plot_comparison_colors[0]
 
