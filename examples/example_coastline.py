@@ -16,7 +16,6 @@ reader_nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/d
 #    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
 o.add_reader([reader_nordic])
-o.set_config('general:basemap_resolution', 'h')
 o.set_config('general:coastline_action', 'previous')
 
 # Seeding elements on a grid

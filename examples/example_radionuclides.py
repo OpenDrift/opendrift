@@ -81,7 +81,6 @@ o.set_config('radionuclide:transformations:slow_coeff',1.e-6)
 #o.set_config('radionuclide:transfer_setup','dummy')
 o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
 
-#o.set_config('general:basemap_resolution','f')
 #o.set_config('general:use_basemap_landmask',False)
 
 o.list_configspec()

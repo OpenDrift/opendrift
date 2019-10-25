@@ -14,7 +14,6 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([reader_norkyst, reader_arome])
-o.set_config('general:basemap_resolution', 'h')
 start_time = reader_arome.start_time
 end_time = reader_arome.start_time + timedelta(hours=5)
 end_time = reader_arome.end_time
@@ -28,7 +27,6 @@ o.run(end_time=end_time, time_step=1800, time_step_output=3600)
 
 o2 = PlastDrift(loglevel=0)
 o2.add_reader([reader_norkyst])  # No wind/Stokes
-o2.set_config('general:basemap_resolution', 'h')
 o2.seed_elements(lon, lat, radius=50, number=3000, time=time)
                 
 o2.run(end_time=end_time, time_step=1800, time_step_output=3600)

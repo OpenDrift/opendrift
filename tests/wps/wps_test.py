@@ -41,7 +41,6 @@ class TestWPS(unittest.TestCase):
         o = Leeway(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'i')
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
@@ -52,7 +51,6 @@ class TestWPS(unittest.TestCase):
         o = Leeway(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'i')
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
                         time=datetime.now() - timedelta(days=1))
         o.run(steps=15)
@@ -65,7 +63,6 @@ class TestWPS(unittest.TestCase):
         o = Leeway(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'i')
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
@@ -76,7 +73,6 @@ class TestWPS(unittest.TestCase):
         o = Leeway(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'i')
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
                         time=datetime.now() - timedelta(days=30))
         o.run(steps=15)
@@ -89,7 +85,6 @@ class TestWPS(unittest.TestCase):
         o = OpenOil3D(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'i')
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
@@ -100,7 +95,6 @@ class TestWPS(unittest.TestCase):
         o = OpenOil3D(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'i')
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
                         time=datetime.now() - timedelta(days=1))
         o.run(steps=15)
@@ -111,7 +105,6 @@ class TestWPS(unittest.TestCase):
         o = OpenOil3D(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'i')
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
                         time=datetime.now())
         o.run(steps=15)
@@ -122,7 +115,6 @@ class TestWPS(unittest.TestCase):
         o = OpenOil3D(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
-        o.set_config('general:basemap_resolution', 'i')
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
                         time=datetime.now() - timedelta(days=30))
         o.run(steps=15)
@@ -139,7 +131,6 @@ class TestWPS(unittest.TestCase):
     #    o.add_readers_from_list(reader_list, lazy=True)
 
     #    self.assertEqual(len(o._lazy_readers()), 4)
-    #    o.set_config('general:basemap_resolution', 'c')
     #    o.seed_elements(lon=14, lat=67.85,
     #                    time=datetime(2016, 2, 2, 12))
     #    o.set_config()
@@ -152,7 +143,6 @@ class TestWPS(unittest.TestCase):
     #    o.add_readers_from_file(o.test_data_folder() +
     #        '../../opendrift/scripts/data_sources.txt')
 
-    #    o.set_config('general:basemap_resolution', 'c')
     #    o.seed_elements(lon=4, lat=60.0,
     #                    time=datetime(2018, 7, 2, 12))
     #    o.run(steps=5)

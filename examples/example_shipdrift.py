@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from opendrift.models.shipdrift import ShipDrift
 
 o = ShipDrift(loglevel=0)
-o.set_config('general:basemap_resolution', 'h')
 
 o.add_readers_from_list([
     'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',

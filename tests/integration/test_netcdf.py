@@ -35,7 +35,6 @@ class Test(unittest.TestCase):
             resolution='i', projection='merc')
 
         o = OceanDrift3D(loglevel=0)
-        o.set_config('general:basemap_resolution', 'i')
         nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic_subset_day*.nc')
         nordicMF_all = reader_ROMS_native.Reader(o.test_data_folder() +
@@ -56,7 +55,6 @@ class Test(unittest.TestCase):
 
         # Same run, with multi-file dataset
         o2 = OceanDrift3D(loglevel=30)
-        o2.set_config('general:basemap_resolution', 'i')
         o2.add_reader([reader_basemap, nordicMF])
         o2.seed_elements(lon, lat, number=100, radius=5000,
                         time=nordicMF_all.start_time)

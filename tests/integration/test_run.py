@@ -703,7 +703,6 @@ class TestRun(unittest.TestCase):
 
     def test_seed_on_land(self):
         o = OceanDrift(loglevel=0)
-        o.set_config('general:basemap_resolution', 'c')
         o.seed_elements(lon=9, lat=60, time=datetime.now(), number=100)
         outfile='out.nc'
         with self.assertRaises(ValueError):
@@ -795,7 +794,6 @@ class TestRun(unittest.TestCase):
 @pytest.mark.slow
 def test_plot_animation(tmpdir):
     o = OceanDrift(loglevel=0)
-    o.set_config('general:basemap_resolution', 'c')
     o.fallback_values['x_sea_water_velocity'] = .5
     o.fallback_values['y_sea_water_velocity'] = .3
     o.seed_elements(lon=3, lat=60, radius=1000,

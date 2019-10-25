@@ -37,14 +37,12 @@ if __name__ == '__main__':
         number = 20000
         hours = 60
         source = 'thredds'
-        o.set_config('general:basemap_resolution', 'f')
     elif mode == 'fast':
         readers = readers_local
         start_time = datetime(2015, 11, 16, 0)
         number = 10000
         hours = 24
         source = 'file'
-        o.set_config('general:basemap_resolution', 'h')
 
     print('#'*40)
     print('Running %s test:\n %s elements\n %s hours\n input data from %s' % (

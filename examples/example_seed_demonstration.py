@@ -13,7 +13,6 @@ o.fallback_values['x_sea_water_velocity'] = 0
 o.fallback_values['y_sea_water_velocity'] = 0
 o.set_config('drift:wind_uncertainty', 0)
 o.set_config('drift:current_uncertainty', 0)
-o.set_config('general:basemap_resolution', 'i')
 
 time=datetime(2016, 1, 20, 12, 30, 0)
 

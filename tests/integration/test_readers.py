@@ -80,7 +80,6 @@ class TestReaders(unittest.TestCase):
 
     def test_repeated_run(self):
         o = OceanDrift(loglevel=50)
-        o.set_config('general:basemap_resolution', 'c')
         o.add_readers_from_list(reader_list)
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
@@ -162,7 +161,6 @@ class TestReaders(unittest.TestCase):
         o.add_readers_from_list(reader_list, lazy=True)
 
         self.assertEqual(len(o._lazy_readers()), 4)
-        o.set_config('general:basemap_resolution', 'c')
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
         o.run(steps=5)
@@ -217,7 +215,6 @@ class TestReaders(unittest.TestCase):
     #    o.add_readers_from_list(reader_list, lazy=True)
 
     #    self.assertEqual(len(o._lazy_readers()), 4)
-    #    o.set_config('general:basemap_resolution', 'c')
     #    o.seed_elements(lon=14, lat=67.85,
     #                    time=datetime(2016, 2, 2, 12))
     #    o.set_config()
@@ -230,7 +227,6 @@ class TestReaders(unittest.TestCase):
     #    o.add_readers_from_file(o.test_data_folder() +
     #        '../../opendrift/scripts/data_sources.txt')
 
-    #    o.set_config('general:basemap_resolution', 'c')
     #    o.seed_elements(lon=4, lat=60.0,
     #                    time=datetime(2018, 7, 2, 12))
     #    o.run(steps=5)
@@ -272,7 +268,6 @@ class TestReaders(unittest.TestCase):
                                      'y_sea_water_velocity': .2})
 
         o = Leeway(loglevel=20)
-        o.set_config('general:basemap_resolution', 'c')
         o.add_reader([cw, cc])
         o.add_readers_from_list(reader_list)
         o.fallback_values['x_sea_water_velocity'] = 0.0
@@ -286,7 +281,6 @@ class TestReaders(unittest.TestCase):
         o = OceanDrift(loglevel=20)
         self.assertRaises(ValueError, o.run)
         o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
-        o.set_config('general:basemap_resolution', 'c')  # To make test fast
         o.run(steps=2)
 
     def test_reader_coverage(self):
@@ -501,7 +495,6 @@ class TestReaders(unittest.TestCase):
 
     def test_constant_reader(self):
         o = OpenOil3D(loglevel=0)
-        o.set_config('general:basemap_resolution', 'c')
         cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
         cc = reader_constant.Reader({'x_sea_water_velocity':0, 'y_sea_water_velocity': .2})
         cs = reader_constant.Reader({'sea_water_temperature': 278})

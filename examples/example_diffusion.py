@@ -17,7 +17,6 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov20
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
-o.set_config('general:basemap_resolution', 'i')
 o.add_reader([reader_norkyst, reader_arome])
 time = reader_arome.start_time
 o.seed_elements(lon, lat, radius=500, number=2000, time=time)
@@ -27,7 +26,6 @@ o.run(duration=timedelta(hours=24))
 # Second run, identical, except for added diffusion
 
 o2 = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
-o2.set_config('general:basemap_resolution', 'i')
 o2.add_reader([reader_norkyst, reader_arome])
 o2.seed_elements(lon, lat, radius=500, number=2000, time=time)
 o2.set_config('drift:current_uncertainty', .2) # Difference from first run
