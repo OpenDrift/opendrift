@@ -1281,35 +1281,19 @@ class OpenDriftSimulation(PhysicsMethods):
             logging.info('No land reader added, '
                          'making a temporary basemap reader')
             from opendrift.models.oceandrift import OceanDrift
-
-            try:
-                from opendrift.readers import reader_global_landmask
-                reader_landmask = reader_global_landmask.Reader(
-                        extent = [
-                            np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
-                            np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
-                            np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
-                            np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
-                            ])
-                reader_landmask.name = 'tempreader'
-                o = OceanDrift(
-                    loglevel=logging.getLogger().getEffectiveLevel())
-                o.add_reader(reader_landmask)
-                land_reader = reader_landmask
-
-            except ImportError:
-                from opendrift.readers import reader_basemap_landmask
-                reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=lonmin, urcrnrlon=lonmax,
-                    llcrnrlat=np.maximum(-89, latmin),
-                    urcrnrlat=np.minimum(89, latmax),
-                    resolution=self.get_config('general:auto_landmask_resolution'),
-                    projection='merc')
-                reader_basemap.name = 'tempreader'
-                o = OceanDrift(
-                    loglevel=logging.getLogger().getEffectiveLevel())
-                o.add_reader(reader_basemap)  # temporary object
-                land_reader = reader_basemap
+            from opendrift.readers import reader_global_landmask
+            reader_landmask = reader_global_landmask.Reader(
+                    extent = [
+                        np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                        np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+                        np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+                        np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
+                        ])
+            reader_landmask.name = 'tempreader'
+            o = OceanDrift(
+                loglevel=logging.getLogger().getEffectiveLevel())
+            o.add_reader(reader_landmask)
+            land_reader = reader_landmask
 
             tmp_reader = True
         else:
@@ -2066,10 +2050,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 'land_binary_mask' not in self.priority_list \
                 and 'land_binary_mask' not in self.fallback_values):
             logging.info(
-                'Adding a dynamical landmask (resolution "%s") with max. priority based on '
+                'Adding a dynamical landmask with max. priority based on '
                 'assumed maximum speed of %s m/s. '
-                'Adding a customised landmask may be faster...' %
-                (self.get_config('general:auto_landmask_resolution'), self.max_speed))
+                'Adding a customised landmask may be faster...' % self.max_speed)
             self.timer_start('preparing main loop:making dynamical landmask')
             max_distance = \
                 self.max_speed*self.expected_steps_calculation * \
@@ -2078,35 +2061,17 @@ class OpenDriftSimulation(PhysicsMethods):
             deltalon = deltalat/np.cos(
                 np.radians(np.mean(self.elements_scheduled.lat)))
 
-            try:
-                from opendrift.readers import reader_global_landmask
-                reader_landmask = reader_global_landmask.Reader(
-                        extent = [
-                            np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
-                            np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
-                            np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
-                            np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
-                            ])
-                self.add_reader(reader_landmask)
+            from opendrift.readers import reader_global_landmask
+            reader_landmask = reader_global_landmask.Reader(
+                    extent = [
+                        np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                        np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+                        np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+                        np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
+                        ])
+            self.add_reader(reader_landmask)
 
-            except ImportError:
-                logging.warning ("global landmask reader could not be imported, falling back to basemap for automatic landmask.")
-                from opendrift.readers import reader_basemap_landmask
-                reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
-                    urcrnrlon=np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
-                    llcrnrlat=np.maximum(-89, self.elements_scheduled.lat.min() -
-                                        deltalat),
-                    urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
-                                        deltalat),
-                    resolution=self.get_config('general:auto_landmask_resolution'),
-                    projection='merc')
-                self.add_reader(reader_basemap)
-
-            self.dynamical_landmask = True
             self.timer_end('preparing main loop:making dynamical landmask')
-        else:
-            self.dynamical_landmask = False
 
         # Move point seed on land to ocean
         if self.get_config('seed:ocean_only') is True and \
@@ -2345,9 +2310,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 del self.environment_profiles
             self.io_import_file(outfile)
 
-        if self.dynamical_landmask is True:
-            self.zoom_map(buffer=.2)  # Zooming to extent of trajectories
-
         self.timer_end('cleaning up')
         self.timer_end('total time')
 
@@ -2570,33 +2532,6 @@ class OpenDriftSimulation(PhysicsMethods):
             pass
 
         return map, plt, x, y, index_of_first, index_of_last
-
-    def zoom_map(self, buffer=0.2,
-                 lonmin=None, lonmax=None, latmin=None, latmax=None):
-        """Zoom Basemap to defined limits, or defined buffer in degrees"""
-
-        if lonmin is None:
-            lons, lats = self.get_lonlats()
-            lonmin = lons.min() - buffer*2
-            lonmax = lons.max() + buffer*2
-            latmin = lats.min() - buffer
-            latmax = lats.max() + buffer
-
-        logging.info('Zooming landmask to (%s to %s E), (%s to %s N)' %
-                     (lonmin, lonmax, latmin, latmax) )
-
-        if 'basemap_landmask' in self.readers:
-            self.readers['basemap_landmask'].zoom_map(
-                    buffer,
-                    lonmin, lonmax,
-                    latmin, latmax)
-        elif 'global_landmask' in self.readers:
-            self.readers['global_landmask'].zoom_map(
-                    buffer,
-                    lonmin, lonmax,
-                    latmin, latmax)
-        else:
-            raise ValueError('No basemap readers added.')
 
     def get_lonlats(self):
         if hasattr(self, 'history'):
