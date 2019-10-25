@@ -1280,19 +1280,37 @@ class OpenDriftSimulation(PhysicsMethods):
         if not 'land_binary_mask' in self.priority_list:
             logging.info('No land reader added, '
                          'making a temporary basemap reader')
-            from opendrift.readers import reader_basemap_landmask
-            reader_basemap = reader_basemap_landmask.Reader(
-                llcrnrlon=lonmin, urcrnrlon=lonmax,
-                llcrnrlat=np.maximum(-89, latmin),
-                urcrnrlat=np.minimum(89, latmax),
-                resolution=self.get_config('general:auto_landmask_resolution'),
-                projection='merc')
-            reader_basemap.name = 'tempreader'
             from opendrift.models.oceandrift import OceanDrift
-            o = OceanDrift(
-                loglevel=logging.getLogger().getEffectiveLevel())
-            o.add_reader(reader_basemap)  # temporary object
-            land_reader = reader_basemap
+
+            try:
+                from opendrift.readers import reader_global_landmask
+                reader_landmask = reader_global_landmask.Reader(
+                        extent = [
+                            np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                            np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+                            np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+                            np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
+                            ])
+                reader_landmask.name = 'tempreader'
+                o = OceanDrift(
+                    loglevel=logging.getLogger().getEffectiveLevel())
+                o.add_reader(reader_landmask)
+                land_reader = reader_landmask
+
+            except ImportError:
+                from opendrift.readers import reader_basemap_landmask
+                reader_basemap = reader_basemap_landmask.Reader(
+                    llcrnrlon=lonmin, urcrnrlon=lonmax,
+                    llcrnrlat=np.maximum(-89, latmin),
+                    urcrnrlat=np.minimum(89, latmax),
+                    resolution=self.get_config('general:auto_landmask_resolution'),
+                    projection='merc')
+                reader_basemap.name = 'tempreader'
+                o = OceanDrift(
+                    loglevel=logging.getLogger().getEffectiveLevel())
+                o.add_reader(reader_basemap)  # temporary object
+                land_reader = reader_basemap
+
             tmp_reader = True
         else:
             logging.info('Using existing reader for land_binary_mask')
