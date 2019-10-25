@@ -2460,33 +2460,66 @@ class OpenDriftSimulation(PhysicsMethods):
             fig = plt.figure(figsize=(11., 11.*aspect_ratio))
 
         fig.set_tight_layout(True)
-        ax = fig.add_subplot(111, projection = crs)  # need '111' for Python 2
-        ax.set_extent([lonmin, lonmax, latmin, latmax], crs = ccrs.PlateCarree())
+        ax = fig.add_subplot(111, projection=crs)  # need '111' for Python 2
+        ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree())
+
+        def show_landmask(landmask):
+            maxn = 512.
+            dx = (lonmax - lonmin) / maxn
+            dy = (latmax - latmin) / maxn
+            dx = max(landmask.dx, dx)
+            dy = max(landmask.dy, dy)
+
+            x = np.array([lonmin, lonmax])
+            y = np.array([latmin, latmax])
+            ndx = np.int32(dx / landmask.dx)  # normalized delta
+            ndy = np.int32(dy / landmask.dy)
+
+            xm, ym = landmask.invtransform * (x, y)
+            xm = xm.astype(np.int32)
+            ym = ym.astype(np.int32)
+
+            img = landmask.mask[ym[0]:ym[1]:ndy, xm[0]:xm[1]:ndx]
+
+            from matplotlib import colors
+            cmap = colors.ListedColormap(['white', cfeature.COLORS['land']])
+            ax.imshow(img, extent=[lonmin, lonmax, latmin, latmax],
+                      transform=ccrs.PlateCarree(), cmap=cmap)
 
         if 'land_binary_mask' in self.priority_list:
             logging.debug("using existing GSHHS shapes..")
             rname = self.priority_list['land_binary_mask'][0]
-            landmask = self.readers[rname]
+            landmask = self.readers[rname].mask
 
-            import shapely
-            from shapely.geometry import box
-            extent = box(lonmin, latmin, lonmax, latmax)
-            extent = shapely.prepared.prep(extent)
-            polys = (p for p in landmask.mask.polys.geoms if extent.intersects(p))
+            if fast:
+                show_landmask(landmask)
 
-            ax.add_geometries(polys,
-                    ccrs.PlateCarree(),
-                    facecolor=cfeature.COLORS['land'],
-                    edgecolor='black')
+            else:
+                import shapely
+                from shapely.geometry import box
+                extent = box(lonmin, latmin, lonmax, latmax)
+                extent = shapely.prepared.prep(extent)
+                polys = (p for p in landmask.polys.geoms if extent.intersects(p))
+
+                ax.add_geometries(polys,
+                        ccrs.PlateCarree(),
+                        facecolor=cfeature.COLORS['land'],
+                        edgecolor='black')
         else:
             logging.debug ("adding GSHHS shapes..")
-            f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
-                    facecolor=cfeature.COLORS['land'])
-            ax.add_geometries(
-                    f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
-                    ccrs.PlateCarree(),
-                    facecolor=cfeature.COLORS['land'],
-                    edgecolor='black')
+
+            if fast:
+                from opendrift_landmask_data import Landmask
+                show_landmask(Landmask(skippoly=True))
+
+            else:
+                f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+                        facecolor=cfeature.COLORS['land'])
+                ax.add_geometries(
+                        f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+                        ccrs.PlateCarree(),
+                        facecolor=cfeature.COLORS['land'],
+                        edgecolor='black')
 
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)

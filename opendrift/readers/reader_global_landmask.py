@@ -85,7 +85,7 @@ class Reader(BaseReader):
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
 
         # setup landmask
-        self.mask = Landmask(extent)
+        self.mask = Landmask(extent, skippoly)
 
     def __on_land__(self, x, y):
         return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)
