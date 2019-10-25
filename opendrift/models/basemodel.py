@@ -43,10 +43,9 @@ try:
     from matplotlib import animation
     from matplotlib.patches import Polygon
     from matplotlib.path import Path
-    from mpl_toolkits import basemap
-    Basemap = basemap.Basemap
-except:
-    print('Basemap is not available, can not make plots')
+    import cartopy
+except ImportError:
+    print('matplotlib and/or cartopy is not available, can not make plots')
 
 import opendrift
 from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
