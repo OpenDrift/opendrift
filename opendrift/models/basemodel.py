@@ -120,7 +120,6 @@ class OpenDriftSimulation(PhysicsMethods):
     configspec_basemodel = '''
             [general]
                 use_auto_landmask = boolean(default=True)
-                auto_landmask_resolution = option('f', 'h', 'i', 'c', default='h')
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
                 time_step_minutes = integer(min=1, max=1440, default=60)
                 time_step_output_minutes = integer(min=1, max=1440, default=None)
@@ -286,9 +285,6 @@ class OpenDriftSimulation(PhysicsMethods):
         if key == 'general:use_basemap_landmask':
             warnings.warn("use_basemap_landmask is deprecated in favor of use_auto_landmask", DeprecationWarning)
             key = 'general:use_auto_landmask'
-        elif key == 'general:basemap_resolution':
-            warnings.warn("basemap_resolution is deprecated in favor of auto_landmask_resolution", DeprecationWarning)
-            key = 'general:auto_landmask_resolution'
 
         d = self.configobj
         ds = self.configobj.configspec
