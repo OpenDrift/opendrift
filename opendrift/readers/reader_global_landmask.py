@@ -90,11 +90,6 @@ class Reader(BaseReader):
         # setup landmask
         self.mask = Landmask(extent)
 
-    def zoom_map(self, buffer=0.2,
-                 lonmin=None, lonmax=None, latmin=None, latmax=None):
-        logging.warning('Zooming not implemented for global landmask reader: (%s to %s E), (%s to %s N)' %
-                     (lonmin, lonmax, latmin, latmax) )
-
     def __on_land__(self, x, y):
         return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)
 
