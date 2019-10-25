@@ -2414,7 +2414,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast = False, **kwargs):
+    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast=False, **kwargs):
         """Generate Basemap instance on which trajectories are plotted.
 
            provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection"""
@@ -2434,7 +2434,7 @@ class OpenDriftSimulation(PhysicsMethods):
             latmax = corners[3]
 
         if fast:
-            logging.info("using fast plotting, this will make your plots less accurate.")
+            logging.warning("plotting fast. this will make your plots less accurate.")
 
             import matplotlib.style as mplstyle
             mplstyle.use(['fast'])
@@ -2464,7 +2464,7 @@ class OpenDriftSimulation(PhysicsMethods):
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs = ccrs.PlateCarree())
 
         if 'land_binary_mask' in self.priority_list:
-            logging.debug ("using existing GSHHS shapes..")
+            logging.debug("using existing GSHHS shapes..")
             rname = self.priority_list['land_binary_mask'][0]
             landmask = self.readers[rname]
 
@@ -2568,7 +2568,7 @@ class OpenDriftSimulation(PhysicsMethods):
             ax.set_title(times[i])
             if background is not None:
                 map_x, map_y, scalar, u_component, v_component = \
-                    self.get_map_background(map, background,
+                    self.get_map_background(ax, background,
                                             time=times[i])
                 map.pcolormesh(map_x, map_y, scalar, alpha=1,
                                vmin=vmin, vmax=vmax, cmap=cmap)
@@ -2656,7 +2656,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if background is not None:
             map_x, map_y, scalar, u_component, v_component = \
-                self.get_map_background(map, background,
+                self.get_map_background(ax, background,
                                         time=self.start_time)
             bg = map.pcolormesh(map_x, map_y, scalar, alpha=1,
                                 vmin=vmin, vmax=vmax, cmap=cmap)
@@ -2990,7 +2990,6 @@ class OpenDriftSimulation(PhysicsMethods):
                     #lc.set_linewidth(3)
                     lc.set_array(param.T[vind, i])
                     ax.add_collection(lc)
-                #axcb = map.colorbar(lc, location='bottom', pad='5%')
                 axcb = fig.colorbar(lc, ax = ax, orientation = 'horizontal')
                 try:  # Add unit to colorbar if available
                     colorbarstring = linecolor + '  [%s]' % \
@@ -3100,41 +3099,41 @@ class OpenDriftSimulation(PhysicsMethods):
                 lon_res, lat_res = np.meshgrid(lon_res[0:-1], lat_res[0:-1])
                 lon_res = lon_res.T
                 lat_res = lat_res.T
-                map_x, map_y = map(lon_res, lat_res, inverse=False)
+                map_x, map_y = (lon_res, lat_res)
             else:
                 map_x, map_y, scalar, u_component, v_component = \
-                    self.get_map_background(map, background, time=time)
+                    self.get_map_background(ax, background, time=time)
                                         #self.time_step_output)
 
             if show_scalar is True:
                 if contourlines is False:
                     scalar = np.ma.masked_invalid(scalar)
-                    map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                                   vmin=vmin, vmax=vmax, cmap=cmap)
+                    ax.pcolormesh(map_x, map_y, scalar, alpha=1,
+                                   vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
                 else:
                     if contourlines is True:
-                        CS = map.contour(map_x, map_y, scalar,
-                                         colors='gray')
+                        CS = ax.contour(map_x, map_y, scalar,
+                                         colors='gray', transform = gcrs)
                     else:
                         # contourlines is an array of values
-                        CS = map.contour(map_x, map_y, scalar, contourlines,
-                                         colors='gray')
+                        CS = ax.contour(map_x, map_y, scalar, contourlines,
+                                         colors='gray', transform = gcrs)
                     plt.clabel(CS, fmt='%g')
                 if colorbar is True:
-                    map.colorbar(location='bottom', pad='5%', size='3%')
+                    fig.colorbar(orientation = 'horizontal')
 
             if type(background) is list:
                 delta_x = (map_x[1,2] - map_x[1,1])/2.
                 delta_y = (map_y[2,1] - map_y[1,1])/2.
-                map.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
+                ax.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
                            u_component[::skip, ::skip],
-                           v_component[::skip, ::skip], scale=scale)
+                           v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
         if lcs is not None:
-            map_x_lcs, map_y_lcs = map(lcs['lon'], lcs['lat'])
-            map.pcolormesh(
+            map_x_lcs, map_y_lcs = (lcs['lon'], lcs['lat'])
+            ax.pcolormesh(
                 map_x_lcs, map_y_lcs, lcs['ALCS'][0,:,:], alpha=1,
-                vmin=vmin, vmax=vmax, cmap=cmap)
+                vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
 
         if title is not None:
             if title is 'auto':
@@ -3152,7 +3151,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 plt.title(title)
 
         if trajectory_dict is not None:
-            self._plot_trajectory_dict(map, trajectory_dict)
+            self._plot_trajectory_dict(ax, trajectory_dict)
 
         #plt.gca().tick_params(labelsize=14)
 
@@ -3166,18 +3165,40 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return ax, plt
 
-    def _plot_trajectory_dict(self, map, trajectory_dict):
+    def _plot_trajectory_dict(self, ax, trajectory_dict):
         '''Plot provided trajectory along with simulated'''
         time = trajectory_dict['time']
         time = np.array(time)
         i = np.where((time>=self.start_time) & (time<=self.time))[0]
-        x, y = map(trajectory_dict['lon'][i], trajectory_dict['lat'][i])
+        x, y = (trajectory_dict['lon'][i], trajectory_dict['lat'][i])
         ls = trajectory_dict['linestyle']
-        map.plot(x, y, ls, linewidth=2)
-        map.plot(x[0], y[0], 'ok')
-        map.plot(x[-1], y[-1], 'xk')
 
-    def get_map_background(self, map, background, time=None):
+        gcrs = ccrs.Geodetic()
+
+        ax.plot(x, y, ls, linewidth=2, transform = gcrs)
+        ax.plot(x[0], y[0], 'ok', transform = gcrs)
+        ax.plot(x[-1], y[-1], 'xk', transform = gcrs)
+
+
+    def map_make_grid(self, ax, nx, ny):
+        """
+        Returns lon, lats on an equidistant grid on the map projection (within the extents of the axes)
+
+        Emulates Basemap.make_grid(...).
+        """
+        xmin, xmax, ymin, ymax = ax.get_extent()
+        crs = ax.projection
+        gcrs = ccrs.Geodetic()
+
+        # equidistant in map projection
+        xx = np.linspace(xmin, xmax, nx)
+        yy = np.linspace(ymin, ymax, ny)
+
+        X = gcrs.transform_points(crs, xx, yy)
+        return X[:,0], X[:,1]
+
+
+    def get_map_background(self, ax, background, time=None):
         # Get background field for plotting on map or animation
         if type(background) is list:
             variable = background[0]  # A vector is requested
@@ -3195,7 +3216,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Using time of first seeded element
                 time = self.elements_scheduled_time[0]
         # Get lat/lons of ny by nx evenly space grid.
-        lons, lats = map.makegrid(4, 4)
+        lons, lats = self.map_make_grid(ax, 4, 4)
         reader_x, reader_y = reader.lonlat2xy(lons, lats)
         data = reader.get_variables(
             background, time, reader_x, reader_y, None, block=True)
@@ -3207,7 +3228,7 @@ class OpenDriftSimulation(PhysicsMethods):
             # NB: rotation not completed!
             u_component, v_component = reader.rotate_vectors(
                 reader_x, reader_y, u_component, v_component,
-                reader.proj, map.srs)
+                reader.proj, ax.projection.proj4_init)
         else:
             scalar = data[background]
             u_component = v_component = None
@@ -3219,7 +3240,7 @@ class OpenDriftSimulation(PhysicsMethods):
         rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
         if rlons.max() > 360:
             rlons = rlons - 360
-        map_x, map_y = map(rlons, rlats)
+        map_x, map_y = (rlons, rlats)
 
         scalar = np.ma.masked_invalid(scalar)
         if hasattr(reader, 'convolve'):
