@@ -3,7 +3,8 @@
 import os
 import setuptools
 
-from opendrift.version import __version__
+here = os.path.abspath(os.path.dirname(__file__))
+exec(open(os.path.join(here, 'opendrift/version.py')).read())
 
 setuptools.setup(
     name        = 'OpenDrift',
