@@ -19,7 +19,8 @@ import os
 import glob
 import types
 import traceback
-import logging
+import logging; logging.captureWarnings(True)
+import warnings
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -122,8 +123,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
     configspec_basemodel = '''
             [general]
-                use_basemap_landmask = boolean(default=True)
-                basemap_resolution = option('f', 'h', 'i', 'c', default='h')
+                use_auto_landmask = boolean(default=True)
+                auto_landmask_resolution = option('f', 'h', 'i', 'c', default='h')
                 coastline_action = option('none', 'stranding', 'previous', default='stranding')
                 time_step_minutes = integer(min=1, max=1440, default=60)
                 time_step_output_minutes = integer(min=1, max=1440, default=None)
@@ -286,6 +287,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def set_config(self, key, value):
         """Provide a value for a configuration setting"""
+        if key == 'general:use_basemap_landmask':
+            warnings.warn("use_basemap_landmask is deprecated in favor of use_auto_landmask", DeprecationWarning)
+            key = 'general:use_auto_landmask'
+        elif key == 'general:basemap_resolution':
+            warnings.warn("basemap_resolution is deprecated in favor of auto_landmask_resolution", DeprecationWarning)
+            key = 'general:auto_landmask_resolution'
+
         d = self.configobj
         ds = self.configobj.configspec
         for i, s in enumerate(key.split(':')):
@@ -490,7 +498,6 @@ class OpenDriftSimulation(PhysicsMethods):
         """Any trajectory model implementation must list needed variables."""
 
     def test_data_folder(self):
-        import warnings
         warnings.warn ("Use `test_data` fixture", DeprecationWarning)
         import opendrift
         return os.path.abspath(
@@ -1273,19 +1280,21 @@ class OpenDriftSimulation(PhysicsMethods):
         if not 'land_binary_mask' in self.priority_list:
             logging.info('No land reader added, '
                          'making a temporary basemap reader')
-            from opendrift.readers import reader_basemap_landmask
-            reader_basemap = reader_basemap_landmask.Reader(
-                llcrnrlon=lonmin, urcrnrlon=lonmax,
-                llcrnrlat=np.maximum(-89, latmin),
-                urcrnrlat=np.minimum(89, latmax),
-                resolution=self.get_config('general:basemap_resolution'),
-                projection='merc')
-            reader_basemap.name = 'tempreader'
             from opendrift.models.oceandrift import OceanDrift
+            from opendrift.readers import reader_global_landmask
+            reader_landmask = reader_global_landmask.Reader(
+                    extent = [
+                        np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                        np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+                        np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+                        np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
+                        ])
+            reader_landmask.name = 'tempreader'
             o = OceanDrift(
                 loglevel=logging.getLogger().getEffectiveLevel())
-            o.add_reader(reader_basemap)  # temporary object
-            land_reader = reader_basemap
+            o.add_reader(reader_landmask)
+            land_reader = reader_landmask
+
             tmp_reader = True
         else:
             logging.info('Using existing reader for land_binary_mask')
@@ -2028,21 +2037,22 @@ class OpenDriftSimulation(PhysicsMethods):
         ##############################################################
         # TODO: some more error checking here
         # If Basemap landmask is requested, it shall not be obtained from other readers
-        if self.get_config('general:use_basemap_landmask') is True:
+        if self.get_config('general:use_auto_landmask') is True:
             if 'land_binary_mask' in self.priority_list:
                 if 'basemap_landmask' in self.priority_list['land_binary_mask']:
                     self.priority_list['land_binary_mask'] = ['basemap_landmask']
+                elif 'global_landmask' in self.priority_list['land_binary_mask']:
+                    self.priority_list['land_binary_mask'] = ['global_landmask']
                 else:
                     del self.priority_list['land_binary_mask']
-        if self.get_config('general:use_basemap_landmask') is True and \
+        if self.get_config('general:use_auto_landmask') is True and \
                 ('land_binary_mask' in self.required_variables and \
                 'land_binary_mask' not in self.priority_list \
                 and 'land_binary_mask' not in self.fallback_values):
             logging.info(
-                'Adding a dynamical landmask (resolution "%s") based on '
+                'Adding a dynamical landmask with max. priority based on '
                 'assumed maximum speed of %s m/s. '
-                'Adding a customised landmask may be faster...' %
-                (self.get_config('general:basemap_resolution'), self.max_speed))
+                'Adding a customised landmask may be faster...' % self.max_speed)
             self.timer_start('preparing main loop:making dynamical landmask')
             max_distance = \
                 self.max_speed*self.expected_steps_calculation * \
@@ -2050,21 +2060,18 @@ class OpenDriftSimulation(PhysicsMethods):
             deltalat = max_distance/111000.
             deltalon = deltalat/np.cos(
                 np.radians(np.mean(self.elements_scheduled.lat)))
-            from opendrift.readers import reader_basemap_landmask
-            reader_basemap = reader_basemap_landmask.Reader(
-                llcrnrlon=np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
-                urcrnrlon=np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
-                llcrnrlat=np.maximum(-89, self.elements_scheduled.lat.min() -
-                                     deltalat),
-                urcrnrlat=np.minimum(89, self.elements_scheduled.lat.max() +
-                                     deltalat),
-                resolution=self.get_config('general:basemap_resolution'),
-                projection='merc')
-            self.add_reader(reader_basemap)
-            self.dynamical_landmask = True
+
+            from opendrift.readers import reader_global_landmask
+            reader_landmask = reader_global_landmask.Reader(
+                    extent = [
+                        np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+                        np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+                        np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+                        np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
+                        ])
+            self.add_reader(reader_landmask)
+
             self.timer_end('preparing main loop:making dynamical landmask')
-        else:
-            self.dynamical_landmask = False
 
         # Move point seed on land to ocean
         if self.get_config('seed:ocean_only') is True and \
@@ -2303,9 +2310,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 del self.environment_profiles
             self.io_import_file(outfile)
 
-        if self.dynamical_landmask is True:
-            self.zoom_map(buffer=.2)  # Zooming to extent of trajectories
-
         self.timer_end('cleaning up')
         self.timer_end('total time')
 
@@ -2461,7 +2465,7 @@ class OpenDriftSimulation(PhysicsMethods):
             ax = plt.axes([.05, .08, .85, .9])  # When colorbar below
             map = Basemap(lonmin, latmin, lonmax, latmax,
                           resolution=
-                            self.get_config('general:basemap_resolution'),
+                            self.get_config('general:auto_landmask_resolution'),
                           projection='merc', area_thresh=0)
 
         map.drawcoastlines(color='gray')
@@ -2528,56 +2532,6 @@ class OpenDriftSimulation(PhysicsMethods):
             pass
 
         return map, plt, x, y, index_of_first, index_of_last
-
-    def zoom_map(self, buffer=0.2,
-                 lonmin=None, lonmax=None, latmin=None, latmax=None):
-        """Zoom Basemap to defined limits, or defined buffer in degrees"""
-
-        if lonmin is None:
-            lons, lats = self.get_lonlats()
-            lonmin = lons.min() - buffer*2
-            lonmax = lons.max() + buffer*2
-            latmin = lats.min() - buffer
-            latmax = lats.max() + buffer
-
-        logging.info('Zooming basemap to (%s to %s E), (%s to %s N)' %
-                     (lonmin, lonmax, latmin, latmax) )
-        if 'basemap_landmask' in self.readers:
-            self.readers['basemap_landmask'].map_orig = \
-                self.readers['basemap_landmask'].map
-        else:
-            raise ValueError('No basemap readers added.')
-        map = Basemap(lonmin, latmin, lonmax, latmax,
-                      resolution=None, projection='merc')
-        map_orig = self.readers['basemap_landmask'].map_orig  # pointer
-
-        # Find Basemap offset between new and old maps
-        xo, yo = map(lonmin, latmin, inverse=False)
-        xoo, yoo = map_orig(lonmin, latmin, inverse=False)
-        xoff = xoo-xo
-        yoff = yoo-yo
-
-        # Copy polygons and adjust for offsets
-        map.coastpolygons = [
-            (tuple(np.subtract(pol[0], xoff)),
-            tuple(np.subtract(pol[1], yoff))) for pol in
-            map_orig.coastpolygons]
-
-        coastsegs_new = []
-        for c in map_orig.coastsegs:
-            xc, yc = list(zip(*c))
-            newxc = tuple(xce - xoff for xce in xc)
-            newyc = tuple(yce - yoff for yce in yc)
-            coastsegs_new.append(list(zip(newxc, newyc)))
-        map.coastsegs = coastsegs_new
-
-        map.coastpolygontypes = map_orig.coastpolygontypes
-        #map.landpolygons = map_orig.landpolygons
-        #map.lakepolygons = map_orig.lakepolygons
-        #map.boundarylons = map_orig.boundarylons
-        map.resolution = map_orig.resolution
-
-        self.readers['basemap_landmask'].map = map
 
     def get_lonlats(self):
         if hasattr(self, 'history'):
