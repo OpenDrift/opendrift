@@ -44,7 +44,7 @@ o1.run(time_step=timestep, time_step_output=timestep_output,
 # Animation shows how oil thickness evolves,
 # and decreases due to evaporation and spreading
 unitfactor=1e6  # show film thickness in micrometers
-o1.animation(color='oil_film_thickness',
+o1.animation(color='oil_film_thickness', fast=True,
              vmin=1e-7*unitfactor, vmax=1e-4*unitfactor,
              unitfactor=unitfactor, surface_only=True)
 ###################################################################
@@ -105,5 +105,5 @@ plt.ylabel('Median droplet diameter  [micrometer]')
 plt.show()
 
 # We see that oil film thickness has virtually no impact on horizontal drift
-o1.animation(compare=o2, legend=['Updated film thickness',
-                                 'Constant/default film thickness'])
+o1.animation(compare=o2, fast=True,
+             legend=['Updated film thickness', 'Constant/default film thickness'])

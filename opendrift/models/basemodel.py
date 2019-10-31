@@ -2451,7 +2451,7 @@ class OpenDriftSimulation(PhysicsMethods):
         aspect_ratio = np.float(latmax-latmin) / (np.float(lonmax-lonmin))
         aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
         if aspect_ratio > 1:
-            fig = plt.figure(figsize=(10./aspect_ratio, 10.))
+            fig = plt.figure(figsize=(11./aspect_ratio, 11.))
         else:
             fig = plt.figure(figsize=(11., 11.*aspect_ratio))
 
@@ -2478,12 +2478,12 @@ class OpenDriftSimulation(PhysicsMethods):
             img = landmask.mask[ym[0]:ym[1]:ndy, xm[0]:xm[1]:ndx]
 
             from matplotlib import colors
-            cmap = colors.ListedColormap(['white', cfeature.COLORS['land']])
+            cmap = colors.ListedColormap(['white', 'gray'])
             ax.imshow(img, extent=[lonmin, lonmax, latmin, latmax],
                       transform=ccrs.PlateCarree(), cmap=cmap)
 
-        if 'land_binary_mask' in self.priority_list:
-            logging.debug("using existing GSHHS shapes..")
+        if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask':
+            logging.debug("Using existing GSHHS shapes..")
             rname = self.priority_list['land_binary_mask'][0]
             landmask = self.readers[rname].mask
 
@@ -2502,7 +2502,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         facecolor=cfeature.COLORS['land'],
                         edgecolor='black')
         else:
-            logging.debug ("adding GSHHS shapes..")
+            logging.debug ("Adding GSHHS shapes..")
 
             if fast:
                 from opendrift_landmask_data import Landmask
@@ -2539,7 +2539,7 @@ class OpenDriftSimulation(PhysicsMethods):
         except:
             pass
 
-        return fig, ax, crs, lons, lats, index_of_first, index_of_last
+        return fig, ax, crs, lons.T, lats.T, index_of_first, index_of_last
 
     def get_lonlats(self):
         if hasattr(self, 'history'):
@@ -2566,6 +2566,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   legend=None, legend_loc='best', fps=10, lscale=None, fast=False):
         """Animate last run."""
 
+
         if self.num_elements_total() == 0:
             raise ValueError('Please run simulation before animating')
 
@@ -2589,8 +2590,8 @@ class OpenDriftSimulation(PhysicsMethods):
             if density is True:
                 density_weight = None
 
-        # x, y are longitude, latitude -> i.e. in a Geodetic CRS
-        gcrs = ccrs.Geodetic()
+        # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
+        gcrs = ccrs.PlateCarree()
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
@@ -2599,17 +2600,17 @@ class OpenDriftSimulation(PhysicsMethods):
                 map_x, map_y, scalar, u_component, v_component = \
                     self.get_map_background(ax, background,
                                             time=times[i])
-                map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                               vmin=vmin, vmax=vmax, cmap=cmap)
+                ax.pcolormesh(map_x, map_y, scalar, alpha=1,
+                               vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
                 if type(background) is list:
-                    map.quiver(map_x[::skip, ::skip],
+                    ax.quiver(map_x[::skip, ::skip],
                                map_y[::skip, ::skip],
                                u_component[::skip, ::skip],
-                               v_component[::skip, ::skip], scale=scale)
+                               v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
             if lcs is not None:
                 map_x, map_y = map(lcs['lon'], lcs['lat'])
-                map.pcolormesh(
+                ax.pcolormesh(
                     map_x, map_y, lcs['ALCS'][i,:,:], alpha=1,
                     vmin=vmin, vmax=vmax, cmap=cmap)
 
@@ -2619,8 +2620,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Move points
             if show_elements is True:
-                points.set_offsets(np.c_[x[range(x.shape[0]), i],
-                                         y[range(x.shape[0]), i]])
+                points.set_offsets(np.c_[x[i, range(x.shape[1])],
+                                         y[i, range(x.shape[1])]])
                 points_deactivated.set_offsets(np.c_[
                     x_deactive[index_of_last_deactivated < i],
                     y_deactive[index_of_last_deactivated < i]])
@@ -2664,12 +2665,12 @@ class OpenDriftSimulation(PhysicsMethods):
             self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast)
 
         if surface_only is True:
-            z = self.get_property('z')[0].T
+            z = self.get_property('z')[0]
             x[z<0] = np.nan
             y[z<0] = np.nan
 
         if show_trajectories is True:
-            ax.plot(x.T, y.T, color='gray', alpha=.1, transform = gcrs)
+            ax.plot(x, y, color='gray', alpha=.1, transform = gcrs)
 
         if color is not False:
             if isinstance(color, basestring):
@@ -2687,8 +2688,8 @@ class OpenDriftSimulation(PhysicsMethods):
             map_x, map_y, scalar, u_component, v_component = \
                 self.get_map_background(ax, background,
                                         time=self.start_time)
-            bg = map.pcolormesh(map_x, map_y, scalar, alpha=1,
-                                vmin=vmin, vmax=vmax, cmap=cmap)
+            bg = ax.pcolormesh(map_x, map_y, scalar, alpha=1,
+                               vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
 
         if lcs is not None:
             if vmin is None:
@@ -2745,19 +2746,16 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.get_density_array(pixelsize_m=density_pixelsize_m,
                                        weight=density_weight)
             H = H + H_submerged + H_stranded
+            H = np.ma.masked_where(H==0, H)
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
             pm = ax.pcolormesh(lon_array, lat_array, H[0,:,:],
-                                latlon=True, vmin=0.1, vmax=vmax, cmap=cmap, transform=gcrs)
+                               vmin=0.1, vmax=vmax, cmap=cmap, transform=gcrs)
 
         if drifter is not None:
             drifter['x'], drifter['y'] = (drifter['lon'], drifter['lat'])
             #map.plot(drifter['x'], drifter['y'])
             drifter_pos = ax.scatter([], [], color='r',
                                       zorder=15, label='Drifter', transform = gcrs)
-
-        anim = animation.FuncAnimation(
-            plt.gcf(), plot_timestep, blit=False,
-            frames=x.shape[1], interval=50)
 
         if colorbar is True:
             if color is not False:
@@ -2779,10 +2777,17 @@ class OpenDriftSimulation(PhysicsMethods):
                 if clabel is None:
                     clabel = 'density'
 
-            cb = fig.colorbar(item, cax = ax, label=clabel, location='bottom',
-                              size='3%', pad='5%')
+            cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
+            cb.set_label(clabel)
             cb.set_alpha(1)
             cb.draw_all()
+
+        fig.canvas.draw()
+        fig.set_tight_layout(True)
+        anim = animation.FuncAnimation(
+            plt.gcf(), plot_timestep, blit=False,
+            frames=x.shape[0], interval=50)
+
 
         if filename is not None:
             self._save_animation(anim, filename, fps)
@@ -2958,13 +2963,16 @@ class OpenDriftSimulation(PhysicsMethods):
             fast (bool): use some optimizations to speed up plotting at the cost of accuracy
         """
 
+
+        mappable = None
+
         if self.num_elements_total() == 0:
             raise ValueError('Please run simulation before plotting')
 
         start_time = datetime.now()
 
-        # x, y are longitude, latitude -> i.e. in a Geodetic CRS
-        gcrs = ccrs.Geodetic()
+        # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
+        gcrs = ccrs.PlateCarree()
         fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast, **kwargs)
 
@@ -2988,11 +2996,12 @@ class OpenDriftSimulation(PhysicsMethods):
                             numleg = 2
                         legend = ['Simulation %d' % (i+1) for i in
                                   range(numleg)]
-                    ax.plot(x, y, color='gray', alpha=alpha, label=legend[0], linewidth=linewidth, transform = gcrs)
+                    ax.plot(x[:,0], y[:,0], color='gray', alpha=alpha, label=legend[0], linewidth=linewidth, transform = gcrs)
                     ax.plot(x, y, color='gray', alpha=alpha, label='_nolegend_', linewidth=linewidth, transform = gcrs)
                 else:
                     ax.plot(x, y, color='gray', alpha=alpha, linewidth=linewidth, transform = gcrs)
             else:
+                colorbar = True
                 # Color lines according to given parameter
                 try:
                     if isinstance(linecolor, basestring):
@@ -3004,34 +3013,35 @@ class OpenDriftSimulation(PhysicsMethods):
                         'Available parameters to be used for linecolors: ' +
                         str(self.history.dtype.fields))
                 from matplotlib.collections import LineCollection
-                for i in range(x.shape[0]):
+                for i in range(x.shape[1]):
                     vind = np.arange(index_of_first[i], index_of_last[i] + 1)
                     points = np.array(
-                        [x[i, vind].T, y[i, vind].T]).T.reshape(-1, 1, 2)
+                        [x[vind, i].T, y[vind, i].T]).T.reshape(-1, 1, 2)
                     segments = np.concatenate([points[:-1], points[1:]],
                                               axis=1)
                     if lvmin is None:
                         lvmin = param.min()
                         lvmax = param.max()
                     lc = LineCollection(segments,
-                                        cmap=plt.get_cmap('Spectral'),
+                                        #cmap=plt.get_cmap('Spectral'),
+                                        cmap=cmap,
                                         norm=plt.Normalize(lvmin, lvmax), transform = gcrs)
                     #lc.set_linewidth(3)
                     lc.set_array(param.T[vind, i])
-                    ax.add_collection(lc)
-                axcb = fig.colorbar(lc, ax = ax, orientation = 'horizontal')
-                try:  # Add unit to colorbar if available
-                    colorbarstring = linecolor + '  [%s]' % \
-                        (self.history_metadata[linecolor]['units'])
-                except:
-                    colorbarstring = linecolor
-                #axcb.set_label(colorbarstring)
-                axcb.set_label(colorbarstring, size=14)
-                axcb.ax.tick_params(labelsize=14)
+                    mappable = ax.add_collection(lc)
+                #axcb = fig.colorbar(lc, ax = ax, orientation = 'horizontal')
+                #try:  # Add unit to colorbar if available
+                #    colorbarstring = linecolor + '  [%s]' % \
+                #        (self.history_metadata[linecolor]['units'])
+                #except:
+                #    colorbarstring = linecolor
+                ##axcb.set_label(colorbarstring)
+                #axcb.set_label(colorbarstring, size=14)
+                #axcb.ax.tick_params(labelsize=14)
 
         if compare is None:
-            label_initial = 'initial (%i)' % x.shape[0]
-            label_active = 'active (%i)' % (x.shape[0] - self.num_elements_deactivated())
+            label_initial = 'initial (%i)' % x.shape[1]
+            label_active = 'active (%i)' % (x.shape[1] - self.num_elements_deactivated())
             color_initial = self.status_colors['initial']
             color_active = self.status_colors['active']
         else:
@@ -3040,20 +3050,21 @@ class OpenDriftSimulation(PhysicsMethods):
             color_initial = 'gray'
             color_active = 'gray'
         if show_particles is True:
-            ax.scatter(x[range(x.shape[0]), index_of_first],
-                        y[range(x.shape[0]), index_of_first],
-                        s=markersize,
-                        zorder=10, edgecolor=markercolor, linewidths=.2,
-                        color=color_initial, label=label_initial,
-                        transform = gcrs)
+            ax.scatter(x[index_of_first, range(x.shape[1])],
+                       y[index_of_first, range(x.shape[1])],
+                       s=markersize,
+                       zorder=10, edgecolor=markercolor, linewidths=.2,
+                       color=color_initial, label=label_initial,
+                       transform = gcrs)
             if surface_color is not None:
                 color_active = surface_color
                 label_active = 'surface'
-            ax.scatter(x[range(x.shape[0]), index_of_last],
-                        y[range(x.shape[0]), index_of_last], s=markersize,
-                        zorder=3, edgecolor=markercolor, linewidths=.2,
-                        color=color_active, label=label_active,
-                        transform = gcrs)
+            ax.scatter(x[index_of_last, range(x.shape[1])],
+                       y[index_of_last, range(x.shape[1])],
+                       s=markersize, zorder=3,
+                       edgecolor=markercolor, linewidths=.2,
+                       color=color_active, label=label_active,
+                       transform = gcrs)
             #if submerged_color is not None:
             #    map.scatter(x[range(x.shape[0]), index_of_last],
             #                y[range(x.shape[0]), index_of_last], s=markersize,
@@ -3101,13 +3112,13 @@ class OpenDriftSimulation(PhysicsMethods):
                     legstr = legend[i+1]
                 else:
                     legstr = None
-                ax.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i] + '-', label=legstr, linewidth=linewidth, transform = gcrs)
-                ax.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i] + '-', label='_nolegend_', linewidth=linewidth, transform = gcrs)
+                ax.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i+1] + '-', label=legstr, linewidth=linewidth, transform = gcrs)
+                ax.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i+1] + '-', label='_nolegend_', linewidth=linewidth, transform = gcrs)
                 ax.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
                     c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
                     s=markersize,
                     zorder=3, edgecolor=markercolor, linewidths=.2,
-                    color=self.plot_comparison_colors[i], transform = gcrs)
+                    color=self.plot_comparison_colors[i+1], transform = gcrs)
 
         try:
             if legend is not None:# and compare is None:
@@ -3137,7 +3148,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if show_scalar is True:
                 if contourlines is False:
                     scalar = np.ma.masked_invalid(scalar)
-                    ax.pcolormesh(map_x, map_y, scalar, alpha=1,
+                    mappable = ax.pcolormesh(map_x, map_y, scalar, alpha=1,
                                    vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
                 else:
                     if contourlines is True:
@@ -3148,15 +3159,17 @@ class OpenDriftSimulation(PhysicsMethods):
                         CS = ax.contour(map_x, map_y, scalar, contourlines,
                                          colors='gray', transform = gcrs)
                     plt.clabel(CS, fmt='%g')
-                if colorbar is True:
-                    fig.colorbar(orientation = 'horizontal')
 
-            if type(background) is list:
-                delta_x = (map_x[1,2] - map_x[1,1])/2.
-                delta_y = (map_y[2,1] - map_y[1,1])/2.
-                ax.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
-                           u_component[::skip, ::skip],
-                           v_component[::skip, ::skip], scale=scale, transform = gcrs)
+        if mappable is not None:
+            cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
+            cb.set_label(str(background))
+
+        if type(background) is list:
+            delta_x = (map_x[1,2] - map_x[1,1])/2.
+            delta_y = (map_y[2,1] - map_y[1,1])/2.
+            ax.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
+                       u_component[::skip, ::skip],
+                       v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
         if lcs is not None:
             map_x_lcs, map_y_lcs = (lcs['lon'], lcs['lat'])
@@ -3184,6 +3197,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         #plt.gca().tick_params(labelsize=14)
 
+        fig.canvas.draw()
+        fig.set_tight_layout(True)
         if filename is not None:
             plt.savefig(filename)
             logging.info('Time to make plot: ' +
@@ -3202,7 +3217,7 @@ class OpenDriftSimulation(PhysicsMethods):
         x, y = (trajectory_dict['lon'][i], trajectory_dict['lat'][i])
         ls = trajectory_dict['linestyle']
 
-        gcrs = ccrs.Geodetic()
+        gcrs = ccrs.PlateCarree()
 
         ax.plot(x, y, ls, linewidth=2, transform = gcrs)
         ax.plot(x[0], y[0], 'ok', transform = gcrs)
@@ -3217,7 +3232,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """
         xmin, xmax, ymin, ymax = ax.get_extent()
         crs = ax.projection
-        gcrs = ccrs.Geodetic()
+        gcrs = ccrs.PlateCarree()
 
         # equidistant in map projection
         xx = np.linspace(xmin, xmax, nx)
@@ -3257,7 +3272,9 @@ class OpenDriftSimulation(PhysicsMethods):
             # NB: rotation not completed!
             u_component, v_component = reader.rotate_vectors(
                 reader_x, reader_y, u_component, v_component,
-                reader.proj, ax.projection.proj4_init)
+                reader.proj, ccrs.PlateCarree(
+                globe=ccrs.Globe(datum='WGS84', ellipse='WGS84')
+                ).proj4_init)
         else:
             scalar = data[background]
             u_component = v_component = None
