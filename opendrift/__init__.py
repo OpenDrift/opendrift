@@ -1,3 +1,14 @@
+"""
+Opendrift module
+
+.. currentmodule:: opendrift
+
+.. autosummary::
+    :toctree: _autosummary
+
+    opendrift.models
+
+"""
 import logging
 import unittest
 import importlib
@@ -88,7 +99,7 @@ def versions():
     s += '  Python version %s\n' % sys.version.replace('\n', '')
     s += '------------------------------------------------------\n'
     return s
-    
+
 
 def import_from_ladim(ladimfile, romsfile):
     """Import Ladim output file as OpenDrift simulation obejct"""
@@ -211,7 +222,7 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
             o2 = o
 
     return o1, o2
- 
+
 
 # Add timer for unittest
 def setUp(self):
