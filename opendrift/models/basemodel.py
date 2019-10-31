@@ -3751,10 +3751,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if reader is None:
             logging.info('No reader provided, using first available:')
-            reader = self.readers.items()[0][1]
+            reader = list(self.readers.items())[0][1]
             logging.info(reader.name)
         import scipy.ndimage as ndimage
-        from physics_methods import ftle
+        from opendrift.models.physics_methods import ftle
 
         if not isinstance(duration, timedelta):
             duration = timedelta(seconds=duration)
