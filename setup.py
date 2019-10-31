@@ -25,8 +25,7 @@ setuptools.setup(
         'pyproj',
         'cartopy',
         'rasterio',
-        'opendrift-landmask-data',
-        'oil-library'
+        'opendrift-landmask-data'
     ],
     packages = setuptools.find_packages(),
     include_package_data = True,
