@@ -56,8 +56,11 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         Example usage:
 	
 	.. code-block:: python
+	
 	   from opendrift.models.openoil3D import OpenOil3D
 	   o = OpenOil3D()
+	
+	Normal text.
     """
 
     ElementType = Oil3D
