@@ -8,7 +8,22 @@ dependencies:
   - matplotlib>=3.1
   - numpy>=1.15.4
   - scipy>=1.2.0
-  - opendrift
+  - netcdf4>=1.4.3
+  - future
+  - ffmpeg
+  - pillow
+  - pyproj>=2.3
+  - configobj
+  - libgdal>=2.3.3
+  - gdal>=2.3.3
+  - cartopy
+  - rasterio
   - opendrift-landmask-data
   - oil_library-opendrift
+  - pip
+  - pip:
+    - sphinx
+    - sphinx-rtd-theme
+    - sphinx-autoapi
+    - livereload
 

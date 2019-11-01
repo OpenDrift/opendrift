@@ -5,9 +5,7 @@ sphinx:
 
 formats: all
 
-python:
-  version: 3.7
-
 conda:
-  file: docs/docenv.yml
+  environment: docs/docenv.yml
+
 
