@@ -37,7 +37,8 @@ extensions = [
         "autoapi.extension",
         "sphinx.ext.autodoc",
         "sphinx.ext.viewcode",
-        "sphinx.ext.mathjax"
+        "sphinx.ext.mathjax",
+        "matplotlib.sphinxext.plot_directive",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
