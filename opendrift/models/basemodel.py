@@ -1,7 +1,4 @@
 """
-.. autosummary::
-
-    OpenDriftSimulation
 """
 # This file is part of OpenDrift.
 #

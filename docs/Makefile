@@ -22,6 +22,12 @@ help:
 serve:
 	@python serve.py
 
-serve-all:
+serve-world:
 	@python serve.py --host=0.0.0.0
+
+watch:
+	@python serve.py --watch
+
+watch-world:
+	@python serve.py --host=0.0.0.0 --watch
 
