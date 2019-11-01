@@ -147,6 +147,8 @@ class OpenDriftSimulation(PhysicsMethods):
     required_profiles_z_range = None  # [min_depth, max_depth]
     plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
+    logger = logging.getLogger('opendrift')
+
     def __init__(self, proj4=None, seed=0, iomodule='netcdf',
                  loglevel=logging.DEBUG, logtime='%H:%M:%S', logfile=None):
         """Initialise OpenDriftSimulation
@@ -210,17 +212,23 @@ class OpenDriftSimulation(PhysicsMethods):
         self.elements = self.ElementType()  # Empty array
 
         if loglevel != 'custom':
-            logging.getLogger('').handlers = []
             if logfile is not None:
-                eargs = {'filename': logfile, 'filemode': 'w'}
+                handler = logging.FileHandler(logfile)
             else:
-                eargs = {}
+                handler = logging.StreamHandler()
             format = '%(levelname)s: %(message)s'
+            datefmt = None
             if logtime is not False:
                 format = '%(asctime)s ' + format
                 if logtime is not True:
-                    eargs['datefmt'] = logtime
-            logging.basicConfig(level=loglevel, format=format, **eargs)
+                    datefmt = logtime
+            formatter = logging.Formatter(format, datefmt=datefmt)
+            handler.setFormatter(formatter)
+            if loglevel < 10:  # 0 is NOTSET, giving no output
+                loglevel=10
+            self.logger.setLevel(loglevel)
+            self.logger.addHandler(handler)
+            self.logger.propagate = False
 
         # Prepare outfile
         try:
@@ -228,7 +236,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                    fromlist=['init', 'write_buffer',
                                              'close', 'import_file'])
         except ImportError:
-            logging.info('Could not import iomodule ' + iomodule)
+            self.logger.info('Could not import iomodule ' + iomodule)
         self.io_init = types.MethodType(io_module.init, self)
         self.io_write_buffer = types.MethodType(io_module.write_buffer, self)
         self.io_close = types.MethodType(io_module.close, self)
@@ -238,7 +246,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.timer_start('configuration')
 
         self.add_metadata('opendrift_version', opendrift.__version__)
-        logging.info('OpenDriftSimulation initialised (version %s)' %
+        self.logger.info('OpenDriftSimulation initialised (version %s)' %
                      opendrift.__version__)
 
     def _add_config(self, key, value, comment, overwrite=False):
@@ -392,7 +400,7 @@ class OpenDriftSimulation(PhysicsMethods):
             str += '%s [%s] %s\n' % (key, self.get_config(key),
                                    self.get_configspec(key))
         str += '==============================================\n'
-        logging.info(str)
+        self.logger.info(str)
 
     def list_config(self):
         """List all possible configuration settings with values"""
@@ -401,7 +409,7 @@ class OpenDriftSimulation(PhysicsMethods):
         for key in keys:
             str += '%s [%s]\n' % (key, self.get_config(key))
         str += '=============================================\n'
-        logging.info(str)
+        self.logger.info(str)
 
     def add_metadata(self, key, value):
         """Add item to metadata dictionary, for export as netCDF global attributes"""
@@ -463,9 +471,9 @@ class OpenDriftSimulation(PhysicsMethods):
                     reason='seeded_on_land')
             on_land = np.where(self.environment.land_binary_mask == 1)[0]
             if len(on_land) == 0:
-                logging.debug('No elements hit coastline.')
+                self.logger.debug('No elements hit coastline.')
             else:
-                logging.debug('%s elements hit coastline, '
+                self.logger.debug('%s elements hit coastline, '
                               'moving back to water' % len(on_land))
                 on_land_ID = self.elements.ID[on_land]
                 self.elements.lon[on_land] = \
@@ -501,10 +509,10 @@ class OpenDriftSimulation(PhysicsMethods):
         self.proj4 = proj4
         if proj4 is not None:
             self.proj = pyproj.Proj(self.proj4 + ' +ellps=WGS84')
-            logging.debug('Calculation SRS set to: ' + self.proj.srs)
+            self.logger.debug('Calculation SRS set to: ' + self.proj.srs)
         else:
             self.proj = None
-            logging.debug('Calculation SRS set to: ' + str(self.proj))
+            self.logger.debug('Calculation SRS set to: ' + str(self.proj))
 
     def lonlat2xy(self, lon, lat):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
@@ -523,7 +531,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """
         if self.proj.crs.is_geographic:
             if 'ob_tran' in self.proj4:
-                logging.info('NB: Converting deg to rad due to ob_tran srs')
+                self.logger.info('NB: Converting deg to rad due to ob_tran srs')
                 x = np.radians(np.array(x))
                 y = np.radians(np.array(y))
                 return self.proj(x, y, inverse=True)
@@ -638,12 +646,12 @@ class OpenDriftSimulation(PhysicsMethods):
             if self.proj is None and not reader.is_lazy:
                 if reader.proj4 is not None and reader.proj4 != 'None':
                     self.set_projection(reader.proj4)
-                    logging.debug('Using srs for common grid: %s' %
+                    self.logger.debug('Using srs for common grid: %s' %
                                   self.proj4)
                 else:
-                    logging.debug('%s is unprojected, cannot use '
+                    self.logger.debug('%s is unprojected, cannot use '
                                   'for common grid' % reader.name)
-            logging.debug('Added reader ' + reader.name)
+            self.logger.debug('Added reader ' + reader.name)
 
             # Add this reader for each of the given variables
             if reader.is_lazy is False:
@@ -661,7 +669,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Set projection to latlong if not taken from any of the readers
         if self.proj is None:
-            logging.info('Setting SRS to latlong, since not defined before.')
+            self.logger.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
 
     def add_readers_from_list(self, urls, timeout=10, lazy=True):
@@ -755,8 +763,8 @@ class OpenDriftSimulation(PhysicsMethods):
         try:
             reader.initialise()
         except Exception as e:
-            logging.debug(e)
-            logging.warning('Reader could not be initialised, and is'
+            self.logger.debug(e)
+            self.logger.warning('Reader could not be initialised, and is'
                             ' discarded: ' + lazyname)
             self.discard_reader(reader)
             return self._initialise_next_lazy_reader()  # Call self
@@ -787,19 +795,19 @@ class OpenDriftSimulation(PhysicsMethods):
         if hasattr(self, 'expected_endtime') and reader.start_time is not None and (
                 (reader.start_time > self.latest_time() or
                  reader.end_time < self.earliest_time())):
-            logging.debug('Reader does not cover simulation period')
+            self.logger.debug('Reader does not cover simulation period')
             self.discard_reader(reader)
             return True
         if len(set(self.required_variables) &
                set(reader.variables)) == 0:
-            logging.debug('Reader does not contain any relevant variables')
+            self.logger.debug('Reader does not contain any relevant variables')
             self.discard_reader(reader)
             return True
         return False
 
     def discard_reader(self, reader):
         readername = reader.name
-        logging.debug('Discarding reader: ' + readername)
+        self.logger.debug('Discarding reader: ' + readername)
         del self.readers[readername]
         if not hasattr(self, 'discarded_readers'):
             self.discarded_readers = [readername]
@@ -819,7 +827,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if reader.is_lazy:
                 continue
             if self.discard_reader_if_not_relevant(reader):
-                logging.debug('DISCARDED: ' + readername)
+                self.logger.debug('DISCARDED: ' + readername)
 
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
@@ -845,7 +853,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         truncate_depth = self.get_config('drift:truncate_ocean_model_below_m')
         if truncate_depth is not None:
-            logging.debug('Truncating ocean models below %s m' % truncate_depth)
+            self.logger.debug('Truncating ocean models below %s m' % truncate_depth)
             z = z.copy()
             z[z<-truncate_depth] = -truncate_depth
             if self.required_profiles_z_range is not None:
@@ -863,7 +871,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 missing_variables = list(set(missing_variables) -
                                          set(self.desired_variables))
             if len(missing_variables) > 0:
-                logging.debug('Variables not covered by any reader: ' +
+                self.logger.debug('Variables not covered by any reader: ' +
                               str(missing_variables))
                 reader = 'NotNone'
                 while reader is not None:
@@ -892,32 +900,32 @@ class OpenDriftSimulation(PhysicsMethods):
                     * self.fallback_values[variable]
 
         for i, variable_group in enumerate(variable_groups):
-            logging.debug('----------------------------------------')
-            logging.debug('Variable group %s' % (str(variable_group)))
-            logging.debug('----------------------------------------')
+            self.logger.debug('----------------------------------------')
+            self.logger.debug('Variable group %s' % (str(variable_group)))
+            self.logger.debug('----------------------------------------')
             reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
             # For each reader:
             for reader_name in reader_group:
-                logging.debug('Calling reader ' + reader_name)
-                logging.debug('----------------------------------------')
+                self.logger.debug('Calling reader ' + reader_name)
+                self.logger.debug('----------------------------------------')
                 self.timer_start('main loop:readers:' +
                                  reader_name.replace(':', '<colon>'))
                 reader = self.readers[reader_name]
                 if reader.is_lazy:
-                    logging.warning('Reader is lazy, should not happen')
+                    self.logger.warning('Reader is lazy, should not happen')
                     import sys; sys.exit('Should not happen')
                 if not reader.covers_time(time):
-                    logging.debug('\tOutside time coverage of reader.')
+                    self.logger.debug('\tOutside time coverage of reader.')
                     if reader_name == reader_group[-1]:
                         if self._initialise_next_lazy_reader() is not None:
-                            logging.debug('Missing variables: calling get_environment recursively')
+                            self.logger.debug('Missing variables: calling get_environment recursively')
                             return self.get_environment(variables,
                                         time, lon, lat, z, profiles)
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
-                    logging.debug('Data needed for %i elements' %
+                    self.logger.debug('Data needed for %i elements' %
                                   len(missing_indices))
                     # Check if vertical profiles are requested from reader
                     if profiles is not None:
@@ -935,16 +943,16 @@ class OpenDriftSimulation(PhysicsMethods):
                             z[missing_indices], self.use_block, self.proj)
 
                 except Exception as e:
-                    logging.info('========================')
-                    logging.info('Exception:')
-                    logging.info(e)
-                    logging.debug(traceback.format_exc())
-                    logging.info('========================')
+                    self.logger.info('========================')
+                    self.logger.info('Exception:')
+                    self.logger.info(e)
+                    self.logger.debug(traceback.format_exc())
+                    self.logger.info('========================')
                     self.timer_end('main loop:readers:' +
                                    reader_name.replace(':', '<colon>'))
                     if reader_name == reader_group[-1]:
                         if self._initialise_next_lazy_reader() is not None:
-                            logging.debug('Missing variables: calling get_environment recursively')
+                            self.logger.debug('Missing variables: calling get_environment recursively')
                             return self.get_environment(variables,
                                         time, lon, lat, z, profiles)
                     continue
@@ -952,7 +960,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Copy retrieved variables to env array, and mask nan-values
                 for var in variable_group:
                     if var not in self.required_variables:
-                        logging.debug('Not returning env-variable: ' + var)
+                        self.logger.debug('Not returning env-variable: ' + var)
                         continue
                     env[var][missing_indices] = np.ma.masked_invalid(
                         env_tmp[var][0:len(missing_indices)]).astype('float32')
@@ -965,7 +973,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             # the other, we use only the overlapping part
                             if len(env_profiles['z']) != len(
                                 env_profiles_tmp['z']):
-                                logging.debug('Warning: different number of '
+                                self.logger.debug('Warning: different number of '
                                     ' vertical layers: %s and %s' % (
                                         len(env_profiles['z']),
                                         len( env_profiles_tmp['z'])))
@@ -1001,7 +1009,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             raise ValueError('Mismatch of masks')
                         missing_indices = missing_indices[combined_mask]
                     except:  # Not sure what is happening here
-                        logging.info('Problems setting mask on missing_indices!')
+                        self.logger.info('Problems setting mask on missing_indices!')
                 else:
                     missing_indices = []  # temporary workaround
                 if (type(missing_indices) == np.int64) or (
@@ -1010,19 +1018,19 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.timer_end('main loop:readers:' +
                                reader_name.replace(':', '<colon>'))
                 if len(missing_indices) == 0:
-                    logging.debug('Obtained data for all elements.')
+                    self.logger.debug('Obtained data for all elements.')
                     break
                 else:
-                    logging.debug('Data missing for %i elements.' %
+                    self.logger.debug('Data missing for %i elements.' %
                                   (len(missing_indices)))
                     if len(self._lazy_readers()) > 0:
                         if self._initialise_next_lazy_reader() is not None:
-                            logging.warning('Missing variables: calling get_environment recursively')
+                            self.logger.warning('Missing variables: calling get_environment recursively')
                             return self.get_environment(variables,
                                 time, lon, lat, z, profiles)
 
-        logging.debug('---------------------------------------')
-        logging.debug('Finished processing all variable groups')
+        self.logger.debug('---------------------------------------')
+        self.logger.debug('Finished processing all variable groups')
 
         self.timer_start('main loop:readers:postprocessing')
         for var in self.fallback_values:
@@ -1030,19 +1038,19 @@ class OpenDriftSimulation(PhysicsMethods):
                 continue
             mask = env[var].mask
             if any(mask==True):
-                logging.debug('    Using fallback value %s for %s for %s elements' %
+                self.logger.debug('    Using fallback value %s for %s for %s elements' %
                               (self.fallback_values[var], var, np.sum(mask==True)))
                 env[var][mask] = self.fallback_values[var]
             # Profiles
             if profiles is not None and var in profiles:
                 if 'env_profiles' not in locals():
-                    logging.debug('Creating empty dictionary for profiles not '
+                    self.logger.debug('Creating empty dictionary for profiles not '
                                   'profided by any reader: ' + str(self.required_profiles))
                     env_profiles = {}
                     env_profiles['z'] = \
                         np.array(self.required_profiles_z_range)[::-1]
                 if var not in env_profiles:
-                    logging.debug('      Using fallback value %s for %s for all profiles' %
+                    self.logger.debug('      Using fallback value %s for %s for all profiles' %
                                   (self.fallback_values[var], var))
                     env_profiles[var] = self.fallback_values[var]*\
                         np.ma.ones((len(env_profiles['z']), self.num_elements_active()))
@@ -1051,11 +1059,11 @@ class OpenDriftSimulation(PhysicsMethods):
                     num_masked_values_per_element = np.sum(mask==True)
                     num_missing_profiles = np.sum(num_masked_values_per_element == len(env_profiles['z']))
                     env_profiles[var][mask] = self.fallback_values[var]
-                    logging.debug('      Using fallback value %s for %s for %s profiles' %
+                    self.logger.debug('      Using fallback value %s for %s for %s profiles' %
                                   (self.fallback_values[var], var, num_missing_profiles,))
                     num_missing_individual = np.sum(num_masked_values_per_element > 0) - num_missing_profiles
                     if num_missing_individual > 0:
-                        logging.debug('        ...plus %s individual points in other profiles' %
+                        self.logger.debug('        ...plus %s individual points in other profiles' %
                                       num_missing_individual)
 
         #######################################################
@@ -1064,7 +1072,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if 'sea_water_temperature' in variables:
             t_kelvin = np.where(env['sea_water_temperature']>100)[0]
             if len(t_kelvin) > 0:
-                logging.warning('Converting temperatures from Kelvin to Celcius')
+                self.logger.warning('Converting temperatures from Kelvin to Celcius')
                 env['sea_water_temperature'][t_kelvin] = env['sea_water_temperature'][t_kelvin] - 273.15
                 if 'env_profiles' in locals() and 'sea_water_temperature' in env_profiles.keys():
                   env_profiles['sea_water_temperature'][:,t_kelvin] = \
@@ -1075,19 +1083,19 @@ class OpenDriftSimulation(PhysicsMethods):
         #######################################################
         if self.get_config('drift:use_tabularised_stokes_drift') is True:
             if 'x_wind' not in variables:
-                logging.debug('No wind available to calculate Stokes drift')
+                self.logger.debug('No wind available to calculate Stokes drift')
             else:
                 if 'sea_surface_wave_stokes_drift_x_velocity' not in variables or (
                     env['sea_surface_wave_stokes_drift_x_velocity'].max() == 0 and
                     env['sea_surface_wave_stokes_drift_y_velocity'].max() == 0):
-                        logging.debug('Calculating parameterised stokes drift')
+                        self.logger.debug('Calculating parameterised stokes drift')
                         env['sea_surface_wave_stokes_drift_x_velocity'], \
                         env['sea_surface_wave_stokes_drift_y_velocity'] = \
                             self.wave_stokes_drift_parameterised((env['x_wind'], env['y_wind']),
                                 self.get_config('drift:tabularised_stokes_drift_fetch'))
 
                 if (env['sea_surface_wave_significant_height'].max() == 0):
-                        logging.debug('Calculating parameterised significant wave height')
+                        self.logger.debug('Calculating parameterised significant wave height')
                         env['sea_surface_wave_significant_height'] = \
                             self.wave_significant_height_parameterised((env['x_wind'], env['y_wind']),
                             self.get_config('drift:tabularised_stokes_drift_fetch'))
@@ -1100,14 +1108,14 @@ class OpenDriftSimulation(PhysicsMethods):
                 'y_sea_water_velocity' in variables:
             std = self.get_config('drift:current_uncertainty')
             if std > 0:
-                logging.debug('Adding uncertainty for current: %s m/s' % std)
+                self.logger.debug('Adding uncertainty for current: %s m/s' % std)
                 env['x_sea_water_velocity'] += np.random.normal(
                     0, std, self.num_elements_active())
                 env['y_sea_water_velocity'] += np.random.normal(
                     0, std, self.num_elements_active())
             std = self.get_config('drift:current_uncertainty_uniform')
             if std > 0:
-                logging.debug('Adding uncertainty for current: %s m/s' % std)
+                self.logger.debug('Adding uncertainty for current: %s m/s' % std)
                 env['x_sea_water_velocity'] += np.random.uniform(
                     -std, std, self.num_elements_active())
                 env['y_sea_water_velocity'] += np.random.uniform(
@@ -1116,7 +1124,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if 'x_wind' in variables and 'y_wind' in variables:
             std = self.get_config('drift:wind_uncertainty')
             if std > 0:
-                logging.debug('Adding uncertainty for wind: %s m/s' % std)
+                self.logger.debug('Adding uncertainty for wind: %s m/s' % std)
                 env['x_wind'] += np.random.normal(
                     0, std, self.num_elements_active())
                 env['y_wind'] += np.random.normal(
@@ -1126,12 +1134,12 @@ class OpenDriftSimulation(PhysicsMethods):
         # Diagnostic output
         #####################
         if len(env) > 0:
-            logging.debug('------------ SUMMARY -------------')
+            self.logger.debug('------------ SUMMARY -------------')
             for var in variables:
-                logging.debug('    %s: %g (min) %g (max)' %
+                self.logger.debug('    %s: %g (min) %g (max)' %
                               (var, env[var].min(), env[var].max()))
-            logging.debug('---------------------------------')
-            logging.debug('\t\t%s active elements' % self.num_elements_active())
+            self.logger.debug('---------------------------------')
+            self.logger.debug('\t\t%s active elements' % self.num_elements_active())
             if self.num_elements_active() > 0:
                 lonmin = self.elements.lon.min()
                 lonmax = self.elements.lon.max()
@@ -1140,18 +1148,18 @@ class OpenDriftSimulation(PhysicsMethods):
                 zmin = self.elements.z.min()
                 zmax = self.elements.z.max()
                 if latmin == latmax:
-                    logging.debug('\t\tlatitude =  %s' % (latmin))
+                    self.logger.debug('\t\tlatitude =  %s' % (latmin))
                 else:
-                    logging.debug('\t\t%s <- latitude  -> %s' % (latmin, latmax))
+                    self.logger.debug('\t\t%s <- latitude  -> %s' % (latmin, latmax))
                 if lonmin == lonmax:
-                    logging.debug('\t\tlongitude = %s' % (lonmin))
+                    self.logger.debug('\t\tlongitude = %s' % (lonmin))
                 else:
-                    logging.debug('\t\t%s <- longitude -> %s' % (lonmin, lonmax))
+                    self.logger.debug('\t\t%s <- longitude -> %s' % (lonmin, lonmax))
                 if zmin == zmax:
-                    logging.debug('\t\tz = %s' % (zmin))
+                    self.logger.debug('\t\tz = %s' % (zmin))
                 else:
-                    logging.debug('\t\t%s   <- z ->   %s' % (zmin, zmax))
-                logging.debug('---------------------------------')
+                    self.logger.debug('\t\t%s   <- z ->   %s' % (zmin, zmax))
+                self.logger.debug('---------------------------------')
 
         # Prepare array indiciating which elements contain any invalid values
         missing = np.ma.masked_invalid(env[variables[0]]).mask
@@ -1229,17 +1237,17 @@ class OpenDriftSimulation(PhysicsMethods):
         if hasattr(self, 'start_time'):
             if min_time < self.start_time:
                 self.start_time = min_time
-                logging.debug('Setting simulation start time to %s' %
+                self.logger.debug('Setting simulation start time to %s' %
                               str(min_time))
         else:
             self.start_time = min_time
-            logging.debug('Setting simulation start time to %s' %
+            self.logger.debug('Setting simulation start time to %s' %
                           str(min_time))
 
     def release_elements(self):
         """Activate elements which are scheduled within following timestep."""
 
-        logging.debug('to be seeded: %s, already seeded %s' % (
+        self.logger.debug('to be seeded: %s, already seeded %s' % (
             len(self.elements_scheduled), self.num_elements_activated()))
         if len(self.elements_scheduled) == 0:
             return
@@ -1257,7 +1265,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.elements_scheduled.lat[indices])
         self.elements_scheduled.move_elements(self.elements, indices)
         self.elements_scheduled_time = self.elements_scheduled_time[~indices]
-        logging.debug('Released %i new elements.' % np.sum(indices))
+        self.logger.debug('Released %i new elements.' % np.sum(indices))
 
     def closest_ocean_points(self, lon, lat):
         """Return the closest ocean points for given lon, lat"""
@@ -1270,7 +1278,7 @@ class OpenDriftSimulation(PhysicsMethods):
         latmin = lat.min() - deltalat*numbuffer
         latmax = lat.max() + deltalat*numbuffer
         if not 'land_binary_mask' in self.priority_list:
-            logging.info('No land reader added, '
+            self.logger.info('No land reader added, '
                          'making a temporary basemap reader')
             from opendrift.models.oceandrift import OceanDrift
             from opendrift.readers import reader_global_landmask
@@ -1283,13 +1291,13 @@ class OpenDriftSimulation(PhysicsMethods):
                         ])
             reader_landmask.name = 'tempreader'
             o = OceanDrift(
-                loglevel=logging.getLogger().getEffectiveLevel())
+                loglevel=self.logger.getLogger().getEffectiveLevel())
             o.add_reader(reader_landmask)
             land_reader = reader_landmask
 
             tmp_reader = True
         else:
-            logging.info('Using existing reader for land_binary_mask')
+            self.logger.info('Using existing reader for land_binary_mask')
             land_reader_name = self.priority_list['land_binary_mask'][0]
             land_reader = self.readers[land_reader_name]
             o = self
@@ -1298,9 +1306,9 @@ class OpenDriftSimulation(PhysicsMethods):
             lon=lon, lat=lat, z=0*lon, time=land_reader.start_time,
             profiles=None)[0]['land_binary_mask']
         if land.max() == 0:
-            logging.info('All points are in ocean')
+            self.logger.info('All points are in ocean')
             return lon, lat
-        logging.info('Moving %i out of %i points from land to water' %
+        self.logger.info('Moving %i out of %i points from land to water' %
                      (np.sum(land==1), len(lon)))
         landlons = lon[land==1]
         landlats = lat[land==1]
@@ -1318,7 +1326,7 @@ class OpenDriftSimulation(PhysicsMethods):
             z=0*longrid, time=land_reader.start_time,
             profiles=None)[0]['land_binary_mask']
         if landgrid.min() == 1 or np.isnan(landgrid.min()):
-            logging.warning('No ocean pixels nearby, cannot move elements.')
+            self.logger.warning('No ocean pixels nearby, cannot move elements.')
             return lon, lat
 
         oceangridlons = longrid[landgrid==0]
@@ -1460,7 +1468,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Add M meters if given as 'seafloor+M'
                 if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
                     meters_above_seafloor = np.float(kwargs['z'][9::])
-                    logging.info('Seeding elements %f meters above seafloor'
+                    self.logger.info('Seeding elements %f meters above seafloor'
                                  % meters_above_seafloor)
                 else:
                     meters_above_seafloor = 0
@@ -1525,7 +1533,7 @@ class OpenDriftSimulation(PhysicsMethods):
             # Add M meters if given as 'seafloor+M'
             if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
                 meters_above_seafloor = np.float(kwargs['z'][9::])
-                logging.info('Seeding elements %f meters above seafloor'
+                self.logger.info('Seeding elements %f meters above seafloor'
                              % meters_above_seafloor)
             else:
                 meters_above_seafloor = 0
@@ -1555,7 +1563,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lons = np.asarray(lons)
         lats = np.asarray(lats)
         if len(lons) < 3:
-            logging.info('At least three points needed to make a polygon')
+            self.logger.info('At least three points needed to make a polygon')
             return
         if len(lons) != len(lats):
             raise ValueError('lon and lat arrays must have same length.')
@@ -1600,7 +1608,7 @@ class OpenDriftSimulation(PhysicsMethods):
             lonpoints = np.append(lonpoints, lon[ind])
             latpoints = np.append(latpoints, lat[ind])
         if len(ind) == 0:
-            logging.info('Small or irregular polygon, using center point.')
+            self.logger.info('Small or irregular polygon, using center point.')
             lonpoints = np.atleast_1d(np.mean(lons))
             latpoints = np.atleast_1d(np.mean(lats))
         # Truncate if too many
@@ -1625,7 +1633,7 @@ class OpenDriftSimulation(PhysicsMethods):
             import ogr
             import osr
         except Exception as e:
-            logging.warning(e)
+            self.logger.warning(e)
             raise ValueError('OGR library is needed to parse WKT')
 
         geom = ogr.CreateGeometryFromWkt(wkt)
@@ -1634,7 +1642,7 @@ class OpenDriftSimulation(PhysicsMethods):
             g = geom.GetGeometryRef(i)
             total_area += g.GetArea()
 
-        logging.info('Total area of all polygons: %s m2' % total_area)
+        self.logger.info('Total area of all polygons: %s m2' % total_area)
         num_seeded = 0
         for i in range(0, geom.GetGeometryCount()):
             g = geom.GetGeometryRef(i)
@@ -1643,7 +1651,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 # For the last feature we seed the remaining number,
                 # avoiding difference due to rounding:
                 num_elements = number - num_seeded
-            logging.info('\tSeeding %s elements within polygon number %s' %
+            self.logger.info('\tSeeding %s elements within polygon number %s' %
                          (num_elements, str(i)))
             try:
                 g.Transform(coordTrans)
@@ -1672,7 +1680,7 @@ class OpenDriftSimulation(PhysicsMethods):
             import ogr
             import osr
         except Exception as e:
-            logging.warning(e)
+            self.logger.warning(e)
             raise ValueError('OGR library is needed to read shapefiles.')
 
         if 'timeformat' in kwargs:
@@ -1693,10 +1701,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
         for layer in s:
             if layername is not None and layer.GetName() != layername:
-                logging.info('Skipping layer: ' + layer.GetName())
+                self.logger.info('Skipping layer: ' + layer.GetName())
                 continue
             else:
-                logging.info('Seeding for layer: %s (%s features)' %
+                self.logger.info('Seeding for layer: %s (%s features)' %
                              (layer.GetDescription(), layer.GetFeatureCount()))
 
             coordTrans = osr.CoordinateTransformation(layer.GetSpatialRef(),
@@ -1726,7 +1734,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
             total_area = np.sum(areas)
             layer.ResetReading()  # Rewind to first layer
-            logging.info('Total area of all polygons: %s m2' % total_area)
+            self.logger.info('Total area of all polygons: %s m2' % total_area)
             # Find number of points per polygon
             numbers = np.round(number*areas/total_area).astype(int)
             numbers[numbers.argmax()] += np.int(number-sum(numbers))
@@ -1737,7 +1745,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     continue
                 num_elements = numbers[i]
                 geom = feature.GetGeometryRef()
-                logging.info('\tSeeding %s elements within polygon number %s' %
+                self.logger.info('\tSeeding %s elements within polygon number %s' %
                              (num_elements, featurenum[i]))
                 try:
                     geom.Transform(coordTrans)
@@ -1771,11 +1779,11 @@ class OpenDriftSimulation(PhysicsMethods):
         lon, lat = roms.xy2lonlat(data['x'], data['y'])
         z = -data['z']
 
-        logging.info('Seeding %i elements from %s:' % (len(lon), ladimfile))
-        logging.info('    Lons: %f to %f' % (lon.min(), lon.max()))
-        logging.info('    Lats: %f to %f' % (lat.min(), lat.max()))
-        logging.info('    Depths: %f to %f' % (z.min(), z.max()))
-        logging.info('    Time: %s to %s' % (time.min(), time.max()))
+        self.logger.info('Seeding %i elements from %s:' % (len(lon), ladimfile))
+        self.logger.info('    Lons: %f to %f' % (lon.min(), lon.max()))
+        self.logger.info('    Lats: %f to %f' % (lat.min(), lat.max()))
+        self.logger.info('    Depths: %f to %f' % (z.min(), z.max()))
+        self.logger.info('    Time: %s to %s' % (time.min(), time.max()))
         elements = self.ElementType(lon=lon, lat=lat, z=-z)
 
         self.schedule_elements(elements, time)
@@ -1787,7 +1795,7 @@ class OpenDriftSimulation(PhysicsMethods):
             return
         if reason not in self.status_categories:
             self.status_categories.append(reason)
-            logging.debug('Added status %s' % (reason))
+            self.logger.debug('Added status %s' % (reason))
         reason_number = self.status_categories.index(reason)
         #if not hasattr(self.elements.status, "__len__"):
         if len(np.atleast_1d(self.elements.status)) == 1:
@@ -1797,9 +1805,9 @@ class OpenDriftSimulation(PhysicsMethods):
         # Deactivate elements, if they have not already been deactivated
         self.elements.status[indices & (self.elements.status ==0)] = \
             reason_number
-        logging.debug('%s elements scheduled for deactivation (%s)' %
+        self.logger.debug('%s elements scheduled for deactivation (%s)' %
                       (np.sum(indices), reason))
-        logging.debug('\t(z: %f to %f)' %
+        self.logger.debug('\t(z: %f to %f)' %
             (self.elements.z[indices].min(),
              self.elements.z[indices].max()))
 
@@ -1813,23 +1821,23 @@ class OpenDriftSimulation(PhysicsMethods):
         #    len(indices)
         #except:
         if len(indices) == 0 or np.sum(indices) == 0:
-            logging.debug('No elements to deactivate')
+            self.logger.debug('No elements to deactivate')
             return  # No elements scheduled for deactivation
         # Basic, but some more housekeeping will be required later
         self.elements.move_elements(self.elements_deactivated, indices)
-        logging.debug('Removed %i elements.' % (np.sum(indices)))
+        self.logger.debug('Removed %i elements.' % (np.sum(indices)))
         if hasattr(self, 'environment'):
             self.environment = self.environment[~indices]
-            logging.debug('Removed %i values from environment.' %
+            self.logger.debug('Removed %i values from environment.' %
                           (np.sum(indices)))
         if hasattr(self, 'environment_profiles') and \
                 self.environment_profiles is not None:
             for varname, profiles in iteritems(self.environment_profiles):
-                logging.debug('remove items from profile for '+varname)
+                self.logger.debug('remove items from profile for '+varname)
                 if varname is not 'z':
                     self.environment_profiles[varname] = \
                         profiles[:, ~indices]
-            logging.debug('Removed %i values from environment_profiles.' %
+            self.logger.debug('Removed %i values from environment_profiles.' %
                           (np.sum(indices)))
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
@@ -1873,14 +1881,14 @@ class OpenDriftSimulation(PhysicsMethods):
         """
 
         # Exporting software and hardware specification, for possible debugging
-        logging.debug(opendrift.versions())
+        self.logger.debug(opendrift.versions())
 
         self.timer_end('configuration')
         self.timer_start('preparing main loop')
         # Check that configuration is proper
         validation = self.configobj.validate(validate.Validator())
         if validation is True:
-            logging.info('Config validation OK')
+            self.logger.info('Config validation OK')
         else:
             raise ValueError('Configuration error: ' + str(validation))
 
@@ -1889,7 +1897,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.elements = self.ElementType()
 
         if outfile is None and export_buffer_length is not None:
-            logging.debug('No output file is specified, '
+            self.logger.debug('No output file is specified, '
                           'neglecting export_buffer_length')
             export_buffer_length = None
 
@@ -1900,12 +1908,12 @@ class OpenDriftSimulation(PhysicsMethods):
                 for component in vector_component:
                     if component in self.fallback_values and \
                             self.fallback_values[component] != 0:
-                        logging.info('Setting SRS to latlong, since non-zero '
+                        self.logger.info('Setting SRS to latlong, since non-zero '
                                      'value used for fallback vectors (%s)' %
                                      component)
                         self.set_projection('+proj=latlong')
         if self.proj is None:
-            logging.info('Setting SRS to latlong, since not defined before.')
+            self.logger.info('Setting SRS to latlong, since not defined before.')
             self.set_projection('+proj=latlong')
 
         # Check if any readers have same SRS as simulation
@@ -1929,13 +1937,13 @@ class OpenDriftSimulation(PhysicsMethods):
                                if var not in self.fallback_values]
             #if has_fallback == missing_variables:
             if len(has_fallback) > 0:# == missing_variables:
-                logging.info('Fallback values will be used for the following '
+                self.logger.info('Fallback values will be used for the following '
                              'variables which have no readers: ')
                 for var in has_fallback:
-                    logging.info('\t%s: %f' % (var, self.fallback_values[var]))
+                    self.logger.info('\t%s: %f' % (var, self.fallback_values[var]))
             #else:
             if len(has_no_fallback) > 0 and len(self._lazy_readers()) == 0:# == missing_variables:
-                logging.warning('No readers added for the following variables: '
+                self.logger.warning('No readers added for the following variables: '
                                 + str(has_no_fallback))
                 raise ValueError('Readers must be added for the '
                                  'following required variables: ' +
@@ -1988,7 +1996,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # Simulation duration
         ########################
         if time_step.days < 0:
-            logging.info('Backwards simulation, starting from last seeded element')
+            self.logger.info('Backwards simulation, starting from last seeded element')
             self.start_time = self.elements_scheduled_time.max()
         if (duration is not None and end_time is not None) or \
             (duration is not None and steps is not None) or \
@@ -2005,7 +2013,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             end_time = reader.end_time
                         else:
                             end_time = min(end_time, reader.end_time)
-                    logging.info('Duration, steps or end time not specified, '
+                    self.logger.info('Duration, steps or end time not specified, '
                                  'running until end of first reader: %s' %
                                  (end_time))
         if duration is None:
@@ -2038,7 +2046,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 ('land_binary_mask' in self.required_variables and \
                 'land_binary_mask' not in self.priority_list \
                 and 'land_binary_mask' not in self.fallback_values):
-            logging.info(
+            self.logger.info(
                 'Adding a dynamical landmask with max. priority based on '
                 'assumed maximum speed of %s m/s. '
                 'Adding a customised landmask may be faster...' % self.max_speed)
@@ -2082,7 +2090,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if self.time_step.days < 0:
             # For backwards simulation, we start at last seeded element
-            logging.info('Backwards simulation, starting at '
+            self.logger.info('Backwards simulation, starting at '
                          'time of last seeded element')
             self.time = self.elements_scheduled_time.max()
             # Flipping ID array, so that lowest IDs are released first
@@ -2162,18 +2170,18 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated
 
                 if self.show_continuous_performance is True:
-                    logging.info(self.performance())
+                    self.logger.info(self.performance())
                 # Display time to terminal
-                logging.debug('==================================='*2)
-                logging.info('%s - step %i of %i - %i active elements '
+                self.logger.debug('==================================='*2)
+                self.logger.info('%s - step %i of %i - %i active elements '
                              '(%i deactivated)' %
                              (self.time, self.steps_calculation + 1,
                               self.expected_steps_calculation,
                               self.num_elements_active(),
                               self.num_elements_deactivated()))
-                logging.debug('%s elements scheduled.' %
+                self.logger.debug('%s elements scheduled.' %
                               self.num_elements_scheduled())
-                logging.debug('==================================='*2)
+                self.logger.debug('==================================='*2)
 
                 self.environment, self.environment_profiles, missing = \
                     self.get_environment(self.required_variables,
@@ -2208,7 +2216,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.store_present_positions()
 
                 #####################################################
-                logging.debug('Calling %s.update()' %
+                self.logger.debug('Calling %s.update()' %
                               type(self).__name__)
                 self.timer_start('main loop:updating elements')
                 self.update()
@@ -2218,7 +2226,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 if self.num_elements_active() == 0:
                     raise ValueError('No active elements, quitting simulation')
 
-                logging.debug('%s active elements (%s deactivated)' %
+                self.logger.debug('%s active elements (%s deactivated)' %
                               (self.num_elements_active(),
                                self.num_elements_deactivated()))
                 # Updating time
@@ -2228,17 +2236,17 @@ class OpenDriftSimulation(PhysicsMethods):
             except Exception as e:
                 message = ('The simulation stopped before requested '
                            'end time was reached.')
-                logging.warning(message)
+                self.logger.warning(message)
                 self.store_message(message)
-                logging.info('========================')
-                logging.info('End of simulation:')
-                logging.info(e)
-                logging.info(traceback.format_exc())
-                logging.info(self.get_messages())
+                self.logger.info('========================')
+                self.logger.info('End of simulation:')
+                self.logger.info(e)
+                self.logger.info(traceback.format_exc())
+                self.logger.info(self.get_messages())
                 if not hasattr(self, 'environment'):
                     sys.exit('Simulation aborted. ' +
                              self.get_messages())
-                logging.info('========================')
+                self.logger.info('========================')
                 if stop_on_error is True:
                     sys.exit('Stopping on error. ' +
                              self.get_messages())
@@ -2249,7 +2257,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.timer_end('main loop')
         self.timer_start('cleaning up')
-        logging.debug('Cleaning up')
+        self.logger.debug('Cleaning up')
 
         self.interact_with_coastline(final=True)
         self.state_to_buffer()  # Append final status to buffer
@@ -2271,7 +2279,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                       self.priority_list[var])
 
         if outfile is not None:
-            logging.debug('Writing and closing output file: %s' % outfile)
+            self.logger.debug('Writing and closing output file: %s' % outfile)
             # Write buffer to outfile, and close
             if self.steps_output >= self.steps_exported:
                 # Write last lines, if needed
@@ -2284,7 +2292,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if export_buffer_length is None:
             # Remove columns for unseeded elements in history array
             if self.num_elements_scheduled() > 0:
-                logging.info('Removing %i unseeded elements from history array' %
+                self.logger.info('Removing %i unseeded elements from history array' %
                                self.num_elements_scheduled())
                 mask = np.ones(self.history.shape[0], dtype=bool)
                 mask[self.elements_scheduled.ID-1] = False
@@ -2346,7 +2354,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if len(deactivated) == 0:
                     return  # No deactivated elements this sub-timestep
             # We write history for deactivated elements only:
-            logging.debug('Writing history for %s deactivated elements' %
+            self.logger.debug('Writing history for %s deactivated elements' %
                           len(deactivated))
             ID_ind = ID_ind[deactivated]
             element_ind = deactivated
@@ -2386,7 +2394,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 missing_variables.append(var)
 
         if len(missing_variables) > 0:
-            logging.warning('Missing variables: ' +
+            self.logger.warning('Missing variables: ' +
                             str(missing_variables))
             self.store_message('Missing variables: ' +
                                str(missing_variables))
@@ -2401,7 +2409,7 @@ class OpenDriftSimulation(PhysicsMethods):
             #missingind = np.setdiff1d(
             #    np.arange(0, self.history['lon'].shape[0]),
             #    firstlast[0][0])
-            logging.warning('%s elements were never seeded, removing from history array' % len(missingind))
+            self.logger.warning('%s elements were never seeded, removing from history array' % len(missingind))
             shouldnothappen
             #print('REMOVING')
             #print(firstlast[0][0])
@@ -2430,7 +2438,7 @@ class OpenDriftSimulation(PhysicsMethods):
             latmax = corners[3]
 
         if fast:
-            logging.warning("plotting fast. this will make your plots less accurate.")
+            self.logger.warning("plotting fast. this will make your plots less accurate.")
 
             import matplotlib.style as mplstyle
             mplstyle.use(['fast'])
@@ -2483,7 +2491,7 @@ class OpenDriftSimulation(PhysicsMethods):
                       transform=ccrs.PlateCarree(), cmap=cmap)
 
         if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask':
-            logging.debug("Using existing GSHHS shapes..")
+            self.logger.debug("Using existing GSHHS shapes..")
             rname = self.priority_list['land_binary_mask'][0]
             landmask = self.readers[rname].mask
 
@@ -2502,7 +2510,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         facecolor=cfeature.COLORS['land'],
                         edgecolor='black')
         else:
-            logging.debug ("Adding GSHHS shapes..")
+            self.logger.debug ("Adding GSHHS shapes..")
 
             if fast:
                 from opendrift_landmask_data import Landmask
@@ -2791,7 +2799,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if filename is not None:
             self._save_animation(anim, filename, fps)
-            logging.debug('Time to make animation: %s' %
+            self.logger.debug('Time to make animation: %s' %
                           (datetime.now()-start_time))
         else:
             try:
@@ -3124,8 +3132,8 @@ class OpenDriftSimulation(PhysicsMethods):
             if legend is not None:# and compare is None:
                 plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
-            logging.warning('Cannot plot legend, due to bug in matplotlib:')
-            logging.warning(traceback.format_exc())
+            self.logger.warning('Cannot plot legend, due to bug in matplotlib:')
+            self.logger.warning(traceback.format_exc())
 
         if background is not None:
             if hasattr(self, 'time'):
@@ -3201,7 +3209,7 @@ class OpenDriftSimulation(PhysicsMethods):
         fig.set_tight_layout(True)
         if filename is not None:
             plt.savefig(filename)
-            logging.info('Time to make plot: ' +
+            self.logger.info('Time to make plot: ' +
                          str(datetime.now() - start_time))
         else:
             if show is True:
@@ -3297,7 +3305,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 kernel = kernel/kernel.sum()
             else:
                 kernel = N
-            logging.debug('Convolving variables with kernel: %s' % kernel)
+            self.logger.debug('Convolving variables with kernel: %s' % kernel)
             scalar = ndimage.convolve(
                 scalar, kernel, mode='nearest')
 
@@ -3626,8 +3634,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.elements.lon.min() > 360) or (
                 self.elements.lat.min() < -90) or (
                 self.elements.lat.max() > 90):
-            logging.info('Invalid new coordinates:')
-            logging.info(self.elements)
+            self.logger.info('Invalid new coordinates:')
+            self.logger.info(self.elements)
             sys.exit('Quitting')
 
     def __repr__(self):
@@ -3705,10 +3713,10 @@ class OpenDriftSimulation(PhysicsMethods):
             '../../opendrift/scripts/data_sources.txt')
 
     def _save_animation(self, anim, filename, fps):
-        logging.info('Saving animation to ' + filename + '...')
+        self.logger.info('Saving animation to ' + filename + '...')
         try:
             if filename[-4:] == '.gif':  # GIF
-                logging.info('Making animated gif...')
+                self.logger.info('Making animated gif...')
                 try:
                     anim.save(filename, fps=fps, writer='imagemagick')
                 except:  # For old version of matplotlib
@@ -3716,7 +3724,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     os.system('convert -delay %i _tmp*.png %s' %
                             (np.abs(self.time_step_output.total_seconds())/
                              3600.*24., filename))
-                    logging.info('Deleting temporary figures...')
+                    self.logger.info('Deleting temporary figures...')
                     tmp = glob.glob('_tmp*.png')
                     for tfile in tmp:
                         os.remove(tfile)
@@ -3731,28 +3739,28 @@ class OpenDriftSimulation(PhysicsMethods):
                                         '-pix_fmt', 'yuv420p', '-an'])
                         anim.save(filename, writer=FFwriter)
                     except Exception as e:
-                        logging.info(e)
+                        self.logger.info(e)
                         anim.save(filename, fps=fps, bitrate=1800,
                                   extra_args=['-an',
                                               '-pix_fmt', 'yuv420p'])
                 except Exception as e:
-                    logging.info(e)
+                    self.logger.info(e)
                     anim.save(filename, fps=fps)
-                    logging.warning('Animation might not be HTML5 compatible.')
+                    self.logger.warning('Animation might not be HTML5 compatible.')
 
         except Exception as e:
-            logging.info('Could not save animation:')
-            logging.info(e)
-            logging.debug(traceback.format_exc())
+            self.logger.info('Could not save animation:')
+            self.logger.info(e)
+            self.logger.debug(traceback.format_exc())
 
     def calculate_ftle(self, reader=None, delta=None,
                        time=None, time_step=None, duration=None,
                        RLCS=True, ALCS=True):
 
         if reader is None:
-            logging.info('No reader provided, using first available:')
+            self.logger.info('No reader provided, using first available:')
             reader = list(self.readers.items())[0][1]
-            logging.info(reader.name)
+            self.logger.info(reader.name)
         import scipy.ndimage as ndimage
         from opendrift.models.physics_methods import ftle
 
@@ -3774,7 +3782,7 @@ class OpenDriftSimulation(PhysicsMethods):
         lcs['ALCS'] = np.zeros((len(time), len(ys), len(xs)))
         T = np.abs(duration.total_seconds())
         for i, t in enumerate(time):
-            logging.info('Calculating LCS for ' + str(t))
+            self.logger.info('Calculating LCS for ' + str(t))
             # Forwards
             if RLCS is True:
                 self.reset()
@@ -3830,7 +3838,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def reset(self):
         """Preparing OpenDrift object for new run"""
         if not hasattr(self, 'start_time'):
-            logging.info('Nothing to reset')
+            self.logger.info('Nothing to reset')
             return
 
         for attr in ['start_time', 'history', 'elements']:

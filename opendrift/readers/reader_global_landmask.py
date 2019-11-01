@@ -17,7 +17,6 @@
 from opendrift.readers.basereader import BaseReader
 from opendrift_landmask_data import Landmask
 
-import logging
 import warnings
 import pyproj
 

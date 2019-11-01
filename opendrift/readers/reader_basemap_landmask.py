@@ -14,17 +14,17 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import logging
 
 import os
 import gc
+import logging
 import numpy as np
 import collections
 import matplotlib
 if ('DISPLAY' not in os.environ and
 	    'PYCHARM_HOSTED' not in os.environ and
         os.name != 'nt'):
-    logging.info('No display found. Using non-interactive Agg backend')
+    #self.logger.info('No display found. Using non-interactive Agg backend')
     matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
@@ -41,6 +41,8 @@ from opendrift.readers.basereader import BaseReader
 
 RasterizedBasemap = collections.namedtuple('RasterizedBasemap', 'xmin xmax ymin ymax resolution data')
 
+logger = logging.getLogger('opendrift')  # using common logger
+
 class Reader(BaseReader):
     name = 'basemap_landmask'
     return_block = False  # Vector based, so checks only individual points
@@ -53,7 +55,7 @@ class Reader(BaseReader):
                  resolution='i', projection='merc',
                  rasterize=True, rasterize_resolution=500):
 
-        logging.debug('Creating Basemap...')
+        self.logger.debug('Creating Basemap...')
         import warnings
         warnings.warn("Prefer the cartopy reader for landmasks.", DeprecationWarning)
 
@@ -95,14 +97,14 @@ class Reader(BaseReader):
         # (if enabled)
         if (rasterize == True):
             if (len(self.map.landpolygons) == 0):
-                logging.debug('No land polygons to rasterize...')
+                self.logger.debug('No land polygons to rasterize...')
                 self.bmap_raster = None
             else:
-                logging.debug('Creating rasterized Basemap...')
+                self.logger.debug('Creating rasterized Basemap...')
                 try:
                     self.bmap_raster = self.gen_land_bitmap(self.map, rasterize_resolution)
                 except Exception as e:
-                    logging.warning('Rasterizing Basemap failed! Continuing without rasterized version. Received "' + e.message + '"')
+                    self.logger.warning('Rasterizing Basemap failed! Continuing without rasterized version. Received "' + e.message + '"')
                     self.bmap_raster = None
         else:
             self.bmap_raster = None
@@ -124,7 +126,7 @@ class Reader(BaseReader):
 
     def zoom_map(self, buffer=0.2,
                  lonmin=None, lonmax=None, latmin=None, latmax=None):
-        logging.info('Zooming basemap to (%s to %s E), (%s to %s N)' %
+        self.logger.info('Zooming basemap to (%s to %s E), (%s to %s N)' %
                      (lonmin, lonmax, latmin, latmax) )
 
         map = Basemap(lonmin, latmin, lonmax, latmax,
@@ -182,7 +184,7 @@ class Reader(BaseReader):
 
         land = (self.bmap_raster.data[y0, x0] == 0)
         coords = np.flatnonzero(land)
-        logging.debug('Checking ' + str(len(coords)) + ' of ' + str(len(x)) + ' coordinates to polygons')
+        self.logger.debug('Checking ' + str(len(coords)) + ' of ' + str(len(x)) + ' coordinates to polygons')
 
         if (len(coords) > 0):
             land[coords] = self.on_land_polycheck(x[coords], y[coords])
@@ -230,7 +232,7 @@ class Reader(BaseReader):
         ymin = xmin
         ymax = xmax
 
-        logging.debug('Rasterizing Basemap, number of land polys: ' + str(len(bmap.landpolygons)))
+        logger.debug('Rasterizing Basemap, number of land polys: ' + str(len(bmap.landpolygons)))
         # If no polys: return a zero map
         if (len(bmap.landpolygons) == 0):
             raise Exception('Basemap contains no land polys to rasterize')
@@ -249,7 +251,7 @@ class Reader(BaseReader):
         ymax = np.ceil(ymax/resolution_meters)*resolution_meters
 
         # For debugging
-        logging.debug('Rasterizing Basemap, bounding box: ' + str([xmin, xmax, ymin, ymax]))
+        logger.debug('Rasterizing Basemap, bounding box: ' + str([xmin, xmax, ymin, ymax]))
 
         # Switch backend to prevent creating an empty figure in notebook
         orig_backend = plt.get_backend()
@@ -268,7 +270,7 @@ class Reader(BaseReader):
         aspect = (xmax-xmin)/(ymax-ymin)
         resolution_dpi = (ymax-ymin) / resolution_meters
         while resolution_dpi > 10000:
-            logging.debug('Too large dpi %s, reducing by factor of 2'
+            self.logger.debug('Too large dpi %s, reducing by factor of 2'
                           % resolution_dpi)
             resolution_meters = resolution_meters*2
             resolution_dpi = (ymax-ymin) / resolution_meters
@@ -288,7 +290,7 @@ class Reader(BaseReader):
             rgb_data = np.frombuffer(canvas.tostring_rgb(), dtype='uint8').reshape(height, width, 3)
             data = rgb_data[:,:,1]
             plt.close(fig) #comment this for debugging purposes and replace with plt.show()
-            logging.debug('Rasterized size: ' + str([width, height]))
+            logger.debug('Rasterized size: ' + str([width, height]))
         except MemoryError:
             gc.collect()
             raise Exception('Basemap rasterized size too large: '
