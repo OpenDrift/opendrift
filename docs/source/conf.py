@@ -20,6 +20,7 @@
 project = 'OpenDrift'
 copyright = '2019, Knut-Frode Dagestad et. al.'
 author = 'Knut-Frode Dagestad et. al.'
+master_doc = 'index'
 
 
 # -- General configuration ---------------------------------------------------
