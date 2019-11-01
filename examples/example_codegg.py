@@ -44,7 +44,6 @@ o.run(steps=96, time_step=3600)
 # Print and plot results
 print(o)
 
-o.plot(filename='codegg_forecast.png')
-o.animation(filename='codegg_forecast.gif')
-o.plot_vertical_distribution(filename='codegg_vertical.png')
-
+o.plot(filename='codegg_forecast.png', fast=True)
+o.animation(filename='codegg_forecast.mp4', fast=True)
+o.plot_vertical_distribution()
