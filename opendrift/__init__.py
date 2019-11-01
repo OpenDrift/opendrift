@@ -66,7 +66,6 @@ def versions():
     import platform
     import scipy
     import matplotlib
-    from mpl_toolkits import basemap
     import netCDF4
     import sys
     s = '\n------------------------------------------------------\n'
@@ -80,7 +79,6 @@ def versions():
     s += '  %s GB memory\n' % ram
     s += '  %s processors (%s)\n' % (multiprocessing.cpu_count(),
                                    platform.processor())
-    s += '  Basemap version %s\n' % basemap.__version__
     s += '  NumPy version %s\n' % np.__version__
     s += '  SciPy version %s\n' % scipy.__version__
     s += '  Matplotlib version %s\n' % matplotlib.__version__
