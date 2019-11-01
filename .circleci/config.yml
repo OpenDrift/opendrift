@@ -26,11 +26,38 @@ jobs:
           root: docs/build
           paths: html
 
+  docs-deploy:
+    docker:
+      - image: node:10
+    steps:
+      - checkout
+      - attach_workspace:
+          at: docs/build
+      - run:
+          name: Disable jekyll builds
+          command: touch docs/build/html/.nojekyll
+      - run:
+          name: Install and configure dependencies
+          command: |
+            npm install -g --silent gh-pages@2.0.1
+            git config user.email "ci-build@opendrift"
+            git config user.name "ci-build"
+
+      - add_ssh_keys:
+          fingerprints:
+            - "49:f4:a4:5c:2f:d4:6a:0f:26:21:a0:f2:d4:3c:71:ff"
+      - run:
+          name: Deploy docs to gh-pages branch
+          command: gh-pages --dotfiles --message "[skip ci] Updates" --dist docs/build/html --repo git@github.com:OpenDrift/opendrift.github.io.git --branch master
+
 workflows:
   version: 2.1
   build:
     jobs:
       - docs-build
+      - docs-deploy:
+          requires:
+            - docs-build
 
   # This workflow will be run on all branches but master (to test)
   build_without_publishing_job:
