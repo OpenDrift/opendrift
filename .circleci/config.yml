@@ -4,7 +4,33 @@ orbs:
   # https://circleci.com/orbs/registry/orb/circleci/docker-publish
   docker-publish: circleci/docker-publish@0.1.3
 
+jobs:
+  docs-build:
+    docker:
+      - image: continuumio/miniconda3
+    steps:
+      - checkout
+      - run:
+          name: Update packages
+          command: apt-get update
+      - run:
+          name: Install packages
+          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin
+      - run:
+          name: Install doc and oillibrary requirements
+          command: conda env create --file docs/docenv.yml
+      - run:
+          name: Build docs
+          command: source activate opendrift_docs && cd docs/ && make html
+      - persist_to_workspace:
+          root: docs/build
+          paths: html
+
 workflows:
+  version: 2.1
+  build:
+    jobs:
+      - docs-build
 
   # This workflow will be run on all branches but master (to test)
   build_without_publishing_job:
@@ -18,7 +44,7 @@ workflows:
           tag: latest
           filters:
             branches:
-              ignore: 
+              ignore:
                 - master
           after_build:
             - run:
@@ -43,7 +69,7 @@ workflows:
           tag: py2
           filters:
             branches:
-              ignore: 
+              ignore:
                 - master
           after_build:
             - run:
@@ -66,7 +92,7 @@ workflows:
           tag: latest
           filters:
             branches:
-              ignore: 
+              ignore:
                 - master
           after_build:
             - run:
