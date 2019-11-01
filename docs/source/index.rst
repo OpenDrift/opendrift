@@ -1,20 +1,52 @@
-.. OpenDrift documentation master file, created by
-   sphinx-quickstart on Thu Oct 31 11:16:57 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. toctree::
+   :hidden:
 
-Welcome to OpenDrift's documentation!
+   self
+
+OpenDrift
 =====================================
 
+OpenDrift is a software for modeling the trajectories and fate of objects or
+substances drifting in the ocean, or even in the atmosphere.
+
+OpenDrift is open source, and is programmed in Python. As the software is very
+generic, it is rather a "framework" than a "trajectory model" in the
+traditional sense. Trajectory models for specific purposes (e.g. oil drift,
+search and rescue, larvae drift etc) may reuse all common functionality from
+the core model, and need only implement a Python Class describing the
+purpose-specific processes (physics/biology etc). See :doc:`theory/specification`
+and :doc:`theory/data_model` for more detailed information.
+
+
+
+Introduction
+==============
+
+Installation
+=============
+
+
+Index
+===============
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
+   :glob:
+
+   theory/specification
+   theory/data_model
+
+   models
+
 
 
 .. autosummary::
    :toctree: _autosummary
 
    opendrift
+
+Reference
+=========
 
 Indices and tables
 ==================
