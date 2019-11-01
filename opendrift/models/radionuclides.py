@@ -100,7 +100,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                        #'sea_ice_area_fraction': 0,
                        'x_wind': 0, 'y_wind': 0,
                        #'sea_floor_depth_below_sea_level': 100,
-                       'ocean_vertical_diffusivity': 0.02,  # m2s-1
+#                       'ocean_vertical_diffusivity': 0.02,  # m2s-1
+                       'ocean_vertical_diffusivity': 0.0001,  # m2s-1
                        'sea_water_temperature': 10.,
                        'sea_water_salinity': 34.,
                        'surface_downward_x_stress': 0,
@@ -167,8 +168,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                 corr_factor        = float(min=0., max=10., default=0.1)
                 porosity           = float(min=0., max=1., default=0.6)
                 layer_thick        = float(min=0., max=100., default=1.)
-                desorption_depth   = float(min=0., max=100., default=1.)
-                desorption_depth_uncert = float(min=0., max=100., default=.5)
+                desorption_depth          = float(min=0., max=100., default=1.)
+                desorption_depth_uncert   = float(min=0., max=100., default=.5)
+                resuspension_depth        = float(min=0., max=100., default=1.)
+                resuspension_depth_uncert = float(min=0., max=100., default=.5)
+                resuspension_critvel      = float(min=0., max=1., default=.01)
             '''
 
 
@@ -295,15 +299,23 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             self.num_lmm   = self.specie_name2num('LMM')
             if self.get_config('radionuclide:species:Colloid'):
                 self.num_col = self.specie_name2num('Colloid')
-            self.num_prev  = self.specie_name2num('Particle reversible')
-            self.num_srev  = self.specie_name2num('Sediment reversible')
+            if self.get_config('radionuclide:species:Particle_reversible'):
+                self.num_prev  = self.specie_name2num('Particle reversible')
+            if self.get_config('radionuclide:species:Sediment_reversible'):
+                self.num_srev  = self.specie_name2num('Sediment reversible')
             if self.get_config('radionuclide:slowly_fraction'):
                 self.num_psrev  = self.specie_name2num('Particle slowly reversible')
                 self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
+            if self.get_config('radionuclide:irreversible_fraction'):
+                self.num_pirrev  = self.specie_name2num('Particle irreversible')
+                self.num_sirrev  = self.specie_name2num('Sediment irreversible')
             
 
-            self.transfer_rates[self.num_lmm,self.num_prev] = 1.e-5 #*0.
-            self.transfer_rates[self.num_srev,self.num_lmm] = 5.e-6 
+            if self.get_config('radionuclide:species:Particle_reversible'):
+                self.transfer_rates[self.num_lmm,self.num_prev] = 1.e-5 #*0.
+            if self.get_config('radionuclide:species:Sediment_reversible'):
+                self.transfer_rates[self.num_srev,self.num_lmm] = 5.e-6 
+            
             if self.get_config('radionuclide:slowly_fraction'):
                 self.transfer_rates[self.num_prev,self.num_psrev] = 2.e-6
                 self.transfer_rates[self.num_srev,self.num_ssrev] = 2.e-6
@@ -476,22 +488,24 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         if transfer_setup == 'Bokna_137Cs' or transfer_setup=='dummy':
             self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
             
-            # Only LMM radionuclides close to seabed are allowed to interact with sediments 
-            # minimum height/maximum depth for each particle
-            Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
-            interaction_thick = self.get_config('radionuclide:sediment:layer_thick')      # thickness of seabed interaction layer (m)  
-            dist_to_seabed = self.elements.z - Zmin
-            self.elements.transfer_rates1D[(self.elements.specie == self.num_lmm) & 
-                             (dist_to_seabed > interaction_thick), self.num_srev] = 0. 
+            if self.get_config('radionuclide:species:Sediment_reversible'):
+                # Only LMM radionuclides close to seabed are allowed to interact with sediments 
+                # minimum height/maximum depth for each particle
+                Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+                interaction_thick = self.get_config('radionuclide:sediment:layer_thick')      # thickness of seabed interaction layer (m)  
+                dist_to_seabed = self.elements.z - Zmin
+                self.elements.transfer_rates1D[(self.elements.specie == self.num_lmm) & 
+                                 (dist_to_seabed > interaction_thick), self.num_srev] = 0. 
             
                              
-            # Modify particle adsorption according to local particle concentration 
-            # (LMM -> reversible particles)
-            kktmp = self.elements.specie == self.num_lmm
-            self.elements.transfer_rates1D[kktmp, self.num_prev] = \
-                        self.elements.transfer_rates1D[kktmp, self.num_prev] * \
-                        self.environment.conc3[kktmp] / 1.e-3
-    #                    self.environment.particle_conc[kktmp] / 1.e-3
+            if self.get_config('radionuclide:species:Particle_reversible'):
+                # Modify particle adsorption according to local particle concentration 
+                # (LMM -> reversible particles)
+                kktmp = self.elements.specie == self.num_lmm
+                self.elements.transfer_rates1D[kktmp, self.num_prev] = \
+                            self.elements.transfer_rates1D[kktmp, self.num_prev] * \
+                            self.environment.conc3[kktmp] / 1.e-3
+        #                    self.environment.particle_conc[kktmp] / 1.e-3
 
         
         elif transfer_setup=='Sandnesfj_Al':
@@ -651,6 +665,12 @@ class RadionuclideDrift(OpenDrift3DSimulation):
     def bottom_interaction(self,Zmin=None):
         ''' Change speciation of radionuclides that reach bottom due to settling. 
         particle specie -> sediment specie '''
+        if not  ((self.get_config('radionuclide:species:Particle_reversible')) & 
+                  (self.get_config('radionuclide:species:Sediment_reversible')) or 
+                  (self.get_config('radionuclide:slowly_fraction')) or 
+                  (self.get_config('radionuclide:irreversible_fraction'))):
+            return
+
         bottom = np.array(np.where(self.elements.z <= Zmin)[0])
         kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_prev)[0])
         self.elements.specie[bottom[kktmp]] = self.num_srev
@@ -666,6 +686,45 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
 
+    def resuspension(self):
+        """ Simple method to estimate the resuspension of sedimented particles, 
+        checking whether the current speed near the bottom is above a critical velocity 
+        Sediment species -> Particle specie
+        """
+        # Exit function if particles and sediments not are present
+        if not  ((self.get_config('radionuclide:species:Particle_reversible')) & 
+                  (self.get_config('radionuclide:species:Sediment_reversible'))):
+            return
+        
+        critvel = self.get_config('radionuclide:sediment:resuspension_critvel')
+        resusp_depth = self.get_config('radionuclide:sediment:resuspension_depth')
+        std = self.get_config('radionuclide:sediment:resuspension_depth_uncert')
+        
+        Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+        x_vel = self.environment.x_sea_water_velocity
+        y_vel = self.environment.y_sea_water_velocity
+        speed = np.sqrt(x_vel*x_vel + y_vel*y_vel)
+        bottom = (self.elements.z <= Zmin)
+
+        resusp = ( (bottom) & (speed >= critvel) ) 
+        logging.info('Number of resuspended particles: {}'.format(np.sum(resusp)))
+        
+        self.elements.z[resusp] = Zmin[resusp] + resusp_depth
+        if std > 0:
+            logging.debug('Adding uncertainty for resuspension from sediments: %s m' % std)
+            self.elements.z[resusp] += np.random.normal(
+                        0, std, sum(resusp))
+        self.elements.z[resusp] = [min(0,zz) for zz in self.elements.z[resusp]]
+        self.ntransformations[self.num_srev,self.num_prev]+=sum((resusp) & (self.elements.specie==self.num_srev))
+        self.elements.specie[(resusp) & (self.elements.specie==self.num_srev)] = self.num_prev
+        if self.get_config('radionuclide:slowly_fraction'):
+            self.ntransformations[self.num_ssrev,self.num_psrev]+=sum((resusp) & (self.elements.specie==self.num_ssrev))
+            self.elements.specie[(resusp) & (self.elements.specie==self.num_ssrev)] = self.num_psrev
+        if self.get_config('radionuclide:irreversible_fraction'):
+            self.ntransformations[self.num_sirrev,self.num_pirrev]+=sum((resusp) & (self.elements.specie==self.num_sirrev))
+            self.elements.specie[(resusp) & (self.elements.specie==self.num_sirrev)] = self.num_pirrev
+        
+        
 
 
 
@@ -677,7 +736,6 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         # Radionuclide speciation
         self.update_transfer_rates()
         self.update_speciation()
-        logging.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
 
 
         # Turbulent Mixing
@@ -685,13 +743,21 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         self.update_terminal_velocity()
         self.vertical_mixing()
 
+        
+        # Resuspension
+        self.resuspension()
+        logging.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
+
+        
+
         # Horizontal advection
         lon, lat = self.elements.lon, self.elements.lat
         self.advect_ocean_current()
         
         # Reset lat lon for sedimented trajectories (reject hor. advection)
-        self.elements.lon[self.elements.specie==self.num_srev]   = lon[self.elements.specie==self.num_srev]
-        self.elements.lat[self.elements.specie==self.num_srev]   = lat[self.elements.specie==self.num_srev]
+        if self.get_config('radionuclide:species:Sediment_reversible'):
+            self.elements.lon[self.elements.specie==self.num_srev]   = lon[self.elements.specie==self.num_srev]
+            self.elements.lat[self.elements.specie==self.num_srev]   = lat[self.elements.specie==self.num_srev]
         if self.get_config('radionuclide:slowly_fraction'):
             self.elements.lon[self.elements.specie==self.num_ssrev] = lon[self.elements.specie==self.num_ssrev]
             self.elements.lat[self.elements.specie==self.num_ssrev] = lat[self.elements.specie==self.num_ssrev]
@@ -704,7 +770,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             self.vertical_advection()
 
         # Reset z for sedimented trajectories (reject vertical advection and mixing)
-        self.elements.z[self.elements.specie==self.num_srev]   = z_before[self.elements.specie==self.num_srev]
+        if self.get_config('radionuclide:species:Sediment_reversible'):
+            self.elements.z[self.elements.specie==self.num_srev]   = z_before[self.elements.specie==self.num_srev]
         if self.get_config('radionuclide:slowly_fraction'):
             self.elements.z[self.elements.specie==self.num_ssrev] = z_before[self.elements.specie==self.num_ssrev]
         if self.get_config('radionuclide:irreversible_fraction'):

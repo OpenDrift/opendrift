@@ -40,56 +40,57 @@ td=datetime.today()
 #latseed= 59.09; lonseed= 5.39   # Boknafjorden, Kvitsoy
 
 # Sandnesfjorden case
-reader_sandnesfj = reader_ROMS_native.Reader('/home/magnes/projects/openDrift-RAD/data/norfjords_32m_his.nc4_20080???01-2008????00')
-o.add_reader([reader_sandnesfj])
-time = datetime(2008,4,21,1)   # Sandnesfj
-latseed= 58.6872; lonseed= 9.0919  # Laget, Sandnesfjorden, Risr
+#reader_global = reader_global_landmask.Reader()
+#reader_sandnesfj = reader_ROMS_native.Reader('/home/magnes/projects/openDrift-RAD/data/norfjords_32m_his.nc4_20080???01-2008????00')
+#o.add_reader([reader_sandnesfj])
+#time = datetime(2008,4,21,1)   # Sandnesfj
+#latseed= 58.6872; lonseed= 9.0919  # Laget, Sandnesfjorden, Risr
 #latseed= 58.6825; lonseed= 9.0717  # Laget, Sandnesfjorden, Risr
+
+
+# Sandnesfjorden 2 case
+reader_sandnesfj = reader_ROMS_native.Reader('/home/magnes/projects/openDrift-RAD/data/norfjords_32m_his.nc4_20180???00-2018????23')
+o.add_reader([reader_sandnesfj])
+time = datetime(2018,6,20,5)   # Sandnesfj
+latseed= 58.6722; lonseed= 8.9870  # Storelva, Sandnesfjorden, Risr
+#latseed= 58.6731; lonseed= 9.00479  # Sundet mellom Songev og Nevestadfj, Sandnesfj, Risr
 
 #print reader_sandnesfj
 
 
-ntraj=1900
+ntraj=2000
 #init_speciation = np.random.randint(o.nspecies,size=ntraj)
-iniz=np.random.rand(ntraj) * -2.
+iniz=np.random.rand(ntraj) * -1.5
 init_speciation = np.ones(ntraj)*0
 diam=np.zeros_like(init_speciation,dtype=np.float32)
-#diam[init_speciation==o.name_species.index('Particle reversible')] = 0.001
-#diam[init_speciation==o.name_species.index('Particle irreversible')] = 0.001
-#print 'diam',diam
+o.seed_elements(lonseed, latseed, z=iniz, radius=21,number=ntraj,
+                #time=[time, time+timedelta(hours=4)],
+                time=time,
+                diameter=diam, specie=init_speciation)
 
-
-o.seed_elements(lonseed, latseed, z=iniz, radius=1,number=ntraj,
-                time=[time, time+timedelta(hours=24)],
-                #time=time,
-                 diameter=diam, specie=init_speciation)
-
-ntraj=1900
 init_speciation = np.ones(ntraj)*2
-iniz=np.random.rand(ntraj) * -2.
-diam=np.zeros_like(init_speciation,dtype=np.float32)
-o.seed_elements(lonseed, latseed, z=iniz, radius=1,number=ntraj,
-                time=[time, time+timedelta(hours=24)],
-                 diameter=diam, specie=init_speciation)
+o.seed_elements(lonseed, latseed, z=iniz, radius=21,number=ntraj,
+                time=time,
+                #time=[time, time+timedelta(hours=24)],
+                diameter=diam, specie=init_speciation)
 
-ntraj=1900
 init_speciation = np.ones(ntraj)*4
-iniz=np.random.rand(ntraj) * -2.
-diam=np.zeros_like(init_speciation,dtype=np.float32) * 25.e-6
-o.seed_elements(lonseed, latseed, z=iniz, radius=1,number=ntraj,
-                time=[time, time+timedelta(hours=24)],
-                 diameter=diam, specie=init_speciation)
+o.seed_elements(lonseed, latseed, z=iniz, radius=21,number=ntraj,
+                time=time,
+                #time=[time, time+timedelta(hours=24)],
+                diameter=diam, specie=init_speciation)
 
 # Adjusting some configuration
 o.set_config('processes:turbulentmixing', True)
 o.set_config('turbulentmixing:diffusivitymodel','zero')  # include settling without vertical turbulent mixing
+#o.set_config('turbulentmixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
 # Vertical mixing requires fast time step
 o.set_config('turbulentmixing:timestep', 200.) # seconds
 
 # Activate the desired species
 #o.set_config('radionuclide:species:LMM', True)
-o.set_config('radionuclide:species:LMManion', True)
 o.set_config('radionuclide:species:LMMcation', True)
+o.set_config('radionuclide:species:LMManion', True)
 #o.set_config('radionuclide:species:Colloid', True)
 o.set_config('radionuclide:species:Humic_colloid', True)
 o.set_config('radionuclide:species:Polymer', True)
@@ -101,10 +102,15 @@ o.set_config('radionuclide:species:Sediment_reversible', True)
 #o.set_config('radionuclide:species:Sediment_irreversible', True)
 #o.set_config('radionuclide:species:Sediment_slowly_reversible', True)
 
-o.set_config('radionuclide:particle_diameter',25.e-6)  # m
+o.set_config('radionuclide:particle_diameter',5.e-6)  # m
 #o.set_config('radionuclide:particle_diameter_uncertainty',1.e-7) # m
 o.set_config('radionuclide:transformations:Kd',2.e1) # (m3/kg)
 o.set_config('radionuclide:transformations:slow_coeff',1.e-6)
+
+o.set_config('radionuclide:sediment:resuspension_depth',2.)
+o.set_config('radionuclide:sediment:resuspension_depth_uncert',0.1)
+o.set_config('radionuclide:sediment:resuspension_critvel',0.005)
+
 
 #
 #o.set_config('radionuclide:transfer_setup','dummy')
@@ -115,7 +121,7 @@ o.set_config('radionuclide:transfer_setup','Sandnesfj_Al')
 o.set_config('general:coastline_action', 'previous')
 
 #o.set_config('general:basemap_resolution','f')
-o.set_config('general:use_basemap_landmask',False)
+o.set_config('general:use_auto_landmask',False)
 
 o.list_configspec()
 
@@ -134,7 +140,8 @@ print (o.ntransformations)
 
 o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
-            colorbar=True)
+            colorbar=True
+            )
 #o.plot_vertical_distribution()
 #o.plot_property('specie')
 o.animation_profile()
