@@ -19,38 +19,27 @@ and :doc:`theory/data_model` for more detailed information.
 
 
 
-Introduction
-==============
-
 Installation
 =============
 
 
-Index
+Contents
 ===============
 
 .. toctree::
-   :caption: Contents
+   :maxdepth: 3
    :glob:
 
    theory/specification
    theory/data_model
-
    models
+   autoapi/index
 
-
-
-.. autosummary::
-   :toctree: _autosummary
-
-   opendrift
-
-Reference
-=========
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
+.. * :ref:`modindex`
 * :ref:`search`
+* :doc:`autoapi/index`

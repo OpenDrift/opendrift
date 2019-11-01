@@ -3,11 +3,6 @@ Opendrift module
 
 .. currentmodule:: opendrift
 
-.. autosummary::
-    :toctree: _autosummary
-
-    opendrift.models
-
 """
 import logging
 import unittest
