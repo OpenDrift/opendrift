@@ -31,7 +31,7 @@ except NameError:
 
 # Defining the oil element properties
 class Oil3D(Oil):
-    """Extending Oil class with variables relevant for the vertical."""
+    """Defining properties of an oil object/particles."""
 
     variables = Oil.add_variables([
         # Entrainment length scale, see Tkalich and Chan (2002)
@@ -47,10 +47,17 @@ class Oil3D(Oil):
 class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     """Open source oil trajectory model based on the OpenDrift framework.
 
-        Developed at MET Norway based on oil weathering parameterisations
-        found in open/published litterature.
-
-        Under construction.
+        The OpenOil oil drift model is described e.g. in 
+	Rohrs, J., Dagestad, K.-F., Asbjornsen, H., Nordam, T., Skancke, J.,
+	Jones, C. E., and Brekke, C.: The effect of vertical mixing on the 
+	horizontal drift of oil spills, Ocean Sci., 14, 1581-1601,
+	https://doi.org/10.5194/os-14-1581-2018, 2018.
+	
+        Example usage:
+	
+	.. code-block:: python
+	   from opendrift.models.openoil3D import OpenOil3D
+	   o = OpenOil3D()
     """
 
     ElementType = Oil3D
