@@ -14,7 +14,6 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import logging
 from bisect import bisect_left, bisect_right
 from datetime import datetime
 
@@ -80,15 +79,15 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filestr)
+            self.logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logging.info('Opening files with MFDataset')
+                self.logger.info('Opening files with MFDataset')
                 def drop_non_essential_vars_pop(ds):
                     dropvars = [v for v in ds.variables if v not in
                                 list(self.ROMS_variable_mapping.keys()) + gls_param +
                                 ['ocean_time', 's_rho', 'Cs_r', 'hc', 'angle']
                                 and v[0:3] not in ['lon', 'lat', 'mas']]
-                    logging.debug('Dropping variables: %s' % dropvars)
+                    self.logger.debug('Dropping variables: %s' % dropvars)
                     ds = ds.drop(dropvars)
                     return ds
                 if has_xarray is True:
@@ -99,7 +98,7 @@ class Reader(BaseReader):
                 else:
                     self.Dataset = MFDataset(filename)
             else:
-                logging.info('Opening file with Dataset')
+                self.logger.info('Opening file with Dataset')
                 if has_xarray is True:
                     self.Dataset = xr.open_dataset(filename)
                 else:
@@ -118,7 +117,7 @@ class Reader(BaseReader):
                 self.sigma = self.Dataset.variables['s_rho'][:]
             except:
                 num_sigma = len(self.Dataset.dimensions['s_rho'])
-                logging.warning(
+                self.logger.warning(
                     's_rho not available in dataset, constructing from'
                     ' number of layers (%s).' % num_sigma)
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
@@ -164,10 +163,10 @@ class Reader(BaseReader):
             for gls_par in gls_param:
                 self.gls_parameters[gls_par] = \
                     self.Dataset.variables[gls_par][()]
-            logging.info('Read GLS parameters from file.')
+            self.logger.info('Read GLS parameters from file.')
         except Exception as e:
-            logging.info(e)
-            logging.info('Did not find complete set of GLS parameters')
+            self.logger.info(e)
+            self.logger.info('Did not find complete set of GLS parameters')
 
         # Get time coverage
         try:
@@ -182,7 +181,7 @@ class Reader(BaseReader):
         else:
             time_units = ocean_time.__dict__['units']
             if time_units == 'second':
-                logging.info('Ocean time given as seconds relative to start '
+                self.logger.info('Ocean time given as seconds relative to start '
                              'Setting artifical start time of 1 Jan 2000.')
                 time_units = 'seconds since 2000-01-01 00:00:00'
             self.times = num2date(ocean_time[:], time_units)
@@ -275,7 +274,7 @@ class Reader(BaseReader):
         else:
             # Find the range of indices covering given z-values
             if not hasattr(self, 'sea_floor_depth_below_sea_level'):
-                logging.debug('Reading sea floor depth...')
+                self.logger.debug('Reading sea floor depth...')
                 self.sea_floor_depth_below_sea_level = \
                     self.Dataset.variables['h'][:]
 
@@ -381,13 +380,13 @@ class Reader(BaseReader):
             if var.ndim == 4:
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
-                    logging.debug('sigma to z for ' + varname[0])
+                    self.logger.debug('sigma to z for ' + varname[0])
                     if self.precalculate_s2z_coefficients is True:
                         M = self.sea_floor_depth_below_sea_level.shape[0]
                         N = self.sea_floor_depth_below_sea_level.shape[1]
                         O = len(self.z_rho_tot)
                         if not hasattr(self, 's2z_A'):
-                            logging.debug('Calculating sigma2z-coefficients for whole domain')
+                            self.logger.debug('Calculating sigma2z-coefficients for whole domain')
                             starttime = datetime.now()
                             dummyvar = np.ones((O, M, N))
                             dummy, self.s2z_total = depth.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
@@ -397,9 +396,9 @@ class Reader(BaseReader):
                             #self.s2z_I = self.s2z_total[2].reshape(M, N)
                             self.s2z_kmax = self.s2z_total[3]
                             del self.s2z_total  # Free memory
-                            logging.info('Time: ' + str(datetime.now() - starttime))
+                            self.logger.info('Time: ' + str(datetime.now() - starttime))
                         if 'A' not in locals():
-                            logging.debug('Re-using sigma2z-coefficients')
+                            self.logger.debug('Re-using sigma2z-coefficients')
                             # Select relevant subset of full arrays
                             zle = np.arange(zi1, zi2)  # The relevant depth levels
                             A = self.s2z_A.copy()  # Awkward subsetting to prevent losing one dimension
@@ -428,7 +427,7 @@ class Reader(BaseReader):
                             #    import sys; sys.exit('stop')
                             kmax = len(zle)  # Must be checked. Or number of sigma-layers?
                     if 'A' not in locals():
-                        logging.debug('Calculating new sigma2z-coefficients')
+                        self.logger.debug('Calculating new sigma2z-coefficients')
                         variables[par], s2z = depth.multi_zslice(
                             variables[par], z_rho, variables['z'])
                         A,C,I,kmax = s2z
@@ -438,7 +437,7 @@ class Reader(BaseReader):
                         #C = C.reshape(len(zle), len(indx), len(indy))
                         #I = I.reshape(len(indx), len(indy))
                     else:
-                        logging.debug('Applying sigma2z-coefficients')
+                        self.logger.debug('Applying sigma2z-coefficients')
                         # Re-using sigma2z koefficients:
                         F = np.asarray(variables[par])
                         Fshape = F.shape
@@ -464,7 +463,7 @@ class Reader(BaseReader):
             # Skipping de-staggering, as it leads to invalid values at later interpolation
             #if block is True:
             #    # Unstagger grid for vectors
-            #    logging.debug('Unstaggering ' + par)
+            #    self.logger.debug('Unstaggering ' + par)
             #    if 'eta_v' in var.dimensions:
             #        variables[par] = np.ma.array(variables[par],
             #                            mask=variables[par].mask)
@@ -517,7 +516,7 @@ class Reader(BaseReader):
                 or 'x_wind' in variables.keys():
             # We must rotate current vectors
             if not hasattr(self, 'angle_xi_east'):
-                logging.debug('Reading angle between xi and east...')
+                self.logger.debug('Reading angle between xi and east...')
                 self.angle_xi_east = self.Dataset.variables['angle'][:]
             if has_xarray is False:
                 rad = self.angle_xi_east[tuple(np.meshgrid(indy, indx))].T
@@ -543,7 +542,7 @@ class Reader(BaseReader):
         for var in requested_variables:
             variables[var] = np.ma.masked_invalid(variables[var])
         
-        logging.debug('Time for ROMS native reader: ' + str(datetime.now()-start_time))
+        self.logger.debug('Time for ROMS native reader: ' + str(datetime.now()-start_time))
 
         return variables
 

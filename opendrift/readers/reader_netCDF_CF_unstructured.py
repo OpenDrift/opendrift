@@ -20,7 +20,6 @@
 # and presently not fully functional
 #####################################
 
-import logging
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
@@ -64,12 +63,12 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filestr)
+            self.logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logging.info('Opening files with MFDataset')
+                self.logger.info('Opening files with MFDataset')
                 self.Dataset = MFDataset(filename)
             else:
-                logging.info('Opening file with Dataset')
+                self.logger.info('Opening file with Dataset')
                 self.Dataset = Dataset(filename, 'r')
         except Exception as e:
             raise ValueError(e)
@@ -78,7 +77,7 @@ class Reader(BaseReader):
         # and not any projected coordinates
         self.proj4 =  '+proj=latlong'
 
-        logging.debug('Finding coordinate variables.')
+        self.logger.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
@@ -235,7 +234,7 @@ class Reader(BaseReader):
                                  (var_name, var.ndim))
 
             if 'interpolator' not in locals():
-                logging.debug('Making interpolator...')
+                self.logger.debug('Making interpolator...')
                 interpolator = LinearNDInterpolator((self.lat[c],
                                                      self.lon[c]),
                                                     data)

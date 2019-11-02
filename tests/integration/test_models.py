@@ -50,7 +50,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(len(self.o.elements_scheduled), 100)
 
     def test_windblow(self):
-        o = WindBlow(loglevel=30)
+        o = WindBlow(loglevel=0)
         reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
         o.add_reader([reader_arome])
         lat = 67.711251; lon = 13.556971  # Lofoten

@@ -19,7 +19,6 @@
 # from CMEMS, # http://marine.copernicus.eu 
 # This first version fetches current data from Mercator global ocean model
 
-import logging
 
 import os
 from datetime import datetime, timedelta
@@ -47,8 +46,8 @@ class Reader(NCReader):
             time_start.strftime('"%Y-%m-%d %H:%M:%S"'),
             time_end.strftime('"%Y-%m-%d %H:%M:%S"'),
             nc_file, username, password)
-        logging.info('Downloading file from CMEMS server, using motu-client:')
-        logging.info(cmd)
+        self.logger.info('Downloading file from CMEMS server, using motu-client:')
+        self.logger.info(cmd)
         os.system(cmd)
 
         super(Reader, self).__init__(filename=nc_file)
