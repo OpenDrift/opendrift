@@ -20,6 +20,16 @@ purpose-specific processes (physics/biology etc). See
 :doc:`theory/specification` and :doc:`theory/data_model` for more detailed
 information. Some key features of OpenDrift are:
 
+* Open source (GPLv2): providing full transparency.
+* Fast: typical simulation time is about 30 seconds for a 66 hour hour simulation of 1000 particles.
+* Modular: may simulate transport and fate of any kind of particles (oil, ships, persons, icebergs)
+* May use input forcing data (current, wind and waves) from any model, in many file formats and any map projection.
+* May use backup data sources if first choice is temporarily unavailable.
+* Can simulate backwards in time (specify a negative time step).
+* Output is saved to CF-compliant netCDF files.
+* Basic graphical user interface.
+* Can use input from ensemble models.
+
 .. plot::
 
   from datetime import timedelta
@@ -54,16 +64,6 @@ information. Some key features of OpenDrift are:
   o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
 
 
-* Open source (GPLv2): providing full transparency.
-* Fast: typical simulation time is about 30 seconds for a 66 hour hour simulation of 1000 particles.
-* Modular: may simulate transport and fate of any kind of particles (oil, ships, persons, icebergs)
-* May use input forcing data (current, wind and waves) from any model, in many file formats and any map projection.
-* May use backup data sources if first choice is temporarily unavailable.
-* Can simulate backwards in time (specify a negative time step).
-* Output is saved to CF-compliant netCDF files.
-* Basic graphical user interface.
-* Can use input from ensemble models.
-
 Once you have OpenDrift :doc:`installed <install>`, take a look at the
 :doc:`tutorial` on how to get started, or check out the :doc:`gallery
 <gallery_gen/index>` for some examples. The details and physics of each model
@@ -91,9 +91,12 @@ Contents
 
    install
    tutorial
-   gallery_gen/index
    theory/index
-   models
+   choosing_a_model
+   writing_a_new_model
+   gallery_gen/index
+   oil_types
+   interaction_with_coastline
    autoapi/index
 
 
@@ -101,6 +104,6 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-.. * :ref:`modindex`
 * :ref:`search`
 * :doc:`autoapi/index`
+.. * :ref:`modindex`
