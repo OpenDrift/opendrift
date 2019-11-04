@@ -25,5 +25,6 @@ dependencies:
     - sphinx
     - sphinx-rtd-theme
     - sphinx-autoapi
+    - sphinx-gallery
     - livereload
 

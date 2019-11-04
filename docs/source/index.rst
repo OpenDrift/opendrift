@@ -11,40 +11,42 @@ substances drifting in the ocean, or even in the atmosphere.
 
 OpenDrift is open source, and is programmed in Python. As the software is very
 generic, it is rather a "framework" than a "trajectory model" in the
-traditional sense. Trajectory models for specific purposes (e.g. oil drift,
-search and rescue, larvae drift etc) may reuse all common functionality from
-the core model, and need only implement a Python Class describing the
-purpose-specific processes (physics/biology etc). See :doc:`theory/specification`
-and :doc:`theory/data_model` for more detailed information.
+traditional sense. Trajectory models for specific purposes (e.g. :py:mod:`oil
+drift <opendrift.models.openoil>`, :py:mod:`search and rescue
+<opendrift.models.leeway>`, :py:mod:`larvae drift
+<opendrift.models.pelagicegg>` etc) may reuse all common functionality from the
+:py:mod:`core model <opendrift.models.basemodel>`, and need only implement a Python Class describing the
+purpose-specific processes (physics/biology etc). See
+:doc:`theory/specification` and :doc:`theory/data_model` for more detailed
+information. Some key features of OpenDrift are:
 
+* Open source (GPLv2): providing full transparency.
+* Fast: typical simulation time is about 30 seconds for a 66 hour hour simulation of 1000 particles.
+* Modular: may simulate transport and fate of any kind of particles (oil, ships, persons, icebergs)
+* May use input forcing data (current, wind and waves) from any model, in many file formats and any map projection.
+* May use backup data sources if first choice is temporarily unavailable.
+* Can simulate backwards in time (specify a negative time step).
+* Output is saved to CF-compliant netCDF files.
+* Basic graphical user interface.
+* Can use input from ensemble models.
 
-Installation
-=============
+Once you have OpenDrift :doc:`installed <install>`, take a look at the
+:doc:`tutorial` on how to get started, or check out the :doc:`gallery
+<gallery_gen/index>` for some examples. The details and physics of each model
+is documented in the reference, along with specific examples for that model.
+Models can be configured in nuanced ways which are important for more realistic
+simulation (e.g. diffusion for :py:mod:`oil drift <opendrift.models.openoil>`
+simulations). These should also be documented under the reference for the
+particular model. See :py:mod:`opendrift.models` for an overview.
 
-OpenDrift is usually installed as a source package or as a conda package. It is
-also possible to install via `pypi.org <http://pypi.org>`_.
+.. note::
+   If you found OpenDrift useful for your study, please cite it as:
 
-Miniconda
------------
+   Dagestad, K.-F., Röhrs, J., Breivik, Ø., and Ådlandsvik, B.: `OpenDrift v1.0: a generic framework for trajectory modelling <https://www.geosci-model-dev.net/11/1405/2018/gmd-11-1405-2018.pdf>`_, Geosci. Model Dev., 11, 1405-1420, `<https://doi.org/10.5194/gmd-11-1405-2018>`_, 2018.
 
-1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
-2. Set up a *Python 3* environment for opendrift
+   For the oil spill module, please cite in addition to the above:
 
-.. code-block:: bash
-
-   $ conda env create -n opendrift python=3
-   $ conda activate opendrift
-
-3. Install opendrift
-
-.. code-block:: bash
-
-  $ conda install -c opendrift
-
-.. If you exepect to make changes to the the OpenDrift code (e.g. models) it is
-.. probably more convenient to install from source: :ref:`install_source`.
-.. See :doc:`install/pip` or :doc:`install/source`.
-
+   Röhrs, J., Dagestad, K.-F., Asbjørnsen, H., Nordam, T., Skancke, J., Jones, C. E., and Brekke, C.: `The effect of vertical mixing on the horizontal drift of oil spills <https://www.ocean-sci.net/14/1581/2018/>`_, Ocean Sci., 14, 1581-1601, `<https://doi.org/10.5194/os-14-1581-2018>`_, 2018.
 
 Contents
 ===============
@@ -54,8 +56,9 @@ Contents
    :glob:
 
    install
-   theory/specification
-   theory/data_model
+   tutorial
+   gallery_gen/index
+   theory/index
    models
    autoapi/index
 

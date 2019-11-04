@@ -31,7 +31,13 @@ master_doc = 'index'
 
 autoapi_type = 'python'
 autoapi_dirs = [ '../../opendrift' ]
-autoapi_keep_files = False  # set to True when debugging autoapi generated files
+autoapi_keep_files = True  # set to True when debugging autoapi generated files
+
+sphinx_gallery_conf = {
+     'examples_dirs': 'gallery/',   # path to your example scripts
+     'gallery_dirs': './gallery_gen',  # path to where to save gallery generated output,
+     'backreferences_dir': False,
+}
 
 extensions = [
         "sphinx_rtd_theme",
@@ -39,6 +45,7 @@ extensions = [
         "sphinx.ext.autodoc",
         "sphinx.ext.viewcode",
         "sphinx.ext.mathjax",
+        "sphinx_gallery.gen_gallery",
         "matplotlib.sphinxext.plot_directive",
 ]
 

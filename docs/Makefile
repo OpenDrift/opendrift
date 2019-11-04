@@ -19,6 +19,11 @@ help:
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
+clean:
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	rm -rf source/gallery_gen
+	rm -rf source/autoapi
+
 serve:
 	@python serve.py
 
