@@ -29,7 +29,7 @@ Miniconda
 
 
 .. warning::
-   If you exepect to make changes to the the OpenDrift code (e.g. models) it is
+   If you expect to make changes to the the OpenDrift code (e.g. models) it is
    probably more convenient to install from source.
 
 
