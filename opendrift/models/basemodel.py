@@ -2494,20 +2494,23 @@ class OpenDriftSimulation(PhysicsMethods):
             ax.imshow(img, extent=[lonmin, lonmax, latmin, latmax],
                       transform=ccrs.PlateCarree(), cmap=cmap)
 
-        if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask':
+        import shapely
+        from shapely.geometry import box
+
+        if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask' \
+           and not self.readers['global_landmask'].skippoly \
+           and self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax)):
+
             self.logger.debug("Using existing GSHHS shapes..")
-            rname = self.priority_list['land_binary_mask'][0]
-            landmask = self.readers[rname].mask
+            landmask = self.readers['global_landmask'].mask
 
             if fast:
                 show_landmask(landmask)
 
             else:
-                import shapely
-                from shapely.geometry import box
                 extent = box(lonmin, latmin, lonmax, latmax)
                 extent = shapely.prepared.prep(extent)
-                polys = (p for p in landmask.polys.geoms if extent.intersects(p))
+                polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
 
                 ax.add_geometries(polys,
                         ccrs.PlateCarree(),
