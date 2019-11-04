@@ -18,7 +18,7 @@ Miniconda
 
 .. code-block:: bash
 
-   $ conda env create -n opendrift python=3
+   $ conda create -n opendrift python=3
    $ conda activate opendrift
 
 3. Install OpenDrift and dependencies
