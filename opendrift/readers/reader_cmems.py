@@ -24,13 +24,13 @@ import os
 from datetime import datetime, timedelta
 import numpy as np
 
-from .reader_netCDF_CF_generic import Reader as NCReader
+from opendrift.readers.reader_netCDF_CF_generic import Reader as NCReader
 
 
 class Reader(NCReader):
 
     def __init__(self, username, password,
-                 motu='motu-client.py',
+                 motu='motuclient',
                  productID='global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh',
                  motu_URL='http://nrtcmems.mercator-ocean.fr/motu-web/Motu', serviceID='GLOBAL_ANALYSIS_FORECAST_PHY_001_024-TDS',
                  variables=['uo', 'vo'],
@@ -40,12 +40,13 @@ class Reader(NCReader):
                  time_end=datetime.now() + timedelta(days=1)):
 
         nc_file = 'opendrift_cmems_download.nc'
-        cmd = 'python ' + motu + ' --auth-mode=cas -m %s -s %s -d %s -x %s -X %s -y %s -Y %s -z %s -Z %s -t %s -T %s -v uo -v vo -f %s -u %s -p %s' % (
+        cmd = motu + ' --auth-mode=cas -m %s -s %s -d %s -x %s -X %s -y %s -Y %s -z %s -Z %s -t %s -T %s -v uo -v vo -f %s -u %s -p %s' % (
             motu_URL, serviceID, productID,
             lon_min, lon_max, lat_min, lat_max, depth_min, depth_max,
             time_start.strftime('"%Y-%m-%d %H:%M:%S"'),
             time_end.strftime('"%Y-%m-%d %H:%M:%S"'),
             nc_file, username, password)
+        print(cmd, 'CMD')
         self.logger.info('Downloading file from CMEMS server, using motu-client:')
         self.logger.info(cmd)
         os.system(cmd)
