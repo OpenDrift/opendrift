@@ -7,7 +7,7 @@ from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
-o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
@@ -49,5 +49,5 @@ o2.run(steps=66*2, time_step=1800)
 
 
 # Animate and compare the two runs
-o.animation(compare=o2,
+o.animation(fast=True, compare=o2,
             legend=['Current + 3 % wind drift', 'Current only'])
