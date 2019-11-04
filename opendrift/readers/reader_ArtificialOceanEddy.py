@@ -15,8 +15,9 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
+import pyproj
 
-from opendrift.readers.basereader import BaseReader, pyproj
+from opendrift.readers.basereader import BaseReader
 
 
 class Reader(BaseReader):

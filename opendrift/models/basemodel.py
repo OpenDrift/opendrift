@@ -31,6 +31,7 @@ from future.utils import iteritems
 
 import numpy as np
 import scipy
+import pyproj
 import configobj, validate
 try:
     import matplotlib
@@ -52,7 +53,7 @@ except ImportError:
     print('matplotlib and/or cartopy is not available, can not make plots')
 
 import opendrift
-from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
+from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers import reader_from_url
 from opendrift.models.physics_methods import PhysicsMethods
 

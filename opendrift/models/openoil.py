@@ -19,12 +19,12 @@ import os
 import numpy as np
 from datetime import datetime
 import logging
+import pyproj
 import matplotlib.pyplot as plt
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
 import opendrift.models.noaa_oil_weathering as noaa
-from opendrift.readers.basereader import pyproj
 
 try:
     from itertools import izip as zip
@@ -191,7 +191,7 @@ class OpenOil(OpenDriftSimulation):
 
         self.oil_weathering_model = weathering_model
 
-        # Update config with oiltypes 
+        # Update config with oiltypes
         oiltypes = [str(a) for a in self.oiltypes]
         self._add_config('seed:oil_type', oiltypes,
                          'Oil type', overwrite=True)
@@ -219,7 +219,7 @@ class OpenOil(OpenDriftSimulation):
         # Using stereographic coordinates to get regular X and Y
         psproj = pyproj.Proj(
             '+proj=stere +lat_0=%s +lat_ts=%s +lon_0=%s' %
-            (meanlat, meanlat, meanlon)) 
+            (meanlat, meanlat, meanlon))
         X,Y = psproj(self.elements.lon[surface], self.elements.lat[surface])
         mass_bin, x_edge, y_edge, binnumber = binned_statistic_2d(
             X, Y, self.elements.mass_oil[surface],
@@ -446,7 +446,7 @@ class OpenOil(OpenDriftSimulation):
 
             self.oil_water_interfacial_tension = \
                 self.oiltype.oil_water_surface_tension()[0]
-            logging.info('Oil-water surface tension is %f Nm' % 
+            logging.info('Oil-water surface tension is %f Nm' %
                          self.oil_water_interfacial_tension)
         else:
             logging.info('Using default oil-water tension of 0.03Nm')
@@ -1007,7 +1007,7 @@ class OpenOil(OpenDriftSimulation):
                                 'using present time: %s' % time)
 
         ds = gdal.Open(filename)
-        
+
         srcband = ds.GetRasterBand(1)
         data = srcband.ReadAsArray()
 
@@ -1059,7 +1059,7 @@ class OpenOil(OpenDriftSimulation):
             total_area[cat-1] = np.sum(areas)
             layers[cat-1].DeleteFeature(outer)
             layers[cat-1].ResetReading()
-            
+
         # Calculate how many elements to be seeded for each category
         areas_weighted = total_area*thickness_microns
         numbers = number*areas_weighted/np.sum(areas_weighted)

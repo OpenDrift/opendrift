@@ -31,6 +31,7 @@ master_doc = 'index'
 
 autoapi_type = 'python'
 autoapi_dirs = [ '../../opendrift' ]
+autoapi_keep_files = False  # set to True when debugging autoapi generated files
 
 extensions = [
         "sphinx_rtd_theme",
