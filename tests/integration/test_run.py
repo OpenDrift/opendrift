@@ -18,6 +18,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
+import pytest
 from datetime import datetime, timedelta
 import os
 import inspect
@@ -25,7 +26,7 @@ import inspect
 import numpy as np
 
 from opendrift.readers import reader_ArtificialOceanEddy
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_oscillating
@@ -73,10 +74,9 @@ class TestRun(unittest.TestCase):
         self.o = OceanDrift(loglevel=30)
         self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
         self.o.use_block = False
-        self.reader_basemap = reader_basemap_landmask.Reader(
-            llcrnrlon=-1.5, llcrnrlat=59,
-            urcrnrlon=7, urcrnrlat=64, resolution='c')
-        self.o.add_reader([self.fake_eddy, self.reader_basemap])
+        self.reader_landmask = reader_global_landmask.Reader(
+            extent = [-1.5, 59, 7, 64])
+        self.o.add_reader([self.fake_eddy, self.reader_landmask])
 
     def test_seed(self):
         """Test seeding"""
@@ -107,10 +107,9 @@ class TestRun(unittest.TestCase):
         """Test seeding"""
         o = OpenOil3D(loglevel=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        basemap = reader_basemap_landmask.Reader(
-            llcrnrlon=4, llcrnrlat=60, urcrnrlon=6, urcrnrlat=64,
-            resolution='c', projection='merc')
-        o.add_reader([basemap, norkyst])
+        landmask = reader_global_landmask.Reader(
+            llcrnrlon=4, llcrnrlat=60, urcrnrlon=6, urcrnrlat=64)
+        o.add_reader([landmask, norkyst])
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 0
         o.set_config('seed:oil_type', 'SNORRE B')
@@ -369,11 +368,10 @@ class TestRun(unittest.TestCase):
         o1 = OceanDrift(loglevel=30)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        basemap = reader_basemap_landmask.Reader(
+        landmask = reader_global_landmask.Reader(
             llcrnrlon=4.5, llcrnrlat=60.1,
-            urcrnrlon=6.0, urcrnrlat=60.4,
-            resolution='c', projection='merc')
-        o1.add_reader([basemap])
+            urcrnrlon=6.0, urcrnrlat=60.4)
+        o1.add_reader([landmask])
         o1.fallback_values['x_sea_water_velocity'] = 0.8  # onshore drift
         o1.seed_elements(4.8, 60.2, radius=5000, number=100,
                         time=norkyst.start_time)
@@ -383,7 +381,7 @@ class TestRun(unittest.TestCase):
                export_buffer_length=10)
         # Without buffer
         o2 = OceanDrift(loglevel=30)
-        o2.add_reader([basemap])
+        o2.add_reader([landmask])
         o2.fallback_values['x_sea_water_velocity'] = 0.8  # onshore drift
         o2.seed_elements(4.8, 60.2, radius=5000, number=100,
                         time=norkyst.start_time)
@@ -403,11 +401,10 @@ class TestRun(unittest.TestCase):
         o1 = OceanDrift(loglevel=30)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        basemap = reader_basemap_landmask.Reader(
+        landmask = reader_global_landmask.Reader(
             llcrnrlon=4.5, llcrnrlat=60.0,
-            urcrnrlon=5.2, urcrnrlat=60.5,
-            resolution='i', projection='merc')
-        o1.add_reader([basemap, norkyst])
+            urcrnrlon=5.2, urcrnrlat=60.5)
+        o1.add_reader([landmask, norkyst])
         o1.seed_elements(4.96, 60.1, radius=3000, number=100,
                         time=norkyst.start_time)
         o1.run(duration=timedelta(hours=12),
@@ -421,7 +418,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o1.time, time[-1])
         # Second run, with larger output time step
         o2 = OceanDrift(loglevel=30)
-        o2.add_reader([basemap, norkyst])
+        o2.add_reader([landmask, norkyst])
         o2.seed_elements(4.96, 60.1, radius=3000, number=100,
                         time=norkyst.start_time)
         o2.run(duration=timedelta(hours=12),
@@ -432,7 +429,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o2.history.shape, (100,13))
         # Check that start and end conditions (longitudes) are idential
         self.assertIsNone(np.testing.assert_array_equal(
-            o1.history['lon'][:,24].compressed(), 
+            o1.history['lon'][:,24].compressed(),
             o2.history['lon'][:,12].compressed()))
         self.assertIsNone(np.testing.assert_array_equal(
             o1.history['lon'][:,0].compressed(),
@@ -526,6 +523,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
 
+    @pytest.mark.slow
     def test_reader_order(self):
         # Check that we get the same output indepenently of reader order
         o = OceanDrift(loglevel=50)
@@ -533,34 +531,32 @@ class TestRun(unittest.TestCase):
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-        basemap = reader_basemap_landmask.Reader(
-            llcrnrlon=2, llcrnrlat=59.8, urcrnrlon=6, urcrnrlat=61,
-            resolution='c', projection='merc')
+        landmask = reader_global_landmask.Reader(extent = [2, 59.8, 6, 61])
         lon=4.; lat=60.
 
         # First run
-        o.add_reader([basemap, norkyst, arome])
+        o.add_reader([landmask, norkyst, arome])
         o.seed_elements(lon, lat, time=norkyst.start_time)
         o.run(steps=30)
         # Second run
         # Check that we get almost identical results with other projection
         o1 = OceanDrift(loglevel=50)
-        o1.add_reader([norkyst, arome, basemap])
+        o1.add_reader([norkyst, arome, landmask])
         o1.seed_elements(lon, lat, time=norkyst.start_time)
         o1.run(steps=30)
-        self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.lon, o1.elements.lon, 2))
-        self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.lat, o1.elements.lat, 2))
+        np.testing.assert_array_almost_equal(
+            o.elements.lon, o1.elements.lon, 2)
+        np.testing.assert_array_almost_equal(
+            o.elements.lat, o1.elements.lat, 2)
         # Third run
         # Check that this is identical to run 1 if projection set equal
         o2 = OceanDrift(loglevel=50)
-        o2.add_reader([norkyst, arome, basemap])
+        o2.add_reader([norkyst, arome, landmask])
         o2.seed_elements(lon, lat, time=norkyst.start_time)
-        o2.set_projection(basemap.proj4)
+        o2.set_projection(landmask.proj4)
         o2.run(steps=30)
-        self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.lon, o2.elements.lon))
+        np.testing.assert_array_almost_equal(
+                o.elements.lon, o2.elements.lon, decimal=3)
 
     def test_seed_seafloor(self):
         o = OpenOil3D(loglevel=30)
@@ -684,8 +680,8 @@ class TestRun(unittest.TestCase):
         o.add_reader([reader_norkyst],
                      variables='sea_floor_depth_below_sea_level')
         o.fallback_values['x_sea_water_velocity'] = 100 # Pure eastward motion
-        o.fallback_values['y_sea_water_velocity'] = 0   
-        o.fallback_values['land_binary_mask'] = 0   
+        o.fallback_values['y_sea_water_velocity'] = 0
+        o.fallback_values['land_binary_mask'] = 0
         o.seed_elements(3.0, 62.0, z=-200, time=reader_norkyst.start_time)
         o.set_config('processes:turbulentmixing', False)
         o.run(steps=26, time_step=30)
@@ -707,7 +703,6 @@ class TestRun(unittest.TestCase):
 
     def test_seed_on_land(self):
         o = OceanDrift(loglevel=0)
-        o.set_config('general:basemap_resolution', 'c')
         o.seed_elements(lon=9, lat=60, time=datetime.now(), number=100)
         outfile='out.nc'
         with self.assertRaises(ValueError):
@@ -716,24 +711,6 @@ class TestRun(unittest.TestCase):
         os.remove(outfile)
         #o.write_netcdf_density_map(outfile)
         #os.remove(outfile)
-
-    def test_plot_animation(self):
-        o = OceanDrift(loglevel=0)
-        o.set_config('general:basemap_resolution', 'c')
-        o.fallback_values['x_sea_water_velocity'] = .5
-        o.fallback_values['y_sea_water_velocity'] = .3
-        o.seed_elements(lon=3, lat=60, radius=1000,
-                        time=datetime.now(), number=100)
-        o.run(steps=5)
-        # Plot
-        o.plot(filename='test_plot.png')
-        assert os.path.exists('test_plot.png')
-        os.remove('test_plot.png')
-        # Animation
-        # Temporarily skipping mp4 due to bug in Conda
-        #o.animation(filename='test_plot.mp4')
-        #assert os.path.exists('test_plot.mp4')
-        #os.remove('test_plot.mp4')
 
     def test_retirement(self):
         o = OceanDrift(loglevel=0)
@@ -767,7 +744,7 @@ class TestRun(unittest.TestCase):
         o.run(duration=timedelta(hours=5))
         self.assertEqual(o.num_elements_deactivated(), 768)
         self.assertEqual(o.num_elements_active(), 232)
-        
+
     def test_seed_time_backwards_run(self):
         o = OceanDrift(loglevel=20)
         o.set_config('drift:max_age_seconds', 2000)
@@ -813,6 +790,23 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.history.shape[1], 4)
         self.assertEqual(o.history['origin_marker'].min(), 7)
         self.assertEqual(o.history['origin_marker'].max(), 8)
+
+@pytest.mark.slow
+def test_plot_animation(tmpdir):
+    o = OceanDrift(loglevel=0)
+    o.fallback_values['x_sea_water_velocity'] = .5
+    o.fallback_values['y_sea_water_velocity'] = .3
+    o.seed_elements(lon=3, lat=60, radius=1000,
+                    time=datetime.now(), number=100)
+    o.run(steps=5)
+    # Plot
+    o.plot(filename='%s/test_plot.png' % tmpdir, lscale='c')
+    assert os.path.exists('%s/test_plot.png' % tmpdir)
+    # Animation
+    # Temporarily skipping mp4 due to bug in Conda
+    #o.animation(filename='test_plot.mp4')
+    #assert os.path.exists('test_plot.mp4')
+    #os.remove('test_plot.mp4')
 
 if __name__ == '__main__':
     unittest.main()

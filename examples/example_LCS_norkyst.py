@@ -6,7 +6,6 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
-o.set_config('general:basemap_resolution', 'i')
 
 # Norkyst ocean model
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')

@@ -7,78 +7,12 @@ from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
 def test_landmask_global():
-    reader_global = reader_global_landmask.Reader ()
+    reader_global = reader_global_landmask.Reader (extent = [4, 55, 11, 65])
 
     assert reader_global.__on_land__ (np.array([10]), np.array([60])) == [ True ]
     assert reader_global.__on_land__ (np.array([5]), np.array([60])) == [ False]
 
-@pytest.mark.slow
-def test_basemap_setup(benchmark):
-    benchmark(
-        reader_basemap_landmask.Reader,
-            llcrnrlon=-1.5, llcrnrlat=59,
-            urcrnrlon=7, urcrnrlat=64
-        )
-
-def test_global_setup(benchmark):
-    benchmark(reader_global_landmask.Reader)
-
-def test_landmask_many(benchmark):
-    reader_global = reader_global_landmask.Reader()
-    import numpy as np
-
-    y, x = np.mgrid[50:59:50j, -8:2:100j]
-    benchmark(reader_global.__on_land__, x, y)
-
-@pytest.mark.slow
-def test_cartopy_plot(tmpdir):
-    """ Testing global landmask reader against Basemap (directly) """
-    reader_global = reader_global_landmask.Reader()
-
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import cartopy
-    import pyproj
-
-    y = np.linspace (20, 80, 360)
-    x = np.linspace (0, 60, 360)
-
-    c = reader_global.__on_land__(x, y)
-
-    from mpl_toolkits.basemap import Basemap
-    bm = Basemap(projection = 'cyl', resolution = 'c')
-
-    crs = cartopy.crs.PlateCarree(globe = cartopy.crs.Globe())
-    cproj = pyproj.Proj (crs.proj4_init)
-    bproj = pyproj.Proj (bm.proj4string)
-    print (cproj)
-    print (bproj)
-
-    bcrs = cartopy.crs.Mercator(min_latitude = -90, max_latitude=90)
-    (bx, by) = pyproj.transform (cproj, bproj, x, y)
-    b = [bm.is_land (bbx, bby) for bbx, bby in zip (bx, by)]
-
-    from opendrift_landmask_data import GSHHS
-    from shapely import wkb
-    with open (GSHHS['f'], 'rb') as fd:
-      land = wkb.load(fd)
-
-    fig = plt.figure ()
-    ax = plt.axes (projection = cartopy.crs.PlateCarree())
-    ax.add_geometries (land, cartopy.crs.PlateCarree(), facecolor = 'none', edgecolor='black')
-
-    ax.scatter (x[c], y[c], c = 'blue', transform = cartopy.crs.PlateCarree(), label = 'cartopy')
-    ax.scatter (x[b], y[b], marker = 'x', c = 'green', transform = cartopy.crs.PlateCarree(), label = 'basemap')
-    ax.set_global()
-    fig.savefig ('%s/cartopy_plot.png' % tmpdir)
-    print ("plot saved in %s/cartopy_plot.png" % tmpdir)
-
-    assert len(c) == len(x)
-    assert len(c) == len(b)
-    assert np.abs((np.isclose(c, b) == False).sum() / len(c)) <= .028
-
-
-@pytest.mark.slow
+@pytest.mark.veryslow
 def test_basemap_global_matches(test_data):
     reader_global = reader_global_landmask.Reader()
     reader_basemap = reader_basemap_landmask.Reader(
@@ -143,4 +77,40 @@ def test_global_array(test_data):
 
     np.testing.assert_array_equal(en.land_binary_mask, np.array([True, False]))
     assert len(oc.readers) == 2 # make sure opendrift doesn't add default basemap
+
+
+@pytest.mark.veryslow
+def test_plot(tmpdir):
+    print("setting up global landmask")
+    reader_global = reader_global_landmask.Reader(
+                        llcrnrlon=18.64, llcrnrlat=69.537,
+                        urcrnrlon=19.37, urcrnrlat=69.81)
+
+    x = np.linspace(18.641, 19.369, 10)
+    y = np.linspace(69.538, 69.80, 10)
+
+    xx, yy = np.meshgrid(x,y)
+    shp = xx.shape
+    xx = xx.ravel()
+    yy = yy.ravel()
+
+    print ("points:", len(xx))
+
+    import matplotlib.pyplot as plt
+    import cartopy.crs as ccrs
+    import cartopy
+
+    reader = cartopy.feature.GSHHSFeature(scale = 'f')
+
+    plt.figure()
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    c = reader_global.__on_land__(xx,yy).reshape(shp)
+    # c = reader_basemap.__on_land__(xx,yy).reshape(shp)
+    print (c)
+    ex = [18.641, 19.369, 69.538, 69.80]
+    plt.imshow(c, extent = ex, transform = ccrs.PlateCarree())
+    ax.coastlines()
+    # ax.set_global()
+    # plt.show()
+    plt.savefig('%s/cartplot.png' % tmpdir)
 

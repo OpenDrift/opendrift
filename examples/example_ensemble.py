@@ -12,7 +12,6 @@ o = OceanDrift()
 r = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_allmembers_extracted_2_5km_latest.nc')
 o.add_reader(r)
 
-#o.set_config('general:basemap_resolution', 'c')
 o.seed_elements(lat=60, lon=4.8, time=r.start_time,
                 radius=1000, number=10000)
 

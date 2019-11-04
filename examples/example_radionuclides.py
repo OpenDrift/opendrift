@@ -120,8 +120,12 @@ o.set_config('radionuclide:transfer_setup','Sandnesfj_Al')
 # By default, radionuclides do not strand towards coastline
 o.set_config('general:coastline_action', 'previous')
 
+<<<<<<< HEAD
 #o.set_config('general:basemap_resolution','f')
 o.set_config('general:use_auto_landmask',False)
+=======
+#o.set_config('general:use_basemap_landmask',False)
+>>>>>>> refs/heads/master
 
 o.list_configspec()
 

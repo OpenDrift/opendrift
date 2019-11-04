@@ -1,5 +1,4 @@
 import logging
-
 from future.utils import iteritems
 import numpy as np
 from scipy.ndimage import map_coordinates
@@ -7,12 +6,14 @@ import scipy.ndimage as ndimage
 from scipy.interpolate import interp1d, LinearNDInterpolator
 
 
+logger = logging.getLogger('opendrift')  # using common logger
+
 def expand_numpy_array(data):
     if isinstance(data, np.ma.MaskedArray):
-        logging.warning('Converting masked array to numpy array before interpolating')
+        self.logger.warning('Converting masked array to numpy array before interpolating')
         data = np.ma.filled(data, fill_value=np.nan)
     if not np.isfinite(data).any():
-        logging.warning('Only NaNs, returning')
+        self.logger.warning('Only NaNs, returning')
         return
     mask = ~np.isfinite(data)
     data[mask] = np.finfo(np.float64).min
@@ -61,6 +62,9 @@ class NDImage2DInterpolator():
 
 class LinearND2DInterpolator():
 
+
+    logger = logging.getLogger('opendrift')
+
     def __init__(self, xgrid, ygrid, x, y):
         self.block_x, self.block_y = np.meshgrid(xgrid, ygrid)
         self.block_x = self.block_x.ravel()
@@ -80,7 +84,7 @@ class LinearND2DInterpolator():
 
         if hasattr(self, 'interpolator'):
             if not np.array_equal(valid, self.interpolator.valid):
-                logging.debug('Cannot reuse interpolator - validity of '
+                self.logger.debug('Cannot reuse interpolator - validity of '
                               'array is different from original.')
         if hasattr(self, 'interpolator') and (np.array_equal(
                  valid, self.interpolator.valid)):
@@ -104,6 +108,8 @@ class LinearND2DInterpolator():
         
 class Linear2DInterpolator():
 
+    logger = logging.getLogger('opendrift')
+
     def __init__(self, xgrid, ygrid, x, y):
         self.x = x
         self.y = y
@@ -113,10 +119,10 @@ class Linear2DInterpolator():
 
     def __call__(self, array2d):
         if isinstance(array2d,np.ma.MaskedArray):
-            logging.debug('Converting masked array to numpy array for interpolation')
+            self.logger.debug('Converting masked array to numpy array for interpolation')
             array2d = np.ma.filled(array2d, fill_value=np.nan)
         if not np.isfinite(array2d).any():
-            logging.warning('Only NaNs input to linearNDFast - returning')
+            self.logger.warning('Only NaNs input to linearNDFast - returning')
             return np.nan*np.ones(len(self.xi))
     
         # Fill NaN-values with nearby real values
@@ -127,9 +133,9 @@ class Linear2DInterpolator():
         while len(missing) > 0:
             i += 1
             if i > 10:
-                logging.warning('Still NaN-values after 10 iterations, exiting!')
+                self.logger.warning('Still NaN-values after 10 iterations, exiting!')
                 return interp
-            logging.debug('NaN values for %i elements, expanding data %i' %
+            self.logger.debug('NaN values for %i elements, expanding data %i' %
                           (len(missing), i))
             expand_numpy_array(array2d)
             interp[missing] = map_coordinates(
@@ -220,6 +226,8 @@ def fill_NaN_towards_seafloor(array):
 class ReaderBlock():
     """Class to store and interpolate the output from a reader."""
 
+    logger = logging.getLogger('opendrift')  # using common logger
+
     def __init__(self, data_dict,
                  interpolation_horizontal='linearNDFast',
                  interpolation_vertical='linear'):
@@ -249,14 +257,14 @@ class ReaderBlock():
                                                    fill_value=np.nan)
             # Fill missing data towards seafloor if 3D
             if isinstance(self.data_dict[var], (list,)):
-                logging.warning('Ensemble data currently not extrapolated towards seafloor')
+                self.logger.warning('Ensemble data currently not extrapolated towards seafloor')
             elif self.data_dict[var].ndim == 3:
                 filled = fill_NaN_towards_seafloor(self.data_dict[var])
                 if filled is True:
                     filled_variables.add(var)
                 
         if len(filled_variables) > 0:
-            logging.debug('Filled NaN-values toward seafloor for :'
+            self.logger.debug('Filled NaN-values toward seafloor for :'
                           + str(list(filled_variables)))
 
         # Set 1D (vertical) and 2D (horizontal) interpolators
@@ -278,12 +286,12 @@ class ReaderBlock():
 
         if 'land_binary_mask' in self.data_dict.keys() and \
                 interpolation_horizontal != 'nearest':
-            logging.debug('Nearest interpolation will be used '
+            self.logger.debug('Nearest interpolation will be used '
                           'for landmask, and %s for other variables'
                           % interpolation_horizontal)
 
     def _initialize_interpolator(self, x, y, z=None):
-        logging.debug('Initialising interpolator.')
+        self.logger.debug('Initialising interpolator.')
         self.interpolator2d = self.Interpolator2DClass(self.x, self.y, x, y)
         if self.z is not None and len(np.atleast_1d(self.z)) > 1:
             self.interpolator1d = self.Interpolator1DClass(self.z, z)
@@ -303,7 +311,7 @@ class ReaderBlock():
                 self.interpolator2d_nearest = Nearest2DInterpolator(self.x, self.y, x, y)
             if type(data) is list:
                 num_ensembles = len(data)
-                logging.debug('Interpolating %i ensembles for %s' % (num_ensembles, varname))
+                self.logger.debug('Interpolating %i ensembles for %s' % (num_ensembles, varname))
                 if data[0].ndim == 2:
                     horizontal = np.zeros(x.shape)*np.nan
                 else:

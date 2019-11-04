@@ -17,7 +17,6 @@
 from opendrift.readers.basereader import BaseReader
 from opendrift_landmask_data import Landmask
 
-import logging
 import warnings
 import pyproj
 
@@ -59,8 +58,7 @@ class Reader(BaseReader):
             skippoly (bool): use only rasterized landmask to determine whether points are on land.
         """
 
-        # this projection is copied from cartopy.PlateCarree()
-        self.proj4 = '+ellps=WGS84 +a=57.29577951308232 +proj=eqc +lon_0=0.0 +no_defs'
+        self.proj4 = '+proj=lonlat +ellps=WGS84'
         self.crs = pyproj.CRS(self.proj4)
         self.skippoly = skippoly
 
@@ -84,11 +82,9 @@ class Reader(BaseReader):
 
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
-        self.delta_x = None
-        self.delta_y = None
 
         # setup landmask
-        self.mask = Landmask(extent)
+        self.mask = Landmask(extent, skippoly)
 
     def __on_land__(self, x, y):
         return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)

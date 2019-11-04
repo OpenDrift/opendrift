@@ -21,7 +21,6 @@ reader_osc = reader_oscillating.Reader('x_sea_water_velocity', amplitude=1,
 o.add_reader([reader_osc])  # Oscillating east-west current component
 
 o.fallback_values['y_sea_water_velocity'] = .2  # Adding northwards drift
-o.set_config('general:basemap_resolution', 'i')
 
 ##########################################################
 # Try different options: 'previous', 'stranding', 'none'

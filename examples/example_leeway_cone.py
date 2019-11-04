@@ -20,9 +20,6 @@ lw.fallback_values['y_sea_water_velocity'] = 0
 lw.fallback_values['x_wind'] = 0
 lw.fallback_values['y_wind'] = 0
 
-# Intermediate map resolution is sufficient for large scale
-lw.set_config('general:basemap_resolution', 'i')
-
 # Seed elements along cone, e.g. ship track with
 # increasing uncertainty in position
 lon = [3.6, 5.1]; lat = [61., 59.6];

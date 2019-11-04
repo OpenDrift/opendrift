@@ -898,14 +898,7 @@ class OpenOil(OpenDriftSimulation):
 
         # Specific imports
         import datetime
-        # nxutils: Deprecated since version 1.2.0:
-        # Use contains_points() instead.
-        have_nx = True
-        try:
-            import matplotlib.nxutils as nx
-        except:
-            have_nx = False
-            from matplotlib.path import Path
+        from matplotlib.path import Path
         from xml.etree import ElementTree
         from matplotlib.patches import Polygon
         from mpl_toolkits.basemap import pyproj
@@ -985,10 +978,7 @@ class OpenOil(OpenDriftSimulation):
             lon = lon.ravel()
             lat = lat.ravel()
             points = np.c_[lon, lat]
-            if have_nx:
-                ind = nx.points_inside_poly(points, slick.xy)
-            else:
-                ind = Path(slick.xy).contains_points(points)
+            ind = Path(slick.xy).contains_points(points)
             lonpoints = np.append(lonpoints, lon[ind])
             latpoints = np.append(latpoints, lat[ind])
 

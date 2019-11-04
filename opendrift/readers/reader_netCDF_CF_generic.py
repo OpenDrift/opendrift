@@ -14,8 +14,6 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import logging
-
 from datetime import datetime
 import pyproj
 import numpy as np
@@ -92,15 +90,15 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filestr)
+            self.logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logging.info('Opening files with MFDataset')
+                self.logger.info('Opening files with MFDataset')
                 if has_xarray:
                     self.Dataset = xr.open_mfdataset(filename)
                 else:
                     self.Dataset = MFDataset(filename)
             else:
-                logging.info('Opening file with Dataset')
+                self.logger.info('Opening file with Dataset')
                 if has_xarray:
                     self.Dataset = xr.open_dataset(filename)
                 else:
@@ -108,12 +106,12 @@ class Reader(BaseReader):
         except Exception as e:
             raise ValueError(e)
 
-        logging.debug('Finding coordinate variables.')
+        self.logger.debug('Finding coordinate variables.')
         if proj4 is not None:  # If user has provided a projection apriori
             self.proj4 = proj4
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
-            logging.debug('Parsing variable: ' +  var_name)
+            self.logger.debug('Parsing variable: ' +  var_name)
             var = self.Dataset.variables[var_name]
             #if var.ndim > 1:
             #    continue  # Coordinates must be 1D-array
@@ -138,14 +136,14 @@ class Reader(BaseReader):
                     else:
                         if 'grid_mapping_name' in att:
                             mapping_dict = att_dict
-                            logging.debug(
+                            self.logger.debug(
                                 ('Parsing CF grid mapping dictionary:'
                                 ' ' + str(mapping_dict)))
                             try:
                                 self.proj4, proj =\
                                     proj_from_CF_dict(mapping_dict)
                             except:
-                                logging.info('Could not parse CF grid_mapping')
+                                self.logger.info('Could not parse CF grid_mapping')
                             
             if 'standard_name' in attributes:
                 standard_name = att_dict['standard_name']
@@ -248,7 +246,7 @@ class Reader(BaseReader):
                 else:
                     var_data = var[:]
                 self.realizations = var_data
-                logging.debug('%i ensemble members available'
+                self.logger.debug('%i ensemble members available'
                               % len(self.realizations))
 
         if 'x' not in locals():
@@ -291,7 +289,7 @@ class Reader(BaseReader):
             self.y = y
         else:
             if hasattr(self, 'lon') and hasattr(self, 'lat'):
-                logging.info('No projection found, using lon/lat arrays')
+                self.logger.info('No projection found, using lon/lat arrays')
                 self.xname = lon_var_name
                 self.yname = lat_var_name
             else:
@@ -299,16 +297,16 @@ class Reader(BaseReader):
 
         if not hasattr(self, 'proj4'):
             if self.lon.ndim == 1:
-                logging.debug('Lon and lat are 1D arrays, assuming latong projection')
+                self.logger.debug('Lon and lat are 1D arrays, assuming latong projection')
                 self.proj4 = '+proj=latlong'
             elif self.lon.ndim == 2:
-                logging.debug('Reading lon lat 2D arrays, since projection is not given')
+                self.logger.debug('Reading lon lat 2D arrays, since projection is not given')
                 self.lon = self.lon[:]
                 self.lat = self.lat[:]
                 self.projected = False
 
         if hasattr(self, 'proj4') and 'latlong' in self.proj4 and hasattr(self, 'xmax') and self.xmax > 360:
-            logging.info('Longitudes > 360 degrees, subtracting 360')
+            self.logger.info('Longitudes > 360 degrees, subtracting 360')
             self.xmin -= 360
             self.xmax -= 360
             self.x -= 360
@@ -400,7 +398,7 @@ class Reader(BaseReader):
         variables = {}
 
         if indx.min() < 0 and indx.max() > 0:
-            logging.debug('Requested data block is not continous in file'+
+            self.logger.debug('Requested data block is not continous in file'+
                           ', must read two blocks and concatenate.')
             indx_left = indx[indx<0] + self.numx  # Shift to positive indices
             indx_right = indx[indx>=0]
@@ -409,7 +407,7 @@ class Reader(BaseReader):
             continous = True
         for par in requested_variables:
             if hasattr(self, 'rotate_mapping') and par in self.rotate_mapping:
-                logging.debug('Using %s to retrieve %s' %
+                self.logger.debug('Using %s to retrieve %s' %
                     (self.rotate_mapping[par], par))
                 if par not in self.variable_mapping:
                     self.variable_mapping[par] = \
@@ -472,7 +470,7 @@ class Reader(BaseReader):
             # Ensemble blocks are split into lists
             if ensemble_dim is not None:
                 num_ensembles = variables[par].shape[ensemble_dim]
-                logging.debug('Num ensembles: %i ' % num_ensembles)
+                self.logger.debug('Num ensembles: %i ' % num_ensembles)
                 newvar = [0]*num_ensembles
                 for ensemble_num in range(num_ensembles):
                     newvar[ensemble_num] = \
@@ -509,7 +507,7 @@ class Reader(BaseReader):
         # Rotate any east/north vectors if necessary
         if hasattr(self, 'rotate_mapping'):
             if self.y_is_north() is True:
-                logging.debug('North is up, no rotation necessary')
+                self.logger.debug('North is up, no rotation necessary')
             else:
                 self.rotate_variable_dict(variables)
 

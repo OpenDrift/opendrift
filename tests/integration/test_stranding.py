@@ -42,7 +42,6 @@ class TestStranding(unittest.TestCase):
         o.seed_elements(lon=14.0, lat=68.15, radius=2000, number=100,
                         time=[reader_nordic.start_time,
                               reader_nordic.end_time], z=0)
-        o.set_config('general:basemap_resolution', 'i')
         o.set_config('general:coastline_action', 'stranding')
         o.set_config('turbulentmixing:timestep', 120)
 
@@ -69,7 +68,6 @@ class TestStranding(unittest.TestCase):
         o.seed_elements(lon=13.0, lat=68.0, radius=20000, number=100,
                         time=[reader_arctic.start_time,
                               reader_nordic.end_time], z=-30)
-        o.set_config('general:basemap_resolution', 'c')
         o.set_config('general:coastline_action', 'previous')
         o.set_config('processes:turbulentmixing', False)
         o.max_speed=1

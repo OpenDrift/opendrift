@@ -451,8 +451,7 @@ class OpenDriftGUI(tk.Tk):
         so = Leeway(loglevel=50)
         so.seed_elements(lon=lon, lat=lat, number=5000,
                          radius=radius, time=start_time)
-        so.set_config('general:basemap_resolution', mapres)
-        so.plot(buffer=.5)
+        so.plot(buffer=.5, lscale=mapres)
         del so
 
     def run_opendrift(self):
@@ -536,7 +535,6 @@ class OpenDriftGUI(tk.Tk):
             extra_args = {}
 
         mapres = self.mapresvar.get()[0]
-        self.o.set_config('general:basemap_resolution', mapres)
         self.simulationname = 'opendrift_' + self.model.get() + \
             self.o.start_time.strftime('_%Y%m%d_%H%M')
 
