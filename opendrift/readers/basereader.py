@@ -1217,7 +1217,7 @@ class BaseReader(object):
         xm, ym = map(lon, lat)
         #map.plot(xm, ym, color='gray')
         if variable is None:
-            boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
+            boundary = Polygon(list(zip(xm, ym)), alpha=0.5, ec='k', fc='b')
             plt.gca().add_patch(boundary)
 # add patch to the map
         if title is None:
