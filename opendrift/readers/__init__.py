@@ -55,8 +55,18 @@ def reader_from_url(url, timeout=10):
         except Exception as e:
             # Error code 400 is expected!
             if not isinstance(e, urllib_request.HTTPError) or e.code != 400:
-                logging.warning('ULR %s not accessible: ' % url + str(e))
-                return None
+                status_code = None
+                try:  # Trying with requests library (should be default)
+                    import requests
+                    resp = requests.get(url + '.das')
+                    status_code = resp.status_code
+                except Exception as e:
+                    logging.warning('ULR %s not accessible: ' % url + str(e))
+                    return None
+
+                if status_code >= 400:
+                    logging.warning('ULR %s not accessible: ' % url + str(e))
+                    return None
             try:
                 r = Reader(url)
                 return r
