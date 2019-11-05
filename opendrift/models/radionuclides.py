@@ -241,9 +241,9 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         
         self.nspecies      = len(self.name_species)
-        logging.info( 'Number of species: {}'.format(self.nspecies) )        
+        self.logger.info( 'Number of species: {}'.format(self.nspecies) )        
         for i,sp in enumerate(self.name_species):
-            logging.info( '{:>3} {}'.format( i, sp ) ) 
+            self.logger.info( '{:>3} {}'.format( i, sp ) ) 
     
         self.init_transfer_rates()
 
@@ -256,7 +256,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         transfer_setup=self.get_config('radionuclide:transfer_setup')
         
-        logging.info( 'transfer setup: %s' % transfer_setup)
+        self.logger.info( 'transfer setup: %s' % transfer_setup)
         
 
         self.transfer_rates = np.zeros([self.nspecies,self.nspecies])
@@ -386,7 +386,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             
             
         else:
-            logging.ERROR('No transfer setup available')
+            self.logger.ERROR('No transfer setup available')
 
         
         # Set diagonal to 0. (not possible to transform to present specie)
@@ -395,8 +395,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                 np.fill_diagonal(self.transfer_rates[ii,:,:],0.)
         else:
             np.fill_diagonal(self.transfer_rates,0.)
-        logging.info('nspecies: %s' % self.nspecies)
-        logging.info('Transfer rates:\n %s' % self.transfer_rates)
+        self.logger.info('nspecies: %s' % self.nspecies)
+        self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -534,7 +534,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         # Transformation where ran1 < total probability for transformation
         phaseshift[ ran1 < psum ] = True
         
-        logging.info('Number of transformations: %s' % sum(phaseshift))
+        self.logger.info('Number of transformations: %s' % sum(phaseshift))
         if sum(phaseshift) == 0:
             return
         
@@ -551,15 +551,15 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         # Set the new speciation
         self.elements.specie=specie_out
         
-        logging.debug('old species: %s' % specie_in[phaseshift])
-        logging.debug('new species: %s' % specie_out[phaseshift])
+        self.logger.debug('old species: %s' % specie_in[phaseshift])
+        self.logger.debug('new species: %s' % specie_out[phaseshift])
 
 
         for iin in xrange(self.nspecies):
             for iout in xrange(self.nspecies):
                 self.ntransformations[iin,iout]+=sum((specie_in[phaseshift]==iin) & (specie_out[phaseshift]==iout))
                 
-        logging.debug('Number of transformations total:\n %s' % self.ntransformations )
+        self.logger.debug('Number of transformations total:\n %s' % self.ntransformations )
         
         
         # Update radionuclide properties after transformations
@@ -596,14 +596,14 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = \
                 self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
             if std > 0:
-                logging.debug('Adding uncertainty for desorption from sediments: %s m' % std)
+                self.logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmm) & (sp_in==self.num_srev)))
         if self.get_config('radionuclide:species:LMMcation'):
             self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = \
                 self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
             if std > 0:
-                logging.debug('Adding uncertainty for desorption from sediments: %s m' % std)
+                self.logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmmcation) & (sp_in==self.num_srev)))
 
@@ -623,7 +623,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)] = dia_part 
         std = self.get_config('radionuclide:particle_diameter_uncertainty')
         if std > 0:
-            logging.debug('Adding uncertainty for particle diameter: %s m' % std)
+            self.logger.debug('Adding uncertainty for particle diameter: %s m' % std)
             self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)] += np.random.normal(
                     0, std, sum((sp_out==self.num_prev) & (sp_in!=self.num_prev)))
 
@@ -631,7 +631,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         if self.get_config('radionuclide:slowly_fraction'):
             self.elements.diameter[(sp_out==self.num_psrev) & (sp_in!=self.num_psrev)] = dia_part 
             if std > 0:
-                logging.debug('Adding uncertainty for slowly rev particle diameter: %s m' % std)
+                self.logger.debug('Adding uncertainty for slowly rev particle diameter: %s m' % std)
                 self.elements.diameter[(sp_out==self.num_psrev) & (sp_in!=self.num_psrev)] += np.random.normal(
                     0, std, sum((sp_out==self.num_psrev) & (sp_in!=self.num_psrev)))
 
@@ -639,7 +639,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         if self.get_config('radionuclide:irreversible_fraction'):
             self.elements.diameter[(sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)] = dia_part 
             if std > 0:
-                logging.debug('Adding uncertainty for irrev particle diameter: %s m' % std)
+                self.logger.debug('Adding uncertainty for irrev particle diameter: %s m' % std)
                 self.elements.diameter[(sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)] += np.random.normal(
                     0, std, sum((sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)))
  
@@ -707,11 +707,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         bottom = (self.elements.z <= Zmin)
 
         resusp = ( (bottom) & (speed >= critvel) ) 
-        logging.info('Number of resuspended particles: {}'.format(np.sum(resusp)))
+        self.logger.info('Number of resuspended particles: {}'.format(np.sum(resusp)))
         
         self.elements.z[resusp] = Zmin[resusp] + resusp_depth
         if std > 0:
-            logging.debug('Adding uncertainty for resuspension from sediments: %s m' % std)
+            self.logger.debug('Adding uncertainty for resuspension from sediments: %s m' % std)
             self.elements.z[resusp] += np.random.normal(
                         0, std, sum(resusp))
         self.elements.z[resusp] = [min(0,zz) for zz in self.elements.z[resusp]]
@@ -746,7 +746,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         # Resuspension
         self.resuspension()
-        logging.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
+        self.logger.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
 
         
 
