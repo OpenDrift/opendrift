@@ -542,7 +542,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         ttmp=[]  # list for storing the out specie
         # Loop through each trajectory
-        for ii in xrange(sum(phaseshift)):
+        for ii in range(sum(phaseshift)):
             # Compare random number to the relative probability for each transfer process
             ttmp.append(np.searchsorted(np.cumsum(p[phaseshift][ii]/psum[phaseshift][ii]),ran4[ii]))        
         specie_out[phaseshift] = np.array(ttmp)
@@ -555,8 +555,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         self.logger.debug('new species: %s' % specie_out[phaseshift])
 
 
-        for iin in xrange(self.nspecies):
-            for iout in xrange(self.nspecies):
+        for iin in range(self.nspecies):
+            for iout in range(self.nspecies):
                 self.ntransformations[iin,iout]+=sum((specie_in[phaseshift]==iin) & (specie_out[phaseshift]==iout))
                 
         self.logger.debug('Number of transformations total:\n %s' % self.ntransformations )
