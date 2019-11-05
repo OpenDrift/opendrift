@@ -17,6 +17,7 @@ dependencies:
   - gdal>=2.3.3
   - gitpython
   - pip
+  - requests
   - pytest
   - pytest-cov
   - pytest-benchmark
