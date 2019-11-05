@@ -227,6 +227,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if loglevel < 10:  # 0 is NOTSET, giving no output
                 loglevel=10
             self.logger.setLevel(loglevel)
+            self.logger.handlers = []
             self.logger.addHandler(handler)
             self.logger.propagate = False
 
