@@ -120,17 +120,13 @@ o.set_config('radionuclide:transfer_setup','Sandnesfj_Al')
 # By default, radionuclides do not strand towards coastline
 o.set_config('general:coastline_action', 'previous')
 
-<<<<<<< HEAD
-#o.set_config('general:basemap_resolution','f')
+#o.set_config('general:auto_landmask_resolution','l')
 o.set_config('general:use_auto_landmask',False)
-=======
-#o.set_config('general:use_basemap_landmask',False)
->>>>>>> refs/heads/master
 
 o.list_configspec()
 
 # Running model (until end of driver data)
-o.run(steps=48*9, time_step=400,outfile='../MyTests/radio.nc')
+o.run(steps=2*9, time_step=400,outfile='../MyTests/radio.nc')
 
 # Print and plot results
 print(o)
@@ -144,12 +140,19 @@ print (o.ntransformations)
 
 o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
-            colorbar=True
+            colorbar=True,
+            fast = True
             )
 #o.plot_vertical_distribution()
 #o.plot_property('specie')
-o.animation_profile()
-#o.animation()
-o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1)
+#o.animation_profile()
+o.animation(fast=True,
+            #background='land_binary_mask',
+            #background='sea_floor_depth_below_sea_level'
+            )
+o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,fast=True,
+       #background='land_binary_mask',
+       #background='sea_floor_depth_below_sea_level'
+       )
 #o.animation(density=True,unitfactor=0.1,vmax=1400)
 
