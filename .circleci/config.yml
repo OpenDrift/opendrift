@@ -58,6 +58,9 @@ workflows:
       - docs-deploy:
           requires:
             - docs-build
+          filters:
+            branches:
+             only: master
 
   # This workflow will be run on all branches but master (to test)
   build_without_publishing_job:

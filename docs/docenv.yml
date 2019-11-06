@@ -21,10 +21,10 @@ dependencies:
   - opendrift-landmask-data
   - oil_library-opendrift
   - pip
+  - sphinx
+  - sphinx-autoapi
+  - sphinx-gallery
   - pip:
-    - sphinx
-    - sphinx-rtd-theme
-    - sphinx-autoapi
-    - sphinx-gallery
     - livereload
+    - sphinx-rtd-theme
 
