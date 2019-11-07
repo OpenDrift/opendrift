@@ -11,13 +11,14 @@ also possible to install via `pypi.org <http://pypi.org>`_.
 
 
 Miniconda (recommended)
------------
+-----------------------
 
 1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
 2. Set up a *Python 3* environment for opendrift
 
 .. code-block:: bash
 
+   $ conda config --add channels conda-forge  # recommended, but not necessary
    $ conda create -n opendrift python=3
    $ conda activate opendrift
 
@@ -59,7 +60,7 @@ From source
 -----------
 
 Using Miniconda (recommended)
-===========
++++++++++++++++++++++++++++++
 
 1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
 2. Clone OpenDrift:
@@ -73,6 +74,7 @@ Using Miniconda (recommended)
 
 .. code-block:: bash
 
+  $ conda config --add channels conda-forge  # recommended, but not necessary
   $ conda env create -f conda_python3.yml
   $ conda activate opendrift_p3
   $ pip install -e .
@@ -80,7 +82,7 @@ Using Miniconda (recommended)
 This installs the OpenDrift package as an editable package. You can therefore directly make changes to the repository or fetch the newest changes with :code:`git pull`. You do not need to add OpenDrift to PYTHONPATH as long as you have the :code:`opendrift_p3` environment activated.
 
 Using pip
-=========
+++++++++++
 
 1. Consider creating an exclusive virtual environment for OpenDrift.
 
