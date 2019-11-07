@@ -182,8 +182,73 @@ class PhysicsMethods(object):
                              self.get_config('drift:scheme'))
 
     def advect_with_sea_ice(self):
+        # Runge-Kutta scheme
+        if self.get_config('drift:scheme')[0:11] == 'runge-kutta':
+            x_ice_vel = self.environment.sea_ice_x_velocity
+            y_ice_vel = self.environment.sea_ice_y_velocity
+
+            # Find midpoint
+            az_ice = np.degrees(np.arctan2(x_ice_vel, y_ice_vel))
+            speed_ice = np.sqrt(x_ice_vel*x_ice_vel + y_ice_vel*y_ice_vel)
+            dist_ice = speed_ice*self.time_step.total_seconds()*.5
+            geod = pyproj.Geod(ellps='WGS84')
+            mid_lon, mid_lat, dummy = geod.fwd(self.elements.lon,
+                                               self.elements.lat,
+                                               az_ice, dist_ice, radians=False)
+            # Find current at midpoint, a half timestep later
+            logging.debug('Runge-kutta, fetching half time-step later...')
+            mid_env, profiles, missing = self.get_environment(
+                ['sea_ice_x_velocity', 'sea_ice_y_velocity'],
+                self.time + self.time_step/2,
+                mid_lon, mid_lat, self.elements.z, profiles=None)
+            if self.get_config('drift:scheme') == 'runge-kutta4':
+                logging.debug('Runge-kutta 4th order...')
+                x_ice_vel2 = mid_env['sea_ice_x_velocity']
+                y_ice_vel2 = mid_env['sea_ice_y_velocity']
+                az2_ice = np.degrees(np.arctan2(x_ice_vel2, y_ice_vel2))
+                speed2_ice = np.sqrt(x_ice_vel2*x_ice_vel2 + y_ice_vel2*y_ice_vel2)
+                dist2_ice = speed2_ice*self.time_step.total_seconds()*.5
+                lon2, lat2, dummy = \
+                    geod.fwd(self.elements.lon,
+                             self.elements.lat,
+                             az2_ice, dist2_ice, radians=False)
+                env2, profiles, missing = self.get_environment(
+                    ['sea_ice_x_velocity', 'sea_ice_y_velocity'],
+                    self.time + self.time_step/2,
+                    lon2, lat2, self.elements.z, profiles=None)
+                # Third step
+                x_ice_vel3 = env2['sea_ice_x_velocity']
+                y_ice_vel3 = env2['sea_ice_y_velocity']
+                az3_ice = np.degrees(np.arctan2(x_ice_vel3, y_ice_vel3))
+                speed3_ice = np.sqrt(x_ice_vel3*x_ice_vel3 + y_ice_vel3*y_ice_vel3)
+                dist3_ice = speed3_ice*self.time_step.total_seconds()*.5
+                lon3, lat3, dummy = \
+                    geod.fwd(self.elements.lon,
+                             self.elements.lat,
+                             az3_ice, dist3_ice, radians=False)
+                env3, profiles, missing = self.get_environment(
+                    ['sea_ice_x_velocity', 'sea_ice_y_velocity'],
+                    self.time + self.time_step,
+                    lon3, lat3, self.elements.z, profiles=None)
+                # Fourth step
+                x_ice_vel4 = env3['sea_ice_x_velocity']
+                y_ice_vel4 = env3['sea_ice_y_velocity']
+                u4_ice = (x_ice_vel + 2*x_ice_vel2 + 2* x_ice_vel3 + x_ice_vel4)/6.0
+                v4_ice = (y_ice_vel + 2*y_ice_vel2 + 2* y_ice_vel3 + y_ice_vel4)/6.0
+                # Move particles using runge-kutta4 velocity
+                self.update_positions(u4_ice, v4_ice)
+            else:
+                # Move particles using runge-kutta velocity
+                self.update_positions(mid_env['sea_ice_x_velocity'],
+                                  mid_env['sea_ice_y_velocity'])
+        elif self.get_config('drift:scheme') == 'euler':
+            # Euler scheme
             self.update_positions(self.environment.sea_ice_x_velocity,
                                   self.environment.sea_ice_y_velocity)
+        else:
+            raise ValueError('Drift scheme not recognised: ' +
+                             self.get_config('drift:scheme'))
+            
 
     def advect_wind(self):
         # Elements at/near ocean surface (z>wind_drift_depth) are advected with given percentage
