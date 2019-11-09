@@ -3075,6 +3075,11 @@ class OpenDriftSimulation(PhysicsMethods):
             color_initial = 'gray'
             color_active = 'gray'
 
+        # needed if index_of_first and x have different size...
+        # happens when some elements of x are always masked 
+        x=x[:len(index_of_first),:]
+        y=y[:len(index_of_first),:]
+
         map.scatter(x[range(x.shape[0]), index_of_first],
                     y[range(x.shape[0]), index_of_first], s=markersize,
                     zorder=10, edgecolor='k', linewidths=.2,
