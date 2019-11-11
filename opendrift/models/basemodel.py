@@ -305,6 +305,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.list_configspec()
                 raise ValueError('Wrong configuration')
             if not isinstance(d[s], dict):
+                if ds[s][0:5] == 'float' and value is not None:
+                    value = float(value)
+                if ds[s][0:5] == 'integ' and value is not None:
+                    value = int(value)
                 d[s] = value
             else:
                 d = d[s]
