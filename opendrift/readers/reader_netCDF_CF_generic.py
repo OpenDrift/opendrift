@@ -254,15 +254,15 @@ class Reader(BaseReader):
                 x = self.lon[:]
                 self.xname = lon_var_name
                 self.numx = len(x)
-            else:
-                raise ValueError('Did not find x-coordinate variable')
+            #else:
+            #    raise ValueError('Did not find x-coordinate variable')
         if 'y' not in locals():
             if self.lat.ndim == 1:
                 y = self.lat[:]
                 self.yname = lat_var_name
                 self.numy = len(y)
-            else:
-                raise ValueError('Did not find y-coordinate variable')
+            #else:
+            #    raise ValueError('Did not find y-coordinate variable')
 
         if not hasattr(self, 'unitfactor'):
             self.unitfactor = 1
