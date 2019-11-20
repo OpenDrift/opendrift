@@ -30,16 +30,7 @@ import numpy as np
 
 from opendrift.readers.interpolation import ReaderBlock
 
-try:
-    import pyproj  # Import pyproj
-except:
-    try:
-        # ...alternatively use version included with Basemap
-        from mpl_toolkits.basemap import pyproj
-    except:
-        raise ImportError('pyproj needed for coordinate transformations,'
-                          ' please install from '
-                          'https://code.google.com/p/pyproj/')
+import pyproj
 
 try:
     basestring
@@ -497,7 +488,7 @@ class BaseReader(object):
                     blockvariables_after = block_after.data_dict.keys()
                     blockvars_after = blockvars
                     break
-                
+
             # Swap before- and after-blocks if matching times
             if block_before is not None and block_after is not None:
                 if block_before.time != time_before:
@@ -1217,7 +1208,7 @@ class BaseReader(object):
         xm, ym = map(lon, lat)
         #map.plot(xm, ym, color='gray')
         if variable is None:
-            boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
+            boundary = Polygon(list(zip(xm, ym)), alpha=0.5, ec='k', fc='b')
             plt.gca().add_patch(boundary)
 # add patch to the map
         if title is None:

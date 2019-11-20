@@ -1,3 +1,5 @@
+"""
+"""
 # This file is part of OpenDrift.
 #
 # OpenDrift is free software: you can redistribute it and/or modify
@@ -29,6 +31,7 @@ from future.utils import iteritems
 
 import numpy as np
 import scipy
+import pyproj
 import configobj, validate
 try:
     import matplotlib
@@ -50,7 +53,7 @@ except ImportError:
     print('matplotlib and/or cartopy is not available, can not make plots')
 
 import opendrift
-from opendrift.readers.basereader import pyproj, BaseReader, vector_pairs_xy
+from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers import reader_from_url
 from opendrift.models.physics_methods import PhysicsMethods
 
@@ -227,6 +230,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if loglevel < 10:  # 0 is NOTSET, giving no output
                 loglevel=10
             self.logger.setLevel(loglevel)
+            self.logger.handlers = []
             self.logger.addHandler(handler)
             self.logger.propagate = False
 
@@ -301,6 +305,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.list_configspec()
                 raise ValueError('Wrong configuration')
             if not isinstance(d[s], dict):
+                if ds[s][0:5] == 'float' and value is not None:
+                    value = float(value)
+                if ds[s][0:5] == 'integ' and value is not None:
+                    value = int(value)
                 d[s] = value
             else:
                 d = d[s]
@@ -2490,20 +2498,23 @@ class OpenDriftSimulation(PhysicsMethods):
             ax.imshow(img, extent=[lonmin, lonmax, latmin, latmax],
                       transform=ccrs.PlateCarree(), cmap=cmap)
 
-        if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask':
+        import shapely
+        from shapely.geometry import box
+
+        if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask' \
+           and not self.readers['global_landmask'].skippoly \
+           and self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax)):
+
             self.logger.debug("Using existing GSHHS shapes..")
-            rname = self.priority_list['land_binary_mask'][0]
-            landmask = self.readers[rname].mask
+            landmask = self.readers['global_landmask'].mask
 
             if fast:
                 show_landmask(landmask)
 
             else:
-                import shapely
-                from shapely.geometry import box
                 extent = box(lonmin, latmin, lonmax, latmax)
                 extent = shapely.prepared.prep(extent)
-                polys = (p for p in landmask.polys.geoms if extent.intersects(p))
+                polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
 
                 ax.add_geometries(polys,
                         ccrs.PlateCarree(),

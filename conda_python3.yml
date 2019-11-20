@@ -1,5 +1,6 @@
 name: opendrift_p3
 channels:
+  - opendrift
   - conda-forge
   - NOAA-ORR-ERD
 dependencies:
@@ -15,20 +16,16 @@ dependencies:
   - configobj
   - libgdal>=2.3.3
   - gdal>=2.3.3
-  - gitpython
-  - pip
+  - requests
   - pytest
   - pytest-cov
   - pytest-benchmark
-  - SQLAlchemy>=1.3
-  - zope.sqlalchemy>=1.1
-  - awesome-slugify
-  - unit_conversion>=2.5
   - ipython
   - cartopy
   - rasterio
+  - opendrift-landmask-data
+  - oil_library-opendrift
+  - pip
   - pip:
     - https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
-    - git+https://github.com/OpenDrift/OilLibrary.git@3f65a60fd4543a8b772622c245b4b3c25d4b8f38
-    - git+https://github.com/OpenDrift/opendrift-landmask-data.git
 

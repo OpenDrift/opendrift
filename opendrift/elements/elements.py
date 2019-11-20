@@ -1,17 +1,17 @@
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 from collections import OrderedDict
@@ -33,11 +33,12 @@ class LagrangianArray(object):
     types, e.g. oil, fish eggs...) to the core variables described below.
 
     Attributes:
+
         variables: An OrderedDict where keys are names of the
             variables/properties of the current object. The values
             of the OrderedDict are dictionaries with names such as
             'dtype', 'unit', 'standard_name' (CF), 'default' etc.
-        All variable names will be added dynamically as attributes of
+            All variable names will be added dynamically as attributes of
             the object after initialisation. These attributes will be
             numpy ndarrays of same length, or scalars. The core variables
             are:
@@ -45,7 +46,7 @@ class LagrangianArray(object):
         status: 0 for active particles and a positive integer when deactivated
         lon: longitude (np.float32)
         lat: latitude (np.float32)
-        z: vertical position of the particle in m, 
+        z: vertical position of the particle in m,
             positive upwards (above sea surface)
     """
 
@@ -154,7 +155,7 @@ class LagrangianArray(object):
             new_data = getattr(other, var)
 
             # If both arrays have an identical scalar, it remains a scalar
-            if (not isinstance(new_data, np.ndarray) and 
+            if (not isinstance(new_data, np.ndarray) and
                 not isinstance(present_data, np.ndarray) and
                 present_data == new_data):
                 continue

@@ -17,13 +17,13 @@
 import logging
 import numpy as np
 from math import sqrt
-from opendrift.readers.basereader import pyproj
+import pyproj
 
 
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
                                  significant_wave_height, mean_wave_period, z):
     # calculate vertical Stokes drift profile from
-    # Breivik et al. 2016, A Stokes drift approximation 
+    # Breivik et al. 2016, A Stokes drift approximation
     # based on the Phillips spectrum, Ocean Mod. 100
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
@@ -53,10 +53,10 @@ def ftle(X, Y, delta, duration):
     ny = X.shape[1]
     J = np.empty([nx,ny,2,2],np.float)
     FTLE = np.empty([nx,ny],np.float)
-    
+
     # gradient
-    dx = np.gradient(X) 
-    dy = np.gradient(Y) 
+    dx = np.gradient(X)
+    dy = np.gradient(Y)
 
     # Jacobian
     J[:,:,0,0] = dx[0] / (2*delta)
@@ -65,7 +65,7 @@ def ftle(X, Y, delta, duration):
     J[:,:,1,1] = dy[1] / (2*delta)
 
     for i in range(0,nx):
-        for j in range(0,ny):       
+        for j in range(0,ny):
             # Green-Cauchy tensor
             D = np.dot(np.transpose(J[i,j]), J[i,j])
             # its largest eigenvalue
@@ -231,7 +231,7 @@ class PhysicsMethods(object):
 
         x_wind = self.environment.x_wind.copy()
         y_wind = self.environment.y_wind.copy()
-        
+
         try:
             if self.get_config('drift:relative_wind') is True:
                 # Use wind relative to (subtracted) ocean current
@@ -498,7 +498,7 @@ class PhysicsMethods(object):
                                      lat=self.elements.lat,
                                      z=0*self.elements.lon, profiles=None)
             sea_floor_depth = \
-                env['sea_floor_depth_below_sea_level'].astype('float32') 
+                env['sea_floor_depth_below_sea_level'].astype('float32')
         return sea_floor_depth
 
     def lift_elements_to_seafloor(self):

@@ -24,8 +24,9 @@
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
+import pyproj
 
-from opendrift.readers.basereader import BaseReader, pyproj
+from opendrift.readers.basereader import BaseReader
 
 
 class Reader(BaseReader):
