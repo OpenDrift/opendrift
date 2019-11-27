@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 from . import *
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
@@ -11,53 +10,6 @@ def test_landmask_global():
 
     assert reader_global.__on_land__ (np.array([10]), np.array([60])) == [ True ]
     assert reader_global.__on_land__ (np.array([5]), np.array([60])) == [ False]
-
-@pytest.mark.veryslow
-def test_basemap_global_matches(test_data):
-    reader_global = reader_global_landmask.Reader()
-    reader_basemap = reader_basemap_landmask.Reader(
-                    llcrnrlon=4, llcrnrlat=59,
-                    urcrnrlon=18, urcrnrlat=68.1,
-                    resolution='i', projection='merc')
-
-    reader_nordic = reader_ROMS_native.Reader(test_data +
-        '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-
-    land = (np.array([15.]), np.array([65.6]))
-    ocean = (np.array([5.]), np.array([65.6]))
-
-    # basemap
-    ob = OceanDrift(loglevel = 00)
-    ob.add_reader ([reader_nordic, reader_basemap])
-
-    en, en_prof, missing = ob.get_environment (['land_binary_mask'],
-            reader_nordic.start_time,
-            land[0], land[1], np.array([0]), None)
-
-    assert en.land_binary_mask == np.array([True])
-
-    en, en_prof, missing = ob.get_environment (['land_binary_mask'],
-            reader_nordic.start_time,
-            ocean[0], ocean[1], np.array([0]), None)
-
-    assert en.land_binary_mask == np.array([False])
-    assert len(ob.readers) == 2
-
-    # global landmask
-    oc = OceanDrift(loglevel = 00)
-    oc.add_reader ([reader_nordic, reader_global])
-    en, en_prof, missing = oc.get_environment (['land_binary_mask'],
-            reader_nordic.start_time,
-            land[0], land[1], np.array([0]), None)
-
-    assert en.land_binary_mask == np.array([True])
-
-    en, en_prof, missing = oc.get_environment (['land_binary_mask'],
-            reader_nordic.start_time,
-            ocean[0], ocean[1], np.array([0]), None)
-
-    assert en.land_binary_mask == np.array([False])
-    assert len(oc.readers) == 2 # make sure opendrift doesn't add default basemap
 
 def test_global_array(test_data):
     reader_global = reader_global_landmask.Reader()
