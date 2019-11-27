@@ -1,7 +1,6 @@
 language: python
 
 python:
-  - 2.7
   - 3.7
   - 3.8
 
@@ -17,11 +16,7 @@ matrix:
   fast_finish: true
 
 before_install:
-  - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
-      export DOCKERFILE="Dockerfile.oil.py2" CACHE_FROM="opendrift/opendrift-oil:latest";
-    else
-      export DOCKERFILE="Dockerfile"         CACHE_FROM="opendrift/opendrift:latest";
-    fi
+  - export DOCKERFILE="Dockerfile" CACHE_FROM="opendrift/opendrift:latest"
 
 install:
   - pip install pyyaml coveralls
