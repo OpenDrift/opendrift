@@ -28,6 +28,4 @@ dependencies:
   - oil_library-opendrift
   - pygrib
   - pip
-  - pip:
-    - https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
 
