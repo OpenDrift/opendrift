@@ -42,7 +42,6 @@ script:
   # Python 3 versions
   - if [ $TRAVIS_PYTHON_VERSION == 3.7 ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge python=3.7";
-      docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && pip install https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip";
     fi
 
   - if [ $TRAVIS_PYTHON_VERSION == 3.8 ]; then
