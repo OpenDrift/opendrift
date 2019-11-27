@@ -69,8 +69,8 @@ class TestLeeway(unittest.TestCase):
         # Check that 7 out of 100 elements strand towards coast
         self.lee.run(steps=24, time_step=3600)
         self.assertEqual(self.lee.num_elements_scheduled(), 0)
-        self.assertEqual(self.lee.num_elements_active(), 97)
-        self.assertEqual(self.lee.num_elements_deactivated(), 3)  # stranded
+        self.assertEqual(self.lee.num_elements_active(), 96)
+        self.assertEqual(self.lee.num_elements_deactivated(), 4)  # stranded
         self.lee.export_ascii('leeway_ascii.txt')
         os.remove('leeway_ascii.txt')
 

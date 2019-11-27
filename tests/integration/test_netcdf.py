@@ -62,10 +62,10 @@ class Test(unittest.TestCase):
         #o.plot(filename='o1.png', background='sea_floor_depth_below_sea_level')
         #o2.plot(filename='o2.png', background='sea_floor_depth_below_sea_level')
 
-        self.assertEqual(o.num_elements_active(), 67)
-        self.assertEqual(o2.num_elements_active(), 67)
-        self.assertEqual(o.num_elements_deactivated(), 33)
-        self.assertEqual(o2.num_elements_deactivated(), 33)
+        self.assertEqual(o.num_elements_active(), 33)
+        self.assertEqual(o2.num_elements_active(), 33)
+        self.assertEqual(o.num_elements_deactivated(), 67)
+        self.assertEqual(o2.num_elements_deactivated(), 67)
         self.assertEqual(o.elements.lon[0], o2.elements.lon[0])
 
 if __name__ == '__main__':
