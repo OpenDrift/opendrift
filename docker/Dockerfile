@@ -28,7 +28,7 @@ ADD . /code
 WORKDIR /code
 RUN /opt/conda/bin/conda env create -f conda_python3.yml
 RUN /bin/bash -c '''. activate opendrift_p3 && \
-    python setup.py develop && \
+    pip install -e . && \
     echo "source activate opendrift_p3" > ~/.bashrc'''
 
 WORKDIR /code
