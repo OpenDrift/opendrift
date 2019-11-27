@@ -16,8 +16,6 @@ o.max_speed = 1
 reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
 reader_arctic.interpolation = 'linearND'
 
-#o.add_reader([reader_basemap, reader_arctic])
-#o.add_reader([reader_arctic, reader_basemap])
 o.add_reader([reader_arctic])
 
 # Seeding some particles
@@ -43,7 +41,6 @@ o.set_config('drift:wind_uncertainty',  5)
 
 # Running model (until end of driver data)
 o.run(duration=timedelta(days=4), time_step=3600)
-print(o.readers['basemap_landmask'])
 
 # Print and plot results
 print(o)

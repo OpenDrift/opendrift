@@ -24,7 +24,6 @@ import glob
 
 import numpy as np
 
-from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.openoil3D import OpenOil3D

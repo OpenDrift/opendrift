@@ -4,7 +4,7 @@ Leeway
 ==================================
 """
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
 
@@ -20,13 +20,12 @@ reader_arome = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
 reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(
+# Landmask
+reader_landmask = reader_global_landmask.Reader(
                     llcrnrlon=3.3, llcrnrlat=59.5,
-                    urcrnrlon=5.5, urcrnrlat=62.5, resolution='h',
-                    projection='merc')
+                    urcrnrlon=5.5, urcrnrlat=62.5)
 
-#lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
+#lw.add_reader([reader_norkyst, reader_arome, reader_landmask])
 # Adding readers succesively, and specifying which variables they
 # shall provide. This way, order of adding readers does not matter,
 # except for small rounding differences due to different projection
@@ -34,7 +33,7 @@ lw.add_reader(reader_norkyst,
               variables=['x_sea_water_velocity', 'y_sea_water_velocity'])
 lw.add_reader(reader_arome,
               variables=['x_wind', 'y_wind'])
-lw.add_reader(reader_basemap,
+lw.add_reader(reader_landmask,
               variables=['land_binary_mask'])
 lw.fallback_values['x_sea_water_velocity'] = 0
 lw.fallback_values['y_sea_water_velocity'] = 0
@@ -56,8 +55,4 @@ lw.run(steps=60*4, time_step=900)
 print(lw)
 # lw.animation()
 lw.animation(filename='leeway.gif')
-
-#%%
-# .. image:: /gallery/animations/leeway.gif
-
 lw.plot()

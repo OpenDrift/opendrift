@@ -8,7 +8,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
@@ -17,13 +17,12 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(
+# Landmask
+reader_landmask = reader_global_landmask.Reader(
                     llcrnrlon=4.0, llcrnrlat=59.9,
-                    urcrnrlon=5.5, urcrnrlat=61.2,
-                    resolution='h', projection='merc')
+                    urcrnrlon=5.5, urcrnrlat=61.2)
 
-o.add_reader([reader_basemap, reader_norkyst])
+o.add_reader([reader_landmask, reader_norkyst])
 
 # Seeding some particles
 lons = np.linspace(4.4, 4.6, 10)

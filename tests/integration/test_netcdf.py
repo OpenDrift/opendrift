@@ -20,7 +20,7 @@
 import unittest
 
 from opendrift.readers import reader_ROMS_native
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.models.oceandrift3D import OceanDrift3D
 
 
@@ -29,10 +29,9 @@ class Test(unittest.TestCase):
 
     def test_MFDataset(self):
 
-        reader_basemap = reader_basemap_landmask.Reader(
+        reader_landmask = reader_global_landmask.Reader(
             llcrnrlon=13.5, llcrnrlat=67.1,
-            urcrnrlon=14.6, urcrnrlat=67.7,
-            resolution='i', projection='merc')
+            urcrnrlon=14.6, urcrnrlat=67.7)
 
         o = OceanDrift3D(loglevel=0)
         nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +
@@ -48,14 +47,14 @@ class Test(unittest.TestCase):
         # e0=0, e1=20, x0=40, x1=70
         # ncks -d eta_rho,0,$e1 -d eta_psi,0,$e1 -d eta_v,0,$e1 -d eta_u,0,$e1 -d xi_rho,$x0,$x1 -d xi_psi,$x0,$x1 -d xi_v,$x0,$x1 -d xi_u,$x0,$x1 Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc Nordic_subset.nc -O --fl_fmt=netcdf4_classic
         # ncks -O -d ocean_time,0 Nordic_subset.nc Nordic_subset_day1.nc
-        o.add_reader([reader_basemap, nordicMF_all])
+        o.add_reader([reader_landmask, nordicMF_all])
         o.seed_elements(lon, lat, number=100, radius=5000,
                         time=nordicMF_all.start_time)
         o.run(steps=48, time_step=3600)
 
         # Same run, with multi-file dataset
         o2 = OceanDrift3D(loglevel=30)
-        o2.add_reader([reader_basemap, nordicMF])
+        o2.add_reader([reader_landmask, nordicMF])
         o2.seed_elements(lon, lat, number=100, radius=5000,
                         time=nordicMF_all.start_time)
         o2.run(steps=48, time_step=3600)

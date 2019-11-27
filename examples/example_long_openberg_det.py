@@ -5,7 +5,7 @@ Ice berg (openberg) deterministic
 """
 
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 
 from opendrift.models.openberg import OpenBerg
 
@@ -28,10 +28,9 @@ reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=2.9, llcrnrlat=59.7,
-                        urcrnrlon=4.9, urcrnrlat=61.5, resolution='l',
-                        projection='gall')
-o.add_reader([reader_current,reader_wind,reader_basemap])
+reader_landmask = reader_global_landmask.Reader(llcrnrlon=2.9, llcrnrlat=59.7,
+                        urcrnrlon=4.9, urcrnrlat=61.5)
+o.add_reader([reader_current,reader_wind,reader_landmask])
 
 #######################
 # Seeding elements

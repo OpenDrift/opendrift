@@ -901,7 +901,7 @@ class OpenOil(OpenDriftSimulation):
         from matplotlib.path import Path
         from xml.etree import ElementTree
         from matplotlib.patches import Polygon
-        from mpl_toolkits.basemap import pyproj
+        import pyproj
 
         namespaces = {'od': 'http://cweb.ksat.no/cweb/schema/geoweb/oil',
                       'gml': 'http://www.opengis.net/gml'}
