@@ -22,7 +22,7 @@ import unittest
 from datetime import datetime, timedelta
 import netCDF4
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.pelagicegg import PelagicEggDrift
@@ -40,7 +40,7 @@ class TestRun(unittest.TestCase):
     def test_reader_boundary(self):
         o = PelagicEggDrift(loglevel=0)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-        reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc') 
+        reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
         ######################################################
         # Vertical interpolation is another issue to be fixed:
         reader_nordic.zlevels = reader_arctic.z
@@ -89,7 +89,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
                         z=np.linspace(-90, 0, 10),
                         time=reader_nordic.start_time)
-        o.set_config('general:use_basemap_landmask', False)
+        o.set_config('general:use_auto_landmask', False)
         o.run(steps=5)
 
         o2 = OceanDrift3D(loglevel=30)
@@ -98,18 +98,18 @@ class TestRun(unittest.TestCase):
         o2.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
                         z=np.linspace(-90, 0, 10),
                         time=reader_nordic.start_time)
-        o2.set_config('general:use_basemap_landmask', False)
+        o2.set_config('general:use_auto_landmask', False)
         o2.run(steps=5)
-    
+
         o3 = OceanDrift3D(loglevel=30)
         o3.add_reader(reader_nordic)
         o3.set_config('drift:truncate_ocean_model_below_m', 50)
         o3.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
                         z=np.linspace(-90, 0, 10),
                         time=reader_nordic.start_time)
-        o3.set_config('general:use_basemap_landmask', False)
+        o3.set_config('general:use_auto_landmask', False)
         o3.run(steps=5)
-    
+
         # Final depths should not be affected
         self.assertIsNone(np.testing.assert_array_almost_equal(
             o.elements.z, o3.elements.z))

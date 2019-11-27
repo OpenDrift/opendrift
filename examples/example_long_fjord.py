@@ -6,7 +6,7 @@ Fjord
 
 from datetime import timedelta
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
 
@@ -20,13 +20,12 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# Making customised, full resolution landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(
+# Making customised, full resolution landmask
+reader_landmask = reader_global_landmask.Reader(
                     llcrnrlon=5.5, llcrnrlat=61.05,
-                    urcrnrlon=6.65, urcrnrlat=61.21, resolution='f',
-                    projection='merc')
+                    urcrnrlon=6.65, urcrnrlat=61.21)
 
-o.add_reader([reader_basemap, reader_norkyst, reader_arome])
+o.add_reader([reader_landmask, reader_norkyst, reader_arome])
 
 # Seed elements
 lat = 61.117594; lon = 6.55

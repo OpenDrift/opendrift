@@ -6,7 +6,7 @@ Openberg stat
 
 from datetime import datetime, timedelta
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_current_from_track
 
@@ -40,11 +40,10 @@ reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
 					wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
 
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3., llcrnrlat=61.,
-                        urcrnrlon=5., urcrnrlat=61.8, resolution='l',
-                        projection='gall')
+reader_landmask = reader_global_landmask.Reader(llcrnrlon=3., llcrnrlat=61.,
+                        urcrnrlon=5., urcrnrlat=61.8)
 
-o.add_reader([reader_current,reader_wind,reader_basemap])
+o.add_reader([reader_current,reader_wind,reader_landmask])
 
 #######################
 # Seeding elements

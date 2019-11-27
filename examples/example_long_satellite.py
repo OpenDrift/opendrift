@@ -4,7 +4,7 @@ Satellite
 ==================================
 """
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
@@ -18,12 +18,11 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3.5, llcrnrlat=60.4,
-                    urcrnrlon=7, urcrnrlat=61.8,
-                    resolution='h', projection='merc')
+# Landmask
+reader_landmask = reader_global_landmask.Reader(llcrnrlon=3.5, llcrnrlat=60.4,
+                    urcrnrlon=7, urcrnrlat=61.8)
 
-o.add_reader([reader_basemap, reader_norkyst, reader_arome])
+o.add_reader([reader_landmask, reader_norkyst, reader_arome])
 
 ############################################################
 # Seed oil particles within contour detected from satellite

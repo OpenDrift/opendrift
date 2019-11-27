@@ -6,7 +6,7 @@ ROMS native reader
 
 import numpy as np
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
@@ -16,13 +16,12 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 nordic_native = reader_ROMS_native.Reader(o.test_data_folder() +
     '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
-# Landmask (Basemap)
-reader_basemap = reader_basemap_landmask.Reader(
+# Landmask
+reader_landmask = reader_global_landmask.Reader(
                     llcrnrlon=11.0, llcrnrlat=67.5,
-                    urcrnrlon=16.0, urcrnrlat=69.0,
-                    resolution='h', projection='merc')
+                    urcrnrlon=16.0, urcrnrlat=69.0)
 
-o.add_reader([reader_basemap, nordic_native])
+o.add_reader([reader_landmask, nordic_native])
 
 # Seeding some particles
 time = nordic_native.start_time

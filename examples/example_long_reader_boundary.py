@@ -10,7 +10,7 @@ covering a larger domain (Nordic).
 
 import numpy as np
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
@@ -22,15 +22,14 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 # Nordic4
 reader_nordic4 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
 
-# Landmask (Basemap)
-#reader_basemap = reader_basemap_landmask.Reader(
+# Landmask
+#reader_landmask = reader_global_landmask.Reader(
 #                    llcrnrlon=9.5, llcrnrlat=68.8,
-#                    urcrnrlon=19.0, urcrnrlat=71.2,
-#                    resolution='h', projection='merc')
+#                    urcrnrlon=19.0, urcrnrlat=71.2)
 #
-#o.add_reader([reader_basemap, reader_norkyst, reader_nordic4])
+#o.add_reader([reader_landmask, reader_norkyst, reader_nordic4])
 o.add_reader([reader_norkyst, reader_nordic4])
-#o.add_reader([reader_basemap, reader_norkyst])
+#o.add_reader([reader_landmask, reader_norkyst])
 
 # Seeding some particles
 lons = np.linspace(10.2, 12.2, 50)
