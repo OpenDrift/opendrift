@@ -10,6 +10,8 @@ also possible to install via `pypi.org <http://pypi.org>`_.
    Python 2 reaches end of line in January, 2020. If you need to use Python 2 try using an older version of OpenDrift.
 
 
+.. _miniconda_install:
+
 Miniconda (recommended)
 -----------------------
 
@@ -22,6 +24,9 @@ Miniconda (recommended)
    $ conda create -n opendrift python=3
    $ conda activate opendrift
 
+.. note::
+   Windows users might have to specify `python=3.7.4`.
+
 3. Install OpenDrift and dependencies
 
 .. code-block:: bash
@@ -31,7 +36,7 @@ Miniconda (recommended)
 
 .. warning::
    If you expect to make changes to the the OpenDrift code (e.g. models) it is
-   probably more convenient to install from source.
+   probably more convenient to install from :ref:`source <source_install>`.
 
 
 Using pip
@@ -56,11 +61,39 @@ Using pip
 
   $ pip install opendrift
 
+
+.. _source_install:
+
 From source
 -----------
 
 Using Miniconda (recommended)
 +++++++++++++++++++++++++++++
+
+.. note::
+   There are two main ways of installing OpenDrift from source in a conda environment. If you already have OpenDrift installed and wish to run
+   use the development version the first is preferred. If you wish to set up to run from source the second method is probably more suitable, and
+   corresponds to how OpenDrift is setup in main development.
+
+Already installed
+_________________
+
+1. Follow the instructions in :ref:`miniconda_install`.
+2. Clone OpenDrift:
+
+.. code-block:: bash
+
+   $ git clone https://github.com/OpenDrift/opendrift.git
+   $ cd opendrift/
+
+3. Install as editable:
+
+.. code-block:: bash
+
+   $ pip install -e .
+
+Fresh development environment
+_____________________________
 
 1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
 2. Clone OpenDrift:
