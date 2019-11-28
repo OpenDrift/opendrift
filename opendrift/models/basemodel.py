@@ -2912,6 +2912,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if filename is not None:
             self._save_animation(anim, filename, fps)
+
         else:
             try:
                 plt.show()
@@ -3725,6 +3726,14 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def _save_animation(self, anim, filename, fps):
         self.logger.info('Saving animation to ' + filename + '...')
+
+        import sys
+        if 'sphinx_gallery' in sys.modules:
+            import os
+            adir = os.path.realpath('../docs/source/gallery/animations')
+            os.makedirs(adir, exist_ok=True)
+            filename = os.path.join(adir, filename)
+
         try:
             if filename[-4:] == '.gif':  # GIF
                 self.logger.info('Making animated gif...')
@@ -3763,6 +3772,9 @@ class OpenDriftSimulation(PhysicsMethods):
             self.logger.info('Could not save animation:')
             self.logger.info(e)
             self.logger.debug(traceback.format_exc())
+
+        if 'sphinx_gallery' in sys.modules:
+            plt.close('all')
 
     def calculate_ftle(self, reader=None, delta=None,
                        time=None, time_step=None, duration=None,
