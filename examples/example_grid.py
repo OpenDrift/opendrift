@@ -39,5 +39,8 @@ o.run(steps=66*2, time_step=1800)
 
 # Print and plot results
 print(o)
-o.animation()
+o.animation(filename='grid.gif')
+
+#%%
+# .. image:: /gallery/animations/grid.gif
 #o.plot()

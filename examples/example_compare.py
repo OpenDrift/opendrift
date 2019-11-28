@@ -54,4 +54,9 @@ o2.run(steps=66*2, time_step=1800)
 
 # Animate and compare the two runs
 o.animation(fast=True, compare=o2,
-            legend=['Current + 3 % wind drift', 'Current only'])
+            legend=['Current + 3 % wind drift', 'Current only'],
+            filename='compare.gif')
+
+
+#%%
+# .. image:: /gallery/animations/compare.gif

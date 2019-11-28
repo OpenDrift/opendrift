@@ -64,8 +64,12 @@ o.run(time_step=3600,steps=steps)
 #########################
 # Print and plot results
 #########################
-o.plot(filename='example_det.pdf')
-o.animation(filename='example_det.mp4')
+o.plot()
+o.animation(filename='example_det.gif')
+
+
+#%%
+# .. image:: /gallery/animations/example_det.gif
 
 print('############## Latitudes:', o.history['lat'])
 print('############## Longitudes:',o.history['lon'])

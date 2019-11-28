@@ -54,6 +54,10 @@ lw.run(steps=60*4, time_step=900)
 
 # Print and plot results
 print(lw)
-lw.animation()
-#lw.animation(filename='leeway.gif')
+# lw.animation()
+lw.animation(filename='leeway.gif')
+
+#%%
+# .. image:: /gallery/animations/leeway.gif
+
 lw.plot()

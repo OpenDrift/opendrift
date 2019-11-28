@@ -48,4 +48,7 @@ o.run(steps=16*4, time_step=900)
 
 # Print and plot results
 print(o)
-o.animation()
+o.animation(filename='reader_boundary.gif')
+
+#%%
+# .. image:: /gallery/animations/reader_boundary.gif

@@ -53,4 +53,8 @@ plt.show()
 # Print and plot results
 print(o)
 o.animation(compare=o2, legend=[
-    'Original currents', 'Current convoled with kernel of size %s' % N])
+    'Original currents', 'Current convoled with kernel of size %s' % N],
+    filename='convolve_input.gif')
+
+#%%
+# .. image:: /gallery/animations/convolve_input.gif

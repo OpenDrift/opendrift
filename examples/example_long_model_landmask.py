@@ -37,5 +37,8 @@ o2.run(end_time=reader_nordic.end_time, time_step=1800)
 
 
 # Animation illustrating that red particles strand at ocean model land cells, and black particles strand at Basemap land polygons
-o.animation(compare=o2, background='land_binary_mask',
+o.animation(compare=o2, filename='model_landmask.gif', background='land_binary_mask',
             legend=['Basemap landmask', 'Ocean model landmask'])
+
+#%%
+# .. image:: /gallery/animations/model_landmask.gif

@@ -47,5 +47,9 @@ print(o.readers['basemap_landmask'])
 
 # Print and plot results
 print(o)
-o.animation()
+o.animation(filename='oil_ice.gif')
+
+#%%
+# .. image:: /gallery/animations/oil_ice.gif
+
 o.plot(background='sea_ice_area_fraction')

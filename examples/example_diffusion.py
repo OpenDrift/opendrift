@@ -36,4 +36,7 @@ o2.set_config('drift:current_uncertainty', .2) # Difference from first run
 o2.run(duration=timedelta(hours=24))
 
 # Comparing
-o2.animation(compare=o, legend=['0.2 m/s std for current components', 'No diffusion'], legend_loc='upper center')
+o2.animation(filename='diffusion.gif', compare=o, legend=['0.2 m/s std for current components', 'No diffusion'], legend_loc='upper center')
+
+#%%
+# .. image:: /gallery/animations/diffusion.gif

@@ -37,6 +37,7 @@ autoapi_keep_files = True  # set to True when debugging autoapi generated files
 sphinx_gallery_conf = {
      'examples_dirs': '../../examples/',   # path to your example scripts
      'gallery_dirs': './gallery',  # path to where to save gallery generated output,
+     'filename_pattern': '/example_(?!long_)',
      'backreferences_dir': False,
      'capture_repr': ('_repr_html_', '__repr__'),
      'abort_on_example_error': True
@@ -73,6 +74,7 @@ exclude_patterns = []
 #
 html_logo = '../opendrift_logo.png'
 html_theme = 'sphinx_rtd_theme'
+html_theme_options = { 'github_url': 'https://github.com/OpenDrift/opendrift' }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

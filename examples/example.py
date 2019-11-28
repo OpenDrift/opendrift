@@ -63,8 +63,6 @@ o.plot(fast=True)
 o.animation(fast=True, filename='openoil_time_seed.gif')
 
 #%%
-# Here is the animation:
-#
 # .. image:: /gallery/animations/openoil_time_seed.gif
 
 #o.plot_property('mass_oil')

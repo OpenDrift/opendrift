@@ -72,4 +72,7 @@ o.plot_property('z')
 o.plot_property('mass_evaporated')
 o.plot_property('water_fraction')
 o.plot_property('interfacial_area')
-o.animation()
+o.animation(filename='oil_budget.gif')
+
+#%%
+# .. image:: /gallery/animations/oil_budget.gif

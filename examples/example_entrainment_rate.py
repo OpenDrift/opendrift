@@ -58,8 +58,16 @@ o2.plot_vertical_distribution()
 o.plot_oil_budget()
 o2.plot_oil_budget()
 legend = ['Tkalich & Chan (2002)', 'Li et al. (2017)']
-o.animation_profile(compare=o2, legend=legend)
-o.animation(compare=o2, legend=legend)
+o.animation_profile(compare=o2, legend=legend, filename='entrainment_rate.gif')
+
+#%%
+# .. image:: /gallery/animations/entrainment_rate.gif
+
+o.animation(compare=o2, legend=legend, filename='entrainment_rate_compare.gif')
+
+
+#%%
+# .. image:: /gallery/animations/entrainment_rate_compare.gif
 
 
 

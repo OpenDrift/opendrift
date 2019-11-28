@@ -35,4 +35,7 @@ o.run(steps=50, time_step=3600)
 # Print and plot results
 print(o)
 o.plot()
-o.animation()
+o.animation(filename='seed_from_shapefile.gif')
+
+#%%
+# .. image:: /gallery/animations/seed_from_shapefile.gif

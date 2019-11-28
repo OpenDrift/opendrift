@@ -51,4 +51,8 @@ o.run(steps=66*2, time_step=1800)
 # Print and plot results
 print(o)
 o.animation(filename="example_checkerboard_anim.gif")
+
+#%%
+# .. image:: /gallery/animations/example_checkerboard_anim.gif
+
 #o.plot()

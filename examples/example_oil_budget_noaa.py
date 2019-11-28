@@ -47,7 +47,11 @@ o.run(steps=4*24, time_step=900)
 #o.plot_oil_budget('oil_budget_MartinLingeCrude.png')
 o.plot_oil_budget()
 o.plot()
-o.animation()
+o.animation(filename='oil_budget_noaa.gif')
+
+#%%
+# .. image:: /gallery/animations/oil_budget_noaa.gif
+
 o.plot_property('fraction_evaporated')
 o.plot_property('density')
 o.plot_property('water_fraction')

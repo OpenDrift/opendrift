@@ -41,4 +41,7 @@ print(lw)
 # Print and plot results
 print(lw)
 lw.plot()
-lw.animation()
+lw.animation(filename='leeway_cone.gif')
+
+#%%
+# .. image:: /gallery/animations/leeway_cone.gif

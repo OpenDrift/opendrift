@@ -50,7 +50,12 @@ o1.run(time_step=timestep, time_step_output=timestep_output,
 unitfactor=1e6  # show film thickness in micrometers
 o1.animation(color='oil_film_thickness', fast=True,
              vmin=1e-7*unitfactor, vmax=1e-4*unitfactor,
-             unitfactor=unitfactor, surface_only=True)
+             unitfactor=unitfactor, surface_only=True,
+             filename='oil_thicness.gif')
+
+#%%
+# .. image:: /gallery/animations/oil_thickness.gif
+
 ###################################################################
 # Second run, identical but without updating surface oil thickness
 ###################################################################
@@ -110,4 +115,9 @@ plt.show()
 
 # We see that oil film thickness has virtually no impact on horizontal drift
 o1.animation(compare=o2, fast=True,
-             legend=['Updated film thickness', 'Constant/default film thickness'])
+             legend=['Updated film thickness', 'Constant/default film thickness'],
+             filename='oil_thickness_compare.gif')
+
+#%%
+# .. image:: /gallery/animations/oil_thickness_compare.gif
+

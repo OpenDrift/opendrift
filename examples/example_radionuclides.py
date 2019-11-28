@@ -117,11 +117,18 @@ print (o.ntransformations)
 o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
             colorbar=True,
+            filename='radionuclides.gif'
+
 #            fast = True
             )
+#%%
+# .. image:: /gallery/animations/radionuclides.gif
+
 #o.plot_vertical_distribution()
 #o.plot_property('specie')
-o.animation_profile()
+o.animation_profile(filename='radionuclides_profile.gif')
+#%%
+# .. image:: /gallery/animations/radionuclides_profile.gif
 
 o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,#fast=True,
 #       background='land_binary_mask',

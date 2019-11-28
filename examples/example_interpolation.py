@@ -65,4 +65,8 @@ o2.run(steps=66*2, time_step=1800)
 
 
 # Animate and compare the two runs
-o.animation(compare=o2, legend=['ndimage', 'linearND'])
+o.animation(compare=o2, legend=['ndimage', 'linearND'], filename='interpolation.gif')
+
+
+#%%
+# .. image:: /gallery/animations/interpolation.gif

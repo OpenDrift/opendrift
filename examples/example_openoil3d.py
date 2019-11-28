@@ -57,4 +57,7 @@ o.plot_property('z')
 #o.plot_property('mass_evaporated')
 #o.plot_property('water_fraction')
 #o.plot_property('interfacial_area')
-o.animation()
+o.animation(filename='openoil3d.gif')
+
+#%%
+# .. image:: /gallery/animations/openoil3d.gif

@@ -51,5 +51,8 @@ o.seed_elements(lon, lat, radius=.1, number=1000,
                 time=double_gyre.initial_time)
 o.run(duration=duration, time_step=time_step,
       time_step_output=time_step_output)
-o.animation(buffer=0, lcs=lcs, filename='ALCS_with_particles.mp4')
+o.animation(buffer=0, lcs=lcs, filename='ALCS_with_particles.gif')
+
+#%%
+# .. image:: /gallery/animations/ALCS_with_particles.gif
 

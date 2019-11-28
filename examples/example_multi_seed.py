@@ -44,4 +44,7 @@ o.run(steps=50*4, time_step=900)
 # Print and plot results
 print(o)
 o.plot()
-o.animation()
+o.animation(filename='multi_seed.gif')
+
+#%%
+# .. image:: /gallery/animations/multi_seed.gif

@@ -23,7 +23,7 @@ dependencies:
   - pip
   - sphinx
   - sphinx-autoapi
-  - sphinx-gallery
+  - sphinx-gallery>=0.5.0
   - pip:
     - livereload
     - sphinx-rtd-theme

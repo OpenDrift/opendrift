@@ -63,5 +63,8 @@ o2.run(steps=66*2, time_step=1800)
 
 
 # Animate and compare the two runs
-o.animation(compare=o2, legend=['Absolute wind', 'Relative wind'])
+o.animation(compare=o2, legend=['Absolute wind', 'Relative wind'], filename='relative.gif')
+
+#%%
+# .. image:: /gallery/animations/relative.gif
 

@@ -30,4 +30,7 @@ o.run(steps=48*4, time_step=900)
 # Print and plot results
 print(o)
 o.plot(buffer=.5)
-o.animation()
+o.animation(filename='windblow.gif')
+
+#%%
+# .. image:: /gallery/animations/windblow.gif

@@ -64,8 +64,15 @@ print('#######################')
 o2.plot_oil_budget()
 o3.plot_oil_budget()
 legend = ['TIA JUANA HEAVY', 'TIA JUANA LIGHT']
-o2.animation_profile(compare=o3, legend=legend)
-o2.animation(compare=o3, legend=legend)
+o2.animation_profile(compare=o3, legend=legend, filname='entrainment_rate_oil_types.gif')
+
+#%%
+# .. image:: /gallery/animations/entrainment_rate_oil_types.gif
+
+o2.animation(compare=o3, legend=legend, filename='entrainment_rate_oil_types_2.gif')
+
+#%%
+# .. image:: /gallery/animations/entrainment_rate_oil_types_2.gif
 
 
 

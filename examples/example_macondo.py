@@ -46,4 +46,7 @@ o.run(duration=timedelta(days=40),
 # Print and plot results
 print(o)
 o.plot()
-o.animation()
+o.animation(filename='macondo.gif')
+
+#%%
+# .. image:: /gallery/animations/macondo.gif

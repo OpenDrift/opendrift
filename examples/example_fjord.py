@@ -42,4 +42,9 @@ o.run(steps=66*12, time_step=300)
 # Print and plot results
 print(o)
 o.plot()
-o.animation()
+o.animation(filename='fjord.gif')
+
+
+#%%
+# .. image:: /gallery/animations/fjord.gif
+

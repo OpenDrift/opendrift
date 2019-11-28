@@ -24,5 +24,9 @@ o.run(duration=timedelta(hours=50), time_step=3600)
 # Ensemble members are recycled among the 10000 particles
 ensemble_number = np.remainder(o.history['ID'], 10) + 1
 
-o.animation(filename='wind_drift_ensemble.mp4',
+o.animation(filename='wind_drift_ensemble.gif',
             color=ensemble_number, clabel='Ensemble number')
+
+
+#%%
+# .. image:: /gallery/animations/wind_drift_ensemble.gif

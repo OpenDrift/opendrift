@@ -54,7 +54,10 @@ o.run(time_step=timedelta(minutes=15),
 # Print and plot results
 ###########################
 print(o)
-o.animation()
+o.animation(filename='drifter.gif')
+
+#%%
+# .. image:: /gallery/animations/drifter.gif
 
 # Plot trajectories, colored by the wind_drift_factor of each element
 o.plot(linecolor='wind_drift_factor')

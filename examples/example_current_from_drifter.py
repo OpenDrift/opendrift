@@ -38,5 +38,9 @@ o.seed_within_polygon(lons=lons, lats=lats,
 # Finally running simulation
 o.run(end_time=r.end_time, time_step=r.time_step)
 
-o.animation(buffer=.01)
+o.animation(buffer=.01, filename='current_from_drifter.gif')
+
+#%%
+# .. image:: /gallery/animations/current_from_drifter.gif
+
 o.plot(buffer=.01)

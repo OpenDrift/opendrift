@@ -41,4 +41,7 @@ o.run(steps=36*4, time_step=900)
 print(o)
 o.plot()
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'])
-o.animation()
+o.animation(filename='coastline_options.gif')
+
+#%%
+# .. image:: /gallery/animations/coastline_options.gif

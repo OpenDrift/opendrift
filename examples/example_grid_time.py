@@ -45,4 +45,7 @@ o.run(steps=66*4, time_step=900)
 
 # Print and plot results
 print(o)
-o.animation()
+o.animation(filename='grid_time.gif')
+
+#%%
+# .. image:: /gallery/animations/grid_time.gif

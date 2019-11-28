@@ -34,4 +34,8 @@ o.run(steps=12*2, time_step=300, time_step_output=300)
 
 # Print and plot results
 print(o)
-o.animation_profile()
+o.animation_profile(filename='oilspill_seafloor.gif')
+
+#%%
+# .. image:: /gallery/animations/oilspill_seafloor.gif
+

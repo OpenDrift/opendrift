@@ -58,4 +58,8 @@ o = OceanDrift()
 o.add_reader(cmems)
 o.seed_elements(lon=lon, lat=lat, number=5000, radius=1000, time=time)
 o.run(duration=duration)
-o.animation(fast=True)
+o.animation(fast=True, filename='cmems.gif')
+
+
+#%%
+# .. image:: /gallery/animations/cmems.gif

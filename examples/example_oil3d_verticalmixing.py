@@ -50,5 +50,9 @@ print(o)
 
 o.plot(linecolor='z')
 o.plot_oil_budget()
-o.animation()
+o.animation(filename='oil3d_verticalmixing.gif')
+
+#%%
+# .. image:: /gallery/animations/oil3d_verticalmixing.gif
+
 o.plot_property('z')

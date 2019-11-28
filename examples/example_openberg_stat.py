@@ -75,7 +75,11 @@ o.run(time_step=3600,steps=steps)
 # Print and plot results
 #########################
 o.plot(filename='example_stat.pdf')
-o.animation(filename='example_stat.mp4')
+o.animation(filename='example_stat.gif')
+
+#%%
+# .. image:: /gallery/animations/example_stat.gif
+
 #
 # print('############## Latitudes:', o.history['lat'])
 # print('############## Longitudes:',o.history['lon'])

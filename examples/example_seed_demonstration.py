@@ -88,7 +88,10 @@ print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000]
 print('='*70)
 o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=[time, time+timedelta(hours=5)])
 o.run(steps=5*4, time_step=900)
-o.animation()
+o.animation(filename='seed_demonstration.gif')
+
+#%%
+# .. image:: /gallery/animations/seed_demonstration.gif
 
 
 print('\n' + '='*70)
