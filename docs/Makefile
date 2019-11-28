@@ -21,7 +21,7 @@ help:
 
 clean:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	rm -rf source/gallery_gen
+	rm -rf source/gallery
 	rm -rf source/autoapi
 
 serve:

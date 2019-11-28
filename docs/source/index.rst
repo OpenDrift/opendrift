@@ -66,7 +66,7 @@ information. Some key features of OpenDrift are:
 
 Once you have OpenDrift :doc:`installed <install>`, take a look at the
 :doc:`tutorial` on how to get started, or check out the :doc:`gallery
-<gallery_gen/index>` for some examples. The details and physics of each model
+<gallery/index>` for some examples. The details and physics of each model
 is documented in the reference, along with specific examples for that model.
 Models can be configured in nuanced ways which are important for more realistic
 simulation (e.g. diffusion for :py:mod:`oil drift <opendrift.models.openoil>`
@@ -94,7 +94,7 @@ Contents
    theory/index
    choosing_a_model
    writing_a_new_model
-   gallery_gen/index
+   gallery/index
    oil_types
    interaction_with_coastline
    autoapi/index
@@ -106,4 +106,6 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`search`
 * :doc:`autoapi/index`
+
 .. * :ref:`modindex`
+

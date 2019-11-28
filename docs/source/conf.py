@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import warnings
 sys.path.insert(0, os.path.abspath('../..'))
 
 
@@ -34,10 +35,17 @@ autoapi_dirs = [ '../../opendrift' ]
 autoapi_keep_files = True  # set to True when debugging autoapi generated files
 
 sphinx_gallery_conf = {
-     'examples_dirs': 'gallery/',   # path to your example scripts
-     'gallery_dirs': './gallery_gen',  # path to where to save gallery generated output,
+     'examples_dirs': '../../examples/',   # path to your example scripts
+     'gallery_dirs': './gallery',  # path to where to save gallery generated output,
      'backreferences_dir': False,
+     'capture_repr': ('_repr_html_', '__repr__'),
+     'abort_on_example_error': True
 }
+
+# Remove matplotlib agg warnings from generated doc when using plt.show
+warnings.filterwarnings("ignore", category=UserWarning,
+                        message='Matplotlib is currently using agg, which is a'
+                                ' non-GUI backend, so cannot show the figure.')
 
 extensions = [
         "sphinx_rtd_theme",

@@ -1,7 +1,7 @@
 sphinx
 sphinx-rtd-theme
 sphinx-autoapi
-sphinx-gallery
+sphinx-gallery>=0.5.0
 livereload
 
 # oillibrary dependencies
