@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+"""
+Droplet distribution (plotting)
+==================================
 
-# Plotting different droplet size distributions used in Opendrift (see openoil3D.py script)
+Plotting different droplet size distributions used in Opendrift (see openoil3D.py script)
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -88,7 +92,7 @@ plt.hist(droplet_diameters2, 100, range=(dmin,dmax), align='mid')
 plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('N(d)', fontsize=8)
 plt.title('Uniform distribution', fontsize=10)
-          
+
 plt.subplot(2,2,3)
 plt.hist(droplet_diameters3, 100, range=(dmin,dmax), align='mid')
 plt.xlabel('Droplet diameter d [m]', fontsize=8)

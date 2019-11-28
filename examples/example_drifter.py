@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Drifter
+==================================
+"""
 
 from datetime import timedelta
 import numpy as np
@@ -14,7 +18,7 @@ o = OceanDrift()  # Basic drift model suitable for passive tracers or drifters
 
 reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 o.add_reader([reader_current, reader_wind])
@@ -23,7 +27,7 @@ o.add_reader([reader_current, reader_wind])
 # Seeding elements
 #######################
 
-# Elements are moved with the ocean current, in addition to a fraction of 
+# Elements are moved with the ocean current, in addition to a fraction of
 # the wind speed (wind_drift_factor). This factor depends on the properties
 # of the elements. Typical empirical values are:
 # - 0.035 (3.5 %) for oil and iSphere driftes

@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Multi seed
+==================================
+"""
 
 from datetime import datetime
 
@@ -12,7 +16,7 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([reader_norkyst, reader_arome])
@@ -26,7 +30,7 @@ o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_2
 # Additional continous point release, lasting 24 hours
 ############################################################
 o.seed_elements(3.8, 60.9, radius=0, number=1000,
-                time=[datetime(2015,11,16,8), datetime(2015,11,17,8)]) 
+                time=[datetime(2015,11,16,8), datetime(2015,11,17,8)])
 ############################################################
 # Additional cone release (e.g. from moving ship)
 ############################################################

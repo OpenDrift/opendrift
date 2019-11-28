@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Cod egg
+=============
+"""
 
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.pelagicegg import PelagicEggDrift
@@ -34,7 +38,7 @@ o.seed_elements(13., 67.8, z=-40, radius=2000, number=500,
 # Adjusting some configuration
 o.set_config('processes:turbulentmixing', True)
 #o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
-o.set_config('turbulentmixing:diffusivitymodel', 'environment') # use eddy diffusivity from ocean model 
+o.set_config('turbulentmixing:diffusivitymodel', 'environment') # use eddy diffusivity from ocean model
 # Vertical mixing requires fast time step
 o.set_config('turbulentmixing:timestep', 60.) # seconds
 

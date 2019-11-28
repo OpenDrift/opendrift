@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Relative
+==================================
+"""
 
 from datetime import timedelta
 
@@ -9,12 +13,12 @@ from opendrift.models.openoil import OpenOil
 o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
@@ -60,4 +64,4 @@ o2.run(steps=66*2, time_step=1800)
 
 # Animate and compare the two runs
 o.animation(compare=o2, legend=['Absolute wind', 'Relative wind'])
-            
+

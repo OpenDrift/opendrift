@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Seeding from shapefile
+==================================
+"""
 
 from datetime import datetime
 

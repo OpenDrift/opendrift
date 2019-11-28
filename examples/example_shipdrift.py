@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Ship drift
+==================================
+"""
 
 from datetime import datetime, timedelta
 

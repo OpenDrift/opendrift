@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Oil thickness
+==================================
+"""
 
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -15,7 +19,7 @@ oiltype = '*GENERIC DIESEL'
 #oiltype = '*GENERIC BUNKER C'
 
 ####################################################
-# First run, where surface oil thickness is updated 
+# First run, where surface oil thickness is updated
 ####################################################
 o1 = OpenOil3D(loglevel=30, weathering_model='noaa')
 # Northwards wind, eastwards current
@@ -25,7 +29,7 @@ o1.fallback_values['y_wind'] = 7
 o1.fallback_values['sea_surface_wave_stokes_drift_x_velocity'] = 0
 o1.fallback_values['sea_surface_wave_stokes_drift_y_velocity'] = .3
 o1.fallback_values['x_sea_water_velocity'] = .1
-o1.fallback_values['y_sea_water_velocity'] = 0 
+o1.fallback_values['y_sea_water_velocity'] = 0
 # Using Johansen droplet spectrum, which depends on oil film thickness
 o1.set_config('wave_entrainment:droplet_size_distribution',
              'Johansen et al. (2015)')

@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Oil budget
+==================================
+"""
 
 from datetime import timedelta
 
@@ -9,12 +13,12 @@ from opendrift.models.openoil3D import OpenOil3D
 o = OpenOil3D(loglevel=0)
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
 
 # Norkyst
-#reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+#reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 #    '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 

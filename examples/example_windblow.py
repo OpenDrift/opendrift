@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Wind blow model
+==================================
+"""
 
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.windblow import WindBlow
@@ -10,7 +14,7 @@ o = WindBlow(loglevel=0)  # Set loglevel to 0 for debug information
 ##############################################################
 
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
 
 o.add_reader([reader_arome])

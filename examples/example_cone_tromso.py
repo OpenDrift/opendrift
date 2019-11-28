@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Cone seeding (Tromso)
+=============
+"""
 
 from datetime import timedelta
 
@@ -16,7 +20,7 @@ o.add_reader([reader_norkyst, reader_arome])
 
 # Seed elements along cone, e.g. ship track with
 # increasing uncertainty in position
-latstart = 68.988911 
+latstart = 68.988911
 lonstart = 16.040701
 #latstart = 69.477754
 #lonstart = 16.441702

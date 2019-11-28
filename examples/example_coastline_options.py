@@ -1,8 +1,12 @@
 #!/usr/bin/env python
+"""
+Coastline with options
+=============
 
-# Example to illustrate stranding options using an artificial
-# east-west oscillating current field
-# Knut-Frode Dagestad, Feb 2017
+Example to illustrate stranding options using an artificial
+east-west oscillating current field
+Knut-Frode Dagestad, Feb 2017
+"""
 
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_oscillating

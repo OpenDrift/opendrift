@@ -1,7 +1,11 @@
 #!/usr/bin/env python
+"""
+Runge-Kutta scheme on Norkyst model
+==================================
 
-# Illustrating the difference between Euler and Runge-Kutta propagation
-# schemes, using a "real" current fields from the NorKyst800 model
+Illustrating the difference between Euler and Runge-Kutta propagation
+schemes, using a "real" current fields from the NorKyst800 model
+"""
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
@@ -9,7 +13,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 time = reader_norkyst.start_time
 reader_norkyst.interpolation = 'linearND'

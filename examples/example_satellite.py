@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Satellite
+==================================
+"""
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
@@ -11,7 +15,7 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 # Landmask (Basemap)

@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Checkerboard
+============
+"""
 
 import numpy as np
 
@@ -22,7 +26,7 @@ reader_basemap = reader_basemap_landmask.Reader(
 o.add_reader([reader_basemap, reader_norkyst])
 
 # Seeding particles in a checkerboard pattern
-di = 5 # Horizontal number of particles per square 
+di = 5 # Horizontal number of particles per square
 dj = 5 # Vertical number of particles per square
 lons = np.linspace(3.5, 5.0, 100)
 lats = np.linspace(60, 61, 100)

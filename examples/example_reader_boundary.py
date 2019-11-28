@@ -1,8 +1,12 @@
 #!/usr/bin/env python
+"""
+Reader boundary
+==================================
 
-# Seeding elements around the border of a ocean model domain (NorKyst800)
-# to demonstrate autmatic transition back and forth with another model
-# covering a larger domain (Nordic)
+Seeding elements around the border of a ocean model domain (NorKyst800)
+to demonstrate autmatic transition back and forth with another model
+covering a larger domain (Nordic).
+"""
 
 import numpy as np
 

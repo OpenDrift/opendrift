@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Constant current
+=============
+"""
 
 from datetime import datetime
 

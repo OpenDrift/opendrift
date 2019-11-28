@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Leeway
+==================================
+"""
 
 from opendrift.readers import reader_basemap_landmask
 from opendrift.readers import reader_netCDF_CF_generic
@@ -8,12 +12,12 @@ lw = Leeway(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
-reader_arome = reader_netCDF_CF_generic.Reader(lw.test_data_folder() + 
+reader_arome = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Norkyst
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() + 
+reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 # Landmask (Basemap)
@@ -23,7 +27,7 @@ reader_basemap = reader_basemap_landmask.Reader(
                     projection='merc')
 
 #lw.add_reader([reader_norkyst, reader_arome, reader_basemap])
-# Adding readers succesively, and specifying which variables they 
+# Adding readers succesively, and specifying which variables they
 # shall provide. This way, order of adding readers does not matter,
 # except for small rounding differences due to different projection
 lw.add_reader(reader_norkyst,

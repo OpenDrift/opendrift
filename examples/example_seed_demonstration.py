@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Seed demonstration
+=============
+"""
 
 from datetime import datetime, timedelta
 import numpy as np

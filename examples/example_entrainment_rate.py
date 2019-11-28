@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Entrainment rate
+==================================
+"""
 
 from datetime import datetime, timedelta
 from opendrift.models.openoil3D import OpenOil3D

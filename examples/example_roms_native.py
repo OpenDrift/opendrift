@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+ROMS native reader
+==================================
+"""
 
 import numpy as np
 

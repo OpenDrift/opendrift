@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Coastline
+=============
+"""
 
 import numpy as np
 

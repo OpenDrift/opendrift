@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Oil budget (NOAA)
+==================================
+"""
 
 from datetime import datetime
 from opendrift.readers import reader_netCDF_CF_generic

@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Thredds (global)
+==================================
+"""
 
 from datetime import datetime, timedelta
 from opendrift.models.oceandrift import OceanDrift

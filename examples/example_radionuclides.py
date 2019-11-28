@@ -1,3 +1,7 @@
+"""
+Radionuclides
+=============
+"""
 #!/usr/bin/env python
 
 
@@ -18,7 +22,7 @@ o = RadionuclideDrift(
 #reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
 
 # Norkyst
-#reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc') 
+#reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 #o.add_reader([reader_norkyst, reader_arome])
@@ -42,7 +46,7 @@ o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
                 diameter=diam, specie=init_speciation)
 
 init_speciation = np.ones(ntraj)*1
-diam=np.zeros_like(init_speciation,dtype=np.float32) * 5.e-6 
+diam=np.zeros_like(init_speciation,dtype=np.float32) * 5.e-6
 o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
                 time=time,
                 diameter=diam, specie=init_speciation)

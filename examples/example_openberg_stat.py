@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Openberg stat
+==================================
+"""
 
 from datetime import datetime, timedelta
 
@@ -9,7 +13,7 @@ from opendrift.readers import reader_current_from_track
 from opendrift.models.openberg import OpenBerg
 
 #######################################
-# Create observation of iceberg track 
+# Create observation of iceberg track
 #######################################
 obslon = [3.1, 3.123456]
 obslat = [61.1, 61.132198]
@@ -26,29 +30,29 @@ o = OpenBerg()  # Basic drift model suitable for icebergs
 
 
 #####################
-# Preparing Readers 
+# Preparing Readers
 #####################
 
-reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc',name='WIND')
 
 
 reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
 					wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
-    
+
 reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3., llcrnrlat=61.,
                         urcrnrlon=5., urcrnrlat=61.8, resolution='l',
-                        projection='gall')    
-                        
+                        projection='gall')
+
 o.add_reader([reader_current,reader_wind,reader_basemap])
 
 #######################
 # Seeding elements
 #######################
 
-# Icebergs are moved with the ocean current as per Barker et al (2004), 
-# in addition to a fraction of the wind speed (wind_drift_factor). 
-# This factor depends on the properties of the elements. 
+# Icebergs are moved with the ocean current as per Barker et al (2004),
+# in addition to a fraction of the wind speed (wind_drift_factor).
+# This factor depends on the properties of the elements.
 # Default empirical values are:
 # - Wind drift fraction: 0.018 (1.8 %) (Garret 1985)
 # - Iceberg size: 	Keel dept = 60m
@@ -60,23 +64,23 @@ o.seed_elements(3.3, 61.3, radius=3000, number=10, time=reader_current.start_tim
 
 #######################
 # Run model
-#######################    
+#######################
 print('Starting free run .../n')
-    
+
 print('Start time: ' + str(o.start_time))
 
 o.run(time_step=3600,steps=steps)
 
-#########################    
+#########################
 # Print and plot results
 #########################
 o.plot(filename='example_stat.pdf')
 o.animation(filename='example_stat.mp4')
-# 
+#
 # print('############## Latitudes:', o.history['lat'])
-# print('############## Longitudes:',o.history['lon']) 
-    
-  
+# print('############## Longitudes:',o.history['lon'])
+
+
 
 
 

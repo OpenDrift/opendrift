@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Macondo
+==================================
+"""
 
 from datetime import datetime, timedelta
 

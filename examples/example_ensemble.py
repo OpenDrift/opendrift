@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Ensemble
+==================================
+"""
 
 from datetime import timedelta
 import numpy as np

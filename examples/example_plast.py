@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Plastic
+==================================
+"""
 
 from datetime import datetime, timedelta
 
@@ -22,13 +26,13 @@ time = [start_time, start_time + timedelta(hours=5)]
 # Seeding some particles
 lon = 4.6; lat = 60.0; # Outside Bergen
 o.seed_elements(lon, lat, radius=50, number=3000, time=time)
-                
+
 o.run(end_time=end_time, time_step=1800, time_step_output=3600)
 
 o2 = PlastDrift(loglevel=0)
 o2.add_reader([reader_norkyst])  # No wind/Stokes
 o2.seed_elements(lon, lat, radius=50, number=3000, time=time)
-                
+
 o2.run(end_time=end_time, time_step=1800, time_step_output=3600)
 
 # Print and plot results

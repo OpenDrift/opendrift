@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Leeway (cone)
+==================================
+"""
 
 from datetime import timedelta
 
@@ -8,10 +12,10 @@ from opendrift.models.leeway import Leeway
 lw = Leeway(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader(lw.test_data_folder() + 
+reader_arome = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() + 
+reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 lw.add_reader([reader_norkyst, reader_arome])

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-#
-# Generate sample output file and figures for GitHub wiki
-# https://github.com/OpenDrift/opendrift/wiki/Sample-output-file 
+"""
+Openoil
+==================================
+"""
 
 import os
 from datetime import timedelta
@@ -17,11 +18,11 @@ rc = reader_constant.Reader({'x_wind': 5,
                              'y_wind': 4})
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([rc, reader_norkyst, reader_arome])

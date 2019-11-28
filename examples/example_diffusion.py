@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Diffusion
+=============
+"""
 
 from datetime import datetime, timedelta
 

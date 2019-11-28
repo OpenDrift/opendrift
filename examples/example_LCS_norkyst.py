@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+LCS Norkyst
+==================================
+"""
 
 from datetime import datetime, timedelta
 

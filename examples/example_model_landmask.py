@@ -1,3 +1,9 @@
+"""
+Model landmask
+===============================
+
+Comparing two simulation runs, with and without wind
+"""
 #!/usr/bin/env python
 
 # Comparing two simulation runs, with and without wind
@@ -11,7 +17,7 @@ lon = 14.75; lat = 68.1
 
 o = OceanDrift(loglevel=0)
 
-reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + 
+reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
     '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
 # First run, with landmask from Basemap

@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Oil 3d (vertical mixing)
+==================================
+"""
 
 from datetime import timedelta
 

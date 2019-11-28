@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Generic example
+===============
+"""
 
 from datetime import datetime, timedelta
 
@@ -37,17 +41,31 @@ o.set_config('processes:emulsification', True)
 o.set_config('drift:current_uncertainty', .1)
 o.set_config('drift:wind_uncertainty', 1)
 
+#%%
+# Running model
+
+
 # Running model
 o.run(end_time=reader_norkyst.end_time, time_step=1800,
       time_step_output=3600, outfile='openoil.nc',
       export_variables=['mass_oil'])
 
 # Print and plot results
-print(o)
+# print(o)
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
-o.animation(fast=True)
-o.animation(density=True, show_elements=False, fast=True)
-#o.animation(filename='openoil_time_seed.gif')
+# o.animation(fast=True)
+# o.animation(density=True, show_elements=False, fast=True)
 o.plot(fast=True)
+
+#%%
+# Or an animation can be done with:
+
+o.animation(fast=True, filename='openoil_time_seed.gif')
+
+#%%
+# Here is the animation:
+#
+# .. image:: /gallery/animations/openoil_time_seed.gif
+
 #o.plot_property('mass_oil')
 #o.plot_property('x_sea_water_velocity')

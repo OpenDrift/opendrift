@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Oil spill (seafloor)
+==================================
+"""
 
 from datetime import timedelta
 

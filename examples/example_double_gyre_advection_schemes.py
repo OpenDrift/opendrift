@@ -1,10 +1,14 @@
 #!/usr/bin/env python
+"""
+Double gyre, advection
+=============
 
-# Illustrating the difference between Euler and Runge-Kutta propagation
-# schemes, using an idealised (analytical) eddy current field.
+Illustrating the difference between Euler and Runge-Kutta propagation
+schemes, using an idealised (analytical) eddy current field.
 
-# Double gyre current field from
-# http://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
+Double gyre current field from
+http://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
+"""
 
 import numpy as np
 from datetime import datetime, timedelta

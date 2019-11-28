@@ -1,11 +1,15 @@
 #!/usr/bin/env python
+"""
+CMEMS
+=============
 
-# This example runs a Leeway simulation, with current data downloaded
-# from CMEMS, and wind data from an NCEP Thredds server.
-# To run this example, you need a CMEMS account created at
-# http://marine.copernicus.eu, and you need to install the motuclient
-# available from https://github.com/clstoulouse/motu-client-python :
-# python -m pip install motuclient
+This example runs a Leeway simulation, with current data downloaded
+from CMEMS, and wind data from an NCEP Thredds server.
+To run this example, you need a CMEMS account created at
+http://marine.copernicus.eu, and you need to install the motuclient
+available from https://github.com/clstoulouse/motu-client-python :
+python -m pip install motuclient
+"""
 
 import os
 from datetime import datetime, timedelta
@@ -32,7 +36,7 @@ lon = 107; lat = 10  # Ho Chi Minh
 
 time = datetime.now()
 duration = timedelta(days=3)
-bufferlat = duration.total_seconds()/111000 
+bufferlat = duration.total_seconds()/111000
 bufferlon = bufferlat*np.cos(lat*np.pi/180)
 
 # Fetching current data from CMEMS

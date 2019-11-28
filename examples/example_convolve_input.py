@@ -1,7 +1,11 @@
 #!/usr/bin/env python
+"""
+Convolve input
+=============
 
-# Demonstrating how the spatial resolution of
-# fields from a reader mey be reduced
+Demonstrating how the spatial resolution of
+fields from a reader may be reduced.
+"""
 
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -27,7 +31,7 @@ original_current = reader_norkyst.var_block_after[list(reader_norkyst.var_block_
 # <reader>.convolve may also be given as an array (kernel) directly
 N = 10  # Convolusion kernel size
 reader_norkyst.convolve = N  # Using convolution kernel for second run
-o2 = OceanDrift()  
+o2 = OceanDrift()
 o2.add_reader([reader_norkyst])
 o2.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 o2.run(steps=20)

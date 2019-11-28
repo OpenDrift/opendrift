@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+"""
+Droplet distribution
+==================================
 
-# Plotting different droplet size distributions used in Opendrift (see openoil3D.py script)
+Plotting different droplet size distributions used in Opendrift (see openoil3D.py script)
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +13,7 @@ from datetime import datetime, timedelta
 from opendrift.models.openoil3D import OpenOil3D
 
 # droplet size interval for simulation and plotting
-dmin = 1.e-5 
+dmin = 1.e-5
 dmax = 5.e-3
 
 ########################################################
@@ -37,7 +41,7 @@ droplet_diameters = o.elements.diameter
 sd = 0.4
 Sd = np.log(10.)*sd
 DV_50 = np.median(droplet_diameters)
-DN_50 = np.exp( np.log(DV_50) - 3*Sd**2 ) 
+DN_50 = np.exp( np.log(DV_50) - 3*Sd**2 )
 
 print('DV_50: %f' % DV_50)
 print('DN_50: %f' % DN_50)
@@ -55,7 +59,7 @@ nVcum, binsV, patches = plt.hist(droplet_diameters, 100, range=(dmin,dmax), alig
 plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('V(d)', fontsize=8)
 plt.title('cumulative volume spectrum', fontsize=10)
-         
+
 # calculate number spectrum from volume spectrum
 d = 0.5* (binsV[1:] + binsV[:-1])
 V = 4./3. * np.pi * (d/2.)**3

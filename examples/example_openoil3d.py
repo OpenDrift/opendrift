@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Openoil 3d
+==================================
+"""
 
 from datetime import datetime, timedelta
 
@@ -11,10 +15,10 @@ o = OpenOil3D(loglevel=0, weathering_model='noaa')
 print(o.oiltypes)  # Print available oil types
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + 
+reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([reader_norkyst, reader_arome])
