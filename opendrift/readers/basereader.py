@@ -1144,19 +1144,23 @@ class BaseReader(object):
         self.clipped = numpix
 
     def plot(self, variable=None, vmin=None, vmax=None,
-             filename=None, title=None):
+             filename=None, title=None, buffer=1, lscale='intermediate'):
         """Plot geographical coverage of reader."""
 
-        try:
-            from mpl_toolkits.basemap import Basemap
-            import matplotlib.pyplot as plt
-            from matplotlib.patches import Polygon
-        except:
-            sys.exit('Basemap is needed to plot coverage map.')
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+        from opendrift_landmask_data import Landmask
+        fig = plt.figure()
 
         corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
                                  [self.ymax, self.ymin, self.ymax, self.ymin])
-        latspan = np.max(corners[1]) - np.min(corners[1])
+        lonmin = np.min(corners[0]) - buffer*2
+        lonmax = np.max(corners[0]) + buffer*2
+        latmin = np.min(corners[1]) - buffer
+        latmax = np.max(corners[1]) + buffer
+        latspan = latmax - latmin
 
         # Initialise map
         if latspan < 90:
@@ -1164,28 +1168,51 @@ class BaseReader(object):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
-            width = np.max([self.xmax-self.xmin, self.ymax-self.ymin])*1.5
-            geod = pyproj.Geod(ellps='WGS84')
-            # Calculate length of dialogs to determine map size
-            d1 = geod.inv(corners[0][0], corners[1][0],
-                          corners[0][1], corners[1][1], radians=False)[2]
-            d2 = geod.inv(corners[0][2], corners[1][2],
-                          corners[0][3], corners[1][3], radians=False)[2]
-            width = np.max((d1, d2))*3
-            map = Basemap(projection='stere', resolution='i',
-                          lat_ts=lat0, lat_0=lat0, lon_0=lon0,
-                          width=width, height=width)
+            #width = np.max([self.xmax-self.xmin, self.ymax-self.ymin])*1.5
+            #geod = pyproj.Geod(ellps='WGS84')
+            ## Calculate length of dialogs to determine map size
+            #d1 = geod.inv(corners[0][0], corners[1][0],
+            #              corners[0][1], corners[1][1], radians=False)[2]
+            #d2 = geod.inv(corners[0][2], corners[1][2],
+            #              corners[0][3], corners[1][3], radians=False)[2]
+            #width = np.max((d1, d2))*3
+            print(lon0, lat0, 'lonat')
+            sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
+            sp = ccrs.NorthPolarStereo()
+            print(dir(sp))
+            print(sp)
+            ax = fig.add_subplot(1, 1, 1, projection=sp)
+            print(corners[0], corners[1], 'cornerlon, cornerlat')
+            corners_stere = sp.transform_points(ccrs.PlateCarree(), corners[0], corners[1])
+            print(corners_stere)
+            print(corners_stere[0], corners_stere[1])
+            #ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree())
+            #ax.set_extent([corners_stere[0][0], corners_stere[0][1],
+            #               corners_stere[1][0], corners_stere[1][1]])
+            #map = Basemap(projection='stere', resolution='i',
+            #              lat_ts=lat0, lat_0=lat0, lon_0=lon0,
+            #              width=width, height=width)
         else:
             # Global map if reader domain is large
             map = Basemap(np.array(corners[0]).min(), -89,
                           np.array(corners[0]).max(), 89,
                           resolution='c', projection='cyl')
 
-        map.drawcoastlines()
-        if variable is None:
-            map.fillcontinents(color='coral')
-        map.drawparallels(np.arange(-90., 90., 5.))
-        map.drawmeridians(np.arange(-180., 181., 5.))
+        # GSHHS coastlines
+        f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+                                  facecolor=cfeature.COLORS['land'])
+        ax.add_geometries(
+            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+            ccrs.PlateCarree(),
+            facecolor=cfeature.COLORS['land'],
+            edgecolor='black')
+
+        gl = ax.gridlines(ccrs.PlateCarree())
+        gl.xlabels_top = False
+
+        #plt.show()
+        #stop
+
         # Get boundary
         npoints = 10  # points per side
         x = np.array([])
@@ -1200,16 +1227,32 @@ class BaseReader(object):
         y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
         # from x/y vectors create a Patch to be added to map
         lon, lat = self.xy2lonlat(x, y)
-        mapproj = pyproj.Proj(map.proj4string)
+        p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
+        print(lon, 'lon')
+        print(p, p.shape, 'p')
+        xsp = p[0,:]
+        ysp = p[1, :]
+        print(xsp, ysp, 'XS')
+        
+        #mapproj = pyproj.Proj(map.proj4string)
         # Cut at 89 deg N/S to avoid singularity at poles
-        lat[lat > 89] = 89
-        lat[lat < -89] = -89
-        xm, ym = mapproj(lon, lat)
-        xm, ym = map(lon, lat)
+        #lat[lat > 89] = 89
+        #lat[lat < -89] = -89
+        #xm, ym = mapproj(lon, lat)
+        #xm, ym = map(lon, lat)
         #map.plot(xm, ym, color='gray')
         if variable is None:
-            boundary = Polygon(list(zip(xm, ym)), alpha=0.5, ec='k', fc='b')
-            plt.gca().add_patch(boundary)
+            #boundary = Polygon(list(zip(xm, ym)), alpha=0.5, ec='k', fc='b')
+            #boundary = Polygon(list(zip(lon, lat)), alpha=0.5, ec='k', fc='b',
+            #                   transform=ccrs.PlateCarree(), zorder=100)
+            boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
+                               zorder=100)
+            #plt.gca().add_patch(boundary)
+            print(boundary)
+            ax.add_patch(boundary)
+            #ax.set_extent([-5992350, 4918005, 4326105, 15770120], crs=sp)
+            #ax.set_extent([xsp.min(), xsp.max(), ysp.min(), ysp.max()], crs=sp)
+            ax.set_global()
 # add patch to the map
         if title is None:
             plt.title(self.name)
