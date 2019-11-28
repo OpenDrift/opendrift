@@ -18,6 +18,8 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import unittest
+import os
+from datetime import datetime
 
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_global_landmask
@@ -26,6 +28,18 @@ from opendrift.models.oceandrift3D import OceanDrift3D
 
 class Test(unittest.TestCase):
     """Tests for netCDF"""
+
+    def test_lazy(self):
+        o = OceanDrift3D()
+        w = 'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_20191128T06Z.nc'
+        o.add_readers_from_list([w], lazy=True)  # Works if lazy=False
+        o.fallback_values['x_sea_water_velocity'] = .3
+        o.fallback_values['y_sea_water_velocity'] = .3
+        o.seed_elements(lon=4.6, lat=60, radius=1000, number=1000,
+                        time=datetime(2019, 11, 28, 12))
+        print(o)
+        o.run(steps=1, outfile='test.nc')  # Fails for Python3
+        assert os.path.exists('test.nc')
 
     def test_MFDataset(self):
 
