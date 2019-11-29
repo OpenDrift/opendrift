@@ -777,3 +777,133 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         if self.get_config('radionuclide:irreversible_fraction'):
             self.elements.z[self.elements.specie==self.num_sirrev] = z_before[self.elements.specie==self.num_sirrev]
 
+
+
+
+
+
+
+
+
+
+
+
+    def write_netcdf_radionuclide_density_map(self, filename, pixelsize_m='auto', deltaz=10.):
+        '''Write netCDF file with map of radionuclide species densities'''
+
+        if pixelsize_m == 'auto':
+            lon, lat = self.get_lonlats()
+            latspan = lat.max()-lat.min()
+            pixelsize_m=30
+            if latspan > .05:
+                pixelsize_m = 50
+            if latspan > .1:
+                pixelsize_m = 300
+            if latspan > .3:
+                pixelsize_m = 500
+            if latspan > .7:
+                pixelsize_m = 1000
+            if latspan > 2:
+                pixelsize_m = 2000
+            if latspan > 5:
+                pixelsize_m = 4000
+
+        H, lon_array, lat_array, z_array = \
+            self.get_radionuclide_density_array(pixelsize_m, deltaz)
+        lon_array = (lon_array[0:-1] + lon_array[1::])/2
+        lat_array = (lat_array[0:-1] + lat_array[1::])/2
+
+        from netCDF4 import Dataset, date2num, stringtochar
+        nc = Dataset(filename, 'w')
+        nc.createDimension('lon', len(lon_array))
+        nc.createDimension('lat', len(lat_array))
+        nc.createDimension('depth', len(z_array)-1)
+        nc.createDimension('time', H.shape[0])
+        nc.createDimension('specie', self.nspecies)
+        times = self.get_time_array()[0]
+        timestr = 'seconds since 1970-01-01 00:00:00'
+        nc.createVariable('time', 'f8', ('time',))
+        nc.variables['time'][:] = date2num(times, timestr)
+        nc.variables['time'].units = timestr
+        nc.variables['time'].standard_name = 'time'
+        # Projection
+        nc.createVariable('projection_lonlat', 'i8')
+        nc.variables['projection_lonlat'].grid_mapping_name = \
+            'latitude_longitude'
+        nc.variables['projection_lonlat'].earth_radius = 6371229.
+        nc.variables['projection_lonlat'].proj4 = \
+            '+proj=longlat +a=6371229 +no_defs'
+        # Coordinates
+        nc.createVariable('lon', 'f8', ('lon',))
+        nc.createVariable('lat', 'f8', ('lat',))
+        nc.createVariable('depth', 'f8', ('depth',))
+        nc.createVariable('specie', 'i4', ('specie',))
+#        nc.createVariable('specie', 'S24', ('specie',))
+        nc.variables['lon'][:] = lon_array
+        nc.variables['lon'].long_name = 'longitude'
+        nc.variables['lon'].short_name = 'longitude'
+        nc.variables['lon'].units = 'degrees_east'
+        nc.variables['lat'][:] = lat_array
+        nc.variables['lat'].long_name = 'latitude'
+        nc.variables['lat'].short_name = 'latitude'
+        nc.variables['lat'].units = 'degrees_north'
+        nc.variables['depth'][:] = z_array[:-1]
+#        str_out = [stringtochar(np.array(ii, 'S24')) for ii in self.name_species]
+#        print (str_out)
+        nc.variables['specie'][:] = np.arange(self.nspecies) #self.name_species  # 
+        #nc.variables['specie'][:] = str_out  
+        # Density
+        nc.createVariable('density_surface', 'u1',
+                          ('time','specie','lat', 'lon'),fill_value=0)
+        H = np.swapaxes(H, 1, 3).astype('uint8')
+        H = np.ma.masked_where(H==0, H)
+#        print (nc.variables['density_surface'][:].shape)
+        nc.variables['density_surface'][:] = H
+        nc.variables['density_surface'].long_name = 'Detection probability'
+        nc.variables['density_surface'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_surface'].units = '1'
+
+        nc.close()
+
+
+
+
+    def get_radionuclide_density_array(self, pixelsize_m, deltaz, weight=None):
+        lon = self.get_property('lon')[0]
+        lat = self.get_property('lat')[0]
+        times = self.get_time_array()[0]
+        deltalat = pixelsize_m/111000.0  # m to degrees
+        deltalon = deltalat/np.cos(np.radians((np.nanmin(lat) +
+                                               np.nanmax(lat))/2))
+        lat_array = np.arange(np.nanmin(lat)-deltalat,
+                              np.nanmax(lat)+deltalat, deltalat)
+        lon_array = np.arange(np.nanmin(lon)-deltalat,   # Should be deltalon ???
+                              np.nanmax(lon)+deltalon, deltalon)
+        bins=(lon_array, lat_array)
+        z = self.get_property('z')[0]
+        z_array = np.arange(np.nanmin(z) - deltaz, np.nanmax(z) + deltaz, deltaz) 
+        print (z_array)
+        if weight is not None:
+            weight_array = self.get_property(weight)[0]
+
+        status = self.get_property('status')[0]
+        specie = self.get_property('specie')[0]
+        Nspecies = self.nspecies 
+        print (np.min(specie), np.max(specie), Nspecies)
+        H = np.zeros((len(times), len(lon_array) - 1,
+                      len(lat_array) - 1,
+                      #len(z_array) - 1, 
+                      Nspecies))
+
+        for sp in range(Nspecies):
+            for i in range(len(times)):
+                if weight is not None:
+                    weights = weight_array[i,:]
+                else:
+                    weights = None
+                H[i,:,:,sp], dummy, dummy = \
+                    np.histogram2d(lon[i,specie[i,:]==sp], lat[i,specie[i,:]==sp],
+                                   weights=weights, bins=bins)
+
+        return H, lon_array, lat_array, z_array
+
