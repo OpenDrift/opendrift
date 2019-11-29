@@ -1144,7 +1144,7 @@ class BaseReader(object):
         self.clipped = numpix
 
     def plot(self, variable=None, vmin=None, vmax=None,
-             filename=None, title=None, buffer=1, lscale='intermediate'):
+             filename=None, title=None, buffer=1, lscale='auto'):
         """Plot geographical coverage of reader."""
 
         import matplotlib.pyplot as plt
@@ -1168,35 +1168,22 @@ class BaseReader(object):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
-            #width = np.max([self.xmax-self.xmin, self.ymax-self.ymin])*1.5
-            #geod = pyproj.Geod(ellps='WGS84')
-            ## Calculate length of dialogs to determine map size
-            #d1 = geod.inv(corners[0][0], corners[1][0],
-            #              corners[0][1], corners[1][1], radians=False)[2]
-            #d2 = geod.inv(corners[0][2], corners[1][2],
-            #              corners[0][3], corners[1][3], radians=False)[2]
-            #width = np.max((d1, d2))*3
             print(lon0, lat0, 'lonat')
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
-            sp = ccrs.NorthPolarStereo()
-            print(dir(sp))
             print(sp)
+            print(dir(sp))
             ax = fig.add_subplot(1, 1, 1, projection=sp)
             print(corners[0], corners[1], 'cornerlon, cornerlat')
-            corners_stere = sp.transform_points(ccrs.PlateCarree(), corners[0], corners[1])
+            corners_stere = sp.transform_points(ccrs.PlateCarree(), np.array(corners[0]), np.array(corners[1]))
             print(corners_stere)
             print(corners_stere[0], corners_stere[1])
-            #ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree())
-            #ax.set_extent([corners_stere[0][0], corners_stere[0][1],
-            #               corners_stere[1][0], corners_stere[1][1]])
-            #map = Basemap(projection='stere', resolution='i',
-            #              lat_ts=lat0, lat_0=lat0, lon_0=lon0,
-            #              width=width, height=width)
         else:
             # Global map if reader domain is large
-            map = Basemap(np.array(corners[0]).min(), -89,
-                          np.array(corners[0]).max(), 89,
-                          resolution='c', projection='cyl')
+            sp = ccrs.Mercator()
+            ax = fig.add_subplot(1, 1, 1, projection=sp)
+            #map = Basemap(np.array(corners[0]).min(), -89,
+            #              np.array(corners[0]).max(), 89,
+            #              resolution='c', projection='cyl')
 
         # GSHHS coastlines
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
@@ -1209,9 +1196,6 @@ class BaseReader(object):
 
         gl = ax.gridlines(ccrs.PlateCarree())
         gl.xlabels_top = False
-
-        #plt.show()
-        #stop
 
         # Get boundary
         npoints = 10  # points per side
@@ -1227,33 +1211,28 @@ class BaseReader(object):
         y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
         # from x/y vectors create a Patch to be added to map
         lon, lat = self.xy2lonlat(x, y)
+        lat[lat>89] = 89.
+        lat[lat<-89] = -89.
+        print(lon, lat, 'lonlat')
         p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
-        print(lon, 'lon')
-        print(p, p.shape, 'p')
-        xsp = p[0,:]
-        ysp = p[1, :]
-        print(xsp, ysp, 'XS')
+        print(p, 'p')
+        xsp = p[:, 0]
+        ysp = p[:, 1]
         
-        #mapproj = pyproj.Proj(map.proj4string)
-        # Cut at 89 deg N/S to avoid singularity at poles
-        #lat[lat > 89] = 89
-        #lat[lat < -89] = -89
-        #xm, ym = mapproj(lon, lat)
-        #xm, ym = map(lon, lat)
-        #map.plot(xm, ym, color='gray')
+        print(3)
         if variable is None:
-            #boundary = Polygon(list(zip(xm, ym)), alpha=0.5, ec='k', fc='b')
-            #boundary = Polygon(list(zip(lon, lat)), alpha=0.5, ec='k', fc='b',
-            #                   transform=ccrs.PlateCarree(), zorder=100)
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
                                zorder=100)
-            #plt.gca().add_patch(boundary)
-            print(boundary)
             ax.add_patch(boundary)
-            #ax.set_extent([-5992350, 4918005, 4326105, 15770120], crs=sp)
-            #ax.set_extent([xsp.min(), xsp.max(), ysp.min(), ysp.max()], crs=sp)
-            ax.set_global()
-# add patch to the map
+            print(dir(sp))
+            buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
+            buf = 0
+            print(4)
+            try:
+                ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
+            except:
+                pass
+            print(5)
         if title is None:
             plt.title(self.name)
         else:
@@ -1261,6 +1240,7 @@ class BaseReader(object):
         plt.xlabel('Time coverage: %s to %s' %
                    (self.start_time, self.end_time))
 
+        print(6)
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
@@ -1268,7 +1248,7 @@ class BaseReader(object):
                                       rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)
-            map_x, map_y = map(rlon, rlat, inverse=False)
+            #map_x, map_y = map(rlon, rlat, inverse=False)
             data[variable] = np.ma.masked_invalid(data[variable])
             if hasattr(self, 'convolve'):
                 from scipy import ndimage
@@ -1281,9 +1261,11 @@ class BaseReader(object):
                 self.logger.debug('Convolving variables with kernel: %s' % kernel)
                 data[variable] = ndimage.convolve(
                             data[variable], kernel, mode='nearest')
-            map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
-            cbar = map.colorbar()
-            cbar.set_label(variable)
+            #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
+            print('pcolor')
+            ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+            #cbar = map.colorbar()
+            #cbar.set_label(variable)
 
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
