@@ -27,4 +27,5 @@ dependencies:
   - pip:
     - livereload
     - sphinx-rtd-theme
+    - https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
 
