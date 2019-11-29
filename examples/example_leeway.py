@@ -55,4 +55,8 @@ lw.run(steps=60*4, time_step=900)
 print(lw)
 # lw.animation()
 lw.animation(filename='leeway.gif')
+
+#%%
+# .. image:: /gallery/animations/leeway.gif
+
 lw.plot()
