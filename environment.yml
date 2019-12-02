@@ -1,4 +1,4 @@
-name: opendrift_p3
+name: opendrift
 channels:
   - opendrift
   - conda-forge

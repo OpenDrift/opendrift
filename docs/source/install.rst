@@ -108,11 +108,11 @@ _____________________________
 .. code-block:: bash
 
   $ conda config --add channels conda-forge  # recommended, but not necessary
-  $ conda env create -f conda_python3.yml
-  $ conda activate opendrift_p3
+  $ conda env create -f environment.yml
+  $ conda activate opendrift
   $ pip install -e .
 
-This installs the OpenDrift package as an editable package. You can therefore directly make changes to the repository or fetch the newest changes with :code:`git pull`. You do not need to add OpenDrift to PYTHONPATH as long as you have the :code:`opendrift_p3` environment activated.
+This installs the OpenDrift package as an editable package. You can therefore directly make changes to the repository or fetch the newest changes with :code:`git pull`. You do not need to add OpenDrift to PYTHONPATH as long as you have the :code:`opendrift` environment activated.
 
 Using pip
 ++++++++++
