@@ -853,9 +853,10 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.variables['specie'][:] = np.arange(self.nspecies) #self.name_species  # 
         #nc.variables['specie'][:] = str_out  
         # Density
-        nc.createVariable('density_surface', 'u1',
+        nc.createVariable('density_surface', 'i4',
                           ('time','specie','lat', 'lon'),fill_value=0)
-        H = np.swapaxes(H, 1, 3).astype('uint8')
+#        H = np.swapaxes(H, 1, 3).astype('uint8')
+        H = np.swapaxes(H, 1, 3).astype('i4')
         H = np.ma.masked_where(H==0, H)
 #        print (nc.variables['density_surface'][:].shape)
         nc.variables['density_surface'][:] = H
