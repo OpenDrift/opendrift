@@ -12,3 +12,4 @@ build
 /*.egg
 /*.eggs
 /MyTests/
+/docs/
