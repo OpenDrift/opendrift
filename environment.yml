@@ -1,0 +1,31 @@
+name: opendrift
+channels:
+  - opendrift
+  - conda-forge
+  - NOAA-ORR-ERD
+dependencies:
+  - python>=3.7
+  - matplotlib>=3.1
+  - numpy>=1.15.4
+  - scipy>=1.2.0
+  - netcdf4=1.5.1.2
+  - libnetcdf=4.6.2
+  - future
+  - ffmpeg
+  - pillow
+  - pyproj>=2.3
+  - configobj
+  - libgdal>=2.3.3
+  - gdal>=2.3.3
+  - requests
+  - pytest
+  - pytest-cov
+  - pytest-benchmark
+  - ipython
+  - cartopy
+  - rasterio
+  - opendrift-landmask-data
+  - oil_library-opendrift
+  - pygrib
+  - pip
+

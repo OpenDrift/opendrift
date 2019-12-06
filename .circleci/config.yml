@@ -66,7 +66,7 @@ workflows:
   build_without_publishing_job:
     jobs:
 
-      # This first job is for opendrift, Python 3 without OIL
+      # This first job is for opendrift, Python 3
       - docker-publish/publish:
           image: opendrift/opendrift
           dockerfile: docker/Dockerfile
@@ -91,60 +91,11 @@ workflows:
                    echo "opendrift/opendrift:v${DOCKER_TAG}"
                    echo "opendrift/opendrift:py3-v${DOCKER_TAG}"
 
-      # opendrift with Python 2 without OIL
-      - docker-publish/publish:
-          image: opendrift/opendrift
-          dockerfile: docker/Dockerfile.py2
-          deploy: false
-          tag: py2
-          filters:
-            branches:
-              ignore:
-                - master
-          after_build:
-            - run:
-                name: Preview Containers that will be Deployed
-                command: |
-                   # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
-                   echo "Version for Docker tag is ${DOCKER_TAG}"
-                   echo "This build will deploy the following containers:"
-                   echo "opendrift/opendrift:py2"
-                   echo "opendrift/opendrift:py2-v${DOCKER_TAG}"
-
-      # opendrift with Python 2 with OIL (latest, since there is no Python 3)
-      - docker-publish/publish:
-          image: opendrift/opendrift-oil
-          dockerfile: docker/Dockerfile.oil.py2
-          deploy: false
-          tag: latest
-          filters:
-            branches:
-              ignore:
-                - master
-          after_build:
-            - run:
-                name: Preview Containers that will be Deployed
-                command: |
-                   # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
-                   echo "Version for Docker tag is ${DOCKER_TAG}"
-                   echo "This build will deploy the following containers:"
-                   echo "opendrift/opendrift-oil:latest"
-                   echo "opendrift/opendrift-oil:py2"
-                   echo "opendrift/opendrift-oil:v${DOCKER_TAG}"
-                   echo "opendrift/opendrift-oil:py2-v${DOCKER_TAG}"
-
 
   # This workflow will deploy images on merge to master only
   docker_with_lifecycle:
     jobs:
 
-      # Publish opendrift/opendrift, the Python 3 version without oil
       - docker-publish/publish:
           image: opendrift/opendrift
           dockerfile: docker/Dockerfile
@@ -165,44 +116,4 @@ workflows:
                    docker tag opendrift/opendrift:latest opendrift/opendrift:py3-v${DOCKER_TAG}
                    docker tag opendrift/opendrift:latest opendrift/opendrift:py3
 
-      # Publish opendrift/opendrift:py2, the Python 2 version without oil
-      - docker-publish/publish:
-          image: opendrift/opendrift
-          dockerfile: docker/Dockerfile.py2
-          tag: py2
-          filters:
-            branches:
-             only: master
-          after_build:
-            - run:
-                name: Publish Docker Containers with Python Version 2, without OIL
-                command: |
-                   # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
-                   echo "Version for Docker tag is ${DOCKER_TAG}"
-                   docker tag opendrift/opendrift:py2 opendrift/opendrift:py2-v${DOCKER_TAG}
-
-
-      # Publish opendrift/opendrift-oil:py2, the Python 2 version with oil
-      # Since there is no python2 with oil, latest is this version
-      - docker-publish/publish:
-          image: opendrift/opendrift-oil
-          dockerfile: docker/Dockerfile.oil.py2
-          tag: latest
-          filters:
-            branches:
-             only: master
-          after_build:
-            - run:
-                name: Publish Docker Containers with Python Version 2, without OIL
-                command: |
-                   # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
-                   echo "Version for Docker tag is ${DOCKER_TAG}"
-                   docker tag opendrift/opendrift-oil:latest opendrift/opendrift-oil:py2
-                   docker tag opendrift/opendrift-oil:latest opendrift/opendrift-oil:py2-v${DOCKER_TAG}
-                   docker tag opendrift/opendrift-oil:latest opendrift/opendrift-oil:v${DOCKER_TAG}
+                   

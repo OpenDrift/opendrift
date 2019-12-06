@@ -21,7 +21,7 @@ import unittest
 from datetime import datetime, timedelta
 import numpy as np
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
@@ -125,12 +125,10 @@ class TestModels(unittest.TestCase):
         reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                 '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
 
-        reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3., llcrnrlat=60.,
-                            urcrnrlon=5., urcrnrlat=63.5, resolution='c',
-                            projection='gall')
-        # reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-1.5, llcrnrlat=59, urcrnrlon=7, urcrnrlat=64, resolution='c')
+        reader_landmask = reader_global_landmask.Reader(llcrnrlon=3., llcrnrlat=60.,
+                            urcrnrlon=5., urcrnrlat=63.5)
 
-        o.add_reader([reader_current,reader_basemap])
+        o.add_reader([reader_current,reader_landmask])
         o.seed_elements(4.,62.,time=reader_current.start_time)
         o.run(steps=1)
 

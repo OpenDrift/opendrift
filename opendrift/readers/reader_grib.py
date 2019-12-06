@@ -23,7 +23,7 @@ except:
     raise ImportError('PyGrib library is needed for GRIB files: '
                       'http://jswhit.github.io/pygrib/docs/index.html')
 
-from .basereader import BaseReader
+from opendrift.readers.basereader import BaseReader
 
 # Hardcoded "GRIB-tables" for now.
 grib_variable_mapping = {
@@ -149,7 +149,7 @@ class Reader(BaseReader):
             self.levels[var] = levels[self.indices[var]]
         if len(self.variables) > 0:
             self.times = [times[k] for k in self.indices[var]]
-            if self.times[0] == self.times[1]:  # Duplicate times
+            if len(self.times) > 1 and self.times[0] == self.times[1]:  # Duplicate times
                 self.logger.info('Duplicate times for variables, using '
                              'only first occurance.')
                 lasttime = None
@@ -168,7 +168,10 @@ class Reader(BaseReader):
                     self.levels[var] = levels[self.indices[var]]
             self.start_time = self.times[0]
             self.end_time = self.times[-1]
-            self.time_step = self.times[-1] - self.times[-2]
+            if len(self.times) > 1:
+                self.time_step = self.times[-1] - self.times[-2]
+            else:
+                self.time_step = None
         else:
             self.start_time = None
             self.end_time = None

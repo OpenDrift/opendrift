@@ -1,42 +1,32 @@
-# OpenDrift in a Container 
+# OpenDrift in a Container
 
 In this tutorial we will walk through building a Docker container with opendrift,
-and then interacting with it. If desired, you can use this same container to 
+and then interacting with it. If desired, you can use this same container to
 create a [Singularity image](https://www.sylabs.io/guides/3.0/user-guide/) that is usable on
 a shared resource cluster. We will do the latter by pulling the image on Docker Hub
 directly into a Singularity container. This folder contains two Dockerfiles:
 
- - [Dockerfile](Dockerfile): builds a vanilla container with just opendrift, Python 3
- - [Dockerfile](Dockerfile.py2): builds a vanilla container with just opendrift, Python 2
- - [Dockerfile.oil.py2](Dockerfile.oil) builds the same container with opendrift + NOAA oillibrary for oil simulations.
+ - [Dockerfile](Dockerfile): builds a vanilla container with opendrift, Python 3
 
 ## Pull
 
-These images are available on Docker Hub as [opendrift/opendrift](https://hub.docker.com/r/opendrift/opendrift)
-and [opendrift/opendrift-oil](https://hub.docker.com/r/opendrift/opendrift-oil),
+These images are available on Docker Hub as [opendrift/opendrift](https://hub.docker.com/r/opendrift/opendrift),
 built via the [circle](../.circleci/config.yml) continuous integration setup, and instructions are provided
 below for building locally. You should look at the "tags" tab of each to determine the
 version of Open Drift and Python that you are interested in. For example:
 
  - **opendrift/opendrift:latest** refers to OpenDrift (latest version) with Python 3
- - **opendrift/opendrift:py3-** refers to OpenDrift (latest version) with Python 3
- - **opendrift/opendrift:py2-** refers to OpenDrift (latest version) with Python 2
- - **opendrift/opendrift:py3-v1.0.7-** refers to OpenDrift (version 1.0.7) with Python 3
- - **opendrift/opendrift:py2-v1.0.7-** refers to OpenDrift (version 1.0.7) with Python 2
- - **opendrift/opendrift-oil:latest-** refers to OpenDrift with oil (latest version) with Python 2
- - **opendrift/opendrift-oil:py2-** refers to OpenDrift with oil (latest version) with Python 2
- - **opendrift/opendrift-oil:v1.0.7-** refers to OpenDrift with oil (version 1.0.7) with Python 2
- - **opendrift/opendrift-oil:py2-v1.0.7-** refers to OpenDrift with oil (version 1.0.7) with Python 2
+ - **opendrift/opendrift:v1.0.7-** refers to OpenDrift (version 1.0.7) with Python 3
 
 If you want to pull a particular version:
 
 ```bash
-$ docker pull opendrift/opendrift:py3-1.0.7
+$ docker pull opendrift/opendrift:1.0.7
 ```
 
 ## Build
 
-If needed, you can develop locally! You should first [install Docker](https://docs.docker.com/install/) so that you 
+If needed, you can develop locally! You should first [install Docker](https://docs.docker.com/install/) so that you
 can build images on your host. To build the image, after cloning the repository,
 from the base of the repo issue this command, where `opendrift/opendrift` refers
 to the name of the container (on Docker Hub it coincides with a `<username><reponame>`
@@ -45,15 +35,12 @@ and then build as follows:
 
 ```bash
 $ docker build -f docker/Dockerfile -t opendrift/opendrift .
-
-## NOAA OILLibrary
-$ docker build -f docker/Dockerfile.oil -t opendrift/opendrift-oil .
 ```
 
 ### Usage
 
 We will show usage examples for the base container, and you can change the name if you
-desire to use a different container or version (the tag). Likely you will want to interact with the software, and you can do this via 
+desire to use a different container or version (the tag). Likely you will want to interact with the software, and you can do this via
 an interactive (i) terminal (t) session:
 
 ```bash
@@ -71,9 +58,9 @@ of layers, like a cake!) into a Singularity container. Why would you want a Sing
 
 ## Installation
 You should first [install Singularity](https://singularityware.github.io/install-linux) so that you can build images on your host. If you use a Mac, you will need to install Singularity in a virtual machine like Vagrant. Singularity is going to allow us to interact exactly the same, but with an image that we can use on our shared resource. The biggest difference is that a Singularity image is a read only single file (a format called [squashfs](https://en.wikipedia.org/wiki/SquashFS) so it is compressed) that we can physically move around and execute like a script.
-Unlike Docker images that are assembled from layers and the whole thing is sort of mysterious to the 
-average user, your Singularity container is a single file that can sit on your desktop. 
-You can read more about Singularity [here](https://singularityware.github.io). 
+Unlike Docker images that are assembled from layers and the whole thing is sort of mysterious to the
+average user, your Singularity container is a single file that can sit on your desktop.
+You can read more about Singularity [here](https://singularityware.github.io).
 
 ### Pull the Container
 Wherever you are working, the image layers (used to create the Singularity container) will be pulled by default
@@ -110,19 +97,19 @@ pull the latest tag:
 $ docker run -it opendrift/opendrift
 Unable to find image 'opendrift/opendrift:latest' locally
 latest: Pulling from opendrift/opendrift
-cc1a78bfd46b: Already exists 
-bad124d5894e: Pull complete 
-ab2b0b173074: Pull complete 
-018d53043894: Pull complete 
-4987762b1e47: Pull complete 
-d58a7f3e3615: Pull complete 
-86f53a067a28: Pull complete 
-4c17ec80ca72: Pull complete 
-aae597ea9e38: Pull complete 
+cc1a78bfd46b: Already exists
+bad124d5894e: Pull complete
+ab2b0b173074: Pull complete
+018d53043894: Pull complete
+4987762b1e47: Pull complete
+d58a7f3e3615: Pull complete
+86f53a067a28: Pull complete
+4c17ec80ca72: Pull complete
+aae597ea9e38: Pull complete
 Digest: sha256:33807a79ced6ca9c0960bd942e9d12381c7f1066feb75c5c6992ae5b8802f94c
 Status: Downloaded newer image for opendrift/opendrift:latest
 (base) root@d7ca5fe730b8:/code# python
-Python 2.7.15 |Anaconda, Inc.| (default, May  1 2018, 23:32:55) 
+Python 2.7.15 |Anaconda, Inc.| (default, May  1 2018, 23:32:55)
 [GCC 7.2.0] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import opendrift
@@ -139,5 +126,5 @@ inside) you can use exec:
 ```
 
 The opendrift software (this repository) can be found at `/code/opendrift` in the container.
-Note that the creators used / more robustly tested the Singularity container on the 
+Note that the creators used / more robustly tested the Singularity container on the
 [Sherlock cluster](https://www.sherlock.stanford.edu/docs/).

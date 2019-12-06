@@ -1225,7 +1225,7 @@ class OpenDriftSimulation(PhysicsMethods):
         Also assigns a unique ID to each particle, monotonically increasing."""
 
         # prepare time
-        if type(time) == datetime:
+        if not isinstance(time, list):
             time = [time]*len(elements)  # Convert to array of same length
         if not hasattr(self, 'elements_scheduled'):
             self.elements_scheduled = elements
@@ -1287,7 +1287,7 @@ class OpenDriftSimulation(PhysicsMethods):
         latmax = lat.max() + deltalat*numbuffer
         if not 'land_binary_mask' in self.priority_list:
             self.logger.info('No land reader added, '
-                         'making a temporary basemap reader')
+                         'making a temporary landmask reader')
             from opendrift.models.oceandrift import OceanDrift
             from opendrift.readers import reader_global_landmask
             reader_landmask = reader_global_landmask.Reader(
@@ -2038,10 +2038,10 @@ class OpenDriftSimulation(PhysicsMethods):
         self.expected_end_time = self.start_time + self.expected_steps_calculation*self.time_step
 
         ##############################################################
-        # If no basemap has been added, we determine it dynamically
+        # If no landmask has been added, we determine it dynamically
         ##############################################################
         # TODO: some more error checking here
-        # If Basemap landmask is requested, it shall not be obtained from other readers
+        # If landmask is requested, it shall not be obtained from other readers
         if self.get_config('general:use_auto_landmask') is True:
             if 'land_binary_mask' in self.priority_list:
                 if 'basemap_landmask' in self.priority_list['land_binary_mask']:
@@ -2427,7 +2427,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return index_of_activation, index_of_deactivation
 
     def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast=False, **kwargs):
-        """Generate Basemap instance on which trajectories are plotted.
+        """Generate Figure instance on which trajectories are plotted.
 
            provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection"""
 
@@ -2912,6 +2912,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if filename is not None:
             self._save_animation(anim, filename, fps)
+
         else:
             try:
                 plt.show()
@@ -2964,7 +2965,7 @@ class OpenDriftSimulation(PhysicsMethods):
         - red: deactivated particles
         - blue: particles still active at end of simulation
 
-        Requires availability of Basemap.
+        Requires availability of Cartopy.
 
         Arguments:
             background: string, name of variable (standard_name) which will
@@ -3725,6 +3726,14 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def _save_animation(self, anim, filename, fps):
         self.logger.info('Saving animation to ' + filename + '...')
+
+        import sys
+        if 'sphinx_gallery' in sys.modules:
+            import os
+            adir = os.path.realpath('../docs/source/gallery/animations')
+            os.makedirs(adir, exist_ok=True)
+            filename = os.path.join(adir, filename)
+
         try:
             if filename[-4:] == '.gif':  # GIF
                 self.logger.info('Making animated gif...')
@@ -3763,6 +3772,9 @@ class OpenDriftSimulation(PhysicsMethods):
             self.logger.info('Could not save animation:')
             self.logger.info(e)
             self.logger.debug(traceback.format_exc())
+
+        if 'sphinx_gallery' in sys.modules:
+            plt.close('all')
 
     def calculate_ftle(self, reader=None, delta=None,
                        time=None, time_step=None, duration=None,
