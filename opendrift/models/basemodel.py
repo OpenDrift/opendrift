@@ -2576,7 +2576,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return lons, lats
 
     def animation(self, buffer=.2, corners=None, filename=None, compare=None,
-                  background=None, vmin=None, vmax=None, drifter=None,
+                  background=None, bgalpha=.5, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   show_trajectories=False,
@@ -2619,18 +2619,15 @@ class OpenDriftSimulation(PhysicsMethods):
                 map_x, map_y, scalar, u_component, v_component = \
                     self.get_map_background(ax, background,
                                             time=times[i])
-                ax.pcolormesh(map_x, map_y, scalar, alpha=1,
-                               vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
+                # https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data
+                bg.set_array(scalar[:-1,:-1].ravel())
                 if type(background) is list:
-                    ax.quiver(map_x[::skip, ::skip],
-                               map_y[::skip, ::skip],
-                               u_component[::skip, ::skip],
-                               v_component[::skip, ::skip], scale=scale, transform = gcrs)
+                    bg_quiv.set_UVC(u_component[::skip, ::skip], v_component[::skip, ::skip])
 
             if lcs is not None:
                 map_x, map_y = map(lcs['lon'], lcs['lat'])
                 ax.pcolormesh(
-                    map_x, map_y, lcs['ALCS'][i,:,:], alpha=1,
+                    map_x, map_y, lcs['ALCS'][i,:,:], alpha=bgalpha,
                     vmin=vmin, vmax=vmax, cmap=cmap)
 
             if density is True:
@@ -2707,8 +2704,14 @@ class OpenDriftSimulation(PhysicsMethods):
             map_x, map_y, scalar, u_component, v_component = \
                 self.get_map_background(ax, background,
                                         time=self.start_time)
-            bg = ax.pcolormesh(map_x, map_y, scalar, alpha=1,
+            bg = ax.pcolormesh(map_x, map_y, scalar[:-1,:-1], alpha=bgalpha,
+                               antialiased=True, linewidth=0.0, rasterized=True,
                                vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
+            if type(background) is list:
+                bg_quiv = ax.quiver(map_x[::skip, ::skip],
+                                    map_y[::skip, ::skip],
+                                    u_component[::skip, ::skip],
+                                    v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
         if lcs is not None:
             if vmin is None:
@@ -2791,10 +2794,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 if clabel is None:
                     clabel = 'LCS'
             elif background is not None:
-                #cb = plt.colorbar()
                 item = bg
                 if clabel is None:
-                    clabel = 'density'
+                    clabel = background
 
             cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
             cb.set_label(clabel)
@@ -3188,8 +3190,8 @@ class OpenDriftSimulation(PhysicsMethods):
             delta_x = (map_x[1,2] - map_x[1,1])/2.
             delta_y = (map_y[2,1] - map_y[1,1])/2.
             ax.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
-                       u_component[::skip, ::skip],
-                       v_component[::skip, ::skip], scale=scale, transform = gcrs)
+                      u_component[::skip, ::skip],
+                      v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
         if lcs is not None:
             map_x_lcs, map_y_lcs = (lcs['lon'], lcs['lat'])
@@ -3264,9 +3266,11 @@ class OpenDriftSimulation(PhysicsMethods):
         # Get reader coordinates covering given map area
         axisproj = pyproj.Proj(ax.projection.proj4_params)
         xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree())
-        cornerlons = [xmin, xmin, xmax, xmax]
-        cornerlats = [ymin, ymax, ymin, ymax]
+        cornerlons = np.array([xmin, xmin, xmax, xmax])
+        cornerlats = np.array([ymin, ymax, ymin, ymax])
         reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
+        reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
+        reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
 
         data = reader.get_variables(
             background, time, reader_x, reader_y, None, block=True)

@@ -54,7 +54,7 @@ lw.run(steps=60*4, time_step=900)
 # Print and plot results
 print(lw)
 # lw.animation()
-lw.animation(filename='leeway.gif')
+lw.animation(filename='leeway.gif', background=['x_sea_water_velocity', 'y_sea_water_velocity'])
 
 #%%
 # .. image:: /gallery/animations/leeway.gif
