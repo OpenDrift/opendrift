@@ -3266,9 +3266,11 @@ class OpenDriftSimulation(PhysicsMethods):
         # Get reader coordinates covering given map area
         axisproj = pyproj.Proj(ax.projection.proj4_params)
         xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree())
-        cornerlons = [xmin, xmin, xmax, xmax]
-        cornerlats = [ymin, ymax, ymin, ymax]
+        cornerlons = np.array([xmin, xmin, xmax, xmax])
+        cornerlats = np.array([ymin, ymax, ymin, ymax])
         reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
+        reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
+        reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
 
         data = reader.get_variables(
             background, time, reader_x, reader_y, None, block=True)
