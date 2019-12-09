@@ -2614,7 +2614,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
-            ax.set_title(times[i])
+            ax.set_title('%s UTC' % times[i])
             if background is not None:
                 map_x, map_y, scalar, u_component, v_component = \
                     self.get_map_background(ax, background,
@@ -2825,7 +2825,7 @@ class OpenDriftSimulation(PhysicsMethods):
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
-            ax.set_title(times[i])
+            ax.set_title('%s UTC' % times[i])
             points.set_data(x[range(x.shape[0]), i],
                             z[range(x.shape[0]), i])
             points_deactivated.set_data(
@@ -3200,12 +3200,12 @@ class OpenDriftSimulation(PhysicsMethods):
         if title is not None:
             if title is 'auto':
                 if hasattr(self, 'time'):
-                    plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
+                    plt.title(type(self).__name__ + '  %s to %s UTC (%i steps)' %
                               (self.start_time.strftime('%Y-%m-%d %H:%M'),
                                self.time.strftime('%Y-%m-%d %H:%M'),
                                self.steps_output))
                 else:
-                    plt.title(type(self).__name__ + ' - %i elements seeded at %s' %
+                    plt.title(type(self).__name__ + ' - %i elements seeded at %s UTC' %
                               (self.num_elements_scheduled(),
                                self.elements_scheduled_time[0].strftime(
                                '%Y-%m-%d %H:%M')))
