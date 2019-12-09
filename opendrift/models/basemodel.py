@@ -3243,25 +3243,6 @@ class OpenDriftSimulation(PhysicsMethods):
         ax.plot(x[0], y[0], 'ok', transform = gcrs)
         ax.plot(x[-1], y[-1], 'xk', transform = gcrs)
 
-
-    def map_make_grid(self, ax, nx, ny):
-        """
-        Returns lon, lats on an equidistant grid on the map projection (within the extents of the axes)
-
-        Emulates Basemap.make_grid(...).
-        """
-        xmin, xmax, ymin, ymax = ax.get_extent()
-        crs = ax.projection
-        gcrs = ccrs.PlateCarree()
-
-        # equidistant in map projection
-        xx = np.linspace(xmin, xmax, nx)
-        yy = np.linspace(ymin, ymax, ny)
-
-        X = gcrs.transform_points(crs, xx, yy)
-        return X[:,0], X[:,1]
-
-
     def get_map_background(self, ax, background, time=None):
         # Get background field for plotting on map or animation
         if type(background) is list:
@@ -3279,9 +3260,14 @@ class OpenDriftSimulation(PhysicsMethods):
             if hasattr(self, 'elements_scheduled_time'):
                 # Using time of first seeded element
                 time = self.elements_scheduled_time[0]
-        # Get lat/lons of ny by nx evenly space grid.
-        lons, lats = self.map_make_grid(ax, 4, 4)
-        reader_x, reader_y = reader.lonlat2xy(lons, lats)
+
+        # Get reader coordinates covering given map area
+        axisproj = pyproj.Proj(ax.projection.proj4_params)
+        xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree())
+        cornerlons = [xmin, xmin, xmax, xmax]
+        cornerlats = [ymin, ymax, ymin, ymax]
+        reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
+
         data = reader.get_variables(
             background, time, reader_x, reader_y, None, block=True)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
