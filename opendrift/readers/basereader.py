@@ -880,6 +880,7 @@ class BaseReader(object):
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
 
+        z = np.atleast_1d(z)
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
