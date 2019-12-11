@@ -16,8 +16,6 @@
 #
 # Caveat: This copyright will not interfere with the open nature of OpenDrift and OpenBerg
 
-import logging
-
 import numpy as np
 import sys
 from scipy.interpolate import interp1d
@@ -139,7 +137,7 @@ class OpenBerg(OpenDriftSimulation):
 
         # If current data is missing in at least one dimension, no weighting is performed:
         if len(missing_variables) > 0:
-        	logging.warning('Missing current data, weigthing array set to [1]')
+        	self.logger.warning('Missing current data, weigthing array set to [1]')
         	self.uw_weighting = np.array([1])
         	return
 
@@ -169,7 +167,7 @@ class OpenBerg(OpenDriftSimulation):
         self.reader_z_profile = profile[(profile >= 0) & (profile <= x.max())]
 
         if len(profile[profile < 0]) > 0:
-        	logging.warning('Current reader containing currents above water!'
+        	self.logger.warning('Current reader containing currents above water!'
         						'Weighting of current profile may not work!')
 
         # Interpolate and normalize weights:
