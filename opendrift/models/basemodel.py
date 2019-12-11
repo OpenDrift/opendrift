@@ -1448,6 +1448,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 lon, lat = list(zip(*conelonlats))
                 lon = np.atleast_1d(lon)
                 lat = np.atleast_1d(lat)
+                number = int(number)
                 if len(radius_array) == 1:
                     radius_array = [radius, radius]
                 radius_array = np.linspace(radius_array[0], radius_array[1],
