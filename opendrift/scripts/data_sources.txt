@@ -1,6 +1,7 @@
 # Data sources (Thredds and local files) for the OpenDrift GUI
 /vol/vvfelles/opendrift/forcing_data/norkyst/norkyst_aggregate.nc
 /vol/vvfelles/opendrift/forcing_data/meps/meps_aggregate.nc
+/vol/vvfelles/opendrift/forcing_data/ecmwf/ecmwf_aggregate.nc
 /lustre/storeB/project/metproduction/products/norkyst/NorKyst-800m_ZDEPTHS_his_00.nc
 /lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_extracted_2_5km_latest.nc
 /lustre/storeB/project/copernicus/sea/mywavewam4/*fc*.nc
