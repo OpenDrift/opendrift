@@ -890,8 +890,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     if reader is not None:
                         if (reader.covers_time(self.time) and
                                 len(reader.covers_positions(
-                                self.elements.lon,
-                                self.elements.lat)[0]) > 0):
+                                lon, lat)[0]) > 0):
                             missing_variables = list(
                                 set(missing_variables) -
                                 set(reader.variables))
