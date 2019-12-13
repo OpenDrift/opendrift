@@ -14,7 +14,6 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import logging
 import numpy as np
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.passivetracer import PassiveTracer
@@ -74,6 +73,6 @@ class OceanDrift(OpenDriftSimulation):
             ind = [0]  # Seed only one element at start of trajectory
 
         # Seed elements at given intervals
-        logging.info('Seeding %s elements along trajectory' % len(ind))
+        self.logger.info('Seeding %s elements along trajectory' % len(ind))
         for i in ind:
             self.seed_elements(lon[i], lat[i], time=time[i], **kwargs)

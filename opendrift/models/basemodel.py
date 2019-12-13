@@ -1448,6 +1448,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 lon, lat = list(zip(*conelonlats))
                 lon = np.atleast_1d(lon)
                 lat = np.atleast_1d(lat)
+                number = int(number)
                 if len(radius_array) == 1:
                     radius_array = [radius, radius]
                 radius_array = np.linspace(radius_array[0], radius_array[1],
@@ -2038,6 +2039,30 @@ class OpenDriftSimulation(PhysicsMethods):
         self.expected_end_time = self.start_time + self.expected_steps_calculation*self.time_step
 
         ##############################################################
+        # Prepare readers for the requested simulation domain/time
+        ##############################################################
+        max_distance = \
+            self.max_speed*self.expected_steps_calculation * \
+            np.abs(self.time_step.total_seconds())
+        deltalat = max_distance/111000.
+        deltalon = deltalat/np.cos(
+            np.radians(np.mean(self.elements_scheduled.lat)))
+        # TODO: extent should ideally be a general polygon, not only lon/lat-min/max
+        # TODO: Should also take into account eventual lifetime of elements
+        simulation_extent = [
+            np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+            np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+            np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+            np.minimum(89, self.elements_scheduled.lat.max() + deltalat)]
+        self.logger.debug('Preparing readers for simulation coverage (%s) and time (%s to %s)'
+                % (simulation_extent, self.start_time, self.expected_end_time))
+        for reader in self.readers.values():
+            self.logger.debug('\tPreparing %s' % reader.name)
+            reader.prepare_for_simulation(
+                extent=simulation_extent,
+                start_time=self.start_time, end_time = self.expected_end_time)
+
+        ##############################################################
         # If no landmask has been added, we determine it dynamically
         ##############################################################
         # TODO: some more error checking here
@@ -2059,21 +2084,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 'assumed maximum speed of %s m/s. '
                 'Adding a customised landmask may be faster...' % self.max_speed)
             self.timer_start('preparing main loop:making dynamical landmask')
-            max_distance = \
-                self.max_speed*self.expected_steps_calculation * \
-                np.abs(self.time_step.total_seconds())
-            deltalat = max_distance/111000.
-            deltalon = deltalat/np.cos(
-                np.radians(np.mean(self.elements_scheduled.lat)))
-
             from opendrift.readers import reader_global_landmask
-            reader_landmask = reader_global_landmask.Reader(
-                    extent = [
-                        np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
-                        np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
-                        np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
-                        np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
-                        ])
+            reader_landmask = reader_global_landmask.Reader(extent = simulation_extent)
             self.add_reader(reader_landmask)
 
             self.timer_end('preparing main loop:making dynamical landmask')

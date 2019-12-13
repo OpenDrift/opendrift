@@ -18,7 +18,6 @@ from io import open
 import os
 import numpy as np
 from datetime import datetime
-import logging
 import pyproj
 import matplotlib.pyplot as plt
 
@@ -251,7 +250,7 @@ class OpenOil(OpenDriftSimulation):
 
     def evaporate(self):
         if self.get_config('processes:evaporation') is True:
-            logging.debug('   Calculating: evaporation')
+            self.logger.debug('   Calculating: evaporation')
             windspeed = np.sqrt(self.environment.x_wind**2 +
                                 self.environment.y_wind**2)
 
@@ -303,9 +302,9 @@ class OpenOil(OpenDriftSimulation):
 
     def emulsification(self):
         if self.get_config('processes:emulsification') is True:
-            logging.debug('   Calculating: emulsification')
+            self.logger.debug('   Calculating: emulsification')
             if 'reference_wind' not in self.oil_data.keys():
-                logging.debug('Emulsification is currently only possible when'
+                self.logger.debug('Emulsification is currently only possible when'
                               'importing oil properties from file.')
             else:
                 windspeed = np.sqrt(self.environment.x_wind**2 +
@@ -325,7 +324,7 @@ class OpenOil(OpenDriftSimulation):
             Oil biodegradation function based on the article:
             Adcroft et al. (2010), Simulations of underwater plumes of dissolved oil in the Gulf of Mexico.
             '''
-            logging.debug('Calculating: biodegradation')
+            self.logger.debug('Calculating: biodegradation')
 
             swt = self.environment.sea_water_temperature.copy()
             swt[swt > 100] -= 273.15 # K to C
@@ -346,7 +345,7 @@ class OpenOil(OpenDriftSimulation):
     def disperse(self):
         if self.get_config('processes:dispersion') is True:
 
-            logging.debug('   Calculating: dispersion')
+            self.logger.debug('   Calculating: dispersion')
             windspeed = np.sqrt(self.environment.x_wind**2 +
                                 self.environment.y_wind**2)
             # From NOAA PyGnome model:
@@ -405,7 +404,7 @@ class OpenOil(OpenDriftSimulation):
 
     def oil_weathering(self):
         if self.time_step.days < 0:
-            logging.debug('Skipping oil weathering for backwards run')
+            self.logger.debug('Skipping oil weathering for backwards run')
             return
         self.timer_start('main loop:updating elements:oil weathering')
         if self.oil_weathering_model == 'noaa':
@@ -416,7 +415,7 @@ class OpenOil(OpenDriftSimulation):
 
     def oil_weathering_default(self):
 
-        logging.debug('Default oil weathering')
+        self.logger.debug('Default oil weathering')
 
         ## Evaporation
         self.evaporate()
@@ -446,17 +445,17 @@ class OpenOil(OpenDriftSimulation):
 
             self.oil_water_interfacial_tension = \
                 self.oiltype.oil_water_surface_tension()[0]
-            logging.info('Oil-water surface tension is %f Nm' %
+            self.logger.info('Oil-water surface tension is %f Nm' %
                          self.oil_water_interfacial_tension)
         else:
-            logging.info('Using default oil-water tension of 0.03Nm')
+            self.logger.info('Using default oil-water tension of 0.03Nm')
             self.oil_water_interfacial_tension = 0.03
 
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:
         https://github.com/NOAA-ORR-ERD/PyGnome
         '''
-        logging.debug('NOAA oil weathering')
+        self.logger.debug('NOAA oil weathering')
         # C to K
         self.environment.sea_water_temperature[
             self.environment.sea_water_temperature < 100] += 273.15
@@ -520,7 +519,7 @@ class OpenOil(OpenDriftSimulation):
             self.timer_end('main loop:updating elements:oil weathering:biodegradation')
 
     def disperse_noaa(self):
-        logging.debug('    Calculating: dispersion - NOAA')
+        self.logger.debug('    Calculating: dispersion - NOAA')
         # From NOAA PyGnome model:
         # https://github.com/NOAA-ORR-ERD/PyGnome/
         c_disp = np.power(self.wave_energy_dissipation(), 0.57) * \
@@ -549,13 +548,13 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Evaporation, for elements at surface only
         #############################################
-        logging.debug('    Calculating evaporation - NOAA')
+        self.logger.debug('    Calculating evaporation - NOAA')
         surface = np.where(self.elements.z == 0)[0]  # of active elements
         if len(surface) == 0:
-            logging.debug('All elements submerged, no evaporation')
+            self.logger.debug('All elements submerged, no evaporation')
             return
         if self.elements.age_seconds[surface].min() > 3600*24:
-            logging.debug('All surface oil elements older than 24 hours, ' +
+            self.logger.debug('All surface oil elements older than 24 hours, ' +
                           'skipping further evaporation.')
             return
         surfaceID = self.elements.ID[surface] - 1    # of any elements
@@ -581,19 +580,19 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Emulsification (surface only?)
         #############################################
-        logging.debug('    Calculating emulsification - NOAA')
+        self.logger.debug('    Calculating emulsification - NOAA')
         emul_time = self.oiltype.bulltime
         emul_constant = self.oiltype.bullwinkle
         # max water content fraction - get from database
         Y_max = self.oiltype.get('emulsion_water_fraction_max')
         if self.oil_name in self.max_water_fraction:
             max_water_fraction = self.max_water_fraction[self.oil_name]
-            logging.debug('Overriding max water fraxtion with value %f instead of default %f'
+            self.logger.debug('Overriding max water fraxtion with value %f instead of default %f'
                           % (max_water_fraction, Y_max))
             Y_max = max_water_fraction
         # emulsion
         if Y_max <= 0:
-            logging.debug('Oil does not emulsify, returning.')
+            self.logger.debug('Oil does not emulsify, returning.')
             return
         # Constants for droplets
         drop_min = 1.0e-6
@@ -610,7 +609,7 @@ class OpenOil(OpenDriftSimulation):
             ((fraction_evaporated >= emul_constant) & (emul_constant > 0))
             )[0]
         if len(start_emulsion) == 0:
-            logging.debug('        Emulsification not yet started')
+            self.logger.debug('        Emulsification not yet started')
             return
 
         if self.oiltype.bulltime > 0:  # User has set value
@@ -822,10 +821,10 @@ class OpenOil(OpenDriftSimulation):
                 elif len(ADIOS_ids) == 1:
                     self.oiltype = get_oil_props(oiltype)
                 else:
-                    logging.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
+                    self.logger.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
                     self.oiltype = OilProps(oils[0])
             except Exception as e:
-                logging.warning(e)
+                self.logger.warning(e)
             return
 
         if oiltype not in self.oiltypes:
@@ -861,7 +860,7 @@ class OpenOil(OpenDriftSimulation):
             self.set_config('seed:oil_type', kwargs['oiltype'])
             del kwargs['oiltype']
         else:
-            logging.info('Oil type not specified, using default: ' +
+            self.logger.info('Oil type not specified, using default: ' +
                          self.get_config('seed:oil_type'))
         self.set_oiltype(self.get_config('seed:oil_type'))
 
@@ -872,7 +871,7 @@ class OpenOil(OpenDriftSimulation):
             except:  # Newer version of OilLibrary
                 oil_density = self.oiltype.density_at_temp(285)
                 oil_viscosity = self.oiltype.kvis_at_temp(285)
-            logging.info('Using density %s and viscosity %s of oiltype %s' %
+            self.logger.info('Using density %s and viscosity %s of oiltype %s' %
                          (oil_density, oil_viscosity, self.get_config('seed:oil_type')))
             kwargs['density'] = oil_density
             kwargs['viscosity'] = oil_viscosity
@@ -1000,10 +999,10 @@ class OpenOil(OpenDriftSimulation):
                 timestr = filename[-28:-13]
                 time = datetime.strptime(
                         filename[-28:-13], '%Y%m%d.%H%M%S')
-                logging.info('Parsed time from filename: %s' % time)
+                self.logger.info('Parsed time from filename: %s' % time)
             except:
                 time = datetime.now()
-                logging.warning('Could not pase time from filename, '
+                self.logger.warning('Could not pase time from filename, '
                                 'using present time: %s' % time)
 
         ds = gdal.Open(filename)

@@ -14,7 +14,6 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import logging
 import numpy as np
 from opendrift.models.oceandrift3D import OceanDrift3D
 from opendrift.elements.passivetracer import PassiveTracer
@@ -106,12 +105,12 @@ class PlastDrift(OceanDrift3D):
 
 
         if self.get_config('turbulentmixing:mixingmodel') == 'randomwalk':
-            logging.debug('Turbulent mixing of particles using random walk')
+            self.logger.debug('Turbulent mixing of particles using random walk')
             self.vertical_mixing()
 
 
         if self.get_config('turbulentmixing:mixingmodel') == 'analytical':
-            logging.debug('Submerging according to wind')
+            self.logger.debug('Submerging according to wind')
             self.elements.z = -np.random.exponential(
                 scale=self.environment.ocean_vertical_diffusivity/
                         self.elements.terminal_velocity,

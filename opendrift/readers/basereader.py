@@ -282,6 +282,10 @@ class BaseReader(object):
             self.timing[category] += datetime.now() - self.timers[category]
         self.timers[category] = None
 
+    def prepare_for_simulation(self, extent, start_time, end_time):
+        """Prepare reader for given simulation coverage in time and space."""
+        pass  # to be overriden by specific readers
+
     @abstractmethod
     def get_variables(self, variables, time=None,
                       x=None, y=None, z=None, block=False):
@@ -876,6 +880,7 @@ class BaseReader(object):
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
 
+        z = np.atleast_1d(z)
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
