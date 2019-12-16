@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import matplotlib
+matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 import sys
 import os
@@ -252,13 +254,13 @@ class OpenDriftGUI(tk.Tk):
         #######################
         # Simulation duration
         #######################
-        tk.Label(self.coastline, text='Coastline resolution ').grid(
-                 row=40, column=1)
-        self.mapresvar = tk.StringVar()
-        self.mapres = tk.OptionMenu(self.coastline, self.mapresvar,
-                                    *['full', 'high'])
-        self.mapres.grid(row=40, column=2)
-        self.mapresvar.set('high')
+        #tk.Label(self.coastline, text='Coastline resolution ').grid(
+        #         row=40, column=1)
+        #self.mapresvar = tk.StringVar()
+        #self.mapres = tk.OptionMenu(self.coastline, self.mapresvar,
+        #                            *['full', 'high'])
+        #self.mapres.grid(row=40, column=2)
+        #self.mapresvar.set('high')
 
         tk.Label(self.duration, text='Run simulation ').grid(row=50, column=0)
         self.durationhours = tk.Entry(self.duration, width=3,
@@ -443,11 +445,11 @@ class OpenDriftGUI(tk.Tk):
     def check_seeding(self):
         print('#'*50)
         print('Hang on, plot is comming in a few seconds...')
-        mapres = self.mapresvar.get()[0]
-        if mapres == 'f':
-            print('...actually more like 30 seconds for full resolution coastline....')
-            if self.has_diana is True:
-                print('Du far ta deg ein liten trall mens du ventar.')
+        #mapres = self.mapresvar.get()[0]
+        #if mapres == 'f':
+        #    print('...actually more like 30 seconds for full resolution coastline....')
+        #    if self.has_diana is True:
+        #        print('Du far ta deg ein liten trall mens du ventar.')
         print('#'*50)
         month = np.int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(np.int(self.yearvar.get()), month,
@@ -478,7 +480,7 @@ class OpenDriftGUI(tk.Tk):
         so = Leeway(loglevel=50)
         so.seed_elements(lon=lon, lat=lat, number=5000,
                          radius=radius, time=start_time)
-        so.plot(buffer=.5, lscale=mapres, fast=True)
+        so.plot(buffer=.5, fast=True)
         del so
 
     def run_opendrift(self):
@@ -567,7 +569,7 @@ class OpenDriftGUI(tk.Tk):
         else:
             extra_args = {}
 
-        mapres = self.mapresvar.get()[0]
+        #mapres = self.mapresvar.get()[0]
         self.simulationname = 'opendrift_' + self.model.get() + \
             self.o.start_time.strftime('_%Y%m%d_%H%M')
 
