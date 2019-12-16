@@ -382,6 +382,8 @@ class OpenDriftGUI(tk.Tk):
             self.depthlabel.destroy()
             self.depth.destroy()
             self.seafloor.destroy()
+            self.amount.destroy()
+            self.amountlabel.destroy()
         except:
             pass
 
@@ -418,7 +420,7 @@ class OpenDriftGUI(tk.Tk):
 
         if model == 'OpenOil':  # User may be able to chose release depth
             self.depthlabel = tk.Label(self.duration, text='Spill depth [m]')
-            self.depthlabel.grid(row=60, column=1)
+            self.depthlabel.grid(row=60, column=0)
             self.depthvar = tk.StringVar()
             self.depth = tk.Entry(self.duration, textvariable=self.depthvar,
                                   width=6, justify=tk.RIGHT)
@@ -429,6 +431,14 @@ class OpenDriftGUI(tk.Tk):
                                            text='seafloor',
                                            command=self.seafloorbutton)
             self.seafloor.grid(row=60, column=3)
+
+            self.amountvar = tk.StringVar()
+            self.amount = tk.Entry(self.duration, textvariable=self.amountvar,
+                                  width=6, justify=tk.RIGHT)
+            self.amount.grid(row=60, column=4)
+            self.amount.insert(0, '100')
+            self.amountlabel = tk.Label(self.duration, text='m3 (per hour)')
+            self.amountlabel.grid(row=60, column=5)
 
     def seafloorbutton(self):
         if self.seafloorvar.get() == 1:
@@ -553,6 +563,7 @@ class OpenDriftGUI(tk.Tk):
             else:
                 z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
             extra_seed_args['z'] = z
+            extra_seed_args['m3_per_hour'] = np.float(self.amountvar.get())
         self.o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
                         time=start_time, cone=cone,
                         **extra_seed_args)
