@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import matplotlib
+matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 import sys
 import os
@@ -252,13 +254,13 @@ class OpenDriftGUI(tk.Tk):
         #######################
         # Simulation duration
         #######################
-        tk.Label(self.coastline, text='Coastline resolution ').grid(
-                 row=40, column=1)
-        self.mapresvar = tk.StringVar()
-        self.mapres = tk.OptionMenu(self.coastline, self.mapresvar,
-                                    *['full', 'high'])
-        self.mapres.grid(row=40, column=2)
-        self.mapresvar.set('high')
+        #tk.Label(self.coastline, text='Coastline resolution ').grid(
+        #         row=40, column=1)
+        #self.mapresvar = tk.StringVar()
+        #self.mapres = tk.OptionMenu(self.coastline, self.mapresvar,
+        #                            *['full', 'high'])
+        #self.mapres.grid(row=40, column=2)
+        #self.mapresvar.set('high')
 
         tk.Label(self.duration, text='Run simulation ').grid(row=50, column=0)
         self.durationhours = tk.Entry(self.duration, width=3,
@@ -380,6 +382,8 @@ class OpenDriftGUI(tk.Tk):
             self.depthlabel.destroy()
             self.depth.destroy()
             self.seafloor.destroy()
+            self.amount.destroy()
+            self.amountlabel.destroy()
         except:
             pass
 
@@ -416,7 +420,7 @@ class OpenDriftGUI(tk.Tk):
 
         if model == 'OpenOil':  # User may be able to chose release depth
             self.depthlabel = tk.Label(self.duration, text='Spill depth [m]')
-            self.depthlabel.grid(row=60, column=1)
+            self.depthlabel.grid(row=60, column=0)
             self.depthvar = tk.StringVar()
             self.depth = tk.Entry(self.duration, textvariable=self.depthvar,
                                   width=6, justify=tk.RIGHT)
@@ -427,6 +431,14 @@ class OpenDriftGUI(tk.Tk):
                                            text='seafloor',
                                            command=self.seafloorbutton)
             self.seafloor.grid(row=60, column=3)
+
+            self.amountvar = tk.StringVar()
+            self.amount = tk.Entry(self.duration, textvariable=self.amountvar,
+                                  width=6, justify=tk.RIGHT)
+            self.amount.grid(row=60, column=4)
+            self.amount.insert(0, '100')
+            self.amountlabel = tk.Label(self.duration, text='m3 (per hour)')
+            self.amountlabel.grid(row=60, column=5)
 
     def seafloorbutton(self):
         if self.seafloorvar.get() == 1:
@@ -443,11 +455,11 @@ class OpenDriftGUI(tk.Tk):
     def check_seeding(self):
         print('#'*50)
         print('Hang on, plot is comming in a few seconds...')
-        mapres = self.mapresvar.get()[0]
-        if mapres == 'f':
-            print('...actually more like 30 seconds for full resolution coastline....')
-            if self.has_diana is True:
-                print('Du far ta deg ein liten trall mens du ventar.')
+        #mapres = self.mapresvar.get()[0]
+        #if mapres == 'f':
+        #    print('...actually more like 30 seconds for full resolution coastline....')
+        #    if self.has_diana is True:
+        #        print('Du far ta deg ein liten trall mens du ventar.')
         print('#'*50)
         month = np.int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(np.int(self.yearvar.get()), month,
@@ -478,7 +490,7 @@ class OpenDriftGUI(tk.Tk):
         so = Leeway(loglevel=50)
         so.seed_elements(lon=lon, lat=lat, number=5000,
                          radius=radius, time=start_time)
-        so.plot(buffer=.5, lscale=mapres, fast=True)
+        so.plot(buffer=.5, fast=True)
         del so
 
     def run_opendrift(self):
@@ -551,6 +563,7 @@ class OpenDriftGUI(tk.Tk):
             else:
                 z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
             extra_seed_args['z'] = z
+            extra_seed_args['m3_per_hour'] = np.float(self.amountvar.get())
         self.o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
                         time=start_time, cone=cone,
                         **extra_seed_args)
@@ -567,7 +580,7 @@ class OpenDriftGUI(tk.Tk):
         else:
             extra_args = {}
 
-        mapres = self.mapresvar.get()[0]
+        #mapres = self.mapresvar.get()[0]
         self.simulationname = 'opendrift_' + self.model.get() + \
             self.o.start_time.strftime('_%Y%m%d_%H%M')
 
