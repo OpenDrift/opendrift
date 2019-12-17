@@ -2425,15 +2425,11 @@ class OpenDriftSimulation(PhysicsMethods):
         index_of_activation = firstlast[0][1]
         index_of_deactivation = firstlast[1][1]
         if len(index_of_deactivation) < self.history['lon'].shape[0]:
-            #missingind = np.setdiff1d(
-            #    np.arange(0, self.history['lon'].shape[0]),
-            #    firstlast[0][0])
-            self.logger.warning('%s elements were never seeded, removing from history array' % len(missingind))
-            shouldnothappen
-            #print('REMOVING')
-            #print(firstlast[0][0])
-            #finito
-            #self.history = self.history[firstlast[0][0], :]
+            missingind = np.setdiff1d(
+                np.arange(0, self.history['lon'].shape[0]),
+                firstlast[0][0])
+            self.logger.warning('%s elements were never seeded, removing from history array (this is probably caused by importing an old file)' % len(missingind))
+            self.history = self.history[firstlast[0][0], :]
 
         return index_of_activation, index_of_deactivation
 
