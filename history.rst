@@ -11,4 +11,4 @@ History
 * Conda packages at https://anaconda.org/OpenDrift/repo (see :ref:`miniconda_install`)
 * Pypi packages (see :ref:`pip_install`)
 * OilLibrary also ported to Python 3
-* `Python 2 support dropped <https://github.com/python/devguide/pull/344>` (but may still work for a while)
+* `Python 2 support dropped <https://github.com/python/devguide/pull/344>`_ (but may still work for a while)
