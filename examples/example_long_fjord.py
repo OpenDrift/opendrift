@@ -45,5 +45,6 @@ o.animation(filename='fjord.gif')
 
 
 #%%
-# .. image:: /gallery/animations/fjord.gif
+# .. image:: https://camo.githubusercontent.com/a096f9f127ae79447c779fd3adead372c74bb148/68747470733a2f2f646c2e64726f70626f7875736572636f6e74656e742e636f6d2f732f70366e31386e7737396561757875772f6c65657761795f736f676e65666a6f72645f736d616c6c2e6769663f646c3d30
 
+# .. image:: /gallery/animations/fjord.gif

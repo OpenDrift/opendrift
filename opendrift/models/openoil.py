@@ -14,6 +14,38 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+"""
+OpenOil is an oil drift module bundled within the OpenDrift framework. There is both a 2D-version, and 3D-version which adds turbulent vertical mixing.
+
+The oil weathering calculations is based on the NOAA-ERR-ERD OilLibrary package, which must be installed as a dependency. The code for evaporation and emulsification in OpenOil is borrowed from the NOAA PyGnome code, and adapted to the OpenDrift architecture.
+
+
+Oil properties affecting the drift
+The vertical (and thus indirectly also the horisontal) motion of oil (droplets) is affected by oil density and droplet diameters.
+
+When using the NOAA oil weathering model (o = OpenOil3D(weathering_model='noaa')), the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification). When using the default (primitive) weathering model (o = OpenOil3D()), the parameter 'density' may be set when seeding (default is 880 kg/m3).
+
+The droplet diameter may be given explicitly when seeding, e.g.:
+
+o.seed_elements(4, 60, number=100, time=datetime.now(), diameter=1e-5)
+In this case, the diameter will not change during the simulation, which is useful e.g. for sensitivity tests. The same diameter will be used for all elements for this example, but an array of the same length as the number of elements may also be provided.
+
+If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
+
+o.config['input']['spill']['droplet_diameter_min_subsea'] = 0.0005  # 0.5 mm
+o.config['input']['spill']['droplet_diameter_max_subsea'] = 0.005   # 5 mm
+
+After each wave breaking event, a new diameter will be chosen between configurable limits and exponent::
+
+o.config['turbulentmixing']['droplet_diameter_min_wavebreaking'] = 1e-5
+o.config['turbulentmixing']['droplet_diameter_max_wavebreaking'] = 1e-3
+o.config['turbulentmixing']['droplet_size_exponent] = 0
+
+In this case a logarithmic distribution is used, with N ~ diameter^s, where s is the droplet_size_exponent. A droplet_size_exponent of 0 (default) gives uniform distribution. A value of -2.3 corresponds to the empirical number distribution as found by Delvigne and Sweeney, and 0.7 gives the corresponding volume distribution (number distribution multiplied by diameter3, since volume is proportinal to diameter3).
+
+The droplet size limits could also have been calculated dynamically from oil viscosity, but this is not yet implemented. The limits above should eventually be adjusted before the time of seeding.
+"""
+
 from io import open
 import os
 import numpy as np
@@ -29,6 +61,7 @@ try:
     from itertools import izip as zip
 except ImportError:
     pass
+
 
 # Defining the oil element properties
 class Oil(LagrangianArray):
@@ -662,6 +695,29 @@ class OpenOil(OpenDriftSimulation):
         self.advect_oil()
 
     def get_oil_budget(self):
+        """Get oil budget for the current simulation
+
+        The oil budget consists of the following categories:
+
+        * surface: the sum of variable mass_oil for all active elements where z = 0
+        * submerged: the sum of variable mass_oil for all active elements where z < 0
+        * stranded: the sum of variable mass_oil for all elements which are stranded
+        * evaporated: the sum of variable mass_evaporated for all elements
+        * dispersed: the sum of variable mass_dispersed for all elements
+
+        The sum (total mass) shall equal the mass released. Note that the mass of oil
+        is conserved, whereas the volume may change with changes in density and
+        water uptake (emulsification). Therefore mass should be used for budgets,
+        eventually converted to volume (by dividing on density) in the final step
+        before presentation.
+
+        Note that mass_oil is the mass of pure oil. The mass of oil emulsion
+        (oil containing entrained water droplets) can be calculated as:
+            mass_emulsion = mass_oil / (1 - water_fraction)
+        I.e. water_fraction = 0 means pure oil, water_fraction = 0.5 means mixture of
+        50% oil and 50% water, and water_fraction = 0.9 (which is maximum)
+        means 10% oil and 90% water.
+        """
 
         if self.time_step.days < 0:  # Backwards simulation
             return None
