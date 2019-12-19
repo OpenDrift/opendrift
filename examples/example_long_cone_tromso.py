@@ -48,4 +48,6 @@ o.plot()
 o.animation(filename="cone_tromso.gif")
 
 #%%
+# .. image:: https://camo.githubusercontent.com/af4b84eeee83afd94bc60169834b272b1f064537/68747470733a2f2f646c2e64726f70626f7875736572636f6e74656e742e636f6d2f732f747936646d7166306f6f6865776b792f6f696c7370696c6c5f74726f6d736f652e6769663f646c3d30
+
 # .. image:: /gallery/animations/cone_tromso.gif
