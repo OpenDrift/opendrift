@@ -51,8 +51,8 @@ information. Some key features of OpenDrift are:
                   wind_drift_factor=.02)
 
   # Adjusting some configuration
-  o.set_config('processes:dispersion', True)
-  o.set_config('processes:evaporation', True)
+  o.set_config('processes:dispersion', False)
+  o.set_config('processes:evaporation', False)
   o.set_config('processes:emulsification', True)
   o.set_config('drift:current_uncertainty', .1)
   o.set_config('drift:wind_uncertainty', 1)
@@ -61,7 +61,7 @@ information. Some key features of OpenDrift are:
   o.run(steps=60, time_step=1800)
 
   # Print and plot results
-  o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
+  o.plot()
 
 
 Once you have OpenDrift :doc:`installed <install>`, take a look at the

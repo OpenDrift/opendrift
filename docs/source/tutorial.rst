@@ -1,13 +1,14 @@
 Tutorial
 =========
 
-OpenDrift does come with a basic [graphical user interface](https://github.com/OpenDrift/opendrift/wiki/Graphical-User-Interface), but the most flexible and powerful way to operate the model is through a set of Python commands. This requires only basic knowledge of Python.
+OpenDrift does come with a basic :doc:`graphical user interface <gui>`, but the most flexible and powerful way to operate the model is through a set of Python commands. This requires only basic knowledge of Python.
 
-The best way to get familiar with OpenDrift is to run and examine/edit the example-scripts located in the [examples](https://github.com/OpenDrift/opendrift/tree/master/examples) folder. The main steps involved are explained below.
+The best way to get familiar with OpenDrift is to run and examine/edit the example-scripts located in the `examples <https://github.com/OpenDrift/opendrift/tree/master/examples>`_ folder. The main steps involved are explained below.
 
-### 1. Import a specific **model** for the relevant application
+1. Import a specific **model** for the relevant application
+###########################################################
 
-The first step is to decide which model to use, based on your application. All available models are stored in the subfolder [models](https://github.com/knutfrode/opendrift/tree/master/opendrift/models). The .py files in this folder (except files starting with test_) are Python "modules" containing a class which is a subclass (specialisation) of the generic class [OpenDriftSimulation](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/basemodel.py#L54).
+The first step is to decide which model to use, based on your application. All available models are stored in the subfolder `models <opendrift.models>`_. The .py files in this folder (except files starting with test_) are Python "modules" containing a class which is a subclass (specialisation) of the generic class [OpenDriftSimulation](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/basemodel.py#L54).
 
 The most basic model, [OceanDrift](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/oceandrift.py#L30), is suitable for passive tracers (substances with no properties except for position, flowing with the ocean current) or objects at the ocean surface which may be subject to an additional wind drag. **OceanDrift** may be imported with the command:
 ```
@@ -37,7 +38,9 @@ A specific model implementation does not need to worry about map projections, ve
 
 With OpenDrift it is fairly easy to [make your own model/class](https://github.com/knutfrode/opendrift/wiki/How-to-write-a-new-module) by simply defining element properties and an update function to describe the desired advection and other processes.
 
-### 2. Adding **Readers**
+2. Adding **Readers**
+#####################
+
 Readers are independent Python objects which provide the variables (e.g. current, wind, temperature...) needed by the model to update particle properties. Readers normally read from a file (hence the name) or from a remote URL, or use some analytical function such as [this idealistic eddy](https://github.com/knutfrode/opendrift/blob/master/opendrift/readers/reader_ArtificialOceanEddy.py).
 Different reader classes exist for different file types. E.g. for data following the NetCDF CF-convention, use the following class:
 ```
@@ -191,7 +194,8 @@ If ```somelocalfile.nc``` contains the required variables for the element positi
 If you want readers to be intialised immediately, you may provide the keyword ```lazy=False``` to ```add_readers_from_list()``` or ```add_readers_from_file()```.
 These methods are robust regarding nonexisting files or URLs, which will then be marked as "Discarded readers" during the simulation.
 
-### 3. Seeding elements
+3. Seeding elements
+###################
 
 Before starting a model run, some elements must be seeded (released).
 The simplest case is to seed a single element at a given position and time:
@@ -243,7 +247,8 @@ The seed functions may also be called repeatedly before starting the simulation,
 
 Run the script [example_seed_demonstration.py](https://github.com/knutfrode/opendrift/blob/master/examples/example_seed_demonstration.py) for a demonstration of various ways to seed elements.
 
-### 4. Configuration
+4. Configuration
+################
 
 OpenDrift allows for configuration of the model using the package [ConfigObj](http://www.voidspace.org.uk/python/configobj.html). The properties which can be configured can be listed by the command:
 ```
@@ -267,7 +272,8 @@ The configuration value is retrieved by
 
 See the example-files for more examples of configuration.
 
-### 5. Running the model
+5. Running the model
+####################
 
 After initialisation, adding readers and seeding elements, a model run (simulation) can be started by calling the function run:
 ```
