@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import matplotlib
-matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
+if __name__ == '__main__':
+    matplotlib.use('TKAgg')
+
 import sys
 import os
 from datetime import datetime, timedelta
@@ -622,3 +624,4 @@ class OpenDriftGUI(tk.Tk):
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()
+
