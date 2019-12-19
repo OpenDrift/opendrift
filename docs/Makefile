@@ -20,7 +20,7 @@ help:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 html-noplot:
-	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	@$(SPHINXBUILD) -D plot_gallery=0 "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(0)
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 

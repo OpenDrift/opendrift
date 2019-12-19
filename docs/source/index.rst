@@ -89,6 +89,7 @@ Contents
    :maxdepth: 3
    :glob:
 
+   history_link
    install
    tutorial
    theory/index
