@@ -1,10 +1,10 @@
 Specifications and background requirements
 ===========================================
 
-**The goal is to develop a generic, open source trajectory model for any kind of particles (Lagrangian Elements) drifting in the ocean (or even in atmosphere).**
+**OpenDrift is designed to be a generic, open source trajectory model for any kind of particles (Lagrangian Elements) drifting in the ocean (or even in atmosphere).**
 
 
-Some desired features are:
+Some design criteria are:
 
 * **Modular**
 
@@ -27,11 +27,11 @@ Some desired features are:
     * oil (based on OD3D)
     * rigid objects (based on Leeway)
     * plankton, fish eggs, larvae (based on Ladim)
-  * Generic module for **seeding of particles** (point source, line, cone, shapefile, satellite image initialisation etc)
+  * Generic methods for **seeding of particles** (point source, line, cone, shapefile, satellite image initialisation etc)
 |
 * **Robust**
 
-  * using priority list of driver data in case a source is missing, or if the particles exits the coverage in space or time. Using climatology or constant values as last option.
+  * using priority list of driver data in case a source is missing, or if the particles leaves the domain in space or time. Using climatology or constant values as last option.
 
   * gracious error handling (try-except)
 |
@@ -58,18 +58,8 @@ Some desired features are:
 * **Programmed in Python**
 
   * with optional possibility to implement specific modules og bottlenecks in other laguages, e.g. c or fortran
-  * platform independent and easy (no) installation
+  * platform independent and simple installation
 
-    * based on as few (standard) packages as possible:
-
-      * scipy for scientific functions.
-      * matplotlib for plotting functions.
-      * basemap for GSHHS coastline for plots and for checking if particles should be stranded.
+    * based on as few external packages as possible
 
   * clean code, following the `PEP8 <http://www.python.org/dev/peps/pep-0008>`_ and `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ style guides.
-
-
-See presentations from NOAA regarding GNOME/ADIOS models, with several similar ideas:
-
-https://ceprofs.civil.tamu.edu/ssocolofsky/nfm/Downloads/Workshop_2012/Plenary_Gnome.ppt.pdf
-http://www.youtube.com/watch?v=3pJlgQRn1jY
