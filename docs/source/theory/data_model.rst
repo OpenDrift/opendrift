@@ -18,8 +18,10 @@ The main class (the "trajectory model") ties it all together and takes care of a
   * Then for each time step (which might be negative):
 
     * Uses a set of Readers to retrieve driver/environmental data for the positions of the elements
+
       * includes reprojecting and interpolation of values from the Readers SRS to the common simulation SRS
     * Calls a purpose-specific method "update()" to update positions and properties of particles, based on environment data obtained by the readers.
+
       * Deactivates particles (stranded, evaporated etc).
     * Calls a Writer to append output to file.
 
@@ -39,11 +41,14 @@ A "Reader" is a class to read/retrieve input/driver data from a particular sourc
 A Reader object must provide the following information, as reader by the class constructor (```__init__```):
 
 * **proj4** (string)
+
   * declaring the spatial reference system ("projection") for which data can be requested
 * **xmin, xmax, delta_x, ymin, ymax, delta_y** (floats)
+
   * defining grid bounds and resolution
   * x and y correspond to the given proj4 string
-* **time_start, time_end, time_step** (datetime, timedelta)
+* **start_time, end_time, time_step** (datetime, timedelta)
+
   * defining temporal availability of variables
 * **variables** (list of strings)
 

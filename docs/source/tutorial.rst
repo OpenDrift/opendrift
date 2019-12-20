@@ -8,19 +8,19 @@ The best way to get familiar with OpenDrift is to run and examine/edit the examp
 1. Import a specific **model** for the relevant application
 ###########################################################
 
-The first step is to decide which model to use, based on your application. All available models are stored in the subfolder `models <opendrift.models>`_. The .py files in this folder (except files starting with test_) are Python "modules" containing a class which is a subclass (specialisation) of the generic class [OpenDriftSimulation](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/basemodel.py#L54).
+The first step is to decide which model to use, based on your application. All available models are stored in the subfolder :mod:`models <opendrift.models>`. The .py files in this folder are Python "modules" containing a class which is a subclass (specialisation) of the generic class :mod:`OpenDriftSimulation <opendrift.models.basemodel.OpenDriftSimulation>`.
 
-The most basic model, [OceanDrift](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/oceandrift.py#L30), is suitable for passive tracers (substances with no properties except for position, flowing with the ocean current) or objects at the ocean surface which may be subject to an additional wind drag. **OceanDrift** may be imported with the command:
+The most basic model, :mod:`OceanDrift <opendrift.models.oceandrift.OceanDrift>`, is suitable for passive tracers (substances with no properties except for position, flowing with the ocean current) or objects at the ocean surface which may be subject to an additional wind drag. **OceanDrift** may be imported with the command:
 ```
 >>> from opendrift.models.oceandrift import OceanDrift
 ```
-Make sure you are located within the main opendrift folder, or alternatively add this folder to your PYTHONPATH.
+Make sure that the opendrift folder is in your PYTHONPATH.
 
-For Search and Rescue applications, the [Leeway](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/leeway.py#L68) model (class) may be imported with the command:
+For Search and Rescue applications, the :mod:`Leeway <opendrift.models.leeway>` model (class) may be imported with the command:
 ```
 >>> from opendrift.models.leeway import Leeway
 ```
-For oil drift applications, import the [OpenOil](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/openoil.py#L67) model by the command:
+For oil drift applications, import the :mod:`OpenOil <opendrift.models.openoil>` model by the command:
 ```
 >>> from opendrift.models.openoil import OpenOil
 ```
@@ -31,71 +31,71 @@ A simulation instance (object) is created by calling the imported class:
 ```
 The argument loglevel is optional, and 0 (debug mode, default) means that a lot of diagnostic information is displayed to the terminal during the run. This may be useful if something goes wrong. Use a value of 20 to get only a minimum of information, or a value of 50 for no output at all.
 
-**OpenOil** uses the element type [Oil](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/openoil.py#L27) (subclass of [LagrangianArray](https://github.com/knutfrode/opendrift/blob/master/opendrift/elements/elements.py)), which defines some properties specific to oil (e.g. density, viscosity...). The element class may be defined in the same module/file as the trajectory model class, as in this case, or imported from the various element types in the subfolder [elements](https://github.com/knutfrode/opendrift/tree/master/opendrift/elements), for possible re-use by other models.
+:mod:`OpenOil <opendrift.models.openoil>` uses the element type :mod:`Oil <opendrift.models.openoil.Oil>` (subclass of :mod:`LagrangianArray <opendrift.elements.elements.LagrangianArray>`), which defines some properties specific to oil (e.g. density, viscosity...). The element class may be defined in the same module/file as the trajectory model class, as in this case, or imported from the various element types in the subfolder :mod:`elements <opendrift.elements>:, for possible re-use by other models.
 
 Any **model** contains at least the function **update()** which is called at each step of the model run to update the positions and properties of particles (added when seeding, see below) using environmental data (wind, current, temperature...) provided by some **readers** (below).
 A specific model implementation does not need to worry about map projections, vector orientations, how data are obtained, etc - it will focus on the advection/physical/chemical processes only.
 
-With OpenDrift it is fairly easy to [make your own model/class](https://github.com/knutfrode/opendrift/wiki/How-to-write-a-new-module) by simply defining element properties and an update function to describe the desired advection and other processes.
+With OpenDrift it is fairly easy to :doc:`make your own model/class <writing_a_new_model>` by simply defining element properties and an update function to describe the desired advection and other processes.
 
 2. Adding **Readers**
 #####################
 
-Readers are independent Python objects which provide the variables (e.g. current, wind, temperature...) needed by the model to update particle properties. Readers normally read from a file (hence the name) or from a remote URL, or use some analytical function such as [this idealistic eddy](https://github.com/knutfrode/opendrift/blob/master/opendrift/readers/reader_ArtificialOceanEddy.py).
+Readers are independent Python objects which provide the variables (e.g. current, wind, temperature...) needed by the model to update particle properties. Readers normally read from a file (hence the name) or from a remote URL, or use some analytical function such as :mod:`this idealistic eddy <opendrift.readers.reader_ArtificialOceanEddy>`.
 Different reader classes exist for different file types. E.g. for data following the NetCDF CF-convention, use the following class:
 ```
 >>> from opendrift.readers import reader_netCDF_CF_generic
 ```
+
 A Reader instance may then be created to obtain data from a local file:
 ```
 >>> reader_norkyst = reader_netCDF_CF_generic.Reader('norkyst800_16Nov2015.nc')
 ```
-To generate a reader for data on a Thredds server (here the same reader class may be used, as files are still CF-compliant):
-```
->>> reader_norkyst = reader_netCDF_CF_generic.Reader(
-      'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-```
 
-The reader can be inspected with
-```
->>> print reader_norkyst
-===========================
-Reader: http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
-Projection:
-  +proj=stere +ellps=WGS84 +lat_0=90.0 +lat_ts=60.0 +x_0=3192800 +y_0=1784000 +lon_0=70
-Coverage: [m]
-  xmin: 0.000000   xmax: 2080800.000000   step: 800   numx: 2602
-  ymin: 0.000000   ymax: 720800.000000   step: 800   numy: 902
-  Corners (lon, lat):
-    ( -1.58,  58.50)  ( 23.71,  75.32)
-    (  9.19,  55.91)  ( 38.06,  70.03)
-Vertical levels [m]:
-  [-0.0 -3.0 -10.0 -15.0 -25.0 -50.0 -75.0 -100.0 -150.0 -200.0 -250.0
- -300.0 -500.0 -1000.0 -2000.0 -3000.0]
-Available time range:
-  start: 2017-02-20 00:00:00   end: 2019-09-08 18:00:00   step: 1:00:00
-    22339 times (3120 missing)
-Variables:
-  y_wind
-  sea_water_temperature
-  upward_sea_water_velocity
-  eastward_sea_water_velocity
-  salinity_vertical_diffusion_coefficient
-  y_sea_water_velocity
-  longitude
-  latitude
-  sea_floor_depth_below_sea_level
-  northward_sea_water_velocity
-  sea_water_salinity
-  x_sea_water_velocity
-  time
-  forecast_reference_time
-  sea_surface_elevation
-  x_wind
+To generate a reader for data on a Thredds server (here the same reader class may be used, as files are still CF-compliant)::
 
-===========================
+    >>> reader_norkyst = reader_netCDF_CF_generic.Reader(
+            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
-```
+The reader can be inspected with::
+
+    >>> print reader_norkyst
+    ===========================
+    Reader: http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
+    Projection:
+      +proj=stere +ellps=WGS84 +lat_0=90.0 +lat_ts=60.0 +x_0=3192800 +y_0=1784000 +lon_0=70
+    Coverage: [m]
+      xmin: 0.000000   xmax: 2080800.000000   step: 800   numx: 2602
+      ymin: 0.000000   ymax: 720800.000000   step: 800   numy: 902
+      Corners (lon, lat):
+        ( -1.58,  58.50)  ( 23.71,  75.32)
+        (  9.19,  55.91)  ( 38.06,  70.03)
+    Vertical levels [m]:
+      [-0.0 -3.0 -10.0 -15.0 -25.0 -50.0 -75.0 -100.0 -150.0 -200.0 -250.0
+     -300.0 -500.0 -1000.0 -2000.0 -3000.0]
+    Available time range:
+      start: 2017-02-20 00:00:00   end: 2019-09-08 18:00:00   step: 1:00:00
+        22339 times (3120 missing)
+    Variables:
+      y_wind
+      sea_water_temperature
+      upward_sea_water_velocity
+      eastward_sea_water_velocity
+      salinity_vertical_diffusion_coefficient
+      y_sea_water_velocity
+      longitude
+      latitude
+      sea_floor_depth_below_sea_level
+      northward_sea_water_velocity
+      sea_water_salinity
+      x_sea_water_velocity
+      time
+      forecast_reference_time
+      sea_surface_elevation
+      x_wind
+
+    ===========================
+
 The suitability of a file or URL may also be tested from the Linux/DOS command line:
 
 ```
@@ -103,37 +103,36 @@ $ ./scripts/readerinfo.py <filename/URL>
 ```
 Adding the option -p to the above command will also plot the geographical coverage. From Python the same plot can be obtained with the command ```reader_norkyst.plot()```
 
-The coverage of the NorKyst ocean model on the met.no Thredds server may e.g. be plotted with the following command:
-```
-readerinfo.py http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be -p
-```
-![](https://www.dropbox.com/s/wb1ztfct47eooy0/norkyst_coverage.png?raw=1)
+The coverage of the NorKyst ocean model on the met.no Thredds server may e.g. be plotted with the following command::
 
-The variables (e.g. wind, current...) required by a specific model are given in the list "required_variables" in the model class implementation, and may be listed by:
-```
->>> print OpenOil.required_variables
-['x_sea_water_velocity', 'y_sea_water_velocity',
- 'sea_surface_wave_significant_height', 'sea_surface_wave_to_direction',
- 'sea_ice_area_fraction', 'x_wind', 'y_wind', 'land_binary_mask']
-```
+    readerinfo.py http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be -p
+
+.. image:: https://www.dropbox.com/s/wb1ztfct47eooy0/norkyst_coverage.png?raw=1
+
+The variables (e.g. wind, current...) required by a specific model are given in the list "required_variables" in the model class implementation, and may be listed by:;
+
+    >>> print OpenOil.required_variables
+    ['x_sea_water_velocity', 'y_sea_water_velocity',
+     'sea_surface_wave_significant_height', 'sea_surface_wave_to_direction',
+     'sea_ice_area_fraction', 'x_wind', 'y_wind', 'land_binary_mask']
+
 Variable names follow the CF-convention, ensuring that any reader may be used by any model, although developed independently.
-It is necessary to add readers for all required variables, unless they have been given a fallback (default) value:
-```
->>> print OpenOil.fallback_values
-{'y_wind': 0, 'sea_ice_area_fraction': 0, 'y_sea_water_velocity': 0,
- 'sea_surface_wave_significant_height': 0, 'x_sea_water_velocity': 0,
- 'sea_surface_wave_to_direction': 0, 'x_wind': 0}
-```
+It is necessary to add readers for all required variables, unless they have been given a fallback (default) value::
+    >>> print OpenOil.fallback_values
+    {'y_wind': 0, 'sea_ice_area_fraction': 0, 'y_sea_water_velocity': 0,
+     'sea_surface_wave_significant_height': 0, 'x_sea_water_velocity': 0,
+     'sea_surface_wave_to_direction': 0, 'x_wind': 0}
+
 The fallback values will also be used for elements which move out of the coverage of a reader in space or time, if there is no other readers which provides the given variable. In the above example, all required_variables have also been given a default value (0). It is thus possible to run a simulation without providing any readers, but elements will then not move.
 
-Most applications will need a landmask, for stranding towards a coastline. A high resolution landmask may e.g. be taken from the Python Basemap library (GSHHS coastline), which is available through a dedicated Reader class:
-```
->>> from opendrift.readers import reader_basemap_landmask
->>> reader_basemap = reader_basemap_landmask.Reader(
-                       llcrnrlon=2, llcrnrlat=59,
-                       urcrnrlon=8, urcrnrlat=63,
-                       resolution='h', projection='merc')
-```
+Most applications will need a landmask, for stranding towards a coastline. A high resolution landmask may e.g. be taken from the Python Basemap library (GSHHS coastline), which is available through a dedicated Reader class::
+
+    >>> from opendrift.readers import reader_basemap_landmask
+    >>> reader_basemap = reader_basemap_landmask.Reader(
+                           llcrnrlon=2, llcrnrlat=59,
+                           urcrnrlon=8, urcrnrlat=63,
+                           resolution='h', projection='merc')
+
 The longitude-latitude boundaries of the basemap reader should cover the area where the elements could possibly be advected during the run. The resolution may be either 'f' (full, but may take several seconds to generate), 'h' (high), 'i' (intermediate), 'l' (low) or 'c' (crude). Use coarser coastline if covering a larger area, and vice versa.
 
 After Readers are created, they must be added to the model instance:
@@ -146,49 +145,47 @@ When later running a simulation, the readers will first read data from file/URL,
 
 Readers also take care of reprojecting all data from their native map projection to a common projection, which is generally necessary as different readers may have different projection. This allows OpenDrift to use raw output from ocean/wave/atmosphere models, without the need to preprocess large amounts of data. Vectors (wind, current) are also rotated to the common calculation projection. By default, the common projection is taken from the first added reader, so that data from this reader must not be reprojected/rotated.
 
-In addition to providing variables interpolated to the element positions, readers may also provide vertical profiles (e.g. from a 3D ocean model) at the positions of all elements, if ```required_profiles``` has been specified in the model. E.g. from the model [pelagicegg](https://github.com/knutfrode/opendrift/blob/master/opendrift/models/pelagicegg.py#L82):
-```
-required_profiles = ['sea_water_temperature',
-                     'sea_water_salinity',
-                     'ocean_vertical_diffusivity']
-required_profiles_z_range = [-120, 0]  # The depth range (in m) which
-                                       # profiles shall cover
-```
-Vertical profiles may be used by the model (```update()``` function) to calculate vertical mixing. See [example_codegg.py](https://github.com/knutfrode/opendrift/blob/master/examples/example_codegg.py) for a demonstration.
+In addition to providing variables interpolated to the element positions, readers may also provide vertical profiles (e.g. from a 3D ocean model) at the positions of all elements, if ```required_profiles``` has been specified in the model. E.g. from the model :mod:`opendrift.models.pelagicegg`::
 
-#### 2.1 **Lazy Readers**
+    required_profiles = ['sea_water_temperature',
+                         'sea_water_salinity',
+                         'ocean_vertical_diffusivity']
+    required_profiles_z_range = [-120, 0]  # The depth range (in m) which
+                                           # profiles shall cover
+
+Vertical profiles may be used by the model (```update()``` function) to calculate vertical mixing. See :mod:`examples.example_long_codegg` for a demonstration.
+
+2.1 Lazy Readers
+****************
 For an operational setup, it is convenient to have a long priority list of available readers/sources, to be sure that the desired location and time is covered by forcing data. However, initialising all readers before the simulation starts may then take some time, especially if the list of readers include some slow or potentially hanging Thredds servers.
-The concept of *Lazy Readers* allows to delay the initialisation of readers until they are actually needed. This minimises statup time, and decreases the risk of hanging. Readers are by default *Lazy* if they are initiated with the methods ```add_readers_from_list(<list_of_reader_filenames/URLs>)``` or ```add_readers_from_file(<file_with_lines of_reader_filenames/URLs>)```, e.g.:
+The concept of *Lazy Readers* allows to delay the initialisation of readers until they are actually needed. This minimises statup time, and decreases the risk of hanging. Readers are by default *Lazy* if they are initiated with the methods ```add_readers_from_list(<list_of_reader_filenames/URLs>)``` or ```add_readers_from_file(<file_with_lines of_reader_filenames/URLs>)```, e.g.::
 
-```
->>> o.add_readers_from_list(['somelocalfile.nc',
-       'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-       'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be'])
-```
+    >>> o.add_readers_from_list(['somelocalfile.nc',
+           'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+           'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be'])
 
-Printing the simulation object then shows that these have been added as lazy readers. Since initialisation of these have been delayed, we do not yet know whether they cover the required variables, but this will be checked whenever necessary during the upcoming simulation:
-```
->>> print o
-===========================
-Model:	OceanDrift     (OpenDrift version 1.0.5)
-	0 active PassiveTracer particles  (0 deactivated, 0 scheduled)
-Projection: +proj=latlong
--------------------
-Environment variables:
-  -----
-Readers not added for the following variables:
-  land_binary_mask
-  x_sea_water_velocity
-  x_wind
-  y_sea_water_velocity
-  y_wind
----
-Lazy readers:
-  LazyReader: somelocalfile.nc
-  LazyReader: http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
-  LazyReader: http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
-===========================
-```
+Printing the simulation object then shows that these have been added as lazy readers. Since initialisation of these have been delayed, we do not yet know whether they cover the required variables, but this will be checked whenever necessary during the upcoming simulation::
+
+    >>> print o
+    ===========================
+    Model:	OceanDrift     (OpenDrift version 1.0.5)
+        0 active PassiveTracer particles  (0 deactivated, 0 scheduled)
+    Projection: +proj=latlong
+    -------------------
+    Environment variables:
+      -----
+    Readers not added for the following variables:
+      land_binary_mask
+      x_sea_water_velocity
+      x_wind
+      y_sea_water_velocity
+      y_wind
+    ---
+    Lazy readers:
+      LazyReader: somelocalfile.nc
+      LazyReader: http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
+      LazyReader: http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
+    ===========================
 
 If ```somelocalfile.nc``` contains the required variables for the element positions throughout the simulation, the Thredds-readers will never be initialised, thus saving time.
 If you want readers to be intialised immediately, you may provide the keyword ```lazy=False``` to ```add_readers_from_list()``` or ```add_readers_from_file()```.
@@ -198,52 +195,47 @@ These methods are robust regarding nonexisting files or URLs, which will then be
 ###################
 
 Before starting a model run, some elements must be seeded (released).
-The simplest case is to seed a single element at a given position and time:
-```
->>> o.seed_elements(lon=4.3, lat=60, time=datetime(2016,2,25,18,0,0))
-```
+The simplest case is to seed a single element at a given position and time::
+    >>> o.seed_elements(lon=4.3, lat=60, time=datetime(2016,2,25,18,0,0))
+
 The time may be defined explicitly as in the above example, or one may e.g. use the starting time of one of the available readers (e.g. time=reader_norkyst.start_time).
-To seed 100 elements within a radius of 1000 m:
-```
->>> o.seed_elements(lon=4.3, lat=60, number=100, radius=1000,
-                    time=reader_norkyst.start_time)
-```
+To seed 100 elements within a radius of 1000 m::
+    >>> o.seed_elements(lon=4.3, lat=60, number=100, radius=1000,
+                        time=reader_norkyst.start_time)
+
 Note that the radius is not an absolute boundary within which elements will be seeded, but one standard deviation of a normal distribution in space. Thus about 68% of elements will be seeded within this radius, with more elements near the center.
 By default, elements are seeded at the surface (z=0), but the depth may be given as a negative scalar (same for all elements), or as a vector of the same length as the number of elements. Elements may also be seeded at the seafloor by specifying ```z='seafloor'```, however, this requires that a reader providing the variable ```sea_floor_depth_below_sea_level``` has been already been added. It is also possible to seed elements a given height above seafloor, e.g. ```z='seafloor+50'``` to seed elements 50m above seafloor.
 
-All seeded elements will get the default values of any properties as defined in the model implementation, or the properties may be specified (overridden) with a name-value pair:
-```
->>> o.seed_elements(lon=4.3, lat=60, number=100, radius=1000,
-                    density=900, time=reader_norkyst.start_time)
-```
-This will give all 100 oil elements (if o is an OpenOil instance) a density of 900 kg/m3, instead of the default value of 880 kg/m3. To assign unique values to each element, the properties may be given as an array with length equal the number of elements:
-```
->>> from numpy import random
->>> o.seed_elements(lon=4.3, lat=60, number=100, radius=1000,
-                    density=random.uniform(880, 920, 100),
-                    time=reader_norkyst.start_time)
-```
-The properties of the seeded elements may be displayed with:
-```
->>> o.elements_scheduled
-```
+All seeded elements will get the default values of any properties as defined in the model implementation, or the properties may be specified (overridden) with a name-value pair::
 
-Elements may be seeded along a line (or cone) between two points by specifying ```cone=True```. lon and lat must then be two element arrays, indicating start and end points. An uncertainty radius may also be given as a two element array, thus tracing out a cone (where a line is a special case with same radius at both ends):
-```
->>> o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000],
-                    cone=True, time=reader_norkyst.start_time)
-```
+    >>> o.seed_elements(lon=4.3, lat=60, number=100, radius=1000,
+                        density=900, time=reader_norkyst.start_time)
 
-If time is also given as a two element list (of datetime objects), elements are seeded linearly in time (here over a 5 hour interval):
-```
->>> o.seed_elements(lon=[4, 4.8], lat=[60, 61],
-                    number=1000, radius=[0, 5000], cone=True,
-                    time=[norkyst.start_time, norkyst.start_time+timedelta(hours=5)])
-```
+This will give all 100 oil elements (if o is an OpenOil instance) a density of 900 kg/m3, instead of the default value of 880 kg/m3. To assign unique values to each element, the properties may be given as an array with length equal the number of elements::
 
-Specific OpenDrift models may have additional seed-functions. E.g. OpenOil contains a function (seed_from_gml) to seed oil elements within contours from satellite detected oil slicks read from a GML-file. The Leeway model overloads the generic seed_elements function since it needs to read some object properties from a text-file.
+    >>> from numpy import random
+    >>> o.seed_elements(lon=4.3, lat=60, number=100, radius=1000,
+                        density=random.uniform(880, 920, 100),
+                        time=reader_norkyst.start_time)
 
-The seed functions may also be called repeatedly before starting the simulation, try [example_grid_time.py](https://github.com/knutfrode/opendrift/blob/master/examples/example_grid_time.py) for an example of this.
+The properties of the seeded elements may be displayed with::
+
+    >>> o.elements_scheduled
+
+Elements may be seeded along a line (or cone) between two points by specifying ```cone=True```. lon and lat must then be two element arrays, indicating start and end points. An uncertainty radius may also be given as a two element array, thus tracing out a cone (where a line is a special case with same radius at both ends)::
+
+    >>> o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000],
+                        cone=True, time=reader_norkyst.start_time)
+
+If time is also given as a two element list (of datetime objects), elements are seeded linearly in time (here over a 5 hour interval)::
+
+    >>> o.seed_elements(lon=[4, 4.8], lat=[60, 61],
+                        number=1000, radius=[0, 5000], cone=True,
+                        time=[norkyst.start_time, norkyst.start_time+timedelta(hours=5)])
+
+Specific OpenDrift models may have additional seed-functions. E.g. :mod:`opendrift.models.openoil` contains a function (seed_from_gml) to seed oil elements within contours from satellite detected oil slicks read from a GML-file. The Leeway model overloads the generic seed_elements function since it needs to read some object properties from a text-file.
+
+The seed functions may also be called repeatedly before starting the simulation, try `example_long_grid_time` for an example of this.
 
 Run the script [example_seed_demonstration.py](https://github.com/knutfrode/opendrift/blob/master/examples/example_seed_demonstration.py) for a demonstration of various ways to seed elements.
 
