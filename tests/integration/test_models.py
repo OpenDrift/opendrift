@@ -77,9 +77,9 @@ class TestModels(unittest.TestCase):
                         length=80, beam=14, height=25, draft=5)
         s.run(time_step=600, duration=timedelta(hours=4))
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            s.elements.lon, 2.25267706))
+            s.elements.lon, 2.252, 2))
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            s.elements.lat, 59.87694775))
+            s.elements.lat, 59.876, 2))
 
     def test_shipdrift_backwards(self):
         """Case above, reversed"""
