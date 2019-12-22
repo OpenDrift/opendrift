@@ -20,6 +20,7 @@ from opendrift.models.opendrift3D import \
     OpenDrift3DSimulation, Lagrangian3DArray
 from opendrift.elements import LagrangianArray
 
+from opendrift.readers.basereader import pyproj
 
 # Defining the radionuclide element properties
 class Radionuclide(Lagrangian3DArray):
@@ -785,10 +786,19 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
 
+# ################
+# POSTPROCESSING
 
 
-    def write_netcdf_radionuclide_density_map(self, filename, pixelsize_m='auto', deltaz=10.):
+    def write_netcdf_radionuclide_density_map(self, filename, pixelsize_m='auto', deltaz=None,
+                                              density_proj=None,
+                                              llcrnrlon=None, llcrnrlat=None,
+                                              urcrnrlon=None, urcrnrlat=None):
         '''Write netCDF file with map of radionuclide species densities'''
+
+        from netCDF4 import Dataset, date2num #, stringtochar
+
+
 
         if pixelsize_m == 'auto':
             lon, lat = self.get_lonlats()
@@ -807,15 +817,67 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             if latspan > 5:
                 pixelsize_m = 4000
 
-        H, lon_array, lat_array, z_array = \
-            self.get_radionuclide_density_array(pixelsize_m, deltaz)
-        lon_array = (lon_array[0:-1] + lon_array[1::])/2
-        lat_array = (lat_array[0:-1] + lat_array[1::])/2
 
-        from netCDF4 import Dataset, date2num, stringtochar
+        if density_proj is None: # add default projection with equal-area property 
+            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
+
+
+
+
+        z = self.get_property('z')[0]
+        if not deltaz==None:
+            z_array = np.append(np.append(-10000, deltaz) , max(0,np.nanmax(z)))
+        else:
+            z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
+            
+
+
+
+        H, lon_array, lat_array, z_array = \
+            self.get_radionuclide_density_array(pixelsize_m, z_array,
+                                                density_proj=density_proj,
+                                                llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat,
+                                                urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat
+                                                )
+
+        lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2
+        lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
+
+
+        # Convert from density to concentration
+        
+#        print ( 'Compute mean depth and volume in each pixel grid cell' )
+        pixel_mean_depth  =  self.get_pixel_mean_depth(lon_array, lat_array)
+        
+        
+        pixel_volume = np.zeros_like(H[0,0,:,:,:])
+        for zi,zz in enumerate(z_array[:-1]):
+            topotmp = -pixel_mean_depth.copy()
+            topotmp[np.where(topotmp < zz)] = zz
+            topotmp = z_array[zi+1] - topotmp
+            topotmp[np.where(topotmp < 0.)] = 0.
+            
+            pixel_volume[zi,:,:] = topotmp * pixelsize_m**2
+
+        
+        pixel_volume[np.where(pixel_volume==0.)] = np.nan
+                
+        conc = np.zeros_like(H)
+        for ti in range(H.shape[0]):
+            for sp in range(self.nspecies):
+                conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * 1. 
+        
+        
+#        print ('pixel_volume', pixel_volume.shape, np.sum(np.isnan(pixel_volume)))
+#        print ('conc', conc.shape, np.sum(np.isnan(conc)))
+#        print ('H', H.shape, np.sum(np.isnan(H)))
+        
+
+
+
         nc = Dataset(filename, 'w')
-        nc.createDimension('lon', len(lon_array))
-        nc.createDimension('lat', len(lat_array))
+        nc.createDimension('x', lon_array.shape[0])
+        nc.createDimension('y', lon_array.shape[1])
         nc.createDimension('depth', len(z_array)-1)
         nc.createDimension('time', H.shape[0])
         nc.createDimension('specie', self.nspecies)
@@ -825,75 +887,127 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.variables['time'][:] = date2num(times, timestr)
         nc.variables['time'].units = timestr
         nc.variables['time'].standard_name = 'time'
+        
         # Projection
-        nc.createVariable('projection_lonlat', 'i8')
-        nc.variables['projection_lonlat'].grid_mapping_name = \
-            'latitude_longitude'
-        nc.variables['projection_lonlat'].earth_radius = 6371229.
-        nc.variables['projection_lonlat'].proj4 = \
-            '+proj=longlat +a=6371229 +no_defs'
+        nc.createVariable('projection', 'i8')
+        nc.variables['projection'].proj4 = density_proj.definition_string()
+        
+                
         # Coordinates
-        nc.createVariable('lon', 'f8', ('lon',))
-        nc.createVariable('lat', 'f8', ('lat',))
+        nc.createVariable('lon', 'f8', ('y','x'))
+        nc.createVariable('lat', 'f8', ('y','x'))
         nc.createVariable('depth', 'f8', ('depth',))
         nc.createVariable('specie', 'i4', ('specie',))
-#        nc.createVariable('specie', 'S24', ('specie',))
-        nc.variables['lon'][:] = lon_array
+        nc.variables['lon'][:] = lon_array.T
         nc.variables['lon'].long_name = 'longitude'
         nc.variables['lon'].short_name = 'longitude'
         nc.variables['lon'].units = 'degrees_east'
-        nc.variables['lat'][:] = lat_array
+        nc.variables['lat'][:] = lat_array.T
         nc.variables['lat'].long_name = 'latitude'
         nc.variables['lat'].short_name = 'latitude'
         nc.variables['lat'].units = 'degrees_north'
-        nc.variables['depth'][:] = z_array[:-1]
-#        str_out = [stringtochar(np.array(ii, 'S24')) for ii in self.name_species]
-#        print (str_out)
-        nc.variables['specie'][:] = np.arange(self.nspecies) #self.name_species  # 
-        #nc.variables['specie'][:] = str_out  
+        nc.variables['depth'][:] = z_array[1:]
+        nc.variables['specie'][:] = np.arange(self.nspecies)
+        outstr = ['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)]
+        nc.variables['specie'].names = outstr 
+
+        
+        
         # Density
         nc.createVariable('density_surface', 'i4',
-                          ('time','specie','lat', 'lon'),fill_value=0)
+                          ('time','specie','depth','y', 'x'),fill_value=0)
 #        H = np.swapaxes(H, 1, 3).astype('uint8')
-        H = np.swapaxes(H, 1, 3).astype('i4')
+#        H = np.swapaxes(H, 1, 3).astype('i4')
+        H = np.swapaxes(H, 3, 4).astype('i4')
         H = np.ma.masked_where(H==0, H)
-#        print (nc.variables['density_surface'][:].shape)
         nc.variables['density_surface'][:] = H
         nc.variables['density_surface'].long_name = 'Detection probability'
-        nc.variables['density_surface'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_surface'].grid_mapping = 'projection'
         nc.variables['density_surface'].units = '1'
 
+
+
+        # Radionuclide concentration
+        nc.createVariable('concentration', 'f8',
+                          ('time','specie','depth','y', 'x'),fill_value=0)
+        conc = np.swapaxes(conc, 3, 4) #.astype('i4')
+        conc = np.ma.masked_where(conc==0, conc)
+        nc.variables['concentration'][:] = conc
+        nc.variables['concentration'].long_name = 'blablabla'
+        nc.variables['concentration'].grid_mapping = 'projection_lonlat'
+        nc.variables['concentration'].units = 'mg/L'
+        
+        
+        # Volume of boxes
+        nc.createVariable('volume', 'f8',
+                          ('depth','y', 'x'),fill_value=0)
+        pixel_volume = np.swapaxes(pixel_volume, 1, 2) #.astype('i4')
+        pixel_volume = np.ma.masked_where(pixel_volume==0, pixel_volume)
+        nc.variables['volume'][:] = pixel_volume
+        nc.variables['volume'].long_name = 'pixel volume'
+        nc.variables['volume'].grid_mapping = 'projection_lonlat'
+        nc.variables['volume'].units = 'm3'
+        
+
+        # Topography
+        nc.createVariable('topo', 'f8', ('y', 'x'),fill_value=0)
+        pixel_mean_depth = np.ma.masked_where(pixel_mean_depth==0, pixel_mean_depth)
+        nc.variables['topo'][:] = pixel_mean_depth.T
+        nc.variables['topo'].long_name = 'depth of grid point'
+        nc.variables['topo'].grid_mapping = 'projection_lonlat'
+        nc.variables['topo'].units = 'm'
+
+        
         nc.close()
 
 
 
 
-    def get_radionuclide_density_array(self, pixelsize_m, deltaz, weight=None):
+
+    def get_radionuclide_density_array(self, pixelsize_m, z_array, 
+                                       density_proj=None, llcrnrlon=None,llcrnrlat=None,
+                                       urcrnrlon=None,urcrnrlat=None, 
+                                       weight=None):
+        '''
+        compute a particle concentration map from particle positions
+        Use user defined projection (density_proj=<proj4_string>)
+        or create a lon/lat grid (density_proj=None)
+        '''
         lon = self.get_property('lon')[0]
         lat = self.get_property('lat')[0]
         times = self.get_time_array()[0]
-        deltalat = pixelsize_m/111000.0  # m to degrees
-        deltalon = deltalat/np.cos(np.radians((np.nanmin(lat) +
-                                               np.nanmax(lat))/2))
-        lat_array = np.arange(np.nanmin(lat)-deltalat,
-                              np.nanmax(lat)+deltalat, deltalat)
-        lon_array = np.arange(np.nanmin(lon)-deltalat,   # Should be deltalon ???
-                              np.nanmax(lon)+deltalon, deltalon)
-        bins=(lon_array, lat_array)
+
+        # Redundant ?? 
+        if density_proj is None: # add default projection with equal-area property 
+            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
+    
+    
+        # create a grid in the specified projection
+        x,y = density_proj(lon, lat)
+        if llcrnrlon is not None:
+            llcrnrx,llcrnry = density_proj(llcrnrlon,llcrnrlat)
+            urcrnrx,urcrnry = density_proj(urcrnrlon,urcrnrlat)
+        else:
+            llcrnrx,llcrnry = x.min()-pixelsize_m, y.min()-pixelsize_m
+            urcrnrx,urcrnry = x.max()+pixelsize_m, y.max()+pixelsize_m
+
+        x_array = np.arange(llcrnrx,urcrnrx, pixelsize_m)
+        y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
+        bins=(x_array, y_array)
+        outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
         z = self.get_property('z')[0]
-        z_array = np.arange(np.nanmin(z) - deltaz, np.nanmax(z) + deltaz, deltaz) 
-        print (z_array)
         if weight is not None:
             weight_array = self.get_property(weight)[0]
 
         status = self.get_property('status')[0]
         specie = self.get_property('specie')[0]
         Nspecies = self.nspecies 
-        print (np.min(specie), np.max(specie), Nspecies)
-        H = np.zeros((len(times), len(lon_array) - 1,
-                      len(lat_array) - 1,
-                      #len(z_array) - 1, 
-                      Nspecies))
+        H = np.zeros((len(times), 
+                      Nspecies,
+                      len(z_array) - 1, 
+                      len(x_array) - 1,
+                      len(y_array) - 1
+                      ))
 
         for sp in range(Nspecies):
             for i in range(len(times)):
@@ -901,9 +1015,37 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                     weights = weight_array[i,:]
                 else:
                     weights = None
-                H[i,:,:,sp], dummy, dummy = \
-                    np.histogram2d(lon[i,specie[i,:]==sp], lat[i,specie[i,:]==sp],
+                for zi in range(len(z_array)-1):
+                    kktmp = ( (specie[i,:]==sp) & (z[i,:]>z_array[zi]) & (z[i,:]<=z_array[zi+1]) )
+                    H[i,sp,zi,:,:], dummy, dummy = \
+                        np.histogram2d(x[i,kktmp], y[i,kktmp],
                                    weights=weights, bins=bins)
 
+        if density_proj is not None:
+            Y,X = np.meshgrid(y_array, x_array)
+            lon_array, lat_array = density_proj(X,Y,inverse=True)
+        
         return H, lon_array, lat_array, z_array
 
+
+ 
+
+    
+    def get_pixel_mean_depth(self,lons,lats):
+        from scipy import interpolate 
+        
+        # Ocean model depth and lat/lon
+        h_grd = self.conc_topo
+        h_grd[np.isnan(h_grd)] = 0.
+        
+        lat_grd = self.conc_lat[:-1,:-1] 
+        lon_grd = self.conc_lon[:-1,:-1]
+
+        # Interpolate topography to new grid
+        h = interpolate.griddata((lon_grd.flatten(),lat_grd.flatten()), h_grd.flatten(), (lons, lats), method='linear')        
+        
+        return h 
+        
+        
+        
+        
