@@ -150,7 +150,7 @@ In addition to providing variables interpolated to the element positions, reader
     required_profiles_z_range = [-120, 0]  # The depth range (in m) which
                                            # profiles shall cover
 
-Vertical profiles may be used by the model (``update()`` function) to calculate vertical mixing. See :doc:`gallery/examples.example_long_codegg` for a demonstration.
+Vertical profiles may be used by the model (``update()`` function) to calculate vertical mixing. See :doc:`gallery/example_long_codegg` for a demonstration.
 
 2.1 Lazy Readers
 ****************
