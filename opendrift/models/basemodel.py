@@ -890,8 +890,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     if reader is not None:
                         if (reader.covers_time(self.time) and
                                 len(reader.covers_positions(
-                                self.elements.lon,
-                                self.elements.lat)[0]) > 0):
+                                lon, lat)[0]) > 0):
                             missing_variables = list(
                                 set(missing_variables) -
                                 set(reader.variables))
@@ -1448,6 +1447,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 lon, lat = list(zip(*conelonlats))
                 lon = np.atleast_1d(lon)
                 lat = np.atleast_1d(lat)
+                number = int(number)
                 if len(radius_array) == 1:
                     radius_array = [radius, radius]
                 radius_array = np.linspace(radius_array[0], radius_array[1],
@@ -2038,6 +2038,30 @@ class OpenDriftSimulation(PhysicsMethods):
         self.expected_end_time = self.start_time + self.expected_steps_calculation*self.time_step
 
         ##############################################################
+        # Prepare readers for the requested simulation domain/time
+        ##############################################################
+        max_distance = \
+            self.max_speed*self.expected_steps_calculation * \
+            np.abs(self.time_step.total_seconds())
+        deltalat = max_distance/111000.
+        deltalon = deltalat/np.cos(
+            np.radians(np.mean(self.elements_scheduled.lat)))
+        # TODO: extent should ideally be a general polygon, not only lon/lat-min/max
+        # TODO: Should also take into account eventual lifetime of elements
+        simulation_extent = [
+            np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
+            np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
+            np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
+            np.minimum(89, self.elements_scheduled.lat.max() + deltalat)]
+        self.logger.debug('Preparing readers for simulation coverage (%s) and time (%s to %s)'
+                % (simulation_extent, self.start_time, self.expected_end_time))
+        for reader in self.readers.values():
+            self.logger.debug('\tPreparing %s' % reader.name)
+            reader.prepare_for_simulation(
+                extent=simulation_extent,
+                start_time=self.start_time, end_time = self.expected_end_time)
+
+        ##############################################################
         # If no landmask has been added, we determine it dynamically
         ##############################################################
         # TODO: some more error checking here
@@ -2059,21 +2083,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 'assumed maximum speed of %s m/s. '
                 'Adding a customised landmask may be faster...' % self.max_speed)
             self.timer_start('preparing main loop:making dynamical landmask')
-            max_distance = \
-                self.max_speed*self.expected_steps_calculation * \
-                np.abs(self.time_step.total_seconds())
-            deltalat = max_distance/111000.
-            deltalon = deltalat/np.cos(
-                np.radians(np.mean(self.elements_scheduled.lat)))
-
             from opendrift.readers import reader_global_landmask
-            reader_landmask = reader_global_landmask.Reader(
-                    extent = [
-                        np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
-                        np.maximum(-89, self.elements_scheduled.lat.min() - deltalat),
-                        np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
-                        np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
-                        ])
+            reader_landmask = reader_global_landmask.Reader(extent = simulation_extent)
             self.add_reader(reader_landmask)
 
             self.timer_end('preparing main loop:making dynamical landmask')
@@ -2414,15 +2425,11 @@ class OpenDriftSimulation(PhysicsMethods):
         index_of_activation = firstlast[0][1]
         index_of_deactivation = firstlast[1][1]
         if len(index_of_deactivation) < self.history['lon'].shape[0]:
-            #missingind = np.setdiff1d(
-            #    np.arange(0, self.history['lon'].shape[0]),
-            #    firstlast[0][0])
-            self.logger.warning('%s elements were never seeded, removing from history array' % len(missingind))
-            shouldnothappen
-            #print('REMOVING')
-            #print(firstlast[0][0])
-            #finito
-            #self.history = self.history[firstlast[0][0], :]
+            missingind = np.setdiff1d(
+                np.arange(0, self.history['lon'].shape[0]),
+                firstlast[0][0])
+            self.logger.warning('%s elements were never seeded, removing from history array (this is probably caused by importing an old file)' % len(missingind))
+            self.history = self.history[firstlast[0][0], :]
 
         return index_of_activation, index_of_deactivation
 
@@ -2576,7 +2583,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return lons, lats
 
     def animation(self, buffer=.2, corners=None, filename=None, compare=None,
-                  background=None, vmin=None, vmax=None, drifter=None,
+                  background=None, bgalpha=.5, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   show_trajectories=False,
@@ -2614,23 +2621,20 @@ class OpenDriftSimulation(PhysicsMethods):
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
-            ax.set_title(times[i])
+            ax.set_title('%s UTC' % times[i])
             if background is not None:
                 map_x, map_y, scalar, u_component, v_component = \
                     self.get_map_background(ax, background,
                                             time=times[i])
-                ax.pcolormesh(map_x, map_y, scalar, alpha=1,
-                               vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
+                # https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data
+                bg.set_array(scalar[:-1,:-1].ravel())
                 if type(background) is list:
-                    ax.quiver(map_x[::skip, ::skip],
-                               map_y[::skip, ::skip],
-                               u_component[::skip, ::skip],
-                               v_component[::skip, ::skip], scale=scale, transform = gcrs)
+                    bg_quiv.set_UVC(u_component[::skip, ::skip], v_component[::skip, ::skip])
 
             if lcs is not None:
                 map_x, map_y = map(lcs['lon'], lcs['lat'])
                 ax.pcolormesh(
-                    map_x, map_y, lcs['ALCS'][i,:,:], alpha=1,
+                    map_x, map_y, lcs['ALCS'][i,:,:], alpha=bgalpha,
                     vmin=vmin, vmax=vmax, cmap=cmap)
 
             if density is True:
@@ -2707,8 +2711,14 @@ class OpenDriftSimulation(PhysicsMethods):
             map_x, map_y, scalar, u_component, v_component = \
                 self.get_map_background(ax, background,
                                         time=self.start_time)
-            bg = ax.pcolormesh(map_x, map_y, scalar, alpha=1,
+            bg = ax.pcolormesh(map_x, map_y, scalar[:-1,:-1], alpha=bgalpha,
+                               antialiased=True, linewidth=0.0, rasterized=True,
                                vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
+            if type(background) is list:
+                bg_quiv = ax.quiver(map_x[::skip, ::skip],
+                                    map_y[::skip, ::skip],
+                                    u_component[::skip, ::skip],
+                                    v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
         if lcs is not None:
             if vmin is None:
@@ -2791,10 +2801,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 if clabel is None:
                     clabel = 'LCS'
             elif background is not None:
-                #cb = plt.colorbar()
                 item = bg
                 if clabel is None:
-                    clabel = 'density'
+                    clabel = background
 
             cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
             cb.set_label(clabel)
@@ -2825,7 +2834,7 @@ class OpenDriftSimulation(PhysicsMethods):
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
-            ax.set_title(times[i])
+            ax.set_title('%s UTC' % times[i])
             points.set_data(x[range(x.shape[0]), i],
                             z[range(x.shape[0]), i])
             points_deactivated.set_data(
@@ -3188,8 +3197,8 @@ class OpenDriftSimulation(PhysicsMethods):
             delta_x = (map_x[1,2] - map_x[1,1])/2.
             delta_y = (map_y[2,1] - map_y[1,1])/2.
             ax.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
-                       u_component[::skip, ::skip],
-                       v_component[::skip, ::skip], scale=scale, transform = gcrs)
+                      u_component[::skip, ::skip],
+                      v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
         if lcs is not None:
             map_x_lcs, map_y_lcs = (lcs['lon'], lcs['lat'])
@@ -3200,12 +3209,12 @@ class OpenDriftSimulation(PhysicsMethods):
         if title is not None:
             if title is 'auto':
                 if hasattr(self, 'time'):
-                    plt.title(type(self).__name__ + '  %s to %s (%i steps)' %
+                    plt.title(type(self).__name__ + '  %s to %s UTC (%i steps)' %
                               (self.start_time.strftime('%Y-%m-%d %H:%M'),
                                self.time.strftime('%Y-%m-%d %H:%M'),
                                self.steps_output))
                 else:
-                    plt.title(type(self).__name__ + ' - %i elements seeded at %s' %
+                    plt.title(type(self).__name__ + ' - %i elements seeded at %s UTC' %
                               (self.num_elements_scheduled(),
                                self.elements_scheduled_time[0].strftime(
                                '%Y-%m-%d %H:%M')))
@@ -3243,25 +3252,6 @@ class OpenDriftSimulation(PhysicsMethods):
         ax.plot(x[0], y[0], 'ok', transform = gcrs)
         ax.plot(x[-1], y[-1], 'xk', transform = gcrs)
 
-
-    def map_make_grid(self, ax, nx, ny):
-        """
-        Returns lon, lats on an equidistant grid on the map projection (within the extents of the axes)
-
-        Emulates Basemap.make_grid(...).
-        """
-        xmin, xmax, ymin, ymax = ax.get_extent()
-        crs = ax.projection
-        gcrs = ccrs.PlateCarree()
-
-        # equidistant in map projection
-        xx = np.linspace(xmin, xmax, nx)
-        yy = np.linspace(ymin, ymax, ny)
-
-        X = gcrs.transform_points(crs, xx, yy)
-        return X[:,0], X[:,1]
-
-
     def get_map_background(self, ax, background, time=None):
         # Get background field for plotting on map or animation
         if type(background) is list:
@@ -3279,9 +3269,16 @@ class OpenDriftSimulation(PhysicsMethods):
             if hasattr(self, 'elements_scheduled_time'):
                 # Using time of first seeded element
                 time = self.elements_scheduled_time[0]
-        # Get lat/lons of ny by nx evenly space grid.
-        lons, lats = self.map_make_grid(ax, 4, 4)
-        reader_x, reader_y = reader.lonlat2xy(lons, lats)
+
+        # Get reader coordinates covering given map area
+        axisproj = pyproj.Proj(ax.projection.proj4_params)
+        xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree())
+        cornerlons = np.array([xmin, xmin, xmax, xmax])
+        cornerlats = np.array([ymin, ymax, ymin, ymax])
+        reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
+        reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
+        reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
+
         data = reader.get_variables(
             background, time, reader_x, reader_y, None, block=True)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])

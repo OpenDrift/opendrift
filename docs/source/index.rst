@@ -18,7 +18,13 @@ drift <opendrift.models.openoil>`, :py:mod:`search and rescue
 :py:mod:`core model <opendrift.models.basemodel>`, and need only implement a Python Class describing the
 purpose-specific processes (physics/biology etc). See
 :doc:`theory/specification` and :doc:`theory/data_model` for more detailed
-information. Some key features of OpenDrift are:
+information.
+
+A `journal paper about OpenDrift <https://www.geosci-model-dev.net/11/1405/2018/>`_ is published in Geoscientific Model Development. A 'paper describing the technical details of the oil spill module `OpenOil <https://www.ocean-sci.net/14/1581/2018/>`_ is published in Ocean Science.
+
+.. image:: https://dl.dropboxusercontent.com/s/u9apyh7ci1mdowg/opendrift.gif?dl=0
+
+Some key features of OpenDrift are:
 
 * Open source (GPLv2): providing full transparency.
 * Fast: typical simulation time is about 30 seconds for a 66 hour hour simulation of 1000 particles.
@@ -51,8 +57,8 @@ information. Some key features of OpenDrift are:
                   wind_drift_factor=.02)
 
   # Adjusting some configuration
-  o.set_config('processes:dispersion', True)
-  o.set_config('processes:evaporation', True)
+  o.set_config('processes:dispersion', False)
+  o.set_config('processes:evaporation', False)
   o.set_config('processes:emulsification', True)
   o.set_config('drift:current_uncertainty', .1)
   o.set_config('drift:wind_uncertainty', 1)
@@ -61,7 +67,7 @@ information. Some key features of OpenDrift are:
   o.run(steps=60, time_step=1800)
 
   # Print and plot results
-  o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
+  o.plot()
 
 
 Once you have OpenDrift :doc:`installed <install>`, take a look at the
@@ -76,11 +82,11 @@ particular model. See :py:mod:`opendrift.models` for an overview.
 .. note::
    If you found OpenDrift useful for your study, please cite it as:
 
-   Dagestad, K.-F., Röhrs, J., Breivik, Ø., and Ådlandsvik, B.: `OpenDrift v1.0: a generic framework for trajectory modelling <https://www.geosci-model-dev.net/11/1405/2018/gmd-11-1405-2018.pdf>`_, Geosci. Model Dev., 11, 1405-1420, `<https://doi.org/10.5194/gmd-11-1405-2018>`_, 2018.
+   * Dagestad, K.-F., Röhrs, J., Breivik, Ø., and Ådlandsvik, B.: `OpenDrift v1.0: a generic framework for trajectory modelling <https://www.geosci-model-dev.net/11/1405/2018/gmd-11-1405-2018.pdf>`_, Geosci. Model Dev., 11, 1405-1420, `<https://doi.org/10.5194/gmd-11-1405-2018>`_, 2018.
 
    For the oil spill module, please cite in addition to the above:
 
-   Röhrs, J., Dagestad, K.-F., Asbjørnsen, H., Nordam, T., Skancke, J., Jones, C. E., and Brekke, C.: `The effect of vertical mixing on the horizontal drift of oil spills <https://www.ocean-sci.net/14/1581/2018/>`_, Ocean Sci., 14, 1581-1601, `<https://doi.org/10.5194/os-14-1581-2018>`_, 2018.
+   * Röhrs, J., Dagestad, K.-F., Asbjørnsen, H., Nordam, T., Skancke, J., Jones, C. E., and Brekke, C.: `The effect of vertical mixing on the horizontal drift of oil spills <https://www.ocean-sci.net/14/1581/2018/>`_, Ocean Sci., 14, 1581-1601, `<https://doi.org/10.5194/os-14-1581-2018>`_, 2018.
 
 Contents
 ===============
@@ -89,6 +95,7 @@ Contents
    :maxdepth: 3
    :glob:
 
+   history_link
    install
    tutorial
    theory/index
@@ -97,6 +104,7 @@ Contents
    gallery/index
    oil_types
    interaction_with_coastline
+   gui
    autoapi/index
 
 
@@ -107,5 +115,5 @@ Indices and tables
 * :ref:`search`
 * :doc:`autoapi/index`
 
-.. * :ref:`modindex`
+.. *:ref:`modindex`
 

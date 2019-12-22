@@ -19,7 +19,6 @@ import numpy as np
 from opendrift.models.opendrift3D import \
     OpenDrift3DSimulation, Lagrangian3DArray
 from opendrift.elements import LagrangianArray
-import logging
 
 from opendrift.readers.basereader import pyproj
 

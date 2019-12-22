@@ -6,4 +6,5 @@ Theory
 
    specification
    data_model
+   performance_tips
 

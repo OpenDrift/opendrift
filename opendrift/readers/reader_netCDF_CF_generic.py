@@ -63,7 +63,7 @@ def proj_from_CF_dict(c):
             k0 = c['scale_factor_at_projection_origin']
         else:
             k0 = 1.0
-        proj4 = ('+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s}'
+        proj4 = ('+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s} '
                  '+k_0={!s} +x_0={!s} +y_0={!s} +units=m +a={!s} '
                  '+no_defs'.format('stere',
                                    c['latitude_of_projection_origin'],

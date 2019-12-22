@@ -6,14 +6,13 @@ $$ a_x = \frac{1}{2} $$
 """
 import numpy as np
 import scipy as sp
-import logging
 
 
 def windspeed_Sundby1983(s):
     """
     Wind speed .... SUndby
     """
-    logging.debug('use Sunby (1983) wind speed parameterizatoin for diffusivity')
+    self.logger.debug('use Sunby (1983) wind speed parameterizatoin for diffusivity')
     depths = s.environment_profiles['z']
     windspeed_squared = s.environment.x_wind**2 + s.environment.y_wind**2
     if np.max(windspeed_squared) == 0:
@@ -26,7 +25,7 @@ def windspeed_Sundby1983(s):
     return Kprofiles
 
 def windspeed_Large1994(s):
-    logging.debug('use Large et al 1994 speed parameterizatoin for diffusivity')
+    self.logger.debug('use Large et al 1994 speed parameterizatoin for diffusivity')
     depths = -s.environment_profiles['z']
     D = 50 # mixed layer depth, should be read from ocean model
     rhoa = 1.22
@@ -66,14 +65,14 @@ def gls_tke(s):
     '''From LADIM model.'''
 
     if not hasattr(s, 'gls_parameters'):
-        logging.info('Searching readers for GLS parameters...')
+        self.logger.info('Searching readers for GLS parameters...')
         for reader_name, reader in s.readers.items():
             if hasattr(reader, 'gls_parameters'):
                 s.gls_parameters = reader.gls_parameters
-                logging.info('Found gls-parameters in ' + reader_name)
+                self.logger.info('Found gls-parameters in ' + reader_name)
                 break  # Success
         if not hasattr(s, 'gls_parameters'):
-            logging.info('Did not find gls-parameters in any readers.')
+            self.logger.info('Did not find gls-parameters in any readers.')
             s.gls_parameters = None
 
     g = 9.81

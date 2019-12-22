@@ -16,7 +16,6 @@
 
 from builtins import range
 import os
-import logging
 from collections import OrderedDict
 
 import numpy as np
@@ -165,10 +164,10 @@ class Leeway(OpenDriftSimulation):
                     found = True
                     break
             if found is False:
-                logging.info(self.list_configspec())
+                self.logger.info(self.list_configspec())
                 raise ValueError('Object %s not available' % objectType)
 
-        logging.info('Seeding elements of object type %i: %s (%s)' %
+        self.logger.info('Seeding elements of object type %i: %s (%s)' %
                      (objectType, self.leewayprop[objectType]['OBJKEY'],
                       self.leewayprop[objectType]['Description']))
 
@@ -182,7 +181,7 @@ class Leeway(OpenDriftSimulation):
             except:
                 raise ValueError('Time must be specified when no '
                                  'reader is added')
-            logging.info('Using start time (%s) of reader %s' %
+            self.logger.info('Using start time (%s) of reader %s' %
                          (firstReader.start_time, firstReader.name))
             self.start_time = firstReader.start_time
         else:
@@ -307,7 +306,7 @@ class Leeway(OpenDriftSimulation):
         jib = jp_per_timestep > np.random.random(self.num_elements_active())
         self.elements.crosswindSlope[jib] = - self.elements.crosswindSlope[jib]
         self.elements.orientation[jib] = 1 - self.elements.orientation[jib]
-        logging.debug('Jibing %i out of %i elements.' %
+        self.logger.debug('Jibing %i out of %i elements.' %
                       (np.sum(jib), self.num_elements_active()))
 
     def export_ascii(self, filename):

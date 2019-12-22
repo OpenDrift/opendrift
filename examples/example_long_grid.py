@@ -41,5 +41,6 @@ print(o)
 o.animation(filename='grid.gif')
 
 #%%
-# .. image:: /gallery/animations/grid.gif
+# .. image:: https://camo.githubusercontent.com/aaf79a5e243ef601c015c290fc1f935d2ec70340/68747470733a2f2f646c2e64726f70626f7875736572636f6e74656e742e636f6d2f732f337933316c64773235636c6e7362392f6f70656e64726966745f677269642e6769663f646c3d30
 #o.plot()
+# .. image:: /gallery/animations/grid.gif

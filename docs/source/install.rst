@@ -38,6 +38,7 @@ Miniconda (recommended)
    If you expect to make changes to the the OpenDrift code (e.g. models) it is
    probably more convenient to install from :ref:`source <source_install>`.
 
+.. _pip_install:
 
 Using pip
 ----------

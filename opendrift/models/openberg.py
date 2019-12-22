@@ -16,7 +16,35 @@
 #
 # Caveat: This copyright will not interfere with the open nature of OpenDrift and OpenBerg
 
-import logging
+"""
+OpenBerg is an iceberg drift module bundled within the OpenDrift framework. It is a 2D- driftmodel, but utilizes 3D current data. The latest verion of the module is an improved version of a model initially created by Ron Saper at the Carleton University as a part of a larger project funded by the MITACS Organization.
+
+See :doc:`gallery/example_long_openberg_det` for an example of a deterministic simulation.
+
+Statistical modeling of current velocity
+########################################
+The reader :mod:`opendrift.readers.reader_current_from_track` is designed specifically for iceberg drift modeling. The reader uses observed positions and (if available) wind data to extrapolate the current velocity. The reader creates a uniform current field equal to the average residual speed (after subtracting wind component) of the iceberg between two observations.
+
+This reader allows for a statistical or partly statistical modeling of iceberg drift when used with the OpenBerg module. An example script utilizing this reader can be found :doc:`here <gallery/example_long_openberg_stat>`.
+
+Parameters and iceberg properties affecting drift
+#################################################
+Icebergs are advected at a constant fraction of the wind velocity, default setting is ``wind_drift_factor = 0.018``
+
+The module accounts for Iceberg geometry by creating a compostite iceberg using the method described by `Barker et. al. (2004) <https://www.researchgate.net/publication/44062061_Determination_of_Iceberg_Draft_Mass_and_Cross-Sectional_Areas>`_, where the geometry is described as a function of the waterline length and the keel depth of the iceberg. For further reading the article is available on this link.
+
+Default setting: ``water_line_length = 90.5`` and ``keel_depth = 60``. The composite iceberg is used to calculate a weighted average of the current velocity across the iceberg keel.
+
+The values of wind_drift_factor, water_line_length and keel_depth may explicitly be altered during seeding, e.g.::
+
+    o.seed_elements(4, 62, time=datetime.now(),
+                    water_line_length=100, keel_depth=90, wind_drift_factor=0.02)
+
+
+Ref: Barker, A., Sayed, M., Carrieres, T., et al. (2004). Determination of iceberg draft, mass and cross-sectional areas.
+
+"""
+
 
 import numpy as np
 import sys
@@ -139,7 +167,7 @@ class OpenBerg(OpenDriftSimulation):
 
         # If current data is missing in at least one dimension, no weighting is performed:
         if len(missing_variables) > 0:
-        	logging.warning('Missing current data, weigthing array set to [1]')
+        	self.logger.warning('Missing current data, weigthing array set to [1]')
         	self.uw_weighting = np.array([1])
         	return
 
@@ -169,7 +197,7 @@ class OpenBerg(OpenDriftSimulation):
         self.reader_z_profile = profile[(profile >= 0) & (profile <= x.max())]
 
         if len(profile[profile < 0]) > 0:
-        	logging.warning('Current reader containing currents above water!'
+        	self.logger.warning('Current reader containing currents above water!'
         						'Weighting of current profile may not work!')
 
         # Interpolate and normalize weights:
