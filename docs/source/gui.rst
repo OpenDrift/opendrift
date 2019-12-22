@@ -62,10 +62,10 @@ Simulation and analysis
 
 * After the simulation, the result may be analysed with buttons appearing at the bottom:
 
-  * `Animation`: an animation of the simulation is shown. There is presently no possibility to save this animation to file from the GUI.
-  * `Oil budget` (oil drift only): the time-history of the :mod:`oil budget <opendrift.models.openoil>` is shown
-  * MET Norway only: a button `Show in Diana` will launch the Diana analysis tool.
+  * ``Animation``: an animation of the simulation is shown or saved to file.
+  * ``Oil budget`` (oil drift only): the time-history of the :mod:`oil budget <opendrift.models.openoil>` is shown or saved to file.
+  * MET Norway only: a button ``Show in Diana`` will launch the Diana analysis tool.
 
     * Note that this is local Diana, not VGL-version.
-    * The present and previous simulations may be viewed by opening `Felter -> Drivbane_OpenDrift` and then selecting `Leeway` or `Oljedrift`. Note that the simulations will be sorted by the starting-time of the simulations, not the time at which the simulation was performed. Thus if you performed a simulation starting back in time, it might not be the last item in the list (`Referansetid`). Click on all the items in felter (submerged, stranded, surface), and then `Utfør`. For oil drift simulations, submerged particles are blue, surface oil is grey or black.
+    * The present and previous simulations may be viewed by opening ``Felter -> Drivbane_OpenDrift`` and then selecting ``Leeway``, ``Oljedrift`` or ``ShipDrift``. Note that the simulations will be sorted by the starting-time of the simulations, not the time at which the simulation was performed. Thus if you performed a simulation starting back in time, it might not be the last item in the list (`Referansetid`). Click on all the items in felter (submerged, stranded, surface), and then `Utfør`. For oil drift simulations, submerged particles are blue, surface oil is grey or black.
 

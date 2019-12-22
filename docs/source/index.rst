@@ -18,7 +18,9 @@ drift <opendrift.models.openoil>`, :py:mod:`search and rescue
 :py:mod:`core model <opendrift.models.basemodel>`, and need only implement a Python Class describing the
 purpose-specific processes (physics/biology etc). See
 :doc:`theory/specification` and :doc:`theory/data_model` for more detailed
-information. Some key features of OpenDrift are:
+information.
+
+Some key features of OpenDrift are:
 
 * Open source (GPLv2): providing full transparency.
 * Fast: typical simulation time is about 30 seconds for a 66 hour hour simulation of 1000 particles.
