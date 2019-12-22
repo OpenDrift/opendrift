@@ -42,7 +42,7 @@ The table below shows an overview of the advection processes within the main mod
    * - :mod:`Leeway <opendrift.models.leeway>`
      - yes
      - yes, at an angle. category-based empirical empirical wind_drift_factor
-     - no
+     - implicit in wind
      - 
 
    * - :mod:`PelagicEgg <opendrift.models.pelagicegg>`
@@ -56,6 +56,12 @@ The table below shows an overview of the advection processes within the main mod
      - no
      - yes
      - empirical-statistical depth, exponential decrease with depth, depending on turbulence/wind
+
+   * - :mod:`OpenBerg <opendrift.models.openberg>`
+     - yes
+     - yes
+     - implicit in wind
+     - no
 
 Direct wind drift is only applied to elements/particles at the very surface. Elements may be seeded with a user defined property ```wind_drift_factor``` (default is typically 0.02, i.e. 2%) which determines the fraction of wind speed at which elements will be advected.
 
@@ -90,3 +96,7 @@ As this page does not support wide tables, here is a separate table with additio
    * - PelagicEgg
      - Biological behaviour (TBD)
      - Fish eggs
+
+   * - OpenBerg
+     - 
+     - Ice bergs

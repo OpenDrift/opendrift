@@ -20,6 +20,10 @@ purpose-specific processes (physics/biology etc). See
 :doc:`theory/specification` and :doc:`theory/data_model` for more detailed
 information.
 
+A `journal paper about OpenDrift <https://www.geosci-model-dev.net/11/1405/2018/>`_ is published in Geoscientific Model Development. A 'paper describing the technical details of the oil spill module `OpenOil <https://www.ocean-sci.net/14/1581/2018/>`_ is published in Ocean Science.
+
+.. image:: https://dl.dropboxusercontent.com/s/u9apyh7ci1mdowg/opendrift.gif?dl=0
+
 Some key features of OpenDrift are:
 
 * Open source (GPLv2): providing full transparency.
