@@ -178,7 +178,7 @@ class BaseReader(object):
             self.start_time = None
         if not hasattr(self, 'end_time'):
             self.end_time = None
-        if self.start_time is not None and len(self.times) > 1:
+        if self.start_time is not None:# and len(self.times) > 1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
                 self.time_step.total_seconds()) + 1
@@ -282,8 +282,9 @@ class BaseReader(object):
             self.timing[category] += datetime.now() - self.timers[category]
         self.timers[category] = None
 
-    def prepare_for_simulation(self, extent, start_time, end_time):
+    def prepare(self, extent, start_time, end_time):
         """Prepare reader for given simulation coverage in time and space."""
+        logging.debug('Nothing to prepare for ' + self.name)
         pass  # to be overriden by specific readers
 
     @abstractmethod
@@ -1173,15 +1174,9 @@ class BaseReader(object):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
-            print(lon0, lat0, 'lonat')
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
-            print(sp)
-            print(dir(sp))
             ax = fig.add_subplot(1, 1, 1, projection=sp)
-            print(corners[0], corners[1], 'cornerlon, cornerlat')
             corners_stere = sp.transform_points(ccrs.PlateCarree(), np.array(corners[0]), np.array(corners[1]))
-            print(corners_stere)
-            print(corners_stere[0], corners_stere[1])
         else:
             # Global map if reader domain is large
             sp = ccrs.Mercator()
@@ -1218,26 +1213,20 @@ class BaseReader(object):
         lon, lat = self.xy2lonlat(x, y)
         lat[lat>89] = 89.
         lat[lat<-89] = -89.
-        print(lon, lat, 'lonlat')
         p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
-        print(p, 'p')
         xsp = p[:, 0]
         ysp = p[:, 1]
         
-        print(3)
         if variable is None:
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
                                zorder=100)
             ax.add_patch(boundary)
-            print(dir(sp))
             buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
             buf = 0
-            print(4)
             try:
                 ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
             except:
                 pass
-            print(5)
         if title is None:
             plt.title(self.name)
         else:
@@ -1245,7 +1234,6 @@ class BaseReader(object):
         plt.xlabel('Time coverage: %s to %s' %
                    (self.start_time, self.end_time))
 
-        print(6)
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
@@ -1267,7 +1255,6 @@ class BaseReader(object):
                 data[variable] = ndimage.convolve(
                             data[variable], kernel, mode='nearest')
             #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
-            print('pcolor')
             ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
             #cbar = map.colorbar()
             #cbar.set_label(variable)

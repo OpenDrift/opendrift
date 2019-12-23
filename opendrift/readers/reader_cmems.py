@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 from xml.etree import ElementTree
 import numpy as np
 import pyproj
+import isodate
 
 
 logger = logging.getLogger('opendrift')  # using common logger
@@ -62,8 +63,8 @@ class Reader(NCReader):
 
         if cmems_user is None:
             if 'CMEMS_USER' in os.environ and 'CMEMS_PASSWORD' in os.environ:
-                cmems_user = os.environ['CMEMS_USER']
-                cmems_password = os.environ['CMEMS_PASSWORD']
+                self.cmems_user = os.environ['CMEMS_USER']
+                self.cmems_password = os.environ['CMEMS_PASSWORD']
             else:
                 raise ValueError('CMEMS username and password must be provided, '
                                  'or stored as environment variables CMEMS_USER and CMEMS_PASSWORD')
@@ -72,19 +73,20 @@ class Reader(NCReader):
         if serviceID not in products:
             raise ValueError('serviceID must be one of: ' + str(products.keys()))
         else:
-            productID = content['productID']
+            self.productID = content['productID']
 
+        self.serviceID = serviceID
         self.variables = list(content['variables'].values())
 
         # Downloaded data will be stored in this file, to be overwritten by subsequent downloads
-        nc_file = productID + '.nc'
+        self.nc_file = self.productID + '.nc'
 
         # Download xml file specifying content
-        content_file = productID + '.xml'
+        content_file = self.productID + '.xml'
         #cmd = 'motuclient -D --auth-mode=cas -m %s -s %s -d %s -u %s -p %s -f %s' % (
         cmd = 'motuclient -D -m %s -s %s -d %s -u %s -p %s -f %s' % (
-            motu_URL, serviceID, productID, cmems_user, cmems_password, content_file)
-        print(cmd.replace(cmems_password, '****'))
+            motu_URL, serviceID, self.productID, self.cmems_user, self.cmems_password, content_file)
+        print(cmd.replace(self.cmems_password, '****'))
 
         if os.path.exists(content_file):
             print('Reusing contents file')
@@ -103,63 +105,113 @@ class Reader(NCReader):
                 print('Failure')
 
         
-        with open(content_file, 'rt') as e:
-            tree = ElementTree.parse(e)
+        #with open(content_file, 'rt') as e:
+        #    tree = ElementTree.parse(e)
+        #tc = tree.findall('timeCoverage')[0]
 
-        tc = tree.findall('timeCoverage')[0]
-        print(dir(tc))
-        print(tc)
-        self.start_time = datetime.strptime(tc.attrib['start'])
-        print(self.start_time)
-        stop
-        for elem in tree.iter():
-            print(elem.tag)
-            if elem.tag == 'timeCoverage':
-                print(elem)
-                stop
-        xmlfinished
+        xml = open(content_file, 'rt').read()
+        root = ElementTree.fromstring(xml)
+        # Time
+        #times = root.find('timeCoverage')
+        times = root.find('availableTimes')
+        start_time, end_time, time_step = (times.text.split('/'))
+        start_time = start_time.split('Z')[0]
+        end_time = end_time.split('Z')[0]
+        self.time_step = isodate.parse_duration(time_step)
 
-        self.name = productID
+        try:
+            self.start_time = datetime.strptime(
+                start_time, '%Y-%m-%dT%H:%M:%S')
+            self.end_time = datetime.strptime(
+                end_time, '%Y-%m-%dT%H:%M:%S')
+        except:
+            self.start_time = datetime.strptime(
+                start_time, '%Y-%m-%d')
+            self.end_time = datetime.strptime(
+                end_time, '%Y-%m-%d')
+
+        # Depths
+        try:
+            depths = root.find('availableDepths')
+            depths = np.array(depths.text.split(';'))
+        except:
+            depths = np.array(0)
+        self.z = np.array([np.float(d.replace('Surface', '0')) for d in depths])
+        self.z = -np.abs(self.z)
+
+        # Axes
+        axes = root.find('dataGeospatialCoverage')
+        for axis in axes:
+            desc = axis.attrib['name']
+            axisType = axis.attrib['axisType']
+            if axisType == 'Lat':
+                latmin = np.float(axis.attrib['lower'])
+                latmax = np.float(axis.attrib['upper'])
+            if axisType == 'Lon':
+                lonmin = np.float(axis.attrib['lower'])
+                lonmax = np.float(axis.attrib['upper'])
+        # Presently only supporting lonlat-projection, which is most common from CMEMS
+        self.xmin = lonmin
+        self.xmax = lonmax
+        self.ymin = latmin
+        self.ymax = latmax
+
+        variables = root.find('variables')
+        self.variables = []
+        for variable in variables:
+            standard_name = variable.attrib['standardName']
+            self.variables.append(standard_name)
+
+        self.name = 'CMEMS'
         self.proj4 = '+proj=latlong'
-        self.proj = pyproj.Proj(self.proj4)  # Temporary
+        self.time_step = timedelta(hours=1)
 
+        self.name = self.productID
+        self.proj4 = '+proj=latlong'
 
-        if lon_min is None:
-            print('Boundary not specified, waiting to initialize this reader')
-            return
+        super(NCReader, self).__init__()
 
-        if os.path.exists(nc_file):
-            try:
-                r = NCReader(nc_file)
-                if (r.xmin <= lon_min and r.xmax >= lon_max and
-                    r.ymin <= lat_min and r.ymin <= lat_max and
-                    r.start_time <= time_start and r.end_time >= time_end):
-                    print('Reusing downloaded file: ' + nc_file)
-                    super(Reader, self).__init__(filename=nc_file)
-                    return
-                else:
-                    print(r.xmin <= lon_min and r.xmax >= lon_max)
-                    print(r.end_time >= time_end)
-                    print(r.start_time <= time_start)
-                    print('NOCOVER...')
-            except Exception as e:
-                print(e)
-                pass
-        else:
-            print('Does not exist: ' + nc_file)
-        #stop
+    def prepare(self, extent, start_time, end_time):
+        print('Preparing reader ' + self.name)
 
-        time_start = time_start - timedelta(hours=1)  # Some extra coverage
-        time_end = time_end + timedelta(hours=1)  # Some extra coverage
+        #if os.path.exists(nc_file):
+        #    try:
+        #        r = NCReader(nc_file)
+        #        if (r.xmin <= lon_min and r.xmax >= lon_max and
+        #            r.ymin <= lat_min and r.ymin <= lat_max and
+        #            r.start_time <= time_start and r.end_time >= time_end):
+        #            print('Reusing downloaded file: ' + nc_file)
+        #            super(Reader, self).__init__(filename=nc_file)
+        #            return
+        #        else:
+        #            print(r.xmin <= lon_min and r.xmax >= lon_max)
+        #            print(r.end_time >= time_end)
+        #            print(r.start_time <= time_start)
+        #            print('NOCOVER...')
+        #    except Exception as e:
+        #        print(e)
+        #        pass
+        #else:
+        #    print('Does not exist: ' + nc_file)
+        ##stop
+
+        lon_min, lon_max, lat_min, lat_max = extent
+        time_start = start_time - timedelta(hours=1)  # Some extra coverage
+        time_end = end_time + timedelta(hours=1)  # Some extra coverage
+        z_epsilon = 1
+        depth_min = np.abs(self.z.max()) - 1
+        depth_max = np.abs(self.z.min()) + 1
+        # TODO
+        # Hardcoded for current, presently
         cmd = 'motuclient --auth-mode=cas -m %s -s %s -d %s -x %s -X %s -y %s -Y %s -z %s -Z %s -t %s -T %s -v uo -v vo -f %s -u %s -p %s' % (
-            motu_URL, serviceID, productID,
+            motu_URL, self.serviceID, self.productID,
             lon_min, lon_max, lat_min, lat_max, depth_min, depth_max,
             time_start.strftime('"%Y-%m-%d %H:%M:%S"'),
             time_end.strftime('"%Y-%m-%d %H:%M:%S"'),
-            nc_file, cmems_user, cmems_password)
-        print(cmd, 'CMD')
+            self.nc_file, self.cmems_user, self.cmems_password)
+        print(cmd.replace(self.cmems_password, '*****'), 'CMD')
         self.logger.info('Downloading file from CMEMS server, using motu-client:')
         self.logger.info(cmd)
         os.system(cmd)
 
-        super(Reader, self).__init__(filename=nc_file)
+        super(Reader, self).__init__(filename=self.nc_file)

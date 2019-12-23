@@ -54,11 +54,11 @@ class Reader(object):
             raise ValueError('Reader could not be initialised') 
         else:
             if 'prepare_args' in dir(self):
-                self.reader.prepare_for_simulation(**self.prepare_args)
+                self.reader.prepare(**self.prepare_args)
             self.logger.debug('Reader initialised: ' + self.reader.name) 
             self.initialised = True
 
-    def prepare_for_simulation(self, **kwargs):
+    def prepare(self, **kwargs):
         self.prepare_args = kwargs
 
     def __repr__(self):
