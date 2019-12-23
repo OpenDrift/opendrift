@@ -114,11 +114,19 @@ print('Number of transformations:')
 print (o.ntransformations)
 
 
+# Postprocessing: write to concentration netcdf file 
+o.conc_lat   = reader_norkyst.lat
+o.conc_lon   = reader_norkyst.lon
+o.conc_topo  = reader_norkyst.get_variables('sea_floor_depth_below_sea_level',
+                                       x=[reader_norkyst.xmin,reader_norkyst.xmax], 
+                                       y=[reader_norkyst.ymin,reader_norkyst.ymax], block=True)['sea_floor_depth_below_sea_level'][:]
+o.write_netcdf_radionuclide_density_map('conc.nc', pixelsize_m=600, deltaz=-5)
+
+
 o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
             colorbar=True,
             filename='radionuclides.gif'
-
 #            fast = True
             )
 #%%
@@ -130,9 +138,9 @@ o.animation_profile(filename='radionuclides_profile.gif')
 #%%
 # .. image:: /gallery/animations/radionuclides_profile.gif
 
-o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,#fast=True,
+#o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,#fast=True,
 #       background='land_binary_mask',
        #background='sea_floor_depth_below_sea_level'
-       )
+#       )
 
 
