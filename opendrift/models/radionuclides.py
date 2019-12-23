@@ -1037,9 +1037,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         # Ocean model depth and lat/lon
         h_grd = self.conc_topo
         h_grd[np.isnan(h_grd)] = 0.
+        nx = h_grd.shape[0]
+        ny = h_grd.shape[1]
         
-        lat_grd = self.conc_lat[:-1,:-1] 
-        lon_grd = self.conc_lon[:-1,:-1]
+        lat_grd = self.conc_lat[:nx,:ny] 
+        lon_grd = self.conc_lon[:nx,:ny]
 
         # Interpolate topography to new grid
         h = interpolate.griddata((lon_grd.flatten(),lat_grd.flatten()), h_grd.flatten(), (lons, lats), method='linear')        
