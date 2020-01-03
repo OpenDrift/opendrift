@@ -251,7 +251,7 @@ class Leeway(OpenDriftSimulation):
         # with the specific values calculated
         super(Leeway, self).seed_elements(
             lon=lon, lat=lat, radius=radius,
-            number=number, time=time, cone=True,
+            number=number, time=time, cone=cone,
             orientation=orientation, objectType=objectType,
             downwindSlope=downwindSlope,
             crosswindSlope=crosswindSlope,
