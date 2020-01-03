@@ -68,6 +68,9 @@ class Reader(NCReader):
             else:
                 raise ValueError('CMEMS username and password must be provided, '
                                  'or stored as environment variables CMEMS_USER and CMEMS_PASSWORD')
+        else:
+            self.cmems_user = cmems_user
+            self.cmems_password = cmems_password
 
         content = products[serviceID]
         if serviceID not in products:
@@ -88,13 +91,13 @@ class Reader(NCReader):
             motu_URL, serviceID, self.productID, self.cmems_user, self.cmems_password, content_file)
         print(cmd.replace(self.cmems_password, '****'))
 
-        if os.path.exists(content_file):
+        if os.path.exists(content_file) and True is False:  # reloading each time, TBD
             print('Reusing contents file')
         else:
             print('Downloading contents file')
             p = subprocess.Popen(cmd.split(' '))
             try:
-                p.wait(30)  # timeout in seconds
+                p.wait(60)  # timeout in seconds
             except subprocess.TimeoutExpired:
                 print('TIEMOUT!')
                 p.kill()
@@ -201,6 +204,9 @@ class Reader(NCReader):
         z_epsilon = 1
         depth_min = np.abs(self.z.max()) - 1
         depth_max = np.abs(self.z.min()) + 1
+        #  Using only surface current:
+        depth_max = np.abs(self.z.max()) + 1
+
         # TODO
         # Hardcoded for current, presently
         cmd = 'motuclient --auth-mode=cas -m %s -s %s -d %s -x %s -X %s -y %s -Y %s -z %s -Z %s -t %s -T %s -v uo -v vo -f %s -u %s -p %s' % (
