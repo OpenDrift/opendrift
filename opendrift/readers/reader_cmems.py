@@ -198,7 +198,7 @@ class Reader(NCReader):
         #    print('Does not exist: ' + nc_file)
         ##stop
 
-        lon_min, lon_max, lat_min, lat_max = extent
+        lon_min, lat_min, lon_max, lat_max = extent
         time_start = start_time - timedelta(hours=1)  # Some extra coverage
         time_end = end_time + timedelta(hours=1)  # Some extra coverage
         z_epsilon = 1
