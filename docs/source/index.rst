@@ -9,7 +9,7 @@ Introduction to OpenDrift
 OpenDrift is a software package for modeling the trajectories and fate of
 objects or substances drifting in the ocean, or even in the atmosphere.
 
-OpenDrift is open source, and is programmed in Python. As the software is very
+OpenDrift is open source (available on `GitHub <https://github.com/OpenDrift/opendrift/>`_), and is programmed in Python. As the software is very
 generic, it is rather a "framework" than a "trajectory model" in the
 traditional sense. Trajectory models for specific purposes (e.g. :py:mod:`oil
 drift <opendrift.models.openoil>`, :py:mod:`search and rescue
