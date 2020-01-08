@@ -1,8 +1,11 @@
 Installing OpenDrift
 =============================================
 
-OpenDrift is usually installed as a source package or as a conda package. It is
-also possible to install via `pypi.org <http://pypi.org>`_.
+OpenDrift is usually installed as a source package or as a conda package. If you expect to make changes to
+
+.. note::
+   If you expect to make changes to the the OpenDrift code (e.g. models) it is
+   more convenient to install from :ref:`source <source_install>`.
 
 .. warning::
 
@@ -34,33 +37,8 @@ Miniconda (recommended)
   $ conda install -c opendrift -c conda-forge -c noaa-orr-erd opendrift
 
 
-.. warning::
-   If you expect to make changes to the the OpenDrift code (e.g. models) it is
-   probably more convenient to install from :ref:`source <source_install>`.
 
 .. _pip_install:
-
-Using pip
-----------
-
-1. Consider creating an exclusive virtual environment for OpenDrift.
-2. Install dependencies for the OilLibrary:
-
-.. code-block:: bash
-
-  $ pip install gitpython sqlalchemy zope.sqlalchemy==1.1 transaction numpy scipy https://github.com/NOAA-ORR-ERD/PyNUCOS/archive/v2.5.5.tar.gz awesome-slugify
-
-3. Install the OpenDrift version of the OilLibrary
-
-.. code-block:: bash
-
-  $ pip install git+https://github.com/OpenDrift/OilLibrary
-
-4. Install OpenDrift
-
-.. code-block:: bash
-
-  $ pip install opendrift
 
 
 .. _source_install:
@@ -72,11 +50,11 @@ Using Miniconda (recommended)
 +++++++++++++++++++++++++++++
 
 .. note::
-   There are two main ways of installing OpenDrift from source in a conda environment. If you already have OpenDrift installed and wish to run
-   use the development version the first is preferred. If you wish to set up to run from source the second method is probably more suitable, and
-   corresponds to how OpenDrift is setup in main development.
+   There are two main ways of installing OpenDrift from source in a conda environment. If you already have OpenDrift installed and wish to
+   use the development version, the first is preferred. If you wish to set up to run from source, the second method is probably more suitable (and
+   corresponds to how OpenDrift is setup when developed).
 
-Already installed
+Alternative 1: Already installed
 _________________
 
 1. Follow the instructions in :ref:`miniconda_install`.
@@ -93,7 +71,7 @@ _________________
 
    $ pip install -e .
 
-Fresh development environment
+Alternative 2: Fresh development environment
 _____________________________
 
 1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
@@ -115,38 +93,4 @@ _____________________________
 
 This installs the OpenDrift package as an editable package. You can therefore directly make changes to the repository or fetch the newest changes with :code:`git pull`. You do not need to add OpenDrift to PYTHONPATH as long as you have the :code:`opendrift` environment activated.
 
-Using pip
-++++++++++
-
-1. Consider creating an exclusive virtual environment for OpenDrift.
-
-2. Check out source
-
-.. code-block:: bash
-
-  $ git clone https://github.com/OpenDrift/opendrift.git
-
-3. Install dependencies for the OilLibrary:
-
-.. code-block:: bash
-
-  $ pip install gitpython sqlalchemy zope.sqlalchemy==1.1 transaction numpy scipy https://github.com/NOAA-ORR-ERD/PyNUCOS/archive/v2.5.5.tar.gz awesome-slugify
-
-4. Install the OpenDrift version of the OilLibrary
-
-.. code-block:: bash
-
-  $ pip install git+https://github.com/OpenDrift/OilLibrary
-
-5. Install OpenDrift dependencies
-
-.. code-block:: bash
-
-  $ pip install -r requirements.txt
-
-6. Install OpenDrift as an editable package
-
-.. code-block:: bash
-
-  $ pip install -e .
 
