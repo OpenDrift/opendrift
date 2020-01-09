@@ -27,7 +27,7 @@ print('o.seed_elements(lon=4, lat=60, time=time)')
 print('='*70)
 o.seed_elements(lon=4, lat=60, time=time)
 #o.run(steps=1)
-o.plot(buffer=.7)
+o.plot(buffer=.7, fast=True)
 
 
 print('\n' + '='*70)
@@ -36,7 +36,7 @@ print('o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time)')
 print('='*70)
 o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time)
 #o.run(steps=1)
-o.plot(buffer=.7)
+o.plot(buffer=.7, fast=True)
 
 
 print('\n' + '='*70)
@@ -47,7 +47,7 @@ z = np.linspace(0, -50, 100)  # Linearly increasing depth
 o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time, z=z)
 o.fallback_values['y_sea_water_velocity'] = 3  # Adding some current to be able to visualise depth as color of trajectories
 o.run(steps=1)
-o.plot(linecolor='z', buffer=.7)
+o.plot(linecolor='z', buffer=.7, fast=True)
 o.fallback_values['y_sea_water_velocity'] = 0
 
 
@@ -61,7 +61,7 @@ lats = np.linspace(60, 61, 100)
 lons = np.linspace(4, 4.8, 100)
 o.seed_elements(lon=lons, lat=lats, time=time)
 o.run(steps=1)
-o.plot(buffer=.2)
+o.plot(buffer=.2, fast=True)
 
 
 print('\n' + '='*70)
@@ -70,7 +70,7 @@ print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=100, cone=True, time=t
 print('='*70)
 o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=100, cone=True, time=time)
 o.run(steps=1)
-o.plot(buffer=.2)
+o.plot(buffer=.2, fast=True)
 
 
 print('\n' + '='*70)
@@ -79,7 +79,7 @@ print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000]
 print('='*70)
 o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=time)
 o.run(steps=1)
-o.plot(buffer=.2)
+o.plot(buffer=.2, fast=True)
 
 
 print('\n' + '='*70)
@@ -88,7 +88,7 @@ print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000]
 print('='*70)
 o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=[time, time+timedelta(hours=5)])
 o.run(steps=5*4, time_step=900)
-o.animation(filename='seed_demonstration.gif')
+o.animation(filename='seed_demonstration.gif', fast=True)
 
 #%%
 # .. image:: /gallery/animations/seed_demonstration.gif
@@ -101,4 +101,4 @@ print('='*70)
 o.reset()
 o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 o.run(steps=1)
-o.plot(buffer=.03)
+o.plot(buffer=.03, fast=True)
