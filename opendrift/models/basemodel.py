@@ -1485,6 +1485,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Recursively seeding elements around each point
             scalarargs = {}
+            if 'time_array' not in locals():
+                time_array = time
             for i in range(len(lon)):
                 for kwarg in kwargs:
                     try:
