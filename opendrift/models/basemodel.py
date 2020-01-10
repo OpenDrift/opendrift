@@ -1386,6 +1386,10 @@ class OpenDriftSimulation(PhysicsMethods):
         lon = np.atleast_1d(lon).ravel()
         lat = np.atleast_1d(lat).ravel()
         number = np.atleast_1d(number).ravel()
+        if len(lon) == 1 and len(number) > 1:
+            ones = np.ones(len(number))
+            lon = lon*ones
+            lat = lat*ones
         num_points = len(lon)  # Number of lon/lat pairs
         if len(number) == 1:
             number = number[0]
@@ -2520,7 +2524,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask' \
            and not self.readers['global_landmask'].skippoly \
-           and self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax)):
+           and (self.readers['global_landmask'].mask.extent is None \
+                or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax))):
 
             self.logger.debug("Using existing GSHHS shapes..")
             landmask = self.readers['global_landmask'].mask
