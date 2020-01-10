@@ -1511,7 +1511,6 @@ class OpenDriftSimulation(PhysicsMethods):
             time = [time, time]
 
         if type(time) == list and len(time) == 2 and number > 1:
-            print(number, 'NUM')
             td = (time[1]-time[0])/(number-1)  # timestep between points
             # Spread seeding times equally between start/first and end/last
             time_array = [time[0] + i*td for i in range(number)]
@@ -1519,13 +1518,16 @@ class OpenDriftSimulation(PhysicsMethods):
             time_array = time
 
         geod = pyproj.Geod(ellps='WGS84')
-        ones = np.ones(number)
-        x = np.random.randn(number)*radius
-        y = np.random.randn(number)*radius
+        ones = np.ones(np.sum(number))
+        x = np.random.randn(np.sum(number))*radius
+        y = np.random.randn(np.sum(number))*radius
         az = np.degrees(np.arctan2(x, y))
         dist = np.sqrt(x*x+y*y)
+        if len(lat) == 1 and len(ones) > 1:
+            lat = lat*ones
+            lon = lon*ones
         kwargs['lon'], kwargs['lat'], az = \
-            geod.fwd(lon*ones, lat*ones, az, dist, radians=False)
+            geod.fwd(lon, lat, az, dist, radians=False)
 
         if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
                 and kwargs['z'][0:8] == 'seafloor':
