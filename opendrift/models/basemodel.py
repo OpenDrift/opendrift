@@ -1385,10 +1385,15 @@ class OpenDriftSimulation(PhysicsMethods):
         #################################################################
         lon = np.atleast_1d(lon).ravel()
         lat = np.atleast_1d(lat).ravel()
+        number = np.atleast_1d(number).ravel()
         num_points = len(lon)  # Number of lon/lat pairs
-        if number is not None and number < num_points:
-            raise ValueError('Number of elements must be greater or equal '
-                             'to number of points.')
+        if len(number) == 1:
+            number = number[0]
+            if number is not None and number < num_points:
+                raise ValueError('Number of elements must be greater or equal '
+                                 'to number of points.')
+        else:
+            number_array = number
 
         if num_points == 1 and number is None:
             try:
@@ -1506,6 +1511,7 @@ class OpenDriftSimulation(PhysicsMethods):
             time = [time, time]
 
         if type(time) == list and len(time) == 2 and number > 1:
+            print(number, 'NUM')
             td = (time[1]-time[0])/(number-1)  # timestep between points
             # Spread seeding times equally between start/first and end/last
             time_array = [time[0] + i*td for i in range(number)]
