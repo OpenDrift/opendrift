@@ -162,7 +162,7 @@ class OpenDriftGUI(tk.Tk):
         self.month.grid(row=30, column=1)
 
         self.yearvar = tk.StringVar()
-        self.years = range(2015, now.year+1)
+        self.years = range(2015, now.year+2)
         self.yearvar.set(now.year)
         self.year = tk.OptionMenu(self.start, self.yearvar, *self.years)
         self.year.grid(row=30, column=2)
@@ -225,7 +225,7 @@ class OpenDriftGUI(tk.Tk):
         self.emonth.grid(row=30, column=1)
 
         self.eyearvar = tk.StringVar()
-        self.eyears = range(2015, now.year+1)
+        self.eyears = range(2015, now.year+2)
         self.eyearvar.set(now.year)
         self.eyear = tk.OptionMenu(self.end, self.eyearvar, *self.eyears)
         self.eyear.grid(row=30, column=2)

@@ -1485,6 +1485,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
             # Recursively seeding elements around each point
             scalarargs = {}
+            if 'time_array' not in locals():
+                time_array = time
             for i in range(len(lon)):
                 for kwarg in kwargs:
                     try:
@@ -2057,7 +2059,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 % (simulation_extent, self.start_time, self.expected_end_time))
         for reader in self.readers.values():
             self.logger.debug('\tPreparing %s' % reader.name)
-            reader.prepare_for_simulation(
+            reader.prepare(
                 extent=simulation_extent,
                 start_time=self.start_time, end_time = self.expected_end_time)
 
