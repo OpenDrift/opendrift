@@ -145,6 +145,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             dissolved_diameter = float(min=0., max=100.e-6,default=0.)
             particle_diameter = float(min=0., max=100.e-6,default=5.e-6)
             particle_diameter_uncertainty = float(min=0., max=100.e-6, default=1.e-7)
+            activity_per_element = float(min=0., max=1.e18, default=1.)
             [[species]]
                 LMM                        = boolean(default=False)
                 LMMcation                  = boolean(default=False)
@@ -799,7 +800,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
         from netCDF4 import Dataset, date2num #, stringtochar
 
-
+        self.logger.info('Postprocessing: Write density and concentration to netcdf file')
 
         if pixelsize_m == 'auto':
             lon, lat = self.get_lonlats()
@@ -823,14 +824,16 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
 
 
+        activity_per_element = self.get_config('radionuclide:activity_per_element')
 
 
         z = self.get_property('z')[0]
         if not deltaz==None:
+            deltaz = np.sort(deltaz)
             z_array = np.append(np.append(-10000, deltaz) , max(0,np.nanmax(z)))
         else:
             z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
-            
+        self.logger.info('z_array: {}'.format(  [str(item) for item in z_array] ) )
 
 
 
@@ -863,10 +866,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         pixel_volume[np.where(pixel_volume==0.)] = np.nan
                 
+        print ('Activity: ',activity_per_element)
         conc = np.zeros_like(H)
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
-                conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * 1. 
+                conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * activity_per_element
         
         
 #        print ('pixel_volume', pixel_volume.shape, np.sum(np.isnan(pixel_volume)))
@@ -880,8 +884,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.createDimension('x', lon_array.shape[0])
         nc.createDimension('y', lon_array.shape[1])
         nc.createDimension('depth', len(z_array)-1)
-        nc.createDimension('time', H.shape[0])
         nc.createDimension('specie', self.nspecies)
+        nc.createDimension('time', H.shape[0])
         times = self.get_time_array()[0]
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time',))
@@ -893,6 +897,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.createVariable('projection', 'i8')
         nc.variables['projection'].proj4 = density_proj.definition_string()
         
+        # 
+        nc.createVariable('concfactor','f8')
+        nc.variables['concfactor'][:] = activity_per_element
+        nc.variables['concfactor'].long_name = 'Activity per unit element'
+        nc.variables['concfactor'].unit = 'Bq'
                 
         # Coordinates
         nc.createVariable('lon', 'f8', ('y','x'))
@@ -960,6 +969,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
         
         nc.close()
+        self.logger.info('Wrote to '+filename)
 
 
 
