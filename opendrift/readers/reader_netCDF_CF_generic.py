@@ -76,6 +76,43 @@ def proj_from_CF_dict(c):
 
 
 class Reader(BaseReader):
+    """
+    A reader for `CF-compliant <http://cfconventions.org/>`_ netCDF files. It can take a single file, or a file pattern.
+
+    Args:
+        :param filename: A single netCDF file, or a pattern of files. The
+                         netCDF file can also be an URL to an OPeNDAP server.
+        :type filename: string, requiered.
+
+        :param name: Name of reader
+        :type name: string, optional
+
+        :param proj4: PROJ.4 string describing projection of data.
+        :type proj4: string, optional
+
+    Example:
+
+    .. code::
+
+       from opendrift.readers import Reader
+       r = Reader("arome_subset_16Nov2015.nc")
+
+    Several files can be specified by using a pattern:
+
+    .. code::
+
+       from opendrift.readers import Reader
+       r = Reader("*.nc")
+
+    or an OPeNDAP URL can be used:
+
+    .. code::
+
+       from opendrift.readers import Reader
+       r = Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
+
+
+    """
 
     def __init__(self, filename=None, name=None, proj4=None):
 
@@ -144,7 +181,7 @@ class Reader(BaseReader):
                                     proj_from_CF_dict(mapping_dict)
                             except:
                                 self.logger.info('Could not parse CF grid_mapping')
-                            
+
             if 'standard_name' in attributes:
                 standard_name = att_dict['standard_name']
             if 'long_name' in attributes:
@@ -191,7 +228,7 @@ class Reader(BaseReader):
                 else:
                     var_data = var[:]
                 x = var_data*unitfactor
-                self.numx = var_data.shape[0] 
+                self.numx = var_data.shape[0]
             if axis == 'Y' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
@@ -208,7 +245,7 @@ class Reader(BaseReader):
                 else:
                     var_data = var[:]
                 y = var_data*unitfactor
-                self.numy = var_data.shape[0] 
+                self.numy = var_data.shape[0]
             if standard_name == 'depth' or axis == 'Z':
                 if has_xarray:
                     var_data = var.values
@@ -501,7 +538,7 @@ class Reader(BaseReader):
         if self.global_coverage():
             if self.xmax + self.delta_x >= 360 and self.xmin > 180:
                 variables['x'][variables['x']>180] -= 360
-        
+
         variables['time'] = nearestTime
 
         # Rotate any east/north vectors if necessary
