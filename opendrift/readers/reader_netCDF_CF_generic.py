@@ -94,21 +94,21 @@ class Reader(BaseReader):
 
     .. code::
 
-       from opendrift.readers import Reader
+       from opendrift.readers.reader_netCDF_CF_generic import Reader
        r = Reader("arome_subset_16Nov2015.nc")
 
     Several files can be specified by using a pattern:
 
     .. code::
 
-       from opendrift.readers import Reader
+       from opendrift.readers.reader_netCDF_CF_generic import Reader
        r = Reader("*.nc")
 
     or an OPeNDAP URL can be used:
 
     .. code::
 
-       from opendrift.readers import Reader
+       from opendrift.readers.reader_netCDF_CF_generic import Reader
        r = Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
 
 
