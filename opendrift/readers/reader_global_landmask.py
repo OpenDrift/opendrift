@@ -20,11 +20,32 @@ from opendrift_landmask_data import Landmask
 import warnings
 import pyproj
 
+
 class Reader(BaseReader):
     """
     The global landmask reader is based on the coastline data from
     GSHHG (https://www.ngdc.noaa.gov/mgg/shorelines/) optimized for
     checking against landmasks.
+
+    Args:
+        :param extent: minx, miny, maxx, maxy bounding box in source CRS for which to include
+            geometries. Default None (all geometries).
+        :type extent: array of floats, optional
+
+        :param llcrnrlon: minx.
+        :type llcrnrlon: float, optional, deprecated in favor of extent.
+
+        :param llcrnrlat: miny.
+        :type llcrnrlat: float, optional, deprecated in favor of extent.
+
+        :param urcrnrlon: maxx.
+        :type urcrnrlon: float, optional, deprecated in favor of extent.
+
+        :param urcrnrlat: maxy.
+        :type urcrnrlat: float, optional, deprecated in favor of extent.
+
+        :param skippoly: use only rasterized landmask to determine whether points are on land.
+        :type skippoly: bool, optional, default False.
     """
     name = 'global_landmask'
     return_block = False
@@ -40,24 +61,6 @@ class Reader(BaseReader):
                  urcrnrlon = None,
                  urcrnrlat = None,
                  skippoly = False):
-        """
-        Initialize land mask using GSHHS dataset.
-
-        Args:
-            extent (array): minx, miny, maxx, maxy bounding box in source CRS for which to include
-                geometries. Default None (all geometries).
-
-            llcrnrlon (float): minx (Deprecated in favor of extent).
-
-            llcrnrlat (float): miny (Deprecated in favor of extent).
-
-            urcrnrlon (float): maxx (Deprecated in favor of extent).
-
-            urcrnrlat (float): maxy (Deprecated in favor of extent).
-
-            skippoly (bool): use only rasterized landmask to determine whether points are on land.
-        """
-
         self.proj4 = '+proj=lonlat +ellps=WGS84'
         self.crs = pyproj.CRS(self.proj4)
         self.skippoly = skippoly
