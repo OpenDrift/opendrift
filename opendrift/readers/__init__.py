@@ -69,7 +69,8 @@ def reader_from_url(url, timeout=10):
                     logging.warning('ULR %s not accessible: ' % url + str(e))
                     return None
             try:
-                r = Reader(url)
+                from opendrift.readers import reader_netCDF_CF_generic
+                r = reader_netCDF_CF_generic.Reader(url)
                 return r
             except Exception as e:
                 logging.warning('%s is not a netCDF file recognised '
