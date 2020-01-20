@@ -77,7 +77,7 @@ class PelagicEggDrift(OpenDrift3DSimulation):
     # will be an array of size [vertical_levels, num_elements]
     # The vertical levels are available as
     # self.environment_profiles['z'] or
-    # self.environment_profiles['sigma'] (not yet implemented)
+    # self.environment_profiles['sigma'] 
     required_profiles = ['sea_water_temperature',
                          'sea_water_salinity',
                          'ocean_vertical_diffusivity']

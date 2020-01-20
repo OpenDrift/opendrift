@@ -20,18 +20,19 @@
 # and presently not fully functional
 #####################################
 
-import logging
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
+import pyproj
 
-from basereader import BaseReader, pyproj
+from opendrift.readers.basereader import BaseReader
 
 
 class Reader(BaseReader):
 
-    def __init__(self, filename=None, name=None):
+    def __init__(self, filename=None, name=None, buffer=0.2,
+                 latstep=0.01, lonstep=0.01):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -40,6 +41,10 @@ class Reader(BaseReader):
             self.name = filestr
         else:
             self.name = name
+
+        self.geobuffer = buffer
+        self.latstep = latstep
+        self.lonstep = lonstep
 
         # Due to misspelled standard_name in
         # some (Akvaplan-NIVA) FVCOM files
@@ -59,12 +64,12 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filestr)
+            self.logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logging.info('Opening files with MFDataset')
+                self.logger.info('Opening files with MFDataset')
                 self.Dataset = MFDataset(filename)
             else:
-                logging.info('Opening file with Dataset')
+                self.logger.info('Opening file with Dataset')
                 self.Dataset = Dataset(filename, 'r')
         except Exception as e:
             raise ValueError(e)
@@ -73,7 +78,7 @@ class Reader(BaseReader):
         # and not any projected coordinates
         self.proj4 =  '+proj=latlong'
 
-        logging.debug('Finding coordinate variables.')
+        self.logger.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
@@ -194,22 +199,22 @@ class Reader(BaseReader):
         # Performance is quite dependent on the given buffer,
         # but it should not be made too small to make sure
         # particles are inside box
-        buffer = .1  # degrees around given positions
+        #buffer = .1  # degrees around given positions
 
-        lonmin = x.min() - buffer
-        lonmax = x.max() + buffer
-        latmin = y.min() - buffer
-        latmax = y.max() + buffer
+        lonmin = x.min() - self.geobuffer
+        lonmax = x.max() + self.geobuffer
+        latmin = y.min() - self.geobuffer
+        latmax = y.max() + self.geobuffer
         c = np.where((self.lon > lonmin) &
                      (self.lon < lonmax) &
                      (self.lat > latmin) &
                      (self.lat < latmax))[0]
 
         # Making a lon-lat grid onto which data is interpolated
-        lonstep = .01  # hardcoded for now
-        latstep = .01  # hardcoded for now
-        lons = np.arange(lonmin, lonmax, lonstep)
-        lats = np.arange(latmin, latmax, latstep)
+        #lonstep = .01  # hardcoded for now
+        #latstep = .01  # hardcoded for now
+        lons = np.arange(lonmin, lonmax, self.lonstep)
+        lats = np.arange(latmin, latmax, self.latstep)
         lonsm, latsm = np.meshgrid(lons, lats)
 
         # Initialising dictionary to contain data
@@ -230,7 +235,7 @@ class Reader(BaseReader):
                                  (var_name, var.ndim))
 
             if 'interpolator' not in locals():
-                logging.debug('Making interpolator...')
+                self.logger.debug('Making interpolator...')
                 interpolator = LinearNDInterpolator((self.lat[c],
                                                      self.lon[c]),
                                                     data)

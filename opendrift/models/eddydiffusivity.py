@@ -1,10 +1,18 @@
+"""
+Hello
+
+$$ a_x = \frac{1}{2} $$
+
+"""
 import numpy as np
 import scipy as sp
-import logging
 
 
 def windspeed_Sundby1983(s):
-    logging.debug('use Sunby (1983) wind speed parameterizatoin for diffusivity')
+    """
+    Wind speed .... SUndby
+    """
+    self.logger.debug('use Sunby (1983) wind speed parameterizatoin for diffusivity')
     depths = s.environment_profiles['z']
     windspeed_squared = s.environment.x_wind**2 + s.environment.y_wind**2
     if np.max(windspeed_squared) == 0:
@@ -17,7 +25,7 @@ def windspeed_Sundby1983(s):
     return Kprofiles
 
 def windspeed_Large1994(s):
-    logging.debug('use Large et al 1994 speed parameterizatoin for diffusivity')
+    self.logger.debug('use Large et al 1994 speed parameterizatoin for diffusivity')
     depths = -s.environment_profiles['z']
     D = 50 # mixed layer depth, should be read from ocean model
     rhoa = 1.22
@@ -31,40 +39,40 @@ def windspeed_Large1994(s):
     windstress = windspeed_squared * cd * rhoa
 
     Windstress, Z = sp.meshgrid(windstress, depths)
-   
+
     Kprofiles = D * stabilityfunction(Z/D) * 0.4 * G(Z/D) * Windstress
     below = np.where(Z>=D)
     Kprofiles[below]=Kprofiles[below]*0.+K_background
     return Kprofiles
 
 def stabilityfunction(sigma):
-    # controls stratification regimes for diffusivity 
+    # controls stratification regimes for diffusivity
     # a value of 1 represent neutrally buoyant conditions (no stratification)
     # a value between 0 and 1 represents stable stratification
     return 0.2 # should be depth dependent, too
 
-def G(sigma): 
+def G(sigma):
     # vertical shape function for eddy diffusivity
     a1 = 1.
-    a2 = -2 
+    a2 = -2
     a3 = 1
     G = a1*sigma + a2*sigma**2 + a3*sigma**3
     below = np.where(G>=1)
     G[below]=G[below]*0.
-    return G 
+    return G
 
 def gls_tke(s):
     '''From LADIM model.'''
 
     if not hasattr(s, 'gls_parameters'):
-        logging.info('Searching readers for GLS parameters...')
+        self.logger.info('Searching readers for GLS parameters...')
         for reader_name, reader in s.readers.items():
             if hasattr(reader, 'gls_parameters'):
                 s.gls_parameters = reader.gls_parameters
-                logging.info('Found gls-parameters in ' + reader_name)
+                self.logger.info('Found gls-parameters in ' + reader_name)
                 break  # Success
         if not hasattr(s, 'gls_parameters'):
-            logging.info('Did not find gls-parameters in any readers.')
+            self.logger.info('Did not find gls-parameters in any readers.')
             s.gls_parameters = None
 
     g = 9.81
@@ -119,3 +127,13 @@ def stepfunction(s):
         K[s.environment_profiles['z'] < -20] * 0 + 0.02
     N, Kprofiles = sp.meshgrid(Nparticles, K)
     return Kprofiles
+
+
+
+def zero(s):
+    '''Set eddy diffusivity to zero'''
+    Nparticles = range(s.elements.z.shape[0])
+    K = s.environment_profiles['z'] * 0
+    N, Kprofiles = sp.meshgrid(Nparticles, K)
+    return Kprofiles
+

@@ -1,9 +1,10 @@
 import logging
 import glob
-from opendrift.readers.reader_netCDF_CF_generic import Reader
 
 def reader_from_url(url, timeout=10):
     '''Make readers from URLs or paths to datasets'''
+
+    from opendrift.readers import reader_netCDF_CF_generic
 
     if isinstance(url, list):
         return [reader_from_url(u) for u in url]
@@ -11,7 +12,7 @@ def reader_from_url(url, timeout=10):
     files = glob.glob(url)
     for f in files:  # Regular file
         try:
-            r = Reader(f)
+            r = reader_netCDF_CF_generic.Reader(f)
             return r
 
         except:
@@ -55,8 +56,18 @@ def reader_from_url(url, timeout=10):
         except Exception as e:
             # Error code 400 is expected!
             if not isinstance(e, urllib_request.HTTPError) or e.code != 400:
-                logging.warning('ULR %s not accessible: ' % url + str(e))
-                return None
+                status_code = None
+                try:  # Trying with requests library (should be default)
+                    import requests
+                    resp = requests.get(url + '.das')
+                    status_code = resp.status_code
+                except Exception as e:
+                    logging.warning('ULR %s not accessible: ' % url + str(e))
+                    return None
+
+                if status_code >= 400:
+                    logging.warning('ULR %s not accessible: ' % url + str(e))
+                    return None
             try:
                 r = Reader(url)
                 return r

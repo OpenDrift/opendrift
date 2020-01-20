@@ -14,23 +14,70 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+"""
+OpenOil is an oil drift module bundled within the OpenDrift framework. There is both a 2D-version, and 3D-version which adds turbulent vertical mixing.
+
+The oil weathering calculations is based on the NOAA-ERR-ERD OilLibrary package, which must be installed as a dependency. The code for evaporation and emulsification in OpenOil is borrowed from the NOAA PyGnome code, and adapted to the OpenDrift architecture.
+
+Example of ship leaking oil along the coast of Northern Norway
+##############################################################
+.. image:: https://dl.dropboxusercontent.com/s/ty6dmqf0oohewky/oilspill_tromsoe.gif?dl=0
+
+Simulation of Deepwater Horizon (Macondo) accident, initiated from satellite images
+###################################################################################
+.. image:: https://dl.dropboxusercontent.com/s/ghi7crtmwpyjgto/macondo_simulation.gif?dl=0
+Satellite images provided by Prof. Chuanmin Hu, and ocean model output provided by Prof. Vassiliki Kourafalou
+
+Example oil budget for a simulation
+###################################
+.. image:: https://dl.dropboxusercontent.com/s/pb0h6tlev9pnoh3/oil_budget_draugen.png?dl=0
+
+Oil properties affecting the drift
+***********************************
+The vertical (and thus indirectly also the horisontal) motion of oil (droplets) is affected by oil density and droplet diameters.
+
+When using the NOAA oil weathering model (``o = OpenOil3D(weathering_model='noaa')``), the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification). When using the default (primitive) weathering model (o = OpenOil3D()), the parameter 'density' may be set when seeding (default is 880 kg/m3).
+
+The droplet diameter may be given explicitly when seeding, e.g.::
+
+    o.seed_elements(4, 60, number=100, time=datetime.now(), diameter=1e-5)
+
+In this case, the diameter will not change during the simulation, which is useful e.g. for sensitivity tests. The same diameter will be used for all elements for this example, but an array of the same length as the number of elements may also be provided.
+
+If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
+
+    o.config['input']['spill']['droplet_diameter_min_subsea'] = 0.0005  # 0.5 mm
+    o.config['input']['spill']['droplet_diameter_max_subsea'] = 0.005   # 5 mm
+
+After each wave breaking event, a new diameter will be chosen between configurable limits and exponent::
+
+    o.config['turbulentmixing']['droplet_diameter_min_wavebreaking'] = 1e-5
+    o.config['turbulentmixing']['droplet_diameter_max_wavebreaking'] = 1e-3
+    o.config['turbulentmixing']['droplet_size_exponent] = 0
+
+In this case a logarithmic distribution is used, with N ~ diameter^s, where s is the droplet_size_exponent. A droplet_size_exponent of 0 (default) gives uniform distribution. A value of -2.3 corresponds to the empirical number distribution as found by Delvigne and Sweeney, and 0.7 gives the corresponding volume distribution (number distribution multiplied by diameter3, since volume is proportinal to diameter3).
+
+The droplet size limits could also have been calculated dynamically from oil viscosity, but this is not yet implemented. The limits above should eventually be adjusted before the time of seeding.
+"""
+
 from io import open
 import os
 import numpy as np
 from datetime import datetime
 import logging
 import matplotlib; matplotlib.use('Tkagg') #hack to prevent display issues 
+import pyproj
 import matplotlib.pyplot as plt
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
 import opendrift.models.noaa_oil_weathering as noaa
-from opendrift.readers.basereader import pyproj
 
 try:
     from itertools import izip as zip
 except ImportError:
     pass
+
 
 # Defining the oil element properties
 class Oil(LagrangianArray):
@@ -196,7 +243,7 @@ class OpenOil(OpenDriftSimulation):
 
         self.oil_weathering_model = weathering_model
 
-        # Update config with oiltypes 
+        # Update config with oiltypes
         oiltypes = [str(a) for a in self.oiltypes]
         self._add_config('seed:oil_type', oiltypes,
                          'Oil type', overwrite=True)
@@ -224,7 +271,7 @@ class OpenOil(OpenDriftSimulation):
         # Using stereographic coordinates to get regular X and Y
         psproj = pyproj.Proj(
             '+proj=stere +lat_0=%s +lat_ts=%s +lon_0=%s' %
-            (meanlat, meanlat, meanlon)) 
+            (meanlat, meanlat, meanlon))
         X,Y = psproj(self.elements.lon[surface], self.elements.lat[surface])
         mass_bin, x_edge, y_edge, binnumber = binned_statistic_2d(
             X, Y, self.elements.mass_oil[surface],
@@ -256,7 +303,7 @@ class OpenOil(OpenDriftSimulation):
 
     def evaporate(self):
         if self.get_config('processes:evaporation') is True:
-            logging.debug('   Calculating: evaporation')
+            self.logger.debug('   Calculating: evaporation')
             windspeed = np.sqrt(self.environment.x_wind**2 +
                                 self.environment.y_wind**2)
 
@@ -308,9 +355,9 @@ class OpenOil(OpenDriftSimulation):
 
     def emulsification(self):
         if self.get_config('processes:emulsification') is True:
-            logging.debug('   Calculating: emulsification')
+            self.logger.debug('   Calculating: emulsification')
             if 'reference_wind' not in self.oil_data.keys():
-                logging.debug('Emulsification is currently only possible when'
+                self.logger.debug('Emulsification is currently only possible when'
                               'importing oil properties from file.')
             else:
                 windspeed = np.sqrt(self.environment.x_wind**2 +
@@ -330,7 +377,7 @@ class OpenOil(OpenDriftSimulation):
             Oil biodegradation function based on the article:
             Adcroft et al. (2010), Simulations of underwater plumes of dissolved oil in the Gulf of Mexico.
             '''
-            logging.debug('Calculating: biodegradation')
+            self.logger.debug('Calculating: biodegradation')
 
             swt = self.environment.sea_water_temperature.copy()
             swt[swt > 100] -= 273.15 # K to C
@@ -351,7 +398,7 @@ class OpenOil(OpenDriftSimulation):
     def disperse(self):
         if self.get_config('processes:dispersion') is True:
 
-            logging.debug('   Calculating: dispersion')
+            self.logger.debug('   Calculating: dispersion')
             windspeed = np.sqrt(self.environment.x_wind**2 +
                                 self.environment.y_wind**2)
             # From NOAA PyGnome model:
@@ -410,7 +457,7 @@ class OpenOil(OpenDriftSimulation):
 
     def oil_weathering(self):
         if self.time_step.days < 0:
-            logging.debug('Skipping oil weathering for backwards run')
+            self.logger.debug('Skipping oil weathering for backwards run')
             return
         self.timer_start('main loop:updating elements:oil weathering')
         if self.oil_weathering_model == 'noaa':
@@ -421,7 +468,7 @@ class OpenOil(OpenDriftSimulation):
 
     def oil_weathering_default(self):
 
-        logging.debug('Default oil weathering')
+        self.logger.debug('Default oil weathering')
 
         ## Evaporation
         self.evaporate()
@@ -451,17 +498,17 @@ class OpenOil(OpenDriftSimulation):
 
             self.oil_water_interfacial_tension = \
                 self.oiltype.oil_water_surface_tension()[0]
-            logging.info('Oil-water surface tension is %f Nm' % 
+            self.logger.info('Oil-water surface tension is %f Nm' %
                          self.oil_water_interfacial_tension)
         else:
-            logging.info('Using default oil-water tension of 0.03Nm')
+            self.logger.info('Using default oil-water tension of 0.03Nm')
             self.oil_water_interfacial_tension = 0.03
 
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:
         https://github.com/NOAA-ORR-ERD/PyGnome
         '''
-        logging.debug('NOAA oil weathering')
+        self.logger.debug('NOAA oil weathering')
         # C to K
         self.environment.sea_water_temperature[
             self.environment.sea_water_temperature < 100] += 273.15
@@ -525,7 +572,7 @@ class OpenOil(OpenDriftSimulation):
             self.timer_end('main loop:updating elements:oil weathering:biodegradation')
 
     def disperse_noaa(self):
-        logging.debug('    Calculating: dispersion - NOAA')
+        self.logger.debug('    Calculating: dispersion - NOAA')
         # From NOAA PyGnome model:
         # https://github.com/NOAA-ORR-ERD/PyGnome/
         c_disp = np.power(self.wave_energy_dissipation(), 0.57) * \
@@ -554,13 +601,13 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Evaporation, for elements at surface only
         #############################################
-        logging.debug('    Calculating evaporation - NOAA')
+        self.logger.debug('    Calculating evaporation - NOAA')
         surface = np.where(self.elements.z == 0)[0]  # of active elements
         if len(surface) == 0:
-            logging.debug('All elements submerged, no evaporation')
+            self.logger.debug('All elements submerged, no evaporation')
             return
         if self.elements.age_seconds[surface].min() > 3600*24:
-            logging.debug('All surface oil elements older than 24 hours, ' +
+            self.logger.debug('All surface oil elements older than 24 hours, ' +
                           'skipping further evaporation.')
             return
         surfaceID = self.elements.ID[surface] - 1    # of any elements
@@ -586,19 +633,19 @@ class OpenOil(OpenDriftSimulation):
         #############################################
         # Emulsification (surface only?)
         #############################################
-        logging.debug('    Calculating emulsification - NOAA')
+        self.logger.debug('    Calculating emulsification - NOAA')
         emul_time = self.oiltype.bulltime
         emul_constant = self.oiltype.bullwinkle
         # max water content fraction - get from database
         Y_max = self.oiltype.get('emulsion_water_fraction_max')
         if self.oil_name in self.max_water_fraction:
             max_water_fraction = self.max_water_fraction[self.oil_name]
-            logging.debug('Overriding max water fraxtion with value %f instead of default %f'
+            self.logger.debug('Overriding max water fraxtion with value %f instead of default %f'
                           % (max_water_fraction, Y_max))
             Y_max = max_water_fraction
         # emulsion
         if Y_max <= 0:
-            logging.debug('Oil does not emulsify, returning.')
+            self.logger.debug('Oil does not emulsify, returning.')
             return
         # Constants for droplets
         drop_min = 1.0e-6
@@ -615,7 +662,7 @@ class OpenOil(OpenDriftSimulation):
             ((fraction_evaporated >= emul_constant) & (emul_constant > 0))
             )[0]
         if len(start_emulsion) == 0:
-            logging.debug('        Emulsification not yet started')
+            self.logger.debug('        Emulsification not yet started')
             return
 
         if self.oiltype.bulltime > 0:  # User has set value
@@ -668,6 +715,29 @@ class OpenOil(OpenDriftSimulation):
         self.advect_oil()
 
     def get_oil_budget(self):
+        """Get oil budget for the current simulation
+
+        The oil budget consists of the following categories:
+
+        * surface: the sum of variable mass_oil for all active elements where z = 0
+        * submerged: the sum of variable mass_oil for all active elements where z < 0
+        * stranded: the sum of variable mass_oil for all elements which are stranded
+        * evaporated: the sum of variable mass_evaporated for all elements
+        * dispersed: the sum of variable mass_dispersed for all elements
+
+        The sum (total mass) shall equal the mass released. Note that the mass of oil
+        is conserved, whereas the volume may change with changes in density and
+        water uptake (emulsification). Therefore mass should be used for budgets,
+        eventually converted to volume (by dividing on density) in the final step
+        before presentation.
+
+        Note that mass_oil is the mass of pure oil. The mass of oil emulsion
+        (oil containing entrained water droplets) can be calculated as:
+            mass_emulsion = mass_oil / (1 - water_fraction)
+        I.e. water_fraction = 0 means pure oil, water_fraction = 0.5 means mixture of
+        50% oil and 50% water, and water_fraction = 0.9 (which is maximum)
+        means 10% oil and 90% water.
+        """
 
         if self.time_step.days < 0:  # Backwards simulation
             return None
@@ -827,10 +897,10 @@ class OpenOil(OpenDriftSimulation):
                 elif len(ADIOS_ids) == 1:
                     self.oiltype = get_oil_props(oiltype)
                 else:
-                    logging.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
+                    self.logger.warning('Two oils found with name %s (ADIOS IDs %s and %s). Using the first.' % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
                     self.oiltype = OilProps(oils[0])
             except Exception as e:
-                print(e)
+                self.logger.warning(e)
             return
 
         if oiltype not in self.oiltypes:
@@ -866,7 +936,7 @@ class OpenOil(OpenDriftSimulation):
             self.set_config('seed:oil_type', kwargs['oiltype'])
             del kwargs['oiltype']
         else:
-            logging.info('Oil type not specified, using default: ' +
+            self.logger.info('Oil type not specified, using default: ' +
                          self.get_config('seed:oil_type'))
         self.set_oiltype(self.get_config('seed:oil_type'))
 
@@ -877,7 +947,7 @@ class OpenOil(OpenDriftSimulation):
             except:  # Newer version of OilLibrary
                 oil_density = self.oiltype.density_at_temp(285)
                 oil_viscosity = self.oiltype.kvis_at_temp(285)
-            logging.info('Using density %s and viscosity %s of oiltype %s' %
+            self.logger.info('Using density %s and viscosity %s of oiltype %s' %
                          (oil_density, oil_viscosity, self.get_config('seed:oil_type')))
             kwargs['density'] = oil_density
             kwargs['viscosity'] = oil_viscosity
@@ -903,17 +973,10 @@ class OpenOil(OpenDriftSimulation):
 
         # Specific imports
         import datetime
-        # nxutils: Deprecated since version 1.2.0:
-        # Use contains_points() instead.
-        have_nx = True
-        try:
-            import matplotlib.nxutils as nx
-        except:
-            have_nx = False
-            from matplotlib.path import Path
+        from matplotlib.path import Path
         from xml.etree import ElementTree
         from matplotlib.patches import Polygon
-        from mpl_toolkits.basemap import pyproj
+        import pyproj
 
         namespaces = {'od': 'http://cweb.ksat.no/cweb/schema/geoweb/oil',
                       'gml': 'http://www.opengis.net/gml'}
@@ -990,10 +1053,7 @@ class OpenOil(OpenDriftSimulation):
             lon = lon.ravel()
             lat = lat.ravel()
             points = np.c_[lon, lat]
-            if have_nx:
-                ind = nx.points_inside_poly(points, slick.xy)
-            else:
-                ind = Path(slick.xy).contains_points(points)
+            ind = Path(slick.xy).contains_points(points)
             lonpoints = np.append(lonpoints, lon[ind])
             latpoints = np.append(latpoints, lat[ind])
 
@@ -1015,14 +1075,14 @@ class OpenOil(OpenDriftSimulation):
                 timestr = filename[-28:-13]
                 time = datetime.strptime(
                         filename[-28:-13], '%Y%m%d.%H%M%S')
-                logging.info('Parsed time from filename: %s' % time)
+                self.logger.info('Parsed time from filename: %s' % time)
             except:
                 time = datetime.now()
-                logging.warning('Could not pase time from filename, '
+                self.logger.warning('Could not pase time from filename, '
                                 'using present time: %s' % time)
 
         ds = gdal.Open(filename)
-        
+
         srcband = ds.GetRasterBand(1)
         data = srcband.ReadAsArray()
 
@@ -1074,7 +1134,7 @@ class OpenOil(OpenDriftSimulation):
             total_area[cat-1] = np.sum(areas)
             layers[cat-1].DeleteFeature(outer)
             layers[cat-1].ResetReading()
-            
+
         # Calculate how many elements to be seeded for each category
         areas_weighted = total_area*thickness_microns
         numbers = number*areas_weighted/np.sum(areas_weighted)

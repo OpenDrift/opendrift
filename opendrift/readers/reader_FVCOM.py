@@ -20,7 +20,6 @@
 # and presently not fully functional
 #####################################
 
-import logging
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
@@ -59,12 +58,12 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filestr)
+            self.logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logging.info('Opening files with MFDataset')
+                self.logger.info('Opening files with MFDataset')
                 self.Dataset = MFDataset(filename)
             else:
-                logging.info('Opening file with Dataset')
+                self.logger.info('Opening file with Dataset')
                 self.Dataset = Dataset(filename, 'r')
         except Exception as e:
             raise ValueError(e)
@@ -73,14 +72,14 @@ class Reader(BaseReader):
         # and not any projected coordinates
         self.proj4 =  '+proj=latlong'
 
-        logging.debug('Finding coordinate variables.')
+        self.logger.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
         # first check if we have specified a separate grid file
         if gridfile is None: 
             self.gridfile = self.Dataset
         else:
             self.gridfile = Dataset(gridfile)
-            logging.info('Opening Grid file')
+            self.logger.info('Opening Grid file')
         # now check content of grid- or datafile
         for var_name in self.gridfile.variables:
             var = self.gridfile.variables[var_name]
@@ -224,7 +223,7 @@ class Reader(BaseReader):
         # Reader coordinates of subset
         for par in requested_variables:
             var = self.Dataset.variables[self.variable_mapping[par]]
-            print var
+            print (var)
             if var.ndim == 1:
                 data = var[c]
             elif var.ndim == 2:
@@ -235,10 +234,10 @@ class Reader(BaseReader):
                 raise ValueError('Wrong dimension of %s: %i' %
                                  (var_name, var.ndim))
 
-            print data
+            print (data)
 
             if 'interpolator' not in locals():
-                logging.debug('Making interpolator...')
+                self.logger.debug('Making interpolator...')
                 interpolator = LinearNDInterpolator((self.lat[c],
                                                      self.lon[c]),
                                                     data)

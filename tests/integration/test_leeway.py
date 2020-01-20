@@ -22,7 +22,7 @@ import time
 import unittest
 from datetime import datetime
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.models.leeway import Leeway
 
 
@@ -47,18 +47,18 @@ class TestLeeway(unittest.TestCase):
                         time=datetime(2015, 1, 1))
         objType = l.elements_scheduled.objectType
         self.assertEqual(l.leewayprop[objType]['Description'],
-                         'Surf board with person') 
+                         'Surf board with person')
         self.assertEqual(l.leewayprop[objType]['OBJKEY'],
-                         'PERSON-POWERED-VESSEL-2') 
+                         'PERSON-POWERED-VESSEL-2')
 
     def test_leewayrun(self):
         """Test the expected Leeway left/right split."""
         self.lee = Leeway(loglevel=30)
         self.objectType = 50  # FISHING-VESSEL-1
-        self.reader_basemap = reader_basemap_landmask.Reader(
-            llcrnrlon=3, llcrnrlat=59.8, projection='merc',
-            urcrnrlon=6, urcrnrlat=60.5, resolution='i')
-        self.lee.add_reader([self.reader_basemap])
+        self.reader_landmask = reader_global_landmask.Reader(
+            llcrnrlon=3, llcrnrlat=59.8,
+            urcrnrlon=6, urcrnrlat=60.5)
+        self.lee.add_reader([self.reader_landmask])
         self.lee.seed_elements(lon=4.5, lat=60, number=100,
                                objectType=self.objectType,
                                time=datetime(2015, 1, 1))
@@ -69,8 +69,8 @@ class TestLeeway(unittest.TestCase):
         # Check that 7 out of 100 elements strand towards coast
         self.lee.run(steps=24, time_step=3600)
         self.assertEqual(self.lee.num_elements_scheduled(), 0)
-        self.assertEqual(self.lee.num_elements_active(), 97)
-        self.assertEqual(self.lee.num_elements_deactivated(), 3)  # stranded
+        self.assertEqual(self.lee.num_elements_active(), 96)
+        self.assertEqual(self.lee.num_elements_deactivated(), 4)  # stranded
         self.lee.export_ascii('leeway_ascii.txt')
         os.remove('leeway_ascii.txt')
 

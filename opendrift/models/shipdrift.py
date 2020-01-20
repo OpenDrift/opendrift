@@ -20,7 +20,6 @@
 # Reprogrammed in Python for OpenDrift by Knut-Frode Dagestad Dec 2016
 
 import os
-import logging
 import numpy as np
 import scipy
 
@@ -276,11 +275,11 @@ class ShipDrift(OpenDriftSimulation):
         offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
         if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and 
             self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0):
-                logging.info('Using wind direction as wave direction')
+                self.logger.info('Using wind direction as wave direction')
                 wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
                                                            self.environment.x_wind)
         else:
-            logging.info('Using Stokes drift direction as wave direction')
+            self.logger.info('Using Stokes drift direction as wave direction')
             wave_dir = np.radians(offset) + np.arctan2(
                 self.environment.sea_surface_wave_stokes_drift_x_velocity,
                 self.environment.sea_surface_wave_stokes_drift_y_velocity)

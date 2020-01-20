@@ -17,7 +17,6 @@
 import os
 import numpy as np
 from datetime import datetime
-import logging
 import json
 
 from opendrift.models.openoil import OpenOil, Oil
@@ -31,7 +30,7 @@ except NameError:
 
 # Defining the oil element properties
 class Oil3D(Oil):
-    """Extending Oil class with variables relevant for the vertical."""
+    """Defining properties of an oil object/particles."""
 
     variables = Oil.add_variables([
         # Entrainment length scale, see Tkalich and Chan (2002)
@@ -47,10 +46,20 @@ class Oil3D(Oil):
 class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     """Open source oil trajectory model based on the OpenDrift framework.
 
-        Developed at MET Norway based on oil weathering parameterisations
-        found in open/published litterature.
-
-        Under construction.
+        The OpenOil oil drift model is described e.g. in 
+	Rohrs, J., Dagestad, K.-F., Asbjornsen, H., Nordam, T., Skancke, J.,
+	Jones, C. E., and Brekke, C.: The effect of vertical mixing on the 
+	horizontal drift of oil spills, Ocean Sci., 14, 1581-1601,
+	https://doi.org/10.5194/os-14-1581-2018, 2018.
+	
+        Example usage:
+	
+	.. code-block:: python
+	
+	   from opendrift.models.openoil3D import OpenOil3D
+	   o = OpenOil3D()
+	
+	Normal text.
     """
 
     ElementType = Oil3D
@@ -187,7 +196,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                     pointer2[kw] = data[1]
                 else:
                     pass
-                    #logging.info('Not adding array %s to metadata' % kw)
+                    #self.logger.info('Not adding array %s to metadata' % kw)
             else:
                 self.add_metadata('seed_' + kw, str(data))
                 seed_json[kw] = data
@@ -197,7 +206,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         else:
             number = kwargs['number']
         if 'diameter' in kwargs:
-            logging.info('Droplet diameter is provided, and will '
+            self.logger.info('Droplet diameter is provided, and will '
                          'be kept constant during simulation')
             self.keep_droplet_diameter = True
         else:
@@ -216,7 +225,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             # Droplet min and max for particles seeded below sea surface
             sub_dmin = self.get_config('input:spill:droplet_diameter_min_subsea')
             sub_dmax = self.get_config('input:spill:droplet_diameter_max_subsea')
-            logging.info('Using particle diameters between %s and %s m for '
+            self.logger.info('Using particle diameters between %s and %s m for '
                          'elements seeded below sea surface.' %
                          (sub_dmin, sub_dmax))
             kwargs['diameter'] = np.random.uniform(sub_dmin, sub_dmax, number)
@@ -418,7 +427,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
 
         # Intrusion depth for wave entrainment from Delvigne and Sweeney (1988), Li et al. (2017):
         if entrained.sum() > 0:
-            logging.debug('Entraining %i of %i surface elements' %
+            self.logger.debug('Entraining %i of %i surface elements' %
 						  (entrained.sum(), surface.sum()))
             zb = 1.5 * self.significant_wave_height() # between 0 and zb
             intrusion_depth = np.random.uniform(0, np.mean(zb), entrained.sum())
@@ -448,7 +457,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     def get_wave_breaking_droplet_diameter_exponential(self):
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum, if not already done
-            logging.debug('Generating wave breaking droplet size spectrum')
+            self.logger.debug('Generating wave breaking droplet size spectrum')
             s = self.get_config('turbulentmixing:droplet_size_exponent')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
@@ -470,7 +479,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # Should be prefered when the oil film thickness is unknown.
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum as in Li (Zhengkai) et al. (2017)
-            logging.debug('Generating wave breaking droplet size spectrum')
+            self.logger.debug('Generating wave breaking droplet size spectrum')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
@@ -490,12 +499,12 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             # treat all particle in one go:
             dV_50 = np.mean(dV_50) # mean log diameter
             dN_50 = np.exp( np.log(dV_50) - 3*Sd**2 ) # convert number distribution to volume distribution
-            logging.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
+            self.logger.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
             spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
         if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
                 np.abs(np.sum(self.droplet_spectrum_pdf) - 1) > 1e-6:
-            logging.warning('Could not update droplet diameters.')
+            self.logger.warning('Could not update droplet diameters.')
             return self.elements.diameter
         else:
             return np.random.choice(self.droplet_spectrum_diameter,
@@ -509,7 +518,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
         # requires oil film thickness
         if not hasattr(self, 'droplet_spectrum_pdf') or self.get_config('processes:update_oilfilm_thickness') is True:
             # Generate droplet spectrum as in Johansen et al. (2015)
-            logging.debug('Generating wave breaking droplet size spectrum')
+            self.logger.debug('Generating wave breaking droplet size spectrum')
             dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
             dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
@@ -536,12 +545,12 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
             # arrays, with varying oil properties
             # treat all particle in one go:
             dV_50 = np.mean(dV_50) # mean log diameter
-            logging.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
+            self.logger.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
             spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
             self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
         if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
                 np.abs(np.sum(self.droplet_spectrum_pdf) - 1) > 1e-6:
-            logging.warning('Could not update droplet diameters.')
+            self.logger.warning('Could not update droplet diameters.')
             return self.elements.diameter
         else:
             return np.random.choice(self.droplet_spectrum_diameter,

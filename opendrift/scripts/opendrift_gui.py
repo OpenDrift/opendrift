@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
+import matplotlib
 from matplotlib import pyplot as plt
+if __name__ == '__main__':
+    matplotlib.use('TKAgg')
+
 import sys
 import os
 from datetime import datetime, timedelta
@@ -58,28 +62,28 @@ class OpenDriftGUI(tk.Tk):
         self.con.grid(row=0, column=1, rowspan=1)
         # Time start and end
         self.start_t = tk.Frame(self.seed, relief=tk.FLAT)
-        self.start_t.grid(row=2, column=0, rowspan=1)
+        self.start_t.grid(row=20, column=0, rowspan=1)
         self.end_t = tk.Frame(self.seed, relief=tk.FLAT)
-        self.end_t.grid(row=3, column=0, rowspan=1)
+        self.end_t.grid(row=30, column=0, rowspan=1)
         self.start = tk.Frame(self.seed, bg='lightgray', bd=2,
                               relief=tk.SUNKEN, pady=5, padx=5)
-        self.start.grid(row=2, column=1, rowspan=1)
+        self.start.grid(row=20, column=1, rowspan=1)
         self.end = tk.Frame(self.seed, bg='gray', bd=2,
                             relief=tk.SUNKEN, padx=5, pady=5)
-        self.end.grid(row=3, column=1)
+        self.end.grid(row=30, column=1)
         self.coastline = tk.Frame(self.seed, bd=2,
                                  relief=tk.FLAT, padx=5, pady=0)
-        self.coastline.grid(row=4, column=1)
+        self.coastline.grid(row=40, column=1)
         self.duration = tk.Frame(self.seed, bd=2,
                                  relief=tk.FLAT, padx=5, pady=5)
-        self.duration.grid(row=5, column=1)
+        self.duration.grid(row=50, column=1)
         self.output = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
-        self.output.grid(row=7, column=0, columnspan=7, sticky='nsew')
+        self.output.grid(row=70, column=0, columnspan=7, sticky='nsew')
 
         self.results = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
-        self.results.grid(row=6, column=7, columnspan=1, sticky='ew')
+        self.results.grid(row=60, column=7, columnspan=1, sticky='ew')
 
         ##########################
         self.title('OpenDrift')
@@ -124,11 +128,11 @@ class OpenDriftGUI(tk.Tk):
         self.radius = tk.Entry(self.start, width=6,
                                textvariable=self.radiusvar,
                                justify=tk.RIGHT)
-        self.lon.grid(row=1, column=1)
+        self.lon.grid(row=10, column=1)
         self.lon.insert(0, '4.5')
-        self.lat.grid(row=1, column=0)
+        self.lat.grid(row=10, column=0)
         self.lat.insert(0, '60.0')
-        self.radius.grid(row=1, column=2)
+        self.radius.grid(row=10, column=2)
         self.radius.insert(0, '1000')
         self.lonvar.trace('w', self.copy_position)
         self.latvar.trace('w', self.copy_position)
@@ -137,16 +141,16 @@ class OpenDriftGUI(tk.Tk):
         # Time
         ##########
         now = datetime.utcnow()
-        tk.Label(self.start, text='Day').grid(row=2, column=0)
-        tk.Label(self.start, text='Month').grid(row=2, column=1)
-        tk.Label(self.start, text='Year').grid(row=2, column=2)
-        tk.Label(self.start, text='Hour').grid(row=2, column=3)
-        tk.Label(self.start, text='Minutes [UTC]').grid(row=2, column=4)
+        tk.Label(self.start, text='Day').grid(row=20, column=0)
+        tk.Label(self.start, text='Month').grid(row=20, column=1)
+        tk.Label(self.start, text='Year').grid(row=20, column=2)
+        tk.Label(self.start, text='Hour').grid(row=20, column=3)
+        tk.Label(self.start, text='Minutes [UTC]').grid(row=20, column=4)
         self.datevar = tk.StringVar()
         self.dates = range(1, 32)
         self.datevar.set(now.day)
         self.date = tk.OptionMenu(self.start, self.datevar, *self.dates)
-        self.date.grid(row=3, column=0)
+        self.date.grid(row=30, column=0)
 
         self.monthvar = tk.StringVar()
         self.months = ['January', 'February', 'March', 'April', 'May',
@@ -155,26 +159,26 @@ class OpenDriftGUI(tk.Tk):
         self.monthvar.set(self.months[now.month-1])
         self.month = tk.OptionMenu(self.start, self.monthvar,
                                    *self.months)
-        self.month.grid(row=3, column=1)
+        self.month.grid(row=30, column=1)
 
         self.yearvar = tk.StringVar()
-        self.years = range(2015, now.year+1)
+        self.years = range(2015, now.year+2)
         self.yearvar.set(now.year)
         self.year = tk.OptionMenu(self.start, self.yearvar, *self.years)
-        self.year.grid(row=3, column=2)
+        self.year.grid(row=30, column=2)
 
         self.hourvar = tk.StringVar()
         self.hours = range(0, 24)
         self.hourvar.set(now.hour)
         self.hour = tk.OptionMenu(self.start, self.hourvar, *self.hours)
-        self.hour.grid(row=3, column=3)
+        self.hour.grid(row=30, column=3)
 
         self.minutevar = tk.StringVar()
         self.minutes = range(0, 60, 5)
         self.minutevar.set(now.minute)
         self.minute = tk.OptionMenu(self.start, self.minutevar,
                                     *self.minutes)
-        self.minute.grid(row=3, column=4)
+        self.minute.grid(row=30, column=4)
 
         self.datevar.trace('w', self.copy_position)
         self.monthvar.trace('w', self.copy_position)
@@ -193,51 +197,51 @@ class OpenDriftGUI(tk.Tk):
         self.elat = tk.Entry(self.end, width=6, justify=tk.RIGHT)
         self.elon = tk.Entry(self.end, width=6, justify=tk.RIGHT)
         self.eradius = tk.Entry(self.end, width=6, justify=tk.RIGHT)
-        self.elon.grid(row=1, column=1)
+        self.elon.grid(row=10, column=1)
         self.elon.insert(0, '4.5')
-        self.elat.grid(row=1, column=0)
+        self.elat.grid(row=10, column=0)
         self.elat.insert(0, '60.0')
-        self.eradius.grid(row=1, column=2)
+        self.eradius.grid(row=10, column=2)
         self.eradius.insert(0, '1000')
         ##########
         # Time
         ##########
         now = datetime.utcnow()
-        tk.Label(self.end, text='Day', bg='gray').grid(row=2, column=0)
-        tk.Label(self.end, text='Month', bg='gray').grid(row=2, column=1)
-        tk.Label(self.end, text='Year', bg='gray').grid(row=2, column=2)
-        tk.Label(self.end, text='Hour', bg='gray').grid(row=2, column=3)
-        tk.Label(self.end, text='Minutes [UTC]', bg='gray').grid(row=2, column=4)
+        tk.Label(self.end, text='Day', bg='gray').grid(row=20, column=0)
+        tk.Label(self.end, text='Month', bg='gray').grid(row=20, column=1)
+        tk.Label(self.end, text='Year', bg='gray').grid(row=20, column=2)
+        tk.Label(self.end, text='Hour', bg='gray').grid(row=20, column=3)
+        tk.Label(self.end, text='Minutes [UTC]', bg='gray').grid(row=20, column=4)
         self.edatevar = tk.StringVar()
         self.edates = range(1, 32)
         self.edatevar.set(now.day)
         self.edate = tk.OptionMenu(self.end, self.edatevar, *self.edates)
-        self.edate.grid(row=3, column=0)
+        self.edate.grid(row=30, column=0)
 
         self.emonthvar = tk.StringVar()
         self.emonthvar.set(self.months[now.month-1])
         self.emonth = tk.OptionMenu(self.end, self.emonthvar,
                                     *self.months)
-        self.emonth.grid(row=3, column=1)
+        self.emonth.grid(row=30, column=1)
 
         self.eyearvar = tk.StringVar()
-        self.eyears = range(2015, now.year+1)
+        self.eyears = range(2015, now.year+2)
         self.eyearvar.set(now.year)
         self.eyear = tk.OptionMenu(self.end, self.eyearvar, *self.eyears)
-        self.eyear.grid(row=3, column=2)
+        self.eyear.grid(row=30, column=2)
 
         self.ehourvar = tk.StringVar()
         self.ehours = range(0, 24)
         self.ehourvar.set(now.hour)
         self.ehour = tk.OptionMenu(self.end, self.ehourvar, *self.ehours)
-        self.ehour.grid(row=3, column=3)
+        self.ehour.grid(row=30, column=3)
 
         self.eminutevar = tk.StringVar()
         self.eminutes = range(0, 60, 5)
         self.eminutevar.set(now.minute)
         self.eminute = tk.OptionMenu(self.end, self.eminutevar,
                                      *self.eminutes)
-        self.eminute.grid(row=3, column=4)
+        self.eminute.grid(row=30, column=4)
         self.eyear.config(bg='gray')
         self.emonth.config(bg='gray')
         self.edate.config(bg='gray')
@@ -247,43 +251,43 @@ class OpenDriftGUI(tk.Tk):
         # Check seeding
         check_seed = tk.Button(self.end_t, text='Check seeding',
                                 command=self.check_seeding)
-        check_seed.grid(row=1, column=0, padx=0)
+        check_seed.grid(row=10, column=0, padx=0)
 
         #######################
         # Simulation duration
         #######################
-        tk.Label(self.coastline, text='Coastline resolution ').grid(
-                 row=4, column=1)
-        self.mapresvar = tk.StringVar()
-        self.mapres = tk.OptionMenu(self.coastline, self.mapresvar,
-                                    *['full', 'high'])
-        self.mapres.grid(row=4, column=2)
-        self.mapresvar.set('high')
+        #tk.Label(self.coastline, text='Coastline resolution ').grid(
+        #         row=40, column=1)
+        #self.mapresvar = tk.StringVar()
+        #self.mapres = tk.OptionMenu(self.coastline, self.mapresvar,
+        #                            *['full', 'high'])
+        #self.mapres.grid(row=40, column=2)
+        #self.mapresvar.set('high')
 
-        tk.Label(self.duration, text='Run simulation ').grid(row=5, column=0)
+        tk.Label(self.duration, text='Run simulation ').grid(row=50, column=0)
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
-        self.durationhours.grid(row=5, column=1)
+        self.durationhours.grid(row=50, column=1)
         self.durationhours.insert(0, 12)
-        tk.Label(self.duration, text=' hours ').grid(row=5, column=2)
+        tk.Label(self.duration, text=' hours ').grid(row=50, column=2)
 
         self.directionvar = tk.StringVar()
         self.directionvar.set('forwards')
         self.direction = tk.OptionMenu(self.duration, self.directionvar,
                                        'forwards', 'backwards')
-        self.direction.grid(row=5, column=3)
-        tk.Label(self.duration, text=' in time ').grid(row=5, column=4)
+        self.direction.grid(row=50, column=3)
+        tk.Label(self.duration, text=' in time ').grid(row=50, column=4)
 
         ##############
         # Output box
         ##############
         self.text = tk.Text(self.output, wrap="word", height=18)
-        self.text.grid(row=6, columnspan=6, sticky='nsw')
+        self.text.grid(row=60, columnspan=6, sticky='nsw')
         self.text.tag_configure("stderr", foreground="#b22222")
         sys.stdout = TextRedirector(self.text, "stdout")
         sys.stderr = TextRedirector(self.text, "stderr")
         s = tk.Scrollbar(self)
-        s.grid(row=6, column=6, sticky='ns')
+        s.grid(row=60, column=6, sticky='ns')
         s.config(command=self.text.yview)
         self.text.config(yscrollcommand=s.set)
 
@@ -308,7 +312,7 @@ class OpenDriftGUI(tk.Tk):
         # RUN
         ##########
         tk.Button(self.seed, text=startbutton, bg='green',
-                  command=self.run_opendrift).grid(row=8, column=1,
+                  command=self.run_opendrift).grid(row=80, column=1,
                                               sticky=tk.W, pady=4)
 
     def copy_position(self, a, b, c):
@@ -375,6 +379,15 @@ class OpenDriftGUI(tk.Tk):
             self.results.destroy()
         except:
             pass
+        try:
+            # Removeing depth input boxes
+            self.depthlabel.destroy()
+            self.depth.destroy()
+            self.seafloor.destroy()
+            self.amount.destroy()
+            self.amountlabel.destroy()
+        except:
+            pass
 
         print('Setting model: ' + model)
         print(self.o.list_configspec())
@@ -385,7 +398,7 @@ class OpenDriftGUI(tk.Tk):
         self.seed_input_label = {}
         self.seed_frame = tk.Frame(self.seed, bd=2,
                                    relief=tk.FLAT, padx=5, pady=0)
-        self.seed_frame.grid(row=6, columnspan=8, sticky='nsew')
+        self.seed_frame.grid(row=60, columnspan=8, sticky='nsew')
         # FIND
         for num, i in enumerate(sc):
             if i in ['ocean_only', 'jibeProbability']:
@@ -407,6 +420,34 @@ class OpenDriftGUI(tk.Tk):
                 self.seed_input[i].insert(0, sc[i]['default'])
             self.seed_input[i].grid(row=num, column=1)
 
+        if model == 'OpenOil':  # User may be able to chose release depth
+            self.depthlabel = tk.Label(self.duration, text='Spill depth [m]')
+            self.depthlabel.grid(row=60, column=0)
+            self.depthvar = tk.StringVar()
+            self.depth = tk.Entry(self.duration, textvariable=self.depthvar,
+                                  width=6, justify=tk.RIGHT)
+            self.depth.grid(row=60, column=2)
+            self.depth.insert(0, '0')
+            self.seafloorvar = tk.IntVar()
+            self.seafloor = tk.Checkbutton(self.duration, variable=self.seafloorvar,
+                                           text='seafloor',
+                                           command=self.seafloorbutton)
+            self.seafloor.grid(row=60, column=3)
+
+            self.amountvar = tk.StringVar()
+            self.amount = tk.Entry(self.duration, textvariable=self.amountvar,
+                                  width=6, justify=tk.RIGHT)
+            self.amount.grid(row=60, column=4)
+            self.amount.insert(0, '100')
+            self.amountlabel = tk.Label(self.duration, text='m3 (per hour)')
+            self.amountlabel.grid(row=60, column=5)
+
+    def seafloorbutton(self):
+        if self.seafloorvar.get() == 1:
+            self.depth.config(state='disabled')
+        else:
+            self.depth.config(state='normal')
+
     def show_help(self):
         help_url = 'https://github.com/OpenDrift/opendrift/wiki/Graphical-User-Interface'
         print('Opening help website:\n' + help_url)
@@ -416,11 +457,11 @@ class OpenDriftGUI(tk.Tk):
     def check_seeding(self):
         print('#'*50)
         print('Hang on, plot is comming in a few seconds...')
-        mapres = self.mapresvar.get()[0]
-        if mapres == 'f':
-            print('...actually more like 30 seconds for full resolution coastline....')
-            if self.has_diana is True:
-                print('Du far ta deg ein liten trall mens du ventar.')
+        #mapres = self.mapresvar.get()[0]
+        #if mapres == 'f':
+        #    print('...actually more like 30 seconds for full resolution coastline....')
+        #    if self.has_diana is True:
+        #        print('Du far ta deg ein liten trall mens du ventar.')
         print('#'*50)
         month = np.int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(np.int(self.yearvar.get()), month,
@@ -451,8 +492,7 @@ class OpenDriftGUI(tk.Tk):
         so = Leeway(loglevel=50)
         so.seed_elements(lon=lon, lat=lat, number=5000,
                          radius=radius, time=start_time)
-        so.set_config('general:basemap_resolution', mapres)
-        so.plot(buffer=.5)
+        so.plot(buffer=.5, fast=True)
         del so
 
     def run_opendrift(self):
@@ -515,13 +555,20 @@ class OpenDriftGUI(tk.Tk):
             extra_seed_args['objectType'] = extra_seed_args['object_type']
             del extra_seed_args['object_type']
 
+        self.o.add_readers_from_file(self.o.test_data_folder() +
+            '../../opendrift/scripts/data_sources.txt')
+
         extra_seed_args = {}
+        if self.model.get() == 'OpenOil':
+            if self.seafloorvar.get() == 1:
+                z = 'seafloor'
+            else:
+                z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
+            extra_seed_args['z'] = z
+            extra_seed_args['m3_per_hour'] = np.float(self.amountvar.get())
         self.o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
                         time=start_time, cone=cone,
                         **extra_seed_args)
-
-        self.o.add_readers_from_file(self.o.test_data_folder() +
-            '../../opendrift/scripts/data_sources.txt')
 
         #time_step = o.get_config('general:time_step_minutes')*60
         time_step = 900  # 15 minutes
@@ -535,8 +582,7 @@ class OpenDriftGUI(tk.Tk):
         else:
             extra_args = {}
 
-        mapres = self.mapresvar.get()[0]
-        self.o.set_config('general:basemap_resolution', mapres)
+        #mapres = self.mapresvar.get()[0]
         self.simulationname = 'opendrift_' + self.model.get() + \
             self.o.start_time.strftime('_%Y%m%d_%H%M')
 
@@ -548,33 +594,34 @@ class OpenDriftGUI(tk.Tk):
         self.results.destroy()
         self.results = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
-        self.results.grid(row=7, column=3, columnspan=1, sticky='ew')
+        self.results.grid(row=70, column=3, columnspan=1, sticky='ew')
         tk.Button(self.results, text='Show animation',
                   command=lambda: self.handle_result(
-                    'showanimation')).grid(row=1, column=1)
+                    'showanimation')).grid(row=10, column=1)
         tk.Button(self.results, text='Save animation',
                   command=lambda: self.handle_result(
-                    'saveanimation')).grid(row=2, column=1)
+                    'saveanimation')).grid(row=20, column=1)
         tk.Button(self.results, text='Show plot',
                   command=lambda: self.handle_result(
-                    'showplot')).grid(row=3, column=1)
+                    'showplot')).grid(row=30, column=1)
         tk.Button(self.results, text='Save plot',
                   command=lambda: self.handle_result(
-                    'saveplot')).grid(row=4, column=1)
+                    'saveplot')).grid(row=40, column=1)
         if self.model.get() == 'OpenOil':
             tk.Button(self.results, text='Save oil budget',
                       command=lambda: self.handle_result(
-                        'saveoilbudget')).grid(row=5, column=1)
+                        'saveoilbudget')).grid(row=50, column=1)
             tk.Button(self.results, text='Show oil budget',
                       command=lambda: self.handle_result(
-                        'showoilbudget')).grid(row=6, column=1)
+                        'showoilbudget')).grid(row=60, column=1)
 
         if self.has_diana is True:
             diana_filename = self.dianadir + self.simulationname + '.nc'
             self.o.write_netcdf_density_map(diana_filename)
             tk.Button(self.results, text='Show in Diana',
                       command=lambda: os.system('diana &')
-                      ).grid(row=8, column=1)
+                      ).grid(row=80, column=1)
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()
+

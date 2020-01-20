@@ -1,3 +1,9 @@
+"""
+Opendrift module
+
+.. currentmodule:: opendrift
+
+"""
 import logging
 import unittest
 import importlib
@@ -66,7 +72,6 @@ def versions():
     import platform
     import scipy
     import matplotlib
-    from mpl_toolkits import basemap
     import netCDF4
     import sys
     s = '\n------------------------------------------------------\n'
@@ -80,7 +85,6 @@ def versions():
     s += '  %s GB memory\n' % ram
     s += '  %s processors (%s)\n' % (multiprocessing.cpu_count(),
                                    platform.processor())
-    s += '  Basemap version %s\n' % basemap.__version__
     s += '  NumPy version %s\n' % np.__version__
     s += '  SciPy version %s\n' % scipy.__version__
     s += '  Matplotlib version %s\n' % matplotlib.__version__
@@ -88,7 +92,7 @@ def versions():
     s += '  Python version %s\n' % sys.version.replace('\n', '')
     s += '------------------------------------------------------\n'
     return s
-    
+
 
 def import_from_ladim(ladimfile, romsfile):
     """Import Ladim output file as OpenDrift simulation obejct"""
@@ -211,7 +215,7 @@ def sensitivity_simulation(cls, lon=4.7, lat=60.0, z=0, readers=None,
             o2 = o
 
     return o1, o2
- 
+
 
 # Add timer for unittest
 def setUp(self):

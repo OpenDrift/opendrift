@@ -21,7 +21,7 @@ import unittest
 from datetime import datetime, timedelta
 import numpy as np
 
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
@@ -50,7 +50,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(len(self.o.elements_scheduled), 100)
 
     def test_windblow(self):
-        o = WindBlow(loglevel=30)
+        o = WindBlow(loglevel=0)
         reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
         o.add_reader([reader_arome])
         lat = 67.711251; lon = 13.556971  # Lofoten
@@ -77,9 +77,9 @@ class TestModels(unittest.TestCase):
                         length=80, beam=14, height=25, draft=5)
         s.run(time_step=600, duration=timedelta(hours=4))
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            s.elements.lon, 2.25267706))
+            s.elements.lon, 2.252, 2))
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            s.elements.lat, 59.87694775))
+            s.elements.lat, 59.876, 2))
 
     def test_shipdrift_backwards(self):
         """Case above, reversed"""
@@ -125,12 +125,10 @@ class TestModels(unittest.TestCase):
         reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                 '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
 
-        reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=3., llcrnrlat=60.,
-                            urcrnrlon=5., urcrnrlat=63.5, resolution='c',
-                            projection='gall')
-        # reader_basemap = reader_basemap_landmask.Reader(llcrnrlon=-1.5, llcrnrlat=59, urcrnrlon=7, urcrnrlat=64, resolution='c')
+        reader_landmask = reader_global_landmask.Reader(llcrnrlon=3., llcrnrlat=60.,
+                            urcrnrlon=5., urcrnrlat=63.5)
 
-        o.add_reader([reader_current,reader_basemap])
+        o.add_reader([reader_current,reader_landmask])
         o.seed_elements(4.,62.,time=reader_current.start_time)
         o.run(steps=1)
 

@@ -16,24 +16,44 @@
 #
 # Caveat: This copyright will not interfere with the open nature of OpenDrift and OpenBerg
 
-import logging
+"""
+OpenBerg is an iceberg drift module bundled within the OpenDrift framework. It is a 2D- driftmodel, but utilizes 3D current data. The latest verion of the module is an improved version of a model initially created by Ron Saper at the Carleton University as a part of a larger project funded by the MITACS Organization.
+
+See :doc:`gallery/example_long_openberg_det` for an example of a deterministic simulation.
+
+Statistical modeling of current velocity
+########################################
+The reader :mod:`opendrift.readers.reader_current_from_track` is designed specifically for iceberg drift modeling. The reader uses observed positions and (if available) wind data to extrapolate the current velocity. The reader creates a uniform current field equal to the average residual speed (after subtracting wind component) of the iceberg between two observations.
+
+This reader allows for a statistical or partly statistical modeling of iceberg drift when used with the OpenBerg module. An example script utilizing this reader can be found :doc:`here <gallery/example_long_openberg_stat>`.
+
+Parameters and iceberg properties affecting drift
+#################################################
+Icebergs are advected at a constant fraction of the wind velocity, default setting is ``wind_drift_factor = 0.018``
+
+The module accounts for Iceberg geometry by creating a compostite iceberg using the method described by `Barker et. al. (2004) <https://www.researchgate.net/publication/44062061_Determination_of_Iceberg_Draft_Mass_and_Cross-Sectional_Areas>`_, where the geometry is described as a function of the waterline length and the keel depth of the iceberg. For further reading the article is available on this link.
+
+Default setting: ``water_line_length = 90.5`` and ``keel_depth = 60``. The composite iceberg is used to calculate a weighted average of the current velocity across the iceberg keel.
+
+The values of wind_drift_factor, water_line_length and keel_depth may explicitly be altered during seeding, e.g.::
+
+    o.seed_elements(4, 62, time=datetime.now(),
+                    water_line_length=100, keel_depth=90, wind_drift_factor=0.02)
+
+
+Ref: Barker, A., Sayed, M., Carrieres, T., et al. (2004). Determination of iceberg draft, mass and cross-sectional areas.
+
+"""
+
 
 import numpy as np
 import sys
 from scipy.interpolate import interp1d
-
-try:
-    from mpl_toolkits.basemap import Basemap
-    import matplotlib.pyplot as plt
-    from matplotlib import animation
-except:
-    logging.info('Basemap is not available, can not make plots')
-
+import pyproj
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.elements import LagrangianArray
-from opendrift.readers.basereader import pyproj, BaseReader
-
+from opendrift.readers.basereader import BaseReader
 
 
 # Defining the iceberg element properties
@@ -41,7 +61,7 @@ class IcebergObj(LagrangianArray):
     """Extending LagrangianArray with variables relevant for iceberg objects.
 
     """
-    
+
     # We add the properties to the element class
     variables = LagrangianArray.add_variables([
         ('wind_drift_factor', {'dtype': np.float32,				# The fraction of the wind speed at which an iceberg is moved
@@ -63,10 +83,10 @@ class OpenBerg(OpenDriftSimulation):
     """
 
     ElementType = IcebergObj
-    
+
     required_variables = ['x_wind', 'y_wind',
                           'x_sea_water_velocity', 'y_sea_water_velocity',
-                          'land_binary_mask'] 
+                          'land_binary_mask']
 
     fallback_values = {'x_wind': 0.0,
                        'y_wind': 0.0,
@@ -81,11 +101,11 @@ class OpenBerg(OpenDriftSimulation):
     def __init__(self, d=None, label=None, *args, **kwargs):
 
         self.name = 'OpenBerg'
-        self.label=label                                                                
-                
+        self.label=label
+
         self.required_profiles = ['x_sea_water_velocity',
                                   'y_sea_water_velocity']  # Get vertical current profiles
-                                  
+
         self.required_profiles_z_range = [-190, 0] # [min_depth, max_depth]
 
         # Calling general constructor of parent class
@@ -93,107 +113,107 @@ class OpenBerg(OpenDriftSimulation):
 
 
     def update(self):
-        """Update positions and properties of icebergs."""     
+        """Update positions and properties of icebergs."""
 		# Move icebergs at given % of wind speed
         self.advect_wind()
 
-        # Move icebergs as per Anne Barker et al, 2004, with weighted average of current  
+        # Move icebergs as per Anne Barker et al, 2004, with weighted average of current
         # down to draft of berg.
         # For current 10n meters down, where n is the depth index from 0 to 19
 
         # RETRIEVE CURRENT SPEED:
         y_sea_water_vel = self.environment_profiles['y_sea_water_velocity']
-        x_sea_water_vel = self.environment_profiles['x_sea_water_velocity']        
+        x_sea_water_vel = self.environment_profiles['x_sea_water_velocity']
 
-		# FIND THE WEIGHTED AVERAGE CURRENT SPEED ACROSS THE ICEBERG KEEL        
+		# FIND THE WEIGHTED AVERAGE CURRENT SPEED ACROSS THE ICEBERG KEEL
         net_x_swv = np.zeros(x_sea_water_vel.shape[1])
         net_y_swv = np.zeros(y_sea_water_vel.shape[1])
         for indx in range(len(self.uw_weighting)):
             net_y_swv = net_y_swv +y_sea_water_vel[indx,:]*self.uw_weighting[indx]
             net_x_swv = net_x_swv +x_sea_water_vel[indx,:]*self.uw_weighting[indx]
-            
+
         self.update_positions(net_x_swv,net_y_swv)
-            
+
 
     def prepare_run(self):
         """	Model spesific preparations.
          	Set the weighting for modelled current depths as per Table 5 of Barker 2004,
         	'Determination of Iceberg Draft, Mass and Cross-Sectional Areas',
-        	Proceedings of The Fourteenth (2004) International Offshore and 
+        	Proceedings of The Fourteenth (2004) International Offshore and
         	Polar Engineering Conference.
-        	
+
         	NB! This version of OpenBerg does not allow for seeding of iceberg elements
         	of different sizes.
-        	
+
         	Also controles that the model handles readers without block data correctly.
         """
-        # Retrieve profile provided in z dimension by reader  
+        # Retrieve profile provided in z dimension by reader
         variable_groups, reader_groups, missing_variables = \
-         	self.get_reader_groups(['x_sea_water_velocity','y_sea_water_velocity']) 
-        
+         	self.get_reader_groups(['x_sea_water_velocity','y_sea_water_velocity'])
+
         if len(reader_groups) == 0:
         	# No current data -> fallback values used
         	self.uw_weighting = np.array([1])
-        	return 
-        	
+        	return
+
 		# Obtain depth levels from reader:
         reader_name = reader_groups[0][0]
         profile = np.abs(np.ma.filled(self.readers[reader_name].z))
-        
-       # Make sure that interpolation is left to reader if no blocks are used . 
-       # NB! This is a workaround, two additional points should be removed in basereader!      
+
+       # Make sure that interpolation is left to reader if no blocks are used .
+       # NB! This is a workaround, two additional points should be removed in basereader!
         if self.readers[reader_name].return_block == False:
         	self.use_block = False
-        
+
         # If current data is missing in at least one dimension, no weighting is performed:
         if len(missing_variables) > 0:
-        	logging.warning('Missing current data, weigthing array set to [1]')
+        	self.logger.warning('Missing current data, weigthing array set to [1]')
         	self.uw_weighting = np.array([1])
-        	return       
-        	  		
+        	return
+
         # No need to create weighting array if only one z-level is provided:
         if len(profile) == 1:
         	self.uw_weighting = np.array([1])
         	return
-        	        	
+
         # Make copies to prevent outside value to be modified
         water_line_length = self.elements_scheduled.water_line_length.copy()
         depth = self.elements_scheduled.keel_depth.copy()
 
         # Calculate the weighting array corresponding to the iceberg profile
         uw_weighting = self.composite_iceberg(water_line_length=water_line_length, depth=depth)
-             
 
-            
+
+
         #### Interpolate weighting array to match z-dimension of current reader ###
-        
+
         # Array of "Barker-depths" (10n)m, , where n is the depth index from 0 to 19
-        x = np.linspace(0,(len(uw_weighting)-1)*10,len(uw_weighting)) 
-        
+        x = np.linspace(0,(len(uw_weighting)-1)*10,len(uw_weighting))
+
         # Create a linear interpolator
-        interpol = interp1d(x,uw_weighting) 
-        
-        # Obtain corresponding depth levels from reader:        
+        interpol = interp1d(x,uw_weighting)
+
+        # Obtain corresponding depth levels from reader:
         self.reader_z_profile = profile[(profile >= 0) & (profile <= x.max())]
-        
+
         if len(profile[profile < 0]) > 0:
-        	logging.warning('Current reader containing currents above water!'
+        	self.logger.warning('Current reader containing currents above water!'
         						'Weighting of current profile may not work!')
-        
+
         # Interpolate and normalize weights:
-        
-        ###### NB!  Interpolator only includes values from reader within the range of the 
+
+        ###### NB!  Interpolator only includes values from reader within the range of the
         ######		Barker-depth array. Meaning values just outside is not used for interpolation.
-        ######		Ex.: If x.max=195 and the current reader includes data for 
-        ######		the z-profile: [0,3,10,15,25,50,75,100,150,200] only data from the 
+        ######		Ex.: If x.max=195 and the current reader includes data for
+        ######		the z-profile: [0,3,10,15,25,50,75,100,150,200] only data from the
         ######		z-levels [0,3,10,15,25,50,75,100,150] are used.
-        
-        interpol_weight = interpol(self.reader_z_profile) 
+
+        interpol_weight = interpol(self.reader_z_profile)
         normalized_weight = interpol_weight/interpol_weight.sum()
-        
+
         if normalized_weight.all():
             self.uw_weighting = normalized_weight
-                              	
+
         super(OpenBerg, self).prepare_run()
 
     def composite_iceberg(self, water_line_length=90.5, depth=60):
@@ -203,30 +223,30 @@ class OpenBerg(OpenDriftSimulation):
     		in table 5 from Barker et. al.(2004).
     	"""
 		# Parameters from Baker et. al.:
-		
+
     	a_param = [9.5173,11.1717,12.4798,13.6010,14.3249,13.7432,13.4527,15.7579,
     				14.7259,11.8195,11.3610,10.9202,10.4966,10.0893,9.6979,9.3216,8.9600,
     				8.6124,8.2783,7.9571]
-				
+
     	b_param = [-25.94,-107.50,-232.01,-344.60,-456.57,-433.33,-519.56,-1111.57,-1125.00,
     					-852.90,-931.48,-1007.02,-1079.62,-1149.41,-1216.49,-1280.97,
     					-1342.95,-1402.52,-1459.78,-1514.82]
-				
+
     	d = int(round(depth/10))
 
     	if d < 0: #Incase depth is given as a negative value
-    		d = -d 
+    		d = -d
 
 
     	if d > len(a_param):
     		d = len(a_param)
     		print('##### OpenBerg does not support icebergs with keel depths greater than 200m!\n' +
-				'Using a composite iceberg with given waterline length and keel depth 200m')  
+				'Using a composite iceberg with given waterline length and keel depth 200m')
 
     	area_list=[]
 
     	for i in range(0,d):
-	
+
     		A = self.lin_func(a_param[i],b_param[i],water_line_length)
     		area_list.append(A)
 
@@ -237,10 +257,10 @@ class OpenBerg(OpenDriftSimulation):
     	weigthing_array = np.array(area_list)/sum(np.array(area_list))
 
     	return weigthing_array
-	
-	
+
+
     def lin_func(self,a,b,L):
     	"""Returns value of linear function A=aL+b."""
     	A = a*L + b
-	
+
     	return A

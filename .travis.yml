@@ -1,8 +1,8 @@
 language: python
 
 python:
-  - 2.7
-  - 3.6
+  - 3.7
+  - 3.8
 
 env:
   - NUMPY=1.15.4 SCIPY=1.1 NETCDF=1.4.3 MATPLOTLIB=3.0.2 XARRAY=0.11.2
@@ -16,11 +16,7 @@ matrix:
   fast_finish: true
 
 before_install:
-  - if [ $TRAVIS_PYTHON_VERSION == 2.7 ]; then
-      export DOCKERFILE="Dockerfile.oil.py2" CACHE_FROM="opendrift/opendrift-oil:latest";
-    else
-      export DOCKERFILE="Dockerfile"         CACHE_FROM="opendrift/opendrift:latest";
-    fi
+  - export DOCKERFILE="Dockerfile" CACHE_FROM="opendrift/opendrift:latest"
 
 install:
   - pip install pyyaml coveralls
@@ -30,13 +26,25 @@ install:
 
 script:
   - docker run -itd --name="opendrift_${TRAVIS_COMMIT}" opendrift:${TRAVIS_COMMIT}
+
   - if [ ! -z "$VANILLA" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB}"; fi
+
   - if [ ! -z "$VANILA" && "$XARRAY" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge xarray=$XARRAY dask";
     fi
+
+  # Python 3 versions
+  - if [ $TRAVIS_PYTHON_VERSION == 3.7 ]; then
+      docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge python=3.7";
+    fi
+
+  - if [ $TRAVIS_PYTHON_VERSION == 3.8 ]; then
+      docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge python=3.8";
+    fi
+
   - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda list"
-  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps"
+  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=10 --benchmark-disable"
 
 after_success:
   - docker cp "opendrift_${TRAVIS_COMMIT}":/code/.coverage .

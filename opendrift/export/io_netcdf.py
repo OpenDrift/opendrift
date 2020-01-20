@@ -129,6 +129,9 @@ def close(self):
     # Write final timesteps to file
     self.outfile.time_coverage_end = str(self.time)
 
+    # Write performance data
+    self.outfile.performance = self.performance()
+
     # Write bounds metadata
     self.outfile.geospatial_lat_min = self.history['lat'].min()
     self.outfile.geospatial_lat_max = self.history['lat'].max()

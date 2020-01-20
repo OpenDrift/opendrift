@@ -30,16 +30,7 @@ import numpy as np
 
 from opendrift.readers.interpolation import ReaderBlock
 
-try:
-    import pyproj  # Import pyproj
-except:
-    try:
-        # ...alternatively use version included with Basemap
-        from mpl_toolkits.basemap import pyproj
-    except:
-        raise ImportError('pyproj needed for coordinate transformations,'
-                          ' please install from '
-                          'https://code.google.com/p/pyproj/')
+import pyproj
 
 try:
     basestring
@@ -119,6 +110,8 @@ class BaseReader(object):
                                  'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
         'x_wind': 'eastward_wind', 'y_wind': 'northward_wind'}
 
+    logger = logging.getLogger('opendrift')  # using common logger
+
     def __init__(self):
         # Common constructor for all readers
 
@@ -149,13 +142,13 @@ class BaseReader(object):
                     self.proj4 = self.proj4.replace('+f=0.0', '')
                     self.proj4 = self.proj4.replace('+f=0', '')
                     if origproj4 != self.proj4:
-                        logging.info('Removing flattening parameter from proj4; %s -> %s' % (origproj4, self.proj4))
+                        self.logger.info('Removing flattening parameter from proj4; %s -> %s' % (origproj4, self.proj4))
                     self.proj = pyproj.Proj(self.proj4)
             else:
                 self.proj4 = 'None'
                 self.proj = fakeproj()
                 self.projected = False
-                logging.info('Making Splines for lon,lat to x,y conversion...')
+                self.logger.info('Making Splines for lon,lat to x,y conversion...')
                 self.xmin = self.ymin = 0.
                 self.delta_x = self.delta_y = 1.
                 self.xmax = self.lon.shape[1] - 1
@@ -185,7 +178,7 @@ class BaseReader(object):
             self.start_time = None
         if not hasattr(self, 'end_time'):
             self.end_time = None
-        if self.start_time is not None and len(self.times) > 1:
+        if self.start_time is not None:# and len(self.times) > 1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
                 self.time_step.total_seconds()) + 1
@@ -213,11 +206,22 @@ class BaseReader(object):
                 if xvar in self.variables:
                     continue  # We have both x/y and east/north components
                 if var in eastnorthvar:
-                    logging.info('Variable %s will be rotated from %s' % (xvar, var))
+                    self.logger.info('Variable %s will be rotated from %s' % (xvar, var))
                     self.variables.append(xvar)
                     if not hasattr(self, 'rotate_mapping'):
                         self.rotate_mapping = {}
                     self.rotate_mapping[xvar] = var
+
+        # Adding variables which may be derived from existing ones
+        self.logger.debug('Adding new variable mappings')
+        self.derived_variables = {}
+        for m in self.environment_mappings:
+            em = self.environment_mappings[m]
+            if em['output'][0] not in self.variables and em['input'][0] in self.variables:
+                self.logger.debug('Adding method!')
+                for v in em['output']:
+                    self.variables.append(v)
+                    self.derived_variables[v] = em['input']
 
     def y_is_north(self):
         if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:
@@ -237,7 +241,7 @@ class BaseReader(object):
             self.buffer = np.int(np.ceil(max_speed *
                                          time_step_seconds /
                                          pixelsize)) + 2
-            logging.debug('Setting buffer size %i for reader %s, assuming '
+            self.logger.debug('Setting buffer size %i for reader %s, assuming '
                           'a maximum average speed of %g m/s.' %
                           (self.buffer, self.name, max_speed))
 
@@ -278,6 +282,11 @@ class BaseReader(object):
             self.timing[category] += datetime.now() - self.timers[category]
         self.timers[category] = None
 
+    def prepare(self, extent, start_time, end_time):
+        """Prepare reader for given simulation coverage in time and space."""
+        logging.debug('Nothing to prepare for ' + self.name)
+        pass  # to be overriden by specific readers
+
     @abstractmethod
     def get_variables(self, variables, time=None,
                       x=None, y=None, z=None, block=False):
@@ -311,6 +320,28 @@ class BaseReader(object):
                         interpolation in space and time.
         """
 
+    def get_variables_derived(self, variables, *args, **kwargs):
+        """Wrapper around get_variables, adding derived"""
+        if isinstance(variables, basestring):
+            variables = [variables]
+        if not isinstance(variables, list):
+            variables = list(variables)
+        derive_variables = False
+        for var in variables:
+            if var in self.derived_variables:
+                fromvars = self.derived_variables[var]
+                for v in fromvars:
+                    variables.append(v)
+                # Removing the derived variable name
+                variables = [v for v in variables if v != var]
+                derive_variables = True
+
+        env = self.get_variables(variables, *args, **kwargs)
+        if derive_variables is True:
+            self.calculate_derived_environment_variables(env)
+
+        return env
+
     def _get_variables(self, variables, profiles, profiles_depth,
                        time, x, y, z, block):
         """Wrapper around reader-specific function get_variables()
@@ -319,8 +350,9 @@ class BaseReader(object):
         - monitor time spent by this reader
         - convert any numpy arrays to masked arrays
         """
-        logging.debug('Fetching variables from ' + self.name)
+        self.logger.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
+
         if profiles is not None and block is True:
             # If profiles are requested for any parameters, we
             # add two fake points at the end of array to make sure that the
@@ -328,7 +360,7 @@ class BaseReader(object):
             x = np.append(x, [x[-1], x[-1]])
             y = np.append(y, [y[-1], y[-1]])
             z = np.append(z, [profiles_depth[0], profiles_depth[1]])
-        env = self.get_variables(variables, time, x, y, z, block)
+        env = self.get_variables_derived(variables, time, x, y, z, block)
 
         # Make sure x and y are floats (and not e.g. int64)
         if 'x' in env.keys():
@@ -349,7 +381,7 @@ class BaseReader(object):
                 kernel = kernel/kernel.sum()
             else:
                 kernel = N
-            logging.debug('Convolving variables with kernel: %s' % kernel)
+            self.logger.debug('Convolving variables with kernel: %s' % kernel)
             for variable in env.keys():
                 if variable in ['x', 'y', 'z', 'time']:
                     pass
@@ -365,6 +397,37 @@ class BaseReader(object):
         self.timer_end('reading')
 
         return env
+
+    environment_mappers = []
+
+    def wind_from_speed_and_direction(self, env):
+        north_wind = env['wind_speed']*np.cos(
+            np.radians(env['wind_to_direction']))
+        east_wind = env['wind_speed']*np.sin(
+            np.radians(env['wind_to_direction']))
+        env['x_wind'] = east_wind
+        env['y_wind'] = north_wind
+        # Rotating might be necessary generally
+        #x,y = np.meshgrid(env['x'], env['y'])
+        #env['x_wind'], env['y_wind'] = self.rotate_vectors(
+        #    x, y,
+        #    east_wind, north_wind,
+        #    None, self.proj)
+
+    environment_mappings = {
+        'wind_from_speed_and_direction': {
+            'input': ['wind_speed', 'wind_to_direction'],
+            'output': ['x_wind', 'y_wind'],
+            'method': wind_from_speed_and_direction},
+        'testvar': {
+            'input': ['sea_ice_thickness'],
+            'output': ['istjukkleik']}
+        }
+
+    def calculate_derived_environment_variables(self, env):
+
+        if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
+            self.wind_from_speed_and_direction(env)
 
     def get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
@@ -389,7 +452,7 @@ class BaseReader(object):
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
             self.nearest_time(time)
-        logging.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
+        self.logger.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
                       (time_before, time_after))
         # For variables which are not time dependent, we do not care about time
         static_variables = ['sea_floor_depth_below_sea_level', 'land_binary_mask']
@@ -407,7 +470,7 @@ class BaseReader(object):
                                              #time_before,
                                              reader_x, reader_y, z,
                                              block=block)
-            logging.debug('Fetched env-before')
+            self.logger.debug('Fetched env-before')
             self.timer_start('preparing')
 
         else:
@@ -458,7 +521,7 @@ class BaseReader(object):
                     len_z = len(self.var_block_before[blockvars_before].z)
                 except:
                     len_z = 1
-                logging.debug(('Fetched env-block (size %ix%ix%i) ' +
+                self.logger.debug(('Fetched env-block (size %ix%ix%i) ' +
                               'for time before (%s)') %
                               (len(self.var_block_before[blockvars_before].x),
                                len(self.var_block_before[blockvars_before].y),
@@ -485,7 +548,7 @@ class BaseReader(object):
                     except:
                         len_z = 1
 
-                    logging.debug(('Fetched env-block (size %ix%ix%i) ' +
+                    self.logger.debug(('Fetched env-block (size %ix%ix%i) ' +
                                   'for time after (%s)') %
                                   (len(self.var_block_after[blockvars_after].x),
                                    len(self.var_block_after[blockvars_after].y),
@@ -496,7 +559,7 @@ class BaseReader(object):
                 reader_x, reader_y) is False) or (\
                 block_after is not None and block_after.covers_positions(
                     reader_x, reader_y) is False):
-                logging.warning('Data block from %s not large enough to '
+                self.logger.warning('Data block from %s not large enough to '
                                 'cover element positions within timestep. '
                                 'Buffer size (%s) must be increased.' %
                                 (self.name, str(self.buffer)))
@@ -506,14 +569,14 @@ class BaseReader(object):
             # Interpolate before/after blocks onto particles in space
             ############################################################
             self.timer_start('interpolation')
-            logging.debug('Interpolating before (%s) in space  (%s)' %
+            self.logger.debug('Interpolating before (%s) in space  (%s)' %
                           (block_before.time, self.interpolation))
             env_before, env_profiles_before = block_before.interpolate(
                     reader_x, reader_y, z, variables,
                     profiles, profiles_depth)
 
             if (time_after is not None) and (time_before != time):
-                logging.debug('Interpolating after (%s) in space  (%s)' %
+                self.logger.debug('Interpolating after (%s) in space  (%s)' %
                               (block_after.time, self.interpolation))
                 env_after, env_profiles_after = block_after.interpolate(
                         reader_x, reader_y, z, variables,
@@ -529,7 +592,7 @@ class BaseReader(object):
         if (time_after is not None) and (time_before != time) and self.return_block is True:
             weight_after = ((time - time_before).total_seconds() /
                             (time_after - time_before).total_seconds())
-            logging.debug(('Interpolating before (%s, weight %.2f) and'
+            self.logger.debug(('Interpolating before (%s, weight %.2f) and'
                            '\n\t\t      after (%s, weight %.2f) in time') %
                           (block_before.time, 1 - weight_after,
                            block_after.time, weight_after))
@@ -544,17 +607,17 @@ class BaseReader(object):
                     invalid = np.where((env[var] < standard_names[var]['valid_min'])
                                | (env[var] > standard_names[var]['valid_max']))[0]
                     if len(invalid) > 0:
-                        logging.warning('Invalid values found for ' + var)
-                        logging.warning(env[var][invalid])
-                        logging.warning('(allowed range: [%s, %s])' %
+                        self.logger.warning('Invalid values found for ' + var)
+                        self.logger.warning(env[var][invalid])
+                        self.logger.warning('(allowed range: [%s, %s])' %
                                         (standard_names[var]['valid_min'],
                                          standard_names[var]['valid_max']))
-                        logging.warning('Replacing with NaN')
+                        self.logger.warning('Replacing with NaN')
                         env[var][invalid] = np.nan
             # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
-                logging.info('Interpolating profiles in time')
+                self.logger.info('Interpolating profiles in time')
                 # Truncating layers not present both before and after
                 numlayers = np.minimum(len(env_profiles_before['z']),
                                        len(env_profiles_after['z']))
@@ -572,7 +635,7 @@ class BaseReader(object):
                 env_profiles = None
 
         else:
-            logging.debug('No time interpolation needed - right on time.')
+            self.logger.debug('No time interpolation needed - right on time.')
             env = env_before
             if profiles is not None:
                 if 'env_profiles_before' in locals():
@@ -589,7 +652,7 @@ class BaseReader(object):
         ####################
         if rotate_to_proj is not None:
             if self.simulation_SRS is True:
-                logging.debug('Reader SRS is the same as calculation SRS - '
+                self.logger.debug('Reader SRS is the same as calculation SRS - '
                               'rotation of vectors is not needed.')
             else:
                 vector_pairs = []
@@ -629,7 +692,7 @@ class BaseReader(object):
         # Masking non-covered pixels
         self.timer_start('masking')
         if len(ind_covered) != len(lon):
-            logging.debug('Masking %i elements outside coverage' %
+            self.logger.debug('Masking %i elements outside coverage' %
                           (len(lon)-len(ind_covered)))
             for var in variables:
                 tmp = np.nan*np.ones(lon.shape)
@@ -652,7 +715,7 @@ class BaseReader(object):
             if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
                 if proj_to is None:
                     proj_to = self.proj
-                logging.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
+                self.logger.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
                 variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
                     variables['x'], variables['y'],
                     variables[vectorpair[0]], variables[vectorpair[1]],
@@ -687,7 +750,7 @@ class BaseReader(object):
                 geod.inv(x2, y2, x2_delta, y2_delta)[0])
         else:
             rot_angle_vectors_rad = np.arctan2(x2_delta - x2, y2_delta - y2)
-        logging.debug('Rotating vectors between %s and %s degrees.' %
+        self.logger.debug('Rotating vectors between %s and %s degrees.' %
                       (np.degrees(rot_angle_vectors_rad).min(),
                        np.degrees(rot_angle_vectors_rad).max()))
         rot_angle_rad = - rot_angle_vectors_rad
@@ -704,7 +767,7 @@ class BaseReader(object):
         if self.projected is True:
             if self.proj.crs.is_geographic:
                 if 'ob_tran' in self.proj4:
-                    logging.debug('NB: Converting degrees to radians ' +
+                    self.logger.debug('NB: Converting degrees to radians ' +
                                  'due to ob_tran srs')
                     x = np.radians(np.array(x))
                     y = np.radians(np.array(y))
@@ -758,7 +821,7 @@ class BaseReader(object):
                     cpus = cpu_count()
                     nproc = np.minimum(nproc, cpus-1)
                     nproc = np.maximum(2, nproc)
-                    logging.debug('Running lonlat2xy in parallel, using %i of %i CPUs'
+                    self.logger.debug('Running lonlat2xy in parallel, using %i of %i CPUs'
                                   % (nproc, cpus))
                     split_lon = np.array_split(lon, nproc)
                     split_lat = np.array_split(lat, nproc)
@@ -778,18 +841,18 @@ class BaseReader(object):
                     [p.join() for p in processes]
                     x = np.concatenate(out_x)
                     y = np.concatenate(out_y)
-                    logging.debug('Completed lonlat2xy in parallel')
+                    self.logger.debug('Completed lonlat2xy in parallel')
                     return (x, y)
                 except Exception as e:
-                    logging.warning('Parallelprocessing failed:')
-                    logging.warning(e)
+                    self.logger.warning('Parallelprocessing failed:')
+                    self.logger.warning(e)
                     self.multiptocessing_fail = True
             else:
                 if hasattr(self, 'multiptocessing_fail'):
-                    logging.warning('Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy')
+                    self.logger.warning('Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy')
                 else:
                     # For smaller arrays, we run sequentially
-                    logging.debug('Calculating lonlat->xy sequentially')
+                    self.logger.debug('Calculating lonlat->xy sequentially')
                 x = self.spl_x(lon, lat)
                 y = self.spl_y(lon, lat)
                 return (x, y)
@@ -818,6 +881,7 @@ class BaseReader(object):
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
 
+        z = np.atleast_1d(z)
         # Calculate x,y coordinates from lon,lat
         x, y = self.lonlat2xy(lon, lat)
 
@@ -1055,7 +1119,11 @@ class BaseReader(object):
                       self.expected_time_steps, self.missing_time_steps)
         outStr += 'Variables:\n'
         for variable in self.variables:
-            outStr += '  ' + variable + '\n'
+            if variable in self.derived_variables:
+                outStr += '  ' + variable + ' - derived from ' + \
+                    str(self.derived_variables[variable]) + '\n'
+            else:
+                outStr += '  ' + variable + '\n'
         outStr += '===========================\n'
         outStr += self.performance()
 
@@ -1072,7 +1140,7 @@ class BaseReader(object):
 
     def clip_boundary_pixels(self, numpix):
         '''Trim some (potentially bad) pixels along boundary'''
-        logging.info('Trimming %i pixels from boundary' % numpix)
+        self.logger.info('Trimming %i pixels from boundary' % numpix)
         self.xmin = self.xmin+numpix*self.delta_x
         self.xmax = self.xmax-numpix*self.delta_x
         self.ymin = self.ymin+numpix*self.delta_y
@@ -1082,19 +1150,23 @@ class BaseReader(object):
         self.clipped = numpix
 
     def plot(self, variable=None, vmin=None, vmax=None,
-             filename=None, title=None):
+             filename=None, title=None, buffer=1, lscale='auto'):
         """Plot geographical coverage of reader."""
 
-        try:
-            from mpl_toolkits.basemap import Basemap
-            import matplotlib.pyplot as plt
-            from matplotlib.patches import Polygon
-        except:
-            sys.exit('Basemap is needed to plot coverage map.')
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+        from opendrift_landmask_data import Landmask
+        fig = plt.figure()
 
         corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
                                  [self.ymax, self.ymin, self.ymax, self.ymin])
-        latspan = np.max(corners[1]) - np.min(corners[1])
+        lonmin = np.min(corners[0]) - buffer*2
+        lonmax = np.max(corners[0]) + buffer*2
+        latmin = np.min(corners[1]) - buffer
+        latmax = np.max(corners[1]) + buffer
+        latspan = latmax - latmin
 
         # Initialise map
         if latspan < 90:
@@ -1102,28 +1174,29 @@ class BaseReader(object):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
-            width = np.max([self.xmax-self.xmin, self.ymax-self.ymin])*1.5
-            geod = pyproj.Geod(ellps='WGS84')
-            # Calculate length of dialogs to determine map size
-            d1 = geod.inv(corners[0][0], corners[1][0],
-                          corners[0][1], corners[1][1], radians=False)[2]
-            d2 = geod.inv(corners[0][2], corners[1][2],
-                          corners[0][3], corners[1][3], radians=False)[2]
-            width = np.max((d1, d2))*3
-            map = Basemap(projection='stere', resolution='i',
-                          lat_ts=lat0, lat_0=lat0, lon_0=lon0,
-                          width=width, height=width)
+            sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
+            ax = fig.add_subplot(1, 1, 1, projection=sp)
+            corners_stere = sp.transform_points(ccrs.PlateCarree(), np.array(corners[0]), np.array(corners[1]))
         else:
             # Global map if reader domain is large
-            map = Basemap(np.array(corners[0]).min(), -89,
-                          np.array(corners[0]).max(), 89,
-                          resolution='c', projection='cyl')
+            sp = ccrs.Mercator()
+            ax = fig.add_subplot(1, 1, 1, projection=sp)
+            #map = Basemap(np.array(corners[0]).min(), -89,
+            #              np.array(corners[0]).max(), 89,
+            #              resolution='c', projection='cyl')
 
-        map.drawcoastlines()
-        if variable is None:
-            map.fillcontinents(color='coral')
-        map.drawparallels(np.arange(-90., 90., 5.))
-        map.drawmeridians(np.arange(-180., 181., 5.))
+        # GSHHS coastlines
+        f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+                                  facecolor=cfeature.COLORS['land'])
+        ax.add_geometries(
+            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+            ccrs.PlateCarree(),
+            facecolor=cfeature.COLORS['land'],
+            edgecolor='black')
+
+        gl = ax.gridlines(ccrs.PlateCarree())
+        gl.xlabels_top = False
+
         # Get boundary
         npoints = 10  # points per side
         x = np.array([])
@@ -1138,17 +1211,23 @@ class BaseReader(object):
         y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
         # from x/y vectors create a Patch to be added to map
         lon, lat = self.xy2lonlat(x, y)
-        mapproj = pyproj.Proj(map.proj4string)
-        # Cut at 89 deg N/S to avoid singularity at poles
-        lat[lat > 89] = 89
-        lat[lat < -89] = -89
-        xm, ym = mapproj(lon, lat)
-        xm, ym = map(lon, lat)
-        #map.plot(xm, ym, color='gray')
+        lat[lat>89] = 89.
+        lat[lat<-89] = -89.
+        p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
+        xsp = p[:, 0]
+        ysp = p[:, 1]
+        
         if variable is None:
-            boundary = Polygon(zip(xm, ym), alpha=0.5, ec='k', fc='b')
-            plt.gca().add_patch(boundary)
-        # add patch to the map
+
+            boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
+                               zorder=100)
+            ax.add_patch(boundary)
+            buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
+            buf = 0
+            try:
+                ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
+            except:
+                pass
         if title is None:
             plt.title(self.name)
         else:
@@ -1159,11 +1238,11 @@ class BaseReader(object):
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables(variable, self.start_time,
+            data = self.get_variables_derived(variable, self.start_time,
                                       rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)
-            map_x, map_y = map(rlon, rlat, inverse=False)
+            #map_x, map_y = map(rlon, rlat, inverse=False)
             data[variable] = np.ma.masked_invalid(data[variable])
             if hasattr(self, 'convolve'):
                 from scipy import ndimage
@@ -1173,12 +1252,13 @@ class BaseReader(object):
                     kernel = kernel/kernel.sum()
                 else:
                     kernel = N
-                logging.debug('Convolving variables with kernel: %s' % kernel)
+                self.logger.debug('Convolving variables with kernel: %s' % kernel)
                 data[variable] = ndimage.convolve(
                             data[variable], kernel, mode='nearest')
-            map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
-            cbar = map.colorbar()
-            cbar.set_label(variable)
+            #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
+            ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+            #cbar = map.colorbar()
+            #cbar.set_label(variable)
 
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()

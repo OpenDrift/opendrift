@@ -14,10 +14,9 @@ import matplotlib
 import scipy
 import platform
 import netCDF4
-from mpl_toolkits import basemap
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers.interpolation import ReaderBlock
 
 print('\n\n')
@@ -27,7 +26,6 @@ print('==============================================')
 print('Reference machine:')
 print('  Ubuntu PC with 8 GB memory and')
 print('  8 processors (Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz)')
-print('  Basemap version 1.0.7')
 print('  NumPy version 1.11.2')
 print('  SciPy version 0.9.0')
 print('  Matplotlib version 2.0.0')
@@ -41,7 +39,6 @@ print('This machine:')
 print('  %s GB memory' % ram)
 print('  %s processors (%s)' % (multiprocessing.cpu_count(),
                                 platform.processor()))
-print('  Basemap version %s' % basemap.__version__)
 print('  NumPy version %s' % np.__version__)
 print('  SciPy version %s' % scipy.__version__)
 print('  Matplotlib version %s' % matplotlib.__version__)
@@ -55,13 +52,12 @@ except:
 print('------------------------------------------------')
 print('\n')
 
-print('Test 1: generation of Basemap instance at full resolution')
+print('Test 1: generation of landmask instance at full resolution')
 print('  54.0 seconds on reference machine.')
 start_time = datetime.now()
-reader_basemap = reader_basemap_landmask.Reader(
+reader_landmask = reader_global_landmask.Reader(
     llcrnrlon=5, llcrnrlat=59.8,
-    urcrnrlon=5.5, urcrnrlat=60.3,
-    resolution='f', projection='merc')
+    urcrnrlon=5.5, urcrnrlat=60.3)
 time_spent = datetime.now() - start_time
 print('%6.1f seconds on this machine' % time_spent.total_seconds())
 

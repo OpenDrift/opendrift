@@ -15,7 +15,6 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
-import logging
 from scipy.interpolate import interp1d
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
@@ -58,7 +57,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 verticaladvection = boolean(default=True)
             [turbulentmixing]
                 timestep = float(min=0.1, max=3600, default=60.)
-                diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
+                diffusivitymodel = option('environment', 'zero', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
                 TSprofiles = boolean(default=False)
                 '''
         self._add_configstring(configspec_oceandrift3D)
@@ -81,7 +80,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             termical velocity
         """
         if self.get_config('processes:verticaladvection') is False:
-            logging.debug('Vertical advection deactivated')
+            self.logger.debug('Vertical advection deactivated')
             return
 
         in_ocean = np.where(self.elements.z<0)[0]
@@ -90,7 +89,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             self.elements.z[in_ocean] = np.minimum(0,
                 self.elements.z[in_ocean] + w * self.time_step.total_seconds())
         else:
-            logging.debug('No vertical advection for elements at surface')
+            self.logger.debug('No vertical advection for elements at surface')
 
     def prepare_vertical_mixing(self):
         pass  # To be implemented by subclasses as needed
@@ -102,6 +101,11 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         surface = np.where(self.elements.z >= 0)
         if len(surface[0]) > 0:
             self.elements.z[surface] = -0.01
+            
+    def bottom_interaction(self, Zmin=None):
+        '''To be overloaded by subclasses, e.g. radionuclides in sediments'''
+        # do nothing
+        pass
 
     def surface_wave_mixing(self, time_step_seconds):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
@@ -122,7 +126,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         """
 
         if self.get_config('processes:turbulentmixing') is False:
-            logging.debug('Turbulent mixing deactivated')
+            self.logger.debug('Turbulent mixing deactivated')
             return
 
         self.timer_start('main loop:updating elements:vertical mixing')
@@ -143,7 +147,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             if 'ocean_vertical_diffusivity' in self.environment_profiles:
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
-                logging.debug('Using diffusivity from ocean model')
+                self.logger.debug('Using diffusivity from ocean model')
             else:
                 # NB: using constant diffusivity, and value from first
                 # element only - this should be checked/improved!
@@ -151,14 +155,14 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                     self.environment.ocean_vertical_diffusivity[0] * \
                     np.ones((len(self.environment_profiles['z']),
                              self.num_elements_active()))
-                logging.debug('Using constant diffusivity')
+                self.logger.debug('Using constant diffusivity')
         else:
-            logging.debug('Using functional expression for diffusivity')
+            self.logger.debug('Using functional expression for diffusivity')
             Kprofiles = getattr(
                 eddydiffusivity,
                 self.get_config('turbulentmixing:diffusivitymodel'))(self)
 
-        logging.debug('Diffiusivities are in range %s to %s' %
+        self.logger.debug('Diffiusivities are in range %s to %s' %
                       (Kprofiles.min(), Kprofiles.max()))
 
         # get profiles of salinity and temperature
@@ -170,14 +174,14 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 self.environment_profiles['sea_water_temperature']
             if ('sea_water_salinity' in self.fallback_values and
                 Sprofiles.min() == Sprofiles.max()):
-                logging.debug('Salinity and temperature are fallback'
+                self.logger.debug('Salinity and temperature are fallback'
                               'values, skipping TSprofile')
                 Sprofiles = None
                 Tprofiles = None
             else:
-                logging.debug('Using TSprofiles for vertical mixing')
+                self.logger.debug('Using TSprofiles for vertical mixing')
         else:
-            logging.debug('TSprofiles deactivated for vertical mixing')
+            self.logger.debug('TSprofiles deactivated for vertical mixing')
             Sprofiles = None
             Tprofiles = None
 
@@ -194,9 +198,9 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # internal loop for fast time step of vertical mixing model
         # random walk needs faster time step compared
         # to horizontal advection
-        logging.debug('Vertical mixing module:')
+        self.logger.debug('Vertical mixing module:')
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
-        logging.debug('Turbulent diffusion with random walk '
+        self.logger.debug('Turbulent diffusion with random walk '
                       'scheme using ' + str(ntimes_mix) +
                       ' fast time steps of dt=' + str(dt_mix) + 's')
 
@@ -281,7 +285,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             # reflect elements going below seafloor
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
-                logging.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
+                self.logger.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
                 self.elements.z[bottom] = 2*Zmin[bottom] - self.elements.z[bottom]
            
             # advect due to buoyancy
@@ -298,8 +302,9 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             # let particles stick to bottom 
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
-                logging.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+                self.logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
                 self.elements.z[bottom] = Zmin[bottom]
+                self.bottom_interaction(Zmin)
  
         self.timer_end('main loop:updating elements:vertical mixing')
 

@@ -6,5 +6,7 @@ future
 configobj
 pillow
 pyproj>=2.2
-https://github.com/matplotlib/basemap/archive/a551c2361314670dc7d95143190d3d48ba750d20.zip
-git+https://github.com/NOAA-ORR-ERD/OilLibrary@4e4f758863d5ff8351cb6eaeb138dadba1e6c267
+cartopy
+rasterio
+git+https://github.com/OpenDrift/OilLibrary
+git+https://github.com/OpenDrift/opendrift-landmask-data.git

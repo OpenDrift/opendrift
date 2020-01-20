@@ -14,13 +14,19 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import logging
-
+from datetime import datetime
 import pyproj
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
 
 from opendrift.readers.basereader import BaseReader
+
+try:
+    import xarray as xr
+    has_xarray = True
+except:
+    has_xarray = False
+
 
 def proj_from_CF_dict(c):
 
@@ -36,15 +42,33 @@ def proj_from_CF_dict(c):
         else:
             earth_radius = 6371000.
         lon_0 = 0  # default, but dangerous
-        for l0 in ['longitude_of_projection_origin', 'longitude_of_central_meridian', 'straight_vertical_longitude_from_pole']:
+        for l0 in ['longitude_of_projection_origin',
+                   'longitude_of_central_meridian',
+                   'straight_vertical_longitude_from_pole']:
             if l0 in c:
                 lon_0 = c[l0]
         if 'latitude_of_origin' in c:
             lat_ts = c['latitude_of_origin']
         else:
             lat_ts = c['latitude_of_projection_origin']
-        proj4 = '+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s} +units=m +a={!s} +no_defs'.format('stere',
-            c['latitude_of_projection_origin'], lon_0, lat_ts, earth_radius)
+        if 'false_easting' in c:
+            x0 = c['false_easting']
+        else:
+            x0 = 0  # dangerous?
+        if 'false_northing' in c:
+            y0 = c['false_northing']
+        else:
+            y0 = 0  # dangerous: is there a better default?
+        if 'scale_factor_at_projection_origin' in c:
+            k0 = c['scale_factor_at_projection_origin']
+        else:
+            k0 = 1.0
+        proj4 = ('+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s} '
+                 '+k_0={!s} +x_0={!s} +y_0={!s} +units=m +a={!s} '
+                 '+no_defs'.format('stere',
+                                   c['latitude_of_projection_origin'],
+                                   lon_0, lat_ts, k0, x0, y0, earth_radius)
+                 )
 
     proj = pyproj.Proj(proj4)
 
@@ -52,6 +76,43 @@ def proj_from_CF_dict(c):
 
 
 class Reader(BaseReader):
+    """
+    A reader for `CF-compliant <http://cfconventions.org/>`_ netCDF files. It can take a single file, or a file pattern.
+
+    Args:
+        :param filename: A single netCDF file, or a pattern of files. The
+                         netCDF file can also be an URL to an OPeNDAP server.
+        :type filename: string, requiered.
+
+        :param name: Name of reader
+        :type name: string, optional
+
+        :param proj4: PROJ.4 string describing projection of data.
+        :type proj4: string, optional
+
+    Example:
+
+    .. code::
+
+       from opendrift.readers.reader_netCDF_CF_generic import Reader
+       r = Reader("arome_subset_16Nov2015.nc")
+
+    Several files can be specified by using a pattern:
+
+    .. code::
+
+       from opendrift.readers.reader_netCDF_CF_generic import Reader
+       r = Reader("*.nc")
+
+    or an OPeNDAP URL can be used:
+
+    .. code::
+
+       from opendrift.readers.reader_netCDF_CF_generic import Reader
+       r = Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
+
+
+    """
 
     def __init__(self, filename=None, name=None, proj4=None):
 
@@ -66,26 +127,37 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filestr)
+            self.logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logging.info('Opening files with MFDataset')
-                self.Dataset = MFDataset(filename,aggdim='time')
+                self.logger.info('Opening files with MFDataset')
+                if has_xarray:
+                    self.Dataset = xr.open_mfdataset(filename)
+                else:
+                    self.Dataset = MFDataset(filename,aggdim='time')
             else:
-                logging.info('Opening file with Dataset')
-                self.Dataset = Dataset(filename, 'r')
+                self.logger.info('Opening file with Dataset')
+                if has_xarray:
+                    self.Dataset = xr.open_dataset(filename)
+                else:
+                    self.Dataset = Dataset(filename, 'r')
         except Exception as e:
             raise ValueError(e)
 
-        logging.debug('Finding coordinate variables.')
+        self.logger.debug('Finding coordinate variables.')
         if proj4 is not None:  # If user has provided a projection apriori
             self.proj4 = proj4
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
-            logging.debug('Parsing variable: ' +  var_name)
+            self.logger.debug('Parsing variable: ' +  var_name)
             var = self.Dataset.variables[var_name]
             #if var.ndim > 1:
             #    continue  # Coordinates must be 1D-array
-            attributes = var.ncattrs()
+            if has_xarray:
+                attributes = var.attrs
+                att_dict = var.attrs
+            else:
+                attributes = var.ncattrs()
+                att_dict = var.__dict__
             standard_name = ''
             long_name = ''
             axis = ''
@@ -94,35 +166,52 @@ class Reader(BaseReader):
             if not hasattr(self, 'proj4'):
                 for att in attributes:
                     if 'proj4' in att:
-                        self.proj4 = str(var.__getattr__(att))
+                        if has_xarray:
+                            self.proj4 = str(att_dict[att])
+                        else:
+                            self.proj4 = str(var.__getattr__(att))
                     else:
                         if 'grid_mapping_name' in att:
-                            mapping_dict = var.__dict__
-                            logging.debug('Parsing CF grid mapping dictionary: ' + str(mapping_dict))
+                            mapping_dict = att_dict
+                            self.logger.debug(
+                                ('Parsing CF grid mapping dictionary:'
+                                ' ' + str(mapping_dict)))
                             try:
-                                self.proj4, proj = proj_from_CF_dict(mapping_dict)
+                                self.proj4, proj =\
+                                    proj_from_CF_dict(mapping_dict)
                             except:
-                                logging.info('Could not parse CF grid_mapping')
-                            
+                                self.logger.info('Could not parse CF grid_mapping')
+
             if 'standard_name' in attributes:
-                standard_name = var.__dict__['standard_name']
+                standard_name = att_dict['standard_name']
             if 'long_name' in attributes:
-                long_name = var.__dict__['long_name']
+                long_name = att_dict['long_name']
             if 'axis' in attributes:
-                axis = var.__dict__['axis']
+                axis = att_dict['axis']
             if 'units' in attributes:
-                units = var.__dict__['units']
+                units = att_dict['units']
             if '_CoordinateAxisType' in attributes:
-                CoordinateAxisType = var.__dict__['_CoordinateAxisType']
+                CoordinateAxisType = att_dict['_CoordinateAxisType']
+            # has_xarray checks in each case below to avoid loading
+            # data if it isn't a coord
+            # is there a better way??
             if standard_name == 'longitude' or \
                     CoordinateAxisType == 'Lon' or \
                     long_name.lower() == 'longitude':
-                self.lon = var
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                self.lon = var_data
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
                     CoordinateAxisType == 'Lat' or \
                     long_name.lower() == 'latitude':
-                self.lat = var
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                self.lat = var_data
                 lat_var_name = var_name
             if axis == 'X' or \
                     standard_name == 'projection_x_coordinate':
@@ -134,8 +223,12 @@ class Reader(BaseReader):
                     unitfactor = 100000
                 else:
                     unitfactor = 1
-                x = var[:]*unitfactor
-                self.numx = var.shape[0] 
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                x = var_data*unitfactor
+                self.numx = var_data.shape[0]
             if axis == 'Y' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
@@ -147,20 +240,37 @@ class Reader(BaseReader):
                 else:
                     unitfactor = 1
                 self.unitfactor = unitfactor
-                y = var[:]*unitfactor
-                self.numy = var.shape[0] 
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                y = var_data*unitfactor
+                self.numy = var_data.shape[0]
             if standard_name == 'depth' or axis == 'Z':
-                if var[:].ndim == 1:
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                if var_data.ndim == 1:
                     if 'positive' not in attributes or \
-                            var.__dict__['positive'] == 'up':
-                        self.z = var[:]
+                            att_dict['positive'] == 'up':
+                        self.z = var_data
                     else:
-                        self.z = -var[:]
+                        self.z = -var_data
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
-                time = var[:]
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                time = var_data
                 time_units = units
-                self.times = num2date(time, time_units)
+                if has_xarray:
+                    self.times = [datetime.utcfromtimestamp((OT -
+                        np.datetime64('1970-01-01T00:00:00Z')
+                            ) / np.timedelta64(1, 's')) for OT in time]
+                else:
+                    self.times = num2date(time, time_units)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
@@ -168,8 +278,12 @@ class Reader(BaseReader):
                 else:
                     self.time_step = None
             if standard_name == 'realization':
-                self.realizations = var[:]
-                logging.debug('%i ensemble members available'
+                if has_xarray:
+                    var_data = var.values
+                else:
+                    var_data = var[:]
+                self.realizations = var_data
+                self.logger.debug('%i ensemble members available'
                               % len(self.realizations))
 
         if 'x' not in locals():
@@ -177,15 +291,15 @@ class Reader(BaseReader):
                 x = self.lon[:]
                 self.xname = lon_var_name
                 self.numx = len(x)
-            else:
-                raise ValueError('Did not find x-coordinate variable')
+            #else:
+            #    raise ValueError('Did not find x-coordinate variable')
         if 'y' not in locals():
             if self.lat.ndim == 1:
                 y = self.lat[:]
                 self.yname = lat_var_name
                 self.numy = len(y)
-            else:
-                raise ValueError('Did not find y-coordinate variable')
+            #else:
+            #    raise ValueError('Did not find y-coordinate variable')
 
         if not hasattr(self, 'unitfactor'):
             self.unitfactor = 1
@@ -212,7 +326,7 @@ class Reader(BaseReader):
             self.y = y
         else:
             if hasattr(self, 'lon') and hasattr(self, 'lat'):
-                logging.info('No projection found, using lon/lat arrays')
+                self.logger.info('No projection found, using lon/lat arrays')
                 self.xname = lon_var_name
                 self.yname = lat_var_name
             else:
@@ -220,16 +334,16 @@ class Reader(BaseReader):
 
         if not hasattr(self, 'proj4'):
             if self.lon.ndim == 1:
-                logging.debug('Lon and lat are 1D arrays, assuming latong projection')
+                self.logger.debug('Lon and lat are 1D arrays, assuming latong projection')
                 self.proj4 = '+proj=latlong'
             elif self.lon.ndim == 2:
-                logging.debug('Reading lon lat 2D arrays, since projection is not given')
+                self.logger.debug('Reading lon lat 2D arrays, since projection is not given')
                 self.lon = self.lon[:]
                 self.lat = self.lat[:]
                 self.projected = False
 
         if hasattr(self, 'proj4') and 'latlong' in self.proj4 and hasattr(self, 'xmax') and self.xmax > 360:
-            logging.info('Longitudes > 360 degrees, subtracting 360')
+            self.logger.info('Longitudes > 360 degrees, subtracting 360')
             self.xmin -= 360
             self.xmax -= 360
             self.x -= 360
@@ -241,9 +355,14 @@ class Reader(BaseReader):
             if var_name in [self.xname, self.yname, 'depth']:
                 continue  # Skip coordinate variables
             var = self.Dataset.variables[var_name]
-            attributes = var.ncattrs()
+            if has_xarray:
+                attributes = var.attrs
+                att_dict = var.attrs
+            else:
+                attributes = var.ncattrs()
+                att_dict = var.__dict__
             if 'standard_name' in attributes:
-                standard_name = str(var.__dict__['standard_name'])
+                standard_name = str(att_dict['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
@@ -329,7 +448,7 @@ class Reader(BaseReader):
         variables = {}
 
         if indx.min() < 0 and indx.max() > 0:
-            logging.debug('Requested data block is not continous in file'+
+            self.logger.debug('Requested data block is not continous in file'+
                           ', must read two blocks and concatenate.')
             indx_left = indx[indx<0] + self.numx  # Shift to positive indices
             indx_right = indx[indx>=0]
@@ -339,7 +458,7 @@ class Reader(BaseReader):
         
         for par in requested_variables:
             if hasattr(self, 'rotate_mapping') and par in self.rotate_mapping:
-                logging.debug('Using %s to retrieve %s' %
+                self.logger.debug('Using %s to retrieve %s' %
                     (self.rotate_mapping[par], par))
                 if par not in self.variable_mapping:
                     self.variable_mapping[par] = \
@@ -381,6 +500,9 @@ class Reader(BaseReader):
                                 indy, indx_right]
                     variables[par] = np.ma.concatenate((left, right), 3)
 
+            if has_xarray is True:
+                variables[par] = np.asarray(variables[par])
+
             # If 2D array is returned due to the fancy slicing
             # methods of netcdf-python, we need to take the diagonal
             if variables[par].ndim > 1 and block is False:
@@ -399,7 +521,7 @@ class Reader(BaseReader):
             # Ensemble blocks are split into lists
             if ensemble_dim is not None:
                 num_ensembles = variables[par].shape[ensemble_dim]
-                logging.debug('Num ensembles: %i ' % num_ensembles)
+                self.logger.debug('Num ensembles: %i ' % num_ensembles)
                 newvar = [0]*num_ensembles
                 for ensemble_num in range(num_ensembles):
                     newvar[ensemble_num] = \
@@ -424,16 +546,19 @@ class Reader(BaseReader):
         else:
             variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
+        if has_xarray is True:
+            variables['x'] = np.asarray(variables['x'])
+            variables['y'] = np.asarray(variables['y'])
         if self.global_coverage():
             if self.xmax + self.delta_x >= 360 and self.xmin > 180:
                 variables['x'][variables['x']>180] -= 360
-        
+
         variables['time'] = nearestTime
 
         # Rotate any east/north vectors if necessary
         if hasattr(self, 'rotate_mapping'):
             if self.y_is_north() is True:
-                logging.debug('North is up, no rotation necessary')
+                self.logger.debug('North is up, no rotation necessary')
             else:
                 self.rotate_variable_dict(variables)
 

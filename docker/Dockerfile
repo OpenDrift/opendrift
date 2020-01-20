@@ -26,12 +26,12 @@ RUN pip install --upgrade pip
 RUN mkdir /code
 ADD . /code
 WORKDIR /code
-RUN /opt/conda/bin/conda env create -f conda_python3.yml
-RUN /bin/bash -c '''. activate opendrift_p3 && \
-    python setup.py develop && \
-    echo "source activate opendrift_p3" > ~/.bashrc'''
+RUN /opt/conda/bin/conda env create -f environment.yml
+RUN /bin/bash -c '''. activate opendrift && \
+    pip install -e . && \
+    echo "source activate opendrift" > ~/.bashrc'''
 
 WORKDIR /code
 
 # Test
-# RUN /bin/bash -c ". activate opendrift_p3 && cd /code && ./testall"
+# RUN /bin/bash -c ". activate opendrift && cd /code && ./testall"

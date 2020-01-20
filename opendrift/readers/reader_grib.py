@@ -14,8 +14,6 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-from sets import Set
-import logging
 from datetime import datetime
 
 import numpy as np
@@ -25,7 +23,7 @@ except:
     raise ImportError('PyGrib library is needed for GRIB files: '
                       'http://jswhit.github.io/pygrib/docs/index.html')
 
-from basereader import BaseReader
+from opendrift.readers.basereader import BaseReader
 
 # Hardcoded "GRIB-tables" for now.
 grib_variable_mapping = {
@@ -52,7 +50,7 @@ grib_variable_mapping = {
         '232.140':
             'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
         },
-    'kwbc': {  # 
+    'kwbc': {  #
         '33.2': 'x_wind',
         '34.2': 'y_wind',
         '49.2': 'x_sea_water_velocity',
@@ -74,7 +72,7 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            logging.info('Opening dataset: ' + filename)
+            self.logger.info('Opening dataset: ' + filename)
             self.grib = pygrib.open(filename)
         except:
             raise ValueError('Could not open ' + filename +
@@ -99,7 +97,7 @@ class Reader(BaseReader):
         ################
         # Projection
         ################
-        projs = list(Set(projs))
+        projs = list(set(projs))
         if len(projs) > 1:
             raise ValueError('File with data in several projections is not '
                              'supported: ' + str(projs))
@@ -122,7 +120,7 @@ class Reader(BaseReader):
         ####################################
         # GRIB source and parameter names
         ####################################
-        centre = list(Set(centre))
+        centre = list(set(centre))
         if len(centre) > 1:
             raise ValueError('File contains data from several centres: ' +
                              str(centre))
@@ -130,13 +128,13 @@ class Reader(BaseReader):
             centre = centre[0]
         if centre in grib_variable_mapping:
             self.grib_mapping = grib_variable_mapping[centre]
-            logging.info('Parameter codes not defined in mapper: ' +
+            self.logger.info('Parameter codes not defined in mapper: ' +
                          str(set(marsParams) - set(self.grib_mapping)))
         else:
             raise ValueError(
                 'No GRIB variable mapping defined for centre ' + centre)
-        self.marsParams = list(Set(self.grib_mapping) &
-                               Set(marsParams))
+        self.marsParams = list(set(self.grib_mapping) &
+                               set(marsParams))
         self.variables = [self.grib_mapping[v] for v in self.marsParams]
 
         ####################################
@@ -146,13 +144,13 @@ class Reader(BaseReader):
         self.indices = {}
         self.levels = {}
         for i, var in enumerate(self.variables):
-            m = self.grib_mapping.keys()[self.grib_mapping.values().index(var)]
+            m = list(self.grib_mapping.keys())[list(self.grib_mapping.values()).index(var)]
             self.indices[var] = np.where(np.array(marsParams) == m)[0]
             self.levels[var] = levels[self.indices[var]]
         if len(self.variables) > 0:
             self.times = [times[k] for k in self.indices[var]]
-            if self.times[0] == self.times[1]:  # Duplicate times
-                logging.info('Duplicate times for variables, using '
+            if len(self.times) > 1 and self.times[0] == self.times[1]:  # Duplicate times
+                self.logger.info('Duplicate times for variables, using '
                              'only first occurance.')
                 lasttime = None
                 for i, tim in enumerate(self.times):
@@ -170,11 +168,14 @@ class Reader(BaseReader):
                     self.levels[var] = levels[self.indices[var]]
             self.start_time = self.times[0]
             self.end_time = self.times[-1]
-            self.time_step = self.times[-1] - self.times[-2]
+            if len(self.times) > 1:
+                self.time_step = self.times[-1] - self.times[-2]
+            else:
+                self.time_step = None
         else:
             self.start_time = None
             self.end_time = None
-            self.time_step = 0
+            self.time_step = None
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()

@@ -21,13 +21,15 @@ from opendrift.readers import reader_from_url
 
 class Reader(object):
     '''For lazy initialisation'''
+
+    logger = logging.getLogger('opendrift')  # using common logger
     
     def __init__(self, *args, **kwargs):
         self._args = args
         self._kwargs = kwargs
         self.initialised = False
         self._lazyname = 'LazyReader: ' + args[0]
-        logging.debug('Delaying initialisation of ' + self._lazyname)
+        self.logger.debug('Delaying initialisation of ' + self._lazyname)
 
     def __getattr__(self, name):
         if self.initialised is False:
@@ -46,13 +48,18 @@ class Reader(object):
         return self.reader.get_variables(*args, **kwargs)
 
     def initialise(self):
-        logging.debug('Initialising: ' + self._lazyname)
+        self.logger.debug('Initialising: ' + self._lazyname)
         self.reader = reader_from_url(self._args[0])
         if self.reader is None:
             raise ValueError('Reader could not be initialised') 
         else:
-            logging.debug('Reader initialised: ' + self.reader.name) 
+            if 'prepare_args' in dir(self):
+                self.reader.prepare(**self.prepare_args)
+            self.logger.debug('Reader initialised: ' + self.reader.name) 
             self.initialised = True
+
+    def prepare(self, **kwargs):
+        self.prepare_args = kwargs
 
     def __repr__(self):
         if self.initialised is True:

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-pytest --ignore=tests/benchmarks --ignore=tests/wps
+pytest --ignore=tests/benchmarks --ignore=tests/wps --runslow --benchmark-disable $*
 

@@ -27,7 +27,7 @@ from opendrift.models.leeway import Leeway
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
-from opendrift.readers import reader_basemap_landmask
+from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_constant
 from opendrift.readers import reader_lazy
 from opendrift.readers import reader_from_url
@@ -51,21 +51,21 @@ class TestReaders(unittest.TestCase):
 
     def test_adding_readers(self):
         o = OceanDrift()
-        basemap = reader_basemap_landmask.Reader(
+        landmask = reader_global_landmask.Reader(
             llcrnrlon=-1.5, llcrnrlat=59,
-            urcrnrlon=7, urcrnrlat=64, resolution='c')
+            urcrnrlon=7, urcrnrlat=64)
         r = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-        o.add_reader([r, basemap])
+        o.add_reader([r, landmask])
         self.assertEqual(o.priority_list['land_binary_mask'],
-                         ['roms native', 'basemap_landmask'])
+                         ['roms native', 'global_landmask'])
         self.assertEqual(o.priority_list['x_sea_water_velocity'],
                          ['roms native'])
         # Switch order
         o = OceanDrift()
-        o.add_reader([basemap, r])
+        o.add_reader([landmask, r])
         self.assertEqual(o.priority_list['land_binary_mask'],
-                         ['basemap_landmask', 'roms native'])
+                         ['global_landmask', 'roms native'])
         self.assertEqual(o.priority_list['x_sea_water_velocity'],
                          ['roms native'])
 
@@ -80,7 +80,6 @@ class TestReaders(unittest.TestCase):
 
     def test_repeated_run(self):
         o = OceanDrift(loglevel=50)
-        o.set_config('general:basemap_resolution', 'c')
         o.add_readers_from_list(reader_list)
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
@@ -162,7 +161,6 @@ class TestReaders(unittest.TestCase):
         o.add_readers_from_list(reader_list, lazy=True)
 
         self.assertEqual(len(o._lazy_readers()), 4)
-        o.set_config('general:basemap_resolution', 'c')
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
         o.run(steps=5)
@@ -175,7 +173,7 @@ class TestReaders(unittest.TestCase):
         r = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader(r)
-        o.set_config('general:use_basemap_landmask', False)
+        o.set_config('general:use_auto_landmask', False)
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 10
         o.seed_elements(lon=15.2, lat=68.3, time=r.start_time,
@@ -217,7 +215,6 @@ class TestReaders(unittest.TestCase):
     #    o.add_readers_from_list(reader_list, lazy=True)
 
     #    self.assertEqual(len(o._lazy_readers()), 4)
-    #    o.set_config('general:basemap_resolution', 'c')
     #    o.seed_elements(lon=14, lat=67.85,
     #                    time=datetime(2016, 2, 2, 12))
     #    o.set_config()
@@ -230,7 +227,6 @@ class TestReaders(unittest.TestCase):
     #    o.add_readers_from_file(o.test_data_folder() +
     #        '../../opendrift/scripts/data_sources.txt')
 
-    #    o.set_config('general:basemap_resolution', 'c')
     #    o.seed_elements(lon=4, lat=60.0,
     #                    time=datetime(2018, 7, 2, 12))
     #    o.run(steps=5)
@@ -272,7 +268,6 @@ class TestReaders(unittest.TestCase):
                                      'y_sea_water_velocity': .2})
 
         o = Leeway(loglevel=20)
-        o.set_config('general:basemap_resolution', 'c')
         o.add_reader([cw, cc])
         o.add_readers_from_list(reader_list)
         o.fallback_values['x_sea_water_velocity'] = 0.0
@@ -282,11 +277,10 @@ class TestReaders(unittest.TestCase):
         o.run(steps=2)
         self.assertAlmostEqual(o.elements.lat[0], 67.8548, 3)
 
-    def test_automatic_basemap(self):
+    def test_automatic_landmask(self):
         o = OceanDrift(loglevel=20)
         self.assertRaises(ValueError, o.run)
         o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
-        o.set_config('general:basemap_resolution', 'c')  # To make test fast
         o.run(steps=2)
 
     def test_reader_coverage(self):
@@ -501,7 +495,6 @@ class TestReaders(unittest.TestCase):
 
     def test_constant_reader(self):
         o = OpenOil3D(loglevel=0)
-        o.set_config('general:basemap_resolution', 'c')
         cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
         cc = reader_constant.Reader({'x_sea_water_velocity':0, 'y_sea_water_velocity': .2})
         cs = reader_constant.Reader({'sea_water_temperature': 278})

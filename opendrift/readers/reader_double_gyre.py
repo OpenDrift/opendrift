@@ -16,8 +16,9 @@
 
 from datetime import datetime, timedelta
 import numpy as np
+import pyproj
 
-from opendrift.readers.basereader import BaseReader, pyproj
+from opendrift.readers.basereader import BaseReader
 
 
 class Reader(BaseReader):
@@ -63,7 +64,7 @@ class Reader(BaseReader):
         # Construct double gyre current field
         # http://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
         t = (time-self.initial_time).total_seconds()
-        a = self.epsilon*np.sin(self.omega*t) 
+        a = self.epsilon*np.sin(self.omega*t)
         b = 1-2*self.epsilon*np.sin(self.omega*t)
         f = a*x*x + b*x
         dfdx = 2*a*x + b
