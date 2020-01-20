@@ -192,7 +192,8 @@ class OpenOil(OpenDriftSimulation):
     # Workaround as ADIOS oil library uses
     # max water fraction of 0.9 for all crude oils
     max_water_fraction  = {
-        'MARINE GAS OIL 500 ppm S 2017': 0.1}
+        'MARINE GAS OIL 500 ppm S 2017': 0.1,
+        'FENJA (PIL) 2015': .75}
 
 
     def __init__(self, weathering_model='default', *args, **kwargs):
