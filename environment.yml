@@ -1,4 +1,4 @@
-name: opendrift
+name: opendrift_simon
 channels:
   - opendrift
   - conda-forge
@@ -28,4 +28,4 @@ dependencies:
   - oil_library-opendrift
   - pygrib
   - pip
-
+  - xarray

@@ -37,13 +37,12 @@ try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
     matplotlib.rcParams['legend.scatterpoints'] = 1
-
-    if os.environ.get('DISPLAY','') == '' and \
-            'PYCHARM_HOSTED' not in os.environ:
-        print('No display found. Using non-interactive Agg backend')
-        # matplotlib.use('agg')
-        matplotlib.use('Tkagg') # not sure why but using 'agg' doesnt work for some examples 
-
+    if ('DISPLAY' not in os.environ and
+            'PYCHARM_HOSTED' not in os.environ and
+            os.name != 'nt'):
+        logging.info('No display found. Using non-interactive Agg backend')
+        matplotlib.use('agg')
+        # matplotlib.use('Tkagg') # not sure why but using 'agg' doesnt work for some examples 
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -132,7 +131,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 ocean_only = boolean(default=True)
             [drift]
                 max_age_seconds = float(min=0, default=None)
-                scheme = option('euler', 'runge-kutta4', 'runge-kutta4', default='euler')
+                scheme = option('euler', 'runge-kutta', 'runge-kutta4', default='euler')
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
                 current_uncertainty_uniform = float(min=0, max=5, default=0)
@@ -577,8 +576,18 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def performance(self):
         '''Report the time spent on various tasks'''
-         # pre-allocate if outStr doesnt exist
-        if 'outStr' not in locals(): outStr = ''
+
+        outStr = '--------------------\n'
+        outStr += 'Reader performance:\n'
+        for r in self.readers:
+            reader = self.readers[r]
+            if reader.is_lazy:
+                continue
+            outStr += '--------------------\n'
+            outStr += r + '\n'
+            outStr += reader.performance()
+
+        outStr += '--------------------\n'
         outStr += 'Performance:\n'
         for category, time in iteritems(self.timing):
             timestr = str(time)[0:str(time).find('.') + 2]
@@ -595,13 +604,6 @@ class OpenDriftSimulation(PhysicsMethods):
             outStr += '%s%7s %s\n' % (indent, timestr, category)
 
         outStr += '--------------------\n'
-        outStr += 'Reader performance:\n'
-        for r in self.readers:
-            reader = self.readers[r]
-            outStr += '--------------------\n'
-            outStr += r + '\n'
-            outStr += reader.performance()
-
         return outStr
 
     def add_reader(self, readers, variables=None):
@@ -911,9 +913,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.logger.debug('----------------------------------------')
             reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
-
             # For each reader:
-
             for reader_name in reader_group:
                 self.logger.debug('Calling reader ' + reader_name)
                 self.logger.debug('----------------------------------------')
@@ -992,7 +992,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             env_profiles_tmp[var] = np.ma.atleast_2d(env_profiles_tmp[var])
                             env_profiles[var][np.ix_(z_ind, missing_indices)] = \
                                 np.ma.masked_invalid(env_profiles_tmp[var][z_ind,0:len(missing_indices)]).astype('float32')
-                
+
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
                     try:
@@ -2282,9 +2282,11 @@ class OpenDriftSimulation(PhysicsMethods):
                              self.get_messages())
                 self.logger.info('========================')
                 if stop_on_error is True:
-                    sys.exit('Stopping on error')
+                    sys.exit('Stopping on error. ' +
+                             self.get_messages())
                 if self.steps_calculation <= 1:
-                    raise ValueError('Simulation stopped within first timestep')
+                    raise ValueError('Simulation stopped within '
+                        'first timestep. ' + self.get_messages())
                 break
 
         self.timer_end('main loop')
@@ -2428,6 +2430,8 @@ class OpenDriftSimulation(PhysicsMethods):
         if len(missing_variables) > 0:
             self.logger.warning('Missing variables: ' +
                             str(missing_variables))
+            self.store_message('Missing variables: ' +
+                               str(missing_variables))
 
     def index_of_activation_and_deactivation(self):
         """Return the indices when elements were seeded and deactivated."""
@@ -2448,11 +2452,6 @@ class OpenDriftSimulation(PhysicsMethods):
         """Generate Figure instance on which trajectories are plotted.
 
            provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection"""
-
-        try:  # Clear any existing figure instances
-            plt.close()
-        except:
-            pass
 
         lons, lats = self.get_lonlats()
 
@@ -2685,22 +2684,6 @@ class OpenDriftSimulation(PhysicsMethods):
                     drifter_pos.set_offsets(
                         np.c_[drifter['x'][ind], drifter['y'][ind]])
 
-# <<<<<<< HEAD
-#             if compare is not None:
-#                 for cd in compare_list:
-#                     cd['points_other'].set_offsets(np.c_[
-#                         cd['x_other'][range(cd['x_other'].shape[0]), i],
-#                         cd['y_other'][range(cd['x_other'].shape[0]), i]])
-#                     cd['points_other_deactivated'].set_offsets(np.c_[
-#                         cd['x_other_deactive'][
-#                             cd['index_of_last_deactivated_other'] < i],
-#                         cd['y_other_deactive'][
-#                             cd['index_of_last_deactivated_other'] < i]])
-#                 return points, cd['points_other']
-#             else:
-#                 return points
-        
-# =======
             if show_elements is True:
                 if compare is not None:
                     for cd in compare_list:
@@ -2716,7 +2699,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     return points
 
-# >>>>>>> upstream/master
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast)
@@ -3112,61 +3094,6 @@ class OpenDriftSimulation(PhysicsMethods):
             label_active = None
             color_initial = 'gray'
             color_active = 'gray'
-
-        # needed if index_of_first and x have different size...
-        # happens when some elements of x are always masked 
-        x=x[:len(index_of_first),:]
-        y=y[:len(index_of_first),:]
-
-        map.scatter(x[range(x.shape[0]), index_of_first],
-                    y[range(x.shape[0]), index_of_first], s=markersize,
-                    zorder=10, edgecolor='k', linewidths=.2,
-                    color=color_initial, label=label_initial)
-        if surface_color is not None:
-            color_active = surface_color
-            label_active = 'surface'
-        map.scatter(x[range(x.shape[0]), index_of_last],
-                    y[range(x.shape[0]), index_of_last], s=markersize,
-                    zorder=3, edgecolor='k', linewidths=.2,
-                    color=color_active, label=label_active)
-        #if submerged_color is not None:
-        #    map.scatter(x[range(x.shape[0]), index_of_last],
-        #                y[range(x.shape[0]), index_of_last], s=markersize,
-        #                zorder=3, edgecolor='k', linewidths=.2,
-        #                color=submerged_color, label='submerged')
-
-        x_deactivated, y_deactivated = map(self.elements_deactivated.lon,
-                                           self.elements_deactivated.lat)
-        # Plot deactivated elements, labeled by deactivation reason
-        for statusnum, status in enumerate(self.status_categories):
-            if status == 'active':
-                continue  # plotted above
-            if status not in self.status_colors:
-                # If no color specified, pick an unused one
-                for color in ['red', 'blue', 'green', 'black', 'gray',
-                              'cyan', 'DarkSeaGreen', 'brown']:
-                    if color not in self.status_colors.values():
-                        self.status_colors[status] = color
-                        break
-            indices = np.where(self.elements_deactivated.status == statusnum)
-            if len(indices[0]) > 0:
-                if (status == 'seeded_on_land' or
-                    status == 'seeded_at_nodata_position'):
-                    zorder = 11
-                else:
-                    zorder = 3
-                if compare is not None:
-                    legstr = None
-                else:
-                    legstr = '%s (%i)' % (status, len(indices[0]))
-                if compare is None:
-                    color_status = self.status_colors[status]
-                else:
-                    color_status = 'gray'
-                map.scatter(x_deactivated[indices], y_deactivated[indices],
-                            s=markersize,
-                            zorder=zorder, edgecolor='k', linewidths=.1,
-                            color=color_status, label=legstr)
         if show_particles is True:
             ax.scatter(x[index_of_first, range(x.shape[1])],
                        y[index_of_first, range(x.shape[1])],
@@ -3218,7 +3145,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     else:
                         color_status = 'gray'
                     ax.scatter(x_deactivated[indices], y_deactivated[indices],
-                                s=markersize,zorder=zorder, edgecolor=markercolor, linewidths=.1,
+                                s=markersize,
+                                zorder=zorder, edgecolor=markercolor, linewidths=.1,
                                 color=color_status, label=legstr,
                                 transform = gcrs)
 
@@ -3738,6 +3666,9 @@ class OpenDriftSimulation(PhysicsMethods):
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
+        if hasattr(self, 'history'):
+            outStr += self.performance()
+            outStr += '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + \
             '     (OpenDrift version %s)\n' % opendrift.__version__
         outStr += '\t%s active %s particles  (%s deactivated, %s scheduled)\n'\
@@ -3780,11 +3711,11 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.time-self.start_time)
                 outStr += '\tOutput steps: %i * %s\n' % (
                     self.steps_output, self.time_step_output)
-        if hasattr(self, 'history'):
-            outStr += self.performance()
+        if hasattr(self, 'messages'):
+            outStr += '-------------------\n'
+            outStr += self.get_messages()
         outStr += '===========================\n'
         return outStr
-
 
     def store_message(self, message):
         """Store important messages to be displayed to user at end."""
@@ -3801,20 +3732,10 @@ class OpenDriftSimulation(PhysicsMethods):
             return ''
 
     def add_halo_readers(self):
-
         """Adding some Thredds and file readers in prioritised order"""
 
-        readers = [  # Note that order (priority) is important!
-            path + '/romsnorkyst/zdepths1h/NorKyst-800m_ZDEPTHS_his.fc*.nc',
-            path + '/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc*.nc',
-            path + '/mywavewam4/mywavewam4.fc*.nc',
-            'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-            'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-            'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
-            'http://thredds.met.no/thredds/dodsC/atmos/hirlam/hirlam12_be',
-            'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be']
-
-        self.add_readers_from_list(readers, timeout=5)
+        self.add_readers_from_file(self.test_data_folder() +
+            '../../opendrift/scripts/data_sources.txt')
 
     def _save_animation(self, anim, filename, fps):
         self.logger.info('Saving animation to ' + filename + '...')
