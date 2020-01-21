@@ -24,6 +24,9 @@ help:
 # 	@echo
 # 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
+checksum-gallery:
+	@tar Pcf - ../examples | md5sum
+
 clean:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -rf source/gallery

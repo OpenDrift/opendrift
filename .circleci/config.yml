@@ -31,9 +31,23 @@ jobs:
           key: deps1-{{ .Branch }}-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
+
+      - run:
+          name: Checksum gallery
+          command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
+
+      - restore_cache:
+          key: gallery-{{ .Branch }}-{{ checksum "/tmp/gallery-checksum.txt" }}
+
       - run:
           name: Build docs
           command: source activate opendrift && cd docs/ && make html
+
+      - save_cache:
+          key: gallery-{{ .Branch }}-{{ checksum "/tmp/gallery-checksum.txt" }}
+          paths:
+            - "docs/source/gallery"
+
       - persist_to_workspace:
           root: docs/build
           paths: html
