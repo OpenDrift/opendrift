@@ -5,17 +5,10 @@ Seeding from shapefile
 """
 
 from datetime import datetime
+from opendrift.models.oceandrift import OceanDrift
 
-from opendrift.models.openoil import OpenOil
 
-try:
-    import gdal
-except:
-    raise ValueError('Please install GDAL (www.gdal.org) with Python'
-                     ' support to run this example')
-
-o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
-o.max_speed = .5  # To minimise plotting boundaries
+o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #####################################################
 # Seed oil particles within contours from shapefile
@@ -34,8 +27,8 @@ o.run(steps=50, time_step=3600)
 
 # Print and plot results
 print(o)
-o.plot()
-o.animation(filename='seed_from_shapefile.gif')
+o.plot(fast=True)
+o.animation(filename='seed_from_shapefile.gif', fast=True)
 
 #%%
 # .. image:: /gallery/animations/seed_from_shapefile.gif

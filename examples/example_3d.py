@@ -1,8 +1,8 @@
+#!/usr/bin/env python
 """
 3D
 =============
 """
-#!/usr/bin/env python
 
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift3D import OceanDrift3D
@@ -17,31 +17,26 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/
 
 o.add_reader([reader_norkyst, reader_arome])
 
-# Seeding some particles
-lon = 4.8; lat = 60.0; # Outside Bergen
-
-time = None
-time = reader_arome.start_time
-
 # Seed elements at defined position and time
 import numpy as np
 z = -np.random.rand(1000)*50  # Giving elements a random depth
-o.seed_elements(lon, lat, z=z, radius=0, number=1000, time=time)
+o.seed_elements(lon=4.8, lat=60.0, z=z, radius=0, number=1000,
+                time=reader_arome.start_time)
 
 print(o)
 
-# Adjusting some configuration
+# Adding some diffusion
 o.set_config('drift:current_uncertainty', .1)
 o.set_config('drift:wind_uncertainty', 2)
 
 # Running model (until end of driver data)
-o.run(steps=66*2, time_step=1800, outfile='openoil.nc',
+o.run(steps=60*2, time_step=1800, outfile='openoil.nc',
       export_buffer_length=5)  # Writing to netCDF file every 5 time steps
 
 # Print and plot results
 print(o)
-o.plot(linecolor='z')  # Color lines according to depth
-o.animation(filename='example_3d.gif')
+o.plot(linecolor='z', fast=True)  # Color lines according to depth
+o.animation(filename='example_3d.gif', color='z', fast=True)
 
 
 #%%

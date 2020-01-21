@@ -5,7 +5,6 @@ Checkerboard
 """
 
 import numpy as np
-
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
@@ -15,14 +14,8 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 # Norkyst
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-#reader_norkyst = reader_netCDF_CF_generic.Reader('test_data/16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# Landmask
-reader_landmask = reader_global_landmask.Reader(
-                    llcrnrlon=3.5, llcrnrlat=59.9,
-                    urcrnrlon=5.5, urcrnrlat=61.2)
-
-o.add_reader([reader_landmask, reader_norkyst])
+o.add_reader([reader_norkyst])
 
 # Seeding particles in a checkerboard pattern
 di = 5 # Horizontal number of particles per square
@@ -49,7 +42,7 @@ o.run(steps=66*2, time_step=1800)
 
 # Print and plot results
 print(o)
-o.animation(filename="example_checkerboard_anim.gif")
+o.animation(filename='example_checkerboard_anim.gif', fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_checkerboard_anim.gif

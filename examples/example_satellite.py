@@ -4,11 +4,10 @@ Satellite
 ==================================
 """
 
-from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
-o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -18,11 +17,7 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-# Landmask
-reader_landmask = reader_global_landmask.Reader(llcrnrlon=3.5, llcrnrlat=60.4,
-                    urcrnrlon=7, urcrnrlat=61.8)
-
-o.add_reader([reader_landmask, reader_norkyst, reader_arome])
+o.add_reader([reader_norkyst, reader_arome])
 
 ############################################################
 # Seed oil particles within contour detected from satellite
@@ -34,17 +29,17 @@ o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_2
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)
-o.set_config('drift:current_uncertainty', .3)  # Diffusion
-o.set_config('drift:wind_uncertainty', 2)
+o.set_config('drift:current_uncertainty', .1)  # Diffusion
+o.set_config('drift:wind_uncertainty', 1)
 
-# Running model (until end of driver data)
-o.run(steps=66*4, time_step=900, outfile='openoil.nc')
+# Running model for 48 hours
+o.run(steps=6*4, time_step=900)
 
 # Print and plot results
 print(o)
-o.animation(filename='satellite.gif')
+o.animation(filename='satellite.gif', fast=True, buffer=0)
 
 #%%
 # .. image:: /gallery/animations/satellite.gif
 
-o.plot()
+o.plot(fast=True)

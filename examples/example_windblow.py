@@ -7,7 +7,7 @@ Wind blow model
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.windblow import WindBlow
 
-o = WindBlow(loglevel=0)  # Set loglevel to 0 for debug information
+o = WindBlow(loglevel=20)  # Set loglevel to 0 for debug information
 
 ##############################################################
 # Example of elements blowing with the wind, also over land
@@ -24,8 +24,8 @@ lat = 68.5; lon = 16.0  # Lofoten
 o.seed_elements(lon, lat, radius=5000, number=1000,
                 time=reader_arome.start_time)
 
-# Running model
-o.run(steps=48*4, time_step=900)
+# Running model for 48 hours
+o.run(steps=48*4, time_step=900, time_step_output=3600)
 
 # Print and plot results
 print(o)
