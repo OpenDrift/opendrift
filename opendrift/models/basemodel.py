@@ -3314,6 +3314,9 @@ class OpenDriftSimulation(PhysicsMethods):
         # Shift one pixel for correct plotting
         reader_x = reader_x - reader.delta_x
         reader_y = reader_y - reader.delta_y
+        if reader.projected is False:
+            reader_y[reader_y<0] = 0
+            reader_x[reader_x<0] = 0
 
         rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
         if rlons.max() > 360:
