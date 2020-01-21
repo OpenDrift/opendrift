@@ -5,21 +5,14 @@ Oil in ice
 """
 
 from datetime import datetime, timedelta
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
-o = OpenOil(loglevel=0)
-o.max_speed = 1
+o = OpenOil(loglevel=20)
 
 # Nordc4
 reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
-reader_arctic.interpolation = 'linearND'
-
 o.add_reader([reader_arctic])
-
-# Seeding some particles
-lon = 26.4; lat = 77.3;  # Spitzbergen
 
 #time = datetime(2015, 9, 22, 6, 0, 0)
 #time = [reader_nordic4.start_time,
@@ -27,10 +20,8 @@ lon = 26.4; lat = 77.3;  # Spitzbergen
 time = reader_arctic.start_time
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=7000, number=3000, time=time)
+o.seed_elements(lon=24.4, lat=77.3, radius=7000, number=3000, time=time)
 o.fallback_values['y_wind'] = 4  # Adding some northwards wind
-
-print(o)
 
 # Adjusting some configuration
 o.set_config('processes:dispersion',  False)
@@ -40,13 +31,14 @@ o.set_config('drift:current_uncertainty',  .5)
 o.set_config('drift:wind_uncertainty',  5)
 
 # Running model (until end of driver data)
-o.run(duration=timedelta(days=4), time_step=3600)
+o.run(duration=timedelta(days=4), time_step=3600, time_step_output=3600*3)
 
 # Print and plot results
 print(o)
-o.animation(filename='oil_ice.gif')
+o.animation(filename='oil_ice.gif', background='sea_ice_area_fraction',
+            fast=True)
 
 #%%
 # .. image:: /gallery/animations/oil_ice.gif
 
-o.plot(background='sea_ice_area_fraction')
+o.plot(background='sea_ice_area_fraction', fast=True)

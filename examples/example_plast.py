@@ -4,13 +4,12 @@ Plastic
 ==================================
 """
 
-from datetime import datetime, timedelta
-
+from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.plastdrift import PlastDrift
 
-o = PlastDrift(loglevel=0)
-o.list_configspec()
+o = PlastDrift(loglevel=20)
+o.list_configspec()  # to see available configuration options
 
 # Arome atmospheric model
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
@@ -26,18 +25,18 @@ time = [start_time, start_time + timedelta(hours=5)]
 # Seeding some particles
 lon = 4.6; lat = 60.0; # Outside Bergen
 o.seed_elements(lon, lat, radius=50, number=3000, time=time)
-
 o.run(end_time=end_time, time_step=1800, time_step_output=3600)
 
-o2 = PlastDrift(loglevel=0)
-o2.add_reader([reader_norkyst])  # No wind/Stokes
+# Second run, without wind/Stokes drift
+o2 = PlastDrift(loglevel=20)
+o2.add_reader([reader_norkyst])
 o2.seed_elements(lon, lat, radius=50, number=3000, time=time)
-
 o2.run(end_time=end_time, time_step=1800, time_step_output=3600)
 
 # Print and plot results
 print(o)
-o.animation(compare=o2, legend=['Current + wind/Stokes drift', 'Current only'], filename='plast_current_Stokes.gif')
+o.animation(compare=o2, filename='plast_current_Stokes.gif', fast=True,
+            legend=['Current + wind/Stokes drift', 'Current only'])
 #o.animation(color='depth')
 #o.plot_property('depth')
 

@@ -5,7 +5,6 @@ Oil spill (seafloor)
 """
 
 from datetime import timedelta
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil3D import OpenOil3D
 

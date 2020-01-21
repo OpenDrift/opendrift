@@ -519,7 +519,6 @@ class OpenOil(OpenDriftSimulation):
         oil_density = self.oiltype.density_at_temp(
             self.environment.sea_water_temperature)
         self.timer_end('main loop:updating elements:oil weathering:updating densities')
-        print(oil_viscosity, self.environment.sea_water_temperature, 'OV, TEMP')
 
         # Calculate emulsion density
         self.elements.density = (

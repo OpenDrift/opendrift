@@ -22,8 +22,9 @@ from opendrift.readers import reader_netCDF_CF_generic
 try:
     f = open('cmems_account.txt')
 except:
-    raise ValueError('Please store your CMEMS username and password '
-                     'in local file "cmems_account.txt"')
+    print('Please store your CMEMS username and password '
+          'in local file "cmems_account.txt"')
+    quit()
 
 username = f.readline().strip()
 password = f.readline().strip()

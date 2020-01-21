@@ -5,8 +5,6 @@ Oil budget
 """
 
 from datetime import timedelta
-
-from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil3D import OpenOil3D
 
@@ -22,19 +20,13 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 #    '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
-# Landmask
-reader_landmask = reader_global_landmask.Reader(
-                    llcrnrlon=4, llcrnrlat=59.7,
-                    urcrnrlon=7, urcrnrlat=61.5)
-
-#o.add_reader([reader_landmask, reader_norkyst, reader_arome])
+#o.add_reader([reader_norkyst, reader_arome])
 o.fallback_values['x_wind'] = 7
 o.fallback_values['y_wind'] = 0
 o.fallback_values['x_sea_water_velocity'] = .7
 o.fallback_values['y_sea_water_velocity'] = .3
 #o.fallback_values['land_binary_mask'] = 0
 #o.add_reader([reader_landmask, reader_norkyst])
-o.add_reader([reader_landmask])
 
 # Seeding some particles
 lon = 4.8; lat = 60.0; # Outside Bergen
