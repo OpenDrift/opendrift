@@ -20,7 +20,7 @@ reader_norkyst.interpolation = 'linearND'
 
 reader_landmask = reader_global_landmask.Reader(
                     llcrnrlon=4, llcrnrlat=59.9,
-                    urcrnrlon=5.5, urcrnrlat=61.5, resolution='h')
+                    urcrnrlon=5.5, urcrnrlat=61.5)
 
 o.add_reader([reader_norkyst, reader_landmask])
 lon = 4.5; lat = 60.0;
