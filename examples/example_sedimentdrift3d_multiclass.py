@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 """
+Same as example_sedimentdrif3d.py, but assuming three sediment class with different settling 
+velocities
+
 Sediment simulation (with settling on seafloor)
 
 This script is re-using the same data/release details as example_long_oilspill_seafloor.py
@@ -58,6 +61,9 @@ time = [reader_norkyst.start_time,
 # terminal_velocity<0 : negatively buoyant, i.e. settle towards the seabed
 # terminal_velocity>0 : positively buoyant, i.e. rise towards the surface
 o.seed_elements(lon, lat, z=-1.0, radius=5, number=3000, time=time,terminal_velocity = -0.03)
+o.seed_elements(lon, lat, z=-1.0, radius=5, number=3000, time=time,terminal_velocity = -0.003)
+o.seed_elements(lon, lat, z=-1.0, radius=5, number=3000, time=time,terminal_velocity = -0.0003)
+
 
 # Seed oil elements at defined position and time - ORIGINAL
 # o.seed_elements(lon, lat, z='seafloor', radius=5, number=3000, time=time)
@@ -79,8 +85,8 @@ o.run(end_time=reader_norkyst.end_time, time_step=300, time_step_output=300)
 
 # Print and plot results
 print(o)
-o.animation_profile(filename='sediment_settling_profile.gif')
-o.animation(filename='sediment_settling_2D.gif', background='sea_floor_depth_below_sea_level')
+o.animation_profile(filename='sediment_settling_multiclass_profile.gif')
+o.animation(filename='sediment_settling_multiclass_2D.gif', background='sea_floor_depth_below_sea_level')
 
 #%%
 # .. image:: /gallery/animations/sediment_settling_from_surface.gif
