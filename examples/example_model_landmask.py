@@ -24,7 +24,7 @@ reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
 o.add_reader([reader_nordic])
 time = reader_nordic.start_time
 o.seed_elements(lon, lat, radius=3000, number=1000, time=time)
-o.set_config('general:use_basemap_landmask', True)
+o.set_config('general:use_auto_landmask', True)
 o.run(end_time=reader_nordic.end_time, time_step=1800, time_step_output=3*3600)
 
 # Second run, with landmask from ocean model
@@ -32,7 +32,7 @@ o2 = OceanDrift(loglevel=0)
 o2.add_reader([reader_nordic])
 lon = 14.75; lat = 68.1
 o2.seed_elements(lon, lat, radius=3000, number=1000, time=time)
-o2.set_config('general:use_basemap_landmask', False)
+o2.set_config('general:use_auto_landmask', False)
 o2.run(end_time=reader_nordic.end_time, time_step=1800, time_step_output=3*3600)
 
 
