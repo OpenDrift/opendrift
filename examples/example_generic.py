@@ -23,15 +23,13 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov20
 o.add_reader([reader_norkyst, reader_arome])
 
 # Seeding some particles
-lon = 4.6; lat = 60.0; # Outside Bergen
-
 #time = datetime(2015, 9, 22, 6, 0, 0)
 time = [reader_arome.start_time,
         reader_arome.start_time + timedelta(hours=30)]
 #time = reader_arome.start_time
 
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=50, number=3000, time=time,
+o.seed_elements(lon=4.6, lat=60.0, radius=50, number=3000, time=time,
                 wind_drift_factor=.02)
 
 # Adjusting some configuration

@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """
-Coastline
+No stranding
 =============
 """
 
 import numpy as np
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
-
 from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information

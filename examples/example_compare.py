@@ -3,11 +3,10 @@
 Compare
 =============
 
-Comparing two simulation runs, with and without wind
+Comparing two oil drift simulation runs, with and without wind
 """
 
 from datetime import timedelta
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
