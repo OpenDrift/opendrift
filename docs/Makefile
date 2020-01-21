@@ -25,10 +25,10 @@ help:
 # 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 checksum-gallery:
-	@tar Pcf - ../examples | md5sum
+	@find ../examples -type f -exec md5sum {} \; | sort -k 2  | md5sum
 
 checksum-plots:
-	@tar Pcf - source | md5sum
+	@find source -type f -exec md5sum {} \; | sort -k 2  | md5sum
 
 clean:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
