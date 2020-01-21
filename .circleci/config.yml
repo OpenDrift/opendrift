@@ -20,13 +20,13 @@ jobs:
           key: deps1-{{ .Branch }}-{{ checksum "environment.yml" }}
       - run:
           name: Install requirements
-          command: conda env create --file environment.yml
+          command: if [ ! -e /opt/conda/envs ]; then conda env create --file environment.yml; fi
       - run:
           name: Install sphinx
-          command: source activate opendrift && conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.5.0
+          command: if [ ! -e /opt/conda/envs ]; then source activate opendrift && conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.5.0; fi
       - run:
           name: Install sphinx-theme
-          command: source activate opendrift && pip install sphinx-rtd-theme
+          command: if [ ! -e /opt/conda/envs ]; then source activate opendrift && pip install sphinx-rtd-theme; fi
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "environment.yml" }}
           paths:
