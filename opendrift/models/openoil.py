@@ -511,22 +511,15 @@ class OpenOil(OpenDriftSimulation):
         #########################################################
         # Update density and viscosity according to temperature
         #########################################################
-        try:  # New version of OilLibrary
-            self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
-            oil_viscosity = self.oiltype.kvis_at_temp(
-                self.environment.sea_water_temperature)
-            self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
-            self.timer_start('main loop:updating elements:oil weathering:updating densities')
-            oil_density = self.oiltype.density_at_temp(
-                self.environment.sea_water_temperature)
-            self.timer_end('main loop:updating elements:oil weathering:updating densities')
-        except:  # Old version of OilLibrary
-            oil_viscosity = np.array(
-                [self.oiltype.get_viscosity(t) for t in
-                 self.environment.sea_water_temperature])
-            oil_density = np.array(
-                [self.oiltype.get_density(t) for t in
-                 self.environment.sea_water_temperature])
+        self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
+        oil_viscosity = self.oiltype.kvis_at_temp(
+            self.environment.sea_water_temperature)
+        self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
+        self.timer_start('main loop:updating elements:oil weathering:updating densities')
+        oil_density = self.oiltype.density_at_temp(
+            self.environment.sea_water_temperature)
+        self.timer_end('main loop:updating elements:oil weathering:updating densities')
+        print(oil_viscosity, self.environment.sea_water_temperature, 'OV, TEMP')
 
         # Calculate emulsion density
         self.elements.density = (
