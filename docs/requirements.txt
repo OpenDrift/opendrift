@@ -4,11 +4,3 @@ sphinx-autoapi
 sphinx-gallery>=0.5.0
 livereload
 
-# oillibrary dependencies
-gitpython
-sqlalchemy
-zope.sqlalchemy==1.1
-transaction
-https://github.com/NOAA-ORR-ERD/PyNUCOS/archive/v2.5.5.tar.gz
-awesome-slugify
-
