@@ -8,6 +8,7 @@ jobs:
   docs-build:
     docker:
       - image: continuumio/miniconda3
+    resource_class: large
     steps:
       - checkout
       - run:
