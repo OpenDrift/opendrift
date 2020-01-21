@@ -27,6 +27,9 @@ help:
 checksum-gallery:
 	@tar Pcf - ../examples | md5sum
 
+checksum-plots:
+	@tar Pcf - source | md5sum
+
 clean:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -rf source/gallery

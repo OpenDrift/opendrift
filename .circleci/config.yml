@@ -17,36 +17,55 @@ jobs:
           name: Install packages
           command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "environment.yml" }}
+          key: deps1-{{ checksum "environment.yml" }}
       - run:
           name: Install requirements
-          command: if [ ! -e /opt/conda/envs ]; then conda env create --file environment.yml; fi
-      - run:
-          name: Install sphinx
-          command: if [ ! -e /opt/conda/envs ]; then source activate opendrift && conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.5.0; fi
-      - run:
-          name: Install sphinx-theme
-          command: if [ ! -e /opt/conda/envs ]; then source activate opendrift && pip install sphinx-rtd-theme; fi
+          command: |
+            if [ ! -e /opt/conda/envs/opendrift ]; then
+              conda env create --file environment.yml
+              source activate opendrift
+              conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.5.0
+              pip install sphinx-rtd-theme
+            fi
       - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "environment.yml" }}
+          key: deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
+
+      # the gallery cache is not perfect because it will not detect changes to the opendrift code,
+      # only the examples.
+      #
+      # the plot cache is not perfect, because it will only detect plot directive changes
+      # in the docs/source and not inline plot directives in the opendrift module. these
+      # should be re-generated anyway though, but won't be cached until the docs change.
 
       - run:
           name: Checksum gallery
           command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
 
+      - run:
+          name: Checksum plots
+          command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
+
       - restore_cache:
-          key: gallery-{{ .Branch }}-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-{{ checksum "/tmp/gallery-checksum.txt" }}
+
+      - restore_cache:
+          key: plots-{{ checksum "/tmp/plots-checksum.txt" }}
 
       - run:
           name: Build docs
           command: source activate opendrift && cd docs/ && make html
 
       - save_cache:
-          key: gallery-{{ .Branch }}-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-{{ checksum "/tmp/gallery-checksum.txt" }}
           paths:
             - "docs/source/gallery"
+
+      - save_cache:
+          key: plots-{{ checksum "/tmp/plots-checksum.txt" }}
+          paths:
+            - "docs/build/plot_directive"
 
       - persist_to_workspace:
           root: docs/build

@@ -48,7 +48,7 @@ o.run(steps=96, time_step=3600)
 # Print and plot results
 print(o)
 
-o.plot(filename='codegg_forecast.png', fast=True)
+o.plot(fast=True)
 o.animation(filename='codegg_forecast.gif', fast=True)
 
 #%%
