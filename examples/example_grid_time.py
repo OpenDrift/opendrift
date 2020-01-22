@@ -1,18 +1,16 @@
+#!/usr/bin/env python
 """
 Grid time
 =============
 """
-#!/usr/bin/env python
 
 from datetime import timedelta
-
 import numpy as np
-
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
-o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
@@ -40,11 +38,11 @@ for i in range(num_steps+1):
                     time=start_time + i*time_step)
 
 # Running model (until end of driver data)
-o.run(steps=66*4, time_step=900)
+o.run(steps=60*4, time_step=900, time_step_output=3600)
 
 # Print and plot results
 print(o)
-o.animation(filename='grid_time.gif')
+o.animation(filename='grid_time.gif', fast=True)
 
 #%%
 # .. image:: /gallery/animations/grid_time.gif

@@ -8,10 +8,12 @@ from datetime import datetime, timedelta
 from opendrift.models.openoil3D import OpenOil3D
 import matplotlib.pyplot as plt
 
+oiltype = 'VILJE 2009'
+
 ####################################################
 # Tkcalich & Chan (2002) entrainment rate
 ####################################################
-o = OpenOil3D(loglevel=0, weathering_model='noaa')
+o = OpenOil3D(loglevel=20, weathering_model='noaa')
 o.fallback_values['land_binary_mask'] = 0
 o.fallback_values['x_sea_water_velocity'] = -.2
 o.fallback_values['y_sea_water_velocity'] = 0
@@ -26,13 +28,13 @@ o.set_config('processes:dispersion', False)
 o.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
 o.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
 o.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000,
-                radius=100, z=0, oiltype='VILJE')
-o.run(duration=timedelta(hours=24), time_step=900)
+                radius=100, z=0, oiltype=oiltype)
+o.run(duration=timedelta(hours=24), time_step=900, time_step_output=1800)
 
 ######################################################
 # Li et al. (2017) entrainment rate
 ######################################################
-o2 = OpenOil3D(loglevel=0, weathering_model='noaa')
+o2 = OpenOil3D(loglevel=20, weathering_model='noaa')
 o2.fallback_values['land_binary_mask'] = 0
 o2.fallback_values['x_sea_water_velocity'] = -.2
 o2.fallback_values['y_sea_water_velocity'] = 0
@@ -47,8 +49,8 @@ o2.set_config('processes:dispersion', False)
 o2.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
 o2.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
 o2.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000,
-                radius=100, z=0, oiltype='VILJE')
-o2.run(duration=timedelta(hours=24), time_step=900)
+                radius=100, z=0, oiltype=oiltype)
+o2.run(duration=timedelta(hours=24), time_step=900, time_step_output=1800)
 
 ###########################
 # Plotting and comparing
@@ -63,7 +65,7 @@ o.animation_profile(compare=o2, legend=legend, filename='entrainment_rate.gif')
 #%%
 # .. image:: /gallery/animations/entrainment_rate.gif
 
-o.animation(compare=o2, legend=legend, filename='entrainment_rate_compare.gif')
+o.animation(compare=o2, legend=legend, filename='entrainment_rate_compare.gif', fast=True)
 
 
 #%%

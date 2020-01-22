@@ -5,12 +5,11 @@ Fjord
 """
 
 from datetime import timedelta
-
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
 
-o = Leeway(loglevel=0)  # Set loglevel to 0 for debug information
+o = Leeway(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -35,8 +34,8 @@ time = reader_arome.start_time
 objType = 1  # 1: Person-in-water (PIW), unknown state (mean values)
 o.seed_elements(lon, lat, radius=50, number=5000, time=time, objectType=objType)
 
-# Running model for 66 hours
-o.run(steps=66*12, time_step=300)
+# Running model for 66 hours, using small time step due to high resolution coastline
+o.run(duration=timedelta(hours=12), time_step=300, time_step_output=3600)
 
 # Print and plot results
 print(o)

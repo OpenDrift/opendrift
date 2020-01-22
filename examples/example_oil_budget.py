@@ -8,7 +8,7 @@ from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil3D import OpenOil3D
 
-o = OpenOil3D(loglevel=0)
+o = OpenOil3D(loglevel=20)
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -28,24 +28,19 @@ o.fallback_values['y_sea_water_velocity'] = .3
 #o.fallback_values['land_binary_mask'] = 0
 #o.add_reader([reader_landmask, reader_norkyst])
 
-# Seeding some particles
-lon = 4.8; lat = 60.0; # Outside Bergen
-
-#time = [reader_arome.start_time,
-#        reader_arome.start_time + timedelta(hours=30)]
-time = reader_arome.start_time
-
 # Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=3000, number=1000, time=time, z=0,
-                oiltype='EKOFISK')
+o.seed_elements(lon=4.8, lat=60.0, z=0, radius=3000, number=1000,
+                time=reader_arome.start_time, oiltype='EKOFISK')
 
 # Adjusting some configuration
 o.set_config('processes:dispersion', True)
-o.set_config('processes:evaporation', True)
+o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)
 o.set_config('processes:turbulentmixing', True)
 o.set_config('turbulentmixing:TSprofiles', False)
-o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983')
+
+# TODO: Sundby scheme does not work here
+#o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983')
 o.set_config('turbulentmixing:timestep', 2.) # seconds
 
 # Running model (until end of driver data)
@@ -57,7 +52,7 @@ print(o)
 o.plot_oil_budget()
 o.plot_property('water_fraction')
 o.plot_property('water_fraction', mean=True)
-o.plot()
+o.plot(fast=True)
 o.plot_property('mass_oil')
 o.plot_property('z')
 o.plot_property('mass_evaporated')

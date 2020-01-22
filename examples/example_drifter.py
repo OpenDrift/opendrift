@@ -6,11 +6,10 @@ Drifter
 
 from datetime import timedelta
 import numpy as np
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
-o = OceanDrift()  # Basic drift model suitable for passive tracers or drifters
+o = OceanDrift(loglevel=20)  # Basic drift model suitable for passive tracers or drifters
 
 #######################
 # Preparing Readers
@@ -32,7 +31,7 @@ o.add_reader([reader_current, reader_wind])
 # of the elements. Typical empirical values are:
 # - 0.035 (3.5 %) for oil and iSphere driftes
 # - 0.01  (1 %) for CODE drifters partly submerged ~0.5 m
-# As there are large uncertainties, it makes sence to provide a statistical
+# As there are large uncertainties, it makes sense to provide a statistical
 # distribution of wind_drift_factors
 
 # Using a constant value for all elements:
@@ -54,10 +53,10 @@ o.run(time_step=timedelta(minutes=15),
 # Print and plot results
 ###########################
 print(o)
-o.animation(filename='drifter.gif')
+o.animation(filename='drifter.gif', color='wind_drift_factor', fast=True)
 
 #%%
 # .. image:: /gallery/animations/drifter.gif
 
 # Plot trajectories, colored by the wind_drift_factor of each element
-o.plot(linecolor='wind_drift_factor')
+o.plot(linecolor='wind_drift_factor', fast=True)
