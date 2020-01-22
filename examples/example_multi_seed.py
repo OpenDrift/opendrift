@@ -5,11 +5,10 @@ Multi seed
 """
 
 from datetime import datetime
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
-o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -39,12 +38,12 @@ o.seed_elements([3.6, 4.4], [61.5, 61.2], radius=[1000, 10000],
                 time=[datetime(2015,11,16,1), datetime(2015,11,16,8)])
 
 # Running model (until end of driver data)
-o.run(steps=50*4, time_step=900)
+o.run(steps=50*4, time_step=900, time_step_output=3600)
 
 # Print and plot results
 print(o)
-o.plot()
-o.animation(filename='multi_seed.gif')
+o.plot(fast=True)
+o.animation(filename='multi_seed.gif', fast=True)
 
 #%%
 # .. image:: /gallery/animations/multi_seed.gif

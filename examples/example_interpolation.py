@@ -45,7 +45,7 @@ for r in o.readers:
     o.readers[r].interpolation = 'ndimage'
 
 # Running model
-o.run(steps=66*2, time_step=1800)
+o.run(steps=66*4, time_step=900, time_step_output=3600)
 
 # Second run, for comparison
 o2 = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
@@ -61,7 +61,7 @@ o2.set_config('drift:relative_wind',  False)
 for r in o.readers:
     o.readers[r].interpolation = 'linearND'
 
-o2.run(steps=66*2, time_step=1800)
+o2.run(steps=66*4, time_step=900, time_step_output=3600)
 
 
 # Animate and compare the two runs
