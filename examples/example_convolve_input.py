@@ -14,7 +14,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 
 lon = 4.9; lat = 60.0
-o = OceanDrift()
+o = OceanDrift(loglevel=20)
 
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 time = reader_norkyst.start_time
@@ -36,7 +36,8 @@ o2.add_reader([reader_norkyst])
 o2.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 o2.run(steps=20)
 # Store final field of x-component of (convolved) current
-convolved_current = reader_norkyst.var_block_after["['y_sea_water_velocity', 'x_sea_water_velocity']"].data_dict['x_sea_water_velocity']
+convolved_current = reader_norkyst.var_block_after[
+    "['x_sea_water_velocity', 'y_sea_water_velocity']"].data_dict['x_sea_water_velocity']
 
 plt.subplot(2,1,1)
 plt.imshow(original_current, interpolation='nearest')
@@ -50,10 +51,11 @@ plt.colorbar()
 plt.title('Final, convolved current field (x-component)')
 plt.show()
 
-# Print and plot results
+# Print and plot results, with convolved currents as background
 print(o)
 o.animation(compare=o2, legend=[
     'Original currents', 'Current convoled with kernel of size %s' % N],
+    background=['x_sea_water_velocity', 'y_sea_water_velocity'],
     filename='convolve_input.gif')
 
 #%%
