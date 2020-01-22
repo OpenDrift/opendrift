@@ -3591,7 +3591,11 @@ class OpenDriftSimulation(PhysicsMethods):
         ax = fig.gca()
         ax.xaxis.set_major_formatter(hfmt)
         plt.xticks(rotation='vertical')
-        times = [self.start_time + n*self.time_step_output
+        start_time = self.start_time
+        # In case start_time is unsupported cftime
+        start_time = datetime(start_time.year, start_time.month, start_time.day,
+                              start_time.hour, start_time.minute, start_time.second)
+        times = [start_time + n*self.time_step_output
                  for n in range(self.steps_output)]
         data = self.history[prop].T[0:len(times), :]
         if mean is True:  # Taking average over elements

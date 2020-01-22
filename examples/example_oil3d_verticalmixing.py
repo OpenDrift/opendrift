@@ -42,11 +42,7 @@ else:
 print(o)
 
 o.plot(linecolor='z', fast=True)
-try:
-    o.plot_property('z')
-except:
-    # https://github.com/Unidata/cftime/issues/112
-    print('plot_property did not work.')
+o.plot_property('z')
 o.plot_oil_budget()
 o.animation(filename='oil3d_verticalmixing.gif', fast=True)
 
