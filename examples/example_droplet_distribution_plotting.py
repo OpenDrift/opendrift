@@ -8,14 +8,14 @@ Plotting different droplet size distributions used in Opendrift (see openoil3D.p
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 from datetime import datetime, timedelta
 from opendrift.models.openoil3D import OpenOil3D
+oiltype = 'VILJE 2009'
 
 ####################################################
 # Delvigne & Sweeney (1988) droplet spectrum
 ####################################################
-o = OpenOil3D(loglevel=0, weathering_model='noaa')
+o = OpenOil3D(loglevel=20, weathering_model='noaa')
 o.fallback_values['land_binary_mask'] = 0
 o.fallback_values['x_sea_water_velocity'] = -.2
 o.fallback_values['y_sea_water_velocity'] = 0
@@ -30,13 +30,13 @@ o.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
 o.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
 o.set_config('turbulentmixing:droplet_size_exponent', -2.3)
 o.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000, radius=100,
-                z=0, oiltype='VILJE')
+                z=0, oiltype=oiltype)
 o.run(duration=timedelta(hours=1), time_step=3600)
 
 ######################################################
 # Uniform droplet spectrum
 ######################################################
-o2 = OpenOil3D(loglevel=0, weathering_model='noaa')
+o2 = OpenOil3D(loglevel=20, weathering_model='noaa')
 o2.fallback_values['land_binary_mask'] = 0
 o2.fallback_values['x_sea_water_velocity'] = -.2
 o2.fallback_values['y_sea_water_velocity'] = 0
@@ -51,13 +51,13 @@ o2.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
 o2.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 2e-3)
 o2.set_config('turbulentmixing:droplet_size_exponent', 0)
 o2.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000, radius=100,
-                 z=0, oiltype='VILJE')
+                 z=0, oiltype=oiltype)
 o2.run(duration=timedelta(hours=1), time_step=3600)
 
 ########################################################
 # Johansen et al. (2015) droplet spectrum
 ########################################################
-o3 = OpenOil3D(loglevel=0, weathering_model='noaa')
+o3 = OpenOil3D(loglevel=20, weathering_model='noaa')
 o3.fallback_values['land_binary_mask'] = 0
 o3.fallback_values['x_sea_water_velocity'] = -.2
 o3.fallback_values['y_sea_water_velocity'] = 0
@@ -71,7 +71,7 @@ o3.set_config('processes:dispersion', False)
 o3.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
 o3.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 2e-3)
 o3.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000, radius=100,
-                 z=0, oiltype='VILJE', oil_film_thickness=0.001)
+                 z=0, oiltype=oiltype, oil_film_thickness=0.001)
 o3.run(duration=timedelta(hours=1), time_step=3600)
 
 dmin = 1e-6 # Change dmin, dmax according to choice in config
@@ -99,5 +99,3 @@ plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('N(d)', fontsize=8)
 plt.title('Johansen et al. (2015) distribution', fontsize=10)
 plt.show()
-
-
