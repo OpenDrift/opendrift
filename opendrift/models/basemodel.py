@@ -3750,15 +3750,15 @@ class OpenDriftSimulation(PhysicsMethods):
 
             adir = os.path.realpath('../docs/source/gallery/animations')
             os.makedirs(adir, exist_ok=True)
-            if filename is None:
-                # This assumes that the calling script is two frames up in the stack. If
-                # _save_animation is called through a more deeply nested method, it will
-                # not give the correct result.
-                import inspect
-                caller = inspect.stack()[2]
 
-                filename = '%s_%d.gif' % (os.path.splitext(os.path.basename(caller.filename))[0], OpenDriftSimulation.__anim_no__)
-                OpenDriftSimulation.__anim_no__ += 1
+            # This assumes that the calling script is two frames up in the stack. If
+            # _save_animation is called through a more deeply nested method, it will
+            # not give the correct result.
+            import inspect
+            caller = inspect.stack()[2]
+
+            filename = '%s_%d.gif' % (os.path.splitext(os.path.basename(caller.filename))[0], OpenDriftSimulation.__anim_no__)
+            OpenDriftSimulation.__anim_no__ += 1
 
             filename = os.path.join(adir, filename)
 
