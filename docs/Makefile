@@ -30,7 +30,7 @@ checksum-plots:
 	@find source -type f -exec md5sum {} \; | sort -k 2  | md5sum
 
 clean:
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	rm -rf build/
 	rm -rf source/gallery
 	rm -rf source/autoapi
 
