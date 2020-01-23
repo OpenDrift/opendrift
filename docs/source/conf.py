@@ -40,7 +40,7 @@ sphinx_gallery_conf = {
      'filename_pattern': '/example_(?!long_)',
      'backreferences_dir': False,
      'capture_repr': ('_repr_html_', '__repr__'),
-     'abort_on_example_error': True,
+     'abort_on_example_error': False,
      'thumbnail_size': (300, 300)
 }
 
