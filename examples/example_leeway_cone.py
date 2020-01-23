@@ -5,11 +5,10 @@ Leeway (cone)
 """
 
 from datetime import timedelta
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
 
-lw = Leeway(loglevel=0)  # Set loglevel to 0 for debug information
+lw = Leeway(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
@@ -32,10 +31,10 @@ time = [reader_arome.start_time,
 
 objType = 26  # 26 = Life-raft, no ballast
 lw.seed_elements(lon, lat, radius=[1000, 10000], number=5000,
-                 time=time, objectType=objType)
+                 time=time, objectType=objType, cone=True)
 
 # Running model
-lw.run(steps=66*4, time_step=900)
+lw.run(steps=66*4, time_step=900, time_step_output=3600)
 print(lw)
 
 # Print and plot results
