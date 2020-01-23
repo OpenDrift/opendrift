@@ -32,7 +32,9 @@ o.seed_elements(lon, lat, radius=.1, number=1000,
                 time=double_gyre.initial_time)
 
 o.run(duration=timedelta(seconds=10), time_step=0.1)
-o.animation(buffer=0, filename='double_gyre.gif')
+o.animation(buffer=0)
 
 #%%
-# .. image:: /gallery/animations/double_gyre.gif
+# .. image:: /gallery/animations/example_double_gyre_0.gif
+
+o.plot()
