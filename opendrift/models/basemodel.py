@@ -1856,7 +1856,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.environment_profiles is not None:
             for varname, profiles in iteritems(self.environment_profiles):
                 self.logger.debug('remove items from profile for '+varname)
-                if varname is not 'z':
+                if varname != 'z':
                     self.environment_profiles[varname] = \
                         profiles[:, ~indices]
             self.logger.debug('Removed %i values from environment_profiles.' %
@@ -2832,7 +2832,7 @@ class OpenDriftSimulation(PhysicsMethods):
             frames=x.shape[0], interval=50)
 
 
-        if filename is not None:
+        if filename is not None or 'sphinx_gallery' in sys.modules:
             self._save_animation(anim, filename, fps)
             self.logger.debug('Time to make animation: %s' %
                           (datetime.now()-start_time))
@@ -2934,7 +2934,7 @@ class OpenDriftSimulation(PhysicsMethods):
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
                                        frames=x.shape[1], interval=150)
 
-        if filename is not None:
+        if filename is not None or 'sphinx_gallery' in sys.modules:
             self._save_animation(anim, filename, fps)
 
         else:
@@ -3222,7 +3222,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
 
         if title is not None:
-            if title is 'auto':
+            if title == 'auto':
                 if hasattr(self, 'time'):
                     plt.title(type(self).__name__ + '  %s to %s UTC (%i steps)' %
                               (self.start_time.strftime('%Y-%m-%d %H:%M'),
@@ -3744,14 +3744,25 @@ class OpenDriftSimulation(PhysicsMethods):
             '../../opendrift/scripts/data_sources.txt')
 
     def _save_animation(self, anim, filename, fps):
-        self.logger.info('Saving animation to ' + filename + '...')
-
-        import sys
         if 'sphinx_gallery' in sys.modules:
-            import os
+            if not hasattr(OpenDriftSimulation, '__anim_no__'):
+                OpenDriftSimulation.__anim_no__ = 0
+
             adir = os.path.realpath('../docs/source/gallery/animations')
             os.makedirs(adir, exist_ok=True)
+            if filename is None:
+                # This assumes that the calling script is two frames up in the stack. If
+                # _save_animation is called through a more deeply nested method, it will
+                # not give the correct result.
+                import inspect
+                caller = inspect.stack()[2]
+
+                filename = '%s_%d.gif' % (os.path.splitext(os.path.basename(caller.filename))[0], OpenDriftSimulation.__anim_no__)
+                OpenDriftSimulation.__anim_no__ += 1
+
             filename = os.path.join(adir, filename)
+
+        self.logger.info('Saving animation to ' + filename + '...')
 
         try:
             if filename[-4:] == '.gif':  # GIF
