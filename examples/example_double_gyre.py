@@ -37,4 +37,4 @@ o.animation(buffer=0)
 #%%
 # .. image:: /gallery/animations/example_double_gyre_0.gif
 
-o.plot()
+o.plot(buffer=0)
