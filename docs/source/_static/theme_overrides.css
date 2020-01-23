@@ -11,3 +11,32 @@
       overflow: visible !important;
    }
 }
+
+#gallery {
+   display: flex !important;
+   flex-wrap: wrap;
+}
+
+#gallery > h1 {
+   width: 100%;
+   display: block;
+}
+
+.sphx-glr-thumbcontainer {
+   display: unset;
+   min-height: 320px !important;
+   width: 300px !important;
+}
+
+.sphx-glr-thumbcontainer .figure {
+   width: 300px !important;
+}
+
+.sphx-glr-thumbcontainer img {
+   max-height: 300px !important;
+   width: 300px !important;
+}
+
+.sphx-glr-thumbcontainer a.internal {
+   padding: 270px 10px 0 !important;
+}
