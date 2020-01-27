@@ -32,11 +32,11 @@ import sys
 # in OpenDrift, or when we want to read only a single variable from a file (e.g. depth).
 #
 # For reference, there is actually some option to select variables in model.add_reader(variables=['var1']), but this is not exactly doing what 
-# we need here
+# we need hereto_longitude_0_360
 #
 # S.Weppe  
 
-# needed to be copid from basereader.py
+# needed to be copied from basereader.py
 # Some valid (but extreme) ranges for checking that values are reasonable
 standard_names = {
     'x_wind': {'valid_min': -50, 'valid_max': 50},
@@ -416,7 +416,7 @@ class Reader(BaseReader):
                 indrealization = range(len(self.realizations))
             else:
                 indrealization = None
-                
+        ##########################################################################################################        
         # Find indices corresponding to requested x and y
         # indx = np.floor((x-self.xmin)/self.delta_x).astype(int) # original code
         if self.has_lon_0_360 :
@@ -425,7 +425,7 @@ class Reader(BaseReader):
             indx = np.floor((x-self.xmin)/self.delta_x).astype(int) 
        
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int)
-        # 
+        ########################################################################################################## 
 
         # If x or y coordinates are decreasing, we need to flip
         if self.x[0] > self.x[-1]:
@@ -590,7 +590,7 @@ class Reader(BaseReader):
             # at this stage 'lon' follows the convention -180<lon<180
             # need to account for reader(s) that may use 0<lon<360 instead
             if not self.has_lon_0_360 :
-            # simple case - no overlap of 180W
+            
                 indices = np.where((x >= self.xmin) & (x <= self.xmax) &
                                (y >= self.ymin) & (y <= self.ymax) &
                                (z >= zmin) & (z <= zmax))[0]

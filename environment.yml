@@ -29,3 +29,5 @@ dependencies:
   - pygrib
   - pip
   - xarray
+  - dask
+  - toolsz 
