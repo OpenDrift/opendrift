@@ -3745,20 +3745,24 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def _save_animation(self, anim, filename, fps):
         if 'sphinx_gallery' in sys.modules:
-            if not hasattr(OpenDriftSimulation, '__anim_no__'):
-                OpenDriftSimulation.__anim_no__ = 0
-
-            adir = os.path.realpath('../docs/source/gallery/animations')
-            os.makedirs(adir, exist_ok=True)
-
             # This assumes that the calling script is two frames up in the stack. If
             # _save_animation is called through a more deeply nested method, it will
             # not give the correct result.
             import inspect
             caller = inspect.stack()[2]
+            caller = os.path.splitext(os.path.basename(caller.filename))[0]
 
-            filename = '%s_%d.gif' % (os.path.splitext(os.path.basename(caller.filename))[0], OpenDriftSimulation.__anim_no__)
-            OpenDriftSimulation.__anim_no__ += 1
+            if not hasattr(OpenDriftSimulation, '__anim_no__'):
+                OpenDriftSimulation.__anim_no__ = { }
+
+            if not hasattr(OpenDriftSimulation.__anim_no__, caller):
+                OpenDriftSimulation.__anim_no__[caller] = 0
+
+            adir = os.path.realpath('../docs/source/gallery/animations')
+            os.makedirs(adir, exist_ok=True)
+
+            filename = '%s_%d.gif' % (caller, OpenDriftSimulation.__anim_no__[caller])
+            OpenDriftSimulation.__anim_no__[caller] += 1
 
             filename = os.path.join(adir, filename)
 
