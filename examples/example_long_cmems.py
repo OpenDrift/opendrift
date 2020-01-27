@@ -30,6 +30,7 @@ username = f.readline().strip()
 password = f.readline().strip()
 f.close()
 
+#%%
 # Seed information
 lon = 4.8; lat = 60  # Bergen, Norway
 lon = -89; lat = 29.8  # New Orleans
@@ -59,8 +60,8 @@ o = OceanDrift()
 o.add_reader(cmems)
 o.seed_elements(lon=lon, lat=lat, number=5000, radius=1000, time=time)
 o.run(duration=duration)
-o.animation(fast=True, filename='cmems.gif')
+o.animation(fast=True)
 
 
 #%%
-# .. image:: /gallery/animations/cmems.gif
+# .. image:: /gallery/animations/example_cmems_0.gif

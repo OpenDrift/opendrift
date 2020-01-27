@@ -36,15 +36,15 @@ else:
     o.run(end_time=reader_arome.start_time + timedelta(hours=12),
           time_step=900, time_step_output=1800, outfile=ncfile)
 
-###########################
+#%%
 # Print and plot results
-###########################
 print(o)
 
 o.plot(linecolor='z', fast=True)
 o.plot_property('z')
 o.plot_oil_budget()
-o.animation(filename='oil3d_verticalmixing.gif', fast=True)
+o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/oil3d_verticalmixing.gif
+# .. image:: /gallery/animations/example_oil3d_verticalmixing_0.gif
+

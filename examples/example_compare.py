@@ -51,11 +51,13 @@ o2.set_config('drift:wind_uncertainty', 2)
 o2.run(steps=66*2, time_step=1800)
 
 
+#%%
 # Animate and compare the two runs
 o.animation(fast=True, compare=o2,
-            legend=['Current + 3 % wind drift', 'Current only'],
-            filename='compare.gif')
+            legend=['Current + 3 % wind drift', 'Current only'])
 
 
 #%%
-# .. image:: /gallery/animations/compare.gif
+# .. image:: /gallery/animations/example_compare_0.gif
+
+o.plot(fast=True, compare=o2, legend=['Current + 3 % wind drift', 'Current only'])

@@ -23,6 +23,7 @@ lw.fallback_values['y_sea_water_velocity'] = 0
 lw.fallback_values['x_wind'] = 0
 lw.fallback_values['y_wind'] = 0
 
+#%%
 # Seed elements along cone, e.g. ship track with
 # increasing uncertainty in position
 lon = [3.6, 5.1]; lat = [61., 59.6];
@@ -33,14 +34,17 @@ objType = 26  # 26 = Life-raft, no ballast
 lw.seed_elements(lon, lat, radius=[1000, 10000], number=5000,
                  time=time, objectType=objType, cone=True)
 
+#%%
 # Running model
 lw.run(steps=66*4, time_step=900, time_step_output=3600)
 print(lw)
 
+#%%
 # Print and plot results
 print(lw)
 lw.plot()
-lw.animation(filename='leeway_cone.gif')
+lw.animation()
 
 #%%
-# .. image:: /gallery/animations/leeway_cone.gif
+# .. image:: /gallery/animations/example_leeway_cone_0.gif
+

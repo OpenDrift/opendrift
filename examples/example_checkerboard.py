@@ -17,6 +17,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov20
 
 o.add_reader([reader_norkyst])
 
+#%%
 # Seeding particles in a checkerboard pattern
 di = 5 # Horizontal number of particles per square
 dj = 5 # Vertical number of particles per square
@@ -33,18 +34,21 @@ lons, lats = np.meshgrid(lons, lats)
 lons = lons[board].ravel()
 lats = lats[board].ravel()
 
+#%%
 # Seed oil elements at defined position and time
 o.seed_elements(lons, lats, radius=0, number=10000,
                 time=reader_norkyst.start_time)
 
+#%%
 # Running model (until end of driver data)
 o.run(steps=66*2, time_step=1800)
 
+#%%
 # Print and plot results
 print(o)
-o.animation(filename='example_checkerboard_anim.gif', fast=True)
+o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/example_checkerboard_anim.gif
+# .. image:: /gallery/animations/example_checkerboard_0.gif
 
-#o.plot()
+o.plot()

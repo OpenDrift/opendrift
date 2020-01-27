@@ -27,6 +27,8 @@ reader_landmask = reader_global_landmask.Reader(
                     urcrnrlon=5.5, urcrnrlat=62.5)
 
 #lw.add_reader([reader_norkyst, reader_arome, reader_landmask])
+
+#%%
 # Adding readers succesively, and specifying which variables they
 # shall provide. This way, order of adding readers does not matter,
 # except for small rounding differences due to different projection
@@ -39,21 +41,23 @@ lw.add_reader(reader_landmask,
 lw.fallback_values['x_sea_water_velocity'] = 0
 lw.fallback_values['y_sea_water_velocity'] = 0
 
+#%%
 # Seed leeway elements at defined position and time
 objType = 26  # 26 = Life-raft, no ballast
 lw.seed_elements(lon=4.5, lat=60.0, radius=1000, number=3000,
                  time=reader_arome.start_time, objectType=objType)
 
+#%%
 # Running model (until end of driver data)
 lw.run(duration=timedelta(hours=60), time_step=900, time_step_output=3600)
 
+#%%
 # Print and plot results
 print(lw)
 # lw.animation()
-lw.animation(filename='leeway.gif',
-             background=['x_sea_water_velocity', 'y_sea_water_velocity'])
+lw.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'])
 
 #%%
-# .. image:: /gallery/animations/leeway.gif
+# .. image:: /gallery/animations/example_leeway_0.gif
 
-lw.plot(fast=True)
+lw.plot(fast=True, background=['x_sea_water_velocity', 'y_sea_water_velocity'])

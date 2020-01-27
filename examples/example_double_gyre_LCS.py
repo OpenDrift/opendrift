@@ -16,6 +16,7 @@ from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 o.fallback_values['land_binary_mask'] = 0
+#%%
 # Note that Runge-Kutta here makes a difference to Euler scheme
 o.set_config('drift:scheme', 'runge-kutta4')
 
@@ -29,6 +30,7 @@ lcs = o.calculate_ftle(time=double_gyre.initial_time+timedelta(seconds=3),
                        duration=timedelta(seconds=15),
                        delta=.02)
 
+#%%
 # These plots should reproduce Mov 12 on this page:
 # http://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
 plt.subplot(2,1,1)

@@ -9,6 +9,7 @@ import numpy as np
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers import reader_netCDF_CF_generic
 
+#%%
 # Drift simulation using 10 member ensemble wind data
 # from MEPS model of MET Norway
 
@@ -21,12 +22,12 @@ o.seed_elements(lat=60, lon=4.8, time=r.start_time,
 
 o.run(duration=timedelta(hours=50), time_step=1800, time_step_output=3600)
 
+#%%
 # Ensemble members are recycled among the 10000 particles
 ensemble_number = np.remainder(o.history['ID'], 10) + 1
 
-o.animation(filename='wind_drift_ensemble.gif', fast=True,
-            color=ensemble_number, clabel='Ensemble number')
+o.animation(fast=True, color=ensemble_number, clabel='Ensemble number')
 
 
 #%%
-# .. image:: /gallery/animations/wind_drift_ensemble.gif
+# .. image:: /gallery/animations/example_ensemble_0.gif

@@ -10,6 +10,7 @@ from opendrift.models.openoil import OpenOil
 
 o = OpenOil(loglevel=50)
 
+#%%
 # We do not care about landmask or current for this seeding demonstration,
 # so we simple specify fallback_values instead of adding any readers
 o.fallback_values['land_binary_mask'] = 0
@@ -88,10 +89,10 @@ print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000]
 print('='*70)
 o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=[time, time+timedelta(hours=5)])
 o.run(steps=5*4, time_step=900)
-o.animation(filename='seed_demonstration.gif', fast=True)
+o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/seed_demonstration.gif
+# .. image:: /gallery/animations/example_seed_demonstration_0.gif
 
 
 print('\n' + '='*70)
@@ -102,3 +103,4 @@ o.reset()
 o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 o.run(steps=1)
 o.plot(buffer=.03, fast=True)
+

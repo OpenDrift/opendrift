@@ -12,6 +12,7 @@ from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift()
 o.fallback_values['land_binary_mask'] = 0
 
+#%%
 # We make a reader which reconstructs the ocean current from
 # observed time series of a drifter
 # This is actual data of SLDMB/Code drifter as used in this study:
@@ -28,6 +29,7 @@ r = reader_current_from_drifter.Reader(
         lons=drifterlons, lats=drifterlats, times=driftertimes)
 o.add_reader(r)
 
+#%%
 # We seed elements within polygon, as could have been extracted
 # from remote sensing imagery
 lons = [2.39, 2.391, 2.392, 2.393, 2.394, 2.393, 2.392, 2.391, 2.39]
@@ -35,12 +37,14 @@ lats = [60.02, 60.02, 60.019, 60.02, 60.021, 60.022, 60.021, 60.021, 60.02]
 o.seed_within_polygon(lons=lons, lats=lats,
                       number=1000, time=r.start_time)
 
+#%%
 # Finally running simulation
 o.run(end_time=r.end_time, time_step=r.time_step)
 
-o.animation(buffer=.01, filename='current_from_drifter.gif')
+o.animation(buffer=.01)
 
 #%%
-# .. image:: /gallery/animations/current_from_drifter.gif
+# .. image:: /gallery/animations/example_current_from_drifter_0.gif
 
 o.plot(buffer=.01)
+

@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil3D import OpenOil3D
 
-# NOAA OilLibrary must be installed to run this example
 o = OpenOil3D(loglevel=20, weathering_model='noaa')
 
 print(o.oiltypes)  # Print available oil types
@@ -22,29 +21,32 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 
 o.add_reader([reader_norkyst, reader_arome])
 
+#%%
 # Seeding some particles
-#time = [reader_arome.start_time,
-#        reader_arome.start_time + timedelta(hours=30)]
 time = reader_arome.start_time
 oiltype = 'GULLFAKS, EXXON'
 oiltype = 'ARABIAN MEDIUM, API'
 oiltype = 'ALGERIAN CONDENSATE'
 
+#%%
 # Seed oil elements at defined position and time
 o.seed_elements(lon=4.9, lat=60.1, radius=3000, number=2000,
                 time=time, z=0, oiltype=oiltype)
 
+#%%
 # Adjusting some configuration
 o.set_config('processes:evaporation',  True)
 o.set_config('processes:emulsification',  True)
 o.set_config('processes:turbulentmixing',  True)
 o.set_config('turbulentmixing:timestep',  5)
 
+#%%
 # Running model (until end of driver data)
 o.run(steps=4*40, time_step=900,
       time_step_output=3600,
       outfile='openoil3d.nc')
 
+#%%
 # Print and plot results
 print(o)
 o.plot(fast=True)
@@ -56,7 +58,8 @@ o.plot_property('z')
 #o.plot_property('mass_evaporated')
 #o.plot_property('water_fraction')
 #o.plot_property('interfacial_area')
-o.animation(filename='openoil3d.gif', fast=True)
+o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/openoil3d.gif
+# .. image:: /gallery/animations/example_openoil3d_0.gif
+

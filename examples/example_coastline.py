@@ -20,6 +20,7 @@ reader_nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/d
 o.add_reader([reader_nordic])
 o.set_config('general:coastline_action', 'previous')
 
+#%%
 # Seeding elements on a grid
 lons = np.linspace(12, 14.5, 30)
 lats = np.linspace(67.5, 68.5, 30)
@@ -32,11 +33,12 @@ o.seed_elements(lon, lat, radius=0, number=30*30, time=time)
 
 o.run(steps=24*2, time_step=3600)
 
+#%%
 # Print and plot results
 print(o)
 o.plot()
 #o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'])
-o.animation(filename='coastline.gif')
+o.animation()
 
 #%%
-# .. image:: /gallery/animations/coastline.gif
+# .. image:: /gallery/animations/example_coastline_0.gif

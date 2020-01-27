@@ -22,23 +22,27 @@ end_time = reader_arome.start_time + timedelta(hours=5)
 end_time = reader_arome.end_time
 time = [start_time, start_time + timedelta(hours=5)]
 
+#%%
 # Seeding some particles
 lon = 4.6; lat = 60.0; # Outside Bergen
 o.seed_elements(lon, lat, radius=50, number=3000, time=time)
 o.run(end_time=end_time, time_step=1800, time_step_output=3600)
 
+#%%
 # Second run, without wind/Stokes drift
 o2 = PlastDrift(loglevel=20)
 o2.add_reader([reader_norkyst])
 o2.seed_elements(lon, lat, radius=50, number=3000, time=time)
 o2.run(end_time=end_time, time_step=1800, time_step_output=3600)
 
+#%%
 # Print and plot results
 print(o)
-o.animation(compare=o2, filename='plast_current_Stokes.gif', fast=True,
+o.animation(compare=o2, fast=True,
             legend=['Current + wind/Stokes drift', 'Current only'])
 #o.animation(color='depth')
 #o.plot_property('depth')
 
 #%%
-# .. image:: /gallery/animations/plast_current_Stokes.gif
+# .. image:: /gallery/animations/example_plast_0.gif
+

@@ -28,10 +28,12 @@ o.fallback_values['y_sea_water_velocity'] = .3
 #o.fallback_values['land_binary_mask'] = 0
 #o.add_reader([reader_landmask, reader_norkyst])
 
+#%%
 # Seed oil elements at defined position and time
 o.seed_elements(lon=4.8, lat=60.0, z=0, radius=3000, number=1000,
                 time=reader_arome.start_time, oiltype='EKOFISK')
 
+#%%
 # Adjusting some configuration
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', False)
@@ -43,6 +45,7 @@ o.set_config('turbulentmixing:TSprofiles', False)
 #o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983')
 o.set_config('turbulentmixing:timestep', 2.) # seconds
 
+#%%
 # Running model (until end of driver data)
 o.run(steps=4*20, time_step=900, export_buffer_length=10,
       outfile='oil_budget.nc')
@@ -58,7 +61,7 @@ o.plot_property('z')
 o.plot_property('mass_evaporated')
 o.plot_property('water_fraction')
 o.plot_property('interfacial_area')
-o.animation(filename='oil_budget.gif')
+o.animation()
 
 #%%
-# .. image:: /gallery/animations/oil_budget.gif
+# .. image:: /gallery/animations/example_oil_budget_0.gif

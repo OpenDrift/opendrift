@@ -36,8 +36,8 @@ o.run(steps=60*2, time_step=1800, outfile='openoil.nc',
 # Print and plot results
 print(o)
 o.plot(linecolor='z', fast=True)  # Color lines according to depth
-o.animation(filename='example_3d.gif', color='z', fast=True)
+o.animation(color='z', fast=True)
 
 
 #%%
-# .. image:: /gallery/animations/example_3d.gif
+# .. image:: /gallery/animations/example_3d_0.gif

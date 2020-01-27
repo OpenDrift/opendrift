@@ -24,15 +24,18 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 
 o.add_reader([reader_norkyst, reader_arome])
 
+#%%
 # Seeding some particles
 lon = 4.2; lat = 60.0; # Outside Bergen
 time = [reader_arome.start_time,
         reader_arome.start_time + timedelta(hours=30)]
 
+#%%
 # Seed oil elements at defined position and time
 o.seed_elements(lon, lat, radius=50, number=5000, time=time)
 
 
+#%%
 # Adjusting some configuration
 o.set_config('processes:dispersion',  False)
 o.set_config('processes:evaporation',  False)
@@ -44,6 +47,7 @@ o.set_config('drift:relative_wind',  False)
 for r in o.readers:
     o.readers[r].interpolation = 'ndimage'
 
+#%%
 # Running model
 o.run(steps=66*4, time_step=900, time_step_output=3600)
 
@@ -65,8 +69,10 @@ o2.run(steps=66*4, time_step=900, time_step_output=3600)
 
 
 # Animate and compare the two runs
-o.animation(compare=o2, legend=['ndimage', 'linearND'], filename='interpolation.gif')
+o.animation(compare=o2, legend=['ndimage', 'linearND'])
 
 
 #%%
-# .. image:: /gallery/animations/interpolation.gif
+# .. image:: /gallery/animations/example_interpolation_0.gif
+
+o.plot(compare=o2, legend=['ndimage', 'linearND'])

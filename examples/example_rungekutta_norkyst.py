@@ -25,11 +25,13 @@ reader_landmask = reader_global_landmask.Reader(
 o.add_reader([reader_norkyst, reader_landmask])
 lon = 4.5; lat = 60.0;
 
+#%%
 # First run, with Euler scheme:
 o.set_config('drift:scheme', 'euler')
 o.seed_elements(lon, lat, radius=0, number=1, time=time)
 o.run(steps=66*2, time_step=1800)
 
+#%%
 # Second run, with Runge-Kutta scheme:
 o2 = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_norkyst, reader_landmask])
@@ -37,8 +39,10 @@ o2.set_config('drift:scheme', 'runge-kutta')
 o2.seed_elements(lon, lat, radius=0, number=1, time=time)
 o2.run(steps=66*2, time_step=1800)
 
+#%%
 # Animate and compare the two runs
-o.animation(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'], filename='rungekutta_norkyst.gif')
+o.animation(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'])
 
 #%%
-# .. image:: /gallery/animations/rungekutta_norkyst.gif
+# .. image:: /gallery/animations/example_rungekutta_norkyst_0.gif
+

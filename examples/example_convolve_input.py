@@ -23,9 +23,11 @@ o.add_reader([reader_norkyst])
 o.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 o.run(steps=20)
 
+#%%
 # Store final field of x-component of current
 original_current = reader_norkyst.var_block_after[list(reader_norkyst.var_block_after.keys())[0]].data_dict['x_sea_water_velocity'].copy()
 
+#%%
 # For the second run, the NorKyst currents are convolved with a kernel,
 # effectively lowering the spatial resolution.
 # <reader>.convolve may also be given as an array (kernel) directly
@@ -35,6 +37,8 @@ o2 = OceanDrift()
 o2.add_reader([reader_norkyst])
 o2.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 o2.run(steps=20)
+
+#%%
 # Store final field of x-component of (convolved) current
 convolved_current = reader_norkyst.var_block_after[
     "['x_sea_water_velocity', 'y_sea_water_velocity']"].data_dict['x_sea_water_velocity']
@@ -51,12 +55,14 @@ plt.colorbar()
 plt.title('Final, convolved current field (x-component)')
 plt.show()
 
+#%%
 # Print and plot results, with convolved currents as background
 print(o)
 o.animation(compare=o2, legend=[
     'Original currents', 'Current convoled with kernel of size %s' % N],
-    background=['x_sea_water_velocity', 'y_sea_water_velocity'],
-    filename='convolve_input.gif')
+    background=['x_sea_water_velocity', 'y_sea_water_velocity'])
 
 #%%
-# .. image:: /gallery/animations/convolve_input.gif
+# .. image:: /gallery/animations/example_convolve_input_0.gif
+
+o.plot()

@@ -15,6 +15,7 @@ o.add_readers_from_list([
     'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be'
     ])
 
+#%%
 # Seed ship elements at defined position and time
 o.seed_elements(lon=5.0, lat=63.0, radius=1000, number=1000,
                 time=datetime.now(),
@@ -22,9 +23,11 @@ o.seed_elements(lon=5.0, lat=63.0, radius=1000, number=1000,
 
 print(o.elements_scheduled)
 
+#%%
 # Running model
 o.run(steps=24, stop_on_error=True)
 
+#%%
 # Print and plot results
 print(o)
 o.plot(linecolor='orientation')

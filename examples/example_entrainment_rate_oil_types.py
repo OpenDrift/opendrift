@@ -9,9 +9,8 @@ from opendrift.models.openoil3D import OpenOil3D
 import matplotlib.pyplot as plt
 import numpy as np
 
-######################################################
+#%%
 # Li et al. (2017) entrainment rate (light vs. heavy oil)
-######################################################
 o2 = OpenOil3D(loglevel=20, weathering_model='noaa')
 o2.fallback_values['land_binary_mask'] = 0
 o2.fallback_values['x_sea_water_velocity'] = -.2
@@ -48,9 +47,8 @@ o3.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000,
                  radius=100, z=0, oiltype='TIA JUANA LIGHT, OIL & GAS') #'EKOFISK BLEND, STATOIL' similar ent.
 o3.run(duration=timedelta(hours=12), time_step=900, time_step_output=3600)
 
-###########################
+#%%
 # Plotting and comparing
-###########################
 print('#######################')
 print('Entrainment rate (heavy)', np.mean(o2.oil_wave_entrainment_rate()))
 print('Entrainment rate (light)', np.mean(o3.oil_wave_entrainment_rate()))
@@ -63,15 +61,13 @@ print('#######################')
 o2.plot_oil_budget()
 o3.plot_oil_budget()
 legend = ['TIA JUANA HEAVY', 'TIA JUANA LIGHT']
-o2.animation_profile(compare=o3, legend=legend, filename='entrainment_rate_oil_types.gif')
+o2.animation_profile(compare=o3, legend=legend)
 
 #%%
-# .. image:: /gallery/animations/entrainment_rate_oil_types.gif
+# .. image:: /gallery/animations/example_entrainment_rate_oil_types_0.gif
 
-o2.animation(compare=o3, legend=legend, filename='entrainment_rate_oil_types_2.gif')
+o2.animation(compare=o3, legend=legend)
 
 #%%
-# .. image:: /gallery/animations/entrainment_rate_oil_types_2.gif
-
-
+# .. image:: /gallery/animations/example_entrainment_rate_oil_types_1.gif
 

@@ -18,10 +18,10 @@ mass_oil = 2000  # mass oil per particle
 oiltype = '*GENERIC DIESEL'
 #oiltype = '*GENERIC BUNKER C'
 
-####################################################
+#%%
 # First run, where surface oil thickness is updated
-####################################################
 o1 = OpenOil3D(loglevel=30, weathering_model='noaa')
+#%%
 # Northwards wind, eastwards current
 o1.fallback_values['land_binary_mask'] = 0
 o1.fallback_values['x_wind'] = 0
@@ -30,6 +30,7 @@ o1.fallback_values['sea_surface_wave_stokes_drift_x_velocity'] = 0
 o1.fallback_values['sea_surface_wave_stokes_drift_y_velocity'] = .3
 o1.fallback_values['x_sea_water_velocity'] = .1
 o1.fallback_values['y_sea_water_velocity'] = 0
+#%%
 # Using Johansen droplet spectrum, which depends on oil film thickness
 o1.set_config('wave_entrainment:droplet_size_distribution',
              'Johansen et al. (2015)')
@@ -45,21 +46,19 @@ o1.seed_elements(lon=4.5, lat=60, number=number,
 o1.run(time_step=timestep, time_step_output=timestep_output,
        duration=duration)
 
+#%%
 # Animation shows how oil thickness evolves,
 # and decreases due to evaporation and spreading
 unitfactor=1e6  # show film thickness in micrometers
 o1.animation(color='oil_film_thickness', fast=True,
              vmin=1e-7*unitfactor, vmax=1e-4*unitfactor,
-             unitfactor=unitfactor, surface_only=True,
-             filename='oil_thicness.gif')
+             unitfactor=unitfactor, surface_only=True,)
 
 #%%
-# .. image:: /gallery/animations/oil_thickness.gif
+# .. image:: /gallery/animations/example_oil_thickness_0.gif
 
-###################################################################
+#%%
 # Second run, identical but without updating surface oil thickness
-###################################################################
-print('Second run...')
 o2 = OpenOil3D(loglevel=30, weathering_model='noaa')
 o2.fallback_values = o1.fallback_values
 
@@ -77,12 +76,12 @@ o2.seed_elements(lon=4.5, lat=60, number=number,
 o2.run(time_step=timestep, time_step_output=timestep_output,
        duration=duration)
 
-####################################################
+#%%
 # Comparison plots
-####################################################
 o1.plot_oil_budget()
 o2.plot_oil_budget()
 
+#%%
 # Entrainment
 b1 = o1.get_oil_budget()
 b2 = o2.get_oil_budget()
@@ -102,6 +101,7 @@ plt.legend()
 plt.xlabel('Time step')
 plt.show()
 
+#%%
 # We see that with the updated film thickness,
 # the droplets are getting gradually smaller
 r1 = o1.get_property('diameter')[0]
@@ -113,11 +113,11 @@ plt.xlabel('Time step')
 plt.ylabel('Median droplet diameter  [micrometer]')
 plt.show()
 
+#%%
 # We see that oil film thickness has virtually no impact on horizontal drift
 o1.animation(compare=o2, fast=True,
-             legend=['Updated film thickness', 'Constant/default film thickness'],
-             filename='oil_thickness_compare.gif')
+             legend=['Updated film thickness', 'Constant/default film thickness'],)
 
 #%%
-# .. image:: /gallery/animations/oil_thickness_compare.gif
+# .. image:: /gallery/animations/example_oil_thickness_1.gif
 

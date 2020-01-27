@@ -20,19 +20,19 @@ o.add_reader([reader_osc])  # Oscillating east-west current component
 
 o.fallback_values['y_sea_water_velocity'] = .2  # Adding northwards drift
 
-##########################################################
+#%%
 # Try different options: 'previous', 'stranding', 'none'
 o.set_config('general:coastline_action', 'previous')
-##########################################################
 
 o.seed_elements(lon=12.2, lat=67.7, radius=5000, number=25, time=reader_osc.zero_time)
 
 o.run(steps=36*4, time_step=900, time_step_output=1800)
 
+#%%
 # Print and plot results
 print(o)
+o.animation()
 o.plot()
-o.animation(filename='coastline_options.gif')
 
 #%%
-# .. image:: /gallery/animations/coastline_options.gif
+# .. image:: /gallery/animations/example_coastline_options_0.gif

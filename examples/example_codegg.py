@@ -22,6 +22,7 @@ reader_norshelf = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds
 
 o.add_reader([reader_norkyst, reader_norshelf])
 
+#%%
 # spawn NEA cod eggs at defined position and time
 time = datetime.datetime.today() - datetime.timedelta(1)
 o.seed_elements(14. , 68.1, z=-40, radius=2000, number=500,
@@ -35,23 +36,27 @@ o.seed_elements(13., 67.8, z=-40, radius=2000, number=500,
 
 
 
+#%%
 # Adjusting some configuration
 o.set_config('processes:turbulentmixing', True)
 #o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
 o.set_config('turbulentmixing:diffusivitymodel', 'environment') # use eddy diffusivity from ocean model
+#%%
 # Vertical mixing requires fast time step
 o.set_config('turbulentmixing:timestep', 60.) # seconds
 
+#%%
 # Running model (until end of driver data)
 o.run(steps=96, time_step=3600)
 
+#%%
 # Print and plot results
 print(o)
 
 o.plot(fast=True)
-o.animation(filename='codegg_forecast.gif', fast=True)
+o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/codegg_forecast.gif
+# .. image:: /gallery/animations/example_codegg_forecast_0.gif
 
 o.plot_vertical_distribution()

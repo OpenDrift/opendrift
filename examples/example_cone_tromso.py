@@ -10,12 +10,14 @@ from opendrift.models.openoil import OpenOil
 
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
+#%%
 # Using live data from Thredds
 reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
 reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 o.add_reader([reader_norkyst, reader_arome])
 
+#%%
 # Seed elements along cone, e.g. ship track with
 # increasing uncertainty in position
 latstart = 68.988911
@@ -30,18 +32,22 @@ o.seed_elements(lon=[lonstart, lonend], lat=[latstart, latend],
 
 print(o)
 
+#%%
 # Adjusting some configuration
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)
 
+#%%
 # Running model for 48 hours
 o.run(steps=48*2, time_step=1800, time_step_output=3600)
 
+#%%
 # Print and plot results
 print(o)
-o.plot(fast=True)
-o.animation(filename='cone_tromso.gif')
+o.animation()
 
 #%%
-# .. image:: /gallery/animations/cone_tromso.gif
+# .. image:: /gallery/animations/example_cone_tromso_0.gif
+
+o.plot(fast=True)

@@ -18,6 +18,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov20
 o.add_reader([reader_norkyst])
 
 
+#%%
 # Calculating attracting/backwards FTLE/LCS at 20 hours
 lcs = o.calculate_ftle(
     time=reader_norkyst.start_time + timedelta(hours=20),
@@ -25,6 +26,7 @@ lcs = o.calculate_ftle(
     duration=timedelta(hours=5), delta=1000,
     RLCS=False)
 
+#%%
 # Simulation from beginning and up to 30 hours (time of LCS)
 o.reset()
 o.seed_elements(lon=4.4, lat=60.2, number=1000, radius=1000,
@@ -33,3 +35,4 @@ o.run(end_time=reader_norkyst.start_time+timedelta(hours=20),
       time_step=timedelta(minutes=30))
 
 o.plot(lcs=lcs, vmin=1e-7, vmax=1e-4, colorbar=True, show_particles=True)
+

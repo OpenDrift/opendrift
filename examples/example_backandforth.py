@@ -18,9 +18,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 
 o.add_reader(reader_norkyst)
 
-################
+#%%
 # Forward run
-################
 # Seeding some particles
 lon = 4.2; lat = 60.1;
 time = reader_norkyst.start_time
@@ -28,14 +27,16 @@ o.seed_elements(lon, lat, radius=1000, number=100, time=time)
 
 o.run(steps=50*4, time_step=900, outfile=ncfile)
 
+#%%
 # Print and plot results
 print(o)
-o.plot(buffer=.2, filename='forward.png', Fast=True)
+o.plot(buffer=.2, Fast=True)
 
-#################
+##%%
 ## Backward run
-#################
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
+
+#%%
 # Import forward run, and seed elements at final positions and time
 o.io_import_file(ncfile)
 elements_final = o.elements
@@ -45,13 +46,15 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o.add_reader(reader_norkyst)
 o.schedule_elements(elements_final, time_final)
 
+#%%
 # Running model backwards from end of forward simulation
 o.run(steps=50*4, time_step=-900)
 
+#%%
 # Print and plot results
 print(o)
-o.plot(buffer=.2, filename='backward.png', fast=True)
+o.plot(buffer=.2, fast=True)
 os.remove(ncfile)
-print('#############################################')
-print('Compare plots forward.png and backward.png')
-print('#############################################')
+
+##%%
+# Compare plots forward and backward

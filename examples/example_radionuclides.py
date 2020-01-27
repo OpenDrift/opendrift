@@ -50,6 +50,7 @@ o.set_config('turbulentmixing:diffusivitymodel','zero')  # include settling with
 # Vertical mixing requires fast time step
 o.set_config('turbulentmixing:timestep', 600.) # seconds
 
+#%%
 # Activate the desired species
 o.set_config('radionuclide:species:LMM', True)
 #o.set_config('radionuclide:species:LMMcation', True)
@@ -87,11 +88,12 @@ o.set_config('general:coastline_action', 'previous')
 
 o.list_configspec()
 
+#%%
 # Running model (until end of driver data)
-o.run(steps=48*2, time_step=1800, time_step_output=3600,
-      outfile='radio.nc')
+o.run(steps=48*2, time_step=1800, time_step_output=3600)
 
 
+#%%
 # Print and plot results
 print(o)
 print('Final speciation:')
@@ -104,17 +106,16 @@ print (o.ntransformations)
 o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
             colorbar=True,
-            filename='radionuclides.gif',
             fast = True
             )
 #%%
-# .. image:: /gallery/animations/radionuclides.gif
+# .. image:: /gallery/animations/example_radionuclides_0.gif
 
 #o.plot_vertical_distribution()
 #o.plot_property('specie')
-o.animation_profile(filename='radionuclides_profile.gif')
+o.animation_profile()
 #%%
-# .. image:: /gallery/animations/radionuclides_profile.gif
+# .. image:: /gallery/animations/example_radionuclides_1.gif
 
 o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,fast=True,
 #       background='land_binary_mask',

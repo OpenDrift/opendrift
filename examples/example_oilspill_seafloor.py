@@ -18,23 +18,28 @@ o.add_reader([reader_norkyst])
 o.fallback_values['x_wind'] = 0
 o.fallback_values['y_wind'] = 0
 
+#%%
 # Seeding some particles
 lon = 4.5; lat = 62.0
 time = [reader_norkyst.start_time,
         reader_norkyst.start_time + timedelta(hours=1)]
-
+#%%
 # Seed oil elements at defined position and time
 o.seed_elements(lon, lat, z='seafloor', radius=5, number=3000, time=time)
 
 o.set_config('processes:turbulentmixing', True)  # Otherwise also no updrift
 
+#%%
 # Running model
 o.run(steps=12*2, time_step=300, time_step_output=300)
 
+#%%
 # Print and plot results
 print(o)
-o.animation_profile(filename='oilspill_seafloor.gif')
+o.animation_profile()
 
 #%%
-# .. image:: /gallery/animations/oilspill_seafloor.gif
+# .. image:: /gallery/animations/example_oilspill_seafloor_0.gif
+
+o.plot()
 

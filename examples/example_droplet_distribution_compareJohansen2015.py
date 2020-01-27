@@ -12,13 +12,13 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from opendrift.models.openoil3D import OpenOil3D
 
+#%%
 # droplet size interval for simulation and plotting
 dmin = 1.e-5
 dmax = 5.e-3
 
-########################################################
+#%%
 # simulation with Johansen et al. (2015) droplet spectrum
-########################################################
 o = OpenOil3D(loglevel=20, weathering_model='noaa')
 o.fallback_values['land_binary_mask'] = 0
 o.fallback_values['x_sea_water_velocity'] = -.2
@@ -46,7 +46,8 @@ DN_50 = np.exp( np.log(DV_50) - 3*Sd**2 )
 print('DV_50: %f' % DV_50)
 print('DN_50: %f' % DN_50)
 
-################## Plotting ##########################
+#%%
+# Plotting
 plt.figure(figsize=[14,14])
 plt.subplot(3, 2, 1)
 nVpdf, binsV, patches = plt.hist(droplet_diameters, 100, range=(dmin,dmax), align='mid')
@@ -60,12 +61,14 @@ plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('V(d)', fontsize=8)
 plt.title('cumulative volume spectrum', fontsize=10)
 
+#%%
 # calculate number spectrum from volume spectrum
 d = 0.5* (binsV[1:] + binsV[:-1])
 V = 4./3. * np.pi * (d/2.)**3
 Npdf = nVpdf / V
 Ncum = np.cumsum(Npdf)
 
+#%%
 # calculate theoretical cumulative Number distribution
 spectrum = (np.exp(-(np.log(d) - np.log(DN_50))**2 / (2 * Sd**2))) / (d * Sd * np.sqrt(2 * np.pi)) # from OpenOil3D median diameter
 DN_50_johansen = 0.000483
