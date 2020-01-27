@@ -396,6 +396,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                 np.fill_diagonal(self.transfer_rates[ii,:,:],0.)
         else:
             np.fill_diagonal(self.transfer_rates,0.)
+        
+#         # HACK : 
+#         self.transfer_rates[:] = 0. 
+#         print ('\n ###### \n IMPORTANT:: \n transfer rates have been hacked! \n#### \n ')
+        
         self.logger.info('nspecies: %s' % self.nspecies)
         self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
@@ -733,6 +738,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
     def update(self):
         """Update positions and properties of radionuclide particles."""
         
+        # Workaround due to conversion of datatype
+        self.elements.specie = self.elements.specie.astype(np.int32)
 
         # Radionuclide speciation
         self.update_transfer_rates()
@@ -791,7 +798,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 # POSTPROCESSING
 
 
-    def write_netcdf_radionuclide_density_map(self, filename, pixelsize_m='auto', deltaz=None,
+    def write_netcdf_radionuclide_density_map(self, filename, pixelsize_m='auto', zlevels=None,
+                                              deltat=None,
                                               density_proj=None,
                                               llcrnrlon=None, llcrnrlat=None,
                                               urcrnrlon=None, urcrnrlat=None):
@@ -827,9 +835,9 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
         z = self.get_property('z')[0]
-        if not deltaz==None:
-            deltaz = np.sort(deltaz)
-            z_array = np.append(np.append(-10000, deltaz) , max(0,np.nanmax(z)))
+        if not zlevels==None:
+            zlevels = np.sort(zlevels)
+            z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
         else:
             z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
         self.logger.info('z_array: {}'.format(  [str(item) for item in z_array] ) )
@@ -870,11 +878,88 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
                 conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * activity_per_element
-        
-        
+
+
 #        print ('pixel_volume', pixel_volume.shape, np.sum(np.isnan(pixel_volume)))
 #        print ('conc', conc.shape, np.sum(np.isnan(conc)))
 #        print ('H', H.shape, np.sum(np.isnan(H)))
+        
+        
+        conctmp = conc[:-1,:,:,:,:]
+        times = np.array( self.get_time_array()[0] )
+        cshape = conctmp.shape
+        print ('conctmp', conctmp.shape)
+#        print ('times:',deltat, times)
+        mdt =    np.mean(times[1:] - times[:-1])    # output frequency in standard file 
+        print ( 'mdt', mdt , mdt.seconds /3600. ) 
+        if deltat==None:
+            ndt = 1
+        else:
+            ndt = int( deltat / (mdt.seconds/3600.) ) 
+        print ( 'ndt', ndt ) # number of time steps over which to average in conc file
+        times2 = times[::ndt]
+        times2 = times2[1:]
+        print ('times2:',times2)
+        odt = int(cshape[0]/ndt)
+        print ('odt',odt)   # number of average slices
+        
+
+        #TODO:  Write this more efficient!
+        mean_conc = np.zeros( [odt,cshape[1],cshape[2],cshape[3],cshape[4]] )
+        for ii in range(odt):
+            meantmp  = np.mean(conctmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
+            mean_conc[ii,:,:,:,:] = meantmp
+#      t0 = times[0]
+#        i0=0
+#        for ii, ti in enumerate(times[::ndt]):
+#            print (t0, ti)
+#            mean_t = np.mean(times[i0:ii])
+#            i0=ii; t0=ti
+#        import matplotlib.pyplot as plt
+#        fig = plt.figure() # Fig 1
+#        plt.pcolormesh(np.arange(22), np.arange(48), np.mean(conctmp[:,0,0,:,:],axis=0))
+        
+        
+#         mc0 = np.mean(conctmp[:,0,0,:,:],axis=0).reshape(-1)
+#         mc1 = np.mean(conctmp.reshape(12,-1),axis=0)
+#         
+#         print ('mc0',mc0.shape)
+#         print ('mc1',mc1.shape)
+#         fig = plt.figure() # Fig 2"
+#         plt.plot(np.arange(1056), mc0,marker='*', c='r')
+#         plt.plot(np.arange(1056), mc1,marker='*',c='k')
+
+        
+#         fig = plt.figure() # Fig 3
+#         plt.pcolormesh(np.arange(22), np.arange(48), mc0.reshape(48,22))
+#         
+#         fig = plt.figure() # Fig 4
+#         plt.pcolormesh(np.arange(22), np.arange(48), mc1.reshape(48,22))
+        
+        
+#        mean_conc = conctmp.reshape(ndt,-1)
+#        print (mean_conc.shape)
+#         fig = plt.figure() # Fig 5
+#         plt.pcolormesh(np.arange(1056), np.arange(12), mean_conc)
+        
+
+#        mean_conc = np.mean(mean_conc,axis=0)
+#        mean_conc = np.mean(conctmp.reshape(-1,ndt), axis=1)
+#        mean_conc = np.mean(conctmp.reshape(-1,ndt), axis=1).reshape([int(conctmp.shape[0]/ndt),conctmp.shape[1],conctmp.shape[2],conctmp.shape[3],conctmp.shape[4]])
+#        print (mean_conc.shape) 
+#         fig = plt.figure() # Fig 6"
+#         plt.plot(np.arange(1056), mean_conc,marker='*')
+        
+#        mean_conc = mean_conc.reshape(3,1,1,54,29)
+#        mean_conc = mean_conc.reshape(29,54,1,1,3)
+#        mean_conc = mean_conc.reshape(len(times2),cshape[1],cshape[2],cshape[3],cshape[4])
+        print (mean_conc.shape)
+        
+#         fig = plt.figure() # Fig 4
+#         plt.pcolormesh(np.arange(22), np.arange(48), mean_conc[0,0,0,:,:])
+#         
+#         
+#         plt.show()
         
 
 
@@ -885,12 +970,18 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.createDimension('depth', len(z_array)-1)
         nc.createDimension('specie', self.nspecies)
         nc.createDimension('time', H.shape[0])
-        times = self.get_time_array()[0]
+        nc.createDimension('time2', odt)
+
+#        times = self.get_time_array()[0]
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time',))
         nc.variables['time'][:] = date2num(times, timestr)
         nc.variables['time'].units = timestr
         nc.variables['time'].standard_name = 'time'
+
+        nc.createVariable('time2', 'f8', ('time2',))
+        nc.variables['time2'][:] = date2num(times2, timestr) # np.arange(mean_conc.shape[0])
+        nc.variables['time2'].units = timestr
         
         # Projection
         nc.createVariable('projection', 'i8')
@@ -935,17 +1026,31 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.variables['density_surface'].units = '1'
 
 
+        if False:
+            # Radionuclide concentration
+            nc.createVariable('concentration', 'f8',
+                              ('time','specie','depth','y', 'x'),fill_value=0)
+            conc = np.swapaxes(conc, 3, 4) #.astype('i4')
+            conc = np.ma.masked_where(conc==0, conc)
+            nc.variables['concentration'][:] = conc
+            nc.variables['concentration'].long_name = 'blablabla'
+            nc.variables['concentration'].grid_mapping = 'projection_lonlat'
+            nc.variables['concentration'].units = 'mg/L'
+            
+        nc.createVariable('concentration2', 'f8',
+                          ('time2','specie','depth','y', 'x'),fill_value=0)
+    #        conc2 = mean_conc
+        conc2 = np.swapaxes(mean_conc, 3, 4) #.astype('i4')
+#        conc2 = np.swapaxes(mean_conc, 0, 4) #.astype('i4')
+#        conc2 = np.swapaxes(conc2, 1, 3) #.astype('i4')
+#        conc2 = np.swapaxes(conc2, 3, 4) #.astype('i4')
+        print (conc2.shape)
+        conc2 = np.ma.masked_where(conc2==0, conc2)
+        nc.variables['concentration2'][:] = conc2
+        nc.variables['concentration2'].long_name = 'blablabla'
+        nc.variables['concentration2'].grid_mapping = 'projection_lonlat'
+        nc.variables['concentration2'].units = 'mg/L'
 
-        # Radionuclide concentration
-        nc.createVariable('concentration', 'f8',
-                          ('time','specie','depth','y', 'x'),fill_value=0)
-        conc = np.swapaxes(conc, 3, 4) #.astype('i4')
-        conc = np.ma.masked_where(conc==0, conc)
-        nc.variables['concentration'][:] = conc
-        nc.variables['concentration'].long_name = 'blablabla'
-        nc.variables['concentration'].grid_mapping = 'projection_lonlat'
-        nc.variables['concentration'].units = 'mg/L'
-        
         
         # Volume of boxes
         nc.createVariable('volume', 'f8',
