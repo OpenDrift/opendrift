@@ -1270,3 +1270,34 @@ class BaseReader(object):
             plt.close()
         else:
             plt.show()
+
+    def get_timeseries_at_position(self, lon, lat, variables=None, start_time=None, end_time=None):
+        """ Get timeseries of variables from this reader at given position.
+        """
+
+        if start_time is None:
+            start_time = self.start_time
+        if end_time is None:
+            end_time = self.end_time
+        if variables is None:
+            variables = self.variables
+
+        if len(self.covers_positions(lon=lon, lat=lat)[0]) is 0:
+            return None
+
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
+
+        times = [t for t in self.times if t >= start_time and t<= end_time]
+        data = {'time': times}
+        for var in variables:
+            data[var] = np.zeros(len(times))
+
+        for i, time in enumerate(times):
+            d = self.get_variables_interpolated(
+                lon=lon, lat=lat, z=np.atleast_1d(0),
+                time=time, variables=variables, rotate_to_proj='+proj=latlong')[0]
+            for var in variables:
+                data[var][i] = d[var][0]
+
+        return(data)
