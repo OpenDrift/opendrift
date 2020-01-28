@@ -192,7 +192,8 @@ class OpenOil(OpenDriftSimulation):
     # Workaround as ADIOS oil library uses
     # max water fraction of 0.9 for all crude oils
     max_water_fraction  = {
-        'MARINE GAS OIL 500 ppm S 2017': 0.1}
+        'MARINE GAS OIL 500 ppm S 2017': 0.1,
+        'FENJA (PIL) 2015': .75}
 
 
     def __init__(self, weathering_model='default', *args, **kwargs):
@@ -510,22 +511,14 @@ class OpenOil(OpenDriftSimulation):
         #########################################################
         # Update density and viscosity according to temperature
         #########################################################
-        try:  # New version of OilLibrary
-            self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
-            oil_viscosity = self.oiltype.kvis_at_temp(
-                self.environment.sea_water_temperature)
-            self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
-            self.timer_start('main loop:updating elements:oil weathering:updating densities')
-            oil_density = self.oiltype.density_at_temp(
-                self.environment.sea_water_temperature)
-            self.timer_end('main loop:updating elements:oil weathering:updating densities')
-        except:  # Old version of OilLibrary
-            oil_viscosity = np.array(
-                [self.oiltype.get_viscosity(t) for t in
-                 self.environment.sea_water_temperature])
-            oil_density = np.array(
-                [self.oiltype.get_density(t) for t in
-                 self.environment.sea_water_temperature])
+        self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
+        oil_viscosity = self.oiltype.kvis_at_temp(
+            self.environment.sea_water_temperature)
+        self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
+        self.timer_start('main loop:updating elements:oil weathering:updating densities')
+        oil_density = self.oiltype.density_at_temp(
+            self.environment.sea_water_temperature)
+        self.timer_end('main loop:updating elements:oil weathering:updating densities')
 
         # Calculate emulsion density
         self.elements.density = (

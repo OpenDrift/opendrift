@@ -5,8 +5,6 @@ Macondo
 """
 
 from datetime import datetime, timedelta
-
-from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
@@ -21,15 +19,8 @@ reader_globcurrent = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thr
 reader_oceanwind = reader_netCDF_CF_generic.Reader('http://tds0.ifremer.fr/thredds/dodsC/CERSAT-GLO-CLIM_WIND_L4-OBS_FULL_TIME_SERIE')
 #print(reader_oceanwind)
 
-# XXX: not-relevant
-# For longer simulations, it is better to pre-generate a landmask:
-# Landmask
-reader_landmask = reader_global_landmask.Reader(
-                    llcrnrlon=-94, llcrnrlat=20,
-                    urcrnrlon=-80, urcrnrlat=32)
-
 # Add readers
-o.add_reader([reader_landmask, reader_globcurrent, reader_oceanwind])
+o.add_reader([reader_globcurrent, reader_oceanwind])
 
 # Seed some particles
 lon = -88.387161; lat = 28.736669  # Macondo location
@@ -45,8 +36,8 @@ o.run(duration=timedelta(days=40),
 
 # Print and plot results
 print(o)
-o.plot()
-o.animation(filename='macondo.gif')
+o.plot(fast=True)
+o.animation(filename='macondo.gif', fast=True)
 
 #%%
 # .. image:: /gallery/animations/macondo.gif

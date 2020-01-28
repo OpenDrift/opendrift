@@ -158,7 +158,10 @@ class OpenBerg(OpenDriftSimulation):
 
 		# Obtain depth levels from reader:
         reader_name = reader_groups[0][0]
-        profile = np.abs(np.ma.filled(self.readers[reader_name].z))
+        if hasattr(self.readers[reader_name], 'z'):
+            profile = np.abs(np.ma.filled(self.readers[reader_name].z))
+        else:  # ROMS sigma levels
+            profile = np.abs(np.ma.filled(self.readers[reader_name].zlevels))
 
        # Make sure that interpolation is left to reader if no blocks are used .
        # NB! This is a workaround, two additional points should be removed in basereader!
