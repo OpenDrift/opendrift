@@ -63,16 +63,18 @@ def G(sigma):
 
 def gls_tke(s):
     '''From LADIM model.'''
-
     if not hasattr(s, 'gls_parameters'):
-        self.logger.info('Searching readers for GLS parameters...')
+        # self.logger.info('Searching readers for GLS parameters...')
+        s.logger.info('Searching readers for GLS parameters...')
         for reader_name, reader in s.readers.items():
             if hasattr(reader, 'gls_parameters'):
                 s.gls_parameters = reader.gls_parameters
-                self.logger.info('Found gls-parameters in ' + reader_name)
+                # self.logger.info('Found gls-parameters in ' + reader_name)
+                s.logger.info('Found gls-parameters in ' + reader_name)
                 break  # Success
         if not hasattr(s, 'gls_parameters'):
-            self.logger.info('Did not find gls-parameters in any readers.')
+            # self.logger.info('Did not find gls-parameters in any readers.')
+            s.logger.info('Did not find gls-parameters in any readers.')
             s.gls_parameters = None
 
     g = 9.81
