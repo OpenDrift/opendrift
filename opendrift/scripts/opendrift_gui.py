@@ -449,7 +449,7 @@ class OpenDriftGUI(tk.Tk):
             self.depth.config(state='normal')
 
     def show_help(self):
-        help_url = 'https://github.com/OpenDrift/opendrift/wiki/Graphical-User-Interface'
+        help_url = 'https://opendrift.github.io/gui.html'
         print('Opening help website:\n' + help_url)
         import webbrowser
         webbrowser.open(help_url)
