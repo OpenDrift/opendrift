@@ -3258,7 +3258,7 @@ class OpenDriftSimulation(PhysicsMethods):
         time = trajectory_dict['time']
         time = np.array(time)
         i = np.where((time>=self.start_time) & (time<=self.time))[0]
-        x, y = (trajectory_dict['lon'][i], trajectory_dict['lat'][i])
+        x, y = (np.atleast_1d(trajectory_dict['lon'])[i], np.atleast_1d(trajectory_dict['lat'])[i])
         ls = trajectory_dict['linestyle']
 
         gcrs = ccrs.PlateCarree()
