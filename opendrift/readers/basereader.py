@@ -1218,7 +1218,7 @@ class BaseReader(object):
         p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
         xsp = p[:, 0]
         ysp = p[:, 1]
-        
+
         if variable is None:
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
                                zorder=100)
@@ -1284,11 +1284,11 @@ class BaseReader(object):
             if end_time is None:
                 end_time = self.end_time
             times = [t for t in self.times if t >= start_time and t<= end_time]
-        
+
         if variables is None:
             variables = self.variables
 
-        if len(self.covers_positions(lon=lon, lat=lat)[0]) is 0:
+        if len(self.covers_positions(lon=lon, lat=lat)[0]) == 0:
             return None
 
         lon = np.atleast_1d(lon)
