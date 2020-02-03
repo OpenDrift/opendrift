@@ -1,6 +1,12 @@
 History
 =======
 
+Next release
+--------------------------
+
+* Specifying a positive time step with a negative duration is now an error. Duration should
+  always be specified positive.
+
 2020-01-08 / Release v1.2.0
 ---------------------------
 

@@ -15,6 +15,7 @@
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2020, Gaute Hope, MET Norway
 
 import sys
 import os
@@ -2040,9 +2041,14 @@ class OpenDriftSimulation(PhysicsMethods):
                                  (end_time))
         if duration is None:
             duration = end_time - self.start_time
+
         if time_step.days < 0 and duration.days >= 0:
             # Duration shall also be negative for backwards run
             duration = -duration
+
+        if np.sign(duration.total_seconds()) * np.sign(time_step.total_seconds()) < 0:
+            raise ValueError("Time step must be negative if duration is negative.")
+
         self.expected_steps_output = duration.total_seconds() / \
             self.time_step_output.total_seconds() + 1  # Includes start and end
         self.expected_steps_calculation = duration.total_seconds() / \
