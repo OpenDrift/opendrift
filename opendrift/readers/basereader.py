@@ -13,6 +13,7 @@
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2020, Gaute Hope, MET Norway
 
 from future.utils import iteritems
 import sys
