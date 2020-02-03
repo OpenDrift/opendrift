@@ -58,7 +58,7 @@ class Reader(NCReader):
                  serviceID='GLOBAL_ANALYSIS_FORECAST_PHY_001_024-TDS',
                  lon_min=None, lon_max=None, lat_min=None, lat_max=None,
                  depth_min=0, depth_max=3,
-                 time_start=datetime.now(),
+                 time_start=datetime.now(), ID='',
                  time_end=datetime.now() + timedelta(days=1)):
 
         if cmems_user is None:
@@ -82,7 +82,7 @@ class Reader(NCReader):
         self.variables = list(content['variables'].values())
 
         # Downloaded data will be stored in this file, to be overwritten by subsequent downloads
-        self.nc_file = self.productID + '.nc'
+        self.nc_file = self.productID + ID + '.nc'
 
         # Download xml file specifying content
         content_file = self.productID + '.xml'
