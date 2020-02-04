@@ -36,11 +36,6 @@ Miniconda (recommended)
 
   $ conda install -c opendrift -c conda-forge -c noaa-orr-erd opendrift
 
-
-
-.. _pip_install:
-
-
 .. _source_install:
 
 From source
