@@ -54,13 +54,13 @@ A Reader instance may then be created to obtain data from a local file::
 To generate a reader for data on a Thredds server (here the same reader class may be used, as files are still CF-compliant)::
 
     reader_norkyst = reader_netCDF_CF_generic.Reader(
-        'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+        'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 The reader can be inspected with::
 
     print(reader_norkyst)
     ===========================
-    Reader: http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
+    Reader: https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
     Projection:
       +proj=stere +ellps=WGS84 +lat_0=90.0 +lat_ts=60.0 +x_0=3192800 +y_0=1784000 +lon_0=70
     Coverage: [m]
@@ -103,7 +103,7 @@ Adding the option -p to the above command will also plot the geographical covera
 
 The coverage of the NorKyst ocean model on the met.no Thredds server may e.g. be plotted with the following command::
 
-    readerinfo.py http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be -p
+    readerinfo.py https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be -p
 
 .. image:: https://www.dropbox.com/s/wb1ztfct47eooy0/norkyst_coverage.png?raw=1
 
@@ -158,8 +158,8 @@ For an operational setup, it is convenient to have a long priority list of avail
 The concept of *Lazy Readers* allows to delay the initialisation of readers until they are actually needed. This minimises statup time, and decreases the risk of hanging. Readers are by default *Lazy* if they are initiated with the methods ``add_readers_from_list(<list_of_reader_filenames/URLs>)`` or ``add_readers_from_file(<file_with_lines of_reader_filenames/URLs>)``, e.g.::
 
     o.add_readers_from_list(['somelocalfile.nc',
-           'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-           'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be'])
+           'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+           'https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be'])
 
 Printing the simulation object then shows that these have been added as lazy readers. Since initialisation of these have been delayed, we do not yet know whether they cover the required variables, but this will be checked whenever necessary during the upcoming simulation::
 
@@ -180,8 +180,8 @@ Printing the simulation object then shows that these have been added as lazy rea
     ---
     Lazy readers:
       LazyReader: somelocalfile.nc
-      LazyReader: http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
-      LazyReader: http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
+      LazyReader: https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
+      LazyReader: https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
     ===========================
 
 If ``somelocalfile.nc`` contains the required variables for the element positions throughout the simulation, the Thredds-readers will never be initialised, thus saving time.
@@ -239,7 +239,7 @@ Run the script :doc:`gallery/example_long_seed_demonstration` for a demonstratio
 4. Configuration
 ################
 
-OpenDrift allows for configuration of the model using the package `ConfigObj <http://www.voidspace.org.uk/python/configobj.html>`_. The properties which can be configured can be listed by the command::
+OpenDrift allows for configuration of the model using the package `ConfigObj <https://www.voidspace.org.uk/python/configobj.html>`_. The properties which can be configured can be listed by the command::
 
     o.list_configspec()
 
@@ -283,7 +283,7 @@ The duration of the simulation may be specified by providing one (and only one) 
  * ``end_time`` [datetime.datetime] The end time of the simulation
 
 The output may be saved to a file, if specifying ``outfile=<filename>``.
-Currently only one output format is supported: the `NetCDF CF convention on Trajectory data <http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#_trajectory_data>`_.
+Currently only one output format is supported: the `NetCDF CF convention on Trajectory data <https://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#_trajectory_data>`_.
 A sample output NetCDF file is available `here <https://dl.dropboxusercontent.com/s/qcsyqh5eyazyo1h/openoil.nc>`_.
 It is possible to make "writers" for other output formats, and these must be stored in the subfolder **export**.
 
@@ -331,11 +331,11 @@ After the run (or after importing from a file), the status can be inspected::
       -----
       x_sea_water_velocity
       y_sea_water_velocity
-         1) http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
+         1) https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
       -----
       x_wind
       y_wind
-         1) http://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc
+         1) https://thredds.met.no/thredds/dodsC/arome25/arome_metcoop_default2_5km_latest.nc
       -----
       land_binary_mask
          1) global_landmask
@@ -377,7 +377,7 @@ An animation comparing two runs is obtained by::
 
 where o2 is another simulation object (or filename of saved simulation). The legend items correspond to the first (o) and second (o2) simulations. The two runs must have identical time steps and start time.
 
-The animation may be saved to file if providing the keyword ``filename``. Supported output is animated GIF (if file suffix is .gif, and if imagemagick is available) or otherwise mp4 (file suffix .mp4). For mp4 you might need to install `ffmpeg <https://ffmpeg.org/download.html>`_ or `mencoder <http://www.mplayerhq.hu/design7/dload.html>`_ if not already available on your system.
+The animation may be saved to file if providing the keyword ``filename``. Supported output is animated GIF (if file suffix is .gif, and if imagemagick is available) or otherwise mp4 (file suffix .mp4). For mp4 you might need to install `ffmpeg <https://ffmpeg.org/download.html>`_ or `mencoder <https://www.mplayerhq.hu/design7/dload.html>`_ if not already available on your system.
 The quality of mp4-files is quite low with older versions of Matplotlib, as bitrate may not be set manually. With newer versions of Matplotlib, the animate function might however need some updates to work properly (please `report <https://github.com/opendrift/opendrift/issues>`_ any errors).
 When exporting animation to mp4, an additional parameter ``fps`` may be provided to specify the number of frames per seconds (speed of animation), default is 20 frames/second.
 

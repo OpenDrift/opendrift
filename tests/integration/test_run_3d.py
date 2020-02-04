@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -29,7 +29,7 @@ from opendrift.models.pelagicegg import PelagicEggDrift
 from opendrift.models.oceandrift3D import OceanDrift3D
 
 try:
-    netCDF4.Dataset('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+    netCDF4.Dataset('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
     thredds_support = True
 except:
     thredds_support = False
@@ -69,8 +69,8 @@ class TestRun(unittest.TestCase):
     def atest_reader_boundary_thredds(self):
         o = PelagicEggDrift(loglevel=20)
 
-        reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-        reader_nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+        reader_nordic = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
         o.add_reader([reader_norkyst, reader_nordic])
         o.fallback_values['land_binary_mask'] = 0
         lon = 0.2; lat = 61.0; # Close to NorKyst boundary

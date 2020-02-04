@@ -6,7 +6,7 @@ CMEMS
 This example runs a Leeway simulation, with current data downloaded
 from CMEMS, and wind data from an NCEP Thredds server.
 To run this example, you need a CMEMS account created at
-http://marine.copernicus.eu, and you need to install the motuclient
+https://marine.copernicus.eu, and you need to install the motuclient
 available from https://github.com/clstoulouse/motu-client-python :
 python -m pip install motuclient
 """
