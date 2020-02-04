@@ -109,7 +109,7 @@ class Reader(BaseReader):
     .. code::
 
        from opendrift.readers.reader_netCDF_CF_generic import Reader
-       r = Reader('https://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
+       r = Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
 
 
     """
