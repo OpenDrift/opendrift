@@ -15,10 +15,10 @@ from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 # Nordic4
-reader_nordic4 = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
+reader_nordic4 = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
 
 o.add_reader([reader_norkyst, reader_nordic4])
 o.fallback_values['land_binary_mask'] = 0

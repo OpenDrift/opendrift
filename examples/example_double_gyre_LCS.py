@@ -32,7 +32,7 @@ lcs = o.calculate_ftle(time=double_gyre.initial_time+timedelta(seconds=3),
 
 #%%
 # These plots should reproduce Mov 12 on this page:
-# http://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
+# https://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
 plt.subplot(2,1,1)
 plt.imshow(lcs['RLCS'][0,:,:], interpolation='nearest', cmap='jet', origin='lower')
 plt.colorbar()

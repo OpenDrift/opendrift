@@ -19,11 +19,11 @@ if __name__ == '__main__':
     o = OpenOil3D(weathering_model='default')
 
     readers_thredds = [  # Note that order (priority) is important!
-        'http://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/NorKyst-800m_ZDEPTHS_his_00_1March2017.nc',
-        'http://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/Nordic-4km_ZDEPTHS_avg_00.nc',
-        'http://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/meps_mbr0_pp_2_5km_20170301T00Z.nc',
-        'http://thredds.met.no//thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/MyWave_wam4_WAVE_20170301T00Z.nc',
-        'http://thredds.met.no//thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/MyWave_wam4_RAD_20170301T00Z.nc',
+        'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/NorKyst-800m_ZDEPTHS_his_00_1March2017.nc',
+        'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/Nordic-4km_ZDEPTHS_avg_00.nc',
+        'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/meps_mbr0_pp_2_5km_20170301T00Z.nc',
+        'https://thredds.met.no//thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/MyWave_wam4_WAVE_20170301T00Z.nc',
+        'https://thredds.met.no//thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/MyWave_wam4_RAD_20170301T00Z.nc',
         ]
 
     readers_local = [  # Note that order (priority) is important!

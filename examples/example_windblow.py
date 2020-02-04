@@ -12,7 +12,7 @@ o = WindBlow(loglevel=20)  # Set loglevel to 0 for debug information
 #%%
 # Example of elements blowing with the wind, also over land
 
-#reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
+#reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
 

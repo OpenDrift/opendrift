@@ -10,7 +10,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -66,7 +66,7 @@ class ModelTemplate(OpenDriftSimulation):
     # Specify which environment variables (e.g. wind, waves, currents...)
     # are needed/required by the present model, to be used for updating
     # the element properties (including propagation).
-    # The convention of using CF standard_name (http://cfconventions.org)
+    # The convention of using CF standard_name (https://cfconventions.org)
     # allows reusing readers for many/all models.
     # Vector quantities should be referred to by the x-y components
     # (e.g. x_wind) and not the lon-lat componenets (e.g. east_wind).

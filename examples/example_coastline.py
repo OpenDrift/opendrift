@@ -13,7 +13,7 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 o.max_speed = 3
 
 # This example works better using hourly input from Thredds than the daily data from test folder
-reader_nordic = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
+reader_nordic = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
 #reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
 #    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 

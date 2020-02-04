@@ -17,8 +17,8 @@ import_file = False  # Set to True to import previous run
 if import_file is True:
     o.io_import_file(ncfile)
 else:
-    reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
-    reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+    reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
+    reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
     o.add_reader([reader_norkyst, reader_arome])
 

@@ -12,8 +12,8 @@ o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 #%%
 # Using live data from Thredds
-reader_arome = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
-reader_norkyst = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
+reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 o.add_reader([reader_norkyst, reader_arome])
 
