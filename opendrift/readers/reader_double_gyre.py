@@ -10,7 +10,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -62,7 +62,7 @@ class Reader(BaseReader):
         variables = {}
 
         # Construct double gyre current field
-        # http://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
+        # https://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
         t = (time-self.initial_time).total_seconds()
         a = self.epsilon*np.sin(self.omega*t)
         b = 1-2*self.epsilon*np.sin(self.omega*t)

@@ -10,7 +10,7 @@ from netCDF4 import Dataset, num2date, date2num
 
 # Module with functions to export/import trajectory data to/from netCDF file
 # Strives to be compliant with netCDF CF-convention on trajectories
-# http://cfconventions.org/Data/cf-conventions/cf-conventions-1.6/build/cf-conventions.html#idp8377728
+# https://cfconventions.org/Data/cf-conventions/cf-conventions-1.6/build/cf-conventions.html#idp8377728
 # https://geo-ide.noaa.gov/wiki/index.php?title=NODC_NetCDF_Trajectory_Template
 
 skip_parameters = ['ID']  # Do not write to file
@@ -148,7 +148,7 @@ def close(self):
 
     # Finally changing UNLIMITED time dimension to fixed, for CDM compliance.
     # Fortunately this is quite fast.
-    # http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/reference/FeatureDatasets/CFpointImplement.html
+    # https://www.unidata.ucar.edu/software/thredds/current/netcdf-java/reference/FeatureDatasets/CFpointImplement.html
     try:
         logging.debug('Making netCDF file CDM compliant with fixed dimensions')
         if self.num_elements_scheduled() > 0:

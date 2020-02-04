@@ -13,8 +13,8 @@ from opendrift.readers import reader_netCDF_CF_generic
 # Drift simulation using 10 member ensemble wind data
 # from MEPS model of MET Norway
 
-o = OceanDrift(loglevel=20)
-r = reader_netCDF_CF_generic.Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_allmembers_extracted_2_5km_latest.nc')
+o = OceanDrift(loglevel=0)
+r = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
 o.add_reader(r)
 
 o.seed_elements(lat=60, lon=4.8, time=r.start_time,
@@ -24,7 +24,7 @@ o.run(duration=timedelta(hours=50), time_step=1800, time_step_output=3600)
 
 #%%
 # Ensemble members are recycled among the 10000 particles
-ensemble_number = np.remainder(o.history['ID'], 10) + 1
+ensemble_number = np.remainder(o.history['ID'], 24) + 1
 
 o.animation(fast=True, color=ensemble_number, clabel='Ensemble number')
 
