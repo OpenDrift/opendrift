@@ -105,6 +105,7 @@ Contents
    oil_types
    interaction_with_coastline
    gui
+   references
    autoapi/index
 
 
