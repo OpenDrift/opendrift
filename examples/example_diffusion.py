@@ -19,7 +19,7 @@ reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015
 # Norkyst ocean model
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 # Uncomment to use live data from thredds
-#reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
+#reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 o.add_reader([reader_norkyst, reader_arome])
