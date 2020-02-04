@@ -313,7 +313,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             
 
             if self.get_config('radionuclide:species:Particle_reversible'):
-                self.transfer_rates[self.num_lmm,self.num_prev] = 1.e-5 #*0.
+                self.transfer_rates[self.num_lmm,self.num_prev] = 5.e-6 #*0.
+                self.transfer_rates[self.num_lmm,self.num_srev] = 1.e-5 #*0.
             if self.get_config('radionuclide:species:Sediment_reversible'):
                 self.transfer_rates[self.num_srev,self.num_lmm] = 5.e-6 
             
