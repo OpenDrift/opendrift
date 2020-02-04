@@ -35,6 +35,13 @@ o2.seed_elements(lon, lat, radius=3000, number=1000, time=time)
 o2.set_config('general:use_auto_landmask', False)
 o2.run(end_time=reader_nordic.end_time, time_step=1800, time_step_output=3*3600)
 
+#%%
+# .. _model_landmask_only_model:
+#
+# To only show the landmask from the model, hide the coastline landmask by doing:
+o2.plot(background='land_binary_mask', hide_landmask=True,
+            legend=['Default GSHHG landmask', 'Ocean model landmask'])
+
 
 #%%
 # Animation illustrating that red particles strand at ocean model land cells, and black particles strand at GSHHG land polygons
