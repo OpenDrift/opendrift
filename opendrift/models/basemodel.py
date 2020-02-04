@@ -3018,7 +3018,7 @@ class OpenDriftSimulation(PhysicsMethods):
             lscale (string): resolution of land feature ('c', 'l', 'i', 'h', 'f', 'auto'). default is 'auto'.
             fast (bool): use some optimizations to speed up plotting at the cost of accuracy
 
-            :param hide_landmask: do not plot landmask (default False).
+            :param hide_landmask: do not plot landmask (default False). See :ref:`model_landmask_only_model` for example usage.
             :type hide_landmask: bool
         """
 
