@@ -11,7 +11,7 @@ o = ShipDrift(loglevel=20)
 
 o.add_readers_from_list([
     'https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-    'https://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc',
+    'https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc',
     'https://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be'
     ])
 
