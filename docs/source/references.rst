@@ -8,9 +8,11 @@ Ličer, M., Estival, S., Reyes-Suarez, C., Deponte, D., and Fettich, A.: Lagrang
 Clavel-Henry M, Solé J, Kristiansen T, Bahamon N, Rotllant G, et al. (2020) Modeled buoyancy of eggs and larvae of the deep-sea shrimp Aristeus antennatus (Crustacea: Decapoda) in the northwestern Mediterranean Sea. PLOS ONE 15(1): e0223396. 
 https://doi.org/10.1371/journal.pone.0223396
 
+Dugstad, J.,I. M. Koszalka, P. E. Isachsen, K.-F. Dagestad and I. Fer (2019), Vertical structure and seasonal variability of the inflow to the Lofoten Basin inferred from high resolution Lagrangian simulations, J. Geophys. Res., https://doi.org/10.1029/2019JC015474.
+
 Ricker, M. and Stanev, E. V.: Circulation of the European Northwest Shelf: A Lagrangian perspective, Ocean Sci. Discuss., https://doi.org/10.5194/os-2019-123, in review, 2019.
 
-Andruszkiewicz EA, Koseff JR, Fringer OB, Ouellette NT, Lowe AB, Edwards CA and Boehm AB (2019) Modeling Environmental DNA Transport in the Coastal Ocean Using Lagrangian Particle Tracking. Front. Mar. Sci. 6:477. http://doi.org/10.3389/fmars.2019.00477
+Andruszkiewicz EA, Koseff JR, Fringer OB, Ouellette NT, Lowe AB, Edwards CA and Boehm AB (2019), Modeling Environmental DNA Transport in the Coastal Ocean Using Lagrangian Particle Tracking. Front. Mar. Sci. 6:477. http://doi.org/10.3389/fmars.2019.00477
 
 Dagestad, K.-F. and Röhrs, J.: Prediction of ocean surface trajectories using satellite derived vs. modeled ocean currents, Remote Sens. Environ., Volume 223, p130-142, 2019, https://doi.org/10.1016/j.rse.2019.01.001
 
