@@ -26,6 +26,8 @@ Kvile K., Romagnoni G., Dagestad K.-F., Langangen Ø., Kristiansen T., Sensitivi
 
 Dagestad, K.-F., Röhrs, J., Breivik, Ø., and Ådlandsvik, B.: OpenDrift v1.0: a generic framework for trajectory modelling, Geosci. Model Dev., 11, 1405-1420, https://doi.org/10.5194/gmd-11-1405-2018, 2018.
 
+Sperrevik, A. K., Röhrs, J., and Christensen, K. H. ( 2017), Impact of data assimilation on Eulerian versus Lagrangian estimates of upper ocean transport, J. Geophys. Res. Oceans, 122, 5445– 5457, https://doi.org/10.1002/2016JC012640.
+
 Sundby S. , Kristiansen T., Nash R. D. M., Johannesen T. 2017. Dynamic Mapping of North Sea Spawning: report of the ‘KINO’ Project. Fisken og Havet, 2: 183, http://hdl.handle.net/11250/2440959
 
 Jones, C.E., Dagestad, K.-F., Breivik, Ø., Holt, B., Röhrs, J., Christensen, K.H., Espeseth, M.M., Brekke, C., Skrunes, S. (2016): Measurement and modeling of oil slick transport. Journal of Geophysical Research – Oceans, Volume 121, Issue 10, October 2016, Pages 7759–7775. http://doi.org/10.1002/2016JC012113
