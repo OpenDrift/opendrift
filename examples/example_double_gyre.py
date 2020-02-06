@@ -7,7 +7,7 @@ Illustrating the difference between Euler and Runge-Kutta propagation
 schemes, using an idealised (analytical) eddy current field.
 
 Double gyre current field from
-http://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
+https://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
 """
 
 from datetime import datetime, timedelta

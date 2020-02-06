@@ -62,4 +62,4 @@ Some design criteria are:
 
     * based on as few external packages as possible
 
-  * clean code, following the `PEP8 <http://www.python.org/dev/peps/pep-0008>`_ and `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ style guides.
+  * clean code, following the `PEP8 <https://www.python.org/dev/peps/pep-0008>`_ and `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ style guides.

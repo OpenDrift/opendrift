@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.abspath('../..'))
 # -- Project information -----------------------------------------------------
 
 project = 'OpenDrift'
-copyright = '2019, Knut-Frode Dagestad et. al.'
-author = 'Knut-Frode Dagestad et. al.'
+copyright = '2020, Knut-Frode Dagestad (knutfd@met.no) and Gaute Hope (gauteh@met.no).'
+author = 'Knut-Frode Dagestad and Gaute Hope.'
 master_doc = 'index'
 
 

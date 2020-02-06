@@ -10,9 +10,10 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2020, Gaute Hope, MET Norway
 
 from future.utils import iteritems
 import sys
@@ -459,6 +460,8 @@ class BaseReader(object):
         if time == time_before or all(v in static_variables for v in variables):
             time_after = None
 
+        if len(z) == 1 and len(lon) > 1:
+            z = z.copy()*np.ones(lon.shape)
         z = z.copy()[ind_covered]  # Send values and not reference
                                    # to avoid modifications
         if block is False or self.return_block is False:
@@ -1216,7 +1219,7 @@ class BaseReader(object):
         p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
         xsp = p[:, 0]
         ysp = p[:, 1]
-        
+
         if variable is None:
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
                                zorder=100)
@@ -1271,32 +1274,40 @@ class BaseReader(object):
         else:
             plt.show()
 
-    def get_timeseries_at_position(self, lon, lat, variables=None, start_time=None, end_time=None):
+    def get_timeseries_at_position(self, lon, lat, variables=None,
+                                   start_time=None, end_time=None, times=None):
         """ Get timeseries of variables from this reader at given position.
         """
 
-        if start_time is None:
-            start_time = self.start_time
-        if end_time is None:
-            end_time = self.end_time
+        if times is None:
+            if start_time is None:
+                start_time = self.start_time
+            if end_time is None:
+                end_time = self.end_time
+            times = [t for t in self.times if t >= start_time and t<= end_time]
+
         if variables is None:
             variables = self.variables
 
-        if len(self.covers_positions(lon=lon, lat=lat)[0]) is 0:
+        if len(self.covers_positions(lon=lon, lat=lat)[0]) == 0:
             return None
 
         lon = np.atleast_1d(lon)
         lat = np.atleast_1d(lat)
+        if len(lon) == 1:
+            lon = lon[0]*np.ones(len(times))
+            lat = lat[0]*np.ones(len(times))
 
-        times = [t for t in self.times if t >= start_time and t<= end_time]
         data = {'time': times}
         for var in variables:
             data[var] = np.zeros(len(times))
 
         for i, time in enumerate(times):
+            closest_time = min(self.times, key=lambda d: abs(d - time))
+            print(time, closest_time, 'Time, Closest time')
             d = self.get_variables_interpolated(
-                lon=lon, lat=lat, z=np.atleast_1d(0),
-                time=time, variables=variables, rotate_to_proj='+proj=latlong')[0]
+                lon=np.atleast_1d(lon[i]), lat=np.atleast_1d(lat[i]), z=np.atleast_1d(0),
+                time=closest_time, variables=variables, rotate_to_proj='+proj=latlong')[0]
             for var in variables:
                 data[var][i] = d[var][0]
 

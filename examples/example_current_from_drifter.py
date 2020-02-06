@@ -9,7 +9,7 @@ from opendrift.readers import reader_current_from_drifter
 from opendrift.models.oceandrift import OceanDrift
 
 
-o = OceanDrift()
+o = OceanDrift(loglevel=20)
 o.fallback_values['land_binary_mask'] = 0
 
 #%%
@@ -41,10 +41,14 @@ o.seed_within_polygon(lons=lons, lats=lats,
 # Finally running simulation
 o.run(end_time=r.end_time, time_step=r.time_step)
 
-o.animation(buffer=.01)
+o.animation(buffer=.01, fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_current_from_drifter_0.gif
 
-o.plot(buffer=.01)
+#%%
+# Drifter track is shown in red, and simulated trajectories are shown in gray. Oil spill is displaced relative to drifter, but drifter current is assumed to be spatially homogeneous.
+o.plot(buffer=.01, fast=True, trajectory_dict={
+        'lon': drifterlons, 'lat': drifterlats,
+        'time': driftertimes, 'linestyle': 'r-'})
 

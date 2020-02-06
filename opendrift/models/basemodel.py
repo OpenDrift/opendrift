@@ -12,9 +12,10 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2020, Gaute Hope, MET Norway
 
 import sys
 import os
@@ -2040,9 +2041,14 @@ class OpenDriftSimulation(PhysicsMethods):
                                  (end_time))
         if duration is None:
             duration = end_time - self.start_time
+
         if time_step.days < 0 and duration.days >= 0:
             # Duration shall also be negative for backwards run
             duration = -duration
+
+        if np.sign(duration.total_seconds()) * np.sign(time_step.total_seconds()) < 0:
+            raise ValueError("Time step must be negative if duration is negative.")
+
         self.expected_steps_output = duration.total_seconds() / \
             self.time_step_output.total_seconds() + 1  # Includes start and end
         self.expected_steps_calculation = duration.total_seconds() / \
@@ -2447,10 +2453,15 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast=False, **kwargs):
-        """Generate Figure instance on which trajectories are plotted.
+    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast=False, hide_landmask=False, **kwargs):
+        """
+        Generate Figure instance on which trajectories are plotted.
 
-           provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection"""
+        :param hide_landmask: do not plot landmask (default False)
+        :type hide_landmask: bool
+
+        provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection
+        """
 
         lons, lats = self.get_lonlats()
 
@@ -2522,41 +2533,42 @@ class OpenDriftSimulation(PhysicsMethods):
         import shapely
         from shapely.geometry import box
 
-        if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask' \
-           and not self.readers['global_landmask'].skippoly \
-           and (self.readers['global_landmask'].mask.extent is None \
-                or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax))):
+        if not hide_landmask:
+            if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask' \
+            and not self.readers['global_landmask'].skippoly \
+            and (self.readers['global_landmask'].mask.extent is None \
+                    or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax))):
 
-            self.logger.debug("Using existing GSHHS shapes..")
-            landmask = self.readers['global_landmask'].mask
+                self.logger.debug("Using existing GSHHS shapes..")
+                landmask = self.readers['global_landmask'].mask
 
-            if fast:
-                show_landmask(landmask)
+                if fast:
+                    show_landmask(landmask)
 
+                else:
+                    extent = box(lonmin, latmin, lonmax, latmax)
+                    extent = shapely.prepared.prep(extent)
+                    polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
+
+                    ax.add_geometries(polys,
+                            ccrs.PlateCarree(),
+                            facecolor=cfeature.COLORS['land'],
+                            edgecolor='black')
             else:
-                extent = box(lonmin, latmin, lonmax, latmax)
-                extent = shapely.prepared.prep(extent)
-                polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
+                self.logger.debug ("Adding GSHHS shapes..")
 
-                ax.add_geometries(polys,
-                        ccrs.PlateCarree(),
-                        facecolor=cfeature.COLORS['land'],
-                        edgecolor='black')
-        else:
-            self.logger.debug ("Adding GSHHS shapes..")
+                if fast:
+                    from opendrift_landmask_data import Landmask
+                    show_landmask(Landmask(skippoly=True))
 
-            if fast:
-                from opendrift_landmask_data import Landmask
-                show_landmask(Landmask(skippoly=True))
-
-            else:
-                f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
-                        facecolor=cfeature.COLORS['land'])
-                ax.add_geometries(
-                        f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
-                        ccrs.PlateCarree(),
-                        facecolor=cfeature.COLORS['land'],
-                        edgecolor='black')
+                else:
+                    f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+                            facecolor=cfeature.COLORS['land'])
+                    ax.add_geometries(
+                            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+                            ccrs.PlateCarree(),
+                            facecolor=cfeature.COLORS['land'],
+                            edgecolor='black')
 
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
@@ -2980,7 +2992,7 @@ class OpenDriftSimulation(PhysicsMethods):
              density_pixelsize_m=1000,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
-             fast=False, **kwargs):
+             fast=False, hide_landmask=False, **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -3005,6 +3017,9 @@ class OpenDriftSimulation(PhysicsMethods):
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
             lscale (string): resolution of land feature ('c', 'l', 'i', 'h', 'f', 'auto'). default is 'auto'.
             fast (bool): use some optimizations to speed up plotting at the cost of accuracy
+
+            :param hide_landmask: do not plot landmask (default False). See :ref:`model_landmask_only_model` for example usage.
+            :type hide_landmask: bool
         """
 
 
@@ -3018,7 +3033,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree()
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast, **kwargs)
+            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 
         markercolor = self.plot_comparison_colors[0]
 
@@ -3258,7 +3273,7 @@ class OpenDriftSimulation(PhysicsMethods):
         time = trajectory_dict['time']
         time = np.array(time)
         i = np.where((time>=self.start_time) & (time<=self.time))[0]
-        x, y = (trajectory_dict['lon'][i], trajectory_dict['lat'][i])
+        x, y = (np.atleast_1d(trajectory_dict['lon'])[i], np.atleast_1d(trajectory_dict['lat'])[i])
         ls = trajectory_dict['linestyle']
 
         gcrs = ccrs.PlateCarree()
