@@ -2613,7 +2613,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, bgalpha=.5, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
-                  show_trajectories=False,
+                  show_trajectories=False, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20,
                   legend=None, legend_loc='best', fps=10, lscale=None, fast=False):
@@ -2712,7 +2712,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast)
+            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale,
+                            fast=fast, hide_landmask=hide_landmask)
 
         if surface_only is True:
             z = self.get_property('z')[0]
@@ -3284,6 +3285,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def get_map_background(self, ax, background, time=None):
         # Get background field for plotting on map or animation
+        # TODO: this method should be made more robust
         if type(background) is list:
             variable = background[0]  # A vector is requested
         else:
@@ -3306,8 +3308,13 @@ class OpenDriftSimulation(PhysicsMethods):
         cornerlons = np.array([xmin, xmin, xmax, xmax])
         cornerlats = np.array([ymin, ymax, ymin, ymax])
         reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
-        reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
-        reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
+        if sum(~np.isfinite(reader_x+reader_y)) > 0:
+            # Axis corner points are not within reader domain
+            reader_x = np.array([reader.xmin, reader.xmax])
+            reader_y = np.array([reader.ymin, reader.ymax])
+        else:
+            reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
+            reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
 
         data = reader.get_variables(
             background, time, reader_x, reader_y, None, block=True)
