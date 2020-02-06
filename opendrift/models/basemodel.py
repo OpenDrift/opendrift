@@ -1299,7 +1299,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         ])
             reader_landmask.name = 'tempreader'
             o = OceanDrift(
-                loglevel=self.logger.getLogger().getEffectiveLevel())
+                loglevel=self.logger.getEffectiveLevel())
             o.add_reader(reader_landmask)
             land_reader = reader_landmask
 
