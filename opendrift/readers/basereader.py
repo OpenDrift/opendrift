@@ -233,17 +233,17 @@ class BaseReader(object):
         '''Adjust buffer to minimise data block size needed to cover elements'''
         self.buffer = 0
         pixelsize = self.pixel_size()
-        # if pixelsize is not None:
-        #     if self.time_step is not None:
-        #         time_step_seconds = self.time_step.total_seconds()
-        #     else:
-        #         time_step_seconds = 3600  # 1 hour if not given
-        #     self.buffer = np.int(np.ceil(max_speed *
-        #                                  time_step_seconds /
-        #                                  pixelsize)) + 2
-        #     self.logger.debug('Setting buffer size %i for reader %s, assuming '
-        #                   'a maximum average speed of %g m/s.' %
-        #                   (self.buffer, self.name, max_speed))
+        if pixelsize is not None:
+             if self.time_step is not None:
+                 time_step_seconds = self.time_step.total_seconds()
+             else:
+                 time_step_seconds = 3600  # 1 hour if not given
+             self.buffer = np.int(np.ceil(max_speed *
+                                          time_step_seconds /
+                                          pixelsize)) + 2
+             self.logger.debug('Setting buffer size %i for reader %s, assuming '
+                           'a maximum average speed of %g m/s.' %
+                           (self.buffer, self.name, max_speed))
 
     def pixel_size(self):
         # Find typical pixel size (e.g. for calculating size of buffer)
