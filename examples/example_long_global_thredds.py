@@ -15,7 +15,7 @@ o = OceanDrift()
 # - Weather forecast from NOAA/NCEP
 o.add_readers_from_list([
     'https://tds.hycom.org/thredds/dodsC/GLBy0.08/latest',
-    'https://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
+    'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
 
 o.seed_elements(lat=24, lon=-81, time=datetime.now(),
                 number=5000, radius=10000)
