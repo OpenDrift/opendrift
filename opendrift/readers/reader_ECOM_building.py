@@ -144,8 +144,8 @@ class Reader(BaseReader):
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
-            self.lat[np.where(self.lat == 0)] = np.nan
-            self.lon[np.where(self.lon == 0)] = np.nan
+            #self.lat[np.where(self.lat == 0)] = np.nan
+            #self.lon[np.where(self.lon == 0)] = np.nan
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
