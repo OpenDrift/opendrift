@@ -14,7 +14,7 @@ o = Leeway(loglevel=20)  # Set loglevel to 0 for debug information
 # - Weather forecast from NOAA/NCEP
 o.add_readers_from_list([
     'https://tds.hycom.org/thredds/dodsC/GLBy0.08/latest',
-    'https://oos.soest.hawaii.edu/thredds/dodsC/hioos/model/atm/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
+    'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
 
 # Seed some particles
 objType = 26  # 26 = Life-raft, no ballast
