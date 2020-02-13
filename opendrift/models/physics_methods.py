@@ -21,9 +21,11 @@ import pyproj
 
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
                                  significant_wave_height, mean_wave_period, z):
-    # calculate vertical Stokes drift profile from
-    # Breivik et al. 2016, A Stokes drift approximation
-    # based on the Phillips spectrum, Ocean Mod. 100
+    """
+    Calculate vertical Stokes drift profile from
+    Breivik et al. 2016, A Stokes drift approximation
+    based on the Phillips spectrum, Ocean Mod. 100
+    """
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
 
