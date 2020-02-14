@@ -403,8 +403,8 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     def prepare_vertical_mixing(self):
         '''Calculate entrainment probability before main loop'''
         self.oil_entrainment_probability = \
-            self.oil_wave_entrainment_rate()*\
-                self.get_config('turbulentmixing:timestep')
+            1 - np.exp(-self.oil_wave_entrainment_rate()*\
+                       self.get_config('turbulentmixing:timestep'))
         # Calculate a random droplet diameter for each particle,
         # to be used if this particle gets entrained
         self.droplet_diameter_if_entrained = \
