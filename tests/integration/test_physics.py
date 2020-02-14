@@ -155,7 +155,7 @@ class TestPhysics(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -46.4, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -47.9, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
