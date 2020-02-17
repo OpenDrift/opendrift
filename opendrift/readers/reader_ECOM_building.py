@@ -24,16 +24,16 @@ class Reader(BaseReader):
 
         # Map ECOM variable names to CF standard_name
         self.ECOM_variable_mapping = {
-            'time': {'time': 'time'},
+            'time': 'time',
             'sigma':'ocean_sigma_coordinate',
             'depth':'depth',
             'ang':'angle_of_rotation_from_east_to_x',
             'elev':'sea_surface_height_above_sea_level',
-            'x_wind'{'wu': 'x_wind'},
-            'y_wind'{'wv':'y_wind'},
+            'wu': 'x_wind',
+            'wv':'y_wind',
             'patm':'air_pressure_at_sea_level',
-            'x_sea_water_velocity'{'u': 'x_sea_water_velocity'},
-            'y_sea_water_velocity'{'v':'y_sea_water_velocity'},
+            'u': 'x_sea_water_velocity',
+            'v':'y_sea_water_velocity',
             'w':'upward_sea_water_velocity',
             'salt':'sea_water_salinity',
             'temp':'sea_water_temperature',
