@@ -1,4 +1,3 @@
-#-*-coding:utf-8-*-
 from bisect import bisect_left, bisect_right
 from datetime import datetime
 
@@ -116,8 +115,7 @@ class Reader(BaseReader):
                     'sigma not available in dataset, constructing from'
                     ' number of layers (%s).' % num_sigma)
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
-
-
+                
                 # Read sigma-coordinate transform parameters
             try:
                 self.Dataset.variables['sigma'].set_auto_mask(False)
@@ -126,19 +124,26 @@ class Reader(BaseReader):
             self.sigma = self.Dataset.variables['sigma'][:]
             try:
                 self.depth = self.Dataset.variables['depth'][:]
+                self.depth[np.isnan(self.depth)] = 0
+
             except:
                 if has_xarray is True:
                     self.depth = self.Dataset.variables['depth'].data  # scalar
+                    self.depth[np.isnan(self.depth)] = 0
                 else:
                     self.depth = self.Dataset.variables['depth'][0]
-
+                    self.depth[np.isnan(self.depth)] = 0
             self.num_layers = len(self.sigma)
 
         else:
             self.num_layers = 1
             self.ECOM_variable_mapping['u'] = 'x_sea_water_velocity'
-            self.ECOM_variable_mapping['v'] = 'y_sea_water_velocity'
+            self.ECOM_variable_mapping['v'] = 'y_sea_water_velocity' 
 
+        if 'depth' in self.Dataset.variables:
+            self.depth = self.Dataset.variables['depth'][:]
+            self.depth[np.isnan(self.depth)] = 0
+         
 
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
@@ -148,6 +153,7 @@ class Reader(BaseReader):
            #self.lon[np.where(self.lon == 0)] = np.nan
            #self.lat = self.lat[~np.isnan(self.lat)]
            #self.lon = self.lon[~np.isnan(self.lon)]
+            
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
@@ -157,6 +163,21 @@ class Reader(BaseReader):
                 gf = Dataset(gridfile)
                 self.lat = gf.variables['lat'][:]
                 self.lon = gf.variables['lon_'][:]
+
+        if 'u' in self.Dataset.variables:
+            self.x_sea_water_velocity = self.Dataset.variables['u'][:]
+            self.y_sea_water_velocity = self.Dataset.variables['v'][:]
+            self.x_sea_water_velocity[np.isnan(self.x_sea_water_velocity)] = 0
+            self.y_sea_water_velocity[np.isnan(self.y_sea_water_velocity)] = 0
+
+        if 'wu' in self.Dataset.variables:
+            self.x_wind = self.Dataset.variables['wu'][:]
+            self.y_wind = self.Dataset.variables['wv'][:]
+            self.x_wind[np.isnan(self.x_wind)] = 0
+            self.y_wind[np.isnan(self.y_wind)] = 0
+
+        
+
 
         # Get time coverage
 
@@ -259,7 +280,7 @@ class Reader(BaseReader):
             indy = np.arange(np.max([0, indy.min()-buffer]),
                              np.min([indy.max()+buffer, self.lon.shape[0]-1]))
 
-# Find depth levels covering all elements (Qual o análogo de HC - profundidade critica do ROMS no ECOM?)
+# Find depth levels covering all elements 
 
         if z.min() == 0 or not hasattr(self, 'depth'):
             indz = self.num_layers - 1  # surface layer
