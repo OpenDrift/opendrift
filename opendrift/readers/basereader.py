@@ -93,7 +93,8 @@ class BaseReader(object):
         'x_wind_10m': 'x_wind',
         'y_wind_10m': 'y_wind',
         'sea_water_x_velocity': 'x_sea_water_velocity',
-        'sea_water_y_velocity': 'y_sea_water_velocity'
+        'sea_water_y_velocity': 'y_sea_water_velocity',
+        'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity'
         }
 
     xy2eastnorth_mapping = {
