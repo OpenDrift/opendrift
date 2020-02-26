@@ -804,7 +804,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                                               density_proj=None,
                                               llcrnrlon=None, llcrnrlat=None,
                                               urcrnrlon=None, urcrnrlat=None):
-        '''Write netCDF file with map of radionuclide species densities'''
+        '''Write netCDF file with map of radionuclide species densities and concentrations'''
 
         from netCDF4 import Dataset, date2num #, stringtochar
 
@@ -855,7 +855,17 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2
         lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
 
-
+        
+        # Compute smoother field
+        print ('H.shape:',H.shape)
+        Hsm = np.zeros_like(H)
+        for zi in range(len(z_array)-1):
+            for sp in range(self.nspecies):
+                for ti in range(H.shape[0]):
+                    Hsm[ti,sp,zi,:,:] = self.horizontal_smooth(H[ti,sp,zi,:,:],n=1)
+        
+        
+        
         # Convert from density to concentration
         
 #        print ( 'Compute mean depth and volume in each pixel grid cell' )
@@ -878,7 +888,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         conc = np.zeros_like(H)
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
-                conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * activity_per_element
+                conc[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume * activity_per_element
 
 
 #        print ('pixel_volume', pixel_volume.shape, np.sum(np.isnan(pixel_volume)))
@@ -1026,6 +1036,14 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.variables['density_surface'].grid_mapping = 'projection'
         nc.variables['density_surface'].units = '1'
 
+        nc.createVariable('density_surface_smooth', 'f8',
+                          ('time','specie','depth','y', 'x'),fill_value=0)
+#        H = np.swapaxes(H, 1, 3).astype('uint8')
+#        H = np.swapaxes(H, 1, 3).astype('i4')
+        Hsm = np.swapaxes(Hsm, 3, 4).astype('f8')
+        Hsm = np.ma.masked_where(Hsm==0, Hsm)
+        nc.variables['density_surface_smooth'][:] = Hsm
+
 
         if False:
             # Radionuclide concentration
@@ -1166,4 +1184,31 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         
         
+    def horizontal_smooth(self, a, n=0):
+        #print (a.shape)
+        xdm=a.shape[1]
+        ydm=a.shape[0]
+        msk = self.conc_mask
+        print(msk.shape)
+        
+        num_coarse = np.zeros([ydm,xdm],dtype=float)
+        smo_tmp1=np.zeros([ydm-2*n,xdm-2*n])
+        smo_msk1=np.zeros([ydm-2*n,xdm-2*n],dtype=float)
+        nlayers = 0
+        for ism in np.arange(-n,n+1):
+            for jsm in np.arange(-n,n+1):
+                smo_tmp = a[n+jsm:ydm-n+jsm, n+ism:xdm-n+ism]
+                smo_tmp1+=smo_tmp
+#                smo_msk = msk[n+jsm:ydm-n+jsm, n+ism:xdm-n+ism]
+#                smo_msk1+=smo_msk
+                nlayers+=1
+                
+        if n>0:
+#            num_coarse[n:-n,n:-n] = smo_tmp1 / smo_msk1
+            num_coarse[n:-n,n:-n] = smo_tmp1 / nlayers
+        else:
+            num_coarse = smo_tmp1
+#        num_coarse = num_coarse*msk
+        
+        return num_coarse
         
