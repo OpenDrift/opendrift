@@ -18,7 +18,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
-
+from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983, gls_tke
 
 # Defining the oil element properties
 class Lagrangian3DArray(LagrangianArray):
@@ -113,6 +113,39 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # do nothing 
         pass
 
+    def get_diffusivity_profile(self):
+        Nparticles = self.num_elements_active()
+        depths = self.environment_profiles['z']
+        wind, depth = np.meshgrid(self.wind_speed(), depths)
+
+        model = self.get_config('turbulentmixing:diffusivitymodel')
+        if model == 'windspeed_Large1994':
+            return verticaldiffusivity_Large1994(wind, depth)
+        elif model == 'windspeed_Sundby1983':
+            return verticaldiffusivity_Sundby1983(wind)
+        elif model == 'zero':
+            return np.zeros(wind.shape)
+        elif model == 'gls_tke':
+            if not hasattr(self, 'gls_parameters'):
+                self.logger.info('Searching readers for GLS parameters...')
+                for reader_name, reader in self.readers.items():
+                    if hasattr(reader, 'gls_parameters'):
+                        self.gls_parameters = reader.gls_parameters
+                        self.logger.info('Found gls-parameters in ' + reader_name)
+                        break  # Success
+                if not hasattr(self, 'gls_parameters'):
+                    self.logger.info('Did not find gls-parameters in any readers.')
+                    self.gls_parameters = None
+            windstress = np.sqrt(self.environment.surface_downward_x_stress**2 +
+                                 self.environment.surface_downward_y_stress**2)
+            return gls_tke(windstress, depth, self.sea_water_density(),
+                           self.environment.turbulent_kinetic_energy,
+                           self.environment.turbulent_generic_length_scale,
+                           gls_parameters)
+
+        else:
+            raise ValueError('Unknown diffusivity model: ' + model)
+
     def vertical_mixing(self):
         """Mix particles vertically according to eddy diffusivity and buoyancy
 
@@ -130,7 +163,6 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
             return
 
         self.timer_start('main loop:updating elements:vertical mixing')
-        from opendrift.models import eddydiffusivity
 
         dt_mix = self.get_config('turbulentmixing:timestep')
 
@@ -158,9 +190,8 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 self.logger.debug('Using constant diffusivity')
         else:
             self.logger.debug('Using functional expression for diffusivity')
-            Kprofiles = getattr(
-                eddydiffusivity,
-                self.get_config('turbulentmixing:diffusivitymodel'))(self)
+            # Note: although analytical functions, z is discretised
+            Kprofiles = self.get_diffusivity_profile()
 
         self.logger.debug('Diffiusivities are in range %s to %s' %
                       (Kprofiles.min(), Kprofiles.max()))
@@ -198,7 +229,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         # internal loop for fast time step of vertical mixing model
         # random walk needs faster time step compared
         # to horizontal advection
-        self.logger.debug('Vertical mixing module:')
+        self.logger.debug('Vertical mixing module:' + self.get_config('turbulentmixing:diffusivitymodel'))
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
         self.logger.debug('Turbulent diffusion with random walk '
                       'scheme using ' + str(ntimes_mix) +
