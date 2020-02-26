@@ -216,7 +216,7 @@ class TestPhysics(unittest.TestCase):
 
         for scheme in ['environment', 'windspeed_Large1994',
                        'windspeed_Sundby1983', 'zero']:
-            o = OpenOil3D(loglevel=20, weathering_model='noaa')
+            o = OpenOil3D(loglevel=50, weathering_model='noaa')
             o.fallback_values['land_binary_mask'] = 0
             o.fallback_values['x_wind'] = 10
             o.fallback_values['y_wind'] = 0
@@ -231,9 +231,9 @@ class TestPhysics(unittest.TestCase):
             o.run(duration=timedelta(hours=2), time_step=900)
 
             if scheme == 'environment':  # presently this is fallback
-                self.assertAlmostEqual(o.elements.z.min(), -30.67, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
             elif scheme == 'windspeed_Large1994':
-                self.assertAlmostEqual(o.elements.z.min(), -3.96, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
             elif scheme == 'windspeed_Sundby1983':
                 self.assertAlmostEqual(o.elements.z.min(), -36.7, 1)
             elif scheme == 'zero':
