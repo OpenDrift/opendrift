@@ -43,7 +43,8 @@ standard_names = {
     'x_wind': {'valid_min': -50, 'valid_max': 50},
     'y_wind': {'valid_min': -50, 'valid_max': 50},
     'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
-    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10}}
+    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
+    'ocean_vertical_diffusivity': {'valid_min': 0, 'valid_max': 1}}
 
 # Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
 vector_pairs_xy = [
@@ -369,10 +370,23 @@ class BaseReader(object):
             env['x'] = np.array(env['x'], dtype=np.float)
             env['y'] = np.array(env['y'], dtype=np.float)
 
-        # Convert any masked arrays to NumPy arrays
         for variable in env.keys():
+            # Convert any masked arrays to NumPy arrays
             if isinstance(env[variable], np.ma.MaskedArray):
                 env[variable] = env[variable].filled(np.nan)
+            # Mask values outside valid_min, valid_max (self.standard_names)
+            if variable in standard_names.keys():
+                invalid = np.where(
+                    (env[variable] < standard_names[variable]['valid_min']) |
+                    (env[variable] > standard_names[variable]['valid_max']))[0]
+                if len(invalid) > 0:
+                    self.logger.warning('Invalid values found for ' + variable)
+                    self.logger.warning(env[variable][invalid])
+                    self.logger.warning('(allowed range: [%s, %s])' %
+                                    (standard_names[variable]['valid_min'],
+                                     standard_names[variable]['valid_max']))
+                    self.logger.warning('Replacing with NaN')
+                    env[variable][invalid] = np.nan
 
         # Convolve arrays with a kernel, if reader.convolve is set
         if hasattr(self, 'convolve'):
@@ -606,18 +620,6 @@ class BaseReader(object):
                 env[var] = np.ma.masked_invalid((env_before[var] *
                                                 (1 - weight_after) +
                                                 env_after[var] * weight_after))
-
-                if var in standard_names.keys():
-                    invalid = np.where((env[var] < standard_names[var]['valid_min'])
-                               | (env[var] > standard_names[var]['valid_max']))[0]
-                    if len(invalid) > 0:
-                        self.logger.warning('Invalid values found for ' + var)
-                        self.logger.warning(env[var][invalid])
-                        self.logger.warning('(allowed range: [%s, %s])' %
-                                        (standard_names[var]['valid_min'],
-                                         standard_names[var]['valid_max']))
-                        self.logger.warning('Replacing with NaN')
-                        env[var][invalid] = np.nan
             # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
