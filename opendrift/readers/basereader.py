@@ -377,8 +377,8 @@ class BaseReader(object):
             # Mask values outside valid_min, valid_max (self.standard_names)
             if variable in standard_names.keys():
                 invalid = np.where(
-                    (env[variable] < standard_names[variable]['valid_min']) |
-                    (env[variable] > standard_names[variable]['valid_max']))[0]
+                    (np.array(env[variable]) < np.float(standard_names[variable]['valid_min'])) |
+                    (np.array(env[variable]) > np.float(standard_names[variable]['valid_max'])))[0]
                 if len(invalid) > 0:
                     self.logger.warning('Invalid values found for ' + variable)
                     self.logger.warning(env[variable][invalid])
