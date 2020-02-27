@@ -334,7 +334,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
  
         self.timer_end('main loop:updating elements:vertical mixing')
 
-    def plot_vertical_distribution(self, maxdepth=None, numtimes=5):
+    def plot_vertical_distribution_new(self, maxdepth=None, numtimes=5):
         """Function to plot vertical distribution of particles"""
         import matplotlib.pyplot as plt
 
@@ -366,7 +366,7 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
         plt.legend()
         plt.show()
 
-    def plot_vertical_distribution_slider(self):
+    def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""
         import matplotlib.pyplot as plt
         from matplotlib.widgets import Slider, Button, RadioButtons
