@@ -39,7 +39,6 @@ class Reader(BaseReader):
             #Variaveis do ECOM sem CF-standard-name
             'xpos':'X_coordinate_in_Cartesian system',
             'ypos':'Y_coordinate_in_Cartesian system',
-            'zpos':'Z_coordinate_in_Cartesian_system',
             'date':'Date_Time',
             'layer_bnds':'bounds_of_stretched_vertical_coordinate_levels',
             'x':'Corner_longitude',
@@ -52,8 +51,8 @@ class Reader(BaseReader):
             'lon_bnds':'Vertex_longitude',
             'lat_bnds':'Vertex_latitude',
             'cbc':'Bottom Drag_Coefficient',
-            'lon':'longitude',
-            'lat':'latitude'}
+            'lon':'lon',
+            'lat':'lat'}
 
              # z-levels to which sigma-layers may be interpolated (21 niveis sigma, depth max = 2000m)
         self.zlevels = np.array([0, -5, -10, -25,-30, -50, -75, -100, -150, -200,
@@ -71,18 +70,18 @@ class Reader(BaseReader):
 
         try:
 
-        	 # Open file, check that everything is ok
+             # Open file, check that everything is ok
             self.logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 self.logger.info('Opening files with MFDataset')
-                #def drop_non_essential_vars_pop(ds):
-                  #  dropvars = [v for v in ds.variables if v not in
-                   #             list(self.ECOM_variable_mapping.keys())  +
-                   #             ['time', 'sigma', 'depth', 'elev', 'ang']]
+                def drop_non_essential_vars_pop(ds):
+                    dropvars = [v for v in ds.variables if v not in
+                                list(self.ECOM_variable_mapping.keys())  +
+                                ['time', 'sigma', 'depth', 'elev', 'ang']]
 
-                    #self.logger.debug('Dropping variables: %s' % dropvars)
-                  #  ds = ds.drop(dropvars)
-                   # return ds
+                    self.logger.debug('Dropping variables: %s' % dropvars)
+                    ds = ds.drop(dropvars)
+                    return ds
 
                 if has_xarray is True:
                     self.Dataset = xr.open_mfdataset(filename,
@@ -124,15 +123,12 @@ class Reader(BaseReader):
             self.sigma = self.Dataset.variables['sigma'][:]
             try:
                 self.depth = self.Dataset.variables['depth'][:]
-               # self.depth[np.isnan(self.depth)] = 0
 
             except:
                 if has_xarray is True:
                     self.depth = self.Dataset.variables['depth'].data  # scalar
-                   # self.depth[np.isnan(self.depth)] = 0
                 else:
                     self.depth = self.Dataset.variables['depth'][0]
-                    #self.depth[np.isnan(self.depth)] = 0
             self.num_layers = len(self.sigma)
 
         #else:
@@ -146,10 +142,7 @@ class Reader(BaseReader):
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
-           #self.lat[np.where(self.lat == 0)] = np.nan
-           #self.lon[np.where(self.lon == 0)] = np.nan
-           #self.lat = self.lat[~np.isnan(self.lat)]
-           #self.lon = self.lon[~np.isnan(self.lon)]
+
             
         else:
             if gridfile is None:
@@ -161,17 +154,7 @@ class Reader(BaseReader):
                 self.lat = gf.variables['lat'][:]
                 self.lon = gf.variables['lon_'][:]
 
-      #  if 'u' in self.Dataset.variables:
-          #  self.x_sea_water_velocity = self.Dataset.variables['u'][:]
-          #  self.y_sea_water_velocity = self.Dataset.variables['v'][:]
-          #  self.x_sea_water_velocity[np.isnan(self.x_sea_water_velocity)] = 0
-          #  self.y_sea_water_velocity[np.isnan(self.y_sea_water_velocity)] = 0
-
-        #if 'wu' in self.Dataset.variables:
-         #   self.x_wind = self.Dataset.variables['wu'][:]
-         #   self.y_wind = self.Dataset.variables['wv'][:]
-          #  self.x_wind[np.isnan(self.x_wind)] = 0
-          #  self.y_wind[np.isnan(self.y_wind)] = 0
+      
 
         
 
@@ -218,15 +201,45 @@ class Reader(BaseReader):
         self.precalculate_s2z_coefficients = True
 
         # Find all variables having standard_name
-        self.variables = []
-        for var_name in self.Dataset.variables:
-            if var_name in self.ECOM_variable_mapping.keys():
-                var = self.Dataset.variables[var_name]
-                self.variables.append(self.ECOM_variable_mapping[var_name])
-
+        #self.variables = []
+        #for var_name in self.Dataset.variables:
+            #if var_name in self.ECOM_variable_mapping.keys():
+                #var = self.Dataset.variables[var_name]
+                #self.variables.append(self.ECOM_variable_mapping[var_name])
+        self.variables = ['time',
+            'ocean_sigma_coordinate',
+            'depth',
+            'angle_of_rotation_from_east_to_x',
+            'sea_surface_height_above_sea_level',
+             'x_wind',
+            'y_wind',
+            'air_pressure_at_sea_level',
+             'x_sea_water_velocity',
+            'y_sea_water_velocity',
+            'upward_sea_water_velocity',
+            'sea_water_salinity',
+            'sea_water_temperature',
+            'X_coordinate_in_Cartesian system',
+            'Y_coordinate_in_Cartesian system',
+            'Date_Time',
+            'bounds_of_stretched_vertical_coordinate_levels',
+            'Corner_longitude',
+            'Corner_latitude',
+            'dx_metric',
+            'dy_metric',
+            'land_binary_mask', #0 ou 1 essa tal Free Surface Mask
+            'U1_direction_mask',
+            'V1_direction_mask',
+            'Vertex_longitude',
+            'Vertex_latitude',
+            'Bottom Drag_Coefficient',
+            'lon',
+            'lat']
         # Run constructor of parent Reader class
+
+
         super(Reader, self).__init__()
-        
+
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False):
 
@@ -248,10 +261,14 @@ class Reader(BaseReader):
             self.nearest_time(time)
 
         variables = {}
-
+        
+        variables['x_sea_water_velocity'] = np.nan_to_num(variables['x_sea_water_velocity'])
+        variables['y_sea_water_velocity'] = np.nan_to_num(variables['y_sea_water_velocity'])
+        variables['x_wind'] = np.nan_to_num(variables['x_wind'])
+        variables['y_wind'] = np.nan_to_num(variables['y_wind'])
+        variables['depth'] = np.nan_to_num(variables['depth'])   
         if z is None:
             z = np.atleast_1d(0) #Convert inputs to arrays with at least one dimension.
-
 
 # Find horizontal indices corresponding to requested x and y
         if hasattr(self, 'clipped'): #The hasattr() method returns:True, if object has the given named attribute ; False, if object has no given named attribute
@@ -456,7 +473,7 @@ class Reader(BaseReader):
                         variables[par] = R.reshape((kmax,) + Fshape[1:])
 
                     # Nan in input to multi_zslice gives extreme values in output
-                    variables[par][variables[par]>1e+9] = np.nan
+                    #variables[par][variables[par]>1e+9] = np.nan
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
@@ -507,19 +524,12 @@ class Reader(BaseReader):
         # Masking NaN
         #for var in requested_variables:
         
-            #variables[var] = np.ma.masked_invalid(variables[var])
+           # variables[var] = np.ma.masked_invalid(variables[var])
+       
 
-        if 'x_sea_water_velocity' in self.Dataset.variables:
-             variables['x_sea_water_velocity'] = np.ma.masked_invalid(variables['x_sea_water_velocity'])
-             variables['y_sea_water_velocity'] = np.ma.masked_invalid(variables['y_sea_water_velocity'])
 
-        if 'x_wind' in self.Dataset.variables:
-             variables['x_wind'] = np.ma.masked_invalid(variables['x_wind'])
-             variables['y_wind'] = np.ma.masked_invalid(variables['y_wind'])
 
-        if 'depth' in self.Dataset.variables:
-             variables['depth'] = np.ma.masked_invalid(variables['depth'])
-
+      
 
         self.logger.debug('Time for ECOM reader:' + str(datetime.now()-start_time))
 
