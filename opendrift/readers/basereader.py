@@ -370,15 +370,15 @@ class BaseReader(object):
             env['x'] = np.array(env['x'], dtype=np.float)
             env['y'] = np.array(env['y'], dtype=np.float)
 
-        for variable in env.keys():
+        for variable in variables:
             # Convert any masked arrays to NumPy arrays
             if isinstance(env[variable], np.ma.MaskedArray):
                 env[variable] = env[variable].filled(np.nan)
             # Mask values outside valid_min, valid_max (self.standard_names)
             if variable in standard_names.keys():
-                invalid = np.where(
-                    (np.array(env[variable]) < np.float(standard_names[variable]['valid_min'])) |
-                    (np.array(env[variable]) > np.float(standard_names[variable]['valid_max'])))[0]
+                invalid = np.where(np.logical_or(
+                    np.array(env[variable]) < np.float(standard_names[variable]['valid_min']),
+                    np.array(env[variable]) > np.float(standard_names[variable]['valid_max'])))[0]
                 if len(invalid) > 0:
                     self.logger.warning('Invalid values found for ' + variable)
                     self.logger.warning(env[variable][invalid])
