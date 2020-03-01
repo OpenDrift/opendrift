@@ -168,7 +168,7 @@ class TestPhysics(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -47.9, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -48.3, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
@@ -187,7 +187,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -34.4, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -42.9, 1)
         #######################################################
 
 
@@ -209,14 +209,14 @@ class TestPhysics(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -34.1, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -44.5, 1)
         ########################################################
 
     def test_verticalmixing_schemes(self):
 
         for scheme in ['environment', 'windspeed_Large1994',
                        'windspeed_Sundby1983', 'zero']:
-            o = OpenOil3D(loglevel=20, weathering_model='noaa')
+            o = OpenOil3D(loglevel=50, weathering_model='noaa')
             o.fallback_values['land_binary_mask'] = 0
             o.fallback_values['x_wind'] = 10
             o.fallback_values['y_wind'] = 0
@@ -231,9 +231,9 @@ class TestPhysics(unittest.TestCase):
             o.run(duration=timedelta(hours=2), time_step=900)
 
             if scheme == 'environment':  # presently this is fallback
-                self.assertAlmostEqual(o.elements.z.min(), -30.67, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
             elif scheme == 'windspeed_Large1994':
-                self.assertAlmostEqual(o.elements.z.min(), -3.96, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
             elif scheme == 'windspeed_Sundby1983':
                 self.assertAlmostEqual(o.elements.z.min(), -36.7, 1)
             elif scheme == 'zero':
