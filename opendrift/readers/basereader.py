@@ -376,17 +376,15 @@ class BaseReader(object):
                 env[variable] = env[variable].filled(np.nan)
             # Mask values outside valid_min, valid_max (self.standard_names)
             if variable in standard_names.keys():
-                invalid = np.where(np.logical_or(
-                    np.array(env[variable]) < np.float(standard_names[variable]['valid_min']),
-                    np.array(env[variable]) > np.float(standard_names[variable]['valid_max'])))[0]
-                if len(invalid) > 0:
-                    self.logger.warning('Invalid values found for ' + variable)
-                    self.logger.warning(env[variable][invalid])
+                if (env[variable].min() < standard_names[variable]['valid_min']) or (
+                    env[variable].max() > standard_names[variable]['valid_max']):
+                    self.logger.warning('Invalid values found for ' + variable +
+                                        ', replacing with NaN')
                     self.logger.warning('(allowed range: [%s, %s])' %
                                     (standard_names[variable]['valid_min'],
                                      standard_names[variable]['valid_max']))
-                    self.logger.warning('Replacing with NaN')
-                    env[variable][invalid] = np.nan
+                    env[variable][env[variable]<standard_names[variable]['valid_min'] |
+                                  env[variable]>standard_names[variable]['valid_max']] = np.nan
 
         # Convolve arrays with a kernel, if reader.convolve is set
         if hasattr(self, 'convolve'):
