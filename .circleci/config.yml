@@ -49,10 +49,10 @@ jobs:
           command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
 
       - restore_cache:
-          key: gallery-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v2-{{ checksum "/tmp/gallery-checksum.txt" }}
 
       - restore_cache:
-          key: plots-{{ checksum "/tmp/plots-checksum.txt" }}
+          key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
 
       - run:
           name: Build docs
@@ -60,12 +60,12 @@ jobs:
           no_output_timeout: 40m
 
       - save_cache:
-          key: gallery-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v2-{{ checksum "/tmp/gallery-checksum.txt" }}
           paths:
             - "docs/source/gallery"
 
       - save_cache:
-          key: plots-{{ checksum "/tmp/plots-checksum.txt" }}
+          key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
           paths:
             - "docs/build/plot_directive"
 
