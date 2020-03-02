@@ -802,10 +802,13 @@ class RadionuclideDrift(OpenDrift3DSimulation):
     def write_netcdf_radionuclide_density_map(self, filename, pixelsize_m='auto', zlevels=None,
                                               deltat=None,
                                               density_proj=None,
-                                              smoothing_cells=0,
                                               llcrnrlon=None, llcrnrlat=None,
                                               urcrnrlon=None, urcrnrlat=None,
-                                              activity_unit=None):
+                                              activity_unit=None,
+                                              time_avg_conc=False,
+                                              horizontal_smooting=False,
+                                              smoothing_cells=0,
+                                              ):
         '''Write netCDF file with map of radionuclide species densities and concentrations'''
 
         from netCDF4 import Dataset, date2num #, stringtochar
@@ -851,6 +854,10 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
 
+
+        #
+        # H is array containing number of elements within each box defined by lon_array, lat_array and z_array
+        
         H, lon_array, lat_array = \
             self.get_radionuclide_density_array(pixelsize_m, z_array,
                                                 density_proj=density_proj,
@@ -863,19 +870,21 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
         
         
-        # Compute smoother field
-        self.logger.info('H.shape: ' + str(H.shape))
-        Hsm = np.zeros_like(H)
-        for zi in range(len(z_array)-1):
-            for sp in range(self.nspecies):
-                for ti in range(H.shape[0]):
-                    Hsm[ti,sp,zi,:,:] = self.horizontal_smooth(H[ti,sp,zi,:,:],n=smoothing_cells)
-        
+        if horizontal_smooting:
+            # Compute horizontally smoother field
+            self.logger.info('H.shape: ' + str(H.shape))
+            Hsm = np.zeros_like(H)
+            for zi in range(len(z_array)-1):
+                for sp in range(self.nspecies):
+                    for ti in range(H.shape[0]):
+                        Hsm[ti,sp,zi,:,:] = self.horizontal_smooth(H[ti,sp,zi,:,:],n=smoothing_cells)
+
         
         
         # Convert from density to concentration
+        self.logger.info('Activity: '+str(activity_per_element)+' '+ activity_unit+ ' per unit')
         
-#        print ( 'Compute mean depth and volume in each pixel grid cell' )
+        # Compute mean depth and volume in each pixel grid cell
         pixel_mean_depth  =  self.get_pixel_mean_depth(lon_array, lat_array)
         
         
@@ -884,102 +893,52 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             topotmp = -pixel_mean_depth.copy()
             topotmp[np.where(topotmp < zz)] = zz
             topotmp = z_array[zi+1] - topotmp
-            topotmp[np.where(topotmp < 0.)] = 0.
+            topotmp[np.where(topotmp < .1)] = 0.
             
             pixel_volume[zi,:,:] = topotmp * pixelsize_m**2
 
         
         pixel_volume[np.where(pixel_volume==0.)] = np.nan
-                
-        print ('Activity: ',activity_per_element, activity_unit, 'per unit')
+
+
+
+
+
         conc = np.zeros_like(H)
-        conc_sm = np.zeros_like(Hsm)
+        if horizontal_smooting:
+            conc_sm = np.zeros_like(Hsm)
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
                 conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * activity_per_element
-                conc_sm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume * activity_per_element
+                if horizontal_smooting:
+                    conc_sm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume * activity_per_element
 
 
-#        print ('pixel_volume', pixel_volume.shape, np.sum(np.isnan(pixel_volume)))
-#        print ('conc', conc.shape, np.sum(np.isnan(conc)))
-#        print ('H', H.shape, np.sum(np.isnan(H)))
         
         
-        conctmp = conc[:-1,:,:,:,:]
         times = np.array( self.get_time_array()[0] )
-        cshape = conctmp.shape
-        print ('conctmp', conctmp.shape)
-#        print ('times:',deltat, times)
-        mdt =    np.mean(times[1:] - times[:-1])    # output frequency in standard file 
-        print ( 'mdt', mdt , mdt.seconds /3600. ) 
-        if deltat==None:
-            ndt = 1
-        else:
-            ndt = int( deltat / (mdt.seconds/3600.) ) 
-        print ( 'ndt', ndt ) # number of time steps over which to average in conc file
-        times2 = times[::ndt]
-        times2 = times2[1:]
-        print ('times2:',times2)
-        odt = int(cshape[0]/ndt)
-        print ('odt',odt)   # number of average slices
-        
-
-        #TODO:  Write this more efficient!
-        mean_conc = np.zeros( [odt,cshape[1],cshape[2],cshape[3],cshape[4]] )
-        for ii in range(odt):
-            meantmp  = np.mean(conctmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
-            mean_conc[ii,:,:,:,:] = meantmp
-#      t0 = times[0]
-#        i0=0
-#        for ii, ti in enumerate(times[::ndt]):
-#            print (t0, ti)
-#            mean_t = np.mean(times[i0:ii])
-#            i0=ii; t0=ti
-#        import matplotlib.pyplot as plt
-#        fig = plt.figure() # Fig 1
-#        plt.pcolormesh(np.arange(22), np.arange(48), np.mean(conctmp[:,0,0,:,:],axis=0))
-        
-        
-#         mc0 = np.mean(conctmp[:,0,0,:,:],axis=0).reshape(-1)
-#         mc1 = np.mean(conctmp.reshape(12,-1),axis=0)
-#         
-#         print ('mc0',mc0.shape)
-#         print ('mc1',mc1.shape)
-#         fig = plt.figure() # Fig 2"
-#         plt.plot(np.arange(1056), mc0,marker='*', c='r')
-#         plt.plot(np.arange(1056), mc1,marker='*',c='k')
-
-        
-#         fig = plt.figure() # Fig 3
-#         plt.pcolormesh(np.arange(22), np.arange(48), mc0.reshape(48,22))
-#         
-#         fig = plt.figure() # Fig 4
-#         plt.pcolormesh(np.arange(22), np.arange(48), mc1.reshape(48,22))
-        
-        
-#        mean_conc = conctmp.reshape(ndt,-1)
-#        print (mean_conc.shape)
-#         fig = plt.figure() # Fig 5
-#         plt.pcolormesh(np.arange(1056), np.arange(12), mean_conc)
-        
-
-#        mean_conc = np.mean(mean_conc,axis=0)
-#        mean_conc = np.mean(conctmp.reshape(-1,ndt), axis=1)
-#        mean_conc = np.mean(conctmp.reshape(-1,ndt), axis=1).reshape([int(conctmp.shape[0]/ndt),conctmp.shape[1],conctmp.shape[2],conctmp.shape[3],conctmp.shape[4]])
-#        print (mean_conc.shape) 
-#         fig = plt.figure() # Fig 6"
-#         plt.plot(np.arange(1056), mean_conc,marker='*')
-        
-#        mean_conc = mean_conc.reshape(3,1,1,54,29)
-#        mean_conc = mean_conc.reshape(29,54,1,1,3)
-#        mean_conc = mean_conc.reshape(len(times2),cshape[1],cshape[2],cshape[3],cshape[4])
-        print (mean_conc.shape)
-        
-#         fig = plt.figure() # Fig 4
-#         plt.pcolormesh(np.arange(22), np.arange(48), mean_conc[0,0,0,:,:])
-#         
-#         
-#         plt.show()
+        if time_avg_conc:
+            conctmp = conc[:-1,:,:,:,:]
+            cshape = conctmp.shape
+            mdt =    np.mean(times[1:] - times[:-1])    # output frequency in opendrift output file 
+            if deltat==None:
+                ndt = 1
+            else:
+                ndt = int( deltat / (mdt.seconds/3600.) ) 
+            times2 = times[::ndt]
+            times2 = times2[1:]
+            odt = int(cshape[0]/ndt)
+            self.logger.info ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
+            self.logger.info ('odt '+ str(odt))   # number of average slices
+            
+    
+            # This may probably be written more efficiently!
+            mean_conc = np.zeros( [odt,cshape[1],cshape[2],cshape[3],cshape[4]] )
+            for ii in range(odt):
+                meantmp  = np.mean(conctmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
+                mean_conc[ii,:,:,:,:] = meantmp
+    
+    
         
 
 
@@ -990,7 +949,6 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.createDimension('depth', len(z_array)-1)
         nc.createDimension('specie', self.nspecies)
         nc.createDimension('time', H.shape[0])
-        nc.createDimension('time2', odt)
 
 #        times = self.get_time_array()[0]
         timestr = 'seconds since 1970-01-01 00:00:00'
@@ -999,9 +957,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.variables['time'].units = timestr
         nc.variables['time'].standard_name = 'time'
 
-        nc.createVariable('time2', 'f8', ('time2',))
-        nc.variables['time2'][:] = date2num(times2, timestr) # np.arange(mean_conc.shape[0])
-        nc.variables['time2'].units = timestr
+        if time_avg_conc:
+            nc.createDimension('avg_time', odt)
+            nc.createVariable('avg_time', 'f8', ('avg_time',))
+            nc.variables['avg_time'][:] = date2num(times2, timestr) # np.arange(mean_conc.shape[0])
+            nc.variables['avg_time'].units = timestr
         
         # Projection
         nc.createVariable('projection', 'i8')
@@ -1034,55 +994,62 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         
         # Density
-        nc.createVariable('density_surface', 'i4',
-                          ('time','specie','depth','y', 'x'),fill_value=0)
-#        H = np.swapaxes(H, 1, 3).astype('uint8')
-#        H = np.swapaxes(H, 1, 3).astype('i4')
+        nc.createVariable('density', 'i4',
+                          ('time','specie','depth','y', 'x'),fill_value=-999)
         H = np.swapaxes(H, 3, 4).astype('i4')
         H = np.ma.masked_where(H==0, H)
-        nc.variables['density_surface'][:] = H
-        nc.variables['density_surface'].long_name = 'Detection probability'
-        nc.variables['density_surface'].grid_mapping = 'projection'
-        nc.variables['density_surface'].units = '1'
+        nc.variables['density'][:] = H
+        nc.variables['density'].long_name = 'Number of elements in grid cell'
+        nc.variables['density'].grid_mapping = 'projection'
+        nc.variables['density'].units = '1'
 
-        nc.createVariable('density_surface_smooth', 'f8',
-                          ('time','specie','depth','y', 'x'),fill_value=1.e-36)
-#        H = np.swapaxes(H, 1, 3).astype('uint8')
-#        H = np.swapaxes(H, 1, 3).astype('i4')
-        Hsm = np.swapaxes(Hsm, 3, 4).astype('f8')
-        Hsm = np.ma.masked_where(Hsm==0, Hsm)
-        nc.variables['density_surface_smooth'][:] = Hsm
-        nc.variables['density_surface_smooth'].number_of_smoothing_cells=smoothing_cells
-        nc.variables['density_surface'].long_name = 'Detection probability horizontally smoothed'
+        
+        if horizontal_smooting:
+            nc.createVariable('density_smooth', 'f8',
+                              ('time','specie','depth','y', 'x'),fill_value=1.e36)
+            Hsm = np.swapaxes(Hsm, 3, 4).astype('f8')
+            #Hsm = np.ma.masked_where(Hsm==0, Hsm)
+            nc.variables['density_smooth'][:] = Hsm
+            nc.variables['density_smooth'].long_name = 'Horizontally smoothed number of elements in grid cell'
+            nc.variables['density_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
 
 
 
         # Radionuclide concentration, horizontally smoothed
         nc.createVariable('concentration', 'f8',
-                          ('time','specie','depth','y', 'x'),fill_value=0)
-        conc_sm = np.swapaxes(conc_sm, 3, 4) #.astype('i4')
-        conc_sm = np.ma.masked_where(conc_sm==0, conc_sm)
-        nc.variables['concentration'][:] = conc_sm
-        nc.variables['concentration'].long_name = 'radionuclide concentration horizontally smoothed'
+                          ('time','specie','depth','y', 'x'),fill_value=1.e36)
+        conc = np.swapaxes(conc, 3, 4) #.astype('i4')
+        #conc = np.ma.masked_where(conc==0, conc)
+        nc.variables['concentration'][:] = conc
+        nc.variables['concentration'].long_name = 'Radionuclide concentration'
         nc.variables['concentration'].grid_mapping = 'projection_lonlat'
         nc.variables['concentration'].units = activity_unit+'/m3'
             
 
         
+        if horizontal_smooting:
+            # Radionuclide concentration, horizontally smoothed
+            nc.createVariable('concentration_smooth', 'f8',
+                              ('time','specie','depth','y', 'x'),fill_value=1.e36)
+            conc_sm = np.swapaxes(conc_sm, 3, 4) #.astype('i4')
+          #  conc_sm = np.ma.masked_where(conc_sm==0, conc_sm)
+            nc.variables['concentration_smooth'][:] = conc_sm
+            nc.variables['concentration_smooth'].long_name = 'Horizontally smoothed radionuclide concentration'
+            nc.variables['concentration_smooth'].grid_mapping = 'projection_lonlat'
+            nc.variables['concentration_smooth'].units = activity_unit+'/m3'
+            nc.variables['concentration_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
+            
+
         
-        nc.createVariable('concentration2', 'f8',
-                          ('time2','specie','depth','y', 'x'),fill_value=0)
-    #        conc2 = mean_conc
-        conc2 = np.swapaxes(mean_conc, 3, 4) #.astype('i4')
-#        conc2 = np.swapaxes(mean_conc, 0, 4) #.astype('i4')
-#        conc2 = np.swapaxes(conc2, 1, 3) #.astype('i4')
-#        conc2 = np.swapaxes(conc2, 3, 4) #.astype('i4')
-        print (conc2.shape)
-        conc2 = np.ma.masked_where(conc2==0, conc2)
-        nc.variables['concentration2'][:] = conc2
-        nc.variables['concentration2'].long_name = 'radionuclide concentration time averaged'
-        nc.variables['concentration2'].grid_mapping = 'projection_lonlat'
-        nc.variables['concentration2'].units = activity_unit+'/m3'
+        if time_avg_conc:
+            nc.createVariable('concentration_avg', 'f8',
+                              ('avg_time','specie','depth','y', 'x'),fill_value=0)
+            conc2 = np.swapaxes(mean_conc, 3, 4) #.astype('i4')
+            conc2 = np.ma.masked_where(conc2==0, conc2)
+            nc.variables['concentration_avg'][:] = conc2
+            nc.variables['concentration_avg'].long_name = 'Time averaged radionuclide concentration'
+            nc.variables['concentration_avg'].grid_mapping = 'projection_lonlat'
+            nc.variables['concentration_avg'].units = activity_unit+'/m3'
 
         
         # Volume of boxes
@@ -1091,7 +1058,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         pixel_volume = np.swapaxes(pixel_volume, 1, 2) #.astype('i4')
         pixel_volume = np.ma.masked_where(pixel_volume==0, pixel_volume)
         nc.variables['volume'][:] = pixel_volume
-        nc.variables['volume'].long_name = 'pixel volume'
+        nc.variables['volume'].long_name = 'Volume of grid cell'
         nc.variables['volume'].grid_mapping = 'projection_lonlat'
         nc.variables['volume'].units = 'm3'
         
@@ -1100,7 +1067,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.createVariable('topo', 'f8', ('y', 'x'),fill_value=0)
         pixel_mean_depth = np.ma.masked_where(pixel_mean_depth==0, pixel_mean_depth)
         nc.variables['topo'][:] = pixel_mean_depth.T
-        nc.variables['topo'].long_name = 'depth of grid point'
+        nc.variables['topo'].long_name = 'Depth of grid point'
         nc.variables['topo'].grid_mapping = 'projection_lonlat'
         nc.variables['topo'].units = 'm'
 
@@ -1199,7 +1166,11 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         
     def horizontal_smooth(self, a, n=0):
-        #print (a.shape)
+        if n==0:
+            num_coarse=a
+            return num_coarse
+
+        
         xdm=a.shape[1]
         ydm=a.shape[0]
         #msk = self.conc_mask
@@ -1208,22 +1179,20 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         
         num_coarse = np.zeros([ydm,xdm],dtype=float)
-#        smo_tmp1=np.zeros([ydm-2*n,xdm-2*n])
         smo_tmp1=np.zeros([ydm,xdm])
         #smo_msk1=np.zeros([ydm-2*n,xdm-2*n],dtype=float)
         nlayers = 0
         for ism in np.arange(-n,n+1):
             for jsm in np.arange(-n,n+1):
-#                smo_tmp = a[n+jsm:ydm-n+jsm, n+ism:xdm-n+ism]
                 smo_tmp = b[n+jsm:ydm+n+jsm, n+ism:xdm+n+ism]
                 smo_tmp1+=smo_tmp
+                # Must preferrably take care of land points
 #                smo_msk = msk[n+jsm:ydm-n+jsm, n+ism:xdm-n+ism]
 #                smo_msk1+=smo_msk
                 nlayers+=1
                 
         if n>0:
 #            num_coarse[n:-n,n:-n] = smo_tmp1 / smo_msk1
-#            num_coarse[n:-n,n:-n] = smo_tmp1 / nlayers
             num_coarse[:,:] = smo_tmp1 / nlayers
         else:
             num_coarse = smo_tmp1
