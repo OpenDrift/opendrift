@@ -41,5 +41,4 @@ o.animation_profile()
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_0.gif
 
-o.plot()
-
+o.plot_oil_budget()

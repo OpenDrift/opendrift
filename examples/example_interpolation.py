@@ -12,7 +12,7 @@ from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
-o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -51,8 +51,10 @@ for r in o.readers:
 # Running model
 o.run(steps=66*4, time_step=900, time_step_output=3600)
 
+print(o)
+
 # Second run, for comparison
-o2 = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
+o2 = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_norkyst, reader_arome])
 o2.seed_elements(lon, lat, radius=50, number=5000, time=time)
 o2.set_config('processes:dispersion',  False)
@@ -67,6 +69,7 @@ for r in o.readers:
 
 o2.run(steps=66*4, time_step=900, time_step_output=3600)
 
+print(o2)
 
 # Animate and compare the two runs
 o.animation(compare=o2, legend=['ndimage', 'linearND'])

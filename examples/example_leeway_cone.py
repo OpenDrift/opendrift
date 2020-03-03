@@ -42,9 +42,9 @@ print(lw)
 #%%
 # Print and plot results
 print(lw)
-lw.animation()
+lw.animation(fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_leeway_cone_0.gif
 
-lw.plot()
+lw.plot(fast=True)
