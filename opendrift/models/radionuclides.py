@@ -806,7 +806,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                                               urcrnrlon=None, urcrnrlat=None,
                                               activity_unit=None,
                                               time_avg_conc=False,
-                                              horizontal_smooting=False,
+                                              horizontal_smoothing=False,
                                               smoothing_cells=0,
                                               ):
         '''Write netCDF file with map of radionuclide species densities and concentrations'''
@@ -870,7 +870,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
         
         
-        if horizontal_smooting:
+        if horizontal_smoothing:
             # Compute horizontally smoother field
             self.logger.info('H.shape: ' + str(H.shape))
             Hsm = np.zeros_like(H)
@@ -905,12 +905,12 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
         conc = np.zeros_like(H)
-        if horizontal_smooting:
+        if horizontal_smoothing:
             conc_sm = np.zeros_like(Hsm)
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
                 conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * activity_per_element
-                if horizontal_smooting:
+                if horizontal_smoothing:
                     conc_sm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume * activity_per_element
 
 
@@ -1004,7 +1004,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         nc.variables['density'].units = '1'
 
         
-        if horizontal_smooting:
+        if horizontal_smoothing:
             nc.createVariable('density_smooth', 'f8',
                               ('time','specie','depth','y', 'x'),fill_value=1.e36)
             Hsm = np.swapaxes(Hsm, 3, 4).astype('f8')
@@ -1027,7 +1027,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             
 
         
-        if horizontal_smooting:
+        if horizontal_smoothing:
             # Radionuclide concentration, horizontally smoothed
             nc.createVariable('concentration_smooth', 'f8',
                               ('time','specie','depth','y', 'x'),fill_value=1.e36)
