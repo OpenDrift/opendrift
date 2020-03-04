@@ -2,6 +2,7 @@ from bisect import bisect_left, bisect_right
 from datetime import datetime
 
 import numpy as np
+import numpy.ma as ma
 from netCDF4 import Dataset, MFDataset, num2date
 try:
     import xarray as xr
@@ -11,7 +12,7 @@ except:
 #has_xarray = False  # Temporary disabled
 
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
-from opendrift.readers.roppy import depth
+#from opendrift.readers.roppy import depth
 
 
 class Reader(BaseReader):
@@ -109,7 +110,7 @@ class Reader(BaseReader):
             try:
                 self.sigma = self.Dataset.variables['sigma'][:]
             except:
-                num_sigma = len(self.Dataset.dimensions-24.203377['sigma'])
+                num_sigma = en(self.Dataset.dimensions['sigma'])
                 self.logger.warning(
                     'sigma not available in dataset, constructing from'
                     ' number of layers (%s).' % num_sigma)
@@ -129,21 +130,24 @@ class Reader(BaseReader):
                     self.depth = self.Dataset.variables['depth'].data  # scalar
                 else:
                     self.depth = self.Dataset.variables['depth'][0]
+
             self.num_layers = len(self.sigma)
 
-        #else:
+        else:
             self.num_layers = 1
             self.ECOM_variable_mapping['u'] = 'x_sea_water_velocity'
             self.ECOM_variable_mapping['v'] = 'y_sea_water_velocity' 
-
-        
+            del self.ECOM_variable_mapping['u']
+            del self.ECOM_variable_mapping['v']
+            self.depth = self.Dataset.variables['depth'][:]
 
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
-
-            
+            #self.lat = np.ma.masked_where(self.lat == 0, self.lat)
+            #self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
+           
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
@@ -153,10 +157,7 @@ class Reader(BaseReader):
                 gf = Dataset(gridfile)
                 self.lat = gf.variables['lat'][:]
                 self.lon = gf.variables['lon_'][:]
-
-      
-
-        
+       
 
 
         # Get time coverage
@@ -201,40 +202,12 @@ class Reader(BaseReader):
         self.precalculate_s2z_coefficients = True
 
         # Find all variables having standard_name
-        #self.variables = []
-        #for var_name in self.Dataset.variables:
-            #if var_name in self.ECOM_variable_mapping.keys():
-                #var = self.Dataset.variables[var_name]
-                #self.variables.append(self.ECOM_variable_mapping[var_name])
-        self.variables = ['time',
-            'ocean_sigma_coordinate',
-            'depth',
-            'angle_of_rotation_from_east_to_x',
-            'sea_surface_height_above_sea_level',
-             'x_wind',
-            'y_wind',
-            'air_pressure_at_sea_level',
-             'x_sea_water_velocity',
-            'y_sea_water_velocity',
-            'upward_sea_water_velocity',
-            'sea_water_salinity',
-            'sea_water_temperature',
-            'X_coordinate_in_Cartesian system',
-            'Y_coordinate_in_Cartesian system',
-            'Date_Time',
-            'bounds_of_stretched_vertical_coordinate_levels',
-            'Corner_longitude',
-            'Corner_latitude',
-            'dx_metric',
-            'dy_metric',
-            'land_binary_mask', #0 ou 1 essa tal Free Surface Mask
-            'U1_direction_mask',
-            'V1_direction_mask',
-            'Vertex_longitude',
-            'Vertex_latitude',
-            'Bottom Drag_Coefficient',
-            'lon',
-            'lat']
+        self.variables = []
+        for var_name in self.Dataset.variables:
+            if var_name in self.ECOM_variable_mapping.keys():
+                var = self.Dataset.variables[var_name]
+                self.variables.append(self.ECOM_variable_mapping[var_name])
+        
         # Run constructor of parent Reader class
 
 
@@ -260,13 +233,8 @@ class Reader(BaseReader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        variables = {}
-        
-        variables['x_sea_water_velocity'] = np.nan_to_num(variables['x_sea_water_velocity'])
-        variables['y_sea_water_velocity'] = np.nan_to_num(variables['y_sea_water_velocity'])
-        variables['x_wind'] = np.nan_to_num(variables['x_wind'])
-        variables['y_wind'] = np.nan_to_num(variables['y_wind'])
-        variables['depth'] = np.nan_to_num(variables['depth'])   
+        variables = {}   
+
         if z is None:
             z = np.atleast_1d(0) #Convert inputs to arrays with at least one dimension.
 
@@ -522,19 +490,12 @@ class Reader(BaseReader):
                         variables['y_wind'], rad)
 
         # Masking NaN
-        #for var in requested_variables:
+        for var in requested_variables:
+            variables[var] = np.ma.masked_invalid(variables[var])
         
-           # variables[var] = np.ma.masked_invalid(variables[var])
-       
-
-
-
-      
-
-        self.logger.debug('Time for ECOM reader:' + str(datetime.now()-start_time))
+        self.logger.debug('Time for ECOM reader: ' + str(datetime.now()-start_time))
 
         return variables
-
 
 def rotate_vectors_angle(u, v, radians):
     u2 = u*np.cos(radians) - v*np.sin(radians)
