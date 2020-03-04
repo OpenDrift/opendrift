@@ -118,29 +118,30 @@ o.animation_profile()
 #%%
 # .. image:: /gallery/animations/example_radionuclides_1.gif
 
-o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,fast=True,
-#       background='land_binary_mask',
-       #background='sea_floor_depth_below_sea_level'
-       )
+o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,fast=True,)
 
 
 
-# Postprocessing: write to concentration netcdf file 
+# Postprocessing: write to concentration netcdf file
 o.conc_lat   = reader_norkyst.lat
 o.conc_lon   = reader_norkyst.lon
 o.conc_topo  = reader_norkyst.get_variables('sea_floor_depth_below_sea_level',
-                                       x=[reader_norkyst.xmin,reader_norkyst.xmax], 
+                                       x=[reader_norkyst.xmin,reader_norkyst.xmax],
                                        y=[reader_norkyst.ymin,reader_norkyst.ymax], block=True)['sea_floor_depth_below_sea_level'][:]
 #o.conc_mask  = reader_norkyst.land_binary_mask
 
-o.write_netcdf_radionuclide_density_map('radio_conc.nc', pixelsize_m=200., 
-                                        zlevels=[-2.],
-                                        activity_unit='Bq',
-                                        horizontal_smoothing=True,
-                                        smoothing_cells=1,
+#%%
+#
+# .. code:
+#
+#  o.write_netcdf_radionuclide_density_map('radio_conc.nc', pixelsize_m=200.,
+#                                        zlevels=[-2.],
+#                                        activity_unit='Bq',
+#                                        horizontal_smoothing=True,
+#                                        smoothing_cells=1,
 #                                        time_avg_conc=True,
 #                                        deltat=2., # hours
 #                                        llcrnrlon=8.9681, llcrnrlat=58.6627,
 #                                        urcrnrlon=9.2772, urcrnrlat=58.7219,
-                                        )
+#                                        )
 
