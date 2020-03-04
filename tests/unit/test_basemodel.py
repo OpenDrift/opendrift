@@ -74,5 +74,5 @@ def test_simulation_matches_forw_backward():
     blat = blat[:,-1]
 
     np.testing.assert_array_almost_equal(np.sort(flon), np.sort(blon))
-    np.testing.assert_array_almost_equal(np.sort(flat), np.sort(blat))
+    np.testing.assert_array_almost_equal(np.sort(flat), np.sort(blat), decimal = 5)
 
