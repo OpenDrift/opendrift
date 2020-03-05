@@ -1057,7 +1057,7 @@ class OpenOil(OpenDriftSimulation):
         import ogr
         import osr
 
-        if not 'time' is kwargs:
+        if not 'time' in kwargs:
             try:  # get time from filename
                 timestr = filename[-28:-13]
                 time = datetime.strptime(

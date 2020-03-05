@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Verical diffusivity
+Vertical diffusivity
 ===================
 """
 
