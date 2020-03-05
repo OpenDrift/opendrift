@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Oil entrainment rate
+====================
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
