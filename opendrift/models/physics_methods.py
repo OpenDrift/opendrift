@@ -34,7 +34,6 @@ def oil_wave_entrainment_rate_li2017(dynamical_viscosity, oil_density, interfaci
         if wind_speed is None:
             raise ValueError('significant_wave_height or wind_speed must be provided')
         significant_wave_height = significant_wave_height_from_wind_neumann_pierson(wind_speed)
-    print(wind_speed, significant_wave_height, 'FFF')
     g = 9.81
     delta_rho = sea_water_density - oil_density
     d_o = 4*np.sqrt(interfacial_tension / (delta_rho*g))

@@ -16,21 +16,21 @@ windspeed = np.arange(0, 20, 5)
 colors = ['r', 'g', 'b', 'k']
 
 for w, c in zip(windspeed, colors):
-    plt.plot(depth, np.ones(depth.shape)*
-                        verticaldiffusivity_Sundby1983(w),
-             c + '-', label='Sundby, wind = %s' % w)
-    plt.plot(depth, verticaldiffusivity_Large1994(w, depth, 50),
+    plt.plot(np.ones(depth.shape)*verticaldiffusivity_Sundby1983(w),
+             depth, c + '-', label='Sundby, wind = %s' % w)
+    plt.plot(verticaldiffusivity_Large1994(w, depth, 50), depth,
              c + '--', label='Large, wind = %s, MLD=50' % w)
-    plt.plot(depth, verticaldiffusivity_Large1994(w, depth, 20),
+    plt.plot(verticaldiffusivity_Large1994(w, depth, 20), depth,
              c + '-.', label='Large, wind = %s, MLD=20' % w)
 
-plt.plot(depth, verticaldiffusivity_stepfunction(depth),
+plt.plot(verticaldiffusivity_stepfunction(depth), depth,
          '-m', label='Stepfunction')
 
-plt.xlabel('Depth [m]')
-plt.ylabel('Vertical diffusivity [m/s2]')
-plt.gca().set_xlim([0, depth.max()])
-plt.gca().set_ylim([0, None])
+plt.xlabel('Vertical diffusivity [m/s2]')
+plt.ylabel('Depth [m]')
+plt.gca().set_ylim([0, depth.max()])
+plt.gca().set_xlim([0, None])
+plt.gca().invert_yaxis()
 plt.legend()
 plt.show()
 

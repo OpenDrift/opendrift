@@ -21,6 +21,7 @@ import json
 
 from opendrift.models.openoil import OpenOil, Oil
 from opendrift.models.opendrift3D import OpenDrift3DSimulation
+from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017, oil_wave_entrainment_rate_tkalich2002
 
 try:
     basestring
@@ -368,36 +369,21 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
     def oil_wave_entrainment_rate(self):
         er = self.get_config('wave_entrainment:entrainment_rate')
         if er == 'Tkalich & Chan (2002)':
-            entrainment_rate = self.oil_wave_entrainment_rate_tkalich2002()
+            #entrainment_rate = self.oil_wave_entrainment_rate_tkalich2002()
+            entrainment_rate = oil_wave_entrainment_rate_tkalich2002(
+                    wind_speed=self.wind_speed(),
+                    significant_wave_height=self.significant_wave_height(),
+                    entrainment_length_scale=
+                        self.elements.entrainment_length_scale)
         elif er == 'Li et al. (2017)':
-            entrainment_rate = self.oil_wave_entrainment_rate_li2017()
-        return entrainment_rate
-
-    def oil_wave_entrainment_rate_li2017(self):
-        # Z. Li, M.L. Spaulding, D. French McCay, J. Mar. Pollut. Bull. (2016):
-        # An algorithm for modeling entrainment and naturally and chemically dispersed
-        # oil droplet size distribution under surface breaking wave conditions
-        g = 9.81
-        interfacial_tension = self.oil_water_interfacial_tension
-        delta_rho = self.sea_water_density() - self.elements.density
-        d_o = 4 * (interfacial_tension / (delta_rho*g))**0.5
-        we = ( self.sea_water_density() * g * self.significant_wave_height() * d_o ) / interfacial_tension
-        oh = self.elements.viscosity * self.elements.density * (self.elements.density * interfacial_tension * d_o )**-0.5 # From kin. to dyn. viscosity by * density
-        entrainment_rate = 4.604e-10 * we**1.805 *oh**-1.023 * self.sea_surface_wave_breaking_fraction()
-        return entrainment_rate
-
-    def oil_wave_entrainment_rate_tkalich2002(self):
-        # Tkalich P. and Chan E.S.  
-        # Vertical mixing of oil droplets by breaking waves
-        # Marine Pollution Bulletin. 2002, V.44 (11), pp. 1219-1229
-        kb = 0.4
-        omega = (2.*np.pi)/self.wave_period()
-        gamma = self.wave_damping_coefficient()
-        alpha = 1.5
-        Low = self.elements.entrainment_length_scale
-        entrainment_rate = \
-            kb*omega*gamma*self.significant_wave_height() / \
-            (16*alpha*Low)
+            entrainment_rate = oil_wave_entrainment_rate_li2017(
+                    dynamical_viscosity=self.elements.viscosity*
+                        self.elements.density,
+                    oil_density=self.elements.density,
+                    interfacial_tension=self.oil_water_interfacial_tension,
+                    significant_wave_height=self.significant_wave_height(),
+                    wave_breaking_fraction=self.sea_surface_wave_breaking_fraction(),
+                    sea_water_density=self.sea_water_density())
         return entrainment_rate
 
     def prepare_vertical_mixing(self):
