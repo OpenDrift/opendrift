@@ -1,10 +1,9 @@
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta
 import numpy as np
 import pytest
-from opendrift.readers import reader_global_landmask
-from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_netCDF_CF_generic
+from opendrift.readers import reader_timeseries
 from opendrift.models.oceandrift import OceanDrift
 
 class TestReaders(unittest.TestCase):
@@ -22,6 +21,36 @@ class TestReaders(unittest.TestCase):
         x_wind = ts['x_wind']
         self.assertAlmostEqual(x_wind[0], -1.081, 2)
         self.assertAlmostEqual(x_wind[-1], -3.991, 2)
+
+    def test_reader_timeseries(self):
+        r = reader_timeseries.Reader({
+            'time': [datetime(2020, 1, 1, 0),
+                     datetime(2020, 1, 1, 6),
+                     datetime(2020, 1, 1, 12),
+                     datetime(2020, 1, 1, 18),
+                     datetime(2020, 1, 2, 0)],
+            'x_wind': [3, 3, 5, 8, 6],
+            'y_wind': [1, 2, 4, 3, 2]})
+        d = r.get_variables(['x_wind', 'y_wind'],
+                            x = np.array([2, 3, 4]),
+                            y = np.array([58, 59, 60]),
+                            time=datetime(2020, 1, 1, 12))
+        self.assertEqual(d['x_wind'][1], 5)
+        d = r.get_variables(['x_wind', 'y_wind'],
+                            x = np.array([2, 3, 4]),
+                            y = np.array([58, 59, 60]),
+                            time=datetime(2020, 1, 1, 17))
+        self.assertEqual(d['x_wind'][1], 8)
+        # Insert invalid data
+        self.assertRaises(ValueError,
+            reader_timeseries.Reader, {
+                'time': [datetime(2020, 1, 1, 0),
+                         datetime(2020, 1, 1, 6),
+                         datetime(2020, 1, 1, 12),
+                         datetime(2020, 1, 1, 18),
+                         datetime(2020, 1, 2, 0)],
+                'x_wind': [3, 3],
+                'y_wind': [1, 2, 4, 3, 2]})
 
 if __name__ == '__main__':
     unittest.main()
