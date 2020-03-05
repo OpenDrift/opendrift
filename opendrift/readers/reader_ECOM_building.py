@@ -26,7 +26,7 @@ class Reader(BaseReader):
         self.ECOM_variable_mapping = {
             'time': 'time',
             'sigma':'ocean_sigma_coordinate',
-            'depth':'depth',
+            'depth':'sea_floor_depth_below_sea_level',
             'ang':'angle_of_rotation_from_east_to_x',
             'elev':'sea_surface_height_above_sea_level',
             'wu': 'x_wind',
@@ -54,6 +54,7 @@ class Reader(BaseReader):
             'cbc':'Bottom Drag_Coefficient',
             'lon':'lon',
             'lat':'lat'}
+
 
              # z-levels to which sigma-layers may be interpolated (21 niveis sigma, depth max = 2000m)
         self.zlevels = np.array([0, -5, -10, -25,-30, -50, -75, -100, -150, -200,
@@ -268,20 +269,20 @@ class Reader(BaseReader):
 
         else:
             # Find the range of indices covering given z-values
-            if not hasattr(self, 'depth'):
+            if not hasattr(self, 'sea_floor_depth_below_sea_level'):
                 self.logger.debug('Reading sea floor depth...')
-                self.depth = \
+                self.sea_floor_depth_below_sea_level = \
                     self.Dataset.variables['depth'][:]
 
-                Htot = self.depth
-                self.z__tot = depth.depth(Htot, self.depth, self.sigma)
+                Htot = self.sea_floor_depth_below_sea_level
+                self.z__tot = depth.sdepth(Htot, self.depth, self.sigma)
 
             if has_xarray is False:
                 indxgrid, indygrid = np.meshgrid(indx, indy)
-                H = self.depth[indygrid, indxgrid]
+                H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
             else:
-                H = self.depth[indy, indx]
-            z_rho = depth.depth(H, self.depth, self.sigma)
+                H = self.sea_floor_depth_below_sea_level[indy, indx]
+            z_rho = depth.sdepth(H, self.depth, self.sigma)
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
             indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
@@ -375,8 +376,8 @@ class Reader(BaseReader):
                 if len(np.atleast_1d(indz)) > 1:
                     self.logger.debug('sigma to z for ' + varname[0])
                     if self.precalculate_s2z_coefficients is True:
-                        M = depth.shape[0]
-                        N = depth.shape[1]
+                        M = sea_floor_depth_below_sea_level.shape[0]
+                        N = sea_floor_depth_below_sea_level.shape[1]
                         O = len(self.z_rho_tot)
                         if not hasattr(self, 's2z_A'):
                             self.logger.debug('Calculating sigma2z-coefficients for whole domain')
