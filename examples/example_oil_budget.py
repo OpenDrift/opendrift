@@ -49,9 +49,6 @@ o.set_config('turbulentmixing:timestep', 20.) # seconds
 # Running model
 o.run(duration=timedelta(hours=24), time_step=1800)
 
-o.plot_environment()
-o.plot_oil_density_and_viscosity()
-
 o.plot_oil_budget(show_density_viscosity=True, show_wind_and_waves=True)
 
 o.animation(color='viscosity')
