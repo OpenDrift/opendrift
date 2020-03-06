@@ -383,8 +383,8 @@ class BaseReader(object):
                     self.logger.warning('(allowed range: [%s, %s])' %
                                     (standard_names[variable]['valid_min'],
                                      standard_names[variable]['valid_max']))
-                    env[variable][env[variable]<standard_names[variable]['valid_min'] |
-                                  env[variable]>standard_names[variable]['valid_max']] = np.nan
+                    env[variable][np.logical_or(env[variable]<standard_names[variable]['valid_min'],
+                                  env[variable]>standard_names[variable]['valid_max'])] = np.nan
 
         # Convolve arrays with a kernel, if reader.convolve is set
         if hasattr(self, 'convolve'):
