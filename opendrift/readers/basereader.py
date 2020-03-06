@@ -193,6 +193,12 @@ class BaseReader(object):
             self.actual_time_steps = self.expected_time_steps - \
                 self.missing_time_steps
 
+        # Making sure start_time is datetime, and not cftime object
+        if self.start_time is not None:
+             self.start_time = datetime(self.start_time.year, self.start_time.month,
+                                   self.start_time.day, self.start_time.hour,
+                                   self.start_time.minute, self.start_time.second)
+
         # Calculate shape (size) of domain
         try:
             numx = (self.xmax - self.xmin)/self.delta_x + 1

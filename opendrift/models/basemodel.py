@@ -329,9 +329,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 if len(matches) > 0:
                     matches.sort()
                     suggestion = '\nDid you mean any of these?\n%s' % str(matches)
-            else:
-                suggestion = ''
-            raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
+                else:
+                    suggestion = ''
+                raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
 
     def _config_hash_to_dict(self, hashstring):
         """Return configobj-dict from section:section:key format"""
@@ -3561,13 +3561,18 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def get_time_array(self):
         """Return a list of output times of last run."""
+
+        # Making sure start_time is datetime, and not cftime object
+        self.start_time = datetime(self.start_time.year, self.start_time.month,
+                                   self.start_time.day, self.start_time.hour,
+                                   self.start_time.minute, self.start_time.second)
         td = self.time_step_output
         time_array = [self.start_time + td*i for i in
                       range(self.steps_output)]
         time_array_relative = [td*i for i in range(self.steps_output)]
         return time_array, time_array_relative
 
-    def plot_environment(self, filename=None):
+    def plot_environment(self, filename=None, ax=None, show=True):
         """Plot mean wind and current velocities of element of last run."""
         x_wind = self.get_property('x_wind')[0]
         y_wind = self.get_property('y_wind')[0]
@@ -3580,25 +3585,30 @@ class OpenDriftSimulation(PhysicsMethods):
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds()/3600. for t in time_relative])
 
-        fig = plt.figure()
-        ax1 = fig.add_subplot(111)
-        ax1.plot(time, wind, 'b', label='wind speed')
-        ax1.set_ylabel('Wind speed  [m/s]', color='b')
-        ax1.set_xlim([0, time[-1]])
-        ax1.set_ylim([0, wind.max()])
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        ax.plot(time, wind, 'b', label='Wind speed')
+        ax.set_ylabel('Wind speed  [m/s]', color='b')
+        ax.set_xlim([0, time[-1]])
+        ax.set_ylim([0, wind.max()*1.1])
 
-        ax2 = ax1.twinx()
-        ax2.plot(time, current, 'r', label='current speed')
+        ax2 = ax.twinx()
+        ax2.plot(time, current, 'r', label='Current speed')
         ax2.set_ylabel('Current speed  [m/s]', color='r')
         ax2.set_xlim([0, time[-1]])
-        ax2.set_ylim([0, current.max()])
-        for tl in ax1.get_yticklabels():
+        ax2.set_ylim([0, current.max()*1.1])
+        for tl in ax.get_yticklabels():
             tl.set_color('b')
         for tl in ax2.get_yticklabels():
             tl.set_color('r')
-        ax1.set_xlabel('Time  [hours]')
+        ax.set_xlabel('Time  [hours]')
+        ax.legend(loc='upper left')
+        ax2.legend(loc='lower right')
+
         if filename is None:
-            plt.show()
+            if show is True:
+                plt.show()
         else:
             plt.savefig(filename)
 

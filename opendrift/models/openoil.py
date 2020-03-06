@@ -769,9 +769,10 @@ class OpenOil(OpenDriftSimulation):
 
         return oil_budget
 
-    def plot_oil_budget(self, filename=None, ax=None):
+    def plot_oil_budget(self, filename=None, ax=None, show_density_viscosity=True,
+                        show_wind_and_waves=True):
 
-        if ax==None:
+        if ax is None:
             plt.close()
 
         if self.time_step.days < 0:  # Backwards simulation
@@ -797,10 +798,23 @@ class OpenOil(OpenDriftSimulation):
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds()/3600. for t in time_relative])
 
-        if ax==None:
-            fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
+        if ax is None:
             # Left axis showing oil mass
-            ax1 = fig.add_subplot(111)
+            nrows = 1
+            if show_density_viscosity is True:
+                nrows = nrows + 1
+            if show_wind_and_waves is True:
+                nrows = nrows + 1
+            fig, axs = plt.subplots(nrows=nrows, ncols=1, figsize=(10, 6.+(nrows-1)*3))  # Suitable aspect ratio
+            #ax1 = fig.add_subplot(nrows=nrows, 1, 1)
+            if nrows == 1:
+                ax1 = axs
+            elif nrows >= 2:
+                ax1 = axs[0]
+                if show_density_viscosity is True:
+                    self.plot_oil_density_and_viscosity(ax=axs[1], show=False)
+                if show_wind_and_waves is True:
+                    self.plot_environment(ax=axs[nrows-1], show=False)
         else:
             ax1 = ax
 
@@ -866,6 +880,41 @@ class OpenOil(OpenDriftSimulation):
             plt.savefig(filename)
             plt.close()
         plt.show()
+
+    def plot_oil_density_and_viscosity(self, ax=None, show=True):
+        
+        if ax is None:
+            fig, ax = plt.subplots()
+        import matplotlib.dates as mdates
+
+        time, time_relative = self.get_time_array()
+        time = np.array([t.total_seconds()/3600. for t in time_relative])
+        kin_viscosity = self.history['viscosity']
+        dyn_viscosity = kin_viscosity*self.history['density']
+        dyn_viscosity_mean = dyn_viscosity.mean(axis=0)
+        dyn_viscosity_std  = dyn_viscosity.std(axis=0)
+        density = self.history['density'].mean(axis=0)
+        density_std = self.history['density'].std(axis=0)
+
+        ax.plot(time, dyn_viscosity_mean, 'g', lw=2, label='Dynamical viscosity')
+        ax.fill_between(time, dyn_viscosity_mean-dyn_viscosity_std,
+                        dyn_viscosity_mean+dyn_viscosity_std, color='g', alpha=0.5)
+        ax.set_ylim([0,max(dyn_viscosity_mean+dyn_viscosity_std)])
+        ax.set_ylabel(r'Dynamical viscosity  [cPoise] / [mPas]', color='g')
+        ax.tick_params(axis='y', colors='g')
+
+        axb = ax.twinx()
+        axb.plot(time, density, 'b', lw=2, label='Density')
+        axb.fill_between(time, density-density_std, density+density_std, color='b', alpha=0.5)
+        ax.set_xlim([0, time.max()])
+        ax.set_xlabel('Time [hours]')
+        axb.set_ylabel(r'Density  [kg/m3]', color='b')
+        axb.tick_params(axis='y', colors='b')
+
+        ax.legend(loc='upper left')
+        axb.legend(loc='lower right')
+        if show is True:
+            plt.show()
 
     def set_oiltype(self, oiltype):
         self.oil_name = oiltype
