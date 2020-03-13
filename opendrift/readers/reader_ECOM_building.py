@@ -12,7 +12,7 @@ except:
 #has_xarray = False  # Temporary disabled
 
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
-#from opendrift.readers.roppy import depth
+from opendrift.readers.roppy import depth
 
 
 class Reader(BaseReader):
@@ -89,15 +89,15 @@ class Reader(BaseReader):
                     self.Dataset = xr.open_mfdataset(filename,
                         chunks={'time': 1}, concat_dim='time',
                         preprocess=drop_non_essential_vars_pop,
-                        data_vars='minimal', coords='mi-24.203377nimal')
+                        data_vars='minimal', coords='minimal').load()
                 else:
-                    self.Dataset = MFDataset(filename)
+                    self.Dataset = MFDataset(filename).load()
             else:
                 self.logger.info('Opening file with Dataset')
                 if has_xarray is True:
-                    self.Dataset = xr.open_dataset(filename)
+                    self.Dataset = xr.open_dataset(filename).load()
                 else:
-                    self.Dataset = Dataset(filename, 'r')
+                    self.Dataset = Dataset(filename, 'r').load()
         except Exception as e:
             raise ValueError(e)
 
@@ -138,26 +138,26 @@ class Reader(BaseReader):
             self.num_layers = 1
             self.ECOM_variable_mapping['u'] = 'x_sea_water_velocity'
             self.ECOM_variable_mapping['v'] = 'y_sea_water_velocity' 
-            del self.ECOM_variable_mapping['u']
-            del self.ECOM_variable_mapping['v']
+            #del self.ECOM_variable_mapping['u']
+            #del self.ECOM_variable_mapping['v']
             self.depth = self.Dataset.variables['depth'][:]
 
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
-            #self.lat = np.ma.masked_where(self.lat == 0, self.lat)
-            #self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
+            self.lat = np.ma.masked_where(self.lat == 0, self.lat)
+            self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
            
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
                                  'arrays, please supply a grid-file '
                                  '"gridfile=<grid_file>"')
-            else:
-                gf = Dataset(gridfile)
-                self.lat = gf.variables['lat'][:]
-                self.lon = gf.variables['lon_'][:]
+           # else:
+               # gf = Dataset(gridfile)
+               # self.lat = gf.variables['lat'][:]
+               # self.lon = gf.variables['lon_'][:]
        
 
 
@@ -184,13 +184,20 @@ class Reader(BaseReader):
             self.time_step = None
 
         # x and y are rows and columns for unprojected datasets
-        self.xmin = 0.
+        self.xmin = 1.
         self.h1 = 1.
-        self.ymin = 0.
+        self.ymin = 1.
         self.h2 = 1.
+        #if has_xarray:
+            #self.xmax = self.Dataset['xpos'].shape[0] - 1.
+            #self.ymax = self.Dataset['ypos'].shape[0] - 1.
+            #self.lon = self.lon.data  # Extract, could be avoided downstream
+            #self.lat = self.lat.data
+            #self.sigma = self.sigma.data
+
         if has_xarray:
-            self.xmax = self.Dataset['xpos'].shape[0] - 1.
-            self.ymax = self.Dataset['ypos'].shape[0] - 1.
+            self.xmax = self.Dataset['xpos'].shape[109]
+            self.ymax = self.Dataset['ypos'].shape[135]
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
             self.sigma = self.sigma.data
@@ -333,7 +340,7 @@ class Reader(BaseReader):
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-            variables[par] = np.asarray(variables[par])  # If Xarray
+            #	 variables[par] = np.asarray(variables[par])  # If Xarray
             start = datetime.now()
 
             if par not in mask_values:
@@ -362,14 +369,14 @@ class Reader(BaseReader):
                     mask = self.mask_rho[indygrid, indxgrid]
                 if has_xarray is True:
                     mask = np.asarray(mask)
-                if mask.min() == 0 and par != 'land_binary_mask':
-                    first_mask_point = np.where(mask.ravel()==0)[0][0]
+             #   if mask.min() == 0 and par != 'land_binary_mask':
+                    #first_mask_point = np.where(mask.ravel()==0)[0][0]
                     if variables[par].ndim == 3:
                         upper = variables[par][0,:,:]
-                    else:
-                        upper = variables[par]
-                    mask_values[par] = upper.ravel()[first_mask_point]
-                    variables[par][variables[par]==mask_values[par]] = np.nan
+                    #else:
+                        #upper = variables[par]
+                   # mask_values[par] = upper.ravel()[first_mask_point]
+                   # variables[par][variables[par]==mask_values[par]] = np.nan
 
             if var.ndim == 4:
                 # Regrid from sigma to z levels
@@ -446,8 +453,8 @@ class Reader(BaseReader):
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
-            if variables[par].ndim > 1 and block is False:
-                variables[par] = variables[par].diagonal()
+           # if variables[par].ndim > 1 and block is False:
+               # variables[par] = variables[par].diagonal()
 
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
@@ -459,10 +466,13 @@ class Reader(BaseReader):
             # TODO: should be midpoints, but angle array below needs integer
             #indx = indx[0:-1]  # Only if de-staggering has been performed
             #indy = indy[1::]
-            variables['x'] = indx
-            variables['y'] = indy
-        else:
-            variables['x'] = self.xmin + (indx-1)*self.delta_x
+            #variables['x'] = indx
+            #variables['y'] = indy
+        #else:
+            #variables['x'] = self.xmin + (indx-1)*self.delta_x
+            #variables['y'] = self.ymin + (indy-1)*self.delta_y
+
+            variables['x'] = self.xmin + (indx-1)*self.delta_x    
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
         variables['x'] = variables['x'].astype(np.float)
@@ -498,7 +508,7 @@ class Reader(BaseReader):
 
         return variables
 
-def rotate_vectors_angle(u, v, radians):
-    u2 = u*np.cos(radians) - v*np.sin(radians)
-    v2 = u*np.sin(radians) + v*np.cos(radians)
-    return u2, v2
+def rotate_vectors_angle(x_sea_water_velocity, y_sea_water_velocity, radians):
+    x_sea_water_velocity2 = x_sea_water_velocity*np.cos(radians) - y_sea_water_velocity*np.sin(radians)
+    y_sea_water_velocity2 = x_sea_water_velocity*np.sin(radians) + y_sea_water_velocity*np.cos(radians)
+    return x_sea_water_velocity2, y_sea_water_velocity2
