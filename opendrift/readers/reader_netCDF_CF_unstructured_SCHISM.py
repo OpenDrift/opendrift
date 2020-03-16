@@ -244,7 +244,7 @@ class Reader(BaseReader):
 
         # build convex hull of points for particle-in-mesh checks
         logging.debug('Building convex hull of nodes for particle''s in-mesh checks')
-        # *** this a very rough way of doing it...ideally we would be able to 
+        # *** this a very approximate way of doing it...ideally we would be able to 
         # have the actual contour of the grid....
         hull_obj = ConvexHull(np.vstack([self.lon.data,self.lat.data]).T)
         self.hull_path = Path(np.vstack([self.lon[hull_obj.vertices],self.lat[hull_obj.vertices]]).T)  # Matplotlib Path object
@@ -409,7 +409,7 @@ class Reader(BaseReader):
     def convert_3d_to_array(self,id_time,data,variable_dict):
         ''' 
         The function reshapes a data matrix of dimensions = [node,vertical_levels] (i.e. data at vertical levels, at given time step) 
-        into an one-column array and works out corresponding 3d coordinates [lon,lat,z] using the time-varying
+        into a one-column array and works out corresponding 3d coordinates [lon,lat,z] using the time-varying
         'zcor' variable in SCHISM files (i.e. vertical level positions). 
 
         These 3D coordinates will be used to build the 3D KDtree for data interpolation and will be added to the 'variable_dict' 
@@ -465,7 +465,7 @@ class Reader(BaseReader):
         of the mesh nodes. This means it is NOT using the true polygon bounding the mesh ..but this is generally good enough
         to locate the outer boudary (which is often circular). 
         >> The convex hull will not be good for the shorelines though, but this 
-        is not critical since coast interaction will be handled by the reader_basemap. 
+        is not critical since coast interaction will be handled by either by the landmask (read from file or using global_landmask) 
         Data tnterpolation might be an issue for particles reaching the land, and not actually flagged as out-of-bounds...
         To Check...
 
@@ -887,6 +887,7 @@ class ReaderBlockUnstruct():
         # self.block_KDtree = cKDTree(np.vstack((self.x,self.y)).T)  # KDtree input to function = one computed during reader's __init__()
 
         if hasattr(self,'z_3d'):
+            # we need to compute a new KDtree for that time step using vertical coordinates at that time step
             logging.debug('Compute time-varying KDtree for 3D nearest-neighbor search (i.e using ''zcor'') ')
             self.block_KDtree_3d = cKDTree(np.vstack((self.x_3d,self.y_3d,self.z_3d)).T) 
             # do we need copy_data=True ..probably not since "data" [self.x_3d,self.y_3d,self.z_3d] 

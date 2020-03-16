@@ -40,5 +40,5 @@ if __name__ == '__main__':
 
 
     o = opendrift.open(args.filename)
-    print o
+    print(o)
     o.plot_oil_budget()
