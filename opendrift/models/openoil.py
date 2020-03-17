@@ -772,9 +772,6 @@ class OpenOil(OpenDriftSimulation):
     def plot_oil_budget(self, filename=None, ax=None, show_density_viscosity=True,
                         show_wind_and_waves=True):
 
-        if ax is None:
-            plt.close()
-
         if self.time_step.days < 0:  # Backwards simulation
             fig = plt.figure(figsize=(10, 6.))
             plt.text(0.1, 0.5, 'Oil weathering deactivated for '
@@ -782,7 +779,6 @@ class OpenOil(OpenDriftSimulation):
             plt.axis('off')
             if filename is not None:
                 plt.savefig(filename)
-                plt.close()
             plt.show()
             return
 
@@ -878,7 +874,6 @@ class OpenOil(OpenDriftSimulation):
                    ncol=6, mode="expand", borderaxespad=0., fontsize=10)
         if filename is not None:
             plt.savefig(filename)
-            plt.close()
         plt.show()
 
     def plot_oil_density_and_viscosity(self, ax=None, show=True):
