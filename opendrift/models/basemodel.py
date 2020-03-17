@@ -331,7 +331,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     suggestion = '\nDid you mean any of these?\n%s' % str(matches)
             else:
                 suggestion = ''
-            raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
+            # raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
 
     def _config_hash_to_dict(self, hashstring):
         """Return configobj-dict from section:section:key format"""
