@@ -43,14 +43,13 @@ o.set_config('turbulentmixing:timestep',  5)
 #%%
 # Running model (until end of driver data)
 o.run(steps=4*40, time_step=900,
-      time_step_output=3600,
-      outfile='openoil3d.nc')
+      time_step_output=3600)
 
 #%%
 # Print and plot results
 print(o)
 o.plot(fast=True)
-o.plot_oil_budget(filename='openoil3d_oil_budget.png')
+o.plot_oil_budget()
 #o.plot(filename='openoil3d_drift')
 o.plot_vertical_distribution()
 o.plot_property('water_fraction', mean=True)
