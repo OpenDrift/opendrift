@@ -10,7 +10,7 @@ OpenDrift is usually installed as a source package or as a conda package. If you
 .. warning::
 
    OpenDrift has now transitioned to *Python 3*. New versions of OpenDrift are unlikely to work with Python 2.
-   Python 2 reaches end of line in January, 2020. If you need to use Python 2 try using an older version of OpenDrift.
+   Python 2 reached end of line in January, 2020. If you need to use Python 2 try using an older version of OpenDrift.
 
 
 .. _miniconda_install:

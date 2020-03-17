@@ -882,7 +882,6 @@ class OpenOil(OpenDriftSimulation):
         plt.show()
 
     def plot_oil_density_and_viscosity(self, ax=None, show=True):
-        
         if ax is None:
             fig, ax = plt.subplots()
         import matplotlib.dates as mdates
