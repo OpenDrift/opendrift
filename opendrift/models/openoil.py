@@ -222,9 +222,9 @@ class OpenOil(OpenDriftSimulation):
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
-            # append names of "sample_oils" of OilLibrary
+            # append names of "sample_oils" of OilLibrary (modified s.weppe)
             for so in sample_oils._sample_oils.keys() :
-                self.oiltypes.append(unicode(so)) # using unicode for consistency
+                self.oiltypes.append(so) # using unicode for consistency
         else:
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
