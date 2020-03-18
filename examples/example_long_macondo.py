@@ -40,4 +40,4 @@ o.plot(fast=True)
 o.animation(filename='macondo.gif', fast=True)
 
 #%%
-# .. image:: /gallery/animations/macondo.gif
+# .. image:: /gallery/animations/example_macondo_0.gif

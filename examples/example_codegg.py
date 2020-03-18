@@ -57,6 +57,6 @@ o.plot(fast=True)
 o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/example_codegg_forecast_0.gif
+# .. image:: /gallery/animations/example_codegg_0.gif
 
 o.plot_vertical_distribution()
