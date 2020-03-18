@@ -15,7 +15,7 @@ jobs:
           command: apt-get update
       - run:
           name: Install packages
-          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin
+          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick
       - restore_cache:
           key: v2-deps1-{{ checksum "environment.yml" }}
       - run:
@@ -48,7 +48,7 @@ jobs:
           command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
 
       - restore_cache:
-          key: gallery-v2-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v3-{{ checksum "/tmp/gallery-checksum.txt" }}
 
       - restore_cache:
           key: plots-{{ checksum "/tmp/plots-checksum.txt" }}
@@ -59,7 +59,7 @@ jobs:
           no_output_timeout: 40m
 
       - save_cache:
-          key: gallery-v2-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v3-{{ checksum "/tmp/gallery-checksum.txt" }}
           paths:
             - "docs/source/gallery"
 
