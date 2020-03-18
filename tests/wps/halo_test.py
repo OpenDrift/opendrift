@@ -8,16 +8,16 @@ from opendrift.readers import reader_netCDF_CF_generic
 
 readers = [  # Note that order (priority) is important!
     '/lustre/storeB/project/copernicus/sea/romsnorkyst/zdepths1h/*fc*.nc',
-    'http://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+    'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
     '/lustre/storeB/project/copernicus/sea/romsnordic/zdepths1h/roms_nordic4_ZDEPTHS_hr.fc.*.nc',
-    'http://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
-    '/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_pp_2_5km_latest.nc',
-    'http://thredds.met.no/thredds/dodsC/meps25files/meps_det_pp_2_5km_latest.nc',
+    'https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+    '/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_lagged_6_h_latest_2_5km_latest.nc',
+    'https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc',
     '/lustre/storeB/project/metproduction/products/arome2_5_arctic/thredds/arome_arctic_pp_2_5km_latest.nc',
-    'http://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
+    'https://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_pp_2_5km_latest.nc',
     '/lustre/storeA/project/copernicus/sea/mywavewam4/*fc*.nc',
-    'http://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
-    'http://thredds.met.no/example_of_nonexisting_url.nc',
+    'https://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be',
+    'https://thredds.met.no/example_of_nonexisting_url.nc',
     'example_of_nonexisting_file']
 
 for case in ['oil', 'leeway']:  # test two models
@@ -25,7 +25,7 @@ for case in ['oil', 'leeway']:  # test two models
         for z in [0, -200]:  # seeding at sea surface and at 200 m depth
             if case == 'oil':
                 o = OpenOil3D(weathering_model='noaa')
-                args = {'oiltype': 'IVAR AASEN',
+                args = {'oiltype': 'IVAR AASEN 2012',
                 #args = {'oiltype': 'WISTING',
                         'z': z}
             else:

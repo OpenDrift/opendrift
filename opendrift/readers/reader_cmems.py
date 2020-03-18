@@ -11,12 +11,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 # This reader pre-downloads to local disk netCDF-files with data 
-# from CMEMS, # http://marine.copernicus.eu 
+# from CMEMS, # https://marine.copernicus.eu 
 # This first version fetches current data from Mercator global ocean model
 
 
@@ -40,7 +40,7 @@ except:
 from opendrift.readers.reader_netCDF_CF_generic import Reader as NCReader
 
 
-motu_URL='http://nrt.cmems-du.eu/motu-web/Motu'
+motu_URL='https://nrt.cmems-du.eu/motu-web/Motu'
 products = {
     'NORTHWESTSHELF_ANALYSIS_FORECAST_PHY_004_013-TDS': 
         {'productID': 'MetO-NWS-PHY-hi-CUR',
@@ -58,7 +58,7 @@ class Reader(NCReader):
                  serviceID='GLOBAL_ANALYSIS_FORECAST_PHY_001_024-TDS',
                  lon_min=None, lon_max=None, lat_min=None, lat_max=None,
                  depth_min=0, depth_max=3,
-                 time_start=datetime.now(),
+                 time_start=datetime.now(), ID='',
                  time_end=datetime.now() + timedelta(days=1)):
 
         if cmems_user is None:
@@ -82,7 +82,7 @@ class Reader(NCReader):
         self.variables = list(content['variables'].values())
 
         # Downloaded data will be stored in this file, to be overwritten by subsequent downloads
-        self.nc_file = self.productID + '.nc'
+        self.nc_file = self.productID + ID + '.nc'
 
         # Download xml file specifying content
         content_file = self.productID + '.xml'

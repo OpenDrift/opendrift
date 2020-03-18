@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -27,10 +27,23 @@ import numpy as np
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983
 
 
 class TestPhysics(unittest.TestCase):
     """Tests for some physical parameterisations"""
+
+    def test_vertical_diffusivity(self):
+        windspeeds = np.arange(0, 20, 5)
+        depths = np.arange(0, 80, 5)
+        wind, depth = np.meshgrid(windspeeds, depths)
+        KLarge = verticaldiffusivity_Large1994(wind, depth)
+        KSundby = verticaldiffusivity_Sundby1983(wind)
+
+        self.assertAlmostEqual(KLarge.min(), 0, 3)
+        self.assertAlmostEqual(KLarge.max(), 0.2017, 3)
+        self.assertAlmostEqual(KSundby.min(), .0076, 3)
+        self.assertAlmostEqual(KSundby.max(), 0.0585, 3)
 
     def test_droplet_diameters(self):
         o = OpenOil3D(loglevel=20, weathering_model='default')
@@ -155,7 +168,7 @@ class TestPhysics(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -46.4, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -48.3, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
@@ -174,7 +187,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('turbulentmixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -34.4, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -42.9, 1)
         #######################################################
 
 
@@ -196,9 +209,35 @@ class TestPhysics(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -34.1, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -44.5, 1)
         ########################################################
 
+    def test_verticalmixing_schemes(self):
+
+        for scheme in ['environment', 'windspeed_Large1994',
+                       'windspeed_Sundby1983', 'zero']:
+            o = OpenOil3D(loglevel=50, weathering_model='noaa')
+            o.fallback_values['land_binary_mask'] = 0
+            o.fallback_values['x_wind'] = 10
+            o.fallback_values['y_wind'] = 0
+            o.fallback_values['x_sea_water_velocity'] = 0
+            o.fallback_values['y_sea_water_velocity'] = 0
+            o.fallback_values['ocean_vertical_diffusivity'] = 0.02
+            o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
+                            density=865, time=datetime.now())
+
+            #o.set_config('turbulentmixing:timestep', 4)
+            o.set_config('turbulentmixing:diffusivitymodel', scheme)
+            o.run(duration=timedelta(hours=2), time_step=900)
+
+            if scheme == 'environment':  # presently this is fallback
+                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
+            elif scheme == 'windspeed_Large1994':
+                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
+            elif scheme == 'windspeed_Sundby1983':
+                self.assertAlmostEqual(o.elements.z.min(), -36.7, 1)
+            elif scheme == 'zero':
+                self.assertAlmostEqual(o.elements.z.min(), -3.62, 1)
 
     def test_parameterised_stokes(self):
         o = OpenOil3D(loglevel=30, weathering_model='default')

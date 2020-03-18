@@ -12,9 +12,10 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2020, Gaute Hope, MET Norway
 
 import sys
 import os
@@ -333,6 +334,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 suggestion = ''
             # raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
 
+
     def _config_hash_to_dict(self, hashstring):
         """Return configobj-dict from section:section:key format"""
         c = self.configobj
@@ -476,7 +478,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if self.newly_seeded_IDs is not None:
                 self.deactivate_elements(
                     (self.environment.land_binary_mask == 1) &
-                    (self.elements.ID >= self.newly_seeded_IDs[0]),
+                    (self.elements.age_seconds == self.time_step.total_seconds()),
                     reason='seeded_on_land')
             on_land = np.where(self.environment.land_binary_mask == 1)[0]
             if len(on_land) == 0:
@@ -1299,7 +1301,7 @@ class OpenDriftSimulation(PhysicsMethods):
                         ])
             reader_landmask.name = 'tempreader'
             o = OceanDrift(
-                loglevel=self.logger.getLogger().getEffectiveLevel())
+                loglevel=self.logger.getEffectiveLevel())
             o.add_reader(reader_landmask)
             land_reader = reader_landmask
 
@@ -1347,8 +1349,6 @@ class OpenDriftSimulation(PhysicsMethods):
         indices = indices.ravel()
         lon[land==1] = oceangridlons[indices]
         lat[land==1] = oceangridlats[indices]
-        if tmp_reader is True:
-            plt.close()
 
         return lon, lat
 
@@ -1857,7 +1857,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.environment_profiles is not None:
             for varname, profiles in iteritems(self.environment_profiles):
                 self.logger.debug('remove items from profile for '+varname)
-                if varname is not 'z':
+                if varname != 'z':
                     self.environment_profiles[varname] = \
                         profiles[:, ~indices]
             self.logger.debug('Removed %i values from environment_profiles.' %
@@ -2041,9 +2041,14 @@ class OpenDriftSimulation(PhysicsMethods):
                                  (end_time))
         if duration is None:
             duration = end_time - self.start_time
+
         if time_step.days < 0 and duration.days >= 0:
             # Duration shall also be negative for backwards run
             duration = -duration
+
+        if np.sign(duration.total_seconds()) * np.sign(time_step.total_seconds()) < 0:
+            raise ValueError("Time step must be negative if duration is negative.")
+
         self.expected_steps_output = duration.total_seconds() / \
             self.time_step_output.total_seconds() + 1  # Includes start and end
         self.expected_steps_calculation = duration.total_seconds() / \
@@ -2448,10 +2453,15 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast=False, **kwargs):
-        """Generate Figure instance on which trajectories are plotted.
+    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast=False, hide_landmask=False, **kwargs):
+        """
+        Generate Figure instance on which trajectories are plotted.
 
-           provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection"""
+        :param hide_landmask: do not plot landmask (default False)
+        :type hide_landmask: bool
+
+        provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection
+        """
 
         lons, lats = self.get_lonlats()
 
@@ -2523,41 +2533,42 @@ class OpenDriftSimulation(PhysicsMethods):
         import shapely
         from shapely.geometry import box
 
-        if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask' \
-           and not self.readers['global_landmask'].skippoly \
-           and (self.readers['global_landmask'].mask.extent is None \
-                or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax))):
+        if not hide_landmask:
+            if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask' \
+            and not self.readers['global_landmask'].skippoly \
+            and (self.readers['global_landmask'].mask.extent is None \
+                    or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax))):
 
-            self.logger.debug("Using existing GSHHS shapes..")
-            landmask = self.readers['global_landmask'].mask
+                self.logger.debug("Using existing GSHHS shapes..")
+                landmask = self.readers['global_landmask'].mask
 
-            if fast:
-                show_landmask(landmask)
+                if fast:
+                    show_landmask(landmask)
 
+                else:
+                    extent = box(lonmin, latmin, lonmax, latmax)
+                    extent = shapely.prepared.prep(extent)
+                    polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
+
+                    ax.add_geometries(polys,
+                            ccrs.PlateCarree(),
+                            facecolor=cfeature.COLORS['land'],
+                            edgecolor='black')
             else:
-                extent = box(lonmin, latmin, lonmax, latmax)
-                extent = shapely.prepared.prep(extent)
-                polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
+                self.logger.debug ("Adding GSHHS shapes..")
 
-                ax.add_geometries(polys,
-                        ccrs.PlateCarree(),
-                        facecolor=cfeature.COLORS['land'],
-                        edgecolor='black')
-        else:
-            self.logger.debug ("Adding GSHHS shapes..")
+                if fast:
+                    from opendrift_landmask_data import Landmask
+                    show_landmask(Landmask(skippoly=True))
 
-            if fast:
-                from opendrift_landmask_data import Landmask
-                show_landmask(Landmask(skippoly=True))
-
-            else:
-                f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
-                        facecolor=cfeature.COLORS['land'])
-                ax.add_geometries(
-                        f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
-                        ccrs.PlateCarree(),
-                        facecolor=cfeature.COLORS['land'],
-                        edgecolor='black')
+                else:
+                    f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+                            facecolor=cfeature.COLORS['land'])
+                    ax.add_geometries(
+                            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+                            ccrs.PlateCarree(),
+                            facecolor=cfeature.COLORS['land'],
+                            edgecolor='black')
 
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
@@ -2602,7 +2613,7 @@ class OpenDriftSimulation(PhysicsMethods):
                   background=None, bgalpha=.5, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
-                  show_trajectories=False,
+                  show_trajectories=False, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20,
                   legend=None, legend_loc='best', fps=10, lscale=None, fast=False):
@@ -2701,7 +2712,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast)
+            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale,
+                            fast=fast, hide_landmask=hide_landmask)
 
         if surface_only is True:
             z = self.get_property('z')[0]
@@ -2833,7 +2845,7 @@ class OpenDriftSimulation(PhysicsMethods):
             frames=x.shape[0], interval=50)
 
 
-        if filename is not None:
+        if filename is not None or 'sphinx_gallery' in sys.modules:
             self._save_animation(anim, filename, fps)
             self.logger.debug('Time to make animation: %s' %
                           (datetime.now()-start_time))
@@ -2874,7 +2886,6 @@ class OpenDriftSimulation(PhysicsMethods):
         x = self.get_property('lon')[0].T
         #seafloor_depth = \
         #    -self.get_property('sea_floor_depth_below_sea_level')[0].T
-        plt.close()
         fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
         ax = fig.gca()
         plt.xlabel('Longitude [degrees]')
@@ -2935,7 +2946,7 @@ class OpenDriftSimulation(PhysicsMethods):
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
                                        frames=x.shape[1], interval=150)
 
-        if filename is not None:
+        if filename is not None or 'sphinx_gallery' in sys.modules:
             self._save_animation(anim, filename, fps)
 
         else:
@@ -2981,7 +2992,7 @@ class OpenDriftSimulation(PhysicsMethods):
              density_pixelsize_m=1000,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
-             fast=False, **kwargs):
+             fast=False, hide_landmask=False, **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
         Plots trajectories of all particles.
@@ -3006,6 +3017,9 @@ class OpenDriftSimulation(PhysicsMethods):
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
             lscale (string): resolution of land feature ('c', 'l', 'i', 'h', 'f', 'auto'). default is 'auto'.
             fast (bool): use some optimizations to speed up plotting at the cost of accuracy
+
+            :param hide_landmask: do not plot landmask (default False). See :ref:`model_landmask_only_model` for example usage.
+            :type hide_landmask: bool
         """
 
 
@@ -3019,7 +3033,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree()
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast, **kwargs)
+            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 
         markercolor = self.plot_comparison_colors[0]
 
@@ -3223,7 +3237,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
 
         if title is not None:
-            if title is 'auto':
+            if title == 'auto':
                 if hasattr(self, 'time'):
                     plt.title(type(self).__name__ + '  %s to %s UTC (%i steps)' %
                               (self.start_time.strftime('%Y-%m-%d %H:%M'),
@@ -3259,7 +3273,7 @@ class OpenDriftSimulation(PhysicsMethods):
         time = trajectory_dict['time']
         time = np.array(time)
         i = np.where((time>=self.start_time) & (time<=self.time))[0]
-        x, y = (trajectory_dict['lon'][i], trajectory_dict['lat'][i])
+        x, y = (np.atleast_1d(trajectory_dict['lon'])[i], np.atleast_1d(trajectory_dict['lat'])[i])
         ls = trajectory_dict['linestyle']
 
         gcrs = ccrs.PlateCarree()
@@ -3270,6 +3284,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def get_map_background(self, ax, background, time=None):
         # Get background field for plotting on map or animation
+        # TODO: this method should be made more robust
         if type(background) is list:
             variable = background[0]  # A vector is requested
         else:
@@ -3292,8 +3307,13 @@ class OpenDriftSimulation(PhysicsMethods):
         cornerlons = np.array([xmin, xmin, xmax, xmax])
         cornerlats = np.array([ymin, ymax, ymin, ymax])
         reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
-        reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
-        reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
+        if sum(~np.isfinite(reader_x+reader_y)) > 0:
+            # Axis corner points are not within reader domain
+            reader_x = np.array([reader.xmin, reader.xmax])
+            reader_y = np.array([reader.ymin, reader.ymax])
+        else:
+            reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
+            reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
 
         data = reader.get_variables(
             background, time, reader_x, reader_y, None, block=True)
@@ -3315,6 +3335,9 @@ class OpenDriftSimulation(PhysicsMethods):
         # Shift one pixel for correct plotting
         reader_x = reader_x - reader.delta_x
         reader_y = reader_y - reader.delta_y
+        if reader.projected is False:
+            reader_y[reader_y<0] = 0
+            reader_x[reader_x<0] = 0
 
         rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
         if rlons.max() > 360:
@@ -3537,13 +3560,18 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def get_time_array(self):
         """Return a list of output times of last run."""
+
+        # Making sure start_time is datetime, and not cftime object
+        self.start_time = datetime(self.start_time.year, self.start_time.month,
+                                   self.start_time.day, self.start_time.hour,
+                                   self.start_time.minute, self.start_time.second)
         td = self.time_step_output
         time_array = [self.start_time + td*i for i in
                       range(self.steps_output)]
         time_array_relative = [td*i for i in range(self.steps_output)]
         return time_array, time_array_relative
 
-    def plot_environment(self, filename=None):
+    def plot_environment(self, filename=None, ax=None, show=True):
         """Plot mean wind and current velocities of element of last run."""
         x_wind = self.get_property('x_wind')[0]
         y_wind = self.get_property('y_wind')[0]
@@ -3556,25 +3584,30 @@ class OpenDriftSimulation(PhysicsMethods):
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds()/3600. for t in time_relative])
 
-        fig = plt.figure()
-        ax1 = fig.add_subplot(111)
-        ax1.plot(time, wind, 'b', label='wind speed')
-        ax1.set_ylabel('Wind speed  [m/s]', color='b')
-        ax1.set_xlim([0, time[-1]])
-        ax1.set_ylim([0, wind.max()])
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        ax.plot(time, wind, 'b', label='Wind speed')
+        ax.set_ylabel('Wind speed  [m/s]', color='b')
+        ax.set_xlim([0, time[-1]])
+        ax.set_ylim([0, wind.max()*1.1])
 
-        ax2 = ax1.twinx()
-        ax2.plot(time, current, 'r', label='current speed')
+        ax2 = ax.twinx()
+        ax2.plot(time, current, 'r', label='Current speed')
         ax2.set_ylabel('Current speed  [m/s]', color='r')
         ax2.set_xlim([0, time[-1]])
-        ax2.set_ylim([0, current.max()])
-        for tl in ax1.get_yticklabels():
+        ax2.set_ylim([0, current.max()*1.1])
+        for tl in ax.get_yticklabels():
             tl.set_color('b')
         for tl in ax2.get_yticklabels():
             tl.set_color('r')
-        ax1.set_xlabel('Time  [hours]')
+        ax.set_xlabel('Time  [hours]')
+        ax.legend(loc='upper left')
+        ax2.legend(loc='lower right')
+
         if filename is None:
-            plt.show()
+            if show is True:
+                plt.show()
         else:
             plt.savefig(filename)
 
@@ -3584,12 +3617,15 @@ class OpenDriftSimulation(PhysicsMethods):
         from matplotlib import dates
 
         hfmt = dates.DateFormatter('%d %b %Y %H:%M')
-        plt.close()
         fig = plt.figure()
         ax = fig.gca()
         ax.xaxis.set_major_formatter(hfmt)
         plt.xticks(rotation='vertical')
-        times = [self.start_time + n*self.time_step_output
+        start_time = self.start_time
+        # In case start_time is unsupported cftime
+        start_time = datetime(start_time.year, start_time.month, start_time.day,
+                              start_time.hour, start_time.minute, start_time.second)
+        times = [start_time + n*self.time_step_output
                  for n in range(self.steps_output)]
         data = self.history[prop].T[0:len(times), :]
         if mean is True:  # Taking average over elements
@@ -3738,29 +3774,34 @@ class OpenDriftSimulation(PhysicsMethods):
             '../../opendrift/scripts/data_sources.txt')
 
     def _save_animation(self, anim, filename, fps):
-        self.logger.info('Saving animation to ' + filename + '...')
-
-        import sys
         if 'sphinx_gallery' in sys.modules:
-            import os
+            # This assumes that the calling script is two frames up in the stack. If
+            # _save_animation is called through a more deeply nested method, it will
+            # not give the correct result.
+            import inspect
+            caller = inspect.stack()[2]
+            caller = os.path.splitext(os.path.basename(caller.filename))[0]
+
+            if not hasattr(OpenDriftSimulation, '__anim_no__'):
+                OpenDriftSimulation.__anim_no__ = { }
+
+            if not hasattr(OpenDriftSimulation.__anim_no__, caller):
+                OpenDriftSimulation.__anim_no__[caller] = 0
+
             adir = os.path.realpath('../docs/source/gallery/animations')
             os.makedirs(adir, exist_ok=True)
+
+            filename = '%s_%d.gif' % (caller, OpenDriftSimulation.__anim_no__[caller])
+            OpenDriftSimulation.__anim_no__[caller] += 1
+
             filename = os.path.join(adir, filename)
+
+        self.logger.info('Saving animation to ' + filename + '...')
 
         try:
             if filename[-4:] == '.gif':  # GIF
                 self.logger.info('Making animated gif...')
-                try:
-                    anim.save(filename, fps=fps, writer='imagemagick')
-                except:  # For old version of matplotlib
-                    anim.save(filename, fps=fps)#, clear_temp=False)
-                    os.system('convert -delay %i _tmp*.png %s' %
-                            (np.abs(self.time_step_output.total_seconds())/
-                             3600.*24., filename))
-                    self.logger.info('Deleting temporary figures...')
-                    tmp = glob.glob('_tmp*.png')
-                    for tfile in tmp:
-                        os.remove(tfile)
+                anim.save(filename, fps=fps, writer='imagemagick')
             else:  # MP4
                 try:
                     try:
@@ -3787,7 +3828,7 @@ class OpenDriftSimulation(PhysicsMethods):
             self.logger.debug(traceback.format_exc())
 
         if 'sphinx_gallery' in sys.modules:
-            plt.close('all')
+            plt.close()
 
     def calculate_ftle(self, reader=None, delta=None,
                        time=None, time_step=None, duration=None,

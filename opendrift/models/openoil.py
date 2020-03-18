@@ -10,7 +10,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -194,7 +194,8 @@ class OpenOil(OpenDriftSimulation):
     # Workaround as ADIOS oil library uses
     # max water fraction of 0.9 for all crude oils
     max_water_fraction  = {
-        'MARINE GAS OIL 500 ppm S 2017': 0.1}
+        'MARINE GAS OIL 500 ppm S 2017': 0.1,
+        'FENJA (PIL) 2015': .75}
 
 
     def __init__(self, weathering_model='default', *args, **kwargs):
@@ -516,22 +517,14 @@ class OpenOil(OpenDriftSimulation):
         #########################################################
         # Update density and viscosity according to temperature
         #########################################################
-        try:  # New version of OilLibrary
-            self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
-            oil_viscosity = self.oiltype.kvis_at_temp(
-                self.environment.sea_water_temperature)
-            self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
-            self.timer_start('main loop:updating elements:oil weathering:updating densities')
-            oil_density = self.oiltype.density_at_temp(
-                self.environment.sea_water_temperature)
-            self.timer_end('main loop:updating elements:oil weathering:updating densities')
-        except:  # Old version of OilLibrary
-            oil_viscosity = np.array(
-                [self.oiltype.get_viscosity(t) for t in
-                 self.environment.sea_water_temperature])
-            oil_density = np.array(
-                [self.oiltype.get_density(t) for t in
-                 self.environment.sea_water_temperature])
+        self.timer_start('main loop:updating elements:oil weathering:updating viscosities')
+        oil_viscosity = self.oiltype.kvis_at_temp(
+            self.environment.sea_water_temperature)
+        self.timer_end('main loop:updating elements:oil weathering:updating viscosities')
+        self.timer_start('main loop:updating elements:oil weathering:updating densities')
+        oil_density = self.oiltype.density_at_temp(
+            self.environment.sea_water_temperature)
+        self.timer_end('main loop:updating elements:oil weathering:updating densities')
 
         # Calculate emulsion density
         self.elements.density = (
@@ -782,8 +775,9 @@ class OpenOil(OpenDriftSimulation):
 
         return oil_budget
 
-    def plot_oil_budget(self, filename=None):
 
+    def plot_oil_budget(self, filename=None, ax=None, show_density_viscosity=True,
+                        show_wind_and_waves=True):
         plt.close()
         if self.time_step.days < 0:  # Backwards simulation
             fig = plt.figure(figsize=(10, 6.))
@@ -792,7 +786,6 @@ class OpenOil(OpenDriftSimulation):
             plt.axis('off')
             if filename is not None:
                 plt.savefig(filename)
-                plt.close()
             plt.show()
             return
 
@@ -809,8 +802,26 @@ class OpenOil(OpenDriftSimulation):
         time = np.array([t.total_seconds()/3600. for t in time_relative])
         fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
 
-        # Left axis showing oil mass
-        ax1 = fig.add_subplot(111)
+        if ax is None:
+            # Left axis showing oil mass
+            nrows = 1
+            if show_density_viscosity is True:
+                nrows = nrows + 1
+            if show_wind_and_waves is True:
+                nrows = nrows + 1
+            fig, axs = plt.subplots(nrows=nrows, ncols=1, figsize=(10, 6.+(nrows-1)*3))  # Suitable aspect ratio
+            #ax1 = fig.add_subplot(nrows=nrows, 1, 1)
+            if nrows == 1:
+                ax1 = axs
+            elif nrows >= 2:
+                ax1 = axs[0]
+                if show_density_viscosity is True:
+                    self.plot_oil_density_and_viscosity(ax=axs[1], show=False)
+                if show_wind_and_waves is True:
+                    self.plot_environment(ax=axs[nrows-1], show=False)
+        else:
+            ax1 = ax
+
         # Hack: make some emply plots since fill_between does not support label
         if np.sum(b['mass_dispersed']) > 0:
             ax1.add_patch(plt.Rectangle((0, 0), 0, 0,
@@ -871,8 +882,41 @@ class OpenOil(OpenDriftSimulation):
                    ncol=6, mode="expand", borderaxespad=0., fontsize=10)
         if filename is not None:
             plt.savefig(filename)
-            plt.close()
         plt.show()
+
+    def plot_oil_density_and_viscosity(self, ax=None, show=True):
+        if ax is None:
+            fig, ax = plt.subplots()
+        import matplotlib.dates as mdates
+
+        time, time_relative = self.get_time_array()
+        time = np.array([t.total_seconds()/3600. for t in time_relative])
+        kin_viscosity = self.history['viscosity']
+        dyn_viscosity = kin_viscosity*self.history['density']
+        dyn_viscosity_mean = dyn_viscosity.mean(axis=0)
+        dyn_viscosity_std  = dyn_viscosity.std(axis=0)
+        density = self.history['density'].mean(axis=0)
+        density_std = self.history['density'].std(axis=0)
+
+        ax.plot(time, dyn_viscosity_mean, 'g', lw=2, label='Dynamical viscosity')
+        ax.fill_between(time, dyn_viscosity_mean-dyn_viscosity_std,
+                        dyn_viscosity_mean+dyn_viscosity_std, color='g', alpha=0.5)
+        ax.set_ylim([0,max(dyn_viscosity_mean+dyn_viscosity_std)])
+        ax.set_ylabel(r'Dynamical viscosity  [cPoise] / [mPas]', color='g')
+        ax.tick_params(axis='y', colors='g')
+
+        axb = ax.twinx()
+        axb.plot(time, density, 'b', lw=2, label='Density')
+        axb.fill_between(time, density-density_std, density+density_std, color='b', alpha=0.5)
+        ax.set_xlim([0, time.max()])
+        ax.set_xlabel('Time [hours]')
+        axb.set_ylabel(r'Density  [kg/m3]', color='b')
+        axb.tick_params(axis='y', colors='b')
+
+        ax.legend(loc='upper left')
+        axb.legend(loc='lower right')
+        if show is True:
+            plt.show()
 
     def set_oiltype(self, oiltype):
         self.oil_name = oiltype
@@ -1070,7 +1114,7 @@ class OpenOil(OpenDriftSimulation):
         import ogr
         import osr
 
-        if not 'time' is kwargs:
+        if not 'time' in kwargs:
             try:  # get time from filename
                 timestr = filename[-28:-13]
                 time = datetime.strptime(

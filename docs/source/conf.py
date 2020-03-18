@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.abspath('../..'))
 # -- Project information -----------------------------------------------------
 
 project = 'OpenDrift'
-copyright = '2019, Knut-Frode Dagestad et. al.'
-author = 'Knut-Frode Dagestad et. al.'
+copyright = '2020, Knut-Frode Dagestad (knutfd@met.no) and Gaute Hope (gauteh@met.no).'
+author = 'Knut-Frode Dagestad and Gaute Hope.'
 master_doc = 'index'
 
 
@@ -40,7 +40,8 @@ sphinx_gallery_conf = {
      'filename_pattern': '/example_(?!long_)',
      'backreferences_dir': False,
      'capture_repr': ('_repr_html_', '__repr__'),
-     'abort_on_example_error': True
+     'abort_on_example_error': False,
+     'thumbnail_size': (300, 300)
 }
 
 # Remove matplotlib agg warnings from generated doc when using plt.show

@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -141,14 +141,14 @@ class TestOil(unittest.TestCase):
                     meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
                     fraction_dispersed = 0.086
-                    fraction_submerged = 0.271
-                    fraction_evaporated = 0.501
-                    meanlon = 4.820
+                    fraction_submerged = 0.313
+                    fraction_evaporated = 0.497
+                    meanlon = 4.819
                 elif oil == 'SKRUGARD' and windspeed == 8:
                     fraction_dispersed = 0.133
-                    fraction_submerged = 0.243
+                    fraction_submerged = 0.260
                     fraction_evaporated = 0.197
-                    meanlon = 4.832
+                    meanlon = 4.830
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
@@ -178,7 +178,7 @@ class TestOil(unittest.TestCase):
         actual_dispersed = b['mass_dispersed']/b['mass_total']
         self.assertAlmostEqual(actual_dispersed[-1], 0)
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.lon[0:3], [4.821577, 4.806694, 4.800167]))
+            o.elements.lon[0:3], [4.808547, 4.798853, 4.809264]))
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')

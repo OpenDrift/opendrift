@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -577,6 +577,26 @@ class TestReaders(unittest.TestCase):
                     wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
         self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.22070706,8)
 
+
+    def test_valid_minmax(self):
+        """Check that invalid values are replaced with fallback."""
+        o = OceanDrift(loglevel=50)
+        from opendrift.readers import basereader
+        minval = basereader.standard_names['x_wind']['valid_min']
+        # Setting valid_min to -5, to check that replacement works
+        basereader.standard_names['x_wind']['valid_min'] = -5
+        reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+                    '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+        o.add_reader(reader_wind)
+        o.fallback_values['x_sea_water_velocity'] = 0
+        o.fallback_values['x_wind'] = 2.0
+        o.fallback_values['y_sea_water_velocity'] = 0
+        o.fallback_values['land_binary_mask'] = 0
+        o.seed_elements(lon=4, lat=60, time=reader_wind.start_time)
+        o.run(steps=1)
+        basereader.standard_names['x_wind']['valid_min'] = minval  # reset
+        w = o.get_property('x_wind')[0][0]
+        self.assertAlmostEqual(w, 2.0, 1)
 
 if __name__ == '__main__':
     unittest.main()

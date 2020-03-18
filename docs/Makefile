@@ -19,13 +19,18 @@ help:
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-# html-noplot:
-# 	@$(SPHINXBUILD) -D plot_gallery=0 "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(0)
-# 	@echo
-# 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+html-nogallery:
+	@echo "Not executing examples"
+	@$(SPHINXBUILD) -b html -D plot_gallery=0 "$(SOURCEDIR)" "$(BUILDDIR)"/html $(SPHINXOPTS) $(0)
+
+checksum-gallery:
+	@find ../examples -type f -exec md5sum {} \; | sort -k 2  | md5sum
+
+checksum-plots:
+	@find source -type f -exec md5sum {} \; | sort -k 2  | md5sum
 
 clean:
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	rm -rf build/
 	rm -rf source/gallery
 	rm -rf source/autoapi
 

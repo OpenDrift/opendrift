@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -50,9 +50,9 @@ class TestStranding(unittest.TestCase):
         self.assertEqual(o.elements_deactivated.status.min(), 1)
         self.assertEqual(o.elements_deactivated.status.max(), 1)
         self.assertEqual(o.num_elements_scheduled(), 0)
-        self.assertEqual(o.num_elements_active(), 79)
+        self.assertEqual(o.num_elements_active(), 77)
         self.assertEqual(o.num_elements_activated(), 100)
-        self.assertEqual(o.num_elements_deactivated(), 21)
+        self.assertEqual(o.num_elements_deactivated(), 23)
         self.assertEqual(o.num_elements_total(), 100)
 
     def test_stranding_roms(self):

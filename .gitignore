@@ -12,3 +12,10 @@ build
 /*.egg
 /*.eggs
 /MyTests/
+/docs/
+/.project
+/.pydevproject
+
+examples/openoil_sample_output.nc
+examples/oil3Dmixing.nc
+

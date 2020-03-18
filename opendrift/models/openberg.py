@@ -10,7 +10,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2019, Ole Baadshaug, MET Norway & Ron Saper, Carleton University Canada.
 #
@@ -158,7 +158,10 @@ class OpenBerg(OpenDriftSimulation):
 
 		# Obtain depth levels from reader:
         reader_name = reader_groups[0][0]
-        profile = np.abs(np.ma.filled(self.readers[reader_name].z))
+        if hasattr(self.readers[reader_name], 'z'):
+            profile = np.abs(np.ma.filled(self.readers[reader_name].z))
+        else:  # ROMS sigma levels
+            profile = np.abs(np.ma.filled(self.readers[reader_name].zlevels))
 
        # Make sure that interpolation is left to reader if no blocks are used .
        # NB! This is a workaround, two additional points should be removed in basereader!

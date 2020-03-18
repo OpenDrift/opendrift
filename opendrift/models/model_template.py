@@ -10,36 +10,41 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+
+"""
+This file is a template for an ocean trajectory model
+to be implemented within the OpenDrift framework.
+To create a new model, make a copy (renamed) of this file, and
+modify the class names and details below, according to the comments.
+See e.g. module windblow.py for a minimalistic example.
+
+For more help, see https://github.com/OpenDrift/opendrift/wiki
+or contact Knut-Frode Dagestad (knutfd@met.no)
+For usage of the new model, see example scripts (e.g. example.py)
+
+First we define an element type to be used by the trajectory model.
+An element type (class) may also be imported/reused from
+another module - see examples in the folder "elements"
+
+"""
 
 import numpy as np
 from opendrift.elements import LagrangianArray
 from opendrift.models.basemodel import OpenDriftSimulation
 
-
-# This file is a template for an ocean trajectory model
-# to be implemented within the OpenDrift framework.
-# To create a new model, make a copy (renamed) of this file, and
-# modify the class names and details below, according to the comments.
-# See e.g. module windblow.py for a minimalistic example.
-#
-# For more help, see https://github.com/OpenDrift/opendrift/wiki
-# or contact Knut-Frode Dagestad (knutfd@met.no)
-# For usage of the new model, see example scripts (e.g. example.py)
-
-
-# First we define an element type to be used by the trajectory model.
-# An element type (class) may also be imported/reused from
-# another module - see examples in the folder "elements"
 class TemplateElementType(LagrangianArray):
-    """Extending LagrangianArray with relevant properties."""
-    # Define and name the properties which the elements shall have.
-    # These are added to the four core properties (ID, lon, lat, z)
-    # inherited from the basic/generic LagrangianArray class.
-    # Property names may be freely chosen, but the "update" function (below)
-    # will refer to the names in the specifications of the processes.
+    """
+    Extending LagrangianArray with relevant properties.
+
+    Define and name the properties which the elements shall have.
+    These are added to the four core properties (ID, lon, lat, z)
+    inherited from the basic/generic LagrangianArray class.
+    Property names may be freely chosen, but the "update" function (below)
+    will refer to the names in the specifications of the processes.
+    """
     variables = LagrangianArray.add_variables([
         ('mass_oil', {'dtype': np.float32,
                       'unit': 'kg'}),
@@ -66,7 +71,7 @@ class ModelTemplate(OpenDriftSimulation):
     # Specify which environment variables (e.g. wind, waves, currents...)
     # are needed/required by the present model, to be used for updating
     # the element properties (including propagation).
-    # The convention of using CF standard_name (http://cfconventions.org)
+    # The convention of using CF standard_name (https://cfconventions.org)
     # allows reusing readers for many/all models.
     # Vector quantities should be referred to by the x-y components
     # (e.g. x_wind) and not the lon-lat componenets (e.g. east_wind).
@@ -82,52 +87,73 @@ class ModelTemplate(OpenDriftSimulation):
                        'x_wind': 0, 'y_wind': 0}
 
     def __init__(self, *args, **kwargs):
+        """
 
-        # Here any preprocessing may be performed,
-        # e.g. importing external data from file.
-        print('preprocessing...')
+        Here any preprocessing may be performed,
+        e.g. importing external data from file.
 
-        # Constructor of parent class must always be called
-        # to perform some necessary common initialisation tasks
+        .. code::
+
+            print('preprocessing...')
+
+        Constructor of parent class must always be called
+        to perform some necessary common initialisation tasks
+
+        .. code::
+            super(ModelTemplate, self).__init__(*args, **kwargs)
+        """
         super(ModelTemplate, self).__init__(*args, **kwargs)
 
     def update(self):
-        """Update positions and properties of particles."""
+        """Update positions and properties of particles.
 
-        # This function ("update", may not be renamed) defines
-        # the actions (processes) to be performed at each time step.
-        # The default timestep is one hour, but this may be overriden
-        # by the user (setting model.time_step, see e.g. example.py)
+        This function ("update", may not be renamed) defines
+        the actions (processes) to be performed at each time step.
+        The default timestep is one hour, but this may be overriden
+        by the user (setting model.time_step, see e.g. example.py)
 
-        # The elements and corresponding environment information
-        # (wind, waves, current...) is available to this function as
-        # the recarrays "elements" and "environment", respectively.
-        # Element properties and environvent variables are namedarrays
-        # of same length (number of active particles), or scalars.
-        # E.g.:
-        # self.elements.z
-        # self.elements.mass
-        # self.environment.x_wind
-        # self.environment.y_wind
-        # E.g. to specify evaporation (mass reduction)
-        #   proportional to wind speed:
-        # self.elements.mass = self.elements.mass - \
-        #       np.sqrt(self.environment.x_wind**2 + \
-        #               self.environment.y_wind**2)*.01
+        The elements and corresponding environment information
+        (wind, waves, current...) is available to this function as
+        the recarrays "elements" and "environment", respectively.
+        Element properties and environvent variables are namedarrays
+        of same length (number of active particles), or scalars.
 
-        # Horizontal position of the particles (lon, lat) are the
-        # only properties which should not be modified directly/freely.
-        # Due to the need to correct for the curvature of the coordinate
-        # systems, a dedicated function (self.update_positions() should be
-        # used instead, with x- and y-velocity as arguments:
-        # E.g. to simply move particles with ambient current:
-        # self.update_positions(self.environment.x_sea_water_velocity,
-        #                       self.environment.y_sea_water_velocity)
-        # E.g. to move particles with 3 percent of the wind speed:
-        # wind_factor = 0.03
-        # self.update_positions(self.environment.x_wind*wind_factor,
-        #                      self.environment.y_wind*wind_factor)
+        E.g.:
 
-        # If particles need to be deactived (e.g. when hitting land),
-        # the special function self.deactivate_elements() should be used:
-        # self.deactivate_elements(self.environment.land_binary_mask==1)
+        .. code::
+
+            self.elements.z
+            self.elements.mass
+            self.environment.x_wind
+            self.environment.y_wind
+
+        E.g. to specify evaporation (mass reduction) proportional to wind speed:
+
+        .. code::
+
+            self.elements.mass = self.elements.mass - \
+                np.sqrt(self.environment.x_wind**2 + \
+                        self.environment.y_wind**2)*.01
+
+        Horizontal position of the particles (lon, lat) are the
+        only properties which should not be modified directly/freely.
+        Due to the need to correct for the curvature of the coordinate
+        systems, a dedicated function (self.update_positions() should be
+        used instead, with x- and y-velocity as arguments:
+        E.g. to simply move particles with ambient current:
+        self.update_positions(self.environment.x_sea_water_velocity,
+                              self.environment.y_sea_water_velocity)
+        E.g. to move particles with 3 percent of the wind speed:
+
+        .. code::
+
+            wind_factor = 0.03
+
+            self.update_positions(self.environment.x_wind*wind_factor,
+                                self.environment.y_wind*wind_factor)
+
+        If particles need to be deactived (e.g. when hitting land),
+        the special function `self.deactivate_elements()` should be used:
+        `self.deactivate_elements(self.environment.land_binary_mask==1)`
+        """
+        pass

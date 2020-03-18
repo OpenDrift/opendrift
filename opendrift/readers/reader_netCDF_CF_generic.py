@@ -10,7 +10,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
@@ -31,7 +31,7 @@ except:
 def proj_from_CF_dict(c):
 
     # This method should be extended to other projections:
-    # http://cfconventions.org/wkt-proj-4.html
+    # https://cfconventions.org/wkt-proj-4.html
     if not 'grid_mapping_name' in c:
         raise ValueError('grid_mapping not given in dictionary')
     gm = c['grid_mapping_name']
@@ -77,7 +77,7 @@ def proj_from_CF_dict(c):
 
 class Reader(BaseReader):
     """
-    A reader for `CF-compliant <http://cfconventions.org/>`_ netCDF files. It can take a single file, or a file pattern.
+    A reader for `CF-compliant <https://cfconventions.org/>`_ netCDF files. It can take a single file, or a file pattern.
 
     Args:
         :param filename: A single netCDF file, or a pattern of files. The
@@ -109,7 +109,7 @@ class Reader(BaseReader):
     .. code::
 
        from opendrift.readers.reader_netCDF_CF_generic import Reader
-       r = Reader('http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc')
+       r = Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
 
 
     """

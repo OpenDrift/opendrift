@@ -10,9 +10,10 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2020, Gaute Hope, MET Norway
 
 from future.utils import iteritems
 import sys
@@ -42,7 +43,8 @@ standard_names = {
     'x_wind': {'valid_min': -50, 'valid_max': 50},
     'y_wind': {'valid_min': -50, 'valid_max': 50},
     'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
-    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10}}
+    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
+    'ocean_vertical_diffusivity': {'valid_min': 0, 'valid_max': 1}}
 
 # Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
 vector_pairs_xy = [
@@ -92,7 +94,8 @@ class BaseReader(object):
         'x_wind_10m': 'x_wind',
         'y_wind_10m': 'y_wind',
         'sea_water_x_velocity': 'x_sea_water_velocity',
-        'sea_water_y_velocity': 'y_sea_water_velocity'
+        'sea_water_y_velocity': 'y_sea_water_velocity',
+        'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity'
         }
 
     xy2eastnorth_mapping = {
@@ -189,6 +192,12 @@ class BaseReader(object):
                 self.missing_time_steps = 0
             self.actual_time_steps = self.expected_time_steps - \
                 self.missing_time_steps
+
+        # Making sure start_time is datetime, and not cftime object
+        if self.start_time is not None:
+             self.start_time = datetime(self.start_time.year, self.start_time.month,
+                                   self.start_time.day, self.start_time.hour,
+                                   self.start_time.minute, self.start_time.second)
 
         # Calculate shape (size) of domain
         try:
@@ -367,10 +376,21 @@ class BaseReader(object):
             env['x'] = np.array(env['x'], dtype=np.float)
             env['y'] = np.array(env['y'], dtype=np.float)
 
-        # Convert any masked arrays to NumPy arrays
-        for variable in env.keys():
+        for variable in variables:
+            # Convert any masked arrays to NumPy arrays
             if isinstance(env[variable], np.ma.MaskedArray):
                 env[variable] = env[variable].filled(np.nan)
+            # Mask values outside valid_min, valid_max (self.standard_names)
+            if variable in standard_names.keys():
+                if (env[variable].min() < standard_names[variable]['valid_min']) or (
+                    env[variable].max() > standard_names[variable]['valid_max']):
+                    self.logger.warning('Invalid values found for ' + variable +
+                                        ', replacing with NaN')
+                    self.logger.warning('(allowed range: [%s, %s])' %
+                                    (standard_names[variable]['valid_min'],
+                                     standard_names[variable]['valid_max']))
+                    env[variable][np.logical_or(env[variable]<standard_names[variable]['valid_min'],
+                                  env[variable]>standard_names[variable]['valid_max'])] = np.nan
 
         # Convolve arrays with a kernel, if reader.convolve is set
         if hasattr(self, 'convolve'):
@@ -459,6 +479,8 @@ class BaseReader(object):
         if time == time_before or all(v in static_variables for v in variables):
             time_after = None
 
+        if len(z) == 1 and len(lon) > 1:
+            z = z.copy()*np.ones(lon.shape)
         z = z.copy()[ind_covered]  # Send values and not reference
                                    # to avoid modifications
         if block is False or self.return_block is False:
@@ -602,18 +624,6 @@ class BaseReader(object):
                 env[var] = np.ma.masked_invalid((env_before[var] *
                                                 (1 - weight_after) +
                                                 env_after[var] * weight_after))
-
-                if var in standard_names.keys():
-                    invalid = np.where((env[var] < standard_names[var]['valid_min'])
-                               | (env[var] > standard_names[var]['valid_max']))[0]
-                    if len(invalid) > 0:
-                        self.logger.warning('Invalid values found for ' + var)
-                        self.logger.warning(env[var][invalid])
-                        self.logger.warning('(allowed range: [%s, %s])' %
-                                        (standard_names[var]['valid_min'],
-                                         standard_names[var]['valid_max']))
-                        self.logger.warning('Replacing with NaN')
-                        env[var][invalid] = np.nan
             # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
@@ -1216,7 +1226,7 @@ class BaseReader(object):
         p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
         xsp = p[:, 0]
         ysp = p[:, 1]
-        
+
         if variable is None:
 
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
@@ -1271,3 +1281,42 @@ class BaseReader(object):
             plt.close()
         else:
             plt.show()
+
+    def get_timeseries_at_position(self, lon, lat, variables=None,
+                                   start_time=None, end_time=None, times=None):
+        """ Get timeseries of variables from this reader at given position.
+        """
+
+        if times is None:
+            if start_time is None:
+                start_time = self.start_time
+            if end_time is None:
+                end_time = self.end_time
+            times = [t for t in self.times if t >= start_time and t<= end_time]
+
+        if variables is None:
+            variables = self.variables
+
+        if len(self.covers_positions(lon=lon, lat=lat)[0]) == 0:
+            return None
+
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
+        if len(lon) == 1:
+            lon = lon[0]*np.ones(len(times))
+            lat = lat[0]*np.ones(len(times))
+
+        data = {'time': times}
+        for var in variables:
+            data[var] = np.zeros(len(times))
+
+        for i, time in enumerate(times):
+            closest_time = min(self.times, key=lambda d: abs(d - time))
+            print(time, closest_time, 'Time, Closest time')
+            d = self.get_variables_interpolated(
+                lon=np.atleast_1d(lon[i]), lat=np.atleast_1d(lat[i]), z=np.atleast_1d(0),
+                time=closest_time, variables=variables, rotate_to_proj='+proj=latlong')[0]
+            for var in variables:
+                data[var][i] = d[var][0]
+
+        return(data)

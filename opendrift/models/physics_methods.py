@@ -10,7 +10,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2016, Knut-Frode Dagestad, MET Norway
 
@@ -19,11 +19,173 @@ from math import sqrt
 import pyproj
 
 
+def oil_wave_entrainment_rate_li2017(dynamical_viscosity, oil_density, interfacial_tension,
+                                     significant_wave_height=None, wave_breaking_fraction=None,
+                                     wind_speed=None, sea_water_density=1028.):
+    # Z. Li, M.L. Spaulding, D. French McCay, J. Mar. Pollut. Bull. (2016):
+    # An algorithm for modeling entrainment and naturally and chemically dispersed
+    # oil droplet size distribution under surface breaking wave conditions
+    
+    if wave_breaking_fraction is None:
+        if wind_speed is None:
+            raise ValueError('wave_breaking_fraction or wind_speed must be provided')
+        wave_breaking_fraction = wave_breaking_fraction_from_wind(wind_speed)
+    if significant_wave_height is None:
+        if wind_speed is None:
+            raise ValueError('significant_wave_height or wind_speed must be provided')
+        significant_wave_height = significant_wave_height_from_wind_neumann_pierson(wind_speed)
+    g = 9.81
+    delta_rho = sea_water_density - oil_density
+    d_o = 4*np.sqrt(interfacial_tension / (delta_rho*g))
+    we = sea_water_density*g*significant_wave_height*d_o/interfacial_tension
+    oh = dynamical_viscosity/np.sqrt(oil_density*interfacial_tension*d_o)
+    entrainment_rate = (4.604e-10*we**1.805*oh**-1.023)*wave_breaking_fraction
+    return entrainment_rate
+
+def oil_wave_entrainment_rate_tkalich2002(wind_speed=None, significant_wave_height=None,
+                                          wave_period=None, entrainment_length_scale=.3):
+    kb = 0.4
+    if wave_period is None:
+        if wind_speed is None:
+            raise ValueError('wave_period or wind_speed must be provided')
+        wave_period = wave_period_from_wind(wind_speed)    
+    if significant_wave_height is None:
+        if wind_speed is None:
+            raise ValueError('significant_wave_height or wind_speed must be provided')
+        significant_wave_height = significant_wave_height_from_wind_neumann_pierson(wind_speed)
+    kb = 0.4
+    alpha = 1.5
+    omega = (2.*np.pi)/wave_period
+    wave_energy = 9.81*1028*np.power(significant_wave_height, 2)/16
+    wave_damping_coefficient = (10E-5)*omega*np.power(wave_energy, 0.25)
+    entrainment_rate = kb*omega*wave_damping_coefficient*significant_wave_height / (
+                        16*alpha*entrainment_length_scale)
+    return entrainment_rate
+
+def significant_wave_height_from_wind_neumann_pierson(wind_speed):
+    # Neumann and Pierson, 1966
+    # WMO 1998
+    return 0.0246*np.power(wind_speed, 2)
+
+def wave_breaking_fraction_from_wind(wind_speed, wave_period=None):
+    # TODO: We should also have an option here for
+    # the case when wave height is given, but no wind
+    if wave_period is None:
+        wave_period = wave_period_from_wind(wind_speed)
+    f = 0.032*(wind_speed - 5)/wave_period
+    f[f < 0] = 0
+    return f
+
+def wave_period_from_wind(wind_speed):
+    # Pierson-Moskowitz if period not available from readers
+    # WMO guide to wave analysis and forecasting pp. 14, WMO (1998)
+    # fallback value if no wind speed or Hs to avoid division by zero
+    wind_speed = np.atleast_1d(wind_speed)
+    omega = 5*np.ones(wind_speed.shape)  # Angular frequency
+    omega[wind_speed>0] = 0.877*9.81/(1.17*wind_speed[wind_speed>0])
+    return 2*np.pi/omega
+
+def verticaldiffusivity_Sundby1983(windspeed):
+    ''' Vertical diffusivity from Sundby (1983)
+
+    S. Sundby (1983): A one-dimensional model for the vertical
+        distribution of pelagic fish eggs in the mixed layer
+        Deep Sea Research (30) pp. 645-661
+    '''
+
+    K = 76.1e-4 + 2.26e-4 * windspeed*windspeed
+    # valid = windspeed_squared < 13**2
+    return K
+
+def verticaldiffusivity_Large1994(windspeed, depth, mixedlayerdepth=50):
+    ''' Vertical diffusivity from Large et al. (1994)
+
+    Depending on windspeed, depth and mixed layer depth (default 50m).'''
+
+    # Defining two helper methods:
+
+    def stabilityfunction(sigma):
+        # controls stratification regimes for diffusivity
+        # a value of 1 represent neutrally buoyant conditions (no stratification)
+        # a value between 0 and 1 represents stable stratification
+        return 0.2 # should be depth dependent, too
+
+    def G(sigma):
+        # vertical shape function for eddy diffusivity
+        a1 = 1.
+        a2 = -2
+        a3 = 1
+        G = a1*sigma + a2*sigma**2 + a3*sigma**3
+        below = np.where(G>=1)
+        G[below]=G[below]*0.
+        return G
+
+    depth = np.abs(depth)  # Making sure depth is positive value
+    MLD = mixedlayerdepth  # shorthand
+    rhoa = 1.22  # Air density
+    cd = 1.25e-3  # Kara et al. 2007
+    windstress = windspeed*windspeed * cd * rhoa
+
+    K = MLD * stabilityfunction(depth/MLD) * 0.4 * G(depth/MLD) * windstress
+    K[depth>=MLD] = 0.001  # background diffusivity
+
+    return K
+
+def verticaldiffusivity_stepfunction(depth, MLD=20,
+                                     k_above=.1, k_below=.02):
+    ''' eddy diffusivity with discontinuity for testing of mixing scheme'''
+    depth = np.abs(depth)  # Making sure depth is positive value
+    K = k_above*np.ones(depth.shape)
+    K[depth>MLD] = k_below
+    return K
+
+def gls_tke(windstress, depth, sea_water_density,
+            tke, generic_length_scale, gls_parameters=None):
+    '''From LADIM model.'''
+
+    g = 9.81
+    f0 = 0.1  # mean wave frequency
+    c_w = 4.0  # wave mixing parameter
+    c_i = 0.2  # coefficient for the interior
+    if gls_parameters is None:
+        # GLS parameters from ROMS, k-omega closure (see ocean.in)
+        p = 0.0
+        m = 1.0
+        n = 1.0
+        cmu0 = 0.5477  # for KANTHA_CLAYSON stability function
+    else:
+        p = gls_parameters['gls_p']
+        m = gls_parameters['gls_m']
+        n = gls_parameters['gls_n']
+        cmu0 = gls_parameters['gls_cmu0']
+
+    phi = 100. * (windstress/sea_water_density)**(3./2.)
+
+    # dissipation and turbulent length scale for interiour of mixed layer
+    eps = cmu0**(3.+p/n)*tke**(3./2.+m/n)*generic_length_scale**(-1./n)
+    l_i = c_i * tke**(3./2.) * eps**(-1.)
+
+    # diffusivity for interior of mixed layer
+    # c_i = sqrt(2.) * cmu0**3
+    ki = c_i * (2.*tke)**0.5 * l_i
+
+    # length scale and diffusivity of wave-enhanced layer
+    l_w = np.sqrt(phi / (g*f0))
+    kwave = c_w * (2*tke)**0.5 * l_w
+    kmix = ki + kwave
+
+    K, N = np.meshgrid(kmix, depths)
+
+    return K
+
+
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
                                  significant_wave_height, mean_wave_period, z):
-    # calculate vertical Stokes drift profile from
-    # Breivik et al. 2016, A Stokes drift approximation
-    # based on the Phillips spectrum, Ocean Mod. 100
+    """
+    Calculate vertical Stokes drift profile from
+    Breivik et al. 2016, A Stokes drift approximation
+    based on the Phillips spectrum, Ocean Mod. 100
+    """
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
 
