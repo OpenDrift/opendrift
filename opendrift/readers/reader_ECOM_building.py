@@ -89,17 +89,17 @@ class Reader(BaseReader):
                     self.Dataset = xr.open_mfdataset(filename,
                         chunks={'time': 1}, concat_dim='time',
                         preprocess=drop_non_essential_vars_pop,
-                        data_vars='minimal', coords='minimal').load()
+                        data_vars='minimal', coords='minimal')
                 else:
-                    self.Dataset = MFDataset(filename).load()
+                    self.Dataset = MFDataset(filename)
             else:
                 self.logger.info('Opening file with Dataset')
                 if has_xarray is True:
-                    self.Dataset = xr.open_dataset(filename).load()
+                    self.Dataset = xr.open_dataset(filename)
                 else:
-                    self.Dataset = Dataset(filename, 'r').load()
+                    self.Dataset = Dataset(filename, 'r')
         except Exception as e:
-            raise ValueError(e)
+            raise ValueError('e')
 
         if 'sigma' not in self.Dataset.variables:
             dimensions = 2
@@ -111,7 +111,7 @@ class Reader(BaseReader):
             try:
                 self.sigma = self.Dataset.variables['sigma'][:]
             except:
-                num_sigma = en(self.Dataset.dimensions['sigma'])
+                num_sigma = len(self.Dataset.dimensions['sigma'])
                 self.logger.warning(
                     'sigma not available in dataset, constructing from'
                     ' number of layers (%s).' % num_sigma)
@@ -340,7 +340,7 @@ class Reader(BaseReader):
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-            #	 variables[par] = np.asarray(variables[par])  # If Xarray
+            #    variables[par] = np.asarray(variables[par])  # If Xarray
             start = datetime.now()
 
             if par not in mask_values:
