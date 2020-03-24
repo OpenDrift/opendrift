@@ -377,7 +377,7 @@ class OpenOil3D(OpenDrift3DSimulation, OpenOil):  # Multiple inheritance
                         self.elements.entrainment_length_scale)
         elif er == 'Li et al. (2017)':
             entrainment_rate = oil_wave_entrainment_rate_li2017(
-                    dynamical_viscosity=self.elements.viscosity*
+                    dynamic_viscosity=self.elements.viscosity*
                         self.elements.density,
                     oil_density=self.elements.density,
                     interfacial_tension=self.oil_water_interfacial_tension,
