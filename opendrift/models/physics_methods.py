@@ -19,7 +19,7 @@ from math import sqrt
 import pyproj
 
 
-def oil_wave_entrainment_rate_li2017(dynamical_viscosity, oil_density, interfacial_tension,
+def oil_wave_entrainment_rate_li2017(dynamic_viscosity, oil_density, interfacial_tension,
                                      significant_wave_height=None, wave_breaking_fraction=None,
                                      wind_speed=None, sea_water_density=1028.):
     # Z. Li, M.L. Spaulding, D. French McCay, J. Mar. Pollut. Bull. (2016):
@@ -38,8 +38,9 @@ def oil_wave_entrainment_rate_li2017(dynamical_viscosity, oil_density, interfaci
     delta_rho = sea_water_density - oil_density
     d_o = 4*np.sqrt(interfacial_tension / (delta_rho*g))
     we = sea_water_density*g*significant_wave_height*d_o/interfacial_tension
-    oh = dynamical_viscosity/np.sqrt(oil_density*interfacial_tension*d_o)
-    entrainment_rate = (4.604e-10*we**1.805*oh**-1.023)*wave_breaking_fraction
+    oh = dynamic_viscosity/np.sqrt(oil_density*interfacial_tension*d_o)
+    with np.errstate(divide='ignore'):
+        entrainment_rate = (4.604e-10*we**1.805*oh**-1.023)*wave_breaking_fraction
     return entrainment_rate
 
 def oil_wave_entrainment_rate_tkalich2002(wind_speed=None, significant_wave_height=None,
