@@ -217,7 +217,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if loglevel != 'custom':
             if logfile is not None:
-                handler = logging.FileHandler(logfile, mode='w'))
+                handler = logging.FileHandler(logfile, mode='w')
             else:
                 handler = logging.StreamHandler()
             format = '%(levelname)s: %(message)s'
