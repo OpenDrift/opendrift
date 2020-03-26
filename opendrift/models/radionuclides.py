@@ -1005,7 +1005,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
         
         if horizontal_smoothing:
-            nc.createVariable('density_smooth', 'f8',
+            nc.createVariable('density_smooth', 'f4',
                               ('time','specie','depth','y', 'x'),fill_value=1.e36)
             Hsm = np.swapaxes(Hsm, 3, 4).astype('f8')
             #Hsm = np.ma.masked_where(Hsm==0, Hsm)
@@ -1016,7 +1016,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
         # Radionuclide concentration, horizontally smoothed
-        nc.createVariable('concentration', 'f8',
+        nc.createVariable('concentration', 'f4',
                           ('time','specie','depth','y', 'x'),fill_value=1.e36)
         conc = np.swapaxes(conc, 3, 4) #.astype('i4')
         #conc = np.ma.masked_where(conc==0, conc)
@@ -1029,7 +1029,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
         if horizontal_smoothing:
             # Radionuclide concentration, horizontally smoothed
-            nc.createVariable('concentration_smooth', 'f8',
+            nc.createVariable('concentration_smooth', 'f4',
                               ('time','specie','depth','y', 'x'),fill_value=1.e36)
             conc_sm = np.swapaxes(conc_sm, 3, 4) #.astype('i4')
           #  conc_sm = np.ma.masked_where(conc_sm==0, conc_sm)
@@ -1042,7 +1042,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
         
         if time_avg_conc:
-            nc.createVariable('concentration_avg', 'f8',
+            nc.createVariable('concentration_avg', 'f4',
                               ('avg_time','specie','depth','y', 'x'),fill_value=0)
             conc2 = np.swapaxes(mean_conc, 3, 4) #.astype('i4')
             conc2 = np.ma.masked_where(conc2==0, conc2)
@@ -1053,7 +1053,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
         
         # Volume of boxes
-        nc.createVariable('volume', 'f8',
+        nc.createVariable('volume', 'f4',
                           ('depth','y', 'x'),fill_value=0)
         pixel_volume = np.swapaxes(pixel_volume, 1, 2) #.astype('i4')
         pixel_volume = np.ma.masked_where(pixel_volume==0, pixel_volume)
@@ -1064,7 +1064,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         
 
         # Topography
-        nc.createVariable('topo', 'f8', ('y', 'x'),fill_value=0)
+        nc.createVariable('topo', 'f4', ('y', 'x'),fill_value=0)
         pixel_mean_depth = np.ma.masked_where(pixel_mean_depth==0, pixel_mean_depth)
         nc.variables['topo'][:] = pixel_mean_depth.T
         nc.variables['topo'].long_name = 'Depth of grid point'
@@ -1154,13 +1154,13 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         h_grd[np.isnan(h_grd)] = 0.
         nx = h_grd.shape[0]
         ny = h_grd.shape[1]
-        
+
         lat_grd = self.conc_lat[:nx,:ny] 
         lon_grd = self.conc_lon[:nx,:ny]
 
         # Interpolate topography to new grid
         h = interpolate.griddata((lon_grd.flatten(),lat_grd.flatten()), h_grd.flatten(), (lons, lats), method='linear')        
-        
+
         return h 
         
         
