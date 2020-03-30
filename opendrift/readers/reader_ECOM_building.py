@@ -44,8 +44,8 @@ class Reader(BaseReader):
             'layer_bnds':'bounds_of_stretched_vertical_coordinate_levels',
             'x':'Corner_longitude',
             'y':'Corner_latitude',
-            'h1':'dx_metric',
-            'h2':'dy_metric',
+            'h1':'delta_x',
+            'h2':'delta_y',
             'FSM':'land_binary_mask', #0 ou 1 essa tal Free Surface Mask
             'DUM':'U1_direction_mask',
             'DVM':'V1_direction_mask',
@@ -79,7 +79,7 @@ class Reader(BaseReader):
                 def drop_non_essential_vars_pop(ds):
                     dropvars = [v for v in ds.variables if v not in
                                 list(self.ECOM_variable_mapping.keys())  +
-                                ['time', 'sigma', 'depth', 'elev', 'ang']]
+                                ['time', 'sigma', 'depth', 'elev', 'angle_of_rotation_from_east_to_x']]
 
                     self.logger.debug('Dropping variables: %s' % dropvars)
                     ds = ds.drop(dropvars)
@@ -146,8 +146,8 @@ class Reader(BaseReader):
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
-            self.lat = np.ma.masked_where(self.lat == 0, self.lat)
-            self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
+            #self.lat = np.ma.masked_where(self.lat == 0, self.lat)
+            #self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
            
         else:
             if gridfile is None:
@@ -155,9 +155,9 @@ class Reader(BaseReader):
                                  'arrays, please supply a grid-file '
                                  '"gridfile=<grid_file>"')
            # else:
-               # gf = Dataset(gridfile)
-               # self.lat = gf.variables['lat'][:]
-               # self.lon = gf.variables['lon_'][:]
+                gf = Dataset(gridfile)
+                self.lat = gf.variables['lat'][:]
+                self.lon = gf.variables['lon_'][:]
        
 
 
@@ -184,23 +184,27 @@ class Reader(BaseReader):
             self.time_step = None
 
         # x and y are rows and columns for unprojected datasets
-        self.xmin = 1.
-        self.h1 = 1.
-        self.ymin = 1.
-        self.h2 = 1.
-        #if has_xarray:
-            #self.xmax = self.Dataset['xpos'].shape[0] - 1.
-            #self.ymax = self.Dataset['ypos'].shape[0] - 1.
-            #self.lon = self.lon.data  # Extract, could be avoided downstream
-            #self.lat = self.lat.data
-            #self.sigma = self.sigma.data
-
+        self.xmin = 0.
+        self.delta_x = 1.
+        self.ymin = 0.
+        self.delta_y = 1.
         if has_xarray:
-            self.xmax = self.Dataset['xpos'].shape[109]
-            self.ymax = self.Dataset['ypos'].shape[135]
+            self.xmax = self.Dataset['xpos'].shape[0] - 1.
+            self.ymax = self.Dataset['ypos'].shape[0] - 1.
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
             self.sigma = self.sigma.data
+
+        #if has_xarray:
+       # self.xmax = self.Dataset['xpos'][109]
+       # self.ymax = self.Dataset['ypos'][135]
+       # self.lon = self.lon.data  # Extract, could be avoided downstream
+       # self.lat = self.lat.data
+       # self.xmin = self.Dataset['xpos'][0]
+       # self.h1 = self.Dataset.variables['h1'][:]
+       # self.ymin = self.Dataset['ypos'][0]
+       # self.h2 = self.Dataset.variables['h2'][:]
+       # self.sigma = self.sigma.data
         else:
             self.xmax = np.float(len(self.Dataset.dimensions['xpos'])) - 1
             self.ymax = np.float(len(self.Dataset.dimensions['ypos'])) - 1
@@ -247,28 +251,27 @@ class Reader(BaseReader):
             z = np.atleast_1d(0) #Convert inputs to arrays with at least one dimension.
 
 # Find horizontal indices corresponding to requested x and y
-        if hasattr(self, 'clipped'): #The hasattr() method returns:True, if object has the given named attribute ; False, if object has no given named attribute
-
+        if hasattr(self, 'clipped'):
             clipped = self.clipped
         else: clipped = 0
-        indx = np.floor((x-self.xmin)/self.h1).astype(int) + clipped #np.floor organiza em ordem crescente os dados
-        indy = np.floor((y-self.ymin)/self.h2).astype(int) + clipped
-        indx[outside] = 0  # To be masked later
-        indy[outside] = 0
+        indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
+        indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
+        #indx[outside] = 0  # To be masked later
+        #indy[outside] = 0
         indx_el = indx.copy()
         indy_el = indy.copy()
-
-        if block is True:
+        
+       # if block is True:
             # Adding buffer, to cover also future positions of elements
-            buffer = self.buffer
+        #    buffer = self.buffer
             # Avoiding the last pixel in each dimension, since there are
             # several grids which are shifted (rho, u, v, psi)
-            indx = np.arange(np.max([0, indx.min()-buffer]),
-                             np.min([indx.max()+buffer, self.lon.shape[1]-1]))
-            indy = np.arange(np.max([0, indy.min()-buffer]),
-                             np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+       #     indx = np.arange(np.max([0, indx.min()-buffer]),
+       #                      np.min([indx.max()+buffer, self.lon.shape[1]-1]))
+       #     indy = np.arange(np.max([0, indy.min()-buffer]),
+       #                      np.min([indy.max()+buffer, self.lon.shape[0]-1]))
 
-# Find depth levels covering all elements 
+          # Find depth levels covering all elements 
 
         if z.min() == 0 or not hasattr(self, 'depth'):
             indz = self.num_layers - 1  # surface layer
@@ -369,14 +372,14 @@ class Reader(BaseReader):
                     mask = self.mask_rho[indygrid, indxgrid]
                 if has_xarray is True:
                     mask = np.asarray(mask)
-             #   if mask.min() == 0 and par != 'land_binary_mask':
-                    #first_mask_point = np.where(mask.ravel()==0)[0][0]
+                if mask.min() == 0 and par != 'land_binary_mask':
+                    first_mask_point = np.where(mask.ravel()==0)[0][0]
                     if variables[par].ndim == 3:
                         upper = variables[par][0,:,:]
-                    #else:
-                        #upper = variables[par]
-                   # mask_values[par] = upper.ravel()[first_mask_point]
-                   # variables[par][variables[par]==mask_values[par]] = np.nan
+                    else:
+                        upper = variables[par]
+                    mask_values[par] = upper.ravel()[first_mask_point]
+                    variables[par][variables[par]==mask_values[par]] = np.nan
 
             if var.ndim == 4:
                 # Regrid from sigma to z levels
@@ -449,7 +452,10 @@ class Reader(BaseReader):
                         variables[par] = R.reshape((kmax,) + Fshape[1:])
 
                     # Nan in input to multi_zslice gives extreme values in output
-                    #variables[par][variables[par]>1e+9] = np.nan
+                    variables[par][variables[par]>1e+9] = np.nan                   
+                    variables[par][variables[par]<=1e-9] = np.nan
+
+
 
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
