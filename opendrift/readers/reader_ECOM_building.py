@@ -155,9 +155,9 @@ class Reader(BaseReader):
                                  'arrays, please supply a grid-file '
                                  '"gridfile=<grid_file>"')
            # else:
-                gf = Dataset(gridfile)
-                self.lat = gf.variables['lat'][:]
-                self.lon = gf.variables['lon_'][:]
+                #gf = Dataset(gridfile)
+                #self.lat = gf.variables['lat'][:]
+                #self.lon = gf.variables['lon_'][:]
        
 
 
@@ -185,9 +185,11 @@ class Reader(BaseReader):
 
         # x and y are rows and columns for unprojected datasets
         self.xmin = 0.
-        self.delta_x = 1.
+        #self.delta_x = 1.
+        self.delta_x= self.Dataset.variables['h1'][:]
         self.ymin = 0.
-        self.delta_y = 1.
+        #self.delta_y = 1.
+        self.delta_y = self.Dataset.variables['h2'][:]
         if has_xarray:
             self.xmax = self.Dataset['xpos'].shape[0] - 1.
             self.ymax = self.Dataset['ypos'].shape[0] - 1.
@@ -509,6 +511,7 @@ class Reader(BaseReader):
         # Masking NaN
         for var in requested_variables:
             variables[var] = np.ma.masked_invalid(variables[var])
+            #variables[var]= np.ma.masked_where(variables[var] == 0, variables[var]) # Só remove as correntes após serem zero, não resolve o problema
         
         self.logger.debug('Time for ECOM reader: ' + str(datetime.now()-start_time))
 
