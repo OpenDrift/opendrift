@@ -78,9 +78,7 @@ class Reader(BaseReader):
                 self.logger.info('Opening files with MFDataset')
                 def drop_non_essential_vars_pop(ds):
                     dropvars = [v for v in ds.variables if v not in
-                                list(self.ECOM_variable_mapping.keys())  +
-                                ['time', 'sigma', 'depth', 'elev', 'angle_of_rotation_from_east_to_x']]
-
+                                list(self.ECOM_variable_mapping.keys())]
                     self.logger.debug('Dropping variables: %s' % dropvars)
                     ds = ds.drop(dropvars)
                     return ds
@@ -146,18 +144,18 @@ class Reader(BaseReader):
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
-            #self.lat = np.ma.masked_where(self.lat == 0, self.lat)
-            #self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
+           # self.lat = np.ma.masked_where(self.lat == 0, self.lat)
+           # self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
            
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
                                  'arrays, please supply a grid-file '
                                  '"gridfile=<grid_file>"')
-           # else:
-                #gf = Dataset(gridfile)
-                #self.lat = gf.variables['lat'][:]
-                #self.lon = gf.variables['lon_'][:]
+            else:
+                gf = Dataset(gridfile)
+                self.lat = gf.variables['lat'][:]
+                self.lon = gf.variables['lon_'][:]
        
 
 
@@ -184,29 +182,25 @@ class Reader(BaseReader):
             self.time_step = None
 
         # x and y are rows and columns for unprojected datasets
-        self.xmin = 0.
+        self.xmin = 1
         #self.delta_x = 1.
-        self.delta_x= self.Dataset.variables['h1'][:]
-        self.ymin = 0.
+        self.delta_x = self.Dataset.variables['h1'][:]
+        self.delta_x = np.ma.masked_where(self.delta_x <= 1e-9, self.delta_x)
+        self.ymin = 1
         #self.delta_y = 1.
         self.delta_y = self.Dataset.variables['h2'][:]
+        self.delta_y = np.ma.masked_where(self.delta_y <= 1e-9, self.delta_y)
+
         if has_xarray:
-            self.xmax = self.Dataset['xpos'].shape[0] - 1.
-            self.ymax = self.Dataset['ypos'].shape[0] - 1.
+            #self.xmax = self.Dataset['xpos'].shape[0] - 1.
+            #self.ymax = self.Dataset['ypos'].shape[0] - 1.
+            self.xmax = self.Dataset['xpos'].shape[109]
+            self.ymax = self.Dataset['ypos'].shape[136]
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
             self.sigma = self.sigma.data
 
-        #if has_xarray:
-       # self.xmax = self.Dataset['xpos'][109]
-       # self.ymax = self.Dataset['ypos'][135]
-       # self.lon = self.lon.data  # Extract, could be avoided downstream
-       # self.lat = self.lat.data
-       # self.xmin = self.Dataset['xpos'][0]
-       # self.h1 = self.Dataset.variables['h1'][:]
-       # self.ymin = self.Dataset['ypos'][0]
-       # self.h2 = self.Dataset.variables['h2'][:]
-       # self.sigma = self.sigma.data
+       
         else:
             self.xmax = np.float(len(self.Dataset.dimensions['xpos'])) - 1
             self.ymax = np.float(len(self.Dataset.dimensions['ypos'])) - 1
@@ -221,7 +215,6 @@ class Reader(BaseReader):
             if var_name in self.ECOM_variable_mapping.keys():
                 var = self.Dataset.variables[var_name]
                 self.variables.append(self.ECOM_variable_mapping[var_name])
-        
         # Run constructor of parent Reader class
 
 
@@ -258,24 +251,25 @@ class Reader(BaseReader):
         else: clipped = 0
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
+
         #indx[outside] = 0  # To be masked later
         #indy[outside] = 0
         indx_el = indx.copy()
         indy_el = indy.copy()
         
-       # if block is True:
+        if block is True:
             # Adding buffer, to cover also future positions of elements
-        #    buffer = self.buffer
+            buffer = self.buffer
             # Avoiding the last pixel in each dimension, since there are
             # several grids which are shifted (rho, u, v, psi)
-       #     indx = np.arange(np.max([0, indx.min()-buffer]),
-       #                      np.min([indx.max()+buffer, self.lon.shape[1]-1]))
-       #     indy = np.arange(np.max([0, indy.min()-buffer]),
-       #                      np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+           # indx = np.arange(np.max([0, indx.min()-buffer]),
+                          #   np.min([indx.max()+buffer, self.lon.shape[1]-1]))
+           # indy = np.arange(np.max([0, indy.min()-buffer]),
+                          #   np.min([indy.max()+buffer, self.lon.shape[0]-1]))
 
           # Find depth levels covering all elements 
 
-        if z.min() == 0 or not hasattr(self, 'depth'):
+        if z.min() == 0 or not hasattr(self, 'sea_floor_depth_below_sea_level'):
             indz = self.num_layers - 1  # surface layer
             variables['z'] = 0
 
@@ -380,8 +374,8 @@ class Reader(BaseReader):
                         upper = variables[par][0,:,:]
                     else:
                         upper = variables[par]
-                    mask_values[par] = upper.ravel()[first_mask_point]
-                    variables[par][variables[par]==mask_values[par]] = np.nan
+                    #mask_values[par] = upper.ravel()[first_mask_point]
+                    #variables[par][variables[par]==mask_values[par]] = np.nan
 
             if var.ndim == 4:
                 # Regrid from sigma to z levels
@@ -454,8 +448,8 @@ class Reader(BaseReader):
                         variables[par] = R.reshape((kmax,) + Fshape[1:])
 
                     # Nan in input to multi_zslice gives extreme values in output
-                    variables[par][variables[par]>1e+9] = np.nan                   
-                    variables[par][variables[par]<=1e-9] = np.nan
+                    #variables[par][variables[par]>1e+9] = np.nan                   
+                    #variables[par][variables[par]<=1e-9] = np.nan
 
 
 
@@ -465,22 +459,19 @@ class Reader(BaseReader):
                # variables[par] = variables[par].diagonal()
 
             # Mask values outside domain
-            variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
-            if block is False:
-                variables[par].mask[outside] = True
+           # variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
+           # if block is False:
+           #     variables[par].mask[outside] = True
 
 
         if block is True:
             # TODO: should be midpoints, but angle array below needs integer
             #indx = indx[0:-1]  # Only if de-staggering has been performed
             #indy = indy[1::]
-            #variables['x'] = indx
-            #variables['y'] = indy
-        #else:
-            #variables['x'] = self.xmin + (indx-1)*self.delta_x
-            #variables['y'] = self.ymin + (indy-1)*self.delta_y
-
-            variables['x'] = self.xmin + (indx-1)*self.delta_x    
+            variables['x'] = indx
+            variables['y'] = indy
+        else:
+            variables['x'] = self.xmin + (indx-1)*self.delta_x
             variables['y'] = self.ymin + (indy-1)*self.delta_y
 
         variables['x'] = variables['x'].astype(np.float)
@@ -488,7 +479,8 @@ class Reader(BaseReader):
         variables['time'] = nearestTime
 
         if 'x_sea_water_velocity' or 'x_wind' in variables.keys():
-            # We must rotate current vectors
+ 
+
             if not hasattr(self, 'angle_of_rotation_from_east_to_x'):
                 self.logger.debug('Reading angle between xi and east...')
                 self.angle_of_rotation_from_east_to_x = self.Dataset.variables['ang'][:]
@@ -497,6 +489,7 @@ class Reader(BaseReader):
             else:
                 rad = self.angle_of_rotation_from_east_to_x[indy, indx]
             if 'x_sea_water_velocity' in variables.keys():
+       
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(
                         variables['x_sea_water_velocity'],
@@ -510,9 +503,8 @@ class Reader(BaseReader):
 
         # Masking NaN
         for var in requested_variables:
+          
             variables[var] = np.ma.masked_invalid(variables[var])
-            #variables[var]= np.ma.masked_where(variables[var] == 0, variables[var]) # Só remove as correntes após serem zero, não resolve o problema
-        
         self.logger.debug('Time for ECOM reader: ' + str(datetime.now()-start_time))
 
         return variables
