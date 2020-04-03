@@ -12,21 +12,24 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2015, Knut-Frode Dagestad, MET Norway
-
+#
 #####################################
-# This reader support natve SCHISM output files and will 
+# This reader support native SCHISM output files and will 
 # handle interpolation of current velocities and other variables
 # in 2D and 3D.
-# The interpolation is done using KDtree of 2D or 3D mesh nodes
+# The interpolation is done using a KDtree-approach defined
+# form the 2D or 3D mesh nodes
 # 
 # NOTE:
 # This reader is under development,
 # and presently not fully functional
+# 
+# Author: Simon Weppe. MetOcean Solution, MetService New Zealand
 #####################################
 
 import logging
 import numpy as np
+from datetime import datetime
 from future.utils import iteritems
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
@@ -487,13 +490,19 @@ class Reader(BaseReader):
         try:
             vertical_levels = self.Dataset.variables['zcor'][id_time,:,:]
             # depth are negative down consistent with convention used in OpenDrift 
-            # vertical_levels is masked arrat where "masked" levels are those below seabed  (= 9.9692100e+36)
+            # if using the netCDF4 library, vertical_levels is masked array where "masked" levels are those below seabed  (= 9.9692100e+36)
+            # if using the xarray library, vertical_levels is nan for levels are those below seabed
+            if has_xarray:
+                # convert to masked array to be consistent with what netCDF4 lib returns
+                vertical_levels = np.ma.array(vertical_levels, mask = np.isnan(vertical_levels.data)) 
+                data = np.asarray(data)
+                # vertical_levels.mask = np.isnan(vertical_levels.data) # masked using nan's when using xarray
         except:
             logging.debug('no vertical level information present in file ''zcor'' ... stopping')
             raise ValueError('variable ''zcor'' must be present in netcdf file to be able to use 3D currents')
         # flatten 3D data 
         data = np.ravel(data[~vertical_levels.mask])
-        
+
         # add corresponding 3D coordinates to the 'variable_dict' which is eventually passed to get_variables_interpolated()
         # Note: these 3d coordinates will be the same for all 3d data (current,salt/temp etc..), and will change at each reader time step
         # They are saved as ['x_3d','y_3d','z_3d'] rather than ['x','y','z'] as it would break things when both 2d and 3d data are requested.
