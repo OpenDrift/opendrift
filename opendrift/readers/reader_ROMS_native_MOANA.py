@@ -362,14 +362,14 @@ class Reader(BaseReader):
                     self.Dataset.variables['h'][:]
 
                 Htot = self.sea_floor_depth_below_sea_level
-                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r)
+                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,Vtransform = np.asarray(self.Dataset['Vtransform']) )
 
             if has_xarray is False:
                 indxgrid, indygrid = np.meshgrid(indx, indy)
                 H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
             else:
                 H = self.sea_floor_depth_below_sea_level[indy, indx]
-            z_rho = depth.sdepth(H, self.hc, self.Cs_r)
+            z_rho = depth.sdepth(H, self.hc, self.Cs_r,Vtransform = np.asarray(self.Dataset['Vtransform']) )
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
             indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
