@@ -192,10 +192,9 @@ class Reader(BaseReader):
         self.delta_y = np.ma.masked_where(self.delta_y <= 1e-9, self.delta_y)
 
         if has_xarray:
-            #self.xmax = self.Dataset['xpos'].shape[0] - 1.
-            #self.ymax = self.Dataset['ypos'].shape[0] - 1.
-            self.xmax = self.Dataset['xpos'].shape[109]
-            self.ymax = self.Dataset['ypos'].shape[136]
+            self.xmax = self.Dataset['xpos'].shape[0] - 1.
+            self.ymax = self.Dataset['ypos'].shape[0] - 1.
+            
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
             self.sigma = self.sigma.data
@@ -257,6 +256,9 @@ class Reader(BaseReader):
         indx_el = indx.copy()
         indy_el = indy.copy()
         
+        print ("indx ==", indx)
+        print ("indy ==", indy)
+
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
@@ -488,6 +490,9 @@ class Reader(BaseReader):
                 rad = self.angle_of_rotation_from_east_to_x[tuple(np.meshgrid(indy, indx))].T
             else:
                 rad = self.angle_of_rotation_from_east_to_x[indy, indx]
+
+            print ("angle_of_rotation_from_east_to_x ==", rad)
+
             if 'x_sea_water_velocity' in variables.keys():
        
                 variables['x_sea_water_velocity'], \
