@@ -14,24 +14,26 @@
 #
 # Copyright 2020 Simon Weppe. MetService NZ
 # 
-# This reader loads an text file with nan-delimited shoreline or island polygons
+# This reader loads an text file with nan-delimited shoreline and/or island polygons
 # (typically high-resolution). This is used to perform "on_land" check within the 
-# simulation.
+# simulation. 
 # This reader is expected to be useful for higher-resolution simulation with
 # complex shorelines. If high-resolution shoreline is not essential, it is 
 # probably more efficient to use reader_global_landmask()
 # 
 #
 # 
-# in_polygong checks are performed with shapely.vectorized.contains()
+# __on_land__() checks are performed with shapely.vectorized.contains()
+# 
 # see some example below:
 # 
 # https://jorisvandenbossche.github.io/blog/2017/03/18/vectorized-shapely-cython/
 # https://gist.github.com/pelson/9785576
 # https://automating-gis-processes.github.io/site/notebooks/L1/geometric-objects.html
 
-# check if partciles positions (x,y) are within a shore polygon
-
+from opendrift.readers.basereader import BaseReader
+import warnings
+import pyproj
 from shapely.geometry import Point, Polygon, MultiPolygon,asPolygon
 import shapely
 import shapely.vectorized
@@ -40,7 +42,7 @@ import numpy as np
 class Reader(BaseReader):
     """
     The "custom" landmask reader requires a user-input text file with 
-    nan-delimited polygons (in geographic WGS84 projection)
+    nan-delimited polygons (in geographic WGS84 projection).
 
     Args:
         :param polygon_file: None.
@@ -65,8 +67,8 @@ class Reader(BaseReader):
         shore = np.loadtxt(polygon_file) # nan-delimited closed polygons for land and islands
         # Depth
         self.z = None
-        self.xmin, self.ymin = np.min(shore[:,0]), np.min(shore[:,1])
-        self.xmax, self.ymax = np.max(shore[:,0]), np.max(shore[:,1])
+        self.xmin, self.ymin = np.nanmin(shore[:,0]), np.nanmin(shore[:,1])
+        self.xmax, self.ymax = np.nanmax(shore[:,0]), np.nanmax(shore[:,1])
         # convert to xy ?
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
@@ -91,6 +93,7 @@ class Reader(BaseReader):
         self.mask= MultiPolygon(poly)
         self.mask = shapely.prepared.prep(self.mask)
 
+
         # lon_rel = np.linspace(151.21,151.215,100) # start from second grid point rather than actual edge
         # lat_rel = np.linspace(-33.86,-33.856,100)
         # [lon_grid,lat_grid]=np.meshgrid(lon_rel,lat_rel)
@@ -108,9 +111,13 @@ class Reader(BaseReader):
         # import pdb;pdb.set_trace()
 
     def __on_land__(self, x, y):
+        # check if particles positions (x,y) are within any shore or island polygon
+
         # return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)
         return shapely.vectorized.contains(self.mask,x,y)
-        # return a boolean array , True if in land/island poly, False if not
+        # returns a boolean array :
+        #   True if in land/island polygon
+        #   False if not
 
     def get_variables(self, requestedVariables, time = None,
                       x = None, y = None, z = None, block = False):
@@ -132,4 +139,138 @@ class Reader(BaseReader):
         self.check_arguments(requestedVariables, time, x, y, z)
         return { 'land_binary_mask': self.__on_land__(x,y) }
 
-        >> check format is correct 1/0 and not boolean ??
+    def plot(self, variable=None, vmin=None, vmax=None,
+             filename=None, title=None, buffer=1, lscale='auto'):
+        """Plot geographical coverage of reader."""
+
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+        
+        fig = plt.figure()
+        plt.ion()
+
+        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                 [self.ymax, self.ymin, self.ymax, self.ymin])
+        lonmin = np.min(corners[0]) - buffer*2
+        lonmax = np.max(corners[0]) + buffer*2
+        latmin = np.min(corners[1]) - buffer
+        latmax = np.max(corners[1]) + buffer
+        latspan = latmax - latmin
+
+
+
+        # Initialise map
+        if latspan < 90:
+            # Stereographic projection centred on domain, if small domain
+            x0 = (self.xmin + self.xmax) / 2
+            y0 = (self.ymin + self.ymax) / 2
+            lon0, lat0 = self.xy2lonlat(x0, y0)
+            sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
+            ax = fig.add_subplot(1, 1, 1, projection=sp)
+            corners_stere = sp.transform_points(ccrs.PlateCarree(), np.array(corners[0]), np.array(corners[1]))
+        else:
+            # Global map if reader domain is large
+            sp = ccrs.Mercator()
+            ax = fig.add_subplot(1, 1, 1, projection=sp)
+            #map = Basemap(np.array(corners[0]).min(), -89,
+            #              np.array(corners[0]).max(), 89,
+            #              resolution='c', projection='cyl')
+        
+        if False:
+            # dont plot GHSS coastlines here
+            # 
+            # GSHHS coastlines
+            f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+                                      facecolor=cfeature.COLORS['land'])
+            ax.add_geometries(
+                f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+                ccrs.PlateCarree(),
+                facecolor=cfeature.COLORS['land'],
+                edgecolor='black')
+
+        gl = ax.gridlines(ccrs.PlateCarree())
+        gl.xlabels_top = False
+
+        # Get boundary
+        npoints = 10  # points per side
+        x = np.array([])
+        y = np.array([])
+        x = np.concatenate((x, np.linspace(self.xmin, self.xmax, npoints)))
+        y = np.concatenate((y, [self.ymin]*npoints))
+        x = np.concatenate((x, [self.xmax]*npoints))
+        y = np.concatenate((y, np.linspace(self.ymin, self.ymax, npoints)))
+        x = np.concatenate((x, np.linspace(self.xmax, self.xmin, npoints)))
+        y = np.concatenate((y, [self.ymax]*npoints))
+        x = np.concatenate((x, [self.xmin]*npoints))
+        y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
+        # from x/y vectors create a Patch to be added to map
+        lon, lat = self.xy2lonlat(x, y)
+        lat[lat>89] = 89.
+        lat[lat<-89] = -89.
+        p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
+        xsp = p[:, 0]
+        ysp = p[:, 1]
+        
+        # add shapely features of custom_landmak
+        if variable is None:
+            for poly in self.mask.__dict__['context']:
+                # to access xy of shapely prepared feature:
+                # self.mask.__dict__['context'][0].exterior.xy
+                # 
+                # The data are defined in lat/lon coordinate system, so PlateCarree() is the appropriate choice
+                # https://scitools.org.uk/cartopy/docs/latest/tutorials/understanding_transform.html
+                ax.add_geometries([poly], crs=ccrs.PlateCarree(), facecolor='b', edgecolor='red', alpha=0.8)
+            # could maybe use feature.ShapelyFeature ?
+            # feature.ShapelyFeature(self.mask, crs = ccrs.PlateCarree())
+
+            buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
+            buf = 0
+            try:
+                ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
+            except:
+                pass
+        if title is None:
+            plt.title(self.name)
+        else:
+            plt.title(title)
+        plt.xlabel('Time coverage: %s to %s' %
+                   (self.start_time, self.end_time))
+
+        if variable is not None:
+            rx = np.array([self.xmin, self.xmax])
+            ry = np.array([self.ymin, self.ymax])
+            data = self.get_variables_derived(variable, self.start_time,
+                                      rx, ry, block=True)
+            rx, ry = np.meshgrid(data['x'], data['y'])
+            rlon, rlat = self.xy2lonlat(rx, ry)
+            #map_x, map_y = map(rlon, rlat, inverse=False)
+            data[variable] = np.ma.masked_invalid(data[variable])
+            if hasattr(self, 'convolve'):
+                from scipy import ndimage
+                N = self.convolve
+                if isinstance(N, (int, np.integer)):
+                    kernel = np.ones((N, N))
+                    kernel = kernel/kernel.sum()
+                else:
+                    kernel = N
+                self.logger.debug('Convolving variables with kernel: %s' % kernel)
+                data[variable] = ndimage.convolve(
+                            data[variable], kernel, mode='nearest')
+            #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
+            ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+            #cbar = map.colorbar()
+            #cbar.set_label(variable)
+
+        try:  # Activate figure zooming
+            mng = plt.get_current_fig_manager()
+            mng.toolbar.zoom()
+        except:
+            pass
+
+        if filename is not None:
+            plt.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
