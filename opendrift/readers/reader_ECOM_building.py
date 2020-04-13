@@ -183,13 +183,13 @@ class Reader(BaseReader):
 
         # x and y are rows and columns for unprojected datasets
         self.xmin = 1
-        #self.delta_x = 1.
-        self.delta_x = self.Dataset.variables['h1'][:]
-        self.delta_x = np.ma.masked_where(self.delta_x <= 1e-9, self.delta_x)
+        self.delta_x = 1.
+       # self.delta_x = self.Dataset.variables['h1'][:]
+       # self.delta_x = np.ma.masked_where(self.delta_x <= 1e-9, self.delta_x)
         self.ymin = 1
-        #self.delta_y = 1.
-        self.delta_y = self.Dataset.variables['h2'][:]
-        self.delta_y = np.ma.masked_where(self.delta_y <= 1e-9, self.delta_y)
+        self.delta_y = 1.
+        #self.delta_y = self.Dataset.variables['h2'][:]
+        #self.delta_y = np.ma.masked_where(self.delta_y <= 1e-9, self.delta_y)
 
         if has_xarray:
             self.xmax = self.Dataset['xpos'].shape[0] - 1.
@@ -219,6 +219,7 @@ class Reader(BaseReader):
 
         super(Reader, self).__init__()
 
+       
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False):
 
@@ -248,26 +249,31 @@ class Reader(BaseReader):
         if hasattr(self, 'clipped'):
             clipped = self.clipped
         else: clipped = 0
-        indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
-        indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
+        indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped 
+        indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped 
 
         #indx[outside] = 0  # To be masked later
         #indy[outside] = 0
         indx_el = indx.copy()
         indy_el = indy.copy()
         
-        print ("indx ==", indx)
-        print ("indy ==", indy)
+  
 
         if block is True:
             # Adding buffer, to cover also future positions of elements
-            buffer = self.buffer
+            #buffer = self.buffer
+            #print("buffer ==", buffer)
             # Avoiding the last pixel in each dimension, since there are
             # several grids which are shifted (rho, u, v, psi)
-           # indx = np.arange(np.max([0, indx.min()-buffer]),
-                          #   np.min([indx.max()+buffer, self.lon.shape[1]-1]))
-           # indy = np.arange(np.max([0, indy.min()-buffer]),
-                          #   np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+            #indx = np.arange(np.max([0, indx.min()-buffer]),
+            #                 np.min([indx.max()+buffer, self.lon.shape[1]-1]))
+            #indy = np.arange(np.max([0, indy.min()-buffer]),
+            #                 np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+            indx = indx
+            indy = indy
+
+        print ("indx ==", indx)
+        print ("indy ==", indy)
 
           # Find depth levels covering all elements 
 
@@ -336,7 +342,7 @@ class Reader(BaseReader):
             elif var.ndim == 3:
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
-                variables[par] = var[indxTime, indz, indy, indx]
+                variables[par] = var[indxTime, 0, indy, indx]
             else:
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
@@ -495,16 +501,23 @@ class Reader(BaseReader):
 
             if 'x_sea_water_velocity' in variables.keys():
        
-                variables['x_sea_water_velocity'], \
-                    variables['y_sea_water_velocity'] = rotate_vectors_angle(
-                        variables['x_sea_water_velocity'],
-                        variables['y_sea_water_velocity'], rad)
+                variables['x_sea_water_velocity'][indy, indx], \
+                    variables['y_sea_water_velocity'][indy, indx] = rotate_vectors_angle(
+                        variables['x_sea_water_velocity'][indy, indx],
+                        variables['y_sea_water_velocity'][indy, indx], rad)
+
+            print ("u ==", variables['x_sea_water_velocity'])
+            print ("v ==", variables['y_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
-                variables['x_wind'], \
-                    variables['y_wind'] = rotate_vectors_angle(
-                        variables['x_wind'],
-                        variables['y_wind'], rad)
+                variables['x_wind'][indy, indx], \
+                    variables['y_wind'][indy, indx] = rotate_vectors_angle(
+                        variables['x_wind'][indy, indx],
+                        variables['y_wind'][indy, indx], rad)
+
+            print ("wu ==", variables['x_wind'])
+            print ("wv ==", variables['y_wind'])
+
 
         # Masking NaN
         for var in requested_variables:
