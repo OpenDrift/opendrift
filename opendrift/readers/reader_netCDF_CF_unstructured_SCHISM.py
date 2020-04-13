@@ -882,6 +882,167 @@ class Reader(BaseReader):
 
         return env, env_profiles
 
+    def plot(self, variable=None, vmin=None, vmax=None,
+             filename=None, title=None, buffer=1, lscale='auto'):
+        """Plot geographical coverage of reader."""
+
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+        from opendrift_landmask_data import Landmask
+        fig = plt.figure()
+
+        #####################################
+        # In Dev - plot unstructured mesh
+        # 
+        # To do 
+        #  - plot in correct cartopy projection, consistent with basereader.py plot()
+        #  - plot a given timestep for flows
+        #  - incorporate that to animation as in basemodel.py etc...
+        # 
+        #####################################
+        import matplotlib.tri as mtri
+        from mpl_toolkits.mplot3d import Axes3D
+        X=self.Dataset.variables['SCHISM_hgrid_node_x'][:]
+        Y=self.Dataset.variables['SCHISM_hgrid_node_y'][:]
+        Z=self.Dataset.variables['depth'][:]
+        face=self.Dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
+        # build triangulation
+        triang =mtri.Triangulation(X,Y, triangles=face, mask=None)
+        # quads=Triangulation(gr.x,gr.y,quads)
+        #
+        # plot the triangular mesh 
+        plt.triplot(triang) 
+        # plot the variable - here depth for now
+        plt.tricontourf(triang, Z)
+        # more complex 3D plots 
+        # ax = fig.add_subplot(1,1,1, projection='3d')
+        # ax.plot_trisurf(triang,Z, cmap='jet')
+        # or 
+        # from https://github.com/metocean/schism-public/blob/master/LSC/lsc.py
+        # tricon=ax.tricontourf(triang,Z,cmap='jet')
+        # ax.view_init(azim=-90, elev=90)
+        plt.ion()
+        plt.show()
+        import pdb;pdb.set_trace()
+        #####################################
+
+
+        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                 [self.ymax, self.ymin, self.ymax, self.ymin])
+        lonmin = np.min(corners[0]) - buffer*2
+        lonmax = np.max(corners[0]) + buffer*2
+        latmin = np.min(corners[1]) - buffer
+        latmax = np.max(corners[1]) + buffer
+        latspan = latmax - latmin
+
+        # Initialise map
+        if latspan < 90:
+            # Stereographic projection centred on domain, if small domain
+            x0 = (self.xmin + self.xmax) / 2
+            y0 = (self.ymin + self.ymax) / 2
+            lon0, lat0 = self.xy2lonlat(x0, y0)
+            sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
+            ax = fig.add_subplot(1, 1, 1, projection=sp)
+            corners_stere = sp.transform_points(ccrs.PlateCarree(), np.array(corners[0]), np.array(corners[1]))
+        else:
+            # Global map if reader domain is large
+            sp = ccrs.Mercator()
+            ax = fig.add_subplot(1, 1, 1, projection=sp)
+            #map = Basemap(np.array(corners[0]).min(), -89,
+            #              np.array(corners[0]).max(), 89,
+            #              resolution='c', projection='cyl')
+
+        # GSHHS coastlines
+        f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+                                  facecolor=cfeature.COLORS['land'])
+        ax.add_geometries(
+            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+            ccrs.PlateCarree(),
+            facecolor=cfeature.COLORS['land'],
+            edgecolor='black')
+
+        gl = ax.gridlines(ccrs.PlateCarree())
+        gl.xlabels_top = False
+
+        # Get boundary
+        npoints = 10  # points per side
+        x = np.array([])
+        y = np.array([])
+        x = np.concatenate((x, np.linspace(self.xmin, self.xmax, npoints)))
+        y = np.concatenate((y, [self.ymin]*npoints))
+        x = np.concatenate((x, [self.xmax]*npoints))
+        y = np.concatenate((y, np.linspace(self.ymin, self.ymax, npoints)))
+        x = np.concatenate((x, np.linspace(self.xmax, self.xmin, npoints)))
+        y = np.concatenate((y, [self.ymax]*npoints))
+        x = np.concatenate((x, [self.xmin]*npoints))
+        y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
+        # from x/y vectors create a Patch to be added to map
+        lon, lat = self.xy2lonlat(x, y)
+        lat[lat>89] = 89.
+        lat[lat<-89] = -89.
+        p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
+        xsp = p[:, 0]
+        ysp = p[:, 1]
+
+        if variable is None:
+
+            boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
+                               zorder=100)
+            ax.add_patch(boundary)
+            buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
+            buf = 0
+            try:
+                ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
+            except:
+                pass
+        if title is None:
+            plt.title(self.name)
+        else:
+            plt.title(title)
+        plt.xlabel('Time coverage: %s to %s' %
+                   (self.start_time, self.end_time))
+
+        if variable is not None:
+            rx = np.array([self.xmin, self.xmax])
+            ry = np.array([self.ymin, self.ymax])
+            data = self.get_variables_derived(variable, self.start_time,
+                                      rx, ry, block=True)
+            rx, ry = np.meshgrid(data['x'], data['y'])
+            rlon, rlat = self.xy2lonlat(rx, ry)
+            #map_x, map_y = map(rlon, rlat, inverse=False)
+            data[variable] = np.ma.masked_invalid(data[variable])
+            if hasattr(self, 'convolve'):
+                from scipy import ndimage
+                N = self.convolve
+                if isinstance(N, (int, np.integer)):
+                    kernel = np.ones((N, N))
+                    kernel = kernel/kernel.sum()
+                else:
+                    kernel = N
+                self.logger.debug('Convolving variables with kernel: %s' % kernel)
+                data[variable] = ndimage.convolve(
+                            data[variable], kernel, mode='nearest')
+            #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
+            ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+            #cbar = map.colorbar()
+            #cbar.set_label(variable)
+
+        try:  # Activate figure zooming
+            mng = plt.get_current_fig_manager()
+            mng.toolbar.zoom()
+        except:
+            pass
+
+        if filename is not None:
+            plt.savefig(filename)
+            plt.close()
+        else:
+            plt.show()
+
+
+
 
 ###########################
 # ReaderBlockUnstruct class
@@ -1115,9 +1276,7 @@ class ReaderBlockUnstruct():
         else:
             return False
 
-
-
-# ###################################################################################
+###################################################################################
 #     def get_variables_depreciated(self, requested_variables, time=None,
 #                       x=None, y=None, z=None, block=False):
 #         """This version mimics what would be output from a regular 
