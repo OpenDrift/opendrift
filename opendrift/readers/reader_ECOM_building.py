@@ -322,7 +322,7 @@ class Reader(BaseReader):
 
         if block is True:
             # Adding buffer, to cover also future positions of elements
-            #buffer = self.buffer
+            buffer = self.buffer
             #print("buffer ==", buffer)
             # Avoiding the last pixel in each dimension, since there are
             # several grids which are shifted (rho, u, v, psi)
@@ -334,8 +334,10 @@ class Reader(BaseReader):
             indy = indy
             if hasattr(self, 'z') and (z is not None):
 
-                dz = np.array(self.Dataset['z'])
-                absolute_val_array = np.abs(dz - z[0:23]) #distance between both arrays elements
+                dz = -np.array(self.Dataset['z'])
+                a = dz.shape  
+                b = a[0]
+                absolute_val_array = np.abs(dz - z[0:b]) #distance between both arrays elements
                 indz = absolute_val_array.argmin()
             else:
                 indz = 0 #surface
@@ -584,6 +586,7 @@ class Reader(BaseReader):
 
             print ("u ==", variables['x_sea_water_velocity'])
             print ("v ==", variables['y_sea_water_velocity'])
+            print ("w ==", variables['upward_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
                 variables['x_wind'][indy, indx], \
