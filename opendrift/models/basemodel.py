@@ -1351,7 +1351,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return lon, lat
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                      cone=False, **kwargs):
+                      cone=False, radius_type='gaussian', **kwargs):
         """Seed a given number of particles around given position(s).
 
         Arguments:
@@ -1369,6 +1369,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 arrays, interpreted as the start and end position of a cone
                 within which elements will be seeded. Radius may also be a
                 two element array specifying the radius around the points.
+            radius_type: string
+                If 'gaussian' (default), the radius is the standard deviation in
+                x-y-directions. If 'uniform', elements are spread evenly and
+                always inside a circle with the given radius.
             kwargs: keyword arguments containing properties/attributes and
                 values corresponding to the actual particle type (ElementType).
                 These are forwarded to the ElementType class. All properties
@@ -1522,10 +1526,14 @@ class OpenDriftSimulation(PhysicsMethods):
 
         geod = pyproj.Geod(ellps='WGS84')
         ones = np.ones(np.sum(number))
-        x = np.random.randn(np.sum(number))*radius
-        y = np.random.randn(np.sum(number))*radius
-        az = np.degrees(np.arctan2(x, y))
-        dist = np.sqrt(x*x+y*y)
+        if radius_type == 'gaussian':
+            x = np.random.randn(np.sum(number))*radius
+            y = np.random.randn(np.sum(number))*radius
+            az = np.degrees(np.arctan2(x, y))
+            dist = np.sqrt(x*x+y*y)
+        elif radius_type == 'uniform':
+            az = np.random.randn(np.sum(number))*360
+            dist = np.sqrt(np.random.uniform(0, 1, np.sum(number)))*radius
         if len(lat) == 1 and len(ones) > 1:
             lat = lat*ones
             lon = lon*ones

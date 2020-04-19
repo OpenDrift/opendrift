@@ -147,7 +147,8 @@ class Leeway(OpenDriftSimulation):
                          overwrite=True)
 
     def seed_elements(self, lon, lat, radius=0, number=1, time=None,
-                      objectType=None, cone=None, jibeProbability=None):
+                      objectType=None, cone=None, jibeProbability=None,
+                      **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own objectType (number),
         # but so far we only use one for each sim
@@ -258,7 +259,7 @@ class Leeway(OpenDriftSimulation):
             downwindOffset=downwindOffset,
             crosswindOffset=crosswindOffset,
             downwindEps=downwindEps, crosswindEps=crosswindEps,
-            jibeProbability=jibeProbability)
+            jibeProbability=jibeProbability, **kwargs)
 
     def list_object_categories(self, substr=None):
         '''Display leeway categories to screen
