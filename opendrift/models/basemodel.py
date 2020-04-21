@@ -218,7 +218,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if loglevel != 'custom':
             if logfile is not None:
-                handler = logging.FileHandler(logfile)
+                handler = logging.FileHandler(logfile, mode='w')
             else:
                 handler = logging.StreamHandler()
             format = '%(levelname)s: %(message)s'
@@ -1353,7 +1353,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return lon, lat
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                      cone=False, **kwargs):
+                      cone=False, radius_type='gaussian', **kwargs):
         """Seed a given number of particles around given position(s).
 
         Arguments:
@@ -1371,6 +1371,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 arrays, interpreted as the start and end position of a cone
                 within which elements will be seeded. Radius may also be a
                 two element array specifying the radius around the points.
+            radius_type: string
+                If 'gaussian' (default), the radius is the standard deviation in
+                x-y-directions. If 'uniform', elements are spread evenly and
+                always inside a circle with the given radius.
             kwargs: keyword arguments containing properties/attributes and
                 values corresponding to the actual particle type (ElementType).
                 These are forwarded to the ElementType class. All properties
@@ -1524,10 +1528,14 @@ class OpenDriftSimulation(PhysicsMethods):
 
         geod = pyproj.Geod(ellps='WGS84')
         ones = np.ones(np.sum(number))
-        x = np.random.randn(np.sum(number))*radius
-        y = np.random.randn(np.sum(number))*radius
-        az = np.degrees(np.arctan2(x, y))
-        dist = np.sqrt(x*x+y*y)
+        if radius_type == 'gaussian':
+            x = np.random.randn(np.sum(number))*radius
+            y = np.random.randn(np.sum(number))*radius
+            az = np.degrees(np.arctan2(x, y))
+            dist = np.sqrt(x*x+y*y)
+        elif radius_type == 'uniform':
+            az = np.random.randn(np.sum(number))*360
+            dist = np.sqrt(np.random.uniform(0, 1, np.sum(number)))*radius
         if len(lat) == 1 and len(ones) > 1:
             lat = lat*ones
             lon = lon*ones
@@ -2248,22 +2256,25 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Propagate one timestep forwards
                 self.steps_calculation += 1
 
-                if self.num_elements_active() == 0:
-                    raise ValueError('No more active elements, quitting.')
+                if self.num_elements_active() == 0 and self.num_elements_scheduled() == 0:
+                    raise ValueError('No more active or scheduled elements, quitting.')
 
                 # Store location, in case elements shall be moved back
                 self.store_present_positions()
 
                 #####################################################
-                self.logger.debug('Calling %s.update()' %
-                              type(self).__name__)
-                self.timer_start('main loop:updating elements')
-                self.update()
-                self.timer_end('main loop:updating elements')
+                if self.num_elements_active() > 0:
+                    self.logger.debug('Calling %s.update()' %
+                                  type(self).__name__)
+                    self.timer_start('main loop:updating elements')
+                    self.update()
+                    self.timer_end('main loop:updating elements')
+                else:
+                    self.logger.info('No active elements, skipping update() method')
                 #####################################################
 
-                if self.num_elements_active() == 0:
-                    raise ValueError('No active elements, quitting simulation')
+                if self.num_elements_active() == 0 and self.num_elements_scheduled() == 0:
+                    raise ValueError('No active or scheduled elements, quitting simulation')
 
                 self.logger.debug('%s active elements (%s deactivated)' %
                               (self.num_elements_active(),

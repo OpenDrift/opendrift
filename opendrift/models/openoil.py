@@ -786,7 +786,8 @@ class OpenOil(OpenDriftSimulation):
             plt.axis('off')
             if filename is not None:
                 plt.savefig(filename)
-            plt.show()
+            else:
+                plt.show()
             return
 
         b = self.get_oil_budget()
@@ -882,7 +883,8 @@ class OpenOil(OpenDriftSimulation):
                    ncol=6, mode="expand", borderaxespad=0., fontsize=10)
         if filename is not None:
             plt.savefig(filename)
-        plt.show()
+        else:
+            plt.show()
 
     def plot_oil_density_and_viscosity(self, ax=None, show=True):
         if ax is None:
