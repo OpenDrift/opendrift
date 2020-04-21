@@ -2254,22 +2254,25 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Propagate one timestep forwards
                 self.steps_calculation += 1
 
-                if self.num_elements_active() == 0:
-                    raise ValueError('No more active elements, quitting.')
+                if self.num_elements_active() == 0 and self.num_elements_scheduled() == 0:
+                    raise ValueError('No more active or scheduled elements, quitting.')
 
                 # Store location, in case elements shall be moved back
                 self.store_present_positions()
 
                 #####################################################
-                self.logger.debug('Calling %s.update()' %
-                              type(self).__name__)
-                self.timer_start('main loop:updating elements')
-                self.update()
-                self.timer_end('main loop:updating elements')
+                if self.num_elements_active() > 0:
+                    self.logger.debug('Calling %s.update()' %
+                                  type(self).__name__)
+                    self.timer_start('main loop:updating elements')
+                    self.update()
+                    self.timer_end('main loop:updating elements')
+                else:
+                    self.logger.info('No active elements, skipping update() method')
                 #####################################################
 
-                if self.num_elements_active() == 0:
-                    raise ValueError('No active elements, quitting simulation')
+                if self.num_elements_active() == 0 and self.num_elements_scheduled() == 0:
+                    raise ValueError('No active or scheduled elements, quitting simulation')
 
                 self.logger.debug('%s active elements (%s deactivated)' %
                               (self.num_elements_active(),
