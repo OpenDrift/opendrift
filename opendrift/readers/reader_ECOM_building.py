@@ -12,7 +12,7 @@ except:
 #has_xarray = False  # Temporary disabled
 
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
-from opendrift.readers.roppy import depth_ECOM
+from opendrift.readers.roppy import depth
 
 
 class Reader(BaseReader):
