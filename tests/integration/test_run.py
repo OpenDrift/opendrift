@@ -795,11 +795,14 @@ class TestRun(unittest.TestCase):
         o = OceanDrift(loglevel=20)
         # deactivate elements after 3 hours
         o.set_config('drift:max_age_seconds', 3600*3)
+        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o.add_reader(norkyst)
         # seed two elements at 6 hour interval
-        o.seed_elements(number=2, lon=4, lat=60,
-            time=[datetime.now(), datetime.now()+timedelta(hours=6)])
+        o.seed_elements(number=2, lon=4, lat=62,
+            time=[norkyst.start_time, norkyst.start_time+timedelta(hours=6)])
         o.fallback_values['land_binary_mask'] = 0
-        o.run(duration=timedelta(hours=8), stop_on_error=True)
+        o.run(duration=timedelta(hours=8), outfile='test.nc')
+        os.remove('test.nc')
         # Check that simulations has run until scheduled end
         self.assertEqual(o.steps_calculation, 8)
 
