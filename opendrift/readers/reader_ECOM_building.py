@@ -318,7 +318,30 @@ class Reader(BaseReader):
         indx_el = indx.copy()
         indy_el = indy.copy()
         
-  
+        # define an empty list as indz
+        indz = []
+
+        if hasattr(self, 'z') and (z is not None):   
+            print ("z ==", z)
+            dz = -np.array(self.Dataset['z'])
+            dz_shape = dz.shape  
+            dz_shape_value = dz_shape[0]
+
+            z_shape = z.shape
+            z_shape_value = z_shape[0]
+
+            if z_shape_value >= dz_shape_value:
+                absolute_val_array = np.abs(dz - z[0:dz_shape_value]) #distance between both arrays elements
+                indz.append(absolute_val_array.argmin())
+            elif dz_shape_value > z_shape_value :    
+                absolute_val_array2 = np.abs(dz[0:z_shape_value] - z) #distance between both arrays elements
+                indz.append(absolute_val_array.argmin())
+
+
+        else:
+            indz.append(0)
+
+        indz = np.asarray(indz)
 
         if block is True:
             # Adding buffer, to cover also future positions of elements
@@ -332,20 +355,12 @@ class Reader(BaseReader):
             #                 np.min([indy.max()+buffer, self.lon.shape[0]-1]))
             indx = indx
             indy = indy
-            if hasattr(self, 'z') and (z is not None):
-
-                dz = -np.array(self.Dataset['z'])
-                a = dz.shape  
-                b = a[0]
-                absolute_val_array = np.abs(dz - z[0:b]) #distance between both arrays elements
-                indz = absolute_val_array.argmin()
-            else:
-                indz = 0 #surface
+            indz = indz
+                
 
         print ("indz = ", indz)
         print ("indx ==", indx)
         print ("indy ==", indy)
-        print ("indz ==", indz)
 
 
           # Find depth levels covering all elements 
@@ -579,20 +594,20 @@ class Reader(BaseReader):
 
             if 'x_sea_water_velocity' in variables.keys():
        
-                variables['x_sea_water_velocity'][indy, indx], \
-                    variables['y_sea_water_velocity'][indy, indx] = rotate_vectors_angle(
-                        variables['x_sea_water_velocity'][indy, indx],
-                        variables['y_sea_water_velocity'][indy, indx], rad)
+                variables['x_sea_water_velocity'], \
+                    variables['y_sea_water_velocity'] = rotate_vectors_angle(
+                        variables['x_sea_water_velocity'],
+                        variables['y_sea_water_velocity'], rad)
 
             print ("u ==", variables['x_sea_water_velocity'])
             print ("v ==", variables['y_sea_water_velocity'])
             print ("w ==", variables['upward_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
-                variables['x_wind'][indy, indx], \
-                    variables['y_wind'][indy, indx] = rotate_vectors_angle(
-                        variables['x_wind'][indy, indx],
-                        variables['y_wind'][indy, indx], rad)
+                variables['x_wind'], \
+                    variables['y_wind'] = rotate_vectors_angle(
+                        variables['x_wind'],
+                        variables['y_wind'], rad)
 
             print ("wu ==", variables['x_wind'])
             print ("wv ==", variables['y_wind'])
