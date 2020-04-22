@@ -2212,6 +2212,15 @@ class OpenDriftSimulation(PhysicsMethods):
                 # Release elements
                 self.release_elements()
 
+                if self.num_elements_active() == 0 and self.num_elements_scheduled() > 0:
+                    self.steps_calculation += 1
+                    self.logger.info('No active but %s scheduled elements, skipping timestep %s (%s)'
+                                     % (self.num_elements_scheduled(), self.steps_calculation, self.time))
+                    self.state_to_buffer()  # Append status to history array
+                    if self.time is not None:
+                        self.time = self.time + self.time_step
+                    continue
+
                 self.increase_age_and_retire()
 
                 self.lift_elements_to_seafloor()  # If seafloor is penetrated

@@ -786,6 +786,7 @@ class OpenOil(OpenDriftSimulation):
             plt.axis('off')
             if filename is not None:
                 plt.savefig(filename)
+                plt.close()
             else:
                 plt.show()
             return
@@ -883,6 +884,7 @@ class OpenOil(OpenDriftSimulation):
                    ncol=6, mode="expand", borderaxespad=0., fontsize=10)
         if filename is not None:
             plt.savefig(filename)
+            plt.close()
         else:
             plt.show()
 
