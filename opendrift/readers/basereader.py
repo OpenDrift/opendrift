@@ -27,7 +27,6 @@ from multiprocessing import Process, Manager, cpu_count
 from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
 import numpy as np
-
 from opendrift.readers.interpolation import ReaderBlock
 
 import pyproj
@@ -158,7 +157,6 @@ class BaseReader(object):
                 block_x, block_y = np.meshgrid(
                     np.arange(self.xmin, self.xmax + 1, 1),
                     np.arange(self.ymin, self.ymax + 1, 1))
-
                 # Making interpolator (lon, lat) -> x
                 self.spl_x = LinearNDInterpolator((self.lon.ravel(),
                                                    self.lat.ravel()),
@@ -247,25 +245,46 @@ class BaseReader(object):
 
     def pixel_size(self):
         # Find typical pixel size (e.g. for calculating size of buffer)
-        if self.projected is True:
+        if self.projected is False:
             if hasattr(self, 'delta_x'):
                 pixelsize = self.delta_x
                 if self.proj.crs.is_geographic is True or \
-                        ('ob_tran' in self.proj4) or \
+                       ('ob_tran' in self.proj4) or \
                         ('longlat' in self.proj4) or \
                         ('latlon' in self.proj4):
                     pixelsize = pixelsize*111000  # deg to meters
             else:
                 pixelsize = None  # Pixel size not defined
         else:
-            lons, lats = self.xy2lonlat([self.xmin, self.xmax],
-                                        [self.ymin, self.ymin])
-            typicalsize = lons
+
+
+            #lons, lats = self.xy2lonlat([self.xmin, self.xmax],
+                                       # [self.ymin, self.ymin])
+          #  typicalsize = lons
             geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
-            dist = geod.inv(lons[0], lats[0],
-                            lons[1], lats[1], radians=False)[2]
-            pixelsize = dist/self.shape[0]
+            dist = geod.inv(-48.6953, -29.5651,
+                            -39.3312, -21.9446, radians=False)[2]
+            #dist = geod.inv(lons[0], lats[0],
+            #                lons[1], lats[1], radians=False)[2]
+
+            pixelsize = dist#/self.shape[0]
+        
         return pixelsize
+       #     x, y = self.lonlat2xy([self.lon,self.lat])
+       #     typicalsize = lons
+       #     geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
+       #     dist = geod.inv(-48.6953, -29.5651,
+       #                     -39.3312, -21.9446, radians=False)[2]
+#
+#
+       #     dist = geod.inv(lon[0],lat[0],
+       #                     lon[1],lat[1],radians =False)[2]
+       #     self.h1= self.variables[h1]
+#
+       #     dist = self.h1
+       # pixelsize = dist /self.shape[0]
+#
+       # return pixelsize
 
     # TODO:  Duplication from Basemodel, should be unified
     def timer_start(self, category):
@@ -526,6 +545,8 @@ class BaseReader(object):
                               (len(self.var_block_before[blockvars_before].x),
                                len(self.var_block_before[blockvars_before].y),
                                len_z, time_before))
+               
+                                            
                 block_before = self.var_block_before[blockvars_before]
             if block_after is None or block_after.time != time_after:
                 if time_after is None:
@@ -843,6 +864,8 @@ class BaseReader(object):
                     y = np.concatenate(out_y)
                     self.logger.debug('Completed lonlat2xy in parallel')
                     return (x, y)
+                    print("x ==",x)
+                    print("y ==",y)
                 except Exception as e:
                     self.logger.warning('Parallelprocessing failed:')
                     self.logger.warning(e)
