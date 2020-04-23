@@ -43,7 +43,7 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
         'x_wind', 'y_wind',
         'upward_sea_water_velocity',
         'ocean_vertical_diffusivity',
-        'sea_surface_wave_significant_height',
+        #'sea_surface_wave_significant_height',
         'sea_surface_wave_stokes_drift_x_velocity',
         'sea_surface_wave_stokes_drift_y_velocity',
         'sea_surface_wave_period_at_variance_spectral_density_maximum',
