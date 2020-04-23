@@ -1,0 +1,22 @@
+DIFFERENCES BETWEEN ROMS_NATIVE_READER AND ECOM_READER_3D
+
+1)Changed names in variable mapping according to ECOM
+
+2) Changed sigma levels to z-levels, so ignored self.zlevel to wich sigma levels would be interpolated.
+
+3)Nonesistent gls_param at ECOM
+
+4) All vertical indexing changed to 'z'
+
+5) Defined a function to find nearest value between array and scalar (depth value)
+
+6) Found nearest value between z from dataset and z from requested variables ==> defined indz
+
+
+CHANGES AT BASEREADER
+
+1) Pixelsize changed onto defined lat and lon values, must be fixed later.
+
+CHANGES AT MODELS
+
+1) 3D models were comented at wave_signifcant_height, variable not in ECOM_dataset
