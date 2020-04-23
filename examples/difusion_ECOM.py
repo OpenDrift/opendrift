@@ -24,8 +24,8 @@ time = reader_pcse.start_time
 
 o.seed_elements(lon=-46,lat =-24, radius = 10, number = 200, time=time)
 #o.set_config('drift:current_uncertainty', 0)  # 0 is default
-#o.run(duration=timedelta(hours=130))
-o.run(steps=700, time_step=1800)
+o.run(duration=timedelta(hours=116))
+#o.run(steps=234, time_step=1800)
 
 #o.plot(fast=True)
 #o.animation()
@@ -35,8 +35,8 @@ o2 = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_pcse])
 o2.seed_elements(lon=-46,lat =-24, radius = 10, number = 200, time=time)
 o2.set_config('drift:current_uncertainty', .1) # Difference from first run
-#o2.run(duration=timedelta(hours=130))
-o2.run(steps=700, time_step=1800)
+o2.run(duration=timedelta(hours=116))
+#o2.run(steps=234, time_step=1800)
 #%%
 # Comparing
 o2.plot(linecolor = 'z')
