@@ -57,11 +57,7 @@ class Reader(BaseReader):
             'lat':'lat'}
 
 
-             # z-levels to which sigma-layers may be interpolated (21 niveis sigma, depth max = 2000m)
-     #   self.zlevels = np.array([ 0, -10, -25, -40, -50, -60, -70, -80, -100, -150, -300, -350, -400, -450, -500, -600, 
-    #-700, -800, -1000, -1200, -1500, -1800, -2000])
-
-
+            
         filestr = str(filename)
 
         if name is None:
@@ -98,10 +94,6 @@ class Reader(BaseReader):
         except Exception as e:
             raise ValueError('e')
 
-        #if 'sigma' not in self.Dataset.variables:
-        #    dimensions = 2
-        #else:
-         #   dimensions = 3
 
 
         if 'z' not in self.Dataset.variables:
@@ -110,35 +102,7 @@ class Reader(BaseReader):
             dimensions = 3
 
         if dimensions == 3:
-            # Read sigma-coordinate values
-            #try:
-            #    self.sigma = self.Dataset.variables['sigma'][:]
-           # except:
-           #     num_sigma = len(self.Dataset.dimensions['sigma'])
-            #    self.logger.warning(
-            #        'sigma not available in dataset, constructing from'
-            #        ' number of layers (%s).' % num_sigma)
-            #    self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
-           ##     
-           ##     # Read sigma-coordinate transform parameters
-           ## try:
-           ##     self.Dataset.variables['sigma'].set_auto_mask(False)
-           ## except:
-           ##     pass
-           ## self.sigma = self.Dataset.variables['sigma'][:]
-           ## try:
-           ##     self.depth = self.Dataset.variables['depth'][:]
-##
-           ## except:
-           ##     if has_xarray is True:
-           ##         self.depth = self.Dataset.variables['depth'].data  # scalar
-           ##     else:
-           #         self.depth = self.Dataset.variables['depth'][0]
-
-          #  self.num_layers = len(self.sigma)
-
-       # if dimensions == 3:
-            # Read z-coordinate values
+            
             try:
                 self.z = self.Dataset.variables['z'][:]
             except:
@@ -170,16 +134,14 @@ class Reader(BaseReader):
             self.num_layers = 1
             self.ECOM_variable_mapping['u'] = 'x_sea_water_velocity'
             self.ECOM_variable_mapping['v'] = 'y_sea_water_velocity' 
-            #del self.ECOM_variable_mapping['u']
-            #del self.ECOM_variable_mapping['v']
+
             self.depth = self.Dataset.variables['depth'][:]
 
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
-           # self.lat = np.ma.masked_where(self.lat == 0, self.lat)
-           # self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
+
            
         else:
             if gridfile is None:
@@ -218,32 +180,23 @@ class Reader(BaseReader):
         # x and y are rows and columns for unprojected datasets
         self.xmin = 1
         self.delta_x = 1.
-       # self.delta_x = self.Dataset.variables['h1'][:]
-       # self.delta_x = np.ma.masked_where(self.delta_x <= 1e-9, self.delta_x)
+
         self.ymin = 1
         self.delta_y = 1.
-        #self.delta_y = self.Dataset.variables['h2'][:]
-        #self.delta_y = np.ma.masked_where(self.delta_y <= 1e-9, self.delta_y)
-
-       # self.zmin = 0
+ 
 
 
         if has_xarray:
             self.xmax = self.Dataset['xpos'].shape[0] - 1.
             self.ymax = self.Dataset['ypos'].shape[0] - 1.
-         #   self.zmax = self.Dataset['z'].sape[0] - 1.
 
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
-            #self.sigma = self.sigma.data
 
        
         else:
             self.xmax = np.float(len(self.Dataset.dimensions['xpos'])) - 1
             self.ymax = np.float(len(self.Dataset.dimensions['ypos'])) - 1
-          #  self.zmax = np.float(len(self.Dataset.dimensions['z'])) - 1
-
-
           
 
         self.name = 'ECOM'
@@ -292,10 +245,7 @@ class Reader(BaseReader):
         else: clipped = 0
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped 
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped 
-        #indz = np.floor((z-self.zmin)).astype(int) + clipped
 
-        #indx[outside] = 0  # To be masked later
-        #indy[outside] = 0
         indx_el = indx.copy()
         indy_el = indy.copy()
         
@@ -311,41 +261,21 @@ class Reader(BaseReader):
 # define an empty list as indz
         if hasattr(self, 'z') and (z is not None):   
             print ("z ==", z)
-            #dz = -np.array(self.Dataset['z'])
-            #dz_shape = dz.shape  
-            #dz_shape_value = dz_shape[0]
-
-            #z_shape = z.shape
-            #z_shape_value = z_shape[0]
-
-            #if z_shape_value >= dz_shape_value:
-            #    absolute_val_array = np.abs(dz - z[0:dz_shape_value]) #distance between both arrays elements
-            #    indz.append(absolute_val_array.argmin())
-            #elif dz_shape_value > z_shape_value :    
-            #    absolute_val_array2 = np.abs(dz[0:z_shape_value] - z) #distance between both arrays elements
-            #    indz.append(absolute_val_array.argmin())
-
+            
             dz = -np.array(self.Dataset['z'])   
 
-            #indz = [find_nearest(self.Dataset['z'], value) for value in z]
             indz = [find_nearest(dz, value) for value in z]
 
 
-        #else:
-        #    indz.append(0)
+        else:
+            indz.append(0)
 
         indz = np.asarray(indz)
 
         if block is True:
             # Adding buffer, to cover also future positions of elements
             buffer = self.buffer
-            #print("buffer ==", buffer)
-            # Avoiding the last pixel in each dimension, since there are
-            # several grids which are shifted (rho, u, v, psi)
-            #indx = np.arange(np.max([0, indx.min()-buffer]),
-            #                 np.min([indx.max()+buffer, self.lon.shape[1]-1]))
-            #indy = np.arange(np.max([0, indy.min()-buffer]),
-            #                 np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+            
             indx = indx
             indy = indy
             indz = indz
@@ -356,53 +286,6 @@ class Reader(BaseReader):
         print ("indy ==", indy)
 
 
-          # Find depth levels covering all elements 
-
-       # if z.min() == 0 or not hasattr(self, 'sea_floor_depth_below_sea_level'):
-       #     indz = self.num_layers - 1  # surface layer
-       #     variables['z'] = 0
-#
-       # else:
-           # # Find the range of indices covering given z-values
-           # if not hasattr(self, 'sea_floor_depth_below_sea_level'):
-           #     self.logger.debug('Reading sea floor depth...')
-           #     self.sea_floor_depth_below_sea_level = \
-           #         self.Dataset.variables['depth'][:]
-#
-         #       Htot = self.sea_floor_depth_below_sea_level
-           #    # self.z__tot = depth.sdepth(Htot, self.depth, self.sigma)
-           #     self.z__tot = self.sea_floor_depth_below_sea_level[indy,indx]
-#
-           # if has_xarray is False:
-           #     indxgrid, indygrid = np.meshgrid(indx, indy)
-           #     H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
-           # else:
-           #     H = self.sea_floor_depth_below_sea_level[indy, indx]
-           # z_rho = depth.sdepth(H, self.sigma)
-           # # Element indices must be relative to extracted subset
-           # indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
-           # indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
-#
-           # # Loop to find the layers covering the requested z-values
-           # indz_min = 0
-           # #indz_max = self.num_layers
-           # for i in range(self.num_layers):
-           #     if np.min(z-z_rho[i, indy_el, indx_el]) > 0:
-           #         indz_min = i
-           #     if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
-           #         indz_max = i
-           # indz = range(np.maximum(0, indz_min-self.verticalbuffer),
-           #              np.minimum(self.num_layers,
-           #                         indz_max + 1 + self.verticalbuffer))
-           # z_rho = z_rho[indz, :, :]
-           # # Determine the z-levels to which to interpolate
-           # zi1 = np.maximum(0, bisect_left(-np.array(self.zlevels),
-           #                                 -z.max()) - self.verticalbuffer)
-           # zi2 = np.minimum(len(self.zlevels),
-           #                  bisect_right(-np.array(self.zlevels),
-           #                               -z.min()) + self.verticalbuffer)
-           # variables['z'] = np.array(self.zlevels[zi1:zi2])
-            #read_masks = {}  # To store maskes for various grids
         mask_values = {}
 
         for par in requested_variables:
@@ -465,100 +348,9 @@ class Reader(BaseReader):
                         upper = variables[par][0,:,:]
                     else:
                         upper = variables[par]
-                    #mask_values[par] = upper.ravel()[first_mask_point]
-                    #variables[par][variables[par]==mask_values[par]] = np.nan
-                    '''
-            if var.ndim == 4:
-                # Regrid from sigma to z levels
-                if len(np.atleast_1d(indz)) > 1:
-                    self.logger.debug('sigma to z for ' + varname[0])
-                    if self.precalculate_s2z_coefficients is True:
-                        M = sea_floor_depth_below_sea_level.shape[0]
-                        N = sea_floor_depth_below_sea_level.shape[1]
-                        O = len(self.z_rho_tot)
-                        if not hasattr(self, 's2z_A'):
-                            self.logger.debug('Calculating sigma2z-coefficients for whole domain')
-                            starttime = datetime.now()
-                            dummyvar = np.ones((O, M, N))
-                            dummy, self.s2z_total = depth.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
-                            # Store arrays/coefficients
-                            self.s2z_A = self.s2z_total[0].reshape(len(self.zlevels), M, N)
-                            self.s2z_C = self.s2z_total[1].reshape(len(self.zlevels), M, N)
-                            #self.s2z_I = self.s2z_total[2].reshape(M, N)
-                            self.s2z_kmax = self.s2z_total[3]
-                            del self.s2z_total  # Free memory
-                            self.logger.info('Time: ' + str(datetime.now() - starttime))
-                        if 'A' not in locals():
-                            self.logger.debug('Re-using sigma2z-coefficients')
-                            # Select relevant subset of full arrays
-                            zle = np.arange(zi1, zi2)  # The relevant depth levels
-                            A = self.s2z_A.copy()  # Awkward subsetting to prevent losing one dimension
-                            A = A[:,:,indx]
-                            A = A[:,indy,:]
-                            A = A[zle,:,:]
-                            C = self.s2z_C.copy()
-                            C = C[:,:,indx]
-                            C = C[:,indy,:]
-                            C = C[zle,:,:]
-                            C = C - C.max() + variables[par].shape[0] - 1
-                            C[C<1] = 1
-                            A = A.reshape(len(zle), len(indx)*len(indy))
-                            C = C.reshape(len(zle), len(indx)*len(indy))
-                            I = np.arange(len(indx)*len(indy))
-                            ## Check
-                            #dummyvar2, s2z = depth.multi_zslice(
-                            #    variables[par].copy(), z_rho.copy(), variables['z'])
-                            #print len(zle), variables[par].shape, 'zle, varshape'
-                            #Ac,Cc,Ic,kmaxc = s2z
-                            #print C, 'C'
-                            #print Cc, 'Cc'
-                            #print C.shape, Cc.shape
-                            #if C.max() != Cc.max():
-                            #    print 'WARNING!!'
-                            #    import sys; sys.exit('stop')
-                            kmax = len(zle)  # Must be checked. Or number of sigma-layers?
-                    if 'A' not in locals():
-                        self.logger.debug('Calculating new sigma2z-coefficients')
-                        variables[par], s2z = depth.multi_zslice(
-                            variables[par], z_rho, variables['z'])
-                        A,C,I,kmax = s2z
-                        # Reshaping to compare with subset of full array
-                        #zle = np.arange(zi1, zi2)
-                        #A = A.reshape(len(zle), len(indx), len(indy))
-                        #C = C.reshape(len(zle), len(indx), len(indy))
-                        #I = I.reshape(len(indx), len(indy))
-                    else:
-                        self.logger.debug('Applying sigma2z-coefficients')
-                        # Re-using sigma2z koefficients:
-                        F = np.asarray(variables[par])
-                        Fshape = F.shape
-                        N = F.shape[0]
-                        M = F.size // N
-                        F = F.reshape((N, M))
-                        R = (1-A)*F[(C-1, I)]+A*F[(C, I)]
-                        variables[par] = R.reshape((kmax,) + Fshape[1:])
-
-                    # Nan in input to multi_zslice gives extreme values in output
-                    #variables[par][variables[par]>1e+9] = np.nan                   
-                    #variables[par][variables[par]<=1e-9] = np.nan
-
-
-
-            # If 2D array is returned due to the fancy slicing methods
-            # of netcdf-python, we need to take the diagonal
-           # if variables[par].ndim > 1 and block is False:
-               # variables[par] = variables[par].diagonal()
-
-            # Mask values outside domain
-           # variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
-           # if block is False:
-           #     variables[par].mask[outside] = True
-'''
-
+                    
         if block is True:
-            # TODO: should be midpoints, but angle array below needs integer
-            #indx = indx[0:-1]  # Only if de-staggering has been performed
-            #indy = indy[1::]
+            
             variables['x'] = indx
             variables['y'] = indy
             variables['z'] = indz
