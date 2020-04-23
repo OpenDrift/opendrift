@@ -20,18 +20,17 @@ o.add_reader([reader_pcse])
 #%%
 # Seeding some particles
 oiltype = 'GULLFAKS, EXXON'
-oiltype = 'ARABIAN MEDIUM, API'
-oiltype = 'ALGERIAN CONDENSATE'
+
 
 #%%
-lon = -45.1; lat = -24;
+lon = -45; lat = -24;
 
 time = reader_pcse.start_time
 # Seed elements at defined position and time
 import numpy as np
 
-o.seed_elements(lon, lat,  radius=200, number=200,
-                time=time,z= -45, oiltype=oiltype)
+o.seed_elements(lon, lat,  radius=10, number=10,
+                time=time, z=-46, oiltype=oiltype)
 
 #%%
 # Adjusting some configuration
@@ -42,23 +41,21 @@ o.set_config('turbulentmixing:timestep',  5)
 
 #%%
 # Running model (until end of driver data)
-o.run(steps=4*40, time_step=900,
-      time_step_output=3600)
+o.run(steps=4*40, time_step=900)
 
 #%%
-# Print and plot results
+# Print and plot resuls
 print(o)
-o.plot(fast=True)
+o.plot(linecolor='z')  # Color lines according to deptho.plot_oil_budget()
 o.plot_oil_budget()
-o.plot(filename='openoil3d_drift')
-o.plot_vertical_distribution()
-o.plot_property('water_fraction', mean=True)
+#o.plot(filename='openoil3d_drift')
+#o.plot_vertical_distribution()
+#o.plot_property('water_fraction', mean=True)
 o.plot_property('z')
-o.plot_property('mass_evaporated')
-o.plot_property('water_fraction')
-o.plot_property('interfacial_area')
-o.animation(fast=True)
+#o.plot_property('mass_evaporated')
+#o.plot_property('water_fraction')
+#o.plot_property('interfacial_area')
+#o.animation(filename='oil3D_1.gif')
 
 #%%
 # .. image:: /gallery/animations/example_openoil3d_0.gif
-
