@@ -261,7 +261,7 @@ class Reader(BaseReader):
 
         if block is True:
             # Adding buffer, to cover also future positions of elements
-            #buffer = self.buffer
+            buffer = self.buffer
             #print("buffer ==", buffer)
             # Avoiding the last pixel in each dimension, since there are
             # several grids which are shifted (rho, u, v, psi)
@@ -501,19 +501,19 @@ class Reader(BaseReader):
 
             if 'x_sea_water_velocity' in variables.keys():
        
-                variables['x_sea_water_velocity'][indy, indx], \
-                    variables['y_sea_water_velocity'][indy, indx] = rotate_vectors_angle(
-                        variables['x_sea_water_velocity'][indy, indx],
-                        variables['y_sea_water_velocity'][indy, indx], rad)
+                variables['x_sea_water_velocity'], \
+                    variables['y_sea_water_velocity'] = rotate_vectors_angle(
+                        variables['x_sea_water_velocity'],
+                        variables['y_sea_water_velocity'], rad)
 
             print ("u ==", variables['x_sea_water_velocity'])
             print ("v ==", variables['y_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
-                variables['x_wind'][indy, indx], \
-                    variables['y_wind'][indy, indx] = rotate_vectors_angle(
-                        variables['x_wind'][indy, indx],
-                        variables['y_wind'][indy, indx], rad)
+                variables['x_wind'], \
+                    variables['y_wind'] = rotate_vectors_angle(
+                        variables['x_wind'],
+                        variables['y_wind'], rad)
 
             print ("wu ==", variables['x_wind'])
             print ("wv ==", variables['y_wind'])
