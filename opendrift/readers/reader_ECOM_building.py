@@ -285,25 +285,6 @@ class Reader(BaseReader):
         variables = {}   
 
 
-#        if z is None:
- #           z = np.atleast_1d(0) #Convert inputs to arrays with at least one dimension.
-
-            # Find z-index range
-            # NB: may need to flip if self.z is ascending
-            #indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
-            #indz = np.arange(np.maximum(0, indices.min() - 1),
-            #                 np.minimum(len(self.z), indices.max() + 1))
-            #if len(indz) == 1:
-            #    indz = indz[0]  # Extract integer to read only one layer
-        #else:
-        #    indz = 0
-      
-        #z_data  = self.Dataset.variables['z']
-        #z_array = np.array(z_data) 
-
-            #n = z_array.flat[np.abs(z_array - z.value).argmin()] 
-            #dz = np.where(z_array == n)
-            #indz = dz[0][0]   
 
 # Find horizontal indices corresponding to requested x and y
         if hasattr(self, 'clipped'):
@@ -318,28 +299,40 @@ class Reader(BaseReader):
         indx_el = indx.copy()
         indy_el = indy.copy()
         
-        # define an empty list as indz
-        indz = []
+        
+        def find_nearest(array, value):
+            array = np.asarray(array)
+                
+            idx = (np.abs(array - value)).argmin()
 
+            return idx
+
+
+# define an empty list as indz
         if hasattr(self, 'z') and (z is not None):   
             print ("z ==", z)
-            dz = -np.array(self.Dataset['z'])
-            dz_shape = dz.shape  
-            dz_shape_value = dz_shape[0]
+            #dz = -np.array(self.Dataset['z'])
+            #dz_shape = dz.shape  
+            #dz_shape_value = dz_shape[0]
 
-            z_shape = z.shape
-            z_shape_value = z_shape[0]
+            #z_shape = z.shape
+            #z_shape_value = z_shape[0]
 
-            if z_shape_value >= dz_shape_value:
-                absolute_val_array = np.abs(dz - z[0:dz_shape_value]) #distance between both arrays elements
-                indz.append(absolute_val_array.argmin())
-            elif dz_shape_value > z_shape_value :    
-                absolute_val_array2 = np.abs(dz[0:z_shape_value] - z) #distance between both arrays elements
-                indz.append(absolute_val_array.argmin())
+            #if z_shape_value >= dz_shape_value:
+            #    absolute_val_array = np.abs(dz - z[0:dz_shape_value]) #distance between both arrays elements
+            #    indz.append(absolute_val_array.argmin())
+            #elif dz_shape_value > z_shape_value :    
+            #    absolute_val_array2 = np.abs(dz[0:z_shape_value] - z) #distance between both arrays elements
+            #    indz.append(absolute_val_array.argmin())
+
+            dz = -np.array(self.Dataset['z'])   
+
+            #indz = [find_nearest(self.Dataset['z'], value) for value in z]
+            indz = [find_nearest(dz, value) for value in z]
 
 
-        else:
-            indz.append(0)
+        #else:
+        #    indz.append(0)
 
         indz = np.asarray(indz)
 
