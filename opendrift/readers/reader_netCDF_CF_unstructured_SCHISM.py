@@ -1116,6 +1116,17 @@ class ReaderBlockUnstruct():
         if hasattr(self,'z_3d'):
             # we need to compute a new KDtree for that time step using vertical coordinates at that time step
             logging.debug('Compute time-varying KDtree for 3D nearest-neighbor search (i.e using ''zcor'') ')
+            # clean arrays if needed, especially z_3d (get rid of nan's) - keep only non-nan
+            # 
+            # check for nan's 
+            # if (self.z_3d != self.z_3d).any(): # not required
+            #     self.x_3d = self.x_3d[np.where(self.z_3d == self.z_3d)]
+            #     self.y_3d = self.y_3d[np.where(self.z_3d == self.z_3d)]
+            #     self.z_3d = self.z_3d[np.where(self.z_3d == self.z_3d)]
+            # check for infinite values
+            if np.isinf(self.z_3d).any() :
+                self.z_3d[np.where(np.isinf(self.z_3d))] = 15.0 #limit to +15.0m i.e. above msl
+
             self.block_KDtree_3d = cKDTree(np.vstack((self.x_3d,self.y_3d,self.z_3d)).T) 
             # do we need copy_data=True ..probably not since "data" [self.x_3d,self.y_3d,self.z_3d] 
             # will not change without the KDtree being recomputed
