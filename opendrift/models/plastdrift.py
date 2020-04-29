@@ -25,10 +25,7 @@ PassiveTracer.variables = PassiveTracer.add_variables([
                            'default': 0.02}),
     ('terminal_velocity', {'dtype': np.float32,
                            'units': 'm/s',
-                           'default': 0.01}),
-    ('origin_marker', {'dtype': np.int16,
-                       'unit': '',
-                       'default': 0})])
+                           'default': 0.01})])
 
 
 class PlastDrift(OceanDrift3D):
