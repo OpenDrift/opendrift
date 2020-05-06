@@ -106,6 +106,14 @@ class Reader(BaseReader):
         except Exception as e:
             raise ValueError(e)
 
+
+        if 'Vtransform' in self.Dataset.variables:
+            self.Vtransform = self.Dataset.variables['Vtransform'][:]
+        else:
+            self.logger.warning('Vtransform not found, using 1')
+            self.Vtransform = 1
+        self.Vtransform = np.asarray(self.Vtransform)
+
         if 's_rho' not in self.Dataset.variables:
             dimensions = 2
         else:
@@ -279,14 +287,16 @@ class Reader(BaseReader):
                     self.Dataset.variables['h'][:]
 
                 Htot = self.sea_floor_depth_below_sea_level
-                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r, Vtransform = np.asarray(self.Dataset['Vtransform']) )
+                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,
+                                              Vtransform=self.Vtransform)
 
             if has_xarray is False:
                 indxgrid, indygrid = np.meshgrid(indx, indy)
                 H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
             else:
                 H = self.sea_floor_depth_below_sea_level[indy, indx]
-            z_rho = depth.sdepth(H, self.hc, self.Cs_r, Vtransform = np.asarray(self.Dataset['Vtransform']) )
+            z_rho = depth.sdepth(H, self.hc, self.Cs_r,
+                                 Vtransform=self.Vtransform)
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
             indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
