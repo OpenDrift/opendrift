@@ -137,12 +137,18 @@ class Reader(BaseReader):
 
             self.depth = self.Dataset.variables['depth'][:]
 
+
+        
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
+                
+
+            #self.lat = np.nan_to_num(self.Dataset.variables['lat'][:])
+            #self.lon = np.nan_to_num(self.Dataset.variables['lon'][:])
+
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
 
-           
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
@@ -152,7 +158,7 @@ class Reader(BaseReader):
                 gf = Dataset(gridfile)
                 self.lat = gf.variables['lat'][:]
                 self.lon = gf.variables['lon_'][:]
-       
+
 
 
         # Get time coverage
@@ -171,6 +177,7 @@ class Reader(BaseReader):
                 time_units = 'seconds since 2000-01-01 00:00:00'
             self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
+        self.delay_time = self.times[1]
         self.end_time = self.times[-1]
         if len(self.times) > 1:
             self.time_step = self.times[1] - self.times[0]
@@ -384,9 +391,9 @@ class Reader(BaseReader):
                         variables['x_sea_water_velocity'],
                         variables['y_sea_water_velocity'], rad)
 
-            print ("u ==", variables['x_sea_water_velocity'])
-            print ("v ==", variables['y_sea_water_velocity'])
-            print ("w ==", variables['upward_sea_water_velocity'])
+                print ("u ==", variables['x_sea_water_velocity'])
+                print ("v ==", variables['y_sea_water_velocity'])
+                print ("w ==", variables['upward_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
                 variables['x_wind'], \
@@ -394,14 +401,15 @@ class Reader(BaseReader):
                         variables['x_wind'],
                         variables['y_wind'], rad)
 
-            print ("wu ==", variables['x_wind'])
-            print ("wv ==", variables['y_wind'])
+                print ("wu ==", variables['x_wind'])
+                print ("wv ==", variables['y_wind'])
 
 
         # Masking NaN
         for var in requested_variables:
           
-            variables[var] = np.ma.masked_invalid(variables[var])
+            #variables[var] = np.ma.masked_invalid(variables[var])
+            variables[var] = np.nan_to_num(variables[var])
         self.logger.debug('Time for ECOM reader: ' + str(datetime.now()-start_time))
 
         return variables
