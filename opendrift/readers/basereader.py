@@ -158,10 +158,10 @@ class BaseReader(object):
                     np.arange(self.xmin, self.xmax + 1, 1),
                     np.arange(self.ymin, self.ymax + 1, 1))
                 # Making interpolator (lon, lat) -> x
-                self.spl_x = LinearNDInterpolator((self.lon.ravel(),
-                                                   self.lat.ravel()),
+                self.spl_x = LinearNDInterpolator((np.nan_to_num(self.lon).ravel(),
+                                                   np.nan_to_num(self.lat).ravel()),
                                                   block_x.ravel(),
-                                                  fill_value=np.nan)
+                                                  fill_value=0)
                 # Reusing x-interpolator (deepcopy) with data for y
                 self.spl_y = copy.deepcopy(self.spl_x)
                 self.spl_y.values[:, 0] = block_y.ravel()
@@ -808,9 +808,9 @@ class BaseReader(object):
             y[y < self.ymin] = np.nan
             y[y < self.ymin] = np.nan
 
-            lon = map_coordinates(self.lon, [y, x], order=1,
+            lon = map_coordinates(np.nan_to_num(self.lon), [y, x], order=1,
                                   cval=np.nan, mode='nearest')
-            lat = map_coordinates(self.lat, [y, x], order=1,
+            lat = map_coordinates(np.nan_to_num(self.lat), [y, x], order=1,
                                   cval=np.nan, mode='nearest')
             return (lon, lat)
 
