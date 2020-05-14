@@ -382,6 +382,9 @@ class BaseReader(object):
                 env[variable] = env[variable].filled(np.nan)
             # Mask values outside valid_min, valid_max (self.standard_names)
             if variable in standard_names.keys():
+                if isinstance(env[variable], list):
+                    self.logger.warning('Skipping min-max checking for ensemble data')
+                    continue
                 if (env[variable].min() < standard_names[variable]['valid_min']) or (
                     env[variable].max() > standard_names[variable]['valid_max']):
                     self.logger.warning('Invalid values found for ' + variable +
