@@ -90,6 +90,12 @@ class OpenDrift3DSimulation(OpenDriftSimulation):
                 self.elements.z[in_ocean] + w * self.time_step.total_seconds())
         else:
             self.logger.debug('No vertical advection for elements at surface')
+    def vertical_buoyancy(self):
+        """Move particles vertically according to their buoyancy"""
+        in_ocean = np.where(self.elements.z<0)[0]
+        if len(in_ocean) > 0:
+            self.elements.z[in_ocean] = np.minimum(0,
+                self.elements.z[in_ocean] + self.elements.terminal_velocity[in_ocean] * self.time_step.total_seconds())
 
     def prepare_vertical_mixing(self):
         pass  # To be implemented by subclasses as needed
