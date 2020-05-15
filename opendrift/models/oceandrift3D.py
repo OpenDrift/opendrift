@@ -15,12 +15,11 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
-from opendrift.models.opendrift3D import OpenDrift3DSimulation
+from opendrift.models.opendrift3D import OpenDrift3DSimulation, Lagrangian3DArray
 from opendrift.models.oceandrift import OceanDrift
-from opendrift.elements.passivetracer import PassiveTracer
 
 # We add the property 'wind_drift_factor' to the element class
-PassiveTracer.variables = PassiveTracer.add_variables([
+Lagrangian3DArray.variables = Lagrangian3DArray.add_variables([
                             ('wind_drift_factor', {'dtype': np.float32,
                                                    'unit': '%',
                                                    'default': 0.0})])
@@ -36,7 +35,7 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
 
     """
 
-    ElementType = PassiveTracer
+    ElementType = Lagrangian3DArray
     required_variables = [
         'x_sea_water_velocity',
         'y_sea_water_velocity',
@@ -114,6 +113,8 @@ class OceanDrift3D(OpenDrift3DSimulation, OceanDrift):
         if self.get_config('processes:turbulentmixing') is True:
             self.update_terminal_velocity()
             self.vertical_mixing()
+        else:  # Buoyancy
+            self.vertical_buoyancy()
 
         # Vertical advection
         self.vertical_advection()
