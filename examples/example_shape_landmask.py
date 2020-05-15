@@ -5,6 +5,9 @@ Use a shapefile as landmask
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_shape
@@ -27,7 +30,7 @@ reader_natural = reader_shape.Reader(shpfilename)
 #reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
 #    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
-o.add_reader([reader_nordic, reader_natural])
+o.add_reader([reader_natural, reader_nordic])
 o.set_config('general:use_auto_landmask', False)
 o.set_config('general:coastline_action', 'stranding')
 
@@ -42,19 +45,19 @@ lat = lats.ravel()
 time = reader_nordic.start_time
 o.seed_elements(lon, lat, radius=0, number=30*30, time=time)
 
-o.run(steps=24*2, time_step=3600)
+o.run(steps=48*2, time_step=3600)
 
 #%%
 # Print and plot results
 print(o)
-# o.plot()
-from matplotlib.colors import ListedColormap
-import cartopy.feature as cfeature
-cmap = ListedColormap((cfeature.COLORS['water'],
-                       cfeature.COLORS['land']))
-o.plot(background='land_binary_mask', hide_landmask=True, cmap=cmap)
-#o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'])
-o.animation()
+o.plot(hide_landmask = True, show = False)
 
+#%%
+# Show shapes
+ax = plt.gca()
+ax.add_geometries(reader_natural.polys, ccrs.PlateCarree(), facecolor=cfeature.COLORS['land'], edgecolor='black')
+plt.show()
+
+o.animation()
 #%%
 # .. image:: /gallery/animations/example_shape_landmask_0.gif

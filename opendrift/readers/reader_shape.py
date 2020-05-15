@@ -39,6 +39,7 @@ class Reader(BaseReader):
     variables = ['land_binary_mask']
     proj4 = None
     crs   = None
+    polys = None
     land  = None
     shapes = None
     always_valid = True
@@ -57,18 +58,17 @@ class Reader(BaseReader):
         self.z = None
 
         # reading shapefiles
-        land = []
+        self.polys = []
         for shp in self.shapes:
             self.logger.debug("Reading shapefile: %s" % shp)
             from cartopy import io
             reader = io.shapereader.Reader(shp)
-            land.extend(reader.geometries())
+            self.polys.extend(reader.geometries())
 
-        assert len(land) > 0, "no geometries loaded"
+        assert len(self.polys) > 0, "no geometries loaded"
 
-        self.logger.info("Pre-processing %d geometries" % len(land))
-        self.land = shapely.ops.unary_union(land)
-        del land
+        self.logger.info("Pre-processing %d geometries" % len(self.polys))
+        self.land = shapely.ops.unary_union(self.polys)
 
         self.xmin, self.ymin, self.xmax, self.ymax = self.land.bounds
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
