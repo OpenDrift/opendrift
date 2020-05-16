@@ -13,7 +13,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 # Drift simulation using 10 member ensemble wind data
 # from MEPS model of MET Norway
 
-o = OceanDrift(loglevel=0)
+o = OceanDrift(loglevel=20)
 r = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
 o.add_reader(r)
 
