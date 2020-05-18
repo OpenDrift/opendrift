@@ -26,7 +26,7 @@ import cartopy.io.shapereader as shpreader
 shpfilename = shpreader.natural_earth(resolution='110m',
                                     category='cultural',
                                     name='admin_0_countries')
-reader_natural = reader_shape.Reader(shpfilename)
+reader_natural = reader_shape.Reader.from_shpfiles(shpfilename)
 #reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
 #    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 

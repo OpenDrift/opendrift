@@ -21,14 +21,15 @@ import pyproj
 import shapely
 import shapely.ops
 import cartopy
+import itertools
 
 class Reader(BaseReader):
     """
-    The shape-file reader (.shp) can be used to load generic shape files the 'landmask' variable.
+    The shape reader can be used to load generic shapes as the 'landmask' variable.
 
     Args:
-        :param shapes: shape-file or files (.shp)
-        :type shapes: string or list of strings.
+        :param shapes: shapely geometries.
+        :type shapes: iterable.
 
         :param proj4_str: Proj.4 string of shape file projection coordinates
                           (default: '+proj=lonlat +ellps=WGS84').
@@ -41,30 +42,47 @@ class Reader(BaseReader):
     crs   = None
     polys = None
     land  = None
-    shapes = None
     always_valid = True
+
+    @staticmethod
+    def from_shpfiles(shpfiles, proj4_str = '+proj=lonlat +ellps=WGS84'):
+        """
+        Construct a shape-reader from shape-files (.shp)
+
+        Args:
+            :param shapes: shape-file or files (.shp)
+            :type shapes: string or list of file names as strings.
+
+            :param proj4_str: Proj.4 string of shape file projection coordinates
+                            (default: '+proj=lonlat +ellps=WGS84').
+            :type proj4_str: string.
+        """
+        if isinstance(shpfiles, list):
+            shpfiles = shpfiles
+        else:
+            shpfiles = [ shpfiles ]
+
+        # reading shapefiles
+        shp_iters = []
+        for shp in shpfiles:
+            Reader.logger.debug("Reading shapefile: %s" % shp)
+            from cartopy import io
+            reader = io.shapereader.Reader(shp)
+            shp_iters.append(reader.geometries())
+
+        return Reader(itertools.chain(*shp_iters), proj4_str)
 
     def __init__(self, shapes, proj4_str = '+proj=lonlat +ellps=WGS84'):
         self.proj4 = proj4_str
         self.crs = pyproj.CRS(self.proj4)
-        if isinstance(shapes, list):
-            self.shapes = shapes
-        else:
-            self.shapes = [ shapes ]
 
         super (Reader, self).__init__ ()
 
         # Depth
         self.z = None
 
-        # reading shapefiles
-        self.polys = []
-        for shp in self.shapes:
-            self.logger.debug("Reading shapefile: %s" % shp)
-            from cartopy import io
-            reader = io.shapereader.Reader(shp)
-            self.polys.extend(reader.geometries())
-
+        # loading and pre-processing shapes
+        self.polys = list(shapes) # reads geometries if Shape Readers
         assert len(self.polys) > 0, "no geometries loaded"
 
         self.logger.info("Pre-processing %d geometries" % len(self.polys))
