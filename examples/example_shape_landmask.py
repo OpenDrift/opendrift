@@ -50,11 +50,10 @@ o.run(steps=48*2, time_step=3600)
 #%%
 # Print and plot results
 print(o)
-o.plot(hide_landmask = True, show = False)
+ax, _ = o.plot(hide_landmask = True, show = False)
 
 #%%
 # Show shapes
-ax = plt.gca()
 ax.add_geometries(reader_natural.polys, ccrs.PlateCarree(), facecolor=cfeature.COLORS['land'], edgecolor='black')
 plt.show()
 
