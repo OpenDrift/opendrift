@@ -1,7 +1,7 @@
 Installing OpenDrift
 =============================================
 
-OpenDrift is usually installed as a source package or as a conda package. If you expect to make changes to
+OpenDrift is usually installed as a source package or as a conda package.
 
 .. note::
    If you expect to make changes to the the OpenDrift code (e.g. models) it is
