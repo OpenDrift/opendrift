@@ -8,7 +8,7 @@ from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil3D import OpenOil3D
 
-o = OpenOil3D(loglevel=0)  # Set loglevel to 0 for debug information
+o = OpenOil3D(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
