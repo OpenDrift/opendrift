@@ -2545,7 +2545,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
             from matplotlib import colors
             cmap = colors.ListedColormap(['white', 'gray'])
-            ax.imshow(img, extent=[lonmin, lonmax, latmin, latmax],
+            ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
                       transform=ccrs.PlateCarree(), cmap=cmap)
 
         import shapely
