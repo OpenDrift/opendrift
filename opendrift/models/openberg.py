@@ -55,7 +55,6 @@ from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.elements import LagrangianArray
 from opendrift.readers.basereader import BaseReader
 
-
 # Defining the iceberg element properties
 class IcebergObj(LagrangianArray):
     """Extending LagrangianArray with variables relevant for iceberg objects.
@@ -72,7 +71,7 @@ class IcebergObj(LagrangianArray):
                        	        	'default': 90.5}),
         ('keel_depth', {'dtype': np.float32,					# Iceberg keel depth
         							'unit': 'm',
-                       	        	'default': 60})])
+                       	        	'default': 60.})])
 
 class OpenBerg(OpenDriftSimulation):
     """The Deterministic iceberg model in the OpenDrift framework.
@@ -97,9 +96,15 @@ class OpenBerg(OpenDriftSimulation):
     status_colors = {'initial': 'green', 'active': 'red',
                      'missing_data': 'gray', 'stranded': 'blue'}
 
+    configspec = '''
+        [seed]
+            wind_drift_factor = float(min=0, max=1, default=0.018)
+            water_line_length = float(min=0.1, max=99999, default=90.5)
+            keel_depth = float(min=.1, max=10000, default=60.0)
+        '''
+
     # Configuration
     def __init__(self, d=None, label=None, *args, **kwargs):
-
         self.name = 'OpenBerg'
         self.label=label
 
@@ -110,7 +115,18 @@ class OpenBerg(OpenDriftSimulation):
 
         # Calling general constructor of parent class
         super(OpenBerg, self).__init__(*args, **kwargs)
+        self._add_configstring(self.configspec)
 
+    def seed_elements(self, *args, **kwargs):
+        num = kwargs['number']
+        for var in ['wind_drift_factor', 'water_line_length', 'keel_depth']:
+            if var not in kwargs:
+                kwargs[var] = self.get_config('seed:' + var)
+            kwargs[var] = np.atleast_1d(kwargs[var])
+            if len(kwargs[var] == 1):
+                kwargs[var] = kwargs[var]*np.ones(num)
+
+        super(OpenBerg, self).seed_elements(*args, **kwargs)
 
     def update(self):
         """Update positions and properties of icebergs."""
@@ -249,14 +265,12 @@ class OpenBerg(OpenDriftSimulation):
     	area_list=[]
 
     	for i in range(0,d):
-
     		A = self.lin_func(a_param[i],b_param[i],water_line_length)
     		area_list.append(A)
 
     	A_list = np.array(area_list)
 
     	# Normalize array such that it sums to 1:
-
     	weigthing_array = np.array(area_list)/sum(np.array(area_list))
 
     	return weigthing_array

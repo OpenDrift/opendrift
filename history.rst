@@ -4,7 +4,8 @@ History
 Next release
 ------------
 
-* ...
+* OpenBerg module available from the GUI.
+* A generic shape reader for landmasks (use polygons directly or convenience method using shp files).
 
 2020-05-14 / Release v1.2.1
 ---------------------------
