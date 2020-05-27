@@ -118,13 +118,9 @@ class OpenBerg(OpenDriftSimulation):
         self._add_configstring(self.configspec)
 
     def seed_elements(self, *args, **kwargs):
-        num = kwargs['number']
         for var in ['wind_drift_factor', 'water_line_length', 'keel_depth']:
             if var not in kwargs:
                 kwargs[var] = self.get_config('seed:' + var)
-            kwargs[var] = np.atleast_1d(kwargs[var])
-            if len(kwargs[var] == 1):
-                kwargs[var] = kwargs[var]*np.ones(num)
 
         super(OpenBerg, self).seed_elements(*args, **kwargs)
 
