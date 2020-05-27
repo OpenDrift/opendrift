@@ -143,6 +143,7 @@ class OpenOil(OpenDriftSimulation):
                           'sea_surface_wave_stokes_drift_x_velocity',
                           'sea_surface_wave_stokes_drift_y_velocity',
                           'sea_ice_area_fraction',
+                          'sea_ice_x_velocity', 'sea_ice_y_velocity',
                           'sea_water_temperature',
                           'sea_floor_depth_below_sea_level',
                           'x_wind', 'y_wind', 'land_binary_mask']
@@ -154,6 +155,8 @@ class OpenOil(OpenDriftSimulation):
                        'sea_surface_wave_stokes_drift_y_velocity': 0,
                        'sea_floor_depth_below_sea_level': 0,
                        'sea_ice_area_fraction': 0,
+                       'sea_ice_x_velocity': 0,
+                       'sea_ice_y_velocity': 0,
                        'sea_water_temperature': 12,
                        'x_wind': 0, 'y_wind': 0}
 
@@ -677,20 +680,48 @@ class OpenOil(OpenDriftSimulation):
             ((6.0 / drop_max)*(Y_max/(1.0 - Y_max)))] = Y_max
 
     def advect_oil(self):
+
+        # Calculating various drift factors according to ice concentration
+        if hasattr(self.environment, 'sea_ice_area_fraction'):
+            A = self.environment.sea_ice_area_fraction
+            # According to 
+            # Nordam T, Beegle-Krause CJ, Skancke J, Nepstad R, Reed M.
+            # Improving oil spill trajectory modelling in the Arctic.
+            # Mar Pollut Bull. 2019;140:65-74.
+            # doi:10.1016/j.marpolbul.2019.01.019
+            k_ice = (A - 0.3) / (0.8 - 0.3)
+            k_ice[A<0.3] = 0
+            k_ice[A>0.8] = 1
+            print(k_ice, 'K_ice')
+            if k_ice.max() > 0.3:
+                self.logger.info('Ice concentration above 30%, using Nordam scheme for advection in ice')
+            # Using decreased Stokes drift according to
+            # Arneborg, L. (2017). Oil drift modellling in pack ice
+            # - Sensitivity of oil-in-ice parameters.
+            # Ocean Engineering 144 (2017) 340-350
+            factor_stokes = (0.7 - A) / 0.7
+            factor_stokes[A>0.7] = 0
+        else:
+            k_ice = 0
+            factor_stokes = 1
+
         # Simply move particles with ambient current
-        self.advect_ocean_current()
+        self.advect_ocean_current(factor=1-k_ice)
 
         # Wind drag for elements at ocean surface
-        self.advect_wind()
+        self.advect_wind(factor=1-k_ice)
 
         # Stokes drift
-        self.stokes_drift()
+        self.stokes_drift(factor_stokes)
 
-        # Deactivate elements hitting sea ice
-        if hasattr(self.environment, 'sea_ice_area_fraction'):
-            self.deactivate_elements(
-                self.environment.sea_ice_area_fraction > 0.6,
-                reason='oil-in-ice')
+        # Advect with ice
+        self.advect_with_sea_ice(factor=k_ice)
+
+        ## Deactivate elements hitting sea ice
+        #if hasattr(self.environment, 'sea_ice_area_fraction'):
+        #    self.deactivate_elements(
+        #        self.environment.sea_ice_area_fraction > 0.6,
+        #        reason='oil-in-ice')
 
     def update(self):
         """Update positions and properties of oil particles."""
