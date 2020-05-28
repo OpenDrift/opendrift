@@ -15,9 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 from collections import OrderedDict
-
 import numpy as np
-
 
 class LagrangianArray(object):
     """A generic array-like class for Lagrangian particle tracking.
@@ -42,12 +40,12 @@ class LagrangianArray(object):
             the object after initialisation. These attributes will be
             numpy ndarrays of same length, or scalars. The core variables
             are:
-        ID: an integer identifying each particle.
-        status: 0 for active particles and a positive integer when deactivated
-        lon: longitude (np.float32)
-        lat: latitude (np.float32)
-        z: vertical position of the particle in m,
-            positive upwards (above sea surface)
+
+                - ID: an integer identifying each particle.
+                - status: 0 for active particles and a positive integer when deactivated
+                - lon: longitude (np.float32)
+                - lat: latitude (np.float32)
+                - z: vertical position of the particle in m, positive upwards (above sea surface)
     """
 
     variables = OrderedDict([
