@@ -801,7 +801,7 @@ class OpenOil(OpenDriftSimulation):
         return oil_budget
 
     def plot_oil_budget(self, filename=None, ax=None, show_density_viscosity=True,
-                        show_wind_and_waves=True):
+                        show_wind_and_current=True):
 
         if self.time_step.days < 0:  # Backwards simulation
             fig = plt.figure(figsize=(10, 6.))
@@ -832,7 +832,7 @@ class OpenOil(OpenDriftSimulation):
             nrows = 1
             if show_density_viscosity is True:
                 nrows = nrows + 1
-            if show_wind_and_waves is True:
+            if show_wind_and_current is True:
                 nrows = nrows + 1
             fig, axs = plt.subplots(nrows=nrows, ncols=1, figsize=(10, 6.+(nrows-1)*3))  # Suitable aspect ratio
             #ax1 = fig.add_subplot(nrows=nrows, 1, 1)
@@ -842,7 +842,7 @@ class OpenOil(OpenDriftSimulation):
                 ax1 = axs[0]
                 if show_density_viscosity is True:
                     self.plot_oil_density_and_viscosity(ax=axs[1], show=False)
-                if show_wind_and_waves is True:
+                if show_wind_and_current is True:
                     self.plot_environment(ax=axs[nrows-1], show=False)
         else:
             ax1 = ax
