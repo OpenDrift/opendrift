@@ -17,7 +17,8 @@ from .version import __version__
 _available_models = \
     ['leeway.Leeway',
      'openoil.OpenOil',
-     'shipdrift.ShipDrift']
+     'shipdrift.ShipDrift',
+     'openberg.OpenBerg']
 
 def get_model_names():
     return [m.split('.')[-1] for m in _available_models]

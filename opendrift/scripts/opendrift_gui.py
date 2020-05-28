@@ -17,6 +17,7 @@ import opendrift
 from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.leeway import Leeway
 from opendrift.models.shipdrift import ShipDrift
+from opendrift.models.openberg import OpenBerg
 
 
 class TextRedirector(object):
@@ -368,6 +369,8 @@ class OpenDriftGUI(tk.Tk):
             self.o = Leeway()
         elif model == 'ShipDrift':
             self.o = ShipDrift()
+        elif model == 'OpenBerg':
+            self.o = OpenBerg()
 
         for con in self.config.winfo_children():
             con.destroy()
@@ -380,7 +383,7 @@ class OpenDriftGUI(tk.Tk):
         except:
             pass
         try:
-            # Removeing depth input boxes
+            # Removing depth input boxes
             self.depthlabel.destroy()
             self.depth.destroy()
             self.seafloor.destroy()
