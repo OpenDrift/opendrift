@@ -281,14 +281,21 @@ def import_file(self, filename, times=None):
                                 (conf_key, value))
 
     # Import time steps from metadata
+    def timedelta_from_string(timestring):
+        if 'day' in timestring:
+            days = int(timestring.split('day')[0])
+            hs = timestring.split(' ')[-1]
+            th = datetime.strptime(hs, '%H:%M:%S')
+            return timedelta(days=days, hours=th.hour, minutes=th.minute, seconds=th.second)
+        else:
+            t = datetime.strptime(timestring, '%H:%M:%S')
+            return timedelta(
+                hours=t.hour, minutes=t.minute, seconds=t.second)
     try:
-        t = datetime.strptime(infile.time_step_calculation, '%H:%M:%S')
-        self.time_step = timedelta(
-            hours=t.hour, minutes=t.minute, seconds=t.second)
-        t = datetime.strptime(infile.time_step_output, '%H:%M:%S')
-        self.time_step_output = timedelta(
-            hours=t.hour, minutes=t.minute, seconds=t.second)
-    except:
+        self.time_step = timedelta_from_string(infile.time_step_calculation)
+        self.time_step_output = timedelta_from_string(infile.time_step_output)
+    except Exception as e:
+        logging.warning(e)
         logging.warning('Could not parse time_steps from netCDF file')
 
     infile.close()
