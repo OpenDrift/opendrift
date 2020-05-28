@@ -95,6 +95,10 @@ class BaseReader(object):
         'y_wind_10m': 'y_wind',
         'sea_water_x_velocity': 'x_sea_water_velocity',
         'sea_water_y_velocity': 'y_sea_water_velocity',
+        'x_sea_ice_velocity': 'sea_ice_x_velocity',
+        'y_sea_ice_velocity': 'sea_ice_y_velocity',
+        'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
+        'barotropic_sea_water_y_velocity': 'sea_ice_y_velocity',
         'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity'
         }
 

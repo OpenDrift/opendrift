@@ -274,7 +274,7 @@ class PhysicsMethods(object):
         Dens0 = SIG + DR350 + 1000.
         return Dens0
 
-    def advect_ocean_current(self):
+    def advect_ocean_current(self, factor=1):
         # Runge-Kutta scheme
         if self.get_config('drift:scheme')[0:11] == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity
@@ -329,25 +329,42 @@ class PhysicsMethods(object):
                 u4 = (x_vel + 2*x_vel2 + 2* x_vel3 + x_vel4)/6.0
                 v4 = (y_vel + 2*y_vel2 + 2* y_vel3 + y_vel4)/6.0
                 # Move particles using runge-kutta4 velocity
-                self.update_positions(u4, v4)
+                self.update_positions(u4*factor, v4*factor)
 
             else:
                 # Move particles using runge-kutta velocity
-                self.update_positions(mid_env['x_sea_water_velocity'],
-                                  mid_env['y_sea_water_velocity'])
+                self.update_positions(
+                        factor*mid_env['x_sea_water_velocity'],
+                        factor*mid_env['y_sea_water_velocity'])
         elif self.get_config('drift:scheme') == 'euler':
             # Euler scheme
-            self.update_positions(self.environment.x_sea_water_velocity,
-                                  self.environment.y_sea_water_velocity)
+            self.update_positions(
+                    factor*self.environment.x_sea_water_velocity,
+                    factor*self.environment.y_sea_water_velocity)
         else:
             raise ValueError('Drift scheme not recognised: ' +
                              self.get_config('drift:scheme'))
 
-    def advect_with_sea_ice(self):
-            self.update_positions(self.environment.sea_ice_x_velocity,
-                                  self.environment.sea_ice_y_velocity)
+    def advect_with_sea_ice(self, factor=1):
+        if hasattr(self.environment, 'sea_ice_x_velocity'):
+            self.update_positions(
+                    factor*self.environment.sea_ice_x_velocity,
+                    factor*self.environment.sea_ice_y_velocity)
+        else:
+            if not hasattr(self.environment, 'x_sea_water_velocity'):
+                self.logger.info('No sea ice velocity available')
+                return
+            # Sea ice velocity, rule-of-thumb from Nordam,
+            # doi:10.1016/j.marpolbul.2019.01.019
+            ice_velocity_x = self.environment.x_sea_water_velocity + \
+                    0.015*self.environment.x_wind
+            ice_velocity_y = self.environment.y_sea_water_velocity + \
+                    0.015*self.environment.y_wind
+            self.update_positions(
+                    factor*ice_velocity_x, 
+                    factor*ice_velocity_y)
 
-    def advect_wind(self):
+    def advect_wind(self, factor=1):
         # Elements at/near ocean surface (z>wind_drift_depth) are advected with given percentage
         # of wind speed. NB: Only basic Euler scheme is implemented
 
@@ -423,9 +440,9 @@ class PhysicsMethods(object):
                              wind_drift_depth[0],
                              speed.min(), speed.max()))
 
-        self.update_positions(x_wind*wdf, y_wind*wdf)
+        self.update_positions(x_wind*wdf*factor, y_wind*wdf*factor)
 
-    def stokes_drift(self):
+    def stokes_drift(self, factor=1):
 
         if self.get_config('drift:stokes_drift') is False:
             self.logger.debug('Stokes drift not activated')
@@ -444,7 +461,7 @@ class PhysicsMethods(object):
             self.significant_wave_height(), self.wave_period(),
             self.elements.z)
 
-        self.update_positions(stokes_u, stokes_v)
+        self.update_positions(stokes_u*factor, stokes_v*factor)
         if s.min() == s.max():
             self.logger.debug('Advecting with Stokes drift (%s m/s)' % s.min())
         else:
