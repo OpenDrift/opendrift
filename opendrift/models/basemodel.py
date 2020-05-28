@@ -1,5 +1,3 @@
-"""
-"""
 # This file is part of OpenDrift.
 #
 # OpenDrift is free software: you can redistribute it and/or modify
@@ -77,12 +75,15 @@ class OpenDriftSimulation(PhysicsMethods):
 
     Attributes:
         ElementType: the type (class) of particles to be used by this model
+
         elements: object of the class ElementType, storing the specific
-            particle properties (ndarrays and scalars) of all active particles
-            as named attributes. Elements are added by seeding-functions
-            (presently only one implemented: seed_elements).
+        particle properties (ndarrays and scalars) of all active particles
+        as named attributes. Elements are added by seeding-functions
+        (presently only one implemented: seed_elements).
+
         elements_deactivated: ElementType object containing particles which
             have been deactivated (and removed from 'elements')
+
         elements_scheduled: ElementType object containing particles which
             have been scheduled, but not yet activated
         required_variables: list of strings of CF standard_names which is
@@ -615,7 +616,7 @@ class OpenDriftSimulation(PhysicsMethods):
         Args:
             readers: one or more (list) Reader objects.
             variables: optional, list of strings of standard_name of
-                variables to be provided by this/these reader(s).
+            variables to be provided by this/these reader(s).
         """
 
         # Convert any strings to lists, for looping
@@ -724,7 +725,7 @@ class OpenDriftSimulation(PhysicsMethods):
         Returns:
             variable_groups: list of lists of (environment) variables.
             reader_groups: list of list of reader names, corresponding to
-                each of the variable_groups.
+            each of the variable_groups.
         """
         if variables is None:
             variables = self.required_variables
@@ -845,8 +846,8 @@ class OpenDriftSimulation(PhysicsMethods):
             Buffer (raw data blocks) for each reader stored for performance:
                 [readers].var_block_before (last before requested time)
                 [readers].var_block_after (first after requested time)
-                    - lists of one ReaderBlock per variable group:
-                        - time, x, y, [vars]
+                - lists of one ReaderBlock per variable group: time, x, y, [vars]
+
         Returns:
             environment: recarray with variables as named attributes,
                          interpolated to requested positions/time.
@@ -1358,25 +1359,30 @@ class OpenDriftSimulation(PhysicsMethods):
             lon: scalar or array, central longitude(s).
             lat: scalar or array, central latitude(s).
             radius: scalar or array, radius in meters around each lon-lat
-                pair, within which particles will be randomly seeded.
+            pair, within which particles will be randomly seeded.
+
             number: integer, total number of particles to be seeded
-                Elements are spread equally among the given lon/lat points.
-                Default is one particle for each lon-lat pair.
+            Elements are spread equally among the given lon/lat points.
+            Default is one particle for each lon-lat pair.
+
             time: datenum, the time at which particles are seeded/released.
-                If time is an array with two elements, elements are seeded
-                continously from start/first to end/last time.
+            If time is an array with two elements, elements are seeded
+            continously from start/first to end/last time.
+
             cone: boolean or integer. If True, lon and lat must be two element
-                arrays, interpreted as the start and end position of a cone
-                within which elements will be seeded. Radius may also be a
-                two element array specifying the radius around the points.
+            arrays, interpreted as the start and end position of a cone
+            within which elements will be seeded. Radius may also be a
+            two element array specifying the radius around the points.
+
             radius_type: string
-                If 'gaussian' (default), the radius is the standard deviation in
-                x-y-directions. If 'uniform', elements are spread evenly and
-                always inside a circle with the given radius.
+            If 'gaussian' (default), the radius is the standard deviation in
+            x-y-directions. If 'uniform', elements are spread evenly and
+            always inside a circle with the given radius.
+
             kwargs: keyword arguments containing properties/attributes and
-                values corresponding to the actual particle type (ElementType).
-                These are forwarded to the ElementType class. All properties
-                for which there are no default value must be specified.
+            values corresponding to the actual particle type (ElementType).
+            These are forwarded to the ElementType class. All properties
+            for which there are no default value must be specified.
         """
 
         if time is None:
@@ -1578,12 +1584,15 @@ class OpenDriftSimulation(PhysicsMethods):
 
         Arguments:
             lon: array of longitudes
+
             lat: array of latitudes
+
             number: int, number of elements to be seeded
+
             kwargs: keyword arguments containing properties/attributes and
-                values corresponding to the actual particle type (ElementType).
-                These are forwarded to method seed_elements(). All properties
-                for which there are no default value must be specified.
+            values corresponding to the actual particle type (ElementType).
+            These are forwarded to method seed_elements(). All properties
+            for which there are no default value must be specified.
 
         """
         if number == 0:
@@ -1794,7 +1803,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
 
     def seed_from_ladim(self, ladimfile, roms):
-        """Seed elements from ladim *.rls text file: [time, x, y, z, name]"""
+        """Seed elements from ladim \*.rls text file: [time, x, y, z, name]"""
 
         data = np.loadtxt(ladimfile,
             dtype={'names': ('time', 'x', 'y', 'z'),
@@ -1902,7 +1911,7 @@ class OpenDriftSimulation(PhysicsMethods):
             The length of the simulation is specified by defining one
                 (and only one) of the following parameters:
                 - steps: integer, maximum number of steps. End of simulation
-                    will be self.start_time + steps*self.time_step
+                will be self.start_time + steps*self.time_step
                 - duration: timedelta defining the length of the simulation
                 - end_time: datetime object defining the end of the simulation
             export_variables: list of variables and parameter names to be
@@ -3025,15 +3034,21 @@ class OpenDriftSimulation(PhysicsMethods):
             background: string, name of variable (standard_name) which will
                 be plotted as background of trajectories, provided that it
                 can be read with one of the available readers.
+
             buffer: float; spatial buffer of plot in degrees of
                 longitude/latitude around particle collection.
+
             background: name of variable to be plotted as background field.
-                        Use two element list for vector fields, e.g.
-                        ['x_wind', 'y_wind']
+            Use two element list for vector fields, e.g. ['x_wind', 'y_wind']
+
             vmin, vmax: minimum and maximum values for colors of background.
+
             linecolor: name of variable to be used for coloring trajectories.
+
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
+
             lscale (string): resolution of land feature ('c', 'l', 'i', 'h', 'f', 'auto'). default is 'auto'.
+
             fast (bool): use some optimizations to speed up plotting at the cost of accuracy
 
             :param hide_landmask: do not plot landmask (default False). See :ref:`model_landmask_only_model` for example usage.
