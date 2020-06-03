@@ -185,7 +185,7 @@ class BaseReader(object):
             self.start_time = None
         if not hasattr(self, 'end_time'):
             self.end_time = None
-        if self.start_time is not None:# and len(self.times) > 1:
+        if self.start_time is not None and self.time_step is not None:# and len(self.times) > 1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
                 self.time_step.total_seconds()) + 1

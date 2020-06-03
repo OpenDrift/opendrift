@@ -911,6 +911,20 @@ class OpenOil(OpenDriftSimulation):
         else:
             plt.show()
 
+    def cumulative_oil_entrainment_fraction(self):
+        '''Returns the fraction of oil elements which has been entrained vs time'''
+        z = self.get_property('z')[0].copy()
+        z = np.ma.masked_where(z==0, z)
+        me = np.ma.notmasked_edges(z, axis=0)
+        maskfirst = me[0][0]
+        maskrow = me[0][1]
+        z = z*0
+        for mf, mr in zip(maskfirst, maskrow):
+            z[mf:z.shape[0], mr] = 1  # has been entrained
+        totentrained = np.sum(z, 1)
+        cumulative_fraction_entrained = np.sum(z, 1)/z.shape[1]
+        return cumulative_fraction_entrained
+
     def plot_oil_density_and_viscosity(self, ax=None, show=True):
         if ax is None:
             fig, ax = plt.subplots()
