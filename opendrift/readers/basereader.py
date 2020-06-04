@@ -745,7 +745,7 @@ class BaseReader(object):
     def rotate_vectors(self, reader_x, reader_y,
                        u_component, v_component,
                        proj_from, proj_to):
-        """Rotate vectors from one srs to another."""
+        """Rotate vectors from one srs to another.""" #SRS = spatial reference system
 
         if type(proj_from) is str:
             proj_from = pyproj.Proj(proj_from)
