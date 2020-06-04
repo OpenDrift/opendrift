@@ -1,3 +1,8 @@
+#Reader 3D to ECOM model at SBB
+#Based on ROMS_native_reader
+#Developed by Arian Dialectaquiz Santos and Danilo Silva from LHiCo - IO -USP (Brazil)
+
+
 from bisect import bisect_left, bisect_right
 from datetime import datetime
 
@@ -216,6 +221,7 @@ class Reader(BaseReader):
             if var_name in self.ECOM_variable_mapping.keys():
                 var = self.Dataset.variables[var_name]
                 self.variables.append(self.ECOM_variable_mapping[var_name])
+
         # Run constructor of parent Reader class
 
 
@@ -244,8 +250,6 @@ class Reader(BaseReader):
 
         variables = {}   
 
-
-
 # Find horizontal indices corresponding to requested x and y
         if hasattr(self, 'clipped'):
             clipped = self.clipped
@@ -263,7 +267,6 @@ class Reader(BaseReader):
             idx = (np.abs(array - value)).argmin()
 
             return idx
-
 
 # define an empty list as indz
         if hasattr(self, 'z') and (z is not None):   
@@ -382,30 +385,27 @@ class Reader(BaseReader):
             else:
                 rad = self.angle_of_rotation_from_east_to_x[indy, indx]
 
-            print ("angle_of_rotation_from_east_to_x ==", rad)
+           # print ("angle_of_rotation_from_east_to_x ==", rad)
 
             if 'x_sea_water_velocity' in variables.keys():
        
-                variables['x_sea_water_velocity'], \
-                    variables['y_sea_water_velocity'] = rotate_vectors_angle(
-                        variables['x_sea_water_velocity'],
-                        variables['y_sea_water_velocity'], rad)
-
+                
                 print ("u ==", variables['x_sea_water_velocity'])
                 print ("v ==", variables['y_sea_water_velocity'])
                 print ("w ==", variables['upward_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
-                variables['x_wind'], \
-                    variables['y_wind'] = rotate_vectors_angle(
-                        variables['x_wind'],
-                        variables['y_wind'], rad)
+                
+                variables['x_wind'] = np.nan_to_num(variables['x_wind'])
+                variables['y_wind'] = np.nan_to_num(variables['y_wind'])
+
+
 
                 print ("wu ==", variables['x_wind'])
                 print ("wv ==", variables['y_wind'])
 
 
-        # Masking NaN
+        # Masking NaN of the others variables, considering u and v always requested
         for var in requested_variables:
           
             #variables[var] = np.ma.masked_invalid(variables[var])
@@ -414,6 +414,7 @@ class Reader(BaseReader):
 
         return variables
 
+#This follow function is not to be used at the SBB grid.
 def rotate_vectors_angle(x_sea_water_velocity, y_sea_water_velocity, radians):
     x_sea_water_velocity2 = x_sea_water_velocity*np.cos(radians) - y_sea_water_velocity*np.sin(radians)
     y_sea_water_velocity2 = x_sea_water_velocity*np.sin(radians) + y_sea_water_velocity*np.cos(radians)
