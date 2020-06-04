@@ -1,3 +1,9 @@
+#Reader horizontal to ECOM model at SBB
+#Based on ROMS_native_reader
+#Developed by Arian Dialectaquiz Santos and Danilo Silva from LHiCo - IO -USP (Brazil)
+
+
+
 from bisect import bisect_left, bisect_right
 from datetime import datetime
 
@@ -501,31 +507,26 @@ class Reader(BaseReader):
 
             if 'x_sea_water_velocity' in variables.keys():
        
-                variables['x_sea_water_velocity'], \
-                    variables['y_sea_water_velocity'] = rotate_vectors_angle(
-                        variables['x_sea_water_velocity'],
-                        variables['y_sea_water_velocity'], rad)
-
-            print ("u ==", variables['x_sea_water_velocity'])
-            print ("v ==", variables['y_sea_water_velocity'])
+              
+                print ("u ==", variables['x_sea_water_velocity'])
+                print ("v ==", variables['y_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
-                variables['x_wind'], \
-                    variables['y_wind'] = rotate_vectors_angle(
-                        variables['x_wind'],
-                        variables['y_wind'], rad)
-
-            print ("wu ==", variables['x_wind'])
-            print ("wv ==", variables['y_wind'])
+            
+                print ("wu ==", variables['x_wind'])
+                print ("wv ==", variables['y_wind'])
 
 
-        # Masking NaN
+        # Masking NaN of the others variables, considering u and v always requested
         for var in requested_variables:
           
-            variables[var] = np.ma.masked_invalid(variables[var])
+            #variables[var] = np.ma.masked_invalid(variables[var])
+            variables[var] = np.nan_to_num(variables[var])
         self.logger.debug('Time for ECOM reader: ' + str(datetime.now()-start_time))
 
         return variables
+        
+#This follow function is not to be used at the SBB grid.
 
 def rotate_vectors_angle(x_sea_water_velocity, y_sea_water_velocity, radians):
     x_sea_water_velocity2 = x_sea_water_velocity*np.cos(radians) - y_sea_water_velocity*np.sin(radians)
