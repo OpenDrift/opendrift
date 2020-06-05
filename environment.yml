@@ -10,7 +10,6 @@ dependencies:
   - scipy>=1.2.0
   - netcdf4
   - ffmpeg
-  - pillow
   - pyproj>=2.3
   - configobj
   - libgdal>=2.3.3

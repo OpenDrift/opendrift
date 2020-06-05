@@ -3,7 +3,6 @@ scipy>=1.2.0
 matplotlib
 netCDF4>=1.4.3
 configobj
-pillow
 pyproj>=2.2
 cartopy
 rasterio

@@ -20,7 +20,6 @@ setuptools.setup(
         'matplotlib',
         'netCDF4',
         'configobj',
-        'pillow',
         'pyproj',
         'cartopy',
         'rasterio',
