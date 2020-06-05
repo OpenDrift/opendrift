@@ -14,18 +14,17 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-from future.utils import iteritems
 from opendrift.readers.basereader import BaseReader
 import numpy as np
 
 
 class Reader(BaseReader):
     '''A very simple reader that always give the same value for its variables'''
-    
+
     def __init__(self, parameter_value_map):
         '''init with a map {'variable_name': value, ...}'''
 
-        for key, var in iteritems(parameter_value_map):
+        for key, var in parameter_value_map.items():
             parameter_value_map[key] = np.atleast_1d(var)
         self._parameter_value_map = parameter_value_map
         self.variables = list(parameter_value_map.keys())
@@ -42,14 +41,14 @@ class Reader(BaseReader):
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
-        
+
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, z=None, block=False):
-        
+
         variables = {'time': time, 'x': x, 'y': y, 'z': z}
         #variables.update(self._parameter_value_map)
         for var in requestedVariables:
             variables[var] = self._parameter_value_map[var]*np.ones(x.shape)
-       
+
         return variables
-        
+

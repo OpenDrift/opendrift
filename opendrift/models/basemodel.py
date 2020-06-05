@@ -26,7 +26,6 @@ from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
 import netCDF4
-from future.utils import iteritems
 
 import numpy as np
 import scipy
@@ -590,7 +589,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         outStr += '--------------------\n'
         outStr += 'Performance:\n'
-        for category, time in iteritems(self.timing):
+        for category, time in self.timing.items():
             timestr = str(time)[0:str(time).find('.') + 2]
             for i, c in enumerate(timestr):
                 if c in '123456789.':
@@ -1870,7 +1869,7 @@ class OpenDriftSimulation(PhysicsMethods):
                           (np.sum(indices)))
         if hasattr(self, 'environment_profiles') and \
                 self.environment_profiles is not None:
-            for varname, profiles in iteritems(self.environment_profiles):
+            for varname, profiles in self.environment_profiles.items():
                 self.logger.debug('remove items from profile for '+varname)
                 if varname != 'z':
                     self.environment_profiles[varname] = \

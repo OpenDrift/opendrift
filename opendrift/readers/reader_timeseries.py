@@ -14,14 +14,12 @@
 #
 # Copyright 2020, Knut-Frode Dagestad, MET Norway
 
-from future.utils import iteritems
 from opendrift.readers.basereader import BaseReader
 import numpy as np
 
-
 class Reader(BaseReader):
     '''Reader providing the neares value in time from a given time series.'''
-    
+
     def __init__(self, parameter_value_map):
         '''init with a map {'time':, time array, 'variable_name': value, ...}'''
 
@@ -51,17 +49,17 @@ class Reader(BaseReader):
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
-        
+
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, z=None, block=False):
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
-        
+
         variables = {'time': time, 'x': x, 'y': y, 'z': z}
         #variables.update(self._parameter_value_map)
         for var in requestedVariables:
             variables[var] = self._parameter_value_map[var][indxTime]*np.ones(x.shape)
-       
+
         return variables
-        
+
