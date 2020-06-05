@@ -21,7 +21,6 @@ setuptools.setup(
         'netCDF4',
         'future',
         'configobj',
-        'pillow',
         'pyproj',
         'cartopy',
         'rasterio',

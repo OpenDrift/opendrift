@@ -4,7 +4,6 @@ matplotlib
 netCDF4>=1.4.3
 future
 configobj
-pillow
 pyproj>=2.2
 cartopy
 rasterio
