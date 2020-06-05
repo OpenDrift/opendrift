@@ -9,7 +9,6 @@ dependencies:
   - numpy>=1.15.4
   - scipy>=1.2.0
   - netcdf4
-  - future
   - ffmpeg
   - pillow
   - pyproj>=2.3

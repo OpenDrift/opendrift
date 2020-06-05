@@ -15,7 +15,6 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 # Copyright 2020, Gaute Hope, MET Norway
 
-from future.utils import iteritems
 import sys
 import logging
 import copy
@@ -1150,7 +1149,7 @@ class BaseReader(object):
         '''Report the time spent on various tasks'''
         outStr = ''
         if hasattr(self, 'timing'):
-            for cat, time in iteritems(self.timing):
+            for cat, time in self.timing.items():
                 time = str(time)[0:str(time).find('.') + 2]
                 outStr += '%10s  %s\n' % (time, cat)
         return outStr

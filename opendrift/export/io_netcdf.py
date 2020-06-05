@@ -1,4 +1,3 @@
-from future.utils import iteritems
 import sys
 from datetime import datetime, timedelta
 import string
@@ -60,7 +59,7 @@ def init(self, filename):
 
     # Write additionaly metadata attributes, if given
     if hasattr(self, 'metadata_dict'):
-        for key, value in iteritems(self.metadata_dict):
+        for key, value in self.metadata_dict.items():
             self.outfile.setncattr(key, str(value))
 
     # Add all element properties as variables
@@ -157,14 +156,14 @@ def close(self):
             mask[self.elements_scheduled.ID-1] = False
         with Dataset(self.outfile_name) as src, \
                 Dataset(self.outfile_name + '_tmp', 'w') as dst:
-            for name, dimension in iteritems(src.dimensions):
+            for name, dimension in src.dimensions.items():
                 if name=='trajectory':
                     # Truncate dimension length to  number actually seeded
                     dst.createDimension(name, self.num_elements_activated())
                 else:
                     dst.createDimension(name, len(dimension))
 
-            for name, variable in iteritems(src.variables):
+            for name, variable in src.variables.items():
                 dstVar = dst.createVariable(name, variable.datatype,
                                              variable.dimensions)
                 srcVar = src.variables[name]
