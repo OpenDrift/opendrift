@@ -44,7 +44,7 @@ script:
     fi
 
   - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda list"
-  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=10 --benchmark-disable"
+  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=10 --benchmark-disable -v -s --log-cli-level=info"
 
 after_success:
   - docker cp "opendrift_${TRAVIS_COMMIT}":/code/.coverage .
