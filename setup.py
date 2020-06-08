@@ -8,7 +8,7 @@ exec(open(os.path.join(here, 'opendrift/version.py')).read())
 
 setuptools.setup(
     name        = 'OpenDrift',
-    description = 'OpenDrift - framework for ocean trajectory modeling',
+    description = 'OpenDrift - a framework for ocean trajectory modeling',
     author      = 'Knut-Frode Dagestad / MET Norway',
     url         = 'https://github.com/OpenDrift/opendrift',
     download_url = 'https://github.com/OpenDrift/opendrift',
@@ -22,12 +22,11 @@ setuptools.setup(
         'configobj',
         'pyproj',
         'cartopy',
-        'rasterio',
         'opendrift-landmask-data'
     ],
     packages = setuptools.find_packages(),
     include_package_data = True,
-    setup_requires = ['setuptools_scm', 'pytest-runner'],
+    setup_requires = ['setuptools_scm'],
     tests_require = ['pytest'],
     scripts = ['opendrift/scripts/hodograph.py',
                'opendrift/scripts/readerinfo.py',
