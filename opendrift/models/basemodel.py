@@ -2674,7 +2674,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
-            ax.set_title('%s UTC' % times[i])
+            ax.set_title('%s - %s UTC' % (self._figure_title(), times[i]))
             if background is not None:
                 map_x, map_y, scalar, u_component, v_component = \
                     self.get_map_background(ax, background,
@@ -3271,12 +3271,12 @@ class OpenDriftSimulation(PhysicsMethods):
         if title is not None:
             if title == 'auto':
                 if hasattr(self, 'time'):
-                    plt.title(type(self).__name__ + '  %s to %s UTC (%i steps)' %
+                    plt.title(self._figure_title() + '\n  %s to %s UTC (%i steps)' %
                               (self.start_time.strftime('%Y-%m-%d %H:%M'),
                                self.time.strftime('%Y-%m-%d %H:%M'),
                                self.steps_output))
                 else:
-                    plt.title(type(self).__name__ + ' - %i elements seeded at %s UTC' %
+                    plt.title(self._figure_title() + ' - %i elements seeded at %s UTC' %
                               (self.num_elements_scheduled(),
                                self.elements_scheduled_time[0].strftime(
                                '%Y-%m-%d %H:%M')))
@@ -3299,6 +3299,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 plt.show()
 
         return ax, plt
+
+    def _figure_title(self):
+        return str(type(self).__name__)
 
     def _plot_trajectory_dict(self, ax, trajectory_dict):
         '''Plot provided trajectory along with simulated'''
