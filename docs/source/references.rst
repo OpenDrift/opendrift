@@ -5,8 +5,10 @@ Some papers using OpenDrift:
 
 Ličer, M., Estival, S., Reyes-Suarez, C., Deponte, D., and Fettich, A.: Lagrangian Trajectory Modelling for a Person lost at Sea during Adriatic Scirocco Storm of 29 October 2018, Nat. Hazards Earth Syst. Sci. Discuss., https://doi.org/10.5194/nhess-2019-362, in review, 2020.
 
-Clavel-Henry M, Solé J, Kristiansen T, Bahamon N, Rotllant G, et al. (2020) Modeled buoyancy of eggs and larvae of the deep-sea shrimp Aristeus antennatus (Crustacea: Decapoda) in the northwestern Mediterranean Sea. PLOS ONE 15(1): e0223396. 
+Clavel-Henry M, Solé J, Kristiansen T, Bahamon N, Rotllant G, et al. (2020) Modeled buoyancy of eggs and larvae of the deep-sea shrimp Aristeus antennatus (Crustacea: Decapoda) in the northwestern Mediterranean Sea. PLOS ONE 15(1): e0223396.
 https://doi.org/10.1371/journal.pone.0223396
+
+Hole, L. R., Dagestad, K. F., Röhrs, J., Wettre, C., Kourafalou, V. H., Androulidakis, Y., ... & Garcia-Pineda, O. (2019). The DeepWater Horizon Oil Slick: Simulations of River Front Effects and Oil Droplet Size Distribution. Journal of Marine Science and Engineering, 7(10), 329.
 
 Dugstad, J.,I. M. Koszalka, P. E. Isachsen, K.-F. Dagestad and I. Fer (2019), Vertical structure and seasonal variability of the inflow to the Lofoten Basin inferred from high resolution Lagrangian simulations, J. Geophys. Res., https://doi.org/10.1029/2019JC015474.
 
@@ -16,7 +18,7 @@ Andruszkiewicz EA, Koseff JR, Fringer OB, Ouellette NT, Lowe AB, Edwards CA and 
 
 Dagestad, K.-F. and Röhrs, J.: Prediction of ocean surface trajectories using satellite derived vs. modeled ocean currents, Remote Sens. Environ., Volume 223, p130-142, 2019, https://doi.org/10.1016/j.rse.2019.01.001
 
-Röhrs, J., Dagestad, K.-F., Asbjørnsen, H., Nordam, T., Skancke, J., Jones, C. E., and Brekke, C.: The effect of vertical mixing on the horizontal drift of oil spills, Ocean Sci., 14, 1581-1601, https://doi.org/10.5194/os-14-1581-2018, 2018. 
+Röhrs, J., Dagestad, K.-F., Asbjørnsen, H., Nordam, T., Skancke, J., Jones, C. E., and Brekke, C.: The effect of vertical mixing on the horizontal drift of oil spills, Ocean Sci., 14, 1581-1601, https://doi.org/10.5194/os-14-1581-2018, 2018.
 
 Hansen J., Manjanna S., Li A.Q., Rekleitis I., Dudek G., 2018, Autonomous Marine Sampling Enhanced by Strategically Deployed Drifters in Marine Flow Fields, https://arxiv.org/abs/1811.10103
 
