@@ -3,6 +3,8 @@ Publications
 
 Some papers using OpenDrift:
 
+Romagnoni G., Kvile K.Oe., Dagestad K.F., Eikeset A.M., Kristiansen T., Stenseth N.C., Langangen Oe.: Influence of larval transport and temperature on recruitment dynamics of North Sea cod (Gadus morhua ) across spatial scales of observation, Fisheries and Oceanography, 2020, https://doi.org/10.1111/fog.12474
+
 Ličer, M., Estival, S., Reyes-Suarez, C., Deponte, D., and Fettich, A.: Lagrangian Trajectory Modelling for a Person lost at Sea during Adriatic Scirocco Storm of 29 October 2018, Nat. Hazards Earth Syst. Sci. Discuss., https://doi.org/10.5194/nhess-2019-362, in review, 2020.
 
 Clavel-Henry M, Solé J, Kristiansen T, Bahamon N, Rotllant G, et al. (2020) Modeled buoyancy of eggs and larvae of the deep-sea shrimp Aristeus antennatus (Crustacea: Decapoda) in the northwestern Mediterranean Sea. PLOS ONE 15(1): e0223396.
@@ -12,7 +14,7 @@ Hole, L. R., Dagestad, K. F., Röhrs, J., Wettre, C., Kourafalou, V. H., Androul
 
 Dugstad, J.,I. M. Koszalka, P. E. Isachsen, K.-F. Dagestad and I. Fer (2019), Vertical structure and seasonal variability of the inflow to the Lofoten Basin inferred from high resolution Lagrangian simulations, J. Geophys. Res., https://doi.org/10.1029/2019JC015474.
 
-Ricker, M. and Stanev, E. V.: Circulation of the European Northwest Shelf: A Lagrangian perspective, Ocean Sci. Discuss., https://doi.org/10.5194/os-2019-123, in review, 2019.
+Ricker, M. and Stanev, E. V.: Circulation of the European Northwest Shelf: A Lagrangian perspective, Ocean Science., https://www.ocean-sci.net/16/637/2020/
 
 Andruszkiewicz EA, Koseff JR, Fringer OB, Ouellette NT, Lowe AB, Edwards CA and Boehm AB (2019), Modeling Environmental DNA Transport in the Coastal Ocean Using Lagrangian Particle Tracking. Front. Mar. Sci. 6:477. http://doi.org/10.3389/fmars.2019.00477
 

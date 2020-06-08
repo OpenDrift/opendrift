@@ -261,9 +261,9 @@ class OpenOil(OpenDriftSimulation):
         from scipy.stats import binned_statistic_2d
         surface = np.where(self.elements.z == 0)[0]
         if len(surface) == 0:
-            print('No oil at surface, no film thickness to update')
+            self.logger.debug('No oil at surface, no film thickness to update')
             return
-        print('Updating oil film thickness for %s of %s elements at surface' % (len(surface), self.num_elements_active()))
+        self.logger.debug('Updating oil film thickness for %s of %s elements at surface' % (len(surface), self.num_elements_active()))
         meanlon = self.elements.lon[surface].mean()
         meanlat = self.elements.lat[surface].mean()
         # Using stereographic coordinates to get regular X and Y
@@ -282,11 +282,11 @@ class OpenOil(OpenDriftSimulation):
         max_thickness = 0.01  # 1 cm
         min_thickness = 1e-9  # 1 nanometer
         if film_thickness.max() > max_thickness:
-            print('Warning: decreasing thickness to %sm for %s of %s bins' % (max_thickness, np.sum(film_thickness>max_thickness), film_thickness.size))
+            self.logger.debug('Warning: decreasing thickness to %sm for %s of %s bins' % (max_thickness, np.sum(film_thickness>max_thickness), film_thickness.size))
             film_thickness[film_thickness>max_thickness] = max_thickness
         num_too_thin = np.sum((film_thickness<min_thickness) & (film_thickness>0))
         if num_too_thin > 0:
-            print('Warning: increasing thickness to %sm for %s of %s bins' % (min_thickness, num_too_thin, film_thickness.size))
+            self.logger.debug('Warning: increasing thickness to %sm for %s of %s bins' % (min_thickness, num_too_thin, film_thickness.size))
             film_thickness[film_thickness<min_thickness] = min_thickness
 
         # https://github.com/scipy/scipy/issues/7010
@@ -692,7 +692,6 @@ class OpenOil(OpenDriftSimulation):
             k_ice = (A - 0.3) / (0.8 - 0.3)
             k_ice[A<0.3] = 0
             k_ice[A>0.8] = 1
-            print(k_ice, 'K_ice')
             if k_ice.max() > 0.3:
                 self.logger.info('Ice concentration above 30%, using Nordam scheme for advection in ice')
             # Using decreased Stokes drift according to
