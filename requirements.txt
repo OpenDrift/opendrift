@@ -5,6 +5,5 @@ netCDF4>=1.4.3
 configobj
 pyproj>=2.2
 cartopy
-rasterio
 git+https://github.com/OpenDrift/OilLibrary
 git+https://github.com/OpenDrift/opendrift-landmask-data.git
