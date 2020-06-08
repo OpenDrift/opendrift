@@ -887,12 +887,8 @@ class OpenOil(OpenDriftSimulation):
         mass_total = b['mass_total'][-1]
         ax2.set_ylim([0, mass_total/oil_density])
         ax2.set_ylabel('Volume oil [m3]')
-        if not hasattr(self, 'oil_name'):  # TODO
-            self.oil_name = 'unknown oiltype'
-            # TODO line below is dangerous when importing old files
-            self.oil_name = self.get_config('seed:oil_type')
         plt.title('%s (%.1f kg/m3) - %s to %s' %
-                  (self.oil_name,
+                  (self.get_oil_name(),
                    oil_density,
                    self.start_time.strftime('%Y-%m-%d %H:%M'),
                    self.time.strftime('%Y-%m-%d %H:%M')))
@@ -909,6 +905,13 @@ class OpenOil(OpenDriftSimulation):
             plt.close()
         else:
             plt.show()
+
+    def get_oil_name(self):
+        if not hasattr(self, 'oil_name'):  # TODO
+            return 'unknown oiltype'
+        else:
+            # TODO line below is dangerous when importing old files
+            return self.get_config('seed:oil_type')
 
     def cumulative_oil_entrainment_fraction(self):
         '''Returns the fraction of oil elements which has been entrained vs time'''
@@ -1226,3 +1229,5 @@ class OpenOil(OpenDriftSimulation):
                 mass_oil=mass_oil[i]/num,
                 number=num, time=time, *args, **kwargs)
 
+    def _figure_title(self):
+        return str(type(self).__name__) + '  (%s)' % self.get_oil_name()
