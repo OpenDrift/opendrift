@@ -9,7 +9,7 @@ from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
 
-lw = Leeway(loglevel=0)  # Set loglevel to 0 for debug information
+lw = Leeway(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 #reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')

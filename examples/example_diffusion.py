@@ -11,7 +11,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 lon = 4.5; lat = 60.0; # Outside Bergen
 
-o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
 # Arome atmospheric model
@@ -31,7 +31,7 @@ o.run(duration=timedelta(hours=24))
 #%%
 # Second run, identical, except for added diffusion
 
-o2 = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o2 = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_norkyst, reader_arome])
 o2.seed_elements(lon, lat, radius=500, number=2000, time=time)
 o2.set_config('drift:current_uncertainty', .2) # Difference from first run

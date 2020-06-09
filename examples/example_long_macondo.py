@@ -10,7 +10,7 @@ from opendrift.models.openoil import OpenOil
 
 # This is a highly simplified 2D simulation, for illustration purpose only
 
-o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 #reader_hycom = reader_netCDF_CF_generic.Reader('https://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.1/2010/3hrly')
 #print(reader_hycom0)

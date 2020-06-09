@@ -8,7 +8,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.pelagicegg import PelagicEggDrift
 import datetime
 
-o = PelagicEggDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o = PelagicEggDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
 #reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')

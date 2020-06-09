@@ -12,7 +12,7 @@ from datetime import datetime
 from opendrift.readers import reader_oscillating
 from opendrift.models.oceandrift import OceanDrift
 
-o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 reader_osc = reader_oscillating.Reader('x_sea_water_velocity', amplitude=1,
                                        zero_time=datetime.now())
