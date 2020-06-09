@@ -10,7 +10,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
 from opendrift.models.openoil3D import OpenOil3D
 
-o = OpenOil3D(loglevel=0, weathering_model='noaa')
+o = OpenOil3D(loglevel=20, weathering_model='noaa')
 
 rc = reader_constant.Reader({'x_wind': 5,
                              'y_wind': 4})
