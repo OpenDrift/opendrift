@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Convolve input
-=============
+==============
 
 Demonstrating how the spatial resolution of
 fields from a reader may be reduced.

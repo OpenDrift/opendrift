@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Advection schemes
-=============
+=================
 Illustrating the difference between Euler and Runge-Kutta propagation
 schemes, using an idealised (analytical) eddy current field.
 """

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Double gyre (propagation schemes, particles)
-==================================
+============================================
 
 Illustrating the difference between Euler and Runge-Kutta propagation
 schemes, using an idealised (analytical) eddy current field.

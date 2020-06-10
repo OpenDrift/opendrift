@@ -2598,7 +2598,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
-        gl.xlabels_top = False
+        gl.top_labels = False
 
         try:
             firstlast = np.ma.notmasked_edges(lons, axis=1)
@@ -2793,12 +2793,12 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             c = []
         points = ax.scatter([], [], c=c, zorder=10,
-                             edgecolor='', cmap=cmap, s=markersize,
+                             edgecolor=[], cmap=cmap, s=markersize,
                              vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
         # Plot deactivated elements, with transparency
         points_deactivated = ax.scatter([], [], color=c, zorder=9,
                                          vmin=vmin, vmax=vmax, s=markersize,
-                                         edgecolor='', alpha=.3, transform = gcrs)
+                                         edgecolor=[], alpha=.3, transform = gcrs)
         x_deactive, y_deactive = (self.elements_deactivated.lon, self.elements_deactivated.lat)
 
         if compare is not None:

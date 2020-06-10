@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Seed demonstration
-=============
+==================
 """
 
 from datetime import datetime, timedelta

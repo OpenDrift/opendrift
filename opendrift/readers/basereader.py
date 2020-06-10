@@ -754,11 +754,10 @@ class BaseReader(object):
                 delta_y = .1  # 0.1 degree northwards
         else:
             delta_y = 10  # 10 m along y-axis
-        x2, y2 = pyproj.transform(proj_from, proj_to,
-                                  reader_x, reader_y)
-        x2_delta, y2_delta = pyproj.transform(proj_from,
-                                              proj_to,
-                                              reader_x, reader_y + delta_y)
+        
+        transformer = pyproj.Transformer.from_proj(proj_from, proj_to)
+        x2, y2 = transformer.transform(reader_x, reader_y)
+        x2_delta, y2_delta = transformer.transform(reader_x, reader_y + delta_y)
 
         if proj_to.crs.is_geographic:
             geod = pyproj.Geod(ellps='WGS84')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Cone seeding (Tromso)
-=============
+=====================
 """
 
 from datetime import timedelta

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Vertical diffusivity
-===================
+====================
 """
 
 #%%
