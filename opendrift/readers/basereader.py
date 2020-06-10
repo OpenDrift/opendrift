@@ -1210,7 +1210,7 @@ class BaseReader(object):
             edgecolor='black')
 
         gl = ax.gridlines(ccrs.PlateCarree())
-        gl.xlabels_top = False
+        gl.top_labels = False
 
         # Get boundary
         npoints = 10  # points per side
