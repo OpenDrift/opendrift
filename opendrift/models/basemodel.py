@@ -2598,7 +2598,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
-        gl.xlabels_top = False
+        gl.top_labels = False
 
         try:
             firstlast = np.ma.notmasked_edges(lons, axis=1)
