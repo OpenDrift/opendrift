@@ -214,6 +214,7 @@ class TestRun(unittest.TestCase):
                                   number=300, layername=None,
                                   featurenum=None, time=datetime.now())
         self.assertEqual(len(o.elements_scheduled), 400)
+        self.assertAlmostEqual(o.elements_scheduled.lat[-1], 52.5, 2)
 
     #@unittest.skipIf(has_ogr is False,
     #                 'GDAL library needed to read shapefiles')
