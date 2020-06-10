@@ -152,12 +152,6 @@ class TestModels(unittest.TestCase):
 
         o = OpenOil(loglevel=50)
 
-        reader_landmask = reader_global_landmask.Reader(
-                            llcrnrlon=10, llcrnrlat=79,
-                            urcrnrlon=30, urcrnrlat=83.5)
-
-        o.add_reader([reader_landmask])
-        
         lon = 24; lat = 81
 
         o.fallback_values['x_wind'] = 0  # zonal wind 
