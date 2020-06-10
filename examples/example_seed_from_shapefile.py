@@ -11,7 +11,7 @@ from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
-# Seed oil particles within contours from shapefile
+# Seed particles within contours from shapefile
 o.seed_from_shapefile(o.test_data_folder() +
                       'shapefile_spawning_areas/Torsk.shp',
                       number=2000, layername=None,

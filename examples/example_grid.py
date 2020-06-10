@@ -23,9 +23,6 @@ lats = np.linspace(60, 61, 100)
 lons, lats = np.meshgrid(lons, lats)
 lons = lons.ravel()
 lats = lats.ravel()
-
-#%%
-# Seed oil elements at defined position and time
 o.seed_elements(lons, lats, radius=0, number=10000,
                 time=reader_norkyst.start_time)
 
