@@ -1796,8 +1796,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 #else:
                 # Alternative if OGR is not built with GEOS support
                 r = geom.GetGeometryRef(0)
-                lons = [r.GetX(j) for j in range(r.GetPointCount())]
-                lats = [r.GetY(j) for j in range(r.GetPointCount())]
+                lons = [r.GetY(j) for j in range(r.GetPointCount())]
+                lats = [r.GetX(j) for j in range(r.GetPointCount())]
 
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
 
