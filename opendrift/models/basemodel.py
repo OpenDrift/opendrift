@@ -1786,7 +1786,9 @@ class OpenDriftSimulation(PhysicsMethods):
                              (num_elements, featurenum[i]))
                 try:
                     geom.Transform(coordTrans)
-                except:
+                except Exception as e:
+                    logging.warning('Could not transform coordinates:')
+                    logging.warning(e)
                     pass
                 #b = geom.GetBoundary()
                 #if b is not None:
