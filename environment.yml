@@ -12,8 +12,8 @@ dependencies:
   - ffmpeg
   - pyproj>=2.3
   - configobj
-  - libgdal>=2.3.3
-  - gdal>=2.3.3
+  - libgdal>=3.1
+  - gdal>=3.1
   - requests
   - pytest
   - pytest-cov

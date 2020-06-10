@@ -44,8 +44,7 @@ o.set_config('drift:wind_uncertainty', 1)
 #%%
 # Running model
 
-o.run(#end_time=reader_norkyst.end_time, time_step=1800,
-      steps=6,
+o.run(end_time=reader_norkyst.end_time, time_step=1800,
       time_step_output=3600, outfile='openoil.nc',
       export_variables=['mass_oil'])
 
