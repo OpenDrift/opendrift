@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Coastline with options
-=============
+======================
 
 Example to illustrate stranding options using an artificial
 east-west oscillating current field

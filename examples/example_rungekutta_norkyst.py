@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Runge-Kutta scheme on Norkyst model
-==================================
+===================================
 
 Illustrating the difference between Euler and Runge-Kutta propagation
 schemes, using a "real" current fields from the NorKyst800 model
