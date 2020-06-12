@@ -1,8 +1,13 @@
 History
 =======
 
+2020-06-12 / Release v1.2.3
+---------------------------
+
+* Seed from shapefile: GDAL (ogr / osr) changed coordinate order, updates dependencies and call.
+
 2020-06-08 / Release v1.2.2
-------------
+---------------------------
 
 * `Victor de Aguiar <https://github.com/vic1309>`_: :mod:`Oil drift in sea ice <opendrift.models.openoil>` following Nordam et al., 2019, doi:10.1016/j.marpolbul.2019.01.019 (Sponsored by the Fram Centre in Tromsø, through the MIKON/OSMICO project).
 * OpenBerg module available from the GUI.
