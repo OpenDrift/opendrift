@@ -2481,7 +2481,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return index_of_activation, index_of_deactivation
 
-    def set_up_map(self, corners=None, buffer=.1, delta_lat=None, lscale=None, fast=False, hide_landmask=False, **kwargs):
+    def set_up_map(self, corners=None, buffer=.1, delta_lat=None,
+                   lscale=None, fast=False, hide_landmask=False, **kwargs):
         """
         Generate Figure instance on which trajectories are plotted.
 
@@ -2531,7 +2532,6 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             fig = plt.figure(figsize=(11., 11.*aspect_ratio))
 
-        fig.set_tight_layout(True)
         ax = fig.add_subplot(111, projection=crs)  # need '111' for Python 2
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree())
 
@@ -2599,8 +2599,12 @@ class OpenDriftSimulation(PhysicsMethods):
                             edgecolor='black')
 
 
-        gl = ax.gridlines(ccrs.PlateCarree(), draw_labels = True)
-        gl.top_labels = False
+        gl = ax.gridlines(ccrs.PlateCarree(), draw_labels=True)
+        gl.top_labels = None  # Cartopy >= 0.18
+        gl.xlabels_top = False  # Cartopy < 0.18
+
+        fig.canvas.draw()
+        fig.set_tight_layout(True)
 
         try:
             firstlast = np.ma.notmasked_edges(lons, axis=1)
@@ -2676,7 +2680,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
-            ax.set_title('%s - %s UTC' % (self._figure_title(), times[i]))
+            if i == 0:
+                fig.canvas.draw()
+            ax.set_title('%s\n%s UTC' % (self._figure_title(), times[i]))
             if background is not None:
                 map_x, map_y, scalar, u_component, v_component = \
                     self.get_map_background(ax, background,
@@ -2866,8 +2872,8 @@ class OpenDriftSimulation(PhysicsMethods):
             cb.set_alpha(1)
             cb.draw_all()
 
-        fig.canvas.draw()
-        fig.set_tight_layout(True)
+        #fig.canvas.draw()
+        #fig.set_tight_layout(True)
         anim = animation.FuncAnimation(
             plt.gcf(), plot_timestep, blit=False,
             frames=x.shape[0], interval=50)
@@ -3273,15 +3279,17 @@ class OpenDriftSimulation(PhysicsMethods):
         if title is not None:
             if title == 'auto':
                 if hasattr(self, 'time'):
-                    plt.title(self._figure_title() + '\n  %s to %s UTC (%i steps)' %
-                              (self.start_time.strftime('%Y-%m-%d %H:%M'),
-                               self.time.strftime('%Y-%m-%d %H:%M'),
-                               self.steps_output))
+                    plt.title('%s\n%s to %s UTC (%i steps)' % (
+                              self._figure_title(),
+                              self.start_time.strftime('%Y-%m-%d %H:%M'),
+                              self.time.strftime('%Y-%m-%d %H:%M'),
+                              self.steps_output))
                 else:
-                    plt.title(self._figure_title() + ' - %i elements seeded at %s UTC' %
-                              (self.num_elements_scheduled(),
-                               self.elements_scheduled_time[0].strftime(
-                               '%Y-%m-%d %H:%M')))
+                    plt.title('%s\n%i elements seeded at %s UTC' % (
+                              self._figure_title(),
+                              self.num_elements_scheduled(),
+                              self.elements_scheduled_time[0].strftime(
+                              '%Y-%m-%d %H:%M')))
             else:
                 plt.title(title)
 
@@ -3290,8 +3298,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         #plt.gca().tick_params(labelsize=14)
 
-        fig.canvas.draw()
-        fig.set_tight_layout(True)
+        #fig.canvas.draw()
+        #fig.set_tight_layout(True)
         if filename is not None:
             plt.savefig(filename)
             self.logger.info('Time to make plot: ' +
@@ -3302,8 +3310,14 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return ax, plt
 
+    def _substance_name(self):
+        return None
+
     def _figure_title(self):
-        return str(type(self).__name__)
+        if self._substance_name() is None:
+            return type(self).__name__
+        else:
+            return type(self).__name__ + ' (%s)' % self._substance_name()
 
     def _plot_trajectory_dict(self, ax, trajectory_dict):
         '''Plot provided trajectory along with simulated'''
@@ -3963,4 +3977,3 @@ class OpenDriftSimulation(PhysicsMethods):
         #del self.elements
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
-

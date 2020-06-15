@@ -1229,5 +1229,5 @@ class OpenOil(OpenDriftSimulation):
                 mass_oil=mass_oil[i]/num,
                 number=num, time=time, *args, **kwargs)
 
-    def _figure_title(self):
-        return str(type(self).__name__) + '  (%s)' % self.get_oil_name()
+    def _substance_name(self):
+        return self.get_oil_name()
