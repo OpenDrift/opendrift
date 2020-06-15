@@ -416,6 +416,5 @@ class Leeway(OpenDriftSimulation):
 
         f.close()
 
-    def _figure_title(self):
-        return str(type(self).__name__) + '  (%s)' % self.leewayprop[
-            self.elements.objectType[0]]['OBJKEY']
+    def _substance_name(self):
+        return self.leewayprop[self.elements.objectType[0]]['OBJKEY']
