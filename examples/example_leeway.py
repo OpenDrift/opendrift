@@ -48,7 +48,7 @@ lw.seed_elements(lon=4.5, lat=60.0, radius=1000, number=3000,
                  time=reader_arome.start_time, objectType=objType)
 
 #%%
-# Running model (until end of driver data)
+# Running model
 lw.run(duration=timedelta(hours=60), time_step=900, time_step_output=3600)
 
 #%%

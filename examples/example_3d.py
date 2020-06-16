@@ -29,7 +29,7 @@ print(o)
 o.set_config('drift:current_uncertainty', .1)
 o.set_config('drift:wind_uncertainty', 2)
 
-# Running model (until end of driver data)
+# Running model
 o.run(steps=60*2, time_step=1800, outfile='openoil.nc',
       export_buffer_length=5)  # Writing to netCDF file every 5 time steps
 

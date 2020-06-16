@@ -598,5 +598,22 @@ class TestReaders(unittest.TestCase):
         w = o.get_property('x_wind')[0][0]
         self.assertAlmostEqual(w, 2.0, 1)
 
+    def test_valid_minmax_nanvalues(self):
+        from opendrift.readers import basereader
+        # Reducing max current speed to test masking
+        maxval = basereader.standard_names['x_sea_water_velocity']['valid_max']
+        basereader.standard_names['x_sea_water_velocity']['valid_max'] = .1
+        o = OceanDrift(loglevel=50)
+        o.fallback_values['land_binary_mask'] = 0
+        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o.add_reader(norkyst)
+
+        o.seed_elements(lon=4.95, lat=62, number=100, time=norkyst.start_time)
+        o.run(steps=2)
+        basereader.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
+        u = o.get_property('x_sea_water_velocity')[0]
+        self.assertAlmostEqual(u.max(), .1, 2)  # Some numerical error allowed
+
+
 if __name__ == '__main__':
     unittest.main()

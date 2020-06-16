@@ -34,7 +34,7 @@ o.set_config('drift:current_uncertainty',  .5)
 o.set_config('drift:wind_uncertainty',  3)
 
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(duration=timedelta(days=4), time_step=3600, time_step_output=3600*3)
 
 #%%

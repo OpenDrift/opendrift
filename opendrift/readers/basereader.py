@@ -388,15 +388,19 @@ class BaseReader(object):
                 if isinstance(env[variable], list):
                     self.logger.warning('Skipping min-max checking for ensemble data')
                     continue
-                if (env[variable].min() < standard_names[variable]['valid_min']) or (
-                    env[variable].max() > standard_names[variable]['valid_max']):
-                    self.logger.warning('Invalid values found for ' + variable +
-                                        ', replacing with NaN')
+                np.warnings.filterwarnings('ignore')
+                invalid_indices = np.logical_and(
+                    np.isfinite(env[variable]), np.logical_or(
+                    env[variable]<standard_names[variable]['valid_min'],
+                    env[variable]>standard_names[variable]['valid_max']))
+                np.warnings.filterwarnings('always')
+                if np.sum(invalid_indices) > 0:
+                    invalid_values = env[variable][invalid_indices]
+                    self.logger.warning('Invalid values (%s to %s) found for %s, replacing with NaN' % (invalid_values.min(), invalid_values.max(), variable))
                     self.logger.warning('(allowed range: [%s, %s])' %
                                     (standard_names[variable]['valid_min'],
                                      standard_names[variable]['valid_max']))
-                    env[variable][np.logical_or(env[variable]<standard_names[variable]['valid_min'],
-                                  env[variable]>standard_names[variable]['valid_max'])] = np.nan
+                    env[variable][invalid_indices] = np.nan
 
         # Convolve arrays with a kernel, if reader.convolve is set
         if hasattr(self, 'convolve'):
