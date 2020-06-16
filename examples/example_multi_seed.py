@@ -36,7 +36,7 @@ o.seed_elements([3.6, 4.4], [61.5, 61.2], radius=[1000, 10000],
                 time=[datetime(2015,11,16,1), datetime(2015,11,16,8)])
 
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(steps=50*4, time_step=900, time_step_output=3600)
 
 #%%

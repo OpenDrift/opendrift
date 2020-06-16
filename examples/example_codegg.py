@@ -46,7 +46,7 @@ o.set_config('turbulentmixing:diffusivitymodel', 'environment') # use eddy diffu
 o.set_config('turbulentmixing:timestep', 60.) # seconds
 
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(steps=96, time_step=3600)
 
 #%%

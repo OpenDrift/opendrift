@@ -37,7 +37,7 @@ o.seed_elements(lons, lats, radius=0, number=10000,
                 time=reader_norkyst.start_time)
 
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(steps=66*2, time_step=1800)
 
 #%%

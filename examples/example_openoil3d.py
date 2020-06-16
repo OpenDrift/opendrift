@@ -41,7 +41,7 @@ o.set_config('processes:turbulentmixing',  True)
 o.set_config('turbulentmixing:timestep',  5)
 
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(steps=4*40, time_step=900,
       time_step_output=3600)
 

@@ -89,7 +89,7 @@ o.set_config('general:coastline_action', 'previous')
 o.list_configspec()
 
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(steps=48*2, time_step=1800, time_step_output=3600)
 
 
