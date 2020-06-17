@@ -103,8 +103,8 @@ class OpenBerg(OpenDriftSimulation):
                        'y_sea_water_velocity': 0.0}
 
     # Default colors for plotting
-    status_colors = {'initial': 'green', 'active': 'red',
-                     'missing_data': 'gray', 'stranded': 'blue'}
+    status_colors = {'initial': 'green', 'active': 'blue',
+                     'missing_data': 'gray', 'stranded': 'red'}
 
     configspec = '''
         [seed]
