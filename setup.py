@@ -32,6 +32,7 @@ setuptools.setup(
                'opendrift/scripts/readerinfo.py',
                'opendrift/scripts/opendrift_plot.py',
                'opendrift/scripts/opendrift_animate.py',
-               'opendrift/scripts/opendrift_gui.py']
+               'opendrift/scripts/opendrift_gui.py',
+               'opendrift/scripts/mp4_to_gif.bash']
 )
 
