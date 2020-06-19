@@ -1200,9 +1200,6 @@ class BaseReader(object):
             # Global map if reader domain is large
             sp = ccrs.Mercator()
             ax = fig.add_subplot(1, 1, 1, projection=sp)
-            #map = Basemap(np.array(corners[0]).min(), -89,
-            #              np.array(corners[0]).max(), 89,
-            #              resolution='c', projection='cyl')
 
         # GSHHS coastlines
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
@@ -1260,7 +1257,6 @@ class BaseReader(object):
                                       rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)
-            #map_x, map_y = map(rlon, rlat, inverse=False)
             data[variable] = np.ma.masked_invalid(data[variable])
             if hasattr(self, 'convolve'):
                 from scipy import ndimage
@@ -1273,10 +1269,10 @@ class BaseReader(object):
                 self.logger.debug('Convolving variables with kernel: %s' % kernel)
                 data[variable] = ndimage.convolve(
                             data[variable], kernel, mode='nearest')
-            #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
-            ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
-            #cbar = map.colorbar()
-            #cbar.set_label(variable)
+            mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
+                                     transform=ccrs.PlateCarree())
+            cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
+            cbar.set_label(variable)
 
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
