@@ -172,22 +172,6 @@ class Leeway(OpenDriftSimulation):
                      (objectType, self.leewayprop[objectType]['OBJKEY'],
                       self.leewayprop[objectType]['Description']))
 
-        if time is None:
-            # Use first time of first reader if time is not given for seeding
-            try:
-                for reader in self.readers.items():
-                    if reader[1].start_time is not None:
-                        firstReader = reader[1]
-                        break
-            except:
-                raise ValueError('Time must be specified when no '
-                                 'reader is added')
-            self.logger.info('Using start time (%s) of reader %s' %
-                         (firstReader.start_time, firstReader.name))
-            self.start_time = firstReader.start_time
-        else:
-            self.start_time = time
-
         # Drift orientation of particles.  0 is right of downwind,
         # 1 is left of downwind
         # orientation = 1*(np.random.rand(number)>=0.5)
@@ -417,4 +401,7 @@ class Leeway(OpenDriftSimulation):
         f.close()
 
     def _substance_name(self):
-        return self.leewayprop[self.elements.objectType[0]]['OBJKEY']
+        if len(self.elements.objectType) == 0:
+            return self.leewayprop[self.elements_scheduled.objectType]['OBJKEY']
+        else:
+            return self.leewayprop[self.elements.objectType[0]]['OBJKEY']
