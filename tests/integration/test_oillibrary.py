@@ -24,7 +24,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.openoil import OpenOil
 
 try:
@@ -39,14 +38,14 @@ class TestOil(unittest.TestCase):
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_oils(self):
-        o = OpenOil3D(loglevel=50, weathering_model='noaa')
+        o = OpenOil(loglevel=50, weathering_model='noaa')
 
         assert len(o.oiltypes) >= 1478
 
         for oiltype in o.oiltypes[12:14]:
             if oiltype == 'JP-8':
                 continue
-            o = OpenOil3D(loglevel=50, weathering_model='noaa')
+            o = OpenOil(loglevel=50, weathering_model='noaa')
             o.fallback_values['x_wind'] = 7
             o.fallback_values['y_wind'] = 0
             o.fallback_values['x_sea_water_velocity'] = .7
@@ -71,7 +70,7 @@ class TestOil(unittest.TestCase):
     def test_oilbudget(self):
         for windspeed in [3, 8]:
             for dispersion in [True, False]:
-                o = OpenOil3D(loglevel=30, weathering_model='noaa')
+                o = OpenOil(loglevel=30, weathering_model='noaa')
                 o.fallback_values['x_wind'] = windspeed
                 o.fallback_values['y_wind'] = 0
                 o.fallback_values['x_sea_water_velocity'] = 0
@@ -108,7 +107,7 @@ class TestOil(unittest.TestCase):
             for windspeed in [3, 8]:
                 if oil == 'SKRUGARD' and windspeed == 3:
                     continue
-                o = OpenOil3D(loglevel=30, weathering_model='noaa')
+                o = OpenOil(loglevel=0, weathering_model='noaa')
                 oilname = oil
                 if oil not in o.oiltypes:
                     if oilname == 'SKRUGARD':
@@ -163,7 +162,7 @@ class TestOil(unittest.TestCase):
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_no_dispersion(self):
-        o = OpenOil3D(loglevel=50, weathering_model='noaa')
+        o = OpenOil(loglevel=50, weathering_model='noaa')
 
         o.seed_elements(lon=4.8, lat=60, number=100,
                         time=datetime.now(), oiltype='SIRTICA')
@@ -207,7 +206,7 @@ class TestOil(unittest.TestCase):
     def test_droplet_distribution(self):
         for droplet_distribution in ['Johansen et al. (2015)',
                                      'Exponential']:
-            o = OpenOil3D(loglevel=50, weathering_model='noaa')
+            o = OpenOil(loglevel=50, weathering_model='noaa')
             if 'SKRUGARD' in o.oiltypes:
                 oiltype = 'SKRUGARD'
             else:

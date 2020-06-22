@@ -35,6 +35,7 @@ o.seed_elements(lon=4.6, lat=60.0, radius=50, number=3000, time=time,
 
 #%%
 # Adjusting some configuration
+o.set_config('processes:turbulentmixing', False)
 o.set_config('processes:dispersion', False)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)

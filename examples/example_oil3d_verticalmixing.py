@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 """
-Oil 3d (vertical mixing)
+Oil vertical mixing
 ==================================
 """
 
 from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 
 
-o = OpenOil3D(loglevel=20)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
-ncfile = 'oil3Dmixing.nc'
+ncfile = 'oilmixing.nc'
 import_file = False  # Set to True to import previous run
 
 if import_file is True:

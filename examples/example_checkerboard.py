@@ -17,6 +17,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov20
 
 o.add_reader([reader_norkyst])
 
+o.set_config('processes:turbulentmixing', False)
 #%%
 # Seeding particles in a checkerboard pattern
 di = 5 # Horizontal number of particles per square

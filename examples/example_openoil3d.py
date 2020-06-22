@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """
-Openoil 3d
+Openoil
 ==================================
 """
 
 from datetime import datetime, timedelta
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 
-o = OpenOil3D(loglevel=20, weathering_model='noaa')
+o = OpenOil(loglevel=20, weathering_model='noaa')
 
 print(o.oiltypes)  # Print available oil types
 
@@ -50,7 +50,7 @@ o.run(steps=4*40, time_step=900,
 print(o)
 o.plot(fast=True)
 o.plot_oil_budget()
-#o.plot(filename='openoil3d_drift')
+#o.plot(filename='openoil_drift')
 o.plot_vertical_distribution()
 o.plot_property('water_fraction', mean=True)
 o.plot_property('z')

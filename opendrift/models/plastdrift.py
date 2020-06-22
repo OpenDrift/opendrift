@@ -15,7 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
-from opendrift.models.oceandrift3D import OceanDrift3D
+from opendrift.models.oceandrift import OceanDrift
 from opendrift.elements.passivetracer import PassiveTracer
 
 # We add the property 'wind_drift_factor' to the element class
@@ -28,7 +28,7 @@ PassiveTracer.variables = PassiveTracer.add_variables([
                            'default': 0.01})])
 
 
-class PlastDrift(OceanDrift3D):
+class PlastDrift(OceanDrift):
     """Trajectory model based on the OpenDrift framework.
 
     Propagation of plastics particles with ocean currents and
