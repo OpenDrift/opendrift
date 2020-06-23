@@ -3,18 +3,18 @@
 Droplet distribution (plotting)
 ==================================
 
-Plotting different droplet size distributions used in Opendrift (see openoil3D.py script)
+Plotting different droplet size distributions used in Opendrift
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 oiltype = 'VILJE 2009'
 
 #%%
 # Delvigne & Sweeney (1988) droplet spectrum
-o = OpenOil3D(loglevel=20, weathering_model='noaa')
+o = OpenOil(loglevel=20, weathering_model='noaa')
 o.fallback_values['land_binary_mask'] = 0
 o.fallback_values['x_sea_water_velocity'] = -.2
 o.fallback_values['y_sea_water_velocity'] = 0
@@ -34,7 +34,7 @@ o.run(duration=timedelta(hours=1), time_step=3600)
 
 #%%
 # Uniform droplet spectrum
-o2 = OpenOil3D(loglevel=20, weathering_model='noaa')
+o2 = OpenOil(loglevel=20, weathering_model='noaa')
 o2.fallback_values['land_binary_mask'] = 0
 o2.fallback_values['x_sea_water_velocity'] = -.2
 o2.fallback_values['y_sea_water_velocity'] = 0
@@ -54,7 +54,7 @@ o2.run(duration=timedelta(hours=1), time_step=3600)
 
 #%%
 # Johansen et al. (2015) droplet spectrum
-o3 = OpenOil3D(loglevel=20, weathering_model='noaa')
+o3 = OpenOil(loglevel=20, weathering_model='noaa')
 o3.fallback_values['land_binary_mask'] = 0
 o3.fallback_values['x_sea_water_velocity'] = -.2
 o3.fallback_values['y_sea_water_velocity'] = 0

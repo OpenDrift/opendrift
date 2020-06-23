@@ -2693,6 +2693,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     bg_quiv.set_UVC(u_component[::skip, ::skip], v_component[::skip, ::skip])
 
             if lcs is not None:
+                # TODO: old Basemap line below
                 map_x, map_y = map(lcs['lon'], lcs['lat'])
                 ax.pcolormesh(
                     map_x, map_y, lcs['ALCS'][i,:,:], alpha=bgalpha,

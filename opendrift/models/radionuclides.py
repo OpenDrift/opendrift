@@ -16,9 +16,8 @@
 
 import numpy as np
 
-from opendrift.models.opendrift3D import \
-    OpenDrift3DSimulation, Lagrangian3DArray
-from opendrift.elements import LagrangianArray
+from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+#from opendrift.elements import LagrangianArray
 
 from opendrift.readers.basereader import pyproj
 
@@ -27,7 +26,7 @@ class Radionuclide(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for radionuclides
     """
 
-    variables = LagrangianArray.add_variables([
+    variables = Lagrangian3DArray.add_variables([
         ('diameter', {'dtype': np.float32,
                       'units': 'm',
                       'default': 0.}),
@@ -46,7 +45,7 @@ class Radionuclide(Lagrangian3DArray):
         ])
 
 
-class RadionuclideDrift(OpenDrift3DSimulation):
+class RadionuclideDrift(OceanDrift):
     """Radionuclide particle trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway

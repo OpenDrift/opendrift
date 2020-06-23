@@ -22,14 +22,14 @@ from datetime import datetime
 
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_global_landmask
-from opendrift.models.oceandrift3D import OceanDrift3D
+from opendrift.models.oceandrift import OceanDrift
 
 def test_MFDataset():
     reader_landmask = reader_global_landmask.Reader(
         llcrnrlon=13.5, llcrnrlat=67.1,
         urcrnrlon=14.6, urcrnrlat=67.7)
 
-    o = OceanDrift3D(loglevel=0)
+    o = OceanDrift(loglevel=0)
     nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +
         '2Feb2016_Nordic_sigma_3d/Nordic_subset_day*.nc')
     nordicMF_all = reader_ROMS_native.Reader(o.test_data_folder() +
@@ -49,7 +49,7 @@ def test_MFDataset():
     o.run(steps=48, time_step=3600)
 
     # Same run, with multi-file dataset
-    o2 = OceanDrift3D(loglevel=30)
+    o2 = OceanDrift(loglevel=30)
     o2.add_reader([reader_landmask, nordicMF])
     o2.seed_elements(lon, lat, number=100, radius=5000,
                     time=nordicMF_all.start_time)

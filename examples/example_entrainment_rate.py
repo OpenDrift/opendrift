@@ -5,14 +5,14 @@ Entrainment rate
 """
 
 from datetime import datetime, timedelta
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 import matplotlib.pyplot as plt
 
 oiltype = 'VILJE 2009'
 
 #%%
 # Tkcalich & Chan (2002) entrainment rate
-o = OpenOil3D(loglevel=20, weathering_model='noaa')
+o = OpenOil(loglevel=20, weathering_model='noaa')
 o.fallback_values['land_binary_mask'] = 0
 o.fallback_values['x_sea_water_velocity'] = -.2
 o.fallback_values['y_sea_water_velocity'] = 0
@@ -32,7 +32,7 @@ o.run(duration=timedelta(hours=24), time_step=900, time_step_output=1800)
 
 #%%
 # Li et al. (2017) entrainment rate
-o2 = OpenOil3D(loglevel=20, weathering_model='noaa')
+o2 = OpenOil(loglevel=20, weathering_model='noaa')
 o2.fallback_values['land_binary_mask'] = 0
 o2.fallback_values['x_sea_water_velocity'] = -.2
 o2.fallback_values['y_sea_water_velocity'] = 0

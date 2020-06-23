@@ -25,7 +25,7 @@ import numpy as np
 
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.leeway import Leeway
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_constant
@@ -81,7 +81,7 @@ class TestWPS(unittest.TestCase):
         self.assertEqual(o.steps_calculation, 15)
 
     def test_openoil_today(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
@@ -91,7 +91,7 @@ class TestWPS(unittest.TestCase):
         self.assertEqual(o.steps_calculation, 15)
 
     def test_openoil_yesterday(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
         o.seed_elements(lon=14, lat=67.85, number=100, radius=1000,
@@ -101,7 +101,7 @@ class TestWPS(unittest.TestCase):
         self.assertEqual(o.steps_calculation, 15)
 
     def test_openoil_global_today(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
@@ -111,7 +111,7 @@ class TestWPS(unittest.TestCase):
         self.assertEqual(o.steps_calculation, 15)
 
     def test_openoil_global_one_month_ago(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil(loglevel=0)
         o.add_readers_from_file(o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
         o.seed_elements(lon=50, lat=29, number=100, radius=1000,
@@ -122,7 +122,7 @@ class TestWPS(unittest.TestCase):
 
 
     #def test_oildrift_backwards(self):
-    #    o = OpenOil3D(loglevel=20)
+    #    o = OpenOil(loglevel=20)
     #    reader_constant_wind = \
     #        reader_constant.Reader({'x_wind':5, 'y_wind': 6})
     #    o.add_reader(reader_constant_wind)
@@ -138,7 +138,7 @@ class TestWPS(unittest.TestCase):
     #    self.assertEqual(len(o.discarded_readers), 1)
 
     #def test_lazy_reader_oildrift_real(self):
-    #    o = OpenOil3D(loglevel=0)
+    #    o = OpenOil(loglevel=0)
     #    o.add_readers_from_file(o.test_data_folder() +
     #        '../../opendrift/scripts/data_sources.txt')
 

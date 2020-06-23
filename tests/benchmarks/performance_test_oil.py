@@ -2,7 +2,7 @@
 
 import sys
 from datetime import datetime, timedelta
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 from opendrift.readers import reader_netCDF_CF_generic
 
 if __name__ == '__main__':
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:
         sys.exit('Usage: %s [fast|slow]' % sys.argv[0])
 
-    o = OpenOil3D(weathering_model='default')
+    o = OpenOil(weathering_model='default')
 
     readers_thredds = [  # Note that order (priority) is important!
         'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/case_1_mar_2017/NorKyst-800m_ZDEPTHS_his_00_1March2017.nc',

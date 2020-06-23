@@ -18,22 +18,10 @@ The table below shows an overview of the advection processes within the main mod
    * - :mod:`OceanDrift <opendrift.models.oceandrift>`
      - yes
      - yes (optional wind_drift_factor)
-     - no
-     - no
-
-   * - :mod:`OceanDrift3D <opendrift.models.oceandrift3D>`
-     - yes
-     - yes (optional wind_drift_factor)
      - yes
      - yes
 
    * - :mod:`OpenOil <opendrift.models.openoil>`
-     - yes
-     - yes (optional wind_drift_factor)
-     - no
-     - no
-
-   * - :mod:`OpenOil3D <opendrift.models.openoil3D>`
      - yes
      - yes (optional wind_drift_factor)
      - yes
@@ -69,7 +57,7 @@ Surface Stokes Drift must be obtained from a wave model, whereas the depth depen
 
 Vertical entrainment, mixing and refloating is largely following `Tkalich and Chan (2003) <https://www.sciencedirect.com/science/article/pii/S0025326X02001789>`_ and `Röhrs et al. (2014) <https://onlinelibrary.wiley.com/doi/10.4319/lo.2014.59.4.1213/abstract>`_
 
-All models are subclasses of `OpenDrift <opendrift.models.basemodel>`_, or `OpenDrift3D <opendrift.models.opendrift3D>`_ and inherits all core functionality from there. The OpenDrift class itself has no specification of advection or other processes, and can thus not be used directly.
+All models are subclasses of `OpenDrift <opendrift.models.basemodel>`_, or `OpenDrift <opendrift.models.opendrift>`_ and inherits all core functionality from there. The OpenDrift class itself has no specification of advection or other processes, and can thus not be used directly.
 
 As this page does not support wide tables, here is a separate table with additional comments:
 
@@ -86,10 +74,6 @@ As this page does not support wide tables, here is a separate table with additio
      - Basic model for e.g. drifters
 
    * - OpenOil
-     - Oil weathering (evaporation, emulsification, biodegradation)
-     - 2D oil model
-
-   * - OpenOil3D
      - Oil weathering (evaporation, emulsification, biodegradation)
      - 3D oil model
 

@@ -6,9 +6,9 @@ Oil budget (NOAA)
 
 from datetime import datetime
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 
-o = OpenOil3D(loglevel=20, weathering_model='noaa')
+o = OpenOil(loglevel=20, weathering_model='noaa')
 
 # Using constand wind and current
 #o.fallback_values['x_wind'] = 7

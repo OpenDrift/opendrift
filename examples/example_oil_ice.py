@@ -23,6 +23,7 @@ time = reader_arctic.start_time
 # Seed oil elements at defined position and time
 #o.seed_elements(lon=24.4, lat=77.3, radius=7000, number=3000, time=time)
 o.seed_elements(lon=27, lat=77.0, radius=5000, number=3000, time=time)
+o.fallback_values['x_wind'] = 0  #
 o.fallback_values['y_wind'] = 7  # Adding some northwards wind
 
 #%%

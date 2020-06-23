@@ -24,7 +24,7 @@ import numpy as np
 
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.leeway import Leeway
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_global_landmask
@@ -80,6 +80,7 @@ class TestReaders(unittest.TestCase):
 
     def test_repeated_run(self):
         o = OceanDrift(loglevel=50)
+        o.set_config('processes:turbulentmixing', False)
         o.add_readers_from_list(reader_list)
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
@@ -150,7 +151,7 @@ class TestReaders(unittest.TestCase):
                       str(type(getattr(rr, att))))
 
     def test_lazy_reader_oildrift(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil(loglevel=0)
         reader_constant_wind = \
             reader_constant.Reader({'x_wind':5, 'y_wind': 6,
                                     'sea_ice_area_fraction': 0})
@@ -169,11 +170,12 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(len(o.discarded_readers), 1)
 
     def test_ROMS_native_stranding(self):
-        o = OceanDrift(loglevel=30)
+        o = OceanDrift(loglevel=0)
         r = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader(r)
         o.set_config('general:use_auto_landmask', False)
+        o.set_config('processes:turbulentmixing', False)
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 10
         o.seed_elements(lon=15.2, lat=68.3, time=r.start_time,
@@ -207,7 +209,7 @@ class TestReaders(unittest.TestCase):
 
 
     #def test_oildrift_backwards(self):
-    #    o = OpenOil3D(loglevel=20)
+    #    o = OpenOil(loglevel=20)
     #    reader_constant_wind = \
     #        reader_constant.Reader({'x_wind':5, 'y_wind': 6})
     #    o.add_reader(reader_constant_wind)
@@ -223,7 +225,7 @@ class TestReaders(unittest.TestCase):
     #    self.assertEqual(len(o.discarded_readers), 1)
 
     #def test_lazy_reader_oildrift_real(self):
-    #    o = OpenOil3D(loglevel=0)
+    #    o = OpenOil(loglevel=0)
     #    o.add_readers_from_file(o.test_data_folder() +
     #        '../../opendrift/scripts/data_sources.txt')
 
@@ -494,7 +496,7 @@ class TestReaders(unittest.TestCase):
 
 
     def test_constant_reader(self):
-        o = OpenOil3D(loglevel=0)
+        o = OpenOil(loglevel=0)
         cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
         cc = reader_constant.Reader({'x_sea_water_velocity':0, 'y_sea_water_velocity': .2})
         cs = reader_constant.Reader({'sea_water_temperature': 278})

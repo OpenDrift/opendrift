@@ -6,9 +6,10 @@ Seed demonstration
 
 from datetime import datetime, timedelta
 import numpy as np
+from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 
-o = OpenOil(loglevel=50)
+o = OceanDrift(loglevel=50)
 
 #%%
 # We do not care about landmask or current for this seeding demonstration,
@@ -99,7 +100,11 @@ print('\n' + '='*70)
 print('Any model/module may provide specialised seeding-functions, such as \n seeding oil within contours read from a GML file:')
 print('o.seed_from_gml(o.test_data_folder() + "radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml", num_elements=2000)')
 print('='*70)
-o.reset()
+o = OpenOil(loglevel=50)
+o.fallback_values['x_wind'] = 0
+o.fallback_values['y_wind'] = 0
+o.fallback_values['x_sea_water_velocity'] = 0
+o.fallback_values['y_sea_water_velocity'] = 0
 o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 o.run(steps=1)
 o.plot(buffer=.03, fast=True)

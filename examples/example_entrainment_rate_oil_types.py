@@ -5,13 +5,13 @@ Entrainment rate (oil types)
 """
 
 from datetime import datetime, timedelta
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 import matplotlib.pyplot as plt
 import numpy as np
 
 #%%
 # Li et al. (2017) entrainment rate (light vs. heavy oil)
-o2 = OpenOil3D(loglevel=20, weathering_model='noaa')
+o2 = OpenOil(loglevel=20, weathering_model='noaa')
 o2.fallback_values['land_binary_mask'] = 0
 o2.fallback_values['x_sea_water_velocity'] = -.2
 o2.fallback_values['y_sea_water_velocity'] = 0
@@ -29,7 +29,7 @@ o2.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000,
                 radius=100, z=0, oiltype='TIA JUANA HEAVY, OIL & GAS')
 o2.run(duration=timedelta(hours=12), time_step=900, time_step_output=3600)
 
-o3 = OpenOil3D(loglevel=20, weathering_model='noaa')
+o3 = OpenOil(loglevel=20, weathering_model='noaa')
 o3.fallback_values['land_binary_mask'] = 0
 o3.fallback_values['x_sea_water_velocity'] = -.2
 o3.fallback_values['y_sea_water_velocity'] = 0
