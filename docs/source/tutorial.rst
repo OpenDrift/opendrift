@@ -150,7 +150,7 @@ In addition to providing variables interpolated to the element positions, reader
     required_profiles_z_range = [-120, 0]  # The depth range (in m) which
                                            # profiles shall cover
 
-Vertical profiles may be used by the model (``update()`` function) to calculate vertical mixing. See :doc:`gallery/example_long_codegg` for a demonstration.
+Vertical profiles may be used by the model (``update()`` function) to calculate vertical mixing. See :doc:`gallery/example_codegg` for a demonstration.
 
 2.1 Lazy Readers
 ****************
@@ -382,6 +382,6 @@ The quality of mp4-files is quite low with older versions of Matplotlib, as bitr
 When exporting animation to mp4, an additional parameter ``fps`` may be provided to specify the number of frames per seconds (speed of animation), default is 20 frames/second.
 
 Specific models may define specific plotting functions. One example is ``OpenOil.plot_oil_budget()`` which plots the oil mass budget of a simulation.
-The examples :doc:`gallery/example_long_codegg` and :doc:`gallery/example_long_oil3d_verticalmixing` demonstrate the function plot_vertical_distribution() to show a histogram of the element depths, with an interactive time slider.
+The examples :doc:`gallery/example_codegg` and :doc:`gallery/example_oil3d_verticalmixing` demonstrate the function plot_vertical_distribution() to show a histogram of the element depths, with an interactive time slider.
 
 See the :doc:`gallery <gallery/index>` for some examples of output figures and animations.

@@ -45,9 +45,9 @@ class OceanDrift(OpenDriftSimulation):
         and may be to vertical turbulent mixing
         with the possibility for positive or negative buoyancy
 
-        Particles could be e.g. oil droplets, plankton, nutrients or sediments
+        Particles could be e.g. oil droplets, plankton, nutrients or sediments,
+        Model may be subclassed for more specific behaviour.
 
-        Under construction.
     """
 
     ElementType = Lagrangian3DArray
@@ -80,6 +80,7 @@ class OceanDrift(OpenDriftSimulation):
     fallback_values = {
         'x_sea_water_velocity': 0,
         'y_sea_water_velocity': 0,
+        'upward_sea_water_velocity': 0,
         'sea_surface_wave_significant_height': 0,
         'sea_surface_wave_stokes_drift_x_velocity': 0,
         'sea_surface_wave_stokes_drift_y_velocity': 0,
@@ -87,7 +88,6 @@ class OceanDrift(OpenDriftSimulation):
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
         'x_wind': 0,
         'y_wind': 0,
-        'upward_sea_water_velocity': 0,
         'ocean_vertical_diffusivity': 0.02,
         'surface_downward_x_stress': 0,
         'surface_downward_y_stress': 0,
@@ -120,8 +120,8 @@ class OceanDrift(OpenDriftSimulation):
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
-        # Advect particles due to wind drag
-        # (according to specified wind_drift_factor)
+        # Advect particles due to surface wind drag,
+        # according to element property wind_drift_factor
         self.advect_wind()
 
         # Stokes drift
@@ -140,16 +140,19 @@ class OceanDrift(OpenDriftSimulation):
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
                                  z_index=None):
         """Calculate terminal velocity due to bouyancy from own properties
-        and environmental variables
-        overload this function to create particle-specific behaviour
+        and environmental variables. Sub-modules should overload
+        this method for particle-specific behaviour
         """
-        #self.elements.terminal_velocity = 0.00
+        pass 
+
+    def prepare_vertical_mixing(self):
+        pass  # To be implemented by subclasses as needed
 
     def vertical_advection(self):
         """Move particles vertically according to vertical ocean current
 
-            Vertical advection by ocean currents is small compared to
-            termical velocity
+            Vertical advection by ocean currents is normally small
+            compared to termical velocity
         """
         if self.get_config('processes:verticaladvection') is False:
             self.logger.debug('Vertical advection deactivated')
@@ -169,9 +172,6 @@ class OceanDrift(OpenDriftSimulation):
             self.elements.z[in_ocean] = np.minimum(0,
                 self.elements.z[in_ocean] + self.elements.terminal_velocity[in_ocean] * self.time_step.total_seconds())
 
-    def prepare_vertical_mixing(self):
-        pass  # To be implemented by subclasses as needed
-
     def surface_stick(self):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
 
@@ -182,13 +182,11 @@ class OceanDrift(OpenDriftSimulation):
             
     def bottom_interaction(self, Zmin=None):
         '''To be overloaded by subclasses, e.g. radionuclides in sediments'''
-        # do nothing
         pass
 
     def surface_wave_mixing(self, time_step_seconds):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
 
-        # do nothing 
         pass
 
     def get_diffusivity_profile(self, model):
@@ -300,10 +298,11 @@ class OceanDrift(OpenDriftSimulation):
                                z_i, bounds_error=False,
                                fill_value=(0,len(z_i)-1))  # Extrapolation
 
-        # internal loop for fast time step of vertical mixing model
-        # random walk needs faster time step compared
-        # to horizontal advection
-        self.logger.debug('Vertical mixing module:' + self.get_config('turbulentmixing:diffusivitymodel'))
+        # Internal loop for fast time step of vertical mixing model.
+        # Wandom walk needs faster time step compared
+        # to horizontal advection.
+        self.logger.debug('Vertical mixing module:' +
+            self.get_config('turbulentmixing:diffusivitymodel'))
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
         self.logger.debug('Turbulent diffusion with random walk '
                       'scheme using ' + str(ntimes_mix) +
@@ -373,37 +372,39 @@ class OceanDrift(OpenDriftSimulation):
                 Kprofiles[lower, range(Kprofiles.shape[1])] * \
                 (1-weight_upper)
 
-
             # Visser et al. 1996 random walk mixing
             # requires an inner loop time step dt such that
             # dt << (d2K/dz2)^-1, e.g. typically dt << 15min
             R = 2*np.random.random(self.num_elements_active()) - 1            
             r = 1.0/3
-            # new position  =  old position   - up_K_flux   + random walk
-            self.elements.z = self.elements.z - dKdz*dt_mix + R*np.sqrt(( K3*dt_mix*2/r))
+            # New position  =  old position   - up_K_flux   + random walk
+            self.elements.z = self.elements.z - dKdz*dt_mix + \
+                R*np.sqrt(( K3*dt_mix*2/r))
  
             # Reflect from surface 
             reflect = np.where(self.elements.z >= 0)
             if len(reflect[0]) > 0:
                 self.elements.z[reflect] = -self.elements.z[reflect]
 
-            # reflect elements going below seafloor
+            # Reflect elements going below seafloor
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
                 self.logger.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
                 self.elements.z[bottom] = 2*Zmin[bottom] - self.elements.z[bottom]
            
-            # advect due to buoyancy
+            # Advect due to buoyancy
             self.elements.z = self.elements.z + w*dt_mix
 
-            # put the particles that belonged to the surface slick (if present) back to the surface
+            # Put the particles that belonged to the surface slick
+            # (if present) back to the surface
             self.elements.z[surface] = 0.
 
-            # formation of slick and wave mixing for surfaced particles if implemented for this class
+            # Formation of slick and wave mixing for surfaced particles
+            # if implemented for this class
             self.surface_stick()
             self.surface_wave_mixing(dt_mix)
 
-            # let particles stick to bottom 
+            # Let particles stick to bottom 
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
                 self.logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
@@ -484,10 +485,11 @@ class OceanDrift(OpenDriftSimulation):
         tslider.on_changed(update)
         plt.show()
 
-    def plotter_vertical_distribution_time(self, ax=None, mask=None, dz=1., maxrange=-100, bins=None, step=1):
-        """Function to plot vertical distribution of particles
+    def plotter_vertical_distribution_time(self, ax=None, mask=None,
+            dz=1., maxrange=-100, bins=None, step=1):
+        """Function to plot vertical distribution of particles.
 	
-	use mask to plot any selection of particles
+	Use mask to plot any selection of particles.
 	"""
         from pylab import axes, draw
         from matplotlib import dates, pyplot
@@ -519,24 +521,3 @@ class OceanDrift(OpenDriftSimulation):
                      '   Mean windspeed: %.1f m/s' % windspeed)
         if show is True:
             pyplot.show()
-
-    def seed_along_trajectory(self, lon, lat, time,
-                              release_time_interval=None, **kwargs):
-        '''Seed elements along given trajectory, at given time interval'''
-
-        if release_time_interval is not None:
-            # At first assuming constant time interval:
-            timestep = time[1] - time[0]
-            index_step = np.round(release_time_interval.total_seconds() /
-                                  timestep.total_seconds())
-            index_step = np.int(index_step)
-            ind = np.arange(0, len(lon), index_step)
-        else:
-            ind = [0]  # Seed only one element at start of trajectory
-
-        # Seed elements at given intervals
-        self.logger.info('Seeding %s elements along trajectory' % len(ind))
-        for i in ind:
-            self.seed_elements(lon[i], lat[i], time=time[i], **kwargs)
-
-
