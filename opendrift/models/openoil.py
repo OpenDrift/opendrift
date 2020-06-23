@@ -36,7 +36,7 @@ Oil properties affecting the drift
 ***********************************
 The vertical (and thus indirectly also the horisontal) motion of oil (droplets) is affected by oil density and droplet diameters.
 
-When using the NOAA oil weathering model (``o = OpenOil3D(weathering_model='noaa')``), the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification). When using the default (primitive) weathering model (o = OpenOil3D()), the parameter 'density' may be set when seeding (default is 880 kg/m3).
+When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')``), the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification). When using the default (primitive) weathering model (o = OpenOil()), the parameter 'density' may be set when seeding (default is 880 kg/m3).
 
 The droplet diameter may be given explicitly when seeding, e.g.::
 

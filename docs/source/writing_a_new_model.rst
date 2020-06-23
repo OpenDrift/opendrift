@@ -50,9 +50,6 @@ E.g. if one (for some reason) would like to set the length of the elements equal
 
     self.elements.length = self.environment.sea_water_temperature / 2
 
-Inheritance is also used for modifying properties, e.g. `OpenOil3D <https://github.com/opendrift/opendrift/blob/master/opendrift/models/openoil3D.py>`_ which inherits the full oil weathering from `OpenOil <https://github.com/opendrift/opendrift/blob/master/opendrift/models/openoil.py>`_, and simply calls the method ``self.oil_weathering()`` within its own ``update()`` method (in addition to the vertical advection not found in the 3D version OpenOil).
-
-3. Deactivating elements
 ########################
 
 Deactivation of elements must always be done with the special class method ``deactivate_elements(indices, reason)``

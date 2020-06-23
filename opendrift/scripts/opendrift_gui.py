@@ -14,7 +14,7 @@ from PIL import ImageTk, Image
 import tkinter as tk
 from tkinter import ttk
 import opendrift
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 from opendrift.models.leeway import Leeway
 from opendrift.models.shipdrift import ShipDrift
 from opendrift.models.openberg import OpenBerg
@@ -88,7 +88,7 @@ class OpenDriftGUI(tk.Tk):
 
         ##########################
         self.title('OpenDrift')
-        self.o = OpenOil3D(weathering_model='noaa', location='NORWAY')
+        self.o = OpenOil(weathering_model='noaa', location='NORWAY')
         try:
             img = ImageTk.PhotoImage(Image.open(self.o.test_data_folder() +
                                      '../../docs/opendrift_logo.png'))
@@ -306,7 +306,7 @@ class OpenDriftGUI(tk.Tk):
         ##############
         # Initialise
         ##############
-        #o = OpenOil3D()
+        #o = OpenOil()
         self.set_model(self.available_models[0])
 
         ##########
@@ -364,7 +364,7 @@ class OpenDriftGUI(tk.Tk):
 
     def set_model(self, model):
         if model == 'OpenOil':
-            self.o = OpenOil3D(weathering_model='noaa', location='NORWAY')
+            self.o = OpenOil(weathering_model='noaa', location='NORWAY')
         elif model == 'Leeway':
             self.o = Leeway()
         elif model == 'ShipDrift':
@@ -539,7 +539,7 @@ class OpenDriftGUI(tk.Tk):
             #        break
             #extra_seed_args = {'objectType': ln + 1}
         elif self.model.get() == 'OpenOil':
-            self.o = OpenOil3D(weathering_model='noaa', loglevel=0)
+            self.o = OpenOil(weathering_model='noaa', loglevel=0)
             #extra_seed_args = {'oiltype': self.oljetype.get()}
         elif self.model.get() == 'ShipDrift':
             self.o = ShipDrift(loglevel=0)
