@@ -2600,8 +2600,10 @@ class OpenDriftSimulation(PhysicsMethods):
 
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels=True)
-        gl.top_labels = None  # Cartopy >= 0.18
-        #gl.xlabels_top = False  # Cartopy < 0.18
+        if cartopy.__version__ < '0.18.0':
+            gl.xlabels_top = False  # Cartopy < 0.18
+        else:
+            gl.top_labels = None  # Cartopy >= 0.18
 
         fig.canvas.draw()
         fig.set_tight_layout(True)
