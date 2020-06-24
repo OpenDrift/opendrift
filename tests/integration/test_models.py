@@ -122,6 +122,8 @@ class TestModels(unittest.TestCase):
         """Check if weighting array is set correctly
         and if model returns expected positions"""
         o = OpenBerg(loglevel=50)
+        o.set_config('drift:current_uncertainty', 0)
+        o.set_config('drift:wind_uncertainty', 0)
 
         reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                 '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
