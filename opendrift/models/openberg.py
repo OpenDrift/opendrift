@@ -111,6 +111,9 @@ class OpenBerg(OpenDriftSimulation):
             wind_drift_factor = float(min=0, max=1, default=0.018)
             water_line_length = float(min=0.1, max=99999, default=90.5)
             keel_depth = float(min=.1, max=10000, default=60.0)
+        [drift]
+            current_uncertainty = float(min=0, max=5, default=0.15)
+            wind_uncertainty = float(min=0, max=5, default=1.5)
         '''
 
     # Configuration
