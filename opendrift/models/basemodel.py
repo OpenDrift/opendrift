@@ -2583,13 +2583,13 @@ class OpenDriftSimulation(PhysicsMethods):
                             facecolor=cfeature.COLORS['land'],
                             edgecolor='black')
             else:
-                self.logger.debug ("Adding GSHHS shapes..")
 
                 if fast:
                     from opendrift_landmask_data import Landmask
                     show_landmask(Landmask(skippoly=True))
 
                 else:
+                    self.logger.debug ("Adding GSHHS shapes..")
                     f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
                             facecolor=cfeature.COLORS['land'])
                     ax.add_geometries(
@@ -3318,9 +3318,9 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def _figure_title(self):
         if self._substance_name() is None:
-            return type(self).__name__
+            return 'OpenDrift - ' + type(self).__name__
         else:
-            return type(self).__name__ + ' (%s)' % self._substance_name()
+            return 'OpenDrift - ' + type(self).__name__ + ' (%s)' % self._substance_name()
 
     def _plot_trajectory_dict(self, ax, trajectory_dict):
         '''Plot provided trajectory along with simulated'''
