@@ -12,17 +12,17 @@ from opendrift.models.openoil import OpenOil
 
 o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
-# Arome
+# Arome atmospheric model
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-# Norkyst
+# Norkyst ocean model
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([reader_norkyst, reader_arome])
 
 # Seeding some particles
-lon = 4.3; lat = 60.0; # Outside Bergen
+lon = 4.4; lat = 60.0; # Outside Bergen
 time = [reader_arome.start_time,
         reader_arome.start_time + timedelta(hours=30)]
 o.seed_elements(lon, lat, radius=50, number=5000, time=time,
@@ -36,7 +36,7 @@ o.set_config('drift:current_uncertainty', .1)
 o.set_config('drift:wind_uncertainty', 2)
 
 # Running model
-o.run(steps=66*2, time_step=1800)
+o.run(steps=66, time_step=1800, time_step_output=3600)
 
 # Second run, for comparison
 o2 = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
@@ -48,16 +48,16 @@ o2.set_config('processes:evaporation', False)
 o2.set_config('processes:emulsification', False)
 o2.set_config('drift:current_uncertainty', .1)
 o2.set_config('drift:wind_uncertainty', 2)
-o2.run(steps=66*2, time_step=1800)
-
+o2.run(steps=66, time_step=1800, time_step_output=3600)
 
 #%%
-# Animate and compare the two runs
+# Animate and compare the two runs.
+# We see that there is much more stranding of oil when wind is considered.
 o.animation(fast=True, compare=o2,
             legend=['Current + 3 % wind drift', 'Current only'])
-
 
 #%%
 # .. image:: /gallery/animations/example_compare_0.gif
 
-o.plot(fast=True, compare=o2, legend=['Current + 3 % wind drift', 'Current only'])
+o.plot(fast=True, compare=o2,
+       legend=['Current + 3 % wind drift', 'Current only'])

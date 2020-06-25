@@ -46,6 +46,7 @@ o.run(duration=timedelta(hours=12), time_step=300, time_step_output=3600)
 print(o)
 o.animation()
 
+#%%
 # .. image:: /gallery/animations/example_fjord_0.gif
 
 o.plot()

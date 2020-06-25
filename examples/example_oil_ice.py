@@ -10,40 +10,32 @@ from opendrift.models.openoil import OpenOil
 
 o = OpenOil(loglevel=20)
 
-# Nordc4
-reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
-o.add_reader([reader_arctic])
-
-#time = datetime(2015, 9, 22, 6, 0, 0)
-#time = [reader_nordic4.start_time,
-#        reader_nordic4.start_time + timedelta(hours=30)]
-time = reader_arctic.start_time
+# Using live data from Barents 2.5 km ocean model
+o.add_readers_from_list(['https://thredds.met.no/thredds/dodsC/barents25km_agg'])
 
 #%%
-# Seed oil elements at defined position and time
-#o.seed_elements(lon=24.4, lat=77.3, radius=7000, number=3000, time=time)
-o.seed_elements(lon=27, lat=77.0, radius=5000, number=3000, time=time)
-o.fallback_values['x_wind'] = 0  #
-o.fallback_values['y_wind'] = 7  # Adding some northwards wind
+# Imaginary oil spill in Hinlopen strait
+o.seed_elements(lon=19.1909, lat=79.5986, radius=50,
+                number=3000, time=datetime.now())
 
 #%%
 # Adjusting some configuration
 o.set_config('processes:dispersion',  False)
 o.set_config('processes:evaporation',  False)
 o.set_config('processes:emulsification',  False)
-o.set_config('drift:current_uncertainty',  .5)
-o.set_config('drift:wind_uncertainty',  3)
 
 #%%
 # Running model
-o.run(duration=timedelta(days=4), time_step=3600, time_step_output=3600*3)
+o.run(duration=timedelta(hours=48), time_step=1800, time_step_output=3600)
 
 #%%
 # Print and plot results
 print(o)
-o.animation(background='sea_ice_area_fraction', fast=True, buffer=2)
+o.animation(background='sea_ice_area_fraction', cmap='Greys_r',
+            vmin=0, vmax=1, fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_oil_ice_0.gif
 
-o.plot(background='sea_ice_area_fraction', fast=True)
+o.plot(background='sea_ice_area_fraction', cmap='Greys_r',
+       vmin=0, vmax=1, fast=True)

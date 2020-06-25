@@ -25,7 +25,7 @@ time = datetime(td.year, td.month, td.day, 0)
 #latseed= 61.2; lonseed= 4.3    # Sognesjen
 latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
 
-ntraj=2000
+ntraj=1000
 iniz=np.random.rand(ntraj) * -10. # seeding the radionuclides in the upper 10m
 init_speciation = np.ones(ntraj)*0
 diam=np.zeros_like(init_speciation,dtype=np.float32)

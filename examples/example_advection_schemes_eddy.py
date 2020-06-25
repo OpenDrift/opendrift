@@ -10,13 +10,10 @@ from datetime import datetime, timedelta
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.models.oceandrift import OceanDrift
 
-o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
-
 fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
 
 runs = []
 leg = []
-i = 0
 for scheme in ['euler', 'runge-kutta', 'runge-kutta4']:
     for time_step  in [1800, 3600*3]:
         leg.append(scheme + ', T=%.1fh' % (time_step/3600.))
@@ -29,6 +26,5 @@ for scheme in ['euler', 'runge-kutta', 'runge-kutta4']:
         o.set_config('drift:vertical_mixing', False)
         o.run(duration=timedelta(days=9), time_step=time_step)
         runs.append(o)
-        i = i + 1
 
 runs[0].plot(compare=runs[1:], legend=leg, fast=True, buffer=.3)

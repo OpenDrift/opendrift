@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Entrainment rate (oil types)
-==================================
+Entrainment rate for light and heavy oils
+=========================================
 """
 
 from datetime import datetime, timedelta
