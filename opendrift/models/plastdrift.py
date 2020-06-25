@@ -67,10 +67,10 @@ class PlastDrift(OceanDrift):
         [general]
             coastline_action = option('none', 'stranding', 'previous', default='previous')
         [drift]
-            verticaladvection = boolean(default=True)
+            vertical_advection = boolean(default=True)
             use_tabularised_stokes_drift = boolean(default=True)
             wind_drift_depth = float(min=0, max=10, default=0.1)
-        [turbulentmixing]
+        [vertical_mixing]
             mixingmodel = option('randomwalk', 'analytical', default='analytical')
             diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='windspeed_Large1994')
         '''
@@ -101,12 +101,12 @@ class PlastDrift(OceanDrift):
     def update_particle_depth(self):
 
 
-        if self.get_config('turbulentmixing:mixingmodel') == 'randomwalk':
+        if self.get_config('vertical_mixing:mixingmodel') == 'randomwalk':
             self.logger.debug('Turbulent mixing of particles using random walk')
             self.vertical_mixing()
 
 
-        if self.get_config('turbulentmixing:mixingmodel') == 'analytical':
+        if self.get_config('vertical_mixing:mixingmodel') == 'analytical':
             self.logger.debug('Submerging according to wind')
             self.elements.z = -np.random.exponential(
                 scale=self.environment.ocean_vertical_diffusivity/

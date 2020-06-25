@@ -100,10 +100,10 @@ class OceanDrift(OpenDriftSimulation):
     def __init__(self, *args, **kwargs):
 
         configspec_oceandrift = '''
-            [processes]
-                turbulentmixing = boolean(default=True)
-                verticaladvection = boolean(default=True)
-            [turbulentmixing]
+            [drift]
+                vertical_advection = boolean(default=True)
+                vertical_mixing = boolean(default=True)
+            [vertical_mixing]
                 timestep = float(min=0.1, max=3600, default=60.)
                 diffusivitymodel = option('environment', 'zero', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')
                 TSprofiles = boolean(default=False)
@@ -128,7 +128,7 @@ class OceanDrift(OpenDriftSimulation):
         self.stokes_drift()
 
         # Turbulent Mixing
-        if self.get_config('processes:turbulentmixing') is True:
+        if self.get_config('drift:vertical_mixing') is True:
             self.update_terminal_velocity()
             self.vertical_mixing()
         else:  # Buoyancy
@@ -136,6 +136,15 @@ class OceanDrift(OpenDriftSimulation):
 
         # Vertical advection
         self.vertical_advection()
+
+    def set_2d(self):
+        """Deactivate any vertical processes/advection"""
+        conf = {
+                'drift:vertical_advection': False,
+                'drift:vertical_mixing': False}
+        for co, va in conf.items():
+            self.logger.info('Setting config: %s -> %s' % (co, va))
+            self.set_config(co, va)
 
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
                                  z_index=None):
@@ -154,7 +163,7 @@ class OceanDrift(OpenDriftSimulation):
             Vertical advection by ocean currents is normally small
             compared to termical velocity
         """
-        if self.get_config('processes:verticaladvection') is False:
+        if self.get_config('drift:vertical_advection') is False:
             self.logger.debug('Vertical advection deactivated')
             return
 
@@ -232,13 +241,13 @@ class OceanDrift(OpenDriftSimulation):
             calculated using a random walk scheme" (Visser et al. 1996)
         """
 
-        if self.get_config('processes:turbulentmixing') is False:
+        if self.get_config('drift:vertical_mixing') is False:
             self.logger.debug('Turbulent mixing deactivated')
             return
 
         self.timer_start('main loop:updating elements:vertical mixing')
 
-        dt_mix = self.get_config('turbulentmixing:timestep')
+        dt_mix = self.get_config('vertical_mixing:timestep')
 
         # minimum height/maximum depth for each particle
         Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
@@ -248,7 +257,7 @@ class OceanDrift(OpenDriftSimulation):
 
         # get profile of eddy diffusivity
         # get vertical eddy diffusivity from environment or specific model
-        diffusivity_model = self.get_config('turbulentmixing:diffusivitymodel')
+        diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
         if diffusivity_model == 'environment':
             if 'ocean_vertical_diffusivity' in self.environment_profiles and self.environment_profiles['ocean_vertical_diffusivity'].min() != self.fallback_values['ocean_vertical_diffusivity'] or self.environment_profiles['ocean_vertical_diffusivity'].max() != self.fallback_values['ocean_vertical_diffusivity']:
                 Kprofiles = self.environment_profiles[
@@ -271,7 +280,7 @@ class OceanDrift(OpenDriftSimulation):
 
         # get profiles of salinity and temperature
         # (to save interpolation time in the inner loop)
-        if (self.get_config('turbulentmixing:TSprofiles') is True 
+        if (self.get_config('vertical_mixing:TSprofiles') is True 
             and 'sea_water_salinity' in self.required_variables):
             Sprofiles = self.environment_profiles['sea_water_salinity']
             Tprofiles = \
@@ -302,7 +311,7 @@ class OceanDrift(OpenDriftSimulation):
         # Wandom walk needs faster time step compared
         # to horizontal advection.
         self.logger.debug('Vertical mixing module:' +
-            self.get_config('turbulentmixing:diffusivitymodel'))
+            self.get_config('vertical_mixing:diffusivitymodel'))
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
         self.logger.debug('Turbulent diffusion with random walk '
                       'scheme using ' + str(ntimes_mix) +
@@ -313,7 +322,7 @@ class OceanDrift(OpenDriftSimulation):
             surface = self.elements.z == 0
 
             # update terminal velocity according to environmental variables
-            if self.get_config('turbulentmixing:TSprofiles') is True:
+            if self.get_config('vertical_mixing:TSprofiles') is True:
                 self.update_terminal_velocity(Tprofiles=Tprofiles,
                                               Sprofiles=Sprofiles,
                                               z_index=z_index)
@@ -459,7 +468,7 @@ class OceanDrift(OpenDriftSimulation):
         tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
                          valinit=self.steps_output-1, valfmt='%0.0f')
         try:
-            dz = self.get_config('turbulentmixing:verticalresolution')
+            dz = self.get_config('vertical_mixing:verticalresolution')
         except:
             dz = 1.
         maxrange = -100

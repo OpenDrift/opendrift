@@ -31,8 +31,8 @@ o.fallback_values['sea_surface_wave_stokes_drift_y_velocity'] = 0
 o.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (2015)')
 o.set_config('processes:evaporation', False)
 o.set_config('processes:dispersion', False)
-o.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', dmin)
-o.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', dmax)
+o.set_config('vertical_mixing:droplet_diameter_min_wavebreaking', dmin)
+o.set_config('vertical_mixing:droplet_diameter_max_wavebreaking', dmax)
 o.seed_elements(lon=4, lat=60, time=datetime.now(), number=10000, radius=100,
                  z=0, oiltype='TROLL, STATOIL', oil_film_thickness=0.005)
 o.run(duration=timedelta(hours=2), time_step=3600)

@@ -51,7 +51,7 @@ class TestRun(unittest.TestCase):
         # Seed close to Nordic boundary
         o.seed_elements(lon=14.9, lat=71.1, radius=2000, number=100,
                         time=reader_nordic.start_time, z=0)
-        o.set_config('turbulentmixing:timestep', 20)
+        o.set_config('vertical_mixing:timestep', 20)
 
         o.set_config('drift:scheme', 'runge-kutta')
         o.run(steps=5, time_step=3600, time_step_output=3600)
@@ -76,7 +76,7 @@ class TestRun(unittest.TestCase):
     #    lon = 0.2; lat = 61.0; # Close to NorKyst boundary
     #    time = reader_nordic.start_time
     #    o.seed_elements(lon, lat, radius=5000, number=100, time=time, z=0)
-    #    o.set_config('turbulentmixing:timestep', 5)
+    #    o.set_config('vertical_mixing:timestep', 5)
     #    o.run(steps=5, time_step=3600,
     #          time_step_output=3600)
 

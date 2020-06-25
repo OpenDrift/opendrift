@@ -80,7 +80,7 @@ class TestReaders(unittest.TestCase):
 
     def test_repeated_run(self):
         o = OceanDrift(loglevel=50)
-        o.set_config('processes:turbulentmixing', False)
+        o.set_config('drift:vertical_mixing', False)
         o.add_readers_from_list(reader_list)
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
@@ -175,7 +175,7 @@ class TestReaders(unittest.TestCase):
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader(r)
         o.set_config('general:use_auto_landmask', False)
-        o.set_config('processes:turbulentmixing', False)
+        o.set_config('drift:vertical_mixing', False)
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 10
         o.seed_elements(lon=15.2, lat=68.3, time=r.start_time,
@@ -312,7 +312,7 @@ class TestReaders(unittest.TestCase):
         o.add_reader(reader)
         o.fallback_values['x_sea_water_velocity'] = 1
         o.fallback_values['land_binary_mask'] = 0
-        o.set_config('processes:turbulentmixing', False)
+        o.set_config('drift:vertical_mixing', False)
         o.seed_elements(lon=4.8, lat=60, number=1, time=reader.end_time)
         o.run(steps=2)
         # Check that fallback value is used when outside time coverage

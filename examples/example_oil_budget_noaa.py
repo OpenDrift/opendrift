@@ -36,8 +36,8 @@ o.seed_elements(lon=4.88, lat=60.1, z=0, radius=3000, number=500,
 o.set_config('processes:dispersion', False)
 o.set_config('processes:evaporation', True)
 o.set_config('processes:emulsification', True)
-o.set_config('processes:turbulentmixing', True)
-o.set_config('turbulentmixing:timestep', 2)
+o.set_config('drift:vertical_mixing', True)
+o.set_config('vertical_mixing:timestep', 2)
 
 #%%
 # Running model

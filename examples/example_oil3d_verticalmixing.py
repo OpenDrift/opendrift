@@ -28,9 +28,9 @@ else:
 
     # Adjusting some configuration
     o.set_config('processes:evaporation', False)
-    o.set_config('processes:turbulentmixing', True)
+    o.set_config('drift:vertical_mixing', True)
     o.set_config('processes:dispersion', False)
-    #o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983')
+    #o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983')
 
     # Running model
     o.run(end_time=reader_arome.start_time + timedelta(hours=12),

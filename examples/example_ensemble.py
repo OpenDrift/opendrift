@@ -14,7 +14,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 # from MEPS model of MET Norway
 
 o = OceanDrift(loglevel=0)
-o.set_config('processes:turbulentmixing', False)
+o.set_config('drift:vertical_mixing', False)
 r = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
 o.add_reader(r)
 

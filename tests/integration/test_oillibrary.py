@@ -55,7 +55,7 @@ class TestOil(unittest.TestCase):
             time=datetime.now(), oiltype=oiltype)
             o.set_config('processes:evaporation', True)
             o.set_config('processes:emulsification', True)
-            o.set_config('processes:turbulentmixing', False)
+            o.set_config('drift:vertical_mixing', False)
             o.set_config('drift:wind_uncertainty', 0)
             o.set_config('drift:current_uncertainty', 0)
             o.run(steps=3)
@@ -118,7 +118,7 @@ class TestOil(unittest.TestCase):
                                 time=datetime.now(), oiltype=oilname)
                 o.set_config('processes:dispersion', True)
                 o.set_config('wave_entrainment:droplet_size_distribution', 'Exponential')
-                o.set_config('turbulentmixing:timestep', 10)
+                o.set_config('vertical_mixing:timestep', 10)
                 o.fallback_values['land_binary_mask'] = 0
                 o.fallback_values['x_wind'] = windspeed
                 o.fallback_values['y_wind'] = 0
