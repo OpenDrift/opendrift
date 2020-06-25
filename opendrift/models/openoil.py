@@ -234,7 +234,6 @@ class OpenOil(OceanDrift):
     default_oil = oil_types.split(',')[0].strip()
 
     # Configuration
-    # TODO: rename turbulentmixing to verticalmixing
     configspec = '''
         [input]
             [[spill]]
@@ -247,16 +246,16 @@ class OpenOil(OceanDrift):
             emulsification = boolean(default=True)
             biodegradation = boolean(default=False)
             update_oilfilm_thickness = boolean(default=False)
-            turbulentmixing = boolean(default=True)
         [drift]
             wind_drift_depth = float(min=0, max=10, default=0.1)
-            verticaladvection = boolean(default=False)
+            vertical_advection = boolean(default=False)
+            vertical_mixing = boolean(default=True)
             current_uncertainty = float(min=0, max=5, default=0.05)
             wind_uncertainty = float(min=0, max=5, default=.5)
         [wave_entrainment]
             droplet_size_distribution = option('Exponential', 'Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
             entrainment_rate = option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Li et al. (2017)')
-        [turbulentmixing]
+        [vertical_mixing]
             droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
             droplet_diameter_max_wavebreaking = float(default=2e-3, min=1e-8, max=1)
             droplet_size_exponent = float(default=0, min=-10, max=10)
@@ -846,7 +845,7 @@ class OpenOil(OceanDrift):
         '''Calculate entrainment probability before main loop'''
         self.oil_entrainment_probability = \
             1 - np.exp(-self.oil_wave_entrainment_rate()*\
-                       self.get_config('turbulentmixing:timestep'))
+                       self.get_config('vertical_mixing:timestep'))
         # Calculate a random droplet diameter for each particle,
         # to be used if this particle gets entrained
         self.droplet_diameter_if_entrained = \
@@ -901,9 +900,9 @@ class OpenOil(OceanDrift):
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum, if not already done
             self.logger.debug('Generating wave breaking droplet size spectrum')
-            s = self.get_config('turbulentmixing:droplet_size_exponent')
-            dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
-            dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
+            s = self.get_config('vertical_mixing:droplet_size_exponent')
+            dmax = self.get_config('vertical_mixing:droplet_diameter_max_wavebreaking')
+            dmin = self.get_config('vertical_mixing:droplet_diameter_min_wavebreaking')
             # Note: a long array of diameters is required for 
             # sufficient resolution at both ends of logarithmic scale.
             # Could perhaps use logspace instead of linspace(?)
@@ -923,8 +922,8 @@ class OpenOil(OceanDrift):
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum as in Li (Zhengkai) et al. (2017)
             self.logger.debug('Generating wave breaking droplet size spectrum')
-            dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
-            dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
+            dmax = self.get_config('vertical_mixing:droplet_diameter_max_wavebreaking')
+            dmin = self.get_config('vertical_mixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
             g = 9.81
             interfacial_tension = self.oil_water_interfacial_tension
@@ -961,8 +960,8 @@ class OpenOil(OceanDrift):
         if not hasattr(self, 'droplet_spectrum_pdf') or self.get_config('processes:update_oilfilm_thickness') is True:
             # Generate droplet spectrum as in Johansen et al. (2015)
             self.logger.debug('Generating wave breaking droplet size spectrum')
-            dmax = self.get_config('turbulentmixing:droplet_diameter_max_wavebreaking')
-            dmin = self.get_config('turbulentmixing:droplet_diameter_min_wavebreaking')
+            dmax = self.get_config('vertical_mixing:droplet_diameter_max_wavebreaking')
+            dmin = self.get_config('vertical_mixing:droplet_diameter_min_wavebreaking')
             self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
             g = 9.81
             interfacial_tension = self.oil_water_interfacial_tension
@@ -1050,13 +1049,13 @@ class OpenOil(OceanDrift):
         self.oil_weathering()
 
         # Turbulent Mixing
-        if self.get_config('processes:turbulentmixing') is True:
+        if self.get_config('drift:vertical_mixing') is True:
             self.update_terminal_velocity()
             self.vertical_mixing()
             del self.droplet_spectrum_pdf
 
         # Vertical advection
-        if self.get_config('processes:verticaladvection') is True:
+        if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
 
         # Horizontal advection (inherited from OpenOil)

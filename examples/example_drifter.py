@@ -42,7 +42,7 @@ o.seed_elements(4.7, 59.9, radius=3000, number=2000,
                 wind_drift_factor=wind_drift_factor)
 
 # Prevent mixing elements downwards
-o.set_config('processes:turbulentmixing', False)
+o.set_config('drift:vertical_mixing', False)
 
 #%%
 # Running model

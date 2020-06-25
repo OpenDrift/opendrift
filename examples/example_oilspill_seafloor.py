@@ -27,7 +27,7 @@ time = [reader_norkyst.start_time,
 # Seed oil elements at defined position and time
 o.seed_elements(lon, lat, z='seafloor', radius=5, number=3000, time=time)
 
-o.set_config('processes:turbulentmixing', True)  # Otherwise also no updrift
+o.set_config('drift:vertical_mixing', True)  # Otherwise also no updrift
 
 #%%
 # Running model

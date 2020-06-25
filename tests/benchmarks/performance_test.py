@@ -56,8 +56,7 @@ print('Test 1: generation of landmask instance at full resolution')
 print('  54.0 seconds on reference machine.')
 start_time = datetime.now()
 reader_landmask = reader_global_landmask.Reader(
-    llcrnrlon=5, llcrnrlat=59.8,
-    urcrnrlon=5.5, urcrnrlat=60.3)
+    extent=[5, 5.5, 59.8, 60.3])
 time_spent = datetime.now() - start_time
 print('%6.1f seconds on this machine' % time_spent.total_seconds())
 
@@ -104,7 +103,7 @@ reader_arctic.verticalbuffer=1
 o = OpenOil(loglevel=50) # Quiet
 o.add_reader(reader_arctic)
 o.fallback_values['x_wind'] = 10
-o.set_config('turbulentmixing:timestep', 1)
+o.set_config('vertical_mixing:timestep', 1)
 o.seed_elements(lon=15, lat=72, number=50, radius=10000,
                 time=reader_arctic.start_time)
 start_time = datetime.now()
@@ -119,8 +118,8 @@ print('  38.0 seconds on reference machine.')
 o = OpenOil(loglevel=50) # Quiet
 o.add_reader(reader_arctic)
 o.fallback_values['x_wind'] = 10
-o.set_config('turbulentmixing:verticalresolution', 3)
-o.set_config('turbulentmixing:timestep', 50)
+o.set_config('vertical_mixing:verticalresolution', 3)
+o.set_config('vertical_mixing:timestep', 50)
 o.seed_elements(lon=15, lat=72, number=500000, radius=10000,
                 time=reader_arctic.start_time)
 start_time = datetime.now()

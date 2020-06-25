@@ -108,7 +108,7 @@ class TestRun(unittest.TestCase):
         o = OpenOil(loglevel=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         landmask = reader_global_landmask.Reader(
-            llcrnrlon=4, llcrnrlat=60, urcrnrlon=6, urcrnrlat=64)
+            extent=[4, 6, 60, 64])
         o.add_reader([landmask, norkyst])
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 0
@@ -316,7 +316,7 @@ class TestRun(unittest.TestCase):
         o1.fallback_values['land_binary_mask'] = 0
         o1.seed_elements(4.1, 63.3, radius=1000, number=100,
                          time=norkyst.start_time)
-        o1.set_config('turbulentmixing:timestep', 20.) # seconds
+        o1.set_config('vertical_mixing:timestep', 20.) # seconds
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
@@ -370,8 +370,7 @@ class TestRun(unittest.TestCase):
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         landmask = reader_global_landmask.Reader(
-            llcrnrlon=4.5, llcrnrlat=60.1,
-            urcrnrlon=6.0, urcrnrlat=60.4)
+            extent=[4.5, 6.0, 60.1, 60.4])
         o1.add_reader([landmask])
         o1.fallback_values['x_sea_water_velocity'] = 0.8  # onshore drift
         o1.seed_elements(4.8, 60.2, radius=5000, number=100,
@@ -403,8 +402,7 @@ class TestRun(unittest.TestCase):
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         landmask = reader_global_landmask.Reader(
-            llcrnrlon=4.5, llcrnrlat=60.0,
-            urcrnrlon=5.2, urcrnrlat=60.5)
+            extent=[4.5, 5.2, 60.0, 60.5])
         o1.add_reader([landmask, norkyst])
         o1.seed_elements(4.96, 60.1, radius=3000, number=100,
                         time=norkyst.start_time)
@@ -572,9 +570,9 @@ class TestRun(unittest.TestCase):
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000)
-        o.set_config('processes:turbulentmixing', True)
+        o.set_config('drift:vertical_mixing', True)
 
-        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
         z, status = o.get_property('z')
@@ -594,9 +592,9 @@ class TestRun(unittest.TestCase):
         # Seed elements 50 meters above seafloor:
         o.seed_elements(lon, lat, z='seafloor+50', time=reader_norkyst.start_time,
                         density=1000)
-        o.set_config('processes:turbulentmixing', True)
+        o.set_config('drift:vertical_mixing', True)
 
-        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
         z, status = o.get_property('z')
@@ -613,10 +611,10 @@ class TestRun(unittest.TestCase):
         lon = 5.0; lat = 64.0
         o.seed_elements(lon, lat, z=-350, time=reader_norkyst.start_time,
                         density=1000)
-        #o.set_config('turbulentmixing:TSprofiles', True)
-        o.set_config('processes:turbulentmixing', True)
+        #o.set_config('vertical_mixing:TSprofiles', True)
+        o.set_config('drift:vertical_mixing', True)
 
-        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('vertical_mixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         o.run(steps=3, time_step=300, time_step_output=300)
@@ -635,9 +633,9 @@ class TestRun(unittest.TestCase):
         lon = 4.5; lat = 62.0
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
                         density=1000)
-        o.set_config('processes:turbulentmixing', True)
+        o.set_config('drift:vertical_mixing', True)
 
-        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('vertical_mixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         o.run(steps=3, time_step=300, time_step_output=300)
@@ -658,9 +656,9 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z=[-5000, -100], time=reader_norkyst.start_time,
                         density=1000, number=2)
         o.set_config('drift:lift_to_seafloor', False)  # This time we deactivate
-        o.set_config('processes:turbulentmixing', True)
+        o.set_config('drift:vertical_mixing', True)
 
-        o.set_config('turbulentmixing:timestep', 1)  # s
+        o.set_config('vertical_mixing:timestep', 1)  # s
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         o.run(steps=3, time_step=300, time_step_output=300)
@@ -684,7 +682,7 @@ class TestRun(unittest.TestCase):
         o.fallback_values['y_sea_water_velocity'] = 0
         o.fallback_values['land_binary_mask'] = 0
         o.seed_elements(3.0, 62.0, z=-200, time=reader_norkyst.start_time)
-        o.set_config('processes:turbulentmixing', False)
+        o.set_config('drift:vertical_mixing', False)
         o.run(steps=26, time_step=30)
         seafloor_depth, status = o.get_property('sea_floor_depth_below_sea_level')
         z, status = o.get_property('z')

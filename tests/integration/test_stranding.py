@@ -42,7 +42,7 @@ class TestStranding(unittest.TestCase):
                         time=[reader_nordic.start_time,
                               reader_nordic.end_time], z=0)
         o.set_config('general:coastline_action', 'stranding')
-        o.set_config('turbulentmixing:timestep', 120)
+        o.set_config('vertical_mixing:timestep', 120)
 
         o.max_speed=.1
         o.run(end_time=reader_nordic.end_time, time_step=3600*6)
@@ -68,7 +68,7 @@ class TestStranding(unittest.TestCase):
                         time=[reader_arctic.start_time,
                               reader_nordic.end_time], z=-30)
         o.set_config('general:coastline_action', 'previous')
-        o.set_config('processes:turbulentmixing', False)
+        o.set_config('drift:vertical_mixing', False)
         o.max_speed=1
         o.run(end_time=reader_nordic.end_time, time_step=3600*36)
         self.assertEqual(o.num_elements_scheduled(), 0)

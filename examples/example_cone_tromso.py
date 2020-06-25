@@ -37,7 +37,7 @@ print(o)
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)
-o.set_config('processes:turbulentmixing', False)
+o.set_config('drift:vertical_mixing', False)
 
 #%%
 # Running model for 48 hours

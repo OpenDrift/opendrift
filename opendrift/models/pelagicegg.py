@@ -204,5 +204,5 @@ class PelagicEggDrift(OceanDrift):
         self.advect_ocean_current()
 
         # Vertical advection
-        if self.get_config('processes:verticaladvection') is True:
+        if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()

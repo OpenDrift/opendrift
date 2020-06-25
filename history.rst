@@ -1,6 +1,10 @@
 History
 =======
 
+* Renamed two config settings:
+  * ``processes:turbulentmixing`` -> ``drift:vertical_mixing``
+  * ``processes:verticaladvection``-> ``drift:vertical_advection``
+
 2020-06-24 / Release 1.3.0
 ------------------------------
 * OceanDrift3D and OpenDrift3D have been merged into OceanDrift, and OpenOil3D has been merged into OpenOil. Thus OpenOil and OceanDrift are now 3D modules, but can still be configured for 2D drift.

@@ -773,7 +773,7 @@ class RadionuclideDrift(OceanDrift):
             self.elements.lat[self.elements.specie==self.num_sirrev] = lat[self.elements.specie==self.num_sirrev]
 
         # Vertical advection
-        if self.get_config('processes:verticaladvection') is True:
+        if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
 
         # Reset z for sedimented trajectories (reject vertical advection and mixing)

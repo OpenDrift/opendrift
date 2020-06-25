@@ -55,15 +55,15 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 3
 
-        o.set_config('turbulentmixing:timestep', 4)
+        o.set_config('vertical_mixing:timestep', 4)
         # Setting droplet size range for subsea blowout
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         # Setting droplet size range for wave breaking
-        o.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-5)
-        o.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
+        o.set_config('vertical_mixing:droplet_diameter_min_wavebreaking', 1e-5)
+        o.set_config('vertical_mixing:droplet_diameter_max_wavebreaking', 1e-3)
         # Number distribution frm Delvigne & Sweeney (s=-2.3):
-        o.set_config('turbulentmixing:droplet_size_exponent', -2.3)
+        o.set_config('vertical_mixing:droplet_size_exponent', -2.3)
         o.seed_elements(4, 60, number=100, time=datetime.now(), z=-100)
         o.run(duration=timedelta(hours=3), time_step_output=900, time_step=900,
               stop_on_error=True)
@@ -82,14 +82,14 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['y_sea_water_velocity'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 2.5
-        o.set_config('turbulentmixing:timestep', 4)
+        o.set_config('vertical_mixing:timestep', 4)
         # Setting droplet size range for subsea blowout
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
-        o.set_config('turbulentmixing:droplet_size_exponent', -2.3)
+        o.set_config('vertical_mixing:droplet_size_exponent', -2.3)
         # Setting droplet size range for wave breaking
-        o.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
-        o.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
+        o.set_config('vertical_mixing:droplet_diameter_min_wavebreaking', 1e-6)
+        o.set_config('vertical_mixing:droplet_diameter_max_wavebreaking', 1e-3)
         diameter = 1e-4
         o.seed_elements(4, 60, number=100, time=datetime.now(),
                         diameter=diameter, z=-200)
@@ -119,7 +119,7 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['x_sea_water_velocity'] = 0
         o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(4, 60, number=100, time=datetime.now())
-        o.set_config('turbulentmixing:timestep', 5)
+        o.set_config('vertical_mixing:timestep', 5)
         o.run(steps=4*2, time_step_output=3600, time_step=900)
         self.assertEqual(o.elements.z.min(), 0)  # No entrainment
         ########################################################
@@ -136,8 +136,8 @@ class TestPhysics(unittest.TestCase):
         #o.fallback_values['sea_surface_wave_significant_height'] = 2.5
         #o.seed_elements(4, 60, number=1000, diameter=0.0001, # r = 50 micron
         #                density=865, time=datetime.now())
-        #o.set_config('turbulentmixing:verticalresolution', 2)
-        #o.set_config('turbulentmixing:timestep', 4)
+        #o.set_config('vertical_mixing:verticalresolution', 2)
+        #o.set_config('vertical_mixing:timestep', 4)
         #o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         ##o.plot_property('z')
         ##o.plot_vertical_distribution()
@@ -162,7 +162,7 @@ class TestPhysics(unittest.TestCase):
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
-        o.set_config('turbulentmixing:timestep', 4)
+        o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_property('z')
         #o.plot_vertical_distribution()
@@ -184,7 +184,7 @@ class TestPhysics(unittest.TestCase):
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
 
-        o.set_config('turbulentmixing:timestep', 4)
+        o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
         self.assertAlmostEqual(o.elements.z.min(), -42.9, 1)
@@ -205,7 +205,7 @@ class TestPhysics(unittest.TestCase):
                         density=865, time=datetime.now(),
                         entrainment_length_scale=0.01)
 
-        o.set_config('turbulentmixing:timestep', 4)
+        o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
@@ -226,8 +226,8 @@ class TestPhysics(unittest.TestCase):
             o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                             density=865, time=datetime.now())
 
-            #o.set_config('turbulentmixing:timestep', 4)
-            o.set_config('turbulentmixing:diffusivitymodel', scheme)
+            #o.set_config('vertical_mixing:timestep', 4)
+            o.set_config('vertical_mixing:diffusivitymodel', scheme)
             o.run(duration=timedelta(hours=2), time_step=900)
 
             if scheme == 'environment':  # presently this is fallback

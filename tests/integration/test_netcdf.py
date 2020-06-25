@@ -26,8 +26,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 def test_MFDataset():
     reader_landmask = reader_global_landmask.Reader(
-        llcrnrlon=13.5, llcrnrlat=67.1,
-        urcrnrlon=14.6, urcrnrlat=67.7)
+        extent=[13.5, 14.6, 67.1, 67.7])
 
     o = OceanDrift(loglevel=0)
     nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +

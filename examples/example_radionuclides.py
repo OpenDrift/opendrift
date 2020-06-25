@@ -44,11 +44,11 @@ o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
 #                 diameter=diam, specie=init_speciation)
 
 # Adjusting some configuration
-o.set_config('processes:turbulentmixing', True)
-o.set_config('turbulentmixing:diffusivitymodel','zero')  # include settling without vertical turbulent mixing
-#o.set_config('turbulentmixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
+o.set_config('drift:vertical_mixing', True)
+o.set_config('vertical_mixing:diffusivitymodel','zero')  # include settling without vertical turbulent mixing
+#o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
 # Vertical mixing requires fast time step
-o.set_config('turbulentmixing:timestep', 600.) # seconds
+o.set_config('vertical_mixing:timestep', 600.) # seconds
 
 #%%
 # Activate the desired species
