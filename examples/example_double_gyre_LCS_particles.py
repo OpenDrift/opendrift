@@ -18,11 +18,11 @@ from opendrift.models.oceandrift import OceanDrift
 duration = timedelta(seconds=12)  # T
 time_step=timedelta(seconds=.5)
 time_step_output=timedelta(seconds=.5)
-delta=.015  # spatial resolution
+delta=.02  # spatial resolution
 steps = int(duration.total_seconds()/
             time_step_output.total_seconds() + 1)
 
-o = OceanDrift(loglevel=50)
+o = OceanDrift(loglevel=20)
 
 #%%
 # Note that Runge-Kutta here makes a difference to Euler scheme
@@ -40,6 +40,7 @@ times = [double_gyre.initial_time +
          n*time_step_output for n in range(steps)]
 lcs = o.calculate_ftle(time=times, time_step=time_step,
                        duration=duration, delta=delta, RLCS=False)
+
 #%%
 # Make run with particles for the same period
 o.reset()
@@ -47,12 +48,12 @@ x = [.9]
 y = [.5]
 lon, lat = double_gyre.xy2lonlat(x, y)
 
-o.seed_elements(lon, lat, radius=.1, number=1000,
+o.seed_elements(lon, lat, radius=.15, number=2000,
                 time=double_gyre.initial_time)
 o.set_2d()
 o.run(duration=duration, time_step=time_step,
       time_step_output=time_step_output)
-o.animation(buffer=0, lcs=lcs, fast=True)
+o.animation(buffer=0, lcs=lcs)
 
 #%%
 # .. image:: /gallery/animations/example_double_gyre_LCS_particles_0.gif
