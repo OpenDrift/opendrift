@@ -124,7 +124,7 @@ class OpenBerg(OpenDriftSimulation):
         self.required_profiles = ['x_sea_water_velocity',
                                   'y_sea_water_velocity']  # Get vertical current profiles
 
-        self.required_profiles_z_range = [-190, 0] # [min_depth, max_depth]
+        self.required_profiles_z_range = [-120, 0] # [min_depth, max_depth]
 
         # Calling general constructor of parent class
         super(OpenBerg, self).__init__(*args, **kwargs)
