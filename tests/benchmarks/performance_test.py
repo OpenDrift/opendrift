@@ -56,8 +56,7 @@ print('Test 1: generation of landmask instance at full resolution')
 print('  54.0 seconds on reference machine.')
 start_time = datetime.now()
 reader_landmask = reader_global_landmask.Reader(
-    llcrnrlon=5, llcrnrlat=59.8,
-    urcrnrlon=5.5, urcrnrlat=60.3)
+    extent=[5, 5.5, 59.8, 60.3])
 time_spent = datetime.now() - start_time
 print('%6.1f seconds on this machine' % time_spent.total_seconds())
 

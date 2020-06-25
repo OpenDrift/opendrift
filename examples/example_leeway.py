@@ -23,8 +23,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
 
 # Landmask
 reader_landmask = reader_global_landmask.Reader(
-                    llcrnrlon=3.3, llcrnrlat=59.5,
-                    urcrnrlon=5.5, urcrnrlat=62.5)
+                    extent=[3.3, 5.5, 59.5, 62.5])
 
 #lw.add_reader([reader_norkyst, reader_arome, reader_landmask])
 

@@ -72,8 +72,7 @@ def test_global_array(test_data):
 def test_plot(tmpdir):
     print("setting up global landmask")
     reader_global = reader_global_landmask.Reader(
-                        llcrnrlon=18.64, llcrnrlat=69.537,
-                        urcrnrlon=19.37, urcrnrlat=69.81)
+                        extent=[18.64, 19.37, 69.537, 69.81])
 
     x = np.linspace(18.641, 19.369, 10)
     y = np.linspace(69.538, 69.80, 10)
