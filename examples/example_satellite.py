@@ -34,15 +34,15 @@ o.set_config('drift:current_uncertainty', .1)  # Diffusion
 o.set_config('drift:wind_uncertainty', 1)
 
 #%%
-# Running model for 48 hours
+# Running model for 6 hours
 o.run(steps=6*4, time_step=900)
 
 #%%
 # Print and plot results
 print(o)
-o.animation(fast=True, buffer=0)
+o.animation(fast=True, buffer=0.1)
 
 #%%
 # .. image:: /gallery/animations/example_satellite_0.gif
 
-o.plot(fast=True)
+o.plot(fast=True, buffer=0.1)

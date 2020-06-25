@@ -3,8 +3,8 @@
 Convolve input
 ==============
 
-Demonstrating how the spatial resolution of
-fields from a reader may be reduced.
+Decreasing the spatial resolution of fields from a reader by convolution. 
+This may improve accuracy, see: https://doi.org/10.1016/j.rse.2019.01.001
 """
 
 from datetime import datetime, timedelta
@@ -33,7 +33,7 @@ original_current = reader_norkyst.var_block_after[list(reader_norkyst.var_block_
 # <reader>.convolve may also be given as an array (kernel) directly
 N = 10  # Convolusion kernel size
 reader_norkyst.convolve = N  # Using convolution kernel for second run
-o2 = OceanDrift()
+o2 = OceanDrift(loglevel=20)
 o2.add_reader([reader_norkyst])
 o2.seed_elements(lon, lat, radius=1000, number=1000, time=time)
 o2.run(steps=20)
@@ -58,11 +58,11 @@ plt.show()
 #%%
 # Print and plot results, with convolved currents as background
 print(o)
-o.animation(compare=o2, legend=[
+o.animation(compare=o2, fast=True, legend=[
     'Original currents', 'Current convoled with kernel of size %s' % N],
     background=['x_sea_water_velocity', 'y_sea_water_velocity'])
 
 #%%
 # .. image:: /gallery/animations/example_convolve_input_0.gif
 
-o.plot()
+o.plot(fast=True)

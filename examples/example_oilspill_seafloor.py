@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Oil spill (seafloor)
-==================================
+Seafloor oil spill
+===================
 """
 
 from datetime import timedelta

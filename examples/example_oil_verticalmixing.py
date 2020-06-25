@@ -27,9 +27,6 @@ else:
                     time=reader_arome.start_time)
 
     # Adjusting some configuration
-    o.set_config('processes:evaporation', False)
-    o.set_config('drift:vertical_mixing', True)
-    o.set_config('processes:dispersion', False)
     #o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983')
 
     # Running model
@@ -46,5 +43,5 @@ o.plot_oil_budget()
 o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/example_oil3d_verticalmixing_0.gif
+# .. image:: /gallery/animations/example_oil_verticalmixing_0.gif
 

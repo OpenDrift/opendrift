@@ -196,7 +196,7 @@ class OpenOil(OceanDrift):
                          'sea_water_salinity',
                          'ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-120, 0]
+    required_profiles_z_range = [-20, 0]
 
     max_speed = 1.3  # m/s
 

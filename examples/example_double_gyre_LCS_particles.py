@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
-Double gyre (propagation schemes, particles)
+Double gyre - LCS with particles
 ============================================
 
-Illustrating the difference between Euler and Runge-Kutta propagation
-schemes, using an idealised (analytical) eddy current field.
+Drift of particles in an idealised (analytical) eddy current field, 
+plotted on top of the LCS. This takes some minutes to calculate.
 """
 
 from datetime import datetime, timedelta
@@ -13,27 +13,25 @@ import matplotlib.pyplot as plt
 from opendrift.readers import reader_double_gyre
 from opendrift.models.oceandrift import OceanDrift
 
-
 #%%
 # Setting some parameters
-duration = timedelta(seconds=15)  # T
+duration = timedelta(seconds=12)  # T
 time_step=timedelta(seconds=.5)
 time_step_output=timedelta(seconds=.5)
-delta=.01  # spatial resolution
+delta=.02  # spatial resolution
 steps = int(duration.total_seconds()/
             time_step_output.total_seconds() + 1)
 
 o = OceanDrift(loglevel=20)
 
-o.fallback_values['land_binary_mask'] = 0
 #%%
 # Note that Runge-Kutta here makes a difference to Euler scheme
 o.set_config('drift:scheme', 'runge-kutta4')
-o.set_config('drift:vertical_mixing', False)
+o.set_2d()
+o.fallback_values['land_binary_mask'] = 0
 
 double_gyre = reader_double_gyre.Reader(epsilon=.25, omega=0.628, A=0.1)
 print(double_gyre)
-
 o.add_reader(double_gyre)
 
 #%%
@@ -42,6 +40,7 @@ times = [double_gyre.initial_time +
          n*time_step_output for n in range(steps)]
 lcs = o.calculate_ftle(time=times, time_step=time_step,
                        duration=duration, delta=delta, RLCS=False)
+
 #%%
 # Make run with particles for the same period
 o.reset()
@@ -49,9 +48,9 @@ x = [.9]
 y = [.5]
 lon, lat = double_gyre.xy2lonlat(x, y)
 
-o.seed_elements(lon, lat, radius=.1, number=1000,
+o.seed_elements(lon, lat, radius=.15, number=2000,
                 time=double_gyre.initial_time)
-o.set_config('drift:vertical_mixing', False)
+o.set_2d()
 o.run(duration=duration, time_step=time_step,
       time_step_output=time_step_output)
 o.animation(buffer=0, lcs=lcs)

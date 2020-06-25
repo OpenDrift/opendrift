@@ -501,8 +501,9 @@ class Reader(BaseReader):
                 variables[par].mask[outside] = True
 
             # Mask extreme values which might have slipped through
-            variables[par] = np.ma.masked_outside(
-                variables[par], -30000, 30000)
+            with np.errstate(invalid='ignore'):
+                variables[par] = np.ma.masked_outside(
+                    variables[par], -30000, 30000)
 
             # Ensemble blocks are split into lists
             if ensemble_dim is not None:

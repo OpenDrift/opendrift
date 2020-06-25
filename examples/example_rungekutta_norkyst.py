@@ -16,7 +16,6 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 time = reader_norkyst.start_time
-reader_norkyst.interpolation = 'linearND'
 
 reader_landmask = reader_global_landmask.Reader(
                     extent=[4, 5.5, 59.9, 61.5])
@@ -40,7 +39,7 @@ o2.run(steps=66*2, time_step=1800)
 
 #%%
 # Animate and compare the two runs
-o.animation(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'])
+o.animation(compare=o2, legend=['Euler scheme', 'Runge-Kutta scheme'], fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_rungekutta_norkyst_0.gif

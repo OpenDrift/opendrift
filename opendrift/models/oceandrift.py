@@ -75,7 +75,7 @@ class OceanDrift(OpenDriftSimulation):
 
     required_profiles = ['ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-120, 0]
+    required_profiles_z_range = [-20, 0]
 
     fallback_values = {
         'x_sea_water_velocity': 0,
