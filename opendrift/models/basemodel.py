@@ -2694,11 +2694,9 @@ class OpenDriftSimulation(PhysicsMethods):
                     bg_quiv.set_UVC(u_component[::skip, ::skip], v_component[::skip, ::skip])
 
             if lcs is not None:
-                # TODO: old Basemap line below
-                map_x, map_y = map(lcs['lon'], lcs['lat'])
                 ax.pcolormesh(
-                    map_x, map_y, lcs['ALCS'][i,:,:], alpha=bgalpha,
-                    vmin=vmin, vmax=vmax, cmap=cmap)
+                    lcs['lon'], lcs['lat'], lcs['ALCS'][i,:,:], alpha=bgalpha,
+                    vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
 
             if density is True:
                 # Update density plot
@@ -3263,7 +3261,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if mappable is not None:
             cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
-            cb.set_label(str(background))
+            # TODO: need better control of colorbar content
+            if background is not None:
+                cb.set_label(str(background))
+            if linecolor is not None:
+                cb.set_label(str(linecolor))
 
         if type(background) is list:
             delta_x = (map_x[1,2] - map_x[1,1])/2.
