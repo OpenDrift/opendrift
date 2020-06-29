@@ -4,6 +4,8 @@ History
 Next release
 ------------
 
+* Added module ``SedimentDrift``
+
 * Removed two options from OpenOil, with corresponding config parameters:
 
   * Tkalich(2002) entrainment rate
