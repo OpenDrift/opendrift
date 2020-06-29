@@ -25,7 +25,7 @@ o.run(duration=timedelta(hours=50), time_step=1800, time_step_output=3600)
 
 #%%
 # Ensemble members are recycled among the 10000 particles
-ensemble_number = np.remainder(o.history['ID'], 24) + 1
+ensemble_number = np.remainder(o.history['ID'], 30) + 1
 
 o.animation(fast=True, color=ensemble_number, clabel='Ensemble number')
 
