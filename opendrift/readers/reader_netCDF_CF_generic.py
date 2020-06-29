@@ -420,7 +420,8 @@ class Reader(BaseReader):
                 #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
                 if indx.min() < 0:  # Primitive fix for crossing 0-meridian
                     indx = indx + self.numx
-                indx = np.arange(np.max([0, indx.min()-buffer]),np.min([indx.max()+buffer, self.numx]))
+                indx = np.arange(np.max([0, indx.min()-buffer]),
+                                 np.min([indx.max()+buffer, self.numx]))
             else:
                 indx = np.arange(np.max([0, indx.min()-buffer]),
                                  np.min([indx.max()+buffer, self.numx]))
@@ -537,9 +538,10 @@ class Reader(BaseReader):
             variables['x'] = np.asarray(variables['x'])
             variables['y'] = np.asarray(variables['y'])
         if self.global_coverage():
-            if self.xmax + self.delta_x >= 360 and self.xmin > 180:
-                variables['x'][variables['x']>180] -= 360
-
+            # TODO: this should be checked
+            if self.xmax + self.delta_x >= 360 and variables['x'].max() > 180:
+                variables['x'] -= 360
+                    
         variables['time'] = nearestTime
 
         # Rotate any east/north vectors if necessary
