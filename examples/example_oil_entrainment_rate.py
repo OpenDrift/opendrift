@@ -6,7 +6,7 @@ Oil entrainment rate
 
 import numpy as np
 import matplotlib.pyplot as plt
-from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017, oil_wave_entrainment_rate_tkalich2002
+from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
 
 #%%
 # Viscosities from 0 to 20 Pa*s / kg/ms
@@ -29,11 +29,6 @@ for wind, color in zip([6, 10, 15], colors):
         # from instantaneous rate (s-1) we calculate the probability of entrainment within one hour:
         p1h = 1-np.exp(-3600*r)
         ax.plot(vis, p1h, color+ls, label='Li(2017), %s m/s wind, IFT: %s' % (wind, ift))
-
-    # Entrainment rate from Tkalich (2002)
-    r = oil_wave_entrainment_rate_tkalich2002(wind_speed=wind)
-    p1h = 1-np.exp(-3600*r)*np.ones(vis.shape)
-    ax.plot(vis, p1h, color + '.', label='Tkalich, wind = %s m/s' % wind)
 
 plt.legend()
 ax.set_xlim(vis.min(), vis.max())

@@ -63,7 +63,7 @@ import matplotlib.pyplot as plt
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.elements import LagrangianArray
 import opendrift.models.noaa_oil_weathering as noaa
-from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017, oil_wave_entrainment_rate_tkalich2002
+from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
 
 
 try:
@@ -123,9 +123,6 @@ class Oil(LagrangianArray):
         ('oil_film_thickness', {'dtype': np.float32,
                                 'units': 'm',
                                 'default': 0.001}),
-        ('entrainment_length_scale', {'dtype': np.float32,  # Should be 
-                                      'units': 'm',         # removed
-                                      'default': 0.03}),
         ('diameter', {'dtype': np.float32,  # Particle diameter
                       'units': 'm',
                       'default': 0.})
@@ -253,12 +250,8 @@ class OpenOil(OceanDrift):
             current_uncertainty = float(min=0, max=5, default=0.05)
             wind_uncertainty = float(min=0, max=5, default=.5)
         [wave_entrainment]
-            droplet_size_distribution = option('Exponential', 'Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
-            entrainment_rate = option('Tkalich & Chan (2002)', 'Li et al. (2017)', default='Li et al. (2017)')
-        [vertical_mixing]
-            droplet_diameter_min_wavebreaking = float(default=1e-5, min=1e-8, max=1)
-            droplet_diameter_max_wavebreaking = float(default=2e-3, min=1e-8, max=1)
-            droplet_size_exponent = float(default=0, min=-10, max=10)
+            droplet_size_distribution = option('Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
+            entrainment_rate = option('Li et al. (2017)', default='Li et al. (2017)')
     ''' % (oil_types, default_oil) 
 
 
@@ -823,14 +816,7 @@ class OpenOil(OceanDrift):
 
     def oil_wave_entrainment_rate(self):
         er = self.get_config('wave_entrainment:entrainment_rate')
-        if er == 'Tkalich & Chan (2002)':
-            #entrainment_rate = self.oil_wave_entrainment_rate_tkalich2002()
-            entrainment_rate = oil_wave_entrainment_rate_tkalich2002(
-                    wind_speed=self.wind_speed(),
-                    significant_wave_height=self.significant_wave_height(),
-                    entrainment_length_scale=
-                        self.elements.entrainment_length_scale)
-        elif er == 'Li et al. (2017)':
+        if er == 'Li et al. (2017)':
             entrainment_rate = oil_wave_entrainment_rate_li2017(
                     dynamic_viscosity=self.elements.viscosity*
                         self.elements.density,
@@ -892,27 +878,7 @@ class OpenOil(OceanDrift):
             d = self.get_wave_breaking_droplet_diameter_johansen2015()
         elif dm == 'Li et al. (2017)':
             d = self.get_wave_breaking_droplet_diameter_liz2017()
-        elif dm == 'Exponential':
-            d = self.get_wave_breaking_droplet_diameter_exponential()
         return d
-
-    def get_wave_breaking_droplet_diameter_exponential(self):
-        if not hasattr(self, 'droplet_spectrum_pdf'):
-            # Generate droplet spectrum, if not already done
-            self.logger.debug('Generating wave breaking droplet size spectrum')
-            s = self.get_config('vertical_mixing:droplet_size_exponent')
-            dmax = self.get_config('vertical_mixing:droplet_diameter_max_wavebreaking')
-            dmin = self.get_config('vertical_mixing:droplet_diameter_min_wavebreaking')
-            # Note: a long array of diameters is required for 
-            # sufficient resolution at both ends of logarithmic scale.
-            # Could perhaps use logspace instead of linspace(?)
-            self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
-            spectrum = self.droplet_spectrum_diameter**s
-            self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
-
-        return np.random.choice(self.droplet_spectrum_diameter,
-                                size=self.num_elements_active(),
-                                p=self.droplet_spectrum_pdf)
 
     def get_wave_breaking_droplet_diameter_liz2017(self):
         # Li,Zhengkai, M. Spaulding, D. French-McCay, D. Crowley, J.R. Payne: "Development of a unified oil droplet size distribution model 
@@ -921,10 +887,9 @@ class OpenOil(OceanDrift):
         # Should be prefered when the oil film thickness is unknown.
         if not hasattr(self, 'droplet_spectrum_pdf'):
             # Generate droplet spectrum as in Li (Zhengkai) et al. (2017)
+            # Bounds are hardcoded to 1 micron and 3mm
             self.logger.debug('Generating wave breaking droplet size spectrum')
-            dmax = self.get_config('vertical_mixing:droplet_diameter_max_wavebreaking')
-            dmin = self.get_config('vertical_mixing:droplet_diameter_min_wavebreaking')
-            self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
+            self.droplet_spectrum_diameter = np.linspace(1e-6, 3e-3, 1000000)
             g = 9.81
             interfacial_tension = self.oil_water_interfacial_tension
             delta_rho = self.sea_water_density() - self.elements.density
@@ -959,10 +924,9 @@ class OpenOil(OceanDrift):
         # requires oil film thickness
         if not hasattr(self, 'droplet_spectrum_pdf') or self.get_config('processes:update_oilfilm_thickness') is True:
             # Generate droplet spectrum as in Johansen et al. (2015)
+            # Bounds are hardcoded to 1micron and 3mm
             self.logger.debug('Generating wave breaking droplet size spectrum')
-            dmax = self.get_config('vertical_mixing:droplet_diameter_max_wavebreaking')
-            dmin = self.get_config('vertical_mixing:droplet_diameter_min_wavebreaking')
-            self.droplet_spectrum_diameter = np.linspace(dmin, dmax, 1000000)
+            self.droplet_spectrum_diameter = np.linspace(1e-6, 3e-3, 1000000)
             g = 9.81
             interfacial_tension = self.oil_water_interfacial_tension
             H = self.significant_wave_height() # fall height = 2 * wave amplitude

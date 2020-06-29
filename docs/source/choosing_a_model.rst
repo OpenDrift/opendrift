@@ -55,6 +55,6 @@ Direct wind drift is only applied to elements/particles at the very surface. Ele
 
 Surface Stokes Drift must be obtained from a wave model, whereas the depth dependency is parameterised according to `Breivik et al. (2014) <https://journals.ametsoc.org/doi/abs/10.1175/JPO-D-14-0020.1>`_.
 
-Vertical entrainment, mixing and refloating is largely following `Tkalich and Chan (2003) <https://www.sciencedirect.com/science/article/pii/S0025326X02001789>`_ and `Röhrs et al. (2014) <https://onlinelibrary.wiley.com/doi/10.4319/lo.2014.59.4.1213/abstract>`_
+Vertical entrainment, mixing and refloating is largely following `Röhrs et al. (2018) <https://doi.org/10.5194/os-14-1581-2018>`_
 
 All models are subclasses of `OpenDrift <opendrift.models.basemodel>`_, or `OpenDrift <opendrift.models.oceandrift>`_ and inherits all core functionality from there. The OpenDrift class itself has no specification of advection or other processes, and can thus not be used directly.

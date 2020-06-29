@@ -1,6 +1,15 @@
 History
 =======
 
+Next release
+------------
+
+* Removed two options from OpenOil, with corresponding config parameters:
+
+  * Tkalich(2002) entrainment rate
+
+  * Exponential droplet size distribution
+
 * Renamed two config settings:
 
   * ``processes:turbulentmixing`` -> ``drift:vertical_mixing``

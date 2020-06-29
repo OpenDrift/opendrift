@@ -23,8 +23,6 @@ o2.set_config('wave_entrainment:entrainment_rate', 'Li et al. (2017)')
 o2.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (2015)')
 o2.set_config('processes:evaporation', False)
 o2.set_config('processes:dispersion', False)
-o2.set_config('vertical_mixing:droplet_diameter_min_wavebreaking', 1e-6)
-o2.set_config('vertical_mixing:droplet_diameter_max_wavebreaking', 1e-3)
 o2.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000,
                 radius=100, z=0, oiltype='TIA JUANA HEAVY, OIL & GAS')
 o2.run(duration=timedelta(hours=12), time_step=900, time_step_output=3600)
@@ -41,8 +39,6 @@ o3.set_config('wave_entrainment:entrainment_rate', 'Li et al. (2017)')
 o3.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (2015)')
 o3.set_config('processes:evaporation', False)
 o3.set_config('processes:dispersion', False)
-o3.set_config('vertical_mixing:droplet_diameter_min_wavebreaking', 1e-6)
-o3.set_config('vertical_mixing:droplet_diameter_max_wavebreaking', 1e-3)
 o3.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000,
                  radius=100, z=0, oiltype='TIA JUANA LIGHT, OIL & GAS') #'EKOFISK BLEND, STATOIL' similar ent.
 o3.run(duration=timedelta(hours=12), time_step=900, time_step_output=3600)
@@ -66,7 +62,7 @@ o2.animation_profile(compare=o3, legend=legend)
 #%%
 # .. image:: /gallery/animations/example_entrainment_rate_oil_types_0.gif
 
-o2.animation(compare=o3, legend=legend)
+o2.animation(compare=o3, legend=legend, fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_entrainment_rate_oil_types_1.gif
