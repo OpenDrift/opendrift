@@ -60,18 +60,15 @@ class TestPhysics(unittest.TestCase):
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
         # Setting droplet size range for wave breaking
-        o.set_config('vertical_mixing:droplet_diameter_min_wavebreaking', 1e-5)
-        o.set_config('vertical_mixing:droplet_diameter_max_wavebreaking', 1e-3)
-        # Number distribution frm Delvigne & Sweeney (s=-2.3):
-        o.set_config('vertical_mixing:droplet_size_exponent', -2.3)
         o.seed_elements(4, 60, number=100, time=datetime.now(), z=-100)
-        o.run(duration=timedelta(hours=3), time_step_output=900, time_step=900,
-              stop_on_error=True)
+        o.run(duration=timedelta(hours=3), time_step=900)
         d_start = o.history['diameter'][:,0]
         d_end = o.history['diameter'][:,-1]
         # Check initial droplet sizes (expect range 0.0005 to 0.005)
-        self.assertTrue(d_start.min() > o.get_config('input:spill:droplet_diameter_min_subsea'))
-        self.assertTrue(d_start.max() < o.get_config('input:spill:droplet_diameter_max_subsea'))
+        self.assertTrue(d_start.min() >
+                o.get_config('input:spill:droplet_diameter_min_subsea'))
+        self.assertTrue(d_start.max() <
+                o.get_config('input:spill:droplet_diameter_max_subsea'))
 
     def test_constant_droplet_diameters(self):
         o = OpenOil(loglevel=50, weathering_model='default')
@@ -86,10 +83,6 @@ class TestPhysics(unittest.TestCase):
         # Setting droplet size range for subsea blowout
         o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)
         o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)
-        o.set_config('vertical_mixing:droplet_size_exponent', -2.3)
-        # Setting droplet size range for wave breaking
-        o.set_config('vertical_mixing:droplet_diameter_min_wavebreaking', 1e-6)
-        o.set_config('vertical_mixing:droplet_diameter_max_wavebreaking', 1e-3)
         diameter = 1e-4
         o.seed_elements(4, 60, number=100, time=datetime.now(),
                         diameter=diameter, z=-200)
@@ -124,28 +117,6 @@ class TestPhysics(unittest.TestCase):
         self.assertEqual(o.elements.z.min(), 0)  # No entrainment
         ########################################################
 
-        ########################################################
-        ## 2.5m Hs, 50 mum droplet radius (Oil Emulsion)
-        ## Benchmark test from Jones et al. (2016)
-        ## NB: Entrainment length scale is not varied as in paper
-        ## entrainment_length_scale (L) 
-        ## L = 0.01  for Plant oil, and L = 0.1 for Emulsion
-        #o = OpenOil(loglevel=0, weathering_model='default')
-        #o.fallback_values['land_binary_mask'] = 0
-        #o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
-        #o.fallback_values['sea_surface_wave_significant_height'] = 2.5
-        #o.seed_elements(4, 60, number=1000, diameter=0.0001, # r = 50 micron
-        #                density=865, time=datetime.now())
-        #o.set_config('vertical_mixing:verticalresolution', 2)
-        #o.set_config('vertical_mixing:timestep', 4)
-        #o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
-        ##o.plot_property('z')
-        ##o.plot_vertical_distribution()
-        ##o.animation_profile()
-        ## Check minimum depth
-        #self.assertAlmostEqual(o.elements.z.min(), -46.0, 1)
-        ########################################################
-
     def test_vertical_mixing_plantoil(self):
         #######################################################
         # 2.5m Hs, 10 mum radius (PlantOil)
@@ -160,8 +131,7 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['x_sea_water_velocity'] = 0
         o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now(),
-                        entrainment_length_scale=0.01)
+                        density=865, time=datetime.now())
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_property('z')
@@ -181,8 +151,7 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['x_sea_water_velocity'] = 0
         o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now(),
-                        entrainment_length_scale=0.01)
+                        density=865, time=datetime.now())
 
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
@@ -202,8 +171,7 @@ class TestPhysics(unittest.TestCase):
         o.fallback_values['x_sea_water_velocity'] = 0
         o.fallback_values['y_sea_water_velocity'] = 0
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now(),
-                        entrainment_length_scale=0.01)
+                        density=865, time=datetime.now())
 
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2),

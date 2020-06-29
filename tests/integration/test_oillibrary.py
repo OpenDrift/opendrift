@@ -107,7 +107,7 @@ class TestOil(unittest.TestCase):
             for windspeed in [3, 8]:
                 if oil == 'SKRUGARD' and windspeed == 3:
                     continue
-                o = OpenOil(loglevel=0, weathering_model='noaa')
+                o = OpenOil(loglevel=20, weathering_model='noaa')
                 oilname = oil
                 if oil not in o.oiltypes:
                     if oilname == 'SKRUGARD':
@@ -117,7 +117,6 @@ class TestOil(unittest.TestCase):
                 o.seed_elements(lon=4.8, lat=60, number=100,
                                 time=datetime.now(), oiltype=oilname)
                 o.set_config('processes:dispersion', True)
-                o.set_config('wave_entrainment:droplet_size_distribution', 'Exponential')
                 o.set_config('vertical_mixing:timestep', 10)
                 o.fallback_values['land_binary_mask'] = 0
                 o.fallback_values['x_wind'] = windspeed
@@ -140,14 +139,14 @@ class TestOil(unittest.TestCase):
                     meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
                     fraction_dispersed = 0.086
-                    fraction_submerged = 0.313
-                    fraction_evaporated = 0.497
-                    meanlon = 4.819
+                    fraction_submerged = 0.302
+                    fraction_evaporated = 0.491
+                    meanlon = 4.816
                 elif oil == 'SKRUGARD' and windspeed == 8:
                     fraction_dispersed = 0.133
-                    fraction_submerged = 0.260
-                    fraction_evaporated = 0.197
-                    meanlon = 4.830
+                    fraction_submerged = 0.328
+                    fraction_evaporated = 0.187
+                    meanlon = 4.827
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
@@ -177,7 +176,7 @@ class TestOil(unittest.TestCase):
         actual_dispersed = b['mass_dispersed']/b['mass_total']
         self.assertAlmostEqual(actual_dispersed[-1], 0)
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.lon[0:3], [4.808547, 4.798853, 4.809264]))
+            o.elements.lon[0:3], [4.799928, 4.80109 , 4.810431], 3))
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
@@ -204,8 +203,8 @@ class TestOil(unittest.TestCase):
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_droplet_distribution(self):
-        for droplet_distribution in ['Johansen et al. (2015)',
-                                     'Exponential']:
+        # TODO: Should also add Li2017 here
+        for droplet_distribution in ['Johansen et al. (2015)']:
             o = OpenOil(loglevel=50, weathering_model='noaa')
             if 'SKRUGARD' in o.oiltypes:
                 oiltype = 'SKRUGARD'
@@ -223,9 +222,7 @@ class TestOil(unittest.TestCase):
             o.run(duration=timedelta(hours=1), time_step=1800)
             d = o.elements.diameter
             # Suspicious, Sintef-param should give larer droplets
-            if droplet_distribution == 'Exponential':
-                self.assertAlmostEqual(d.mean(), 0.000849, 2)
-            elif droplet_distribution == 'Johansen et al. (2015)':
+            if droplet_distribution == 'Johansen et al. (2015)':
                 #self.assertAlmostEqual(d.mean(), 0.000072158)
                 self.assertAlmostEqual(d.mean(), 0.000653, 2)
 
