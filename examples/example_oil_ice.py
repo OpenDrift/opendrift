@@ -32,10 +32,10 @@ o.run(duration=timedelta(hours=48), time_step=1800, time_step_output=3600)
 # Print and plot results
 print(o)
 o.animation(background='sea_ice_area_fraction', cmap='Greys_r',
-            vmin=0, vmax=1, fast=True)
+            vmin=0, vmax=1, fast=False)
 
 #%%
 # .. image:: /gallery/animations/example_oil_ice_0.gif
 
 o.plot(background='sea_ice_area_fraction', cmap='Greys_r',
-       vmin=0, vmax=1, fast=True)
+       vmin=0, vmax=1, fast=False)
