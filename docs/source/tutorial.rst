@@ -231,9 +231,9 @@ If time is also given as a two element list (of datetime objects), elements are 
 
 Specific OpenDrift models may have additional seed-functions. E.g. :mod:`opendrift.models.openoil` contains a function (seed_from_gml) to seed oil elements within contours from satellite detected oil slicks read from a GML-file. The Leeway model overloads the generic seed_elements function since it needs to read some object properties from a text-file.
 
-The seed functions may also be called repeatedly before starting the simulation, try :doc:`gallery/example_long_grid_time` for an example of this.
+The seed functions may also be called repeatedly before starting the simulation, try :doc:`gallery/example_grid_time` for an example of this.
 
-Run the script :doc:`gallery/example_long_seed_demonstration` for a demonstration of various ways to seed elements.
+Run the script :doc:`gallery/example_seed_demonstration` for a demonstration of various ways to seed elements.
 
 4. Configuration
 ################
