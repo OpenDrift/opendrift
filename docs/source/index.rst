@@ -32,7 +32,7 @@ A `journal paper about OpenDrift <https://www.geosci-model-dev.net/11/1405/2018/
 
 .. |ex3| image:: /gallery/images/thumb/sphx_glr_example_oil_budget_noaa_thumb.png
    :width: 250px
-   :target: /gallery/example_oilspill_seafloor.html
+   :target: /gallery/example_oil_budget_noaa.html
 
 .. |ex4| image:: /gallery/images/thumb/sphx_glr_example_leeway_thumb.png
    :width: 250px
