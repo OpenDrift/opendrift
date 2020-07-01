@@ -2,7 +2,6 @@
 /vol/vvfelles/opendrift/forcing_data/norkyst/norkyst_aggregate.nc
 /vol/vvfelles/opendrift/forcing_data/meps/meps_aggregate.nc
 /vol/vvfelles/opendrift/forcing_data/ecmwf/ecmwf_aggregate.nc
-/vol/vvfelles/opendrift/forcing_data/nordic/nordic_aggregate.nc
 /lustre/storeB/project/metproduction/products/norkyst/NorKyst-800m_ZDEPTHS_his_00.nc
 /lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_extracted_2_5km_latest.nc
 /lustre/storeB/project/copernicus/sea/mywavewam4/*fc*.nc
@@ -10,6 +9,7 @@
 https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
 https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc
 https://thredds.met.no/thredds/dodsC/barents25km_agg
+/vol/vvfelles/opendrift/forcing_data/nordic/nordic_aggregate.nc
 https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
 https://thredds.met.no/thredds/dodsC/topaz/dataset-topaz4-arc-unmasked-be
 https://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc
