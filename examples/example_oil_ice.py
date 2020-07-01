@@ -10,13 +10,14 @@ from opendrift.models.openoil import OpenOil
 
 o = OpenOil(loglevel=20)
 
+#%%
 # Using live data from Barents 2.5 km ocean model
 o.add_readers_from_list(['https://thredds.met.no/thredds/dodsC/barents25km_agg'])
 
 #%%
 # Imaginary oil spill in Hinlopen strait
 o.seed_elements(lon=19.1909, lat=79.5986, radius=50,
-                number=3000, time=datetime.now())
+                number=3000, time=datetime.now() - timedelta(hours=12))
 
 #%%
 # Adjusting some configuration
