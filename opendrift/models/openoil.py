@@ -46,8 +46,8 @@ In this case, the diameter will not change during the simulation, which is usefu
 
 If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
 
-    o.config['input']['spill']['droplet_diameter_min_subsea'] = 0.0005  # 0.5 mm
-    o.config['input']['spill']['droplet_diameter_max_subsea'] = 0.005   # 5 mm
+    o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
+    o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)   # 5 mm
 
 After each wave breaking event, a new droplet diameter will be chosen based on the config setting for droplet size distribution.
 """
