@@ -3837,13 +3837,19 @@ class OpenDriftSimulation(PhysicsMethods):
             caller = inspect.stack()[2]
             caller = os.path.splitext(os.path.basename(caller.filename))[0]
 
+            # Calling script is string input (e.g. from ..plot::)
+            if caller == '<string>':
+                caller = 'plot_directive'
+                adir = os.path.realpath('../source/gallery/animations')
+            else:
+                adir = os.path.realpath('../docs/source/gallery/animations')
+
             if not hasattr(OpenDriftSimulation, '__anim_no__'):
                 OpenDriftSimulation.__anim_no__ = { }
 
             if not hasattr(OpenDriftSimulation.__anim_no__, caller):
                 OpenDriftSimulation.__anim_no__[caller] = 0
 
-            adir = os.path.realpath('../docs/source/gallery/animations')
             os.makedirs(adir, exist_ok=True)
 
             filename = '%s_%d.gif' % (caller, OpenDriftSimulation.__anim_no__[caller])

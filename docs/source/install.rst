@@ -50,7 +50,7 @@ Using Miniconda (recommended)
    corresponds to how OpenDrift is setup when developed).
 
 Alternative 1: Already installed
-_________________
+________________________________
 
 1. Follow the instructions in :ref:`miniconda_install`.
 2. Clone OpenDrift:
@@ -67,7 +67,7 @@ _________________
    $ pip install -e .
 
 Alternative 2: Fresh development environment
-_____________________________
+____________________________________________
 
 1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
 2. Clone OpenDrift:
