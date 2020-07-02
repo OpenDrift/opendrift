@@ -20,8 +20,6 @@ purpose-specific processes (physics/biology etc). See
 :doc:`theory/specification` and :doc:`theory/data_model` for more detailed
 information.
 
-A `journal paper about OpenDrift <https://www.geosci-model-dev.net/11/1405/2018/>`_ is published in Geoscientific Model Development. A paper describing the technical details of the oil spill module `OpenOil <https://www.ocean-sci.net/14/1581/2018/>`_ is published in Ocean Science.
-
 .. |ex1| image:: /gallery/images/thumb/sphx_glr_example_depth_thumb.png
    :width: 250px
    :target: /gallery/example_depth.html
@@ -38,21 +36,21 @@ A `journal paper about OpenDrift <https://www.geosci-model-dev.net/11/1405/2018/
    :width: 250px
    :target: /gallery/example_leeway.html
 
-+----------------------+----------------------+
-| |ex1|                | |ex2|                |
-|                      |                      |
-| Different depths     | Double gyre          |
-+----------------------+----------------------+
-| |ex3|                | |ex4|                |
-|                      |                      |
-| Oil spill budget     | Leeway               |
-+----------------------+----------------------+
++--------------------------+----------------------+
+| |ex1|                    | |ex2|                |
+|                          |                      |
+| Drift at different depths| Double gyre          |
++--------------------------+----------------------+
+| |ex3|                    | |ex4|                |
+|                          |                      |
+| Oil budget               | Leeway               |
++--------------------------+----------------------+
 
 Some key features of OpenDrift are:
 
 * Open source (GPLv2): providing full transparency.
-* Fast: typical simulation time is about 30 seconds for a 66 hour hour simulation of 1000 particles.
-* Modular: may simulate transport and fate of any kind of particles (oil, ships, persons, icebergs)
+* Fast: optimised and vectorised Python code. Reading forcing data from disk/internet is normally the bottleneck.
+* Modular: may simulate transport and fate of any kind of particles (oil, ships, persons, icebergs, micro plastics...)
 * May use input forcing data (current, wind and waves) from any model, in many file formats and any map projection.
 * May use backup data sources if first choice is temporarily unavailable.
 * Can simulate backwards in time (specify a negative time step).
