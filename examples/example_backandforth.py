@@ -25,7 +25,7 @@ o.fallback_values['land_binary_mask'] = 0
 lon = 4.2; lat = 60.1;
 time = reader_norkyst.start_time
 o.seed_elements(lon, lat, radius=1000, number=100, time=time)
-o.set_2d()
+o.disable_vertical_motion()
 
 o.run(steps=50*4, time_step=900, time_step_output=3600, outfile=ncfile)
 
@@ -45,7 +45,7 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o.fallback_values['land_binary_mask'] = 0
 o.add_reader(reader_norkyst)
 o.schedule_elements(elements_final, time_final)
-o.set_2d()
+o.disable_vertical_motion()
 
 #%%
 # Running model backwards from end of forward simulation

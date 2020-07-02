@@ -137,7 +137,7 @@ class OceanDrift(OpenDriftSimulation):
         # Vertical advection
         self.vertical_advection()
 
-    def set_2d(self):
+    def disable_vertical_motion(self):
         """Deactivate any vertical processes/advection"""
         conf = {
                 'drift:vertical_advection': False,
