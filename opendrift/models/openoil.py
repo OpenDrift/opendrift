@@ -36,7 +36,7 @@ Oil properties affecting the drift
 ***********************************
 The vertical (and thus indirectly also the horisontal) motion of oil (droplets) is affected by oil density and droplet diameters.
 
-When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')``), the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification). When using the default (primitive) weathering model (o = OpenOil()), the parameter 'density' may be set when seeding (default is 880 kg/m3).
+When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')``), which is the default, the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification). When using the alternative (primitive) weathering model (o = OpenOil(weathering_model='basic')), the parameter 'density' may be set when seeding (default is 880 kg/m3).
 
 The droplet diameter may be given explicitly when seeding, e.g.::
 
@@ -255,7 +255,7 @@ class OpenOil(OceanDrift):
     ''' % (oil_types, default_oil) 
 
 
-    def __init__(self, weathering_model='default', *args, **kwargs):
+    def __init__(self, weathering_model='noaa', *args, **kwargs):
 
         if weathering_model == 'noaa':
             try:
@@ -279,7 +279,7 @@ class OpenOil(OceanDrift):
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
-        else:
+        elif weathering_model=='basic':
             # Read oil properties from file
             self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
                 '/oilprop.dat'
@@ -294,6 +294,8 @@ class OpenOil(OceanDrift):
             oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
             self.oiltypes = oiltypes
             self.oiltypes_linenumbers = linenumbers
+        else:
+            raise ValueError('Weathering model unknown: ' + weathering_model)
 
         self.oil_weathering_model = weathering_model
 
@@ -523,12 +525,12 @@ class OpenOil(OceanDrift):
         if self.oil_weathering_model == 'noaa':
             self.oil_weathering_noaa()
         else:
-            self.oil_weathering_default()
+            self.oil_weathering_basic()
         self.timer_end('main loop:updating elements:oil weathering')
 
-    def oil_weathering_default(self):
+    def oil_weathering_basic(self):
 
-        self.logger.debug('Default oil weathering')
+        self.logger.debug('Basic oil weathering')
 
         ## Evaporation
         self.evaporate()
