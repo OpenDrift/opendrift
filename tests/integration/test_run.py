@@ -105,7 +105,7 @@ class TestRun(unittest.TestCase):
 
     def test_seed_outside_coverage(self):
         """Test seeding"""
-        o = OpenOil(loglevel=0)
+        o = OpenOil(loglevel=0, weathering_model='basic')
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         landmask = reader_global_landmask.Reader(
             extent=[4, 6, 60, 64])
@@ -160,7 +160,7 @@ class TestRun(unittest.TestCase):
             (o3.elements.lon-o.elements.lon).max(), 0))
 
     def test_seed_polygon(self):
-        o = OpenOil(loglevel=0)
+        o = OpenOil(loglevel=0, weathering_model='basic')
         number = 10
         lonvec = np.array([2, 3, 3, 2])
         latvec = np.array([60, 60, 61, 61])
@@ -558,7 +558,7 @@ class TestRun(unittest.TestCase):
                 o.elements.lon, o2.elements.lon, decimal=3)
 
     def test_seed_seafloor(self):
-        o = OpenOil(loglevel=30)
+        o = OpenOil(loglevel=30, weathering_model='basic')
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         # Adding reader as lazy, to test seafloor seeding
         o.add_readers_from_list([o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc'])
@@ -580,7 +580,7 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[-1,0], -94.0, 1)  # After some rising
 
     def test_seed_above_seafloor(self):
-        o = OpenOil(loglevel=20)
+        o = OpenOil(loglevel=20, weathering_model='basic')
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 0
@@ -602,7 +602,7 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[-1,0], -44.3, 1)  # After some rising
 
     def test_seed_below_reader_coverage(self):
-        o = OpenOil(loglevel=20)
+        o = OpenOil(loglevel=20, weathering_model='basic')
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 0
@@ -622,7 +622,7 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[-1,0], -291.7, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
-        o = OpenOil(loglevel=20)
+        o = OpenOil(loglevel=20, weathering_model='basic')
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader([reader_norkyst])
         o.fallback_values['land_binary_mask'] = 0
@@ -644,7 +644,7 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(z[-1,0], -94.0, 1)  # After some rising
 
     def test_seed_below_seafloor_deactivating(self):
-        o = OpenOil(loglevel=50)
+        o = OpenOil(loglevel=50, weathering_model='basic')
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader([reader_norkyst])
         o.fallback_values['land_binary_mask'] = 0
@@ -759,7 +759,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.steps_calculation, 14)
 
     def test_oil_mixed_to_seafloor(self):
-        o = OpenOil(loglevel=30)
+        o = OpenOil(loglevel=30, weathering_model='basic')
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader(norkyst)
         o.set_config('processes:evaporation', False)

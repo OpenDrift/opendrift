@@ -4,6 +4,8 @@ History
 Next release
 ------------
 
+* NOAA oil weathering model is now default choice in OpenOil
+
 * Bugfix in reader_netCDF_CF_generic for particles with negative longitudes combined with global datasets with longitudes from 0-360
 
 * Added module ``SedimentDrift``

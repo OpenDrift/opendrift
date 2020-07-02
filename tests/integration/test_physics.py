@@ -46,7 +46,7 @@ class TestPhysics(unittest.TestCase):
         self.assertAlmostEqual(KSundby.max(), 0.0585, 3)
 
     def test_droplet_diameters(self):
-        o = OpenOil(loglevel=20, weathering_model='default')
+        o = OpenOil(loglevel=20, weathering_model='basic')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 0
@@ -71,7 +71,7 @@ class TestPhysics(unittest.TestCase):
                 o.get_config('input:spill:droplet_diameter_max_subsea'))
 
     def test_constant_droplet_diameters(self):
-        o = OpenOil(loglevel=50, weathering_model='default')
+        o = OpenOil(loglevel=50, weathering_model='basic')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 0
@@ -105,7 +105,7 @@ class TestPhysics(unittest.TestCase):
 
         ########################################################
         # No wind/waves (i.e. no mixing)
-        o = OpenOil(loglevel=20, weathering_model='default')
+        o = OpenOil(loglevel=20, weathering_model='basic')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 0
         o.fallback_values['y_wind'] = 0
@@ -122,7 +122,7 @@ class TestPhysics(unittest.TestCase):
         # 2.5m Hs, 10 mum radius (PlantOil)
         # Benchmark test from Jones et al. (2016)
         # NB: Entrainment length scale is not varied as in paper
-        o = OpenOil(loglevel=30, weathering_model='default')
+        o = OpenOil(loglevel=30, weathering_model='basic')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'] = 5.8
         o.fallback_values['sea_surface_wave_significant_height'] = 2.5
@@ -144,7 +144,7 @@ class TestPhysics(unittest.TestCase):
     def test_vertical_mixing_plantoil_windonly(self):
         #######################################################
         # Same as above, but parameterising waves from wind
-        o = OpenOil(loglevel=20, weathering_model='default')
+        o = OpenOil(loglevel=20, weathering_model='basic')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 10
         o.fallback_values['y_wind'] = 0
@@ -164,7 +164,7 @@ class TestPhysics(unittest.TestCase):
         ## Repeating last run, but with larger major (outer) time step
         ## Max mixing depth is expected to be same, but is slightly different
         ## This test is made to pass, but results should be checked
-        o = OpenOil(loglevel=20, weathering_model='default')
+        o = OpenOil(loglevel=20, weathering_model='basic')
         o.fallback_values['land_binary_mask'] = 0
         o.fallback_values['x_wind'] = 10
         o.fallback_values['y_wind'] = 0
@@ -208,7 +208,7 @@ class TestPhysics(unittest.TestCase):
                 self.assertAlmostEqual(o.elements.z.min(), -3.62, 1)
 
     def test_parameterised_stokes(self):
-        o = OpenOil(loglevel=30, weathering_model='default')
+        o = OpenOil(loglevel=30, weathering_model='basic')
         o.set_config('drift:use_tabularised_stokes_drift', False)
         o.set_config('processes:evaporation', False)
         o.fallback_values['land_binary_mask'] = 0
@@ -219,7 +219,7 @@ class TestPhysics(unittest.TestCase):
         o.seed_elements(lon=3, lat=60, time=datetime.now())
         o.run(steps=2)
         # Second run with parameterised Stokes drift
-        o2 = OpenOil(loglevel=30, weathering_model='default')
+        o2 = OpenOil(loglevel=30, weathering_model='basic')
         o2.set_config('drift:use_tabularised_stokes_drift', True)
         o2.set_config('processes:evaporation', False)
         o2.fallback_values['land_binary_mask'] = 0
