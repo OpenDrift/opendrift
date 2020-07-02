@@ -4,6 +4,8 @@ History
 Next release
 ------------
 
+* Bugfix in reader_netCDF_CF_generic for particles with negative longitudes combined with global datasets with longitudes from 0-360
+
 * Added module ``SedimentDrift``
 
 * Removed two options from OpenOil, with corresponding config parameters:
