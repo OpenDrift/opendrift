@@ -11,7 +11,7 @@ from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Disable any 3D motion
-o.set_2d()
+o.disable_vertical_motion()
 
 # Define some constant current, wind and Stokes drift
 o.fallback_values['x_wind'] = 7

@@ -38,7 +38,7 @@ print(o)
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)
-o.set_2d()
+o.disable_vertical_motion()
 #o.set_config('drift:vertical_mixing', False)
 #o.set_config('drift:vertical_mixing', False)
 
