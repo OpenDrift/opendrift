@@ -3,10 +3,7 @@
 Double gyre
 =============
 
-Illustrating the difference between Euler and Runge-Kutta propagation
-schemes, using an idealised (analytical) eddy current field.
-
-Double gyre current field from
+Drift in an idealised (analytical) double gyre eddy current field from
 https://shaddenlab.berkeley.edu/uploads/LCS-tutorial/examples.html
 """
 
