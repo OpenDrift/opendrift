@@ -93,6 +93,7 @@ class Reader(BaseReader):
                 if has_xarray is True:
                     self.Dataset = xr.open_mfdataset(filename,
                         chunks={'ocean_time': 1}, concat_dim='ocean_time',
+                        combine='by_coords',
                         preprocess=drop_non_essential_vars_pop,
                         data_vars='minimal', coords='minimal')
                 else:
@@ -108,7 +109,10 @@ class Reader(BaseReader):
 
 
         if 'Vtransform' in self.Dataset.variables:
-            self.Vtransform = self.Dataset.variables['Vtransform'][:]
+            if has_xarray is True:
+                self.Vtransform = self.Dataset.variables['Vtransform'].data  # scalar
+            else:
+                self.Vtransform = self.Dataset.variables['Vtransform'][:]
         else:
             self.logger.warning('Vtransform not found, using 1')
             self.Vtransform = 1
@@ -532,6 +536,7 @@ class Reader(BaseReader):
                 rad = self.angle_xi_east[tuple(np.meshgrid(indy, indx))].T
             else:
                 rad = self.angle_xi_east[indy, indx]
+                rad = np.ma.asarray(rad)
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(
