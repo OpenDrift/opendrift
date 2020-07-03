@@ -1,8 +1,8 @@
 History
 =======
 
-Next release
-------------
+2020-07-03 / Release v1.3.1
+---------------------------
 
 * NOAA oil weathering model is now default choice in OpenOil
 
