@@ -94,6 +94,7 @@ class Reader(BaseReader):
                     self.Dataset = xr.open_mfdataset(filename,
                         chunks={'ocean_time': 1}, concat_dim='ocean_time',
                         combine='by_coords',
+                        compat='override',
                         preprocess=drop_non_essential_vars_pop,
                         data_vars='minimal', coords='minimal')
                 else:
