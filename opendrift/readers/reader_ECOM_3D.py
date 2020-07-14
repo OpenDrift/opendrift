@@ -146,10 +146,7 @@ class Reader(BaseReader):
         
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
-                
 
-            #self.lat = np.nan_to_num(self.Dataset.variables['lat'][:])
-            #self.lon = np.nan_to_num(self.Dataset.variables['lon'][:])
 
             self.lat = self.Dataset.variables['lat'][:]
             self.lon = self.Dataset.variables['lon'][:]
@@ -182,7 +179,7 @@ class Reader(BaseReader):
                 time_units = 'seconds since 2000-01-01 00:00:00'
             self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
-        self.delay_time = self.times[1]
+        
         self.end_time = self.times[-1]
         if len(self.times) > 1:
             self.time_step = self.times[1] - self.times[0]
@@ -408,7 +405,7 @@ class Reader(BaseReader):
         # Masking NaN of the others variables, considering u and v always requested
         for var in requested_variables:
           
-            #variables[var] = np.ma.masked_invalid(variables[var])
+            
             variables[var] = np.nan_to_num(variables[var])
         self.logger.debug('Time for ECOM reader: ' + str(datetime.now()-start_time))
 
