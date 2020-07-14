@@ -1,4 +1,4 @@
-#Reader horizontal to ECOM model at SBB
+#Horizontal reader to ECOM model at SBB
 #Based on ROMS_native_reader
 #Developed by Arian Dialectaquiz Santos and Danilo Silva from LHiCo - IO -USP (Brazil)
 
@@ -114,6 +114,7 @@ class Reader(BaseReader):
             # Read sigma-coordinate values
             try:
                 self.sigma = self.Dataset.variables['sigma'][:]
+                self.sigma = np.nan_to_num(self.sigma)
             except:
                 num_sigma = len(self.Dataset.dimensions['sigma'])
                 self.logger.warning(
@@ -142,16 +143,16 @@ class Reader(BaseReader):
             self.num_layers = 1
             self.ECOM_variable_mapping['u'] = 'x_sea_water_velocity'
             self.ECOM_variable_mapping['v'] = 'y_sea_water_velocity' 
-            #del self.ECOM_variable_mapping['u']
-            #del self.ECOM_variable_mapping['v']
+
             self.depth = self.Dataset.variables['depth'][:]
 
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'][:]
-            self.lon = self.Dataset.variables['lon'][:]
-           # self.lat = np.ma.masked_where(self.lat == 0, self.lat)
-           # self.lon = np.ma.masked_where(self.lon == 0, self.lon) 
+            self.lat =  np.nan_to_num(self.lat)
+            self.lon = self.Dataset.variables['lon'][:]            
+            self.lon =  np.nan_to_num(self.lon)
+
            
         else:
             if gridfile is None:
@@ -161,7 +162,9 @@ class Reader(BaseReader):
             else:
                 gf = Dataset(gridfile)
                 self.lat = gf.variables['lat'][:]
+                self.lat =  np.nan_to_num(self.lat)
                 self.lon = gf.variables['lon_'][:]
+                self.lon =  np.nan_to_num(self.lon)
        
 
 
@@ -181,6 +184,7 @@ class Reader(BaseReader):
                 time_units = 'seconds since 2000-01-01 00:00:00'
             self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
+        self.delay_time = self.times[90]
         self.end_time = self.times[-1]
         if len(self.times) > 1:
             self.time_step = self.times[1] - self.times[0]
@@ -190,12 +194,10 @@ class Reader(BaseReader):
         # x and y are rows and columns for unprojected datasets
         self.xmin = 1
         self.delta_x = 1.
-       # self.delta_x = self.Dataset.variables['h1'][:]
-       # self.delta_x = np.ma.masked_where(self.delta_x <= 1e-9, self.delta_x)
+
         self.ymin = 1
         self.delta_y = 1.
-        #self.delta_y = self.Dataset.variables['h2'][:]
-        #self.delta_y = np.ma.masked_where(self.delta_y <= 1e-9, self.delta_y)
+
 
         if has_xarray:
             self.xmax = self.Dataset['xpos'].shape[0] - 1.
@@ -258,8 +260,7 @@ class Reader(BaseReader):
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped 
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped 
 
-        #indx[outside] = 0  # To be masked later
-        #indy[outside] = 0
+
         indx_el = indx.copy()
         indy_el = indy.copy()
         
@@ -281,8 +282,12 @@ class Reader(BaseReader):
         print ("indx ==", indx)
         print ("indy ==", indy)
 
+##################################################################################################################################
+#########################---This must be converted to work with sigma in 3D later ----############################################
+##################################################################################################################################
+        '''
           # Find depth levels covering all elements 
-
+        
         if z.min() == 0 or not hasattr(self, 'sea_floor_depth_below_sea_level'):
             indz = self.num_layers - 1  # surface layer
             variables['z'] = 0
@@ -326,7 +331,13 @@ class Reader(BaseReader):
                              bisect_right(-np.array(self.zlevels),
                                           -z.min()) + self.verticalbuffer)
             variables['z'] = np.array(self.zlevels[zi1:zi2])
-            #read_masks = {}  # To store maskes for various grids
+            #read_masks = {}  # To store maskes for various grid
+        '''
+##################################################################################################################################
+##################################################################################################################################
+##################################################################################################################################
+##################################################################################################################################
+
         mask_values = {}
         for par in requested_variables:
             varname = [name for name, cf in
@@ -353,7 +364,7 @@ class Reader(BaseReader):
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-            #    variables[par] = np.asarray(variables[par])  # If Xarray
+            variables[par] = np.asarray(variables[par])  # If Xarrays ######!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#################
             start = datetime.now()
 
             if par not in mask_values:
@@ -388,9 +399,10 @@ class Reader(BaseReader):
                         upper = variables[par][0,:,:]
                     else:
                         upper = variables[par]
-                    #mask_values[par] = upper.ravel()[first_mask_point]
-                    #variables[par][variables[par]==mask_values[par]] = np.nan
-
+##################################################################################################################################
+#########################---This must be converted to work with sigma in 3D later ----############################################
+##################################################################################################################################
+            '''
             if var.ndim == 4:
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
@@ -466,7 +478,7 @@ class Reader(BaseReader):
                     #variables[par][variables[par]<=1e-9] = np.nan
 
 
-
+            '''
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
            # if variables[par].ndim > 1 and block is False:
@@ -476,12 +488,13 @@ class Reader(BaseReader):
            # variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
            # if block is False:
            #     variables[par].mask[outside] = True
-
+##################################################################################################################################
+##################################################################################################################################
+##################################################################################################################################
+##################################################################################################################################
 
         if block is True:
-            # TODO: should be midpoints, but angle array below needs integer
-            #indx = indx[0:-1]  # Only if de-staggering has been performed
-            #indy = indy[1::]
+
             variables['x'] = indx
             variables['y'] = indy
         else:
@@ -502,17 +515,34 @@ class Reader(BaseReader):
                 rad = self.angle_of_rotation_from_east_to_x[tuple(np.meshgrid(indy, indx))].T
             else:
                 rad = self.angle_of_rotation_from_east_to_x[indy, indx]
+                rad = np.nan_to_num(rad)
 
-            print ("angle_of_rotation_from_east_to_x ==", rad)
+            #print ("angle_of_rotation_from_east_to_x ==", rad)
 
             if 'x_sea_water_velocity' in variables.keys():
-       
+                #variables['x_sea_water_velocity'], \
+                #    variables['y_sea_water_velocity'] = rotate_vectors_angle(
+                #        variables['x_sea_water_velocity'],
+                #        variables['y_sea_water_velocity'], rad)
+                
+                variables['x_sea_water_velocity'] = np.nan_to_num(variables['x_sea_water_velocity'])
+                variables['y_sea_water_velocity'] = np.nan_to_num(variables['y_sea_water_velocity'])
               
                 print ("u ==", variables['x_sea_water_velocity'])
                 print ("v ==", variables['y_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
-            
+
+               # variables['x_wind'], \
+               #     variables['y_wind'] = rotate_vectors_angle(
+               #         variables['x_wind'],
+               #         variables['y_wind'], rad)
+               # 
+                variables['x_wind'] = np.nan_to_num(variables['x_wind'])
+                variables['y_wind'] = np.nan_to_num(variables['y_wind'])
+
+
+
                 print ("wu ==", variables['x_wind'])
                 print ("wv ==", variables['y_wind'])
 
@@ -520,8 +550,8 @@ class Reader(BaseReader):
         # Masking NaN of the others variables, considering u and v always requested
         for var in requested_variables:
           
-            #variables[var] = np.ma.masked_invalid(variables[var])
             variables[var] = np.nan_to_num(variables[var])
+
         self.logger.debug('Time for ECOM reader: ' + str(datetime.now()-start_time))
 
         return variables
