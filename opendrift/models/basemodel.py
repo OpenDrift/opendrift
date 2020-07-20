@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
 import netCDF4
+import nc_time_axis
 
 import numpy as np
 import scipy

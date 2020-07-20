@@ -1,6 +1,11 @@
 History
 =======
 
+Next release
+------------
+
+* nc-time-axis is new dependency, providing support for cftime axis in matplotlib
+
 2020-07-03 / Release v1.3.1
 ---------------------------
 
