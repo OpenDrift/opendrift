@@ -59,6 +59,7 @@ import numpy as np
 from datetime import datetime
 import pyproj
 import matplotlib.pyplot as plt
+import nc_time_axis
 
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.elements import LagrangianArray
