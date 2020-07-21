@@ -30,7 +30,7 @@ class SedimentElement(Lagrangian3DArray):
                      'default': 0}),
         ('terminal_velocity', {'dtype': np.float32,
                                'units': 'm/s',
-                               'default': 0.001})  # 1 mm/s negative buoyancy
+                               'default': -0.001})  # 1 mm/s negative buoyancy
         ])
 
 
