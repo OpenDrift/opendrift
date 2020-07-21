@@ -308,8 +308,7 @@ class OceanDrift(OpenDriftSimulation):
                                fill_value=(0,len(z_i)-1))  # Extrapolation
 
         # Internal loop for fast time step of vertical mixing model.
-        # Wandom walk needs faster time step compared
-        # to horizontal advection.
+        # Random walk needs faster time step than horizontal advection.
         self.logger.debug('Vertical mixing module:' +
             self.get_config('vertical_mixing:diffusivitymodel'))
         ntimes_mix = np.abs(int(self.time_step.total_seconds()/dt_mix))
@@ -334,8 +333,6 @@ class OceanDrift(OpenDriftSimulation):
             w = self.elements.terminal_velocity
 
             # diffusivity K at depth z+dz
-
-
             dz = 1e-3
             if z_index == 0:
                 zi = 0*self.elements.z
