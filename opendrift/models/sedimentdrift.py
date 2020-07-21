@@ -30,7 +30,7 @@ class SedimentElement(Lagrangian3DArray):
                      'default': 0}),
         ('terminal_velocity', {'dtype': np.float32,
                                'units': 'm/s',
-                               'default': 0.001})  # 1 mm/s negative buoyancy
+                               'default': -0.001})  # 1 mm/s negative buoyancy
         ])
 
 
@@ -95,8 +95,8 @@ class SedimentDrift(OceanDrift):
     def bottom_interaction(self, seafloor_depth):
         """Sub method of vertical_mixing, determines settling"""
 
-        # Deactivate elements closer than 1m from seafloor.
+        # Deactivate elements at or below seafloor.
         # Later these should not be deactivated, but rather marked
         # as settled, for possibly later resuspension.
-        self.deactivate_elements(self.elements.z < seafloor_depth + 1,
+        self.deactivate_elements(self.elements.z <= seafloor_depth,
                                  reason='settled')

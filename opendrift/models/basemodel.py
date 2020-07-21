@@ -2682,8 +2682,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
-            if i == 0:
-                fig.canvas.draw()
             ax.set_title('%s\n%s UTC' % (self._figure_title(), times[i]))
             if background is not None:
                 map_x, map_y, scalar, u_component, v_component = \
@@ -2849,6 +2847,8 @@ class OpenDriftSimulation(PhysicsMethods):
             drifter_pos = ax.scatter([], [], color='r',
                                       zorder=15, label='Drifter', transform = gcrs)
 
+        fig.canvas.draw()
+        fig.set_tight_layout(True)
         if colorbar is True:
             if color is not False:
                 if isinstance(color, basestring) or clabel is not None:
@@ -2873,8 +2873,6 @@ class OpenDriftSimulation(PhysicsMethods):
             cb.set_alpha(1)
             cb.draw_all()
 
-        #fig.canvas.draw()
-        #fig.set_tight_layout(True)
         anim = animation.FuncAnimation(
             plt.gcf(), plot_timestep, blit=False,
             frames=x.shape[0], interval=50)
