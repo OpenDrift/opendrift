@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Coastline with options
+Coastline interaction
 ======================
 
 Example to illustrate stranding options using an artificial
