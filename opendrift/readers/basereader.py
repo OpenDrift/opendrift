@@ -225,12 +225,11 @@ class BaseReader(object):
                     self.rotate_mapping[xvar] = var
 
         # Adding variables which may be derived from existing ones
-        self.logger.debug('Adding new variable mappings')
         self.derived_variables = {}
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
             if em['output'][0] not in self.variables and em['input'][0] in self.variables:
-                self.logger.debug('Adding method!')
+                self.logger.debug('Adding variable mapping: %s -> %s' % (em['input'][0], em['output'][0]))
                 for v in em['output']:
                     self.variables.append(v)
                     self.derived_variables[v] = em['input']
