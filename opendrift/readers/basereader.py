@@ -813,6 +813,13 @@ class BaseReader(object):
     def lonlat2xy(self, lon, lat):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
+        
+        # Two methods needed for parallelisation
+        def get_x(lon_part, lat_part, num):
+            out_x[num] = self.spl_x(lon_part, lat_part)
+        def get_y(lon_part, lat_part, num):
+            out_y[num] = self.spl_y(lon_part, lat_part)
+
         if self.projected is True:
             if 'ob_tran' in self.proj4:
                 x, y = self.proj(lon, lat, inverse=False)
@@ -844,10 +851,6 @@ class BaseReader(object):
                     split_lat = np.array_split(lat, nproc)
                     out_x = Manager().dict()
                     out_y = Manager().dict()
-                    def get_x(lon_part, lat_part, num):
-                        out_x[num] = self.spl_x(lon_part, lat_part)
-                    def get_y(lon_part, lat_part, num):
-                        out_y[num] = self.spl_y(lon_part, lat_part)
                     processes = []
                     for i in range(nproc):
                         processes.append(Process(target=get_x, args=
@@ -869,10 +872,11 @@ class BaseReader(object):
                     self.logger.warning('Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy')
                 else:
                     # For smaller arrays, we run sequentially
-                    self.logger.debug('Calculating lonlat->xy sequentially')
-                x = self.spl_x(lon, lat)
-                y = self.spl_y(lon, lat)
-                return (x, y)
+                    pass
+            self.logger.debug('Calculating lonlat->xy sequentially')
+            x = self.spl_x(lon, lat)
+            y = self.spl_y(lon, lat)
+            return (x, y)
 
     def y_azimuth(self, lon, lat):
         """Calculate azimuth orientation of the y-axis of the reader SRS."""
