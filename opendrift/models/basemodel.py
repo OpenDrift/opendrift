@@ -3726,6 +3726,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         azimuth = np.degrees(np.arctan2(x_vel, y_vel))  # Direction of motion
         velocity = np.sqrt(x_vel**2 + y_vel**2)  # Velocity in m/s
+        velocity = velocity * self.elements.moving  # Do not move frosen elements
 
         if not self.proj.crs.is_geographic:  # Need to rotate SRS
             # Calculate x,y from lon,lat

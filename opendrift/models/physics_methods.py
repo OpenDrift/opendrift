@@ -553,6 +553,10 @@ class PhysicsMethods(object):
         return np.sqrt(self.environment.x_wind**2 +
                        self.environment.y_wind**2)
 
+    def current_speed(self):
+        return np.sqrt(self.environment.x_sea_water_velocity**2 +
+                       self.environment.y_sea_water_velocity**2)
+
     def significant_wave_height(self):
         # Significant wave height, parameterise from wind if not available
         if hasattr(self.environment,

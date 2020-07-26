@@ -92,11 +92,23 @@ class SedimentDrift(OceanDrift):
 
         self.vertical_mixing()  # Including buoyancy and settling
 
+        self.resuspension()
+
     def bottom_interaction(self, seafloor_depth):
         """Sub method of vertical_mixing, determines settling"""
+        # Elements at or below seafloor are settled, by setting
+        # self.elements.moving to 0.
+        # These elements will not move until eventual later resuspension.
+        settling = np.logical_and(self.elements.z <= seafloor_depth, self.elements.moving==1)
+        if np.sum(settling) > 0:
+            self.logger.debug('Settling %s elements at seafloor' % np.sum(settling))
+            self.elements.moving[settling] = 0
 
-        # Deactivate elements at or below seafloor.
-        # Later these should not be deactivated, but rather marked
-        # as settled, for possibly later resuspension.
-        self.deactivate_elements(self.elements.z <= seafloor_depth,
-                                 reason='settled')
+    def resuspension(self):
+        """Resuspending elements if current speed > .5 m/s"""
+        resuspending = np.logical_and(self.current_speed()>.5, self.elements.moving==0)
+        if np.sum(resuspending) > 0:
+            # Allow moving again
+            self.elements.moving[resuspending] = 1
+            # Suspend 1 cm above seafloor
+            self.elements.z[resuspending] = self.elements.z[resuspending] + .01

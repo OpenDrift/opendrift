@@ -384,8 +384,8 @@ class OceanDrift(OpenDriftSimulation):
             R = 2*np.random.random(self.num_elements_active()) - 1            
             r = 1.0/3
             # New position  =  old position   - up_K_flux   + random walk
-            self.elements.z = self.elements.z - dKdz*dt_mix + \
-                R*np.sqrt(( K3*dt_mix*2/r))
+            self.elements.z = self.elements.z - self.elements.moving*(
+                dKdz*dt_mix - R*np.sqrt(( K3*dt_mix*2/r)))
  
             # Reflect from surface 
             reflect = np.where(self.elements.z >= 0)
@@ -399,7 +399,7 @@ class OceanDrift(OpenDriftSimulation):
                 self.elements.z[bottom] = 2*Zmin[bottom] - self.elements.z[bottom]
            
             # Advect due to buoyancy
-            self.elements.z = self.elements.z + w*dt_mix
+            self.elements.z = self.elements.z + w*dt_mix*self.elements.moving
 
             # Put the particles that belonged to the surface slick
             # (if present) back to the surface
