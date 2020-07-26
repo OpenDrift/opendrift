@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Sediment drift
-==============
+Sediment drift from Glomma river outlet
+=======================================
 """
 
 from datetime import timedelta, datetime
@@ -17,7 +17,7 @@ o.seed_elements(lon=lon, lat=lat, number=10000,
                 time=[datetime.now(), datetime.now()+timedelta(hours=48)],
                 terminal_velocity=-.001)  # 1 mm/s settling speed
 
-if True:  # Using constant south-westwards current and wind
+if False:  # Using constant south-westwards current and wind
     o.fallback_values['x_sea_water_velocity'] = -.05
     o.fallback_values['y_sea_water_velocity'] = -.1
     o.fallback_values['y_wind'] = -6
@@ -34,7 +34,7 @@ o.set_config('drift:wind_uncertainty', 2)
 o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 #o.set_config('vertical_mixing:diffusivitymodel', 'environment')
 
-o.run(time_step=600, time_step_output=7200, duration=timedelta(hours=72))
+o.run(time_step=600, time_step_output=1800, duration=timedelta(hours=48))
 
 #%%
 # Plotting the depth vs time
@@ -43,6 +43,7 @@ o.plot_property('z')
 #%%
 # Animate sediment particles colored by their depth
 o.animation(color='z', fast=False, buffer=.01)
+o.animation(color='moving', fast=False, buffer=.01)
 
 #%%
 # .. image:: /gallery/animations/example_sediments_0.gif

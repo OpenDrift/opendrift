@@ -53,6 +53,8 @@ class LagrangianArray(object):
                 'default': -1}),  # ID to be assigned by application
         ('status', {'dtype': np.int32,  # Status categories
                     'default': 0}),
+        ('moving', {'dtype': np.int32,  # Set to 0 for elements which are frosen
+                    'default': 1}),
         ('age_seconds', {'dtype': np.float32,
                          'units': 's',
                          'default': 0}),
