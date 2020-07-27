@@ -26,8 +26,8 @@ except:
           'in local file "cmems_account.txt"')
     quit()
 
-username = f.readline().strip()
-password = f.readline().strip()
+cmems_user = f.readline().strip()
+cmems_password = f.readline().strip()
 f.close()
 
 #%%
@@ -47,7 +47,7 @@ if os.path.exists(cmems_file):
     # Reuising downloaded file, if existing. Delete it to force update.
     cmems = reader_netCDF_CF_generic.Reader(cmems_file)
 else:
-    cmems = reader_cmems.Reader(username=username, password=password,
+    cmems = reader_cmems.Reader(cmems_user, cmems_password,
                                 lon_min = lon - bufferlon,
                                 lon_max = lon + bufferlon,
                                 lat_min = lat - bufferlat,
