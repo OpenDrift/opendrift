@@ -15,7 +15,7 @@ reader_oscx = reader_oscillating.Reader('x_sea_water_velocity',
 reader_oscy = reader_oscillating.Reader('y_sea_water_velocity',
     amplitude=.3, period_seconds=3600*5, zero_time=datetime.now())
 
-o = SedimentDrift(loglevel=0)  # 0 for debug output
+o = SedimentDrift(loglevel=50)  # 0 for debug output
 
 #%%
 # Seeding sediments
@@ -48,7 +48,7 @@ o.plot_property('z')
 #%%
 # Animate sediment particles
 o.animation(color='moving', fast=True, buffer=.01)
-o.animation_profile()
+#o.animation_profile()
 
 #%%
 # .. image:: /gallery/animations/example_sediments_resuspension_0.gif
