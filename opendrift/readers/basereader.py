@@ -833,7 +833,7 @@ class BaseReader(object):
             # For larger arrays, we split and calculate in parallel
             # The number of CPUs to use can be improved/optimised
             num_elements = len(np.atleast_1d(lon))
-            if num_elements > 100 and not hasattr(self, 'multiptocessing_fail'):
+            if num_elements > 100 and not hasattr(self, 'multiprocessing_fail'):
                 try:
                     nproc = 2
                     if num_elements > 1000:
@@ -866,9 +866,9 @@ class BaseReader(object):
                 except Exception as e:
                     self.logger.warning('Parallelprocessing failed:')
                     self.logger.warning(e)
-                    self.multiptocessing_fail = True
+                    self.multiprocessing_fail = True
             else:
-                if hasattr(self, 'multiptocessing_fail'):
+                if hasattr(self, 'multiprocessing_fail'):
                     self.logger.warning('Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy')
                 else:
                     # For smaller arrays, we run sequentially
