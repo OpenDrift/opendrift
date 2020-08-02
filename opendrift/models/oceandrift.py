@@ -10,13 +10,23 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.passivetracer import PassiveTracer
+######
+#Trying to add stokes drift
+#####
+from opendrift.elements import LagrangianArray
+from opendrift.models.physics_methods import *
+
+
+
+
+
 
 # We add the property 'wind_drift_factor' to the element class
 PassiveTracer.variables = PassiveTracer.add_variables([
@@ -33,16 +43,60 @@ class OceanDrift(OpenDriftSimulation):
     Developed at MET Norway.
 
     """
-
+    '''
     ElementType = PassiveTracer
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
                           'x_wind', 'y_wind']
     required_variables.append('land_binary_mask')
 
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'x_wind': 0,
-                       'y_wind': 0}
+   # fallback_values = {#'x_sea_water_velocity': 0,
+                       #'y_sea_water_velocity': 0,
+                       #'x_wind': 0,
+                       #'y_wind': 0}
+    '''
+
+    ElementType = PassiveTracer
+    required_variables = [
+        'x_sea_water_velocity',
+        'y_sea_water_velocity',
+        'x_wind', 'y_wind',
+        #'upward_sea_water_velocity',
+        'ocean_vertical_diffusivity',
+        'sea_surface_wave_significant_height',
+        'sea_surface_wave_stokes_drift_x_velocity',
+        'sea_surface_wave_stokes_drift_y_velocity',
+        'sea_surface_wave_period_at_variance_spectral_density_maximum',
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
+        #'surface_downward_x_stress',
+        #'surface_downward_y_stress',
+        #'turbulent_kinetic_energy',
+        #'turbulent_generic_length_scale',
+        'sea_floor_depth_below_sea_level',
+        'land_binary_mask'
+        ]
+
+    required_profiles = ['ocean_vertical_diffusivity']
+    # The depth range (in m) which profiles shall cover
+    required_profiles_z_range = [-120, 0]
+
+    fallback_values = {
+        #'x_sea_water_velocity': 0,
+        #'y_sea_water_velocity': 0,
+        'sea_surface_wave_significant_height': 0.2,
+       # 'sea_surface_wave_stokes_drift_x_velocity': 0.2,
+       # 'sea_surface_wave_stokes_drift_y_velocity': 0.2,
+       # 'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
+       # 'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
+       # 'x_wind': 0,
+        #'y_wind': 0,
+       # 'upward_sea_water_velocity': 0,
+        'ocean_vertical_diffusivity': 0.2,
+       # 'surface_downward_x_stress': 0,
+       # 'surface_downward_y_stress': 0,
+       # 'turbulent_kinetic_energy': 0,
+       # 'turbulent_generic_length_scale': 0,
+        'sea_floor_depth_below_sea_level': 1000
+        }
 
     def __init__(self, *args, **kwargs):
 
@@ -56,7 +110,11 @@ class OceanDrift(OpenDriftSimulation):
 
         # Advect particles due to wind drag (according to specified
         #                                    wind_drift_factor)
-        self.advect_wind()
+        #self.advect_wind()
+
+        # Stokes drift
+        self.stokes_drift()
+
 
     def seed_along_trajectory(self, lon, lat, time,
                               release_time_interval=None, **kwargs):
