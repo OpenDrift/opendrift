@@ -451,6 +451,30 @@ class OpenDriftSimulation(PhysicsMethods):
             self.previous_lon[IDs-1] = np.copy(lons)
             self.previous_lat[IDs-1] = np.copy(lats)
 
+    def store_previous_variables(self):
+        """Store some environment variables, for access at next time step"""
+
+        if not hasattr(self, 'store_previous'):
+            return
+        if not hasattr(self, 'variables_previous'):
+            # Create ndarray to store previous variables
+            dtype = [(var, np.float32) for var in self.store_previous]
+            self.variables_previous = np.array(
+                np.full(self.num_elements_total(), np.nan), dtype=dtype)
+
+        # Copying variables_previous to environment_previous
+        self.environment_previous = self.variables_previous[self.elements.ID-1]
+
+        # Use new values for new elements which have no previous value
+        for var in self.store_previous:
+            undefined = np.isnan(self.environment_previous[var])
+            self.environment_previous[var][undefined] = getattr(self.environment, var)[undefined]
+
+        self.environment_previous = self.environment_previous.view(np.recarray)
+
+        for var in self.store_previous:
+            self.variables_previous[var][self.elements.ID-1] = getattr(self.environment, var)
+
     def interact_with_coastline(self, final=False):
         if self.num_elements_active() == 0:
             return
@@ -2254,6 +2278,8 @@ class OpenDriftSimulation(PhysicsMethods):
                                          self.elements.lat,
                                          self.elements.z,
                                          self.required_profiles)
+
+                self.store_previous_variables()
 
                 self.calculate_missing_environment_variables()
 
