@@ -190,7 +190,7 @@ def close(self):
         print('Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)')
     
 
-def import_file(self, filename, times=None):
+def import_file(self, filename, times=None, elements=None):
 
     self.logger.debug('Importing from ' + filename)
     infile = Dataset(filename, 'r')
@@ -214,7 +214,11 @@ def import_file(self, filename, times=None):
     self.time = self.end_time  # Using end time as default
     self.status_categories = infile.variables['status'].flag_meanings.split()
 
-    num_elements = len(infile.dimensions['trajectory'])
+    if elements is None:
+        num_elements = len(infile.dimensions['trajectory'])
+        elements=np.arange(num_elements)
+    else:
+        num_elements=len(elements)
 
     dtype = np.dtype([(var[0], var[1]['dtype'])
                       for var in self.ElementType.variables.items()])
@@ -230,7 +234,7 @@ def import_file(self, filename, times=None):
             self.history_metadata[env_var] = {}
     history_dtype = np.dtype(history_dtype_fields)
 
-    # Import whole dataset (history)
+    # Import dataset (history)
     self.history = np.ma.array(
         np.zeros([num_elements, self.steps_output]),
         dtype=history_dtype, mask=[True])
@@ -238,7 +242,7 @@ def import_file(self, filename, times=None):
         if var in ['time', 'trajectory']:
             continue
         try:
-            self.history[var] = infile.variables[var][:, 0:self.steps_output]
+            self.history[var] = infile.variables[var][elements, 0:self.steps_output]
         except Exception as e:
             self.logger.info(e)
             pass
@@ -251,7 +255,7 @@ def import_file(self, filename, times=None):
         if var in self.ElementType.variables:
             kwargs[var] = self.history[var][
                 np.arange(len(index_of_last)), index_of_last]
-    kwargs['ID'] = np.arange(len(kwargs['lon'])) + 1
+    kwargs['ID'] = elements + 1
     self.elements = self.ElementType(**kwargs)
     self.elements_deactivated = self.ElementType()
 
