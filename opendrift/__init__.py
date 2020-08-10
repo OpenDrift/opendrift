@@ -62,8 +62,8 @@ def open(filename, times=None, elements=None):
 
     cls = pydoc.locate(module_name + '.' + class_name)
     if cls is None:
-        from models import oceandrift3D
-        cls = oceandrift3D.OceanDrift3D
+        from opendrift.models import oceandrift
+        cls = oceandrift.OceanDrift
     o = cls()
     o.io_import_file(filename, times=times, elements=elements)
     logging.info('Returning ' + str(type(o)) + ' object')
