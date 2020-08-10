@@ -2787,7 +2787,9 @@ class OpenDriftSimulation(PhysicsMethods):
                 colorarray = self.get_property(color)[0].T
                 colorarray = colorarray*unitfactor
                 colorarray_deactivated = \
-                    getattr(self.elements_deactivated, color)
+                    self.get_property(color)[0][
+                        index_of_last[self.elements_deactivated.ID-1],
+                                      self.elements_deactivated.ID-1].T
             else:
                 colorarray = color
             if vmin is None:
@@ -2826,12 +2828,12 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             c = []
         points = ax.scatter([], [], c=c, zorder=10,
-                             edgecolor=[], cmap=cmap, s=markersize,
-                             vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
+                            edgecolor=[], cmap=cmap, s=markersize,
+                            vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
         # Plot deactivated elements, with transparency
-        points_deactivated = ax.scatter([], [], color=c, zorder=9,
-                                         vmin=vmin, vmax=vmax, s=markersize,
-                                         edgecolor=[], alpha=.3, transform = gcrs)
+        points_deactivated = ax.scatter([], [], c=c, zorder=9,
+                                        vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,
+                                        edgecolor=[], alpha=.3, transform = gcrs)
         x_deactive, y_deactive = (self.elements_deactivated.lon, self.elements_deactivated.lat)
 
         if compare is not None:
@@ -2843,15 +2845,13 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     legstr = None
                 cd['points_other'] = \
-                    ax.scatter([], [], color=
-                                self.plot_comparison_colors[cn+1],
-                                s=markersize,
-                                label=legstr, zorder=10, transform = gcrs)
+                    ax.scatter([], [], c=self.plot_comparison_colors[cn+1],
+                               s=markersize, label=legstr, zorder=10, transform = gcrs)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    ax.scatter([], [], alpha=.3, zorder=9, color=
-                                self.plot_comparison_colors[cn+1],
-                                s=markersize, transform = gcrs)
+                    ax.scatter([], [], alpha=.3, zorder=9,
+                               c=self.plot_comparison_colors[cn+1],
+                               s=markersize, transform = gcrs)
 
             if legend != ['', '']:
                 plt.legend(markerscale=2, loc=legend_loc)
@@ -2870,8 +2870,8 @@ class OpenDriftSimulation(PhysicsMethods):
         if drifter is not None:
             drifter['x'], drifter['y'] = (drifter['lon'], drifter['lat'])
             #map.plot(drifter['x'], drifter['y'])
-            drifter_pos = ax.scatter([], [], color='r',
-                                      zorder=15, label='Drifter', transform = gcrs)
+            drifter_pos = ax.scatter([], [], c='r', zorder=15,
+                                     label='Drifter', transform = gcrs)
 
         fig.canvas.draw()
         fig.set_tight_layout(True)
@@ -3178,7 +3178,7 @@ class OpenDriftSimulation(PhysicsMethods):
                        y[index_of_first, range(x.shape[1])],
                        s=markersize,
                        zorder=10, edgecolor=markercolor, linewidths=.2,
-                       color=color_initial, label=label_initial,
+                       c=color_initial, label=label_initial,
                        transform = gcrs)
             if surface_color is not None:
                 color_active = surface_color
@@ -3187,13 +3187,13 @@ class OpenDriftSimulation(PhysicsMethods):
                        y[index_of_last, range(x.shape[1])],
                        s=markersize, zorder=3,
                        edgecolor=markercolor, linewidths=.2,
-                       color=color_active, label=label_active,
+                       c=color_active, label=label_active,
                        transform = gcrs)
             #if submerged_color is not None:
             #    map.scatter(x[range(x.shape[0]), index_of_last],
             #                y[range(x.shape[0]), index_of_last], s=markersize,
             #                zorder=3, edgecolor=markercolor, linewidths=.2,
-            #                color=submerged_color, label='submerged')
+            #                c=submerged_color, label='submerged')
 
             x_deactivated, y_deactivated = (self.elements_deactivated.lon,
                                                self.elements_deactivated.lat)
@@ -3226,7 +3226,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     ax.scatter(x_deactivated[indices], y_deactivated[indices],
                                 s=markersize,
                                 zorder=zorder, edgecolor=markercolor, linewidths=.1,
-                                color=color_status, label=legstr,
+                                c=color_status, label=legstr,
                                 transform = gcrs)
 
         if compare is not None:
@@ -3242,7 +3242,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
                     s=markersize,
                     zorder=3, edgecolor=markercolor, linewidths=.2,
-                    color=self.plot_comparison_colors[i+1], transform = gcrs)
+                    c=self.plot_comparison_colors[i+1], transform = gcrs)
 
         try:
             if legend is not None:# and compare is None:
