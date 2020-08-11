@@ -329,7 +329,7 @@ class ReaderBlock():
             if profiles is not None and varname in profiles:
                 profiles_dict[varname] = horizontal
             if horizontal.ndim > 1:
-                env_dict[varname] = self.interpolator1d(horizontal)
+                env_dict[varname] = self.interpolator2d(horizontal)
             else:
                 env_dict[varname] = horizontal
         if 'z' in profiles_dict:
