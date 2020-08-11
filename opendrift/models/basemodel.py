@@ -2864,6 +2864,8 @@ class OpenDriftSimulation(PhysicsMethods):
             H = H + H_submerged + H_stranded
             H = np.ma.masked_where(H==0, H)
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
+            if vmax is None:
+                vmax=H.max()
             pm = ax.pcolormesh(lon_array, lat_array, H[0,:,:],
                                vmin=0.1, vmax=vmax, cmap=cmap, transform=gcrs)
 
