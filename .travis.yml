@@ -5,8 +5,8 @@ python:
   - 3.8
 
 env:
-  - NUMPY=1.15.4 SCIPY=1.1 NETCDF=1.4.3 MATPLOTLIB=3.0.2 XARRAY=0.11.2
-  - NUMPY=1.16.4 SCIPY=1.2 NETCDF=1.5 MATPLOTLIB=3.1
+  - NUMPY=1.19 SCIPY=1.5 NETCDF=1.5 MATPLOTLIB=3.3 XARRAY=0.16
+  - NUMPY=1.19 SCIPY=1.5 NETCDF=1.5 MATPLOTLIB=3.3
   - VANILLA=1
 
 services:
@@ -27,10 +27,10 @@ install:
 script:
   - docker run -itd --name="opendrift_${TRAVIS_COMMIT}" opendrift:${TRAVIS_COMMIT}
 
-  - if [ ! -z "$VANILLA" ]; then
+  - if [ -n "$VANILLA" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB}"; fi
 
-  - if [ ! -z "$VANILA" && "$XARRAY" ]; then
+  - if [ -z "$VANILLA" ] && [ -n "$XARRAY" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge xarray=$XARRAY dask";
     fi
 
