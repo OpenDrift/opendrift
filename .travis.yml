@@ -30,7 +30,7 @@ script:
   - if [ -n "$VANILLA" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB}"; fi
 
-  - if [ -n "$VANILLA" && -z "$XARRAY" ]; then
+  - if [ -z "$VANILLA" ] && [ -n "$XARRAY" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge xarray=$XARRAY dask";
     fi
 
