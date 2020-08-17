@@ -27,10 +27,10 @@ install:
 script:
   - docker run -itd --name="opendrift_${TRAVIS_COMMIT}" opendrift:${TRAVIS_COMMIT}
 
-  - if [ ! -z "$VANILLA" ]; then
+  - if [ -n "$VANILLA" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB}"; fi
 
-  - if [ ! -z "$VANILLA" && "$XARRAY" ]; then
+  - if [ -n "$VANILLA" && -z "$XARRAY" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge xarray=$XARRAY dask";
     fi
 
