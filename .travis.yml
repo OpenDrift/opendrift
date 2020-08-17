@@ -5,8 +5,8 @@ python:
   - 3.8
 
 env:
-  - NUMPY=1.18.5 SCIPY=1.4 NETCDF=1.5 MATPLOTLIB=3.2 XARRAY=0.15
-  - NUMPY=1.18.5 SCIPY=1.4 NETCDF=1.5 MATPLOTLIB=3.2
+  - NUMPY=1.19 SCIPY=1.5 NETCDF=1.5 MATPLOTLIB=3.3 XARRAY=0.16
+  - NUMPY=1.19 SCIPY=1.5 NETCDF=1.5 MATPLOTLIB=3.3
   - VANILLA=1
 
 services:
@@ -30,7 +30,7 @@ script:
   - if [ ! -z "$VANILLA" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB}"; fi
 
-  - if [ ! -z "$VANILA" && "$XARRAY" ]; then
+  - if [ ! -z "$VANILLA" && "$XARRAY" ]; then
       docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge xarray=$XARRAY dask";
     fi
 
