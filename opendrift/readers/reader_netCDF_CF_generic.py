@@ -131,9 +131,9 @@ class Reader(BaseReader):
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 self.logger.info('Opening files with MFDataset')
                 if has_xarray:
-                    self.Dataset = xr.open_mfdataset(filename)
+                    self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested')
                 else:
-                    self.Dataset = MFDataset(filename)
+                    self.Dataset = MFDataset(filename, aggdim='time')
             else:
                 self.logger.info('Opening file with Dataset')
                 if has_xarray:
