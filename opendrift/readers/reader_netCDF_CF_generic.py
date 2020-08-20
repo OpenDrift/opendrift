@@ -27,7 +27,6 @@ try:
 except:
     has_xarray = False
 
-
 def proj_from_CF_dict(c):
 
     # This method should be extended to other projections:
@@ -131,13 +130,14 @@ class Reader(BaseReader):
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 self.logger.info('Opening files with MFDataset')
                 if has_xarray:
-                    self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested')
+                    self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
+                                                     decode_times=False)
                 else:
                     self.Dataset = MFDataset(filename, aggdim='time')
             else:
                 self.logger.info('Opening file with Dataset')
                 if has_xarray:
-                    self.Dataset = xr.open_dataset(filename)
+                    self.Dataset = xr.open_dataset(filename, decode_times=False)
                 else:
                     self.Dataset = Dataset(filename, 'r')
         except Exception as e:
@@ -265,12 +265,13 @@ class Reader(BaseReader):
                     var_data = var[:]
                 time = var_data
                 time_units = units
-                if has_xarray:
-                    self.times = [datetime.utcfromtimestamp((OT -
-                        np.datetime64('1970-01-01T00:00:00Z')
-                            ) / np.timedelta64(1, 's')) for OT in time]
-                else:
-                    self.times = num2date(time, time_units)
+                #if has_xarray:
+                #    self.times = [datetime.utcfromtimestamp((OT -
+                #        np.datetime64('1970-01-01T00:00:00Z')
+                #            ) / np.timedelta64(1, 's')) for OT in time]
+                #else:
+                #    self.times = num2date(time, time_units)
+                self.times = num2date(time, time_units)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
