@@ -21,7 +21,7 @@ from opendrift.elements.passivetracer import PassiveTracer
 # We add the property 'wind_drift_factor' to the element class
 PassiveTracer.variables = PassiveTracer.add_variables([
     ('wind_drift_factor', {'dtype': np.float32,
-                           'unit': '%',
+                           'units': '1',
                            'default': 0.02}),
     ('terminal_velocity', {'dtype': np.float32,
                            'units': 'm/s',

@@ -74,14 +74,14 @@ class IcebergObj(LagrangianArray):
     # We add the properties to the element class
     variables = LagrangianArray.add_variables([
         ('wind_drift_factor', {'dtype': np.float32,				# The fraction of the wind speed at which an iceberg is moved
-                       	     		'unit': '%',
-                       	        	'default': 0.018}),
+                               'units': '1',
+                       	       'default': 0.018}),
         ('water_line_length', {'dtype': np.float32,				# Iceberg size
-        							'unit': 'm',
-                       	        	'default': 90.5}),
+                               'units': 'm',
+                               'default': 90.5}),
         ('keel_depth', {'dtype': np.float32,					# Iceberg keel depth
-        							'unit': 'm',
-                       	        	'default': 60.})])
+                        'units': 'm',
+                        'default': 60.})])
 
 class OpenBerg(OpenDriftSimulation):
     """The Deterministic iceberg model in the OpenDrift framework.

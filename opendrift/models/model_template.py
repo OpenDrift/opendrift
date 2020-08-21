@@ -46,10 +46,10 @@ class TemplateElementType(Lagrangian3DArray):
     """
     variables = Lagrangian3DArray.add_variables([
         ('new_property_1', {'dtype': np.float32,
-                            'unit': '1',
+                            'units': '1',
                             'default': 0}),
         ('new_property_2', {'dtype': np.float32,
-                            'unit': '1',
+                            'units': '1',
                             'default': 0})])
 
 

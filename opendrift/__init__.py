@@ -60,6 +60,12 @@ def open(filename, times=None, elements=None):
                          'opendrift_module and opendrift_class')
     n.close()
 
+    if class_name == 'OpenOil3D':
+        class_name = 'OpenOil'
+        module_name = 'opendrift.models.openoil'
+    if class_name == 'OceanDrift3D':
+        class_name = 'OceanDrift'
+        module_name = 'opendrift.models.oceandrift'
     cls = pydoc.locate(module_name + '.' + class_name)
     if cls is None:
         from opendrift.models import oceandrift
