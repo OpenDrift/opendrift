@@ -1,9 +1,14 @@
 History
 =======
 
-Next release
-------------
+2020-08-21 / Release v1.3.2
+---------------------------
 
+* Fixed ``vmax`` value for animations with density array
+* Fixed animation marker color for deactivated elements
+* Introduced mechanism to store environment variables from previous time step
+* New element property ``moving``, giving possibility to temporarily freeze elements, e.g. used for sedimentation and resuspension in SedimentDrift module
+* Improved robustness using Xarray in netCDF-readers. Xarray is still optional dependency, but is now tested on Travis
 * nc-time-axis is new dependency, providing support for cftime axis in matplotlib
 
 2020-07-03 / Release v1.3.1
