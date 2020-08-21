@@ -406,8 +406,16 @@ class OpenDriftGUI(tk.Tk):
         for num, i in enumerate(sc):
             if i in ['ocean_only', 'jibeProbability']:
                 continue  # workaround, should be avoided in future
+            varlabel = i
+            if i in self.o.ElementType.variables.keys():
+                if 'units' in self.o.ElementType.variables[i].keys():
+                    units = self.o.ElementType.variables[i]['units']
+                    if units == '1':
+                        units = 'fraction'
+                    varlabel = '%s [%s]' % (i, units)
+        
             self.seed_input_label[i] = tk.Label(self.seed_frame,
-                                                text=i + '\t')
+                                                text=varlabel + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
             self.seed_input_var[i] = tk.StringVar()
             if type(sc[i]['options']) is list:
