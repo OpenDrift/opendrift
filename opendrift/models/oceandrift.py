@@ -29,7 +29,7 @@ class Lagrangian3DArray(LagrangianArray):
 
     variables = LagrangianArray.add_variables([
         ('wind_drift_factor', {'dtype': np.float32,
-                               'unit': '%',
+                               'units': '1',
                                'default': 0.02}),
         ('terminal_velocity', {'dtype': np.float32,
                                'units': 'm/s',
