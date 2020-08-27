@@ -45,7 +45,7 @@ class Reader(BaseReader):
     always_valid = True
 
     @staticmethod
-    def from_shpfiles(shpfiles, proj4_str = '+proj=lonlat +ellps=WGS84'):
+    def from_shpfiles(shpfiles, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False):
         """
         Construct a shape-reader from shape-files (.shp)
 
@@ -70,9 +70,11 @@ class Reader(BaseReader):
             reader = io.shapereader.Reader(shp)
             shp_iters.append(reader.geometries())
 
-        return Reader(itertools.chain(*shp_iters), proj4_str)
+        return Reader(itertools.chain(*shp_iters), proj4_str, invert=invert)
 
-    def __init__(self, shapes, proj4_str = '+proj=lonlat +ellps=WGS84'):
+    def __init__(self, shapes, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False):
+
+        self.invert = invert  # True if polygons are lakes and not land areas
         self.proj4 = proj4_str
         self.crs = pyproj.CRS(self.proj4)
 
@@ -93,7 +95,10 @@ class Reader(BaseReader):
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
 
     def __on_land__(self, x, y):
-        return shapely.vectorized.contains(self.land, x, y)
+        if self.invert is False:
+            return shapely.vectorized.contains(self.land, x, y)
+        else:  # Inverse if polygons are lakes and not land areas
+            return 1 - shapely.vectorized.contains(self.land, x, y)
 
     def get_variables(self, requestedVariables, time = None,
                       x = None, y = None, z = None, block = False):
