@@ -1138,7 +1138,10 @@ class BaseReader(object):
         if self.start_time is not None and self.time_step is not None:
             outStr += '    %i times (%i missing)\n' % (
                       self.expected_time_steps, self.missing_time_steps)
-        outStr += 'Variables:\n'
+        if hasattr(self, 'realizations'):
+            outStr += 'Variables (%i ensemble members):\n' % len(self.realizations)
+        else:
+            outStr += 'Variables:\n'
         for variable in self.variables:
             if variable in self.derived_variables:
                 outStr += '  ' + variable + ' - derived from ' + \
@@ -1271,6 +1274,9 @@ class BaseReader(object):
                 self.logger.debug('Convolving variables with kernel: %s' % kernel)
                 data[variable] = ndimage.convolve(
                             data[variable], kernel, mode='nearest')
+            if data[variable].ndim > 2:
+                self.logger.warning('Ensemble data, plotting only first member')
+                data[variable] = data[variable][0,:,:]
             mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
                                      transform=ccrs.PlateCarree())
             cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
