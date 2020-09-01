@@ -47,6 +47,8 @@ class Reader(BaseReader):
             'zeta': 'sea_surface_height',
             'u': 'x_sea_water_velocity',
             'v': 'y_sea_water_velocity',
+            'u_eastward': 'x_sea_water_velocity',
+            'v_northward': 'y_sea_water_velocity',
             'w': 'upward_sea_water_velocity',
             'temp': 'sea_water_temperature',
             'salt': 'sea_water_salinity',
@@ -154,6 +156,10 @@ class Reader(BaseReader):
             self.num_layers = 1
             self.ROMS_variable_mapping['ubar'] = 'x_sea_water_velocity'
             self.ROMS_variable_mapping['vbar'] = 'y_sea_water_velocity'
+            del self.ROMS_variable_mapping['u']
+            del self.ROMS_variable_mapping['v']
+
+        if 'u_eastward' in self.Dataset.variables:
             del self.ROMS_variable_mapping['u']
             del self.ROMS_variable_mapping['v']
 
