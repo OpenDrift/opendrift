@@ -275,7 +275,7 @@ class OceanDrift(OpenDriftSimulation):
             # Note: although analytical functions, z is discretised
             Kprofiles = self.get_diffusivity_profile(diffusivity_model)
 
-        self.logger.debug('Diffiusivities are in range %s to %s' %
+        self.logger.debug('Diffusivities are in range %s to %s' %
                       (Kprofiles.min(), Kprofiles.max()))
 
         # get profiles of salinity and temperature

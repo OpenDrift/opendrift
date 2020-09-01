@@ -1016,6 +1016,9 @@ class OpenDriftSimulation(PhysicsMethods):
                             env_profiles_tmp[var] = np.ma.atleast_2d(env_profiles_tmp[var])
                             env_profiles[var][np.ix_(z_ind, missing_indices)] = \
                                 np.ma.masked_invalid(env_profiles_tmp[var][z_ind,0:len(missing_indices)]).astype('float32')
+                            # For profiles with different numbers of layers, we extrapolate
+                            missingbottom = np.isnan(env_profiles[var][-1,:])
+                            env_profiles[var][-1, missingbottom] = env_profiles[var][-2, missingbottom]
 
                 # Detect elements with missing data, for present reader group
                 if hasattr(env_tmp[variable_group[0]], 'mask'):
