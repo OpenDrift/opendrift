@@ -38,7 +38,7 @@ o.add_reader([reader_current, reader_wind])
 o.seed_elements(3.3, 60., radius=3000,
                 time=reader_current.start_time,
                 water_line_length=100,
-                keel_depth=90, number=100)
+                keel_depth=90, number=200)
 
 
 print('Starting free run .../n')
