@@ -682,7 +682,7 @@ class BaseReader(object):
                             if counterpart in variables:
                                 vector_pairs.append(vector_pair)
                             else:
-                                sys.exit('Missing component of vector pair:' +
+                                self.logger.warning('Missing component of vector pair, cannot rotate:' +
                                          counterpart)
                 # Extract unique vector pairs
                 vector_pairs = [list(x) for x in set(tuple(x)
