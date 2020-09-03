@@ -113,7 +113,7 @@ class Reader(BaseReader):
 
     """
 
-    def __init__(self, filename=None, name=None, proj4=None):
+    def __init__(self, filename=None, name=None, proj4=None, standard_name_mapping={}):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -265,13 +265,17 @@ class Reader(BaseReader):
                     var_data = var[:]
                 time = var_data
                 time_units = units
+                if isinstance(time[0], np.bytes_):
+                    time = [t.decode('ascii') for t in time]
+                    self.times = [datetime.fromisoformat(t.replace('Z', '')) for t in time]
+                else:
+                    self.times = num2date(time, time_units)
                 #if has_xarray:
                 #    self.times = [datetime.utcfromtimestamp((OT -
                 #        np.datetime64('1970-01-01T00:00:00Z')
                 #            ) / np.timedelta64(1, 's')) for OT in time]
                 #else:
                 #    self.times = num2date(time, time_units)
-                self.times = num2date(time, time_units)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
@@ -366,6 +370,10 @@ class Reader(BaseReader):
                 standard_name = str(att_dict['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
+                self.variable_mapping[standard_name] = str(var_name)
+            elif var_name in standard_name_mapping:
+                # User may specify mapping if standard_name is missing
+                standard_name = standard_name_mapping[var_name]
                 self.variable_mapping[standard_name] = str(var_name)
 
         self.variables = list(self.variable_mapping.keys())
