@@ -26,7 +26,6 @@ try:
     has_xarray = True
 except:
     has_xarray = False
-has_xarray = False
 
 def proj_from_CF_dict(c):
 
