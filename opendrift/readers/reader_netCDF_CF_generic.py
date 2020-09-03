@@ -26,6 +26,7 @@ try:
     has_xarray = True
 except:
     has_xarray = False
+has_xarray = False
 
 def proj_from_CF_dict(c):
 
@@ -133,7 +134,11 @@ class Reader(BaseReader):
                     self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
                                                      decode_times=False)
                 else:
-                    self.Dataset = MFDataset(filename, aggdim='time')
+                    try:
+                        self.Dataset = MFDataset(filename, aggdim='time')
+                    except Exception as e:
+                        self.logger.warning('Aggdim *time* does not exist')
+                        self.Dataset = MFDataset(filename)
             else:
                 self.logger.info('Opening file with Dataset')
                 if has_xarray:
@@ -262,12 +267,17 @@ class Reader(BaseReader):
                 if has_xarray:
                     var_data = var.values
                 else:
+                    var.set_auto_mask(False)  # workaround
                     var_data = var[:]
                 time = var_data
                 time_units = units
+
                 if isinstance(time[0], np.bytes_):
+                    # This hack is probably only necessary for CERSAT/GELOBCURRENT
                     time = [t.decode('ascii') for t in time]
                     self.times = [datetime.fromisoformat(t.replace('Z', '')) for t in time]
+                elif time.ndim == 2:
+                    self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
                 else:
                     self.times = num2date(time, time_units)
                 #if has_xarray:
