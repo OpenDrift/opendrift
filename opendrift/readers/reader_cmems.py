@@ -85,7 +85,7 @@ class Reader(NCReader):
         self.nc_file = self.productID + ID + '.nc'
 
         # Download xml file specifying content
-        content_file = self.productID + '.xml'
+        content_file = self.productID + ID + '.xml'
         #cmd = 'motuclient -D --auth-mode=cas -m %s -s %s -d %s -u %s -p %s -f %s' % (
         cmd = 'motuclient -D -m %s -s %s -d %s -u %s -p %s -f %s' % (
             motu_URL, serviceID, self.productID, self.cmems_user, self.cmems_password, content_file)
