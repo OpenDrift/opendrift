@@ -36,7 +36,7 @@ Oil properties affecting the drift
 ***********************************
 The vertical (and thus indirectly also the horisontal) motion of oil (droplets) is affected by oil density and droplet diameters.
 
-When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')``), which is the default, the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification). When using the alternative (primitive) weathering model (o = OpenOil(weathering_model='basic')), the parameter 'density' may be set when seeding (default is 880 kg/m3).
+When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')``), which is the default, the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification).
 
 The droplet diameter may be given explicitly when seeding, e.g.::
 
@@ -46,9 +46,10 @@ In this case, the diameter will not change during the simulation, which is usefu
 
 If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
 
-    o.set_config('input:spill:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
-    o.set_config('input:spill:droplet_diameter_max_subsea', 0.005)   # 5 mm
+    o.set_config('seed:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
+    o.set_config('seed:droplet_diameter_max_subsea', 0.005)   # 5 mm
 
+Note that these config settings must be adjusted before the seeding call.
 After each wave breaking event, a new droplet diameter will be chosen based on the config setting for droplet size distribution.
 """
 
@@ -224,20 +225,10 @@ class OpenOil(OceanDrift):
         'MARINE GAS OIL 500 ppm S 2017': 0.1,
         'FENJA (PIL) 2015': .75}
 
-    # Read oil types from file (presently only for illustrative effect)
-    # TODO: should be removed
-    oil_types = str([str(l.strip()) for l in open(
-                    os.path.dirname(os.path.realpath(__file__)) +
-                    '/oil_types.txt').readlines()])[1:-1]
-    default_oil = oil_types.split(',')[0].strip()
-
-    # Configuration
     configspec = '''
-        [input]
-            [[spill]]
-                oil_type = option(%s, default=%s)
-                droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
-                droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
+        [seed]
+            droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
+            droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
         [processes]
             dispersion = boolean(default=True)
             evaporation = boolean(default=True)
@@ -253,12 +244,12 @@ class OpenOil(OceanDrift):
         [wave_entrainment]
             droplet_size_distribution = option('Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
             entrainment_rate = option('Li et al. (2017)', default='Li et al. (2017)')
-    ''' % (oil_types, default_oil) 
+    '''
 
 
     def __init__(self, weathering_model='noaa', *args, **kwargs):
 
-        if weathering_model == 'noaa':
+        if weathering_model == 'noaa':  # Currently the only option
             try:
                 from oil_library import _get_db_session
                 from oil_library.models import Oil, ImportedRecord
@@ -280,21 +271,6 @@ class OpenOil(OceanDrift):
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
-        elif weathering_model=='basic':
-            # Read oil properties from file
-            self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
-                '/oilprop.dat'
-            oiltypes = []
-            linenumbers = []
-            with open(self.oiltype_file) as f:
-                for i, line in enumerate(f):
-                    if line[0].isalpha():
-                        oiltype = line.strip()[:-2].strip()
-                        oiltypes.append(oiltype)
-                        linenumbers.append(i)
-            oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
-            self.oiltypes = oiltypes
-            self.oiltypes_linenumbers = linenumbers
         else:
             raise ValueError('Weathering model unknown: ' + weathering_model)
 
@@ -525,25 +501,7 @@ class OpenOil(OceanDrift):
         self.timer_start('main loop:updating elements:oil weathering')
         if self.oil_weathering_model == 'noaa':
             self.oil_weathering_noaa()
-        else:
-            self.oil_weathering_basic()
         self.timer_end('main loop:updating elements:oil weathering')
-
-    def oil_weathering_basic(self):
-
-        self.logger.debug('Basic oil weathering')
-
-        ## Evaporation
-        self.evaporate()
-
-        # Emulsification
-        self.emulsification()
-
-        # Dispersion
-        self.disperse()
-
-        # Biodegradation
-        self.biodegradation()
 
     def prepare_run(self):
 
@@ -563,9 +521,6 @@ class OpenOil(OceanDrift):
                 self.oiltype.oil_water_surface_tension()[0]
             self.logger.info('Oil-water surface tension is %f Nm' %
                          self.oil_water_interfacial_tension)
-        else:
-            self.logger.info('Using default oil-water tension of 0.03Nm')
-            self.oil_water_interfacial_tension = 0.03
 
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:
@@ -1372,8 +1327,8 @@ class OpenOil(OceanDrift):
         subsea = z < 0
         if np.sum(subsea) > 0 and 'diameter' not in kwargs:
             # Droplet min and max for particles seeded below sea surface
-            sub_dmin = self.get_config('input:spill:droplet_diameter_min_subsea')
-            sub_dmax = self.get_config('input:spill:droplet_diameter_max_subsea')
+            sub_dmin = self.get_config('seed:droplet_diameter_min_subsea')
+            sub_dmax = self.get_config('seed:droplet_diameter_max_subsea')
             self.logger.info('Using particle diameters between %s and %s m for '
                          'elements seeded below sea surface.' %
                          (sub_dmin, sub_dmax))
@@ -1392,12 +1347,8 @@ class OpenOil(OceanDrift):
         self.set_oiltype(self.get_config('seed:oil_type'))
 
         if self.oil_weathering_model == 'noaa':
-            try:  # Older version of OilLibrary
-                oil_density = self.oiltype.get_density(285)  # 12 degrees
-                oil_viscosity = self.oiltype.get_viscosity(285)
-            except:  # Newer version of OilLibrary
-                oil_density = self.oiltype.density_at_temp(285)
-                oil_viscosity = self.oiltype.kvis_at_temp(285)
+            oil_density = self.oiltype.density_at_temp(285)
+            oil_viscosity = self.oiltype.kvis_at_temp(285)
             self.logger.info('Using density %s and viscosity %s of oiltype %s' %
                          (oil_density, oil_viscosity, self.get_config('seed:oil_type')))
             kwargs['density'] = oil_density
@@ -1420,27 +1371,12 @@ class OpenOil(OceanDrift):
         super(OpenOil, self).seed_elements(*args, **kwargs)
 
         # Add oil metadata
-        try:
-            self.add_metadata('seed_oil_density', self.oiltype.get_density())
-            seed_json['oil_density'] = self.oiltype.get_density()
-        except:
-            try:
-                self.add_metadata('seed_oil_density',
-                                  self.oiltype.density_at_temp(283))
-                seed_json['oil_density'] = self.oiltype.density_at_temp(283)
-            except:
-                pass
-        try:
-            self.add_metadata('seed_oil_viscosity',
-                              self.oiltype.get_viscosity(283))
-            seed_json['oil_viscosity'] = self.oiltype.get_viscosity(283)
-        except:
-            try:
-                self.add_metadata('seed_oil_viscosity',
-                                  self.oiltype.kvis_at_temp(283))
-                seed_json['oil_viscosity'] = self.oiltype.kvis_at_temp(283)
-            except:
-                pass
+        self.add_metadata('seed_oil_density',
+                          self.oiltype.density_at_temp(283))
+        seed_json['oil_density'] = self.oiltype.density_at_temp(283)
+        self.add_metadata('seed_oil_viscosity',
+                          self.oiltype.kvis_at_temp(283))
+        seed_json['oil_viscosity'] = self.oiltype.kvis_at_temp(283)
 
         if not hasattr(self, 'seed_json'):
             self.seed_json = []
