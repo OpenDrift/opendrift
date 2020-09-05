@@ -11,7 +11,7 @@ from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift()
 
 # Adding readers for global Thredds datasets:
-# - Ocean forecast from UK Met Office (FOAM model)
+# - Ocean forecast from global HYCOM model
 # - Weather forecast from NOAA/NCEP
 o.add_readers_from_list([
     'https://tds.hycom.org/thredds/dodsC/GLBy0.08/latest',
