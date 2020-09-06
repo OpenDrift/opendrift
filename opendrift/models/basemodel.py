@@ -130,6 +130,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 time_step_output_minutes = integer(min=1, max=1440, default=None)
             [seed]
                 ocean_only = boolean(default=True)
+                number_of_elements = integer(min=1, max=100000000, default=1)
             [drift]
                 max_age_seconds = float(min=0, default=None)
                 scheme = option('euler', 'runge-kutta', 'runge-kutta4', default='euler')
@@ -1421,6 +1422,13 @@ class OpenDriftSimulation(PhysicsMethods):
         #################################################################
         lon = np.atleast_1d(lon).ravel()
         lat = np.atleast_1d(lat).ravel()
+        if number is None:
+            number = self.get_config('seed:number_of_elements')
+            if len(lon) > 1:
+                number = len(lon)
+            elif isinstance(time, list) and len(time) > 2:
+                number = len(time)
+            print(len(lon), 'lenlon')
         number = np.atleast_1d(number).ravel()
         if len(lon) == 1 and len(number) > 1:
             ones = np.ones(len(number))
