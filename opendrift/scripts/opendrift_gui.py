@@ -14,35 +14,53 @@ from PIL import ImageTk, Image
 import tkinter as tk
 from tkinter import ttk
 import opendrift
+from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.leeway import Leeway
 from opendrift.models.shipdrift import ShipDrift
 from opendrift.models.openberg import OpenBerg
+from opendrift.models.plastdrift import PlastDrift
 
-
+# Class to redirect output to text box
 class TextRedirector(object):
-    def __init__(self, widget, tag="stdout"):
+
+    def __init__(self, widget, tag='stdout'):
         self.defstdout = sys.stdout
         self.widget = widget
         self.tag = tag
 
     def write(self, str):
-        self.widget.configure(state="normal")
-        self.widget.insert("end", str, (self.tag,))
+        self.widget.configure(state='normal')
+        self.widget.insert('end', str, (self.tag,))
         self.widget.update_idletasks()
         self.widget.see(tk.END)
 
     def flush(self):
         self.defstdout.flush()
 
+
 class OpenDriftGUI(tk.Tk):
+
+    # Supported models as dictionary {model_name:model_class}
+    opendrift_models = {m.__name__:m for m in
+        [Leeway, OpenOil, ShipDrift, OpenBerg, OceanDrift, PlastDrift]}
+
+    extra_args = {'OpenOil': {'location': 'NORWAY'}}
+
+    # Overriding some default config settings, suitable for GUI
+    # TODO: should be set as default-default
+    GUI_config = {
+            'general:time_step_minutes': 15,
+            'general:time_step_output_minutes': 30,
+            'seed:number_of_elements': 5000,
+            'seed:m3_per_hour': 100
+            }
 
     def __init__(self):
 
-        # Available models
-        self.available_models = opendrift.get_model_names()
-
         tk.Tk.__init__(self)
+
+        self.title('OpenDrift ' + opendrift.__version__)
 
         ##################
         # Layout frames
@@ -87,8 +105,7 @@ class OpenDriftGUI(tk.Tk):
         self.results.grid(row=60, column=7, columnspan=1, sticky='ew')
 
         ##########################
-        self.title('OpenDrift')
-        self.o = OpenOil(weathering_model='noaa', location='NORWAY')
+
         try:
             img = ImageTk.PhotoImage(Image.open(self.o.test_data_folder() +
                                      '../../docs/opendrift_logo.png'))
@@ -100,10 +117,9 @@ class OpenDriftGUI(tk.Tk):
         #######################################################
         tk.Label(self.top, text='Simulation type').grid(row=0, column=0)
         self.model = tk.StringVar()
-        models = opendrift.get_model_names()
-        self.model.set(models[0])
+        self.model.set(list(self.opendrift_models)[0])
         self.modeldrop = tk.OptionMenu(self.top, self.model,
-                                       *(models), command=self.set_model)
+            *(list(self.opendrift_models)), command=self.set_model)
         self.modeldrop.grid(row=0, column=1)
 
         help_button = tk.Button(self.top, text='Help',
@@ -251,20 +267,12 @@ class OpenDriftGUI(tk.Tk):
 
         # Check seeding
         check_seed = tk.Button(self.end_t, text='Check seeding',
-                                command=self.check_seeding)
+                               command=self.check_seeding)
         check_seed.grid(row=10, column=0, padx=0)
 
         #######################
         # Simulation duration
         #######################
-        #tk.Label(self.coastline, text='Coastline resolution ').grid(
-        #         row=40, column=1)
-        #self.mapresvar = tk.StringVar()
-        #self.mapres = tk.OptionMenu(self.coastline, self.mapresvar,
-        #                            *['full', 'high'])
-        #self.mapres.grid(row=40, column=2)
-        #self.mapresvar.set('high')
-
         tk.Label(self.duration, text='Run simulation ').grid(row=50, column=0)
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
@@ -306,8 +314,7 @@ class OpenDriftGUI(tk.Tk):
         ##############
         # Initialise
         ##############
-        #o = OpenOil()
-        self.set_model(self.available_models[0])
+        self.set_model(list(self.opendrift_models)[0])
 
         ##########
         # RUN
@@ -363,15 +370,23 @@ class OpenDriftGUI(tk.Tk):
                   + filename + '\n' + '='*30)
 
     def set_model(self, model):
-        if model == 'OpenOil':
-            self.o = OpenOil(weathering_model='noaa', location='NORWAY')
-        elif model == 'Leeway':
-            self.o = Leeway()
-        elif model == 'ShipDrift':
-            self.o = ShipDrift()
-        elif model == 'OpenBerg':
-            self.o = OpenBerg()
+        
+        # Creating simulation object (self.o) of chosen model class
+        print('Setting model: ' + model)
+        if model in self.extra_args:
+            extra_args = self.extra_args[model]
+        else:
+            extra_args = {}
+        self.o = self.opendrift_models[model](**extra_args)
 
+        # Setting GUI-specific default config values
+        for k,v in self.GUI_config.items():
+            try:
+                self.o.set_config(k, v)
+            except:
+                pass
+
+        # Remove current GUI components and rebuild with new
         for con in self.config.winfo_children():
             con.destroy()
         self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
@@ -387,12 +402,9 @@ class OpenDriftGUI(tk.Tk):
             self.depthlabel.destroy()
             self.depth.destroy()
             self.seafloor.destroy()
-            self.amount.destroy()
-            self.amountlabel.destroy()
         except:
             pass
 
-        print('Setting model: ' + model)
         print(self.o.list_configspec())
         sc = self.o.get_seed_config()
         print(sc)
@@ -404,7 +416,7 @@ class OpenDriftGUI(tk.Tk):
         self.seed_frame.grid(row=60, columnspan=8, sticky='nsew')
         # FIND
         for num, i in enumerate(sc):
-            if i in ['ocean_only', 'jibeProbability']:
+            if i in ['ocean_only']:
                 continue  # workaround, should be avoided in future
             varlabel = i
             if i in self.o.ElementType.variables.keys():
@@ -418,21 +430,23 @@ class OpenDriftGUI(tk.Tk):
                                                 text=varlabel + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
             self.seed_input_var[i] = tk.StringVar()
+            actual_val = self.o.get_config('seed:' + i)
             if type(sc[i]['options']) is list:
                 self.seed_input[i] = ttk.Combobox(
                     self.seed_frame, width=50,
                     textvariable=self.seed_input_var[i],
                     values=sc[i]['options'])
-                self.seed_input_var[i].set(sc[i]['default'])
+                self.seed_input_var[i].set(actual_val)
             else:
                 self.seed_input[i] = tk.Entry(
                     self.seed_frame, textvariable=self.seed_input_var[i],
                     width=6, justify=tk.RIGHT)
-                self.seed_input[i].insert(0, sc[i]['default'])
+                self.seed_input[i].insert(0, actual_val)
             self.seed_input[i].grid(row=num, column=1)
 
-        if model == 'OpenOil':  # User may be able to chose release depth
-            self.depthlabel = tk.Label(self.duration, text='Spill depth [m]')
+        # User shall be able to chose release depth for 3D models
+        if issubclass(type(self.o), OceanDrift):
+            self.depthlabel = tk.Label(self.duration, text='Release depth [m]')
             self.depthlabel.grid(row=60, column=0)
             self.depthvar = tk.StringVar()
             self.depth = tk.Entry(self.duration, textvariable=self.depthvar,
@@ -444,14 +458,6 @@ class OpenDriftGUI(tk.Tk):
                                            text='seafloor',
                                            command=self.seafloorbutton)
             self.seafloor.grid(row=60, column=3)
-
-            self.amountvar = tk.StringVar()
-            self.amount = tk.Entry(self.duration, textvariable=self.amountvar,
-                                  width=6, justify=tk.RIGHT)
-            self.amount.grid(row=60, column=4)
-            self.amount.insert(0, '100')
-            self.amountlabel = tk.Label(self.duration, text='m3 (per hour)')
-            self.amountlabel.grid(row=60, column=5)
 
     def seafloorbutton(self):
         if self.seafloorvar.get() == 1:
@@ -468,11 +474,6 @@ class OpenDriftGUI(tk.Tk):
     def check_seeding(self):
         print('#'*50)
         print('Hang on, plot is comming in a few seconds...')
-        #mapres = self.mapresvar.get()[0]
-        #if mapres == 'f':
-        #    print('...actually more like 30 seconds for full resolution coastline....')
-        #    if self.has_diana is True:
-        #        print('Du far ta deg ein liten trall mens du ventar.')
         print('#'*50)
         month = np.int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(np.int(self.yearvar.get()), month,
@@ -501,7 +502,7 @@ class OpenDriftGUI(tk.Tk):
             cone = False
 
         so = Leeway(loglevel=50)
-        so.seed_elements(lon=lon, lat=lat, number=5000,
+        so.seed_elements(lon=lon, lat=lat,
                          radius=radius, time=start_time)
         so.plot(buffer=.5, fast=True)
         del so
@@ -539,19 +540,6 @@ class OpenDriftGUI(tk.Tk):
         else:
             cone = False
 
-        if self.model.get() == 'Leeway':
-            self.o = Leeway(loglevel=0)
-            #for ln, lc in enumerate(self.leewaycategories):
-            #    if self.oljetype.get() == lc.strip().replace('>', ''):
-            #        print('Leeway object category: ' + lc)
-            #        break
-            #extra_seed_args = {'objectType': ln + 1}
-        elif self.model.get() == 'OpenOil':
-            self.o = OpenOil(weathering_model='noaa', loglevel=0)
-            #extra_seed_args = {'oiltype': self.oljetype.get()}
-        elif self.model.get() == 'ShipDrift':
-            self.o = ShipDrift(loglevel=0)
-
         extra_seed_args = {}
         for se in self.seed_input:
             if se == 'ocean_only':
@@ -562,44 +550,37 @@ class OpenDriftGUI(tk.Tk):
             except:
                 extra_seed_args[se] = val
             self.o.set_config('seed:' + se, val)
-        if 'object_type' in extra_seed_args:
-            extra_seed_args['objectType'] = extra_seed_args['object_type']
-            del extra_seed_args['object_type']
 
         self.o.add_readers_from_file(self.o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
 
         extra_seed_args = {}
-        if self.model.get() == 'OpenOil':
+        if issubclass(type(self.o), OceanDrift):
             if self.seafloorvar.get() == 1:
                 z = 'seafloor'
             else:
                 z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
             extra_seed_args['z'] = z
-            extra_seed_args['m3_per_hour'] = np.float(self.amountvar.get())
-        self.o.seed_elements(lon=lon, lat=lat, number=5000, radius=radius,
+        self.o.seed_elements(lon=lon, lat=lat, radius=radius,
                         time=start_time, cone=cone,
                         **extra_seed_args)
 
-        #time_step = o.get_config('general:time_step_minutes')*60
-        time_step = 900  # 15 minutes
-        time_step_output = timedelta(minutes=30)
+        time_step = self.o.get_config('general:time_step_minutes')*60
         duration = int(self.durationhours.get())*3600/time_step
         if self.directionvar.get() == 'backwards':
             time_step = -time_step
         if self.has_diana is True:
             extra_args = {'outfile': self.outputdir + '/opendrift_' +
-                self.model.get() + self.o.start_time.strftime('_%Y%m%d_%H%M.nc')}
+                self.model.get() +
+                self.o.start_time.strftime('_%Y%m%d_%H%M.nc')}
         else:
             extra_args = {}
 
-        #mapres = self.mapresvar.get()[0]
         self.simulationname = 'opendrift_' + self.model.get() + \
             self.o.start_time.strftime('_%Y%m%d_%H%M')
 
         # Starting simulation run
-        self.o.run(steps=duration, time_step=time_step,
-              time_step_output=time_step_output, **extra_args)
+        self.o.run(steps=duration, **extra_args)
         print(self.o)
 
         self.results.destroy()
@@ -635,4 +616,3 @@ class OpenDriftGUI(tk.Tk):
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()
-
