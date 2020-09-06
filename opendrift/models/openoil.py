@@ -227,6 +227,7 @@ class OpenOil(OceanDrift):
 
     configspec = '''
         [seed]
+            m3_per_hour = float(min=0, max=1e10, default=1)
             droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
             droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
         [processes]
@@ -1355,18 +1356,24 @@ class OpenOil(OceanDrift):
             kwargs['viscosity'] = oil_viscosity
 
         if 'm3_per_hour' in kwargs:
-            # From given volume rate, we calculate the mass per element
-            num_elements = kwargs['number']
-            time = kwargs['time']
-            if type(time) is list:
-                duration_hours = ((time[1] - time[0]).total_seconds())/3600
-                if duration_hours == 0:
-                    duration_hours = 1.
-            else:
-                duration_hours = 1.  # For instantaneous spill, we use 1h
-            kwargs['mass_oil'] = (kwargs['m3_per_hour']*duration_hours/
-                                  num_elements*kwargs['density'])
+            m3_per_hour = kwargs['m3_per_hour']
             del kwargs['m3_per_hour']
+        else:
+            m3_per_hour = self.get_config('seed:m3_per_hour')
+
+        if 'number' in kwargs:
+            num_elements = kwargs['number']
+        else:
+            num_elements = self.get_config('seed:number_of_elements')
+        time = kwargs['time']
+        if type(time) is list:
+            duration_hours = ((time[1] - time[0]).total_seconds())/3600
+            if duration_hours == 0:
+                duration_hours = 1.
+        else:
+            duration_hours = 1.  # For instantaneous spill, we use 1h
+        kwargs['mass_oil'] = (m3_per_hour*duration_hours/
+                              num_elements*kwargs['density'])
 
         super(OpenOil, self).seed_elements(*args, **kwargs)
 

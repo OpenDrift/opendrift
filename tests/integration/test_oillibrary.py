@@ -59,10 +59,11 @@ class TestOil(unittest.TestCase):
             o.set_config('drift:wind_uncertainty', 0)
             o.set_config('drift:current_uncertainty', 0)
             o.run(steps=3)
+            initial_mass = o.get_property('mass_oil')[0][0, 0]
             self.assertEqual(o.elements.mass_evaporated.min(),
                              o.elements.mass_evaporated.max())
             self.assertTrue(o.elements.mass_evaporated.min() > 0)
-            self.assertTrue(o.elements.mass_evaporated.max() <= 1)
+            self.assertTrue(o.elements.mass_evaporated.max()/initial_mass <= 1)
             print(oiltype, o.elements.mass_evaporated.min())
 
     @unittest.skipIf(has_oil_library is False,
@@ -196,9 +197,10 @@ class TestOil(unittest.TestCase):
         o.fallback_values['y_sea_water_velocity'] = 0
         o.fallback_values['sea_water_temperature'] = 30
         o.run(duration=timedelta(days=1), time_step=1800)
+        initial_mass = o.get_property('mass_oil')[0][0, 0]
         biodegraded30 = o.elements.mass_biodegraded
         factor = 0.126 #(1-e^(-1))
-        self.assertAlmostEqual(biodegraded30[-1], factor, 3)
+        self.assertAlmostEqual(biodegraded30[-1]/initial_mass, factor, 3)
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
