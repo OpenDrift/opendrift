@@ -146,7 +146,7 @@ class Leeway(OpenDriftSimulation):
                          'Output time step in minutes',
                          overwrite=True)
 
-    def seed_elements(self, lon, lat, radius=0, number=1, time=None,
+    def seed_elements(self, lon, lat, radius=0, number=None, time=None,
                       objectType=None, cone=None, jibeProbability=None,
                       **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
@@ -154,6 +154,9 @@ class Leeway(OpenDriftSimulation):
         # but so far we only use one for each sim
         # objtype = np.ones(number)*objectType
         # Note: cone is not used, simply to provide same interface as others
+
+        if number is None:
+            number = self.get_config('seed:number_of_elements')
 
         if objectType is None:
             object_name = self.get_config('seed:object_type')
