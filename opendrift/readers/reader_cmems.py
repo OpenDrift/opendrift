@@ -40,7 +40,7 @@ except:
 from opendrift.readers.reader_netCDF_CF_generic import Reader as NCReader
 
 
-motu_URL='https://nrt.cmems-du.eu/motu-web/Motu'
+motu_URL='http://nrt.cmems-du.eu/motu-web/Motu'
 products = {
     'NORTHWESTSHELF_ANALYSIS_FORECAST_PHY_004_013-TDS': 
         {'productID': 'MetO-NWS-PHY-hi-CUR',
@@ -117,7 +117,8 @@ class Reader(NCReader):
         # Time
         #times = root.find('timeCoverage')
         times = root.find('availableTimes')
-        start_time, end_time, time_step = (times.text.split('/'))
+        start_time, end_time, time_step = (times.text.split('/'))[0:3]
+        time_step = time_step.split(',')[0]
         start_time = start_time.split('Z')[0]
         end_time = end_time.split('Z')[0]
         self.time_step = isodate.parse_duration(time_step)
