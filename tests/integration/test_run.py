@@ -121,6 +121,13 @@ class TestRun(unittest.TestCase):
         with self.assertRaises(ValueError):
             o.run(steps=3, time_step=timedelta(minutes=15))
 
+    def test_invalid_config(self):
+        o = OceanDrift(loglevel=20)
+        with self.assertRaises(ValueError):
+            o.set_config('seed:number_of_elements', 0)
+        o.set_config('seed:number_of_elements', 100)
+        self.assertEqual(o.get_config('seed:number_of_elements'), 100)
+
     def test_runge_kutta(self):
         number = 50
         # With Euler

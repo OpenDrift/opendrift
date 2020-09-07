@@ -303,6 +303,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         d = self.configobj
         ds = self.configobj.configspec
+        default, minval, maxval, opt = self.get_configspec_default_min_max(key)
         for i, s in enumerate(key.split(':')):
             if s not in d:
                 self.list_configspec()
@@ -312,6 +313,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     value = float(value)
                 if ds[s][0:5] == 'integ' and value is not None:
                     value = int(value)
+                if isinstance(value, float) or isinstance(value, int):
+                    if (minval is not None and value<minval) or (maxval is not None and value>maxval):
+                        raise ValueError('Value of %s (%s) is outside allowed interval: (%s - %s)' %
+                                         (key, value, minval, maxval))
                 d[s] = value
             else:
                 d = d[s]
@@ -361,7 +366,7 @@ class OpenDriftSimulation(PhysicsMethods):
         v = validate.Validator()
         default = v.get_default_value(cs[s])
         datatype = cs[s].split('(')[0]
-        if datatype in ['float', 'integer']:
+        if datatype in ['float', 'integer'] and 'min' in cs[s] and 'max' in cs[s]:
             minimum = cs[s].split('min=')[-1].split(',')[0]
             maximum = cs[s].split('max=')[-1].split(',')[0]
             if datatype == 'float':
