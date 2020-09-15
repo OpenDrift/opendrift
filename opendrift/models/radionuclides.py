@@ -136,6 +136,8 @@ class RadionuclideDrift(OceanDrift):
 #                     }
 
     configspec_radionuclidedrift = '''
+        [drift]
+            vertical_mixing = boolean(default=True)
         [radionuclide]
             transfer_setup = option('Sandnesfj_Al','Bokna_137Cs', 'dummy', default='dummy')
             slowly_fraction = boolean(default=False)

@@ -74,6 +74,9 @@ class SedimentDrift(OceanDrift):
         # TODO: A more sophisticated stranding algorithm is needed
         self.set_config('general:coastline_action', 'previous')
 
+        # Vertical mixing is enabled as default
+        self.set_config('drift:vertical_mixing', True)
+
     def update(self):
         """Update positions and properties of sediment particles.
         """

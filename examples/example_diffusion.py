@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Horisontal diffusion
+Horizontal diffusion
 =====================
 """
 

@@ -102,7 +102,7 @@ class OceanDrift(OpenDriftSimulation):
         configspec_oceandrift = '''
             [drift]
                 vertical_advection = boolean(default=True)
-                vertical_mixing = boolean(default=True)
+                vertical_mixing = boolean(default=False)
             [vertical_mixing]
                 timestep = float(min=0.1, max=3600, default=60.)
                 diffusivitymodel = option('environment', 'zero', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='environment')

@@ -112,6 +112,9 @@ class PelagicEggDrift(OceanDrift):
         # By default, eggs do not strand towards coastline
         self.set_config('general:coastline_action', 'previous')
 
+        # Vertical mixing is enabled by default
+        self.set_config('drift:vertical_mixing', True)
+
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
         """Calculate terminal velocity for Pelagic Egg
