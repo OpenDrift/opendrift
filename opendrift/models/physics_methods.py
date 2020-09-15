@@ -435,11 +435,19 @@ class PhysicsMethods(object):
             self.logger.debug('No Stokes drift velocity available')
             return
 
+        wave_height = self.significant_wave_height()
+        wave_period = self.wave_period()
+        if np.max(np.array(wave_height)) == 0:
+            self.logger.debug('Stokes drift is available, but not Hs: using Hs=1 for Stokes profile')
+            wave_height = 1
+        if np.max(np.array(wave_period)) == 0:
+            self.logger.debug('Stokes drift is available, but not Tp: using Tp=8 for Stokes profile')
+            wave_period = 8
+
         stokes_u, stokes_v, s = stokes_drift_profile_breivik(
             self.environment.sea_surface_wave_stokes_drift_x_velocity,
             self.environment.sea_surface_wave_stokes_drift_y_velocity,
-            self.significant_wave_height(), self.wave_period(),
-            self.elements.z)
+            wave_height, wave_period, self.elements.z)
 
         self.update_positions(stokes_u*factor, stokes_v*factor)
         if s.min() == s.max():
