@@ -15,7 +15,7 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o.seed_from_shapefile(o.test_data_folder() +
                       'shapefile_spawning_areas/Torsk.shp',
                       number=2000, layername=None,
-                      featurenum=[2, 4], time=datetime.now())
+                      featurenum=[2, 4], time=datetime.utcnow())
 
 o.fallback_values['x_wind'] = -4  # Constant wind drift
 o.fallback_values['y_wind'] = 8

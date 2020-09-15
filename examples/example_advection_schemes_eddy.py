@@ -22,7 +22,7 @@ for scheme in ['euler', 'runge-kutta', 'runge-kutta4']:
         o.fallback_values['land_binary_mask'] = 0
         o.set_config('drift:scheme', scheme)
         o.add_reader(fake_eddy)
-        o.seed_elements(lon=2.0, lat=63.0, time=datetime.now())
+        o.seed_elements(lon=2.0, lat=63.0, time=datetime.utcnow())
         o.set_config('drift:vertical_mixing', False)
         o.run(duration=timedelta(days=9), time_step=time_step)
         runs.append(o)

@@ -37,7 +37,7 @@ lon = -89; lat = 29.8  # New Orleans
 lon = 107; lat = 10  # Ho Chi Minh
 
 
-time = datetime.now()
+time = datetime.utcnow()
 duration = timedelta(days=3)
 bufferlat = duration.total_seconds()/111000
 bufferlon = bufferlat*np.cos(lat*np.pi/180)

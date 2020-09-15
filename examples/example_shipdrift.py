@@ -18,7 +18,7 @@ o.add_readers_from_list([
 #%%
 # Seed ship elements at defined position and time
 o.seed_elements(lon=5.0, lat=63.0, radius=1000, number=1000,
-                time=datetime.now(),
+                time=datetime.utcnow(),
                 length=80.0, beam=10.0, height=9.0, draft=4.0)
 
 #%%

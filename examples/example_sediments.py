@@ -14,7 +14,7 @@ o = SedimentDrift(loglevel=50)  # 0 for debug output
 lat=59.169194
 lon=10.962920
 o.seed_elements(lon=lon, lat=lat, number=10000, 
-                time=[datetime.now(), datetime.now()+timedelta(hours=48)],
+                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=48)],
                 terminal_velocity=-.001)  # 1 mm/s settling speed
 
 if False:  # Using constant south-westwards current and wind
