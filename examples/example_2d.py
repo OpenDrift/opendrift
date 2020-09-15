@@ -24,7 +24,7 @@ o.fallback_values['sea_surface_wave_period_at_variance_spectral_density_maximum'
 
 #%%
 # Seed elements between surface and 5m depth
-time = datetime.now()
+time = datetime.utcnow()
 z = -np.linspace(0, 5, 50)
 o.seed_elements(lon=4.5, lat=60.0, z=z, radius=0, number=len(z), time=time)
 

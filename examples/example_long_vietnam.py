@@ -19,7 +19,7 @@ o.add_readers_from_list([
 # Seed some particles
 objType = 26  # 26 = Life-raft, no ballast
 o.seed_elements(lon=107.8, lat=10.0, radius=1000, number=1000,
-                objectType=objType, time=datetime.now())
+                objectType=objType, time=datetime.utcnow())
 
 # Run model
 o.run(duration=timedelta(days=3),

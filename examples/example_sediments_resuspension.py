@@ -11,16 +11,16 @@ from opendrift.models.sedimentdrift import SedimentDrift
 #%%
 # Constructing an artificial current field where x- and y-components are oscilating with different amplitude and period
 reader_oscx = reader_oscillating.Reader('x_sea_water_velocity',
-    amplitude=0.6, zero_time=datetime.now())
+    amplitude=0.6, zero_time=datetime.utcnow())
 reader_oscy = reader_oscillating.Reader('y_sea_water_velocity',
-    amplitude=.3, period_seconds=3600*5, zero_time=datetime.now())
+    amplitude=.3, period_seconds=3600*5, zero_time=datetime.utcnow())
 
 o = SedimentDrift(loglevel=50)  # 0 for debug output
 
 #%%
 # Seeding sediments
 o.seed_elements(lon=4.65, lat=60, number=10000, 
-                time=[datetime.now(), datetime.now()+timedelta(hours=6)],
+                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=6)],
                 terminal_velocity=-.01)  # 1 cm/s settling speed
 
 if True:

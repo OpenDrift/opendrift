@@ -36,24 +36,22 @@ lon = 4.8; lat = 60  # Bergen, Norway
 lon = -89; lat = 29.8  # New Orleans
 lon = 107; lat = 10  # Ho Chi Minh
 
-time = datetime.now()
+
+time = datetime.utcnow()
 duration = timedelta(days=3)
 bufferlat = duration.total_seconds()/111000
 bufferlon = bufferlat*np.cos(lat*np.pi/180)
 
-# Fetching current data from CMEMS
-cmems_file = 'opendrift_cmems_download.nc'
-if os.path.exists(cmems_file):
-    # Reuising downloaded file, if existing. Delete it to force update.
-    cmems = reader_netCDF_CF_generic.Reader(cmems_file)
-else:
-    cmems = reader_cmems.Reader(cmems_user, cmems_password,
-                                lon_min = lon - bufferlon,
-                                lon_max = lon + bufferlon,
-                                lat_min = lat - bufferlat,
-                                lat_max = lat + bufferlat,
-                                time_start = time - timedelta(hours=3),
-                                time_end = time + duration)
+#%% Fetching current data from CMEMS
+# By intialisation, only an XML-file with the contents is downloaded.
+# The netCDF file with data is downloaded later, after the simulation is started,
+# when necessary coverage (time/space) is known ( <reader>.prepare() ) 
+cmems = reader_cmems.Reader(
+    dataset='global-analysis-forecast-phy-001-024-hourly-merged-uv',
+    variable_mapping={  # Overriding the mapping in reader_cmems.py
+        'utotal': 'x_sea_water_velocity',
+        'vtotal': 'y_sea_water_velocity'},
+    cmems_user=cmems_user, cmems_password=cmems_password)
 
 o = OceanDrift()
 
@@ -61,7 +59,6 @@ o.add_reader(cmems)
 o.seed_elements(lon=lon, lat=lat, number=5000, radius=1000, time=time)
 o.run(duration=duration)
 o.animation(fast=True)
-
 
 #%%
 # .. image:: /gallery/animations/example_cmems_0.gif

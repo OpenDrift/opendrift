@@ -25,7 +25,7 @@ latstart = 68.988911
 lonstart = 16.040701
 latend = 69.991446
 lonend = 17.760061
-time = [datetime.now(), datetime.now() + timedelta(hours=12)]
+time = [datetime.utcnow(), datetime.utcnow() + timedelta(hours=12)]
 
 o.seed_elements(lon=[lonstart, lonend], lat=[latstart, latend],
                 oiltype='EKOFISK',

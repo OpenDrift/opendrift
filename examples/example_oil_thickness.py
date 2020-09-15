@@ -42,7 +42,7 @@ o1.set_config('processes:update_oilfilm_thickness', True)
 o1.seed_elements(lon=4.5, lat=60, number=number,
                 mass_oil=mass_oil, radius=1000,
                 oiltype=oiltype,
-                time=datetime.now())
+                time=datetime.utcnow())
 o1.run(time_step=timestep, time_step_output=timestep_output,
        duration=duration)
 
@@ -72,7 +72,7 @@ o2.set_config('processes:update_oilfilm_thickness', False)
 o2.seed_elements(lon=4.5, lat=60, number=number,
                 mass_oil=mass_oil, radius=1000,
                 oiltype=oiltype,
-                time=datetime.now())
+                time=datetime.utcnow())
 o2.run(time_step=timestep, time_step_output=timestep_output,
        duration=duration)
 

@@ -17,7 +17,7 @@ o.add_readers_from_list([
 
 #%%
 # spawn NEA cod eggs at defined position and time
-time = datetime.now()
+time = datetime.utcnow()
 o.seed_elements(14. , 68.1, z=-40, radius=2000, number=500,
                 time=time, diameter=0.0014, neutral_buoyancy_salinity=31.25)
 o.seed_elements(12.5, 68., z=-40, radius=2000, number=500,

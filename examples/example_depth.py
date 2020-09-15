@@ -20,7 +20,7 @@ o.add_readers_from_list([
 # Seed 1000 elements at random depths
 z = -np.random.rand(1000)*50
 o.seed_elements(lon=4.8, lat=60.0, z=z, radius=0, number=1000,
-                time=datetime.now())
+                time=datetime.utcnow())
 
 print(o)
 
