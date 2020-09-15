@@ -115,7 +115,7 @@ class Reader(NCReader):
         print('Downloading contents file')
         p = subprocess.Popen(cmd.split(' '))
         try:
-            p.wait(60)  # timeout in seconds
+            p.wait(120)  # timeout in seconds
         except subprocess.TimeoutExpired:
             print('TIEMOUT!')
             p.kill()

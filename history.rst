@@ -1,6 +1,13 @@
 History
 =======
 
+Next release
+
+* Vertical mixing is now disabled by default in OceanDrift, but enabled in all submodules (PelagicEggDrift, SedimentDrift, RadionuclideDrift, OpenOil)
+* reader_cmems.py now takes dataset name and not product name as input, and it is possible to provide variable mapping.
+* NOAA ADIOS is now default (and only) option for oil weathering, as the "built in" oil weathering module ("basic") is removed.
+* GUI is generalised, to be usable for any modules. This includes taking default seed options from `config:seed:` (e.g. m3_per_hour for OpenOil)
+
 2020-08-21 / Release v1.3.2
 ---------------------------
 
@@ -15,11 +22,8 @@ History
 ---------------------------
 
 * NOAA oil weathering model is now default choice in OpenOil
-
 * Bugfix in reader_netCDF_CF_generic for particles with negative longitudes combined with global datasets with longitudes from 0-360
-
 * Added module ``SedimentDrift``
-
 * Removed two options from OpenOil, with corresponding config parameters:
 
   * Tkalich(2002) entrainment rate
