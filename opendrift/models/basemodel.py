@@ -2605,11 +2605,12 @@ class OpenDriftSimulation(PhysicsMethods):
         from shapely.geometry import box
 
         if not hide_landmask:
-            if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'shape' or (
+            if 'land_binary_mask' in self.priority_list and (
+                self.priority_list['land_binary_mask'][0] == 'shape' or (
                 self.priority_list['land_binary_mask'][0] == 'global_landmask' \
                 and not self.readers['global_landmask'].skippoly \
                 and (self.readers['global_landmask'].mask.extent is None \
-                    or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax)))):
+                    or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax))))):
 
                 if self.priority_list['land_binary_mask'][0] == 'global_landmask':
                     self.logger.debug("Using existing GSHHS shapes..")
