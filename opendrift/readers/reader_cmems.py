@@ -28,6 +28,7 @@ from xml.etree import ElementTree
 import numpy as np
 import pyproj
 import isodate
+from netCDF4 import Dataset
 
 
 logger = logging.getLogger('opendrift')  # using common logger
@@ -203,5 +204,11 @@ class Reader(NCReader):
         self.logger.info('Downloading file from CMEMS server, using motu-client:')
         self.logger.info(cmd)
         os.system(cmd)
+
+        # Update standard_name attribute with provided variable mapping
+        d = Dataset(self.nc_file, 'a')
+        for var, val in self.variable_mapping.items():
+            print('Setting standard_name of %s to %s' % (var, val))
+            d.variables[var].standard_name = val
 
         super(Reader, self).__init__(filename=self.nc_file)
