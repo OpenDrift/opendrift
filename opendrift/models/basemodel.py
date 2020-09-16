@@ -2605,28 +2605,31 @@ class OpenDriftSimulation(PhysicsMethods):
         from shapely.geometry import box
 
         if not hide_landmask:
-            if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'global_landmask' \
-            and not self.readers['global_landmask'].skippoly \
-            and (self.readers['global_landmask'].mask.extent is None \
-                    or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax))):
+            if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'shape' or (
+                self.priority_list['land_binary_mask'][0] == 'global_landmask' \
+                and not self.readers['global_landmask'].skippoly \
+                and (self.readers['global_landmask'].mask.extent is None \
+                    or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax)))):
 
-                self.logger.debug("Using existing GSHHS shapes..")
-                landmask = self.readers['global_landmask'].mask
+                if self.priority_list['land_binary_mask'][0] == 'global_landmask':
+                    self.logger.debug("Using existing GSHHS shapes..")
+                    landmask = self.readers['global_landmask'].mask
+                    if fast:
+                        show_landmask(landmask)
 
-                if fast:
-                    show_landmask(landmask)
+                    else:
+                        extent = box(lonmin, latmin, lonmax, latmax)
+                        extent = shapely.prepared.prep(extent)
+                        polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
 
-                else:
-                    extent = box(lonmin, latmin, lonmax, latmax)
-                    extent = shapely.prepared.prep(extent)
-                    polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
+                        ax.add_geometries(polys,
+                                ccrs.PlateCarree(),
+                                facecolor=cfeature.COLORS['land'],
+                                edgecolor='black')
+                else:  # Using custom shape reader
+                    ax.add_geometries(self.readers['shape'].polys, ccrs.PlateCarree(), facecolor=cfeature.COLORS['land'], edgecolor='black')
 
-                    ax.add_geometries(polys,
-                            ccrs.PlateCarree(),
-                            facecolor=cfeature.COLORS['land'],
-                            edgecolor='black')
             else:
-
                 if fast:
                     from opendrift_landmask_data import Landmask
                     show_landmask(Landmask(skippoly=True))
