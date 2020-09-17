@@ -12,7 +12,7 @@ Norrie, C.R., Dunphy, B.J., Roughan, M., Weppe, S., & Lundquist, C. (2020). Spil
 
 Romagnoni G., Kvile K.Oe., Dagestad K.F., Eikeset A.M., Kristiansen T., Stenseth N.C., Langangen Oe.: Influence of larval transport and temperature on recruitment dynamics of North Sea cod (Gadus morhua ) across spatial scales of observation, Fisheries and Oceanography, 2020, https://doi.org/10.1111/fog.12474
 
-Ličer, M., Estival, S., Reyes-Suarez, C., Deponte, D., and Fettich, A.: Lagrangian Trajectory Modelling for a Person lost at Sea during Adriatic Scirocco Storm of 29 October 2018, Nat. Hazards Earth Syst. Sci. Discuss., https://doi.org/10.5194/nhess-2019-362, in review, 2020.
+Ličer, M., Estival, S., Reyes-Suarez, C., Deponte, D., and Fettich, A.: Lagrangian Trajectory Modelling of a Person lost at Sea during the Adriatic Scirocco Storm of 29 October 2018, Nat. Nat. Hazards Earth Syst. Sci., 20, 2335–2349, 2020, https://doi.org/10.5194/nhess-20-2335-2020
 
 Clavel-Henry M, Solé J, Kristiansen T, Bahamon N, Rotllant G, et al. (2020) Modeled buoyancy of eggs and larvae of the deep-sea shrimp Aristeus antennatus (Crustacea: Decapoda) in the northwestern Mediterranean Sea. PLOS ONE 15(1): e0223396.
 https://doi.org/10.1371/journal.pone.0223396
