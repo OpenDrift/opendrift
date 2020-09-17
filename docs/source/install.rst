@@ -25,7 +25,7 @@ This installs the OpenDrift package as an editable package. You can therefore di
 
 
 Alternative 2: Using Miniconda
-------------------------------
+++++++++++++++++++++++++++++++
 
 1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
 2. Set up a *Python 3* environment for opendrift
@@ -44,7 +44,7 @@ Alternative 2: Using Miniconda
 
 .. _source_install:
 
-Two additional steps are necessary if you later want to edit the OpenDrift source code, or be able to update from repository with `git pull`. This yields the same as Alternative 1:
+If you later want to edit the OpenDrift source code, or be able to update from repository with `git pull`, the following two steps are necessary. This yields the same as Alternative 1.
 
 4. Clone OpenDrift:
 
