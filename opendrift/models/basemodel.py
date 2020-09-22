@@ -3424,7 +3424,8 @@ class OpenDriftSimulation(PhysicsMethods):
         if type(background) is list:
             u_component = data[background[0]]
             v_component = data[background[1]]
-            scalar = np.sqrt(u_component**2 + v_component**2)
+            with np.errstate(invalid='ignore'):
+                scalar = np.sqrt(u_component**2 + v_component**2)
             # NB: rotation not completed!
             u_component, v_component = reader.rotate_vectors(
                 reader_x, reader_y, u_component, v_component,
