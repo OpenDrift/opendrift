@@ -1044,6 +1044,8 @@ class BaseReader(object):
                 indx_nearest = indx_after
             nearest_time = self.times[indx_nearest]
         else:  # Time step is constant (no holes)
+            if self.time_step is None:
+                return None, None, None, None, None, None
             indx = float((time - self.start_time).total_seconds()) / \
                 float(self.time_step.total_seconds())
             indx_nearest = int(round(indx))

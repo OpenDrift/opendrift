@@ -24,3 +24,6 @@ dependencies:
   - oil_library-opendrift
   - pygrib
   - isodate
+  - pip
+  - pip:
+    - motuclient
