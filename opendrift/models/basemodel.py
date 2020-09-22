@@ -1433,7 +1433,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 number = len(lon)
             elif isinstance(time, list) and len(time) > 2:
                 number = len(time)
-            print(len(lon), 'lenlon')
         number = np.atleast_1d(number).ravel()
         if len(lon) == 1 and len(number) > 1:
             ones = np.ones(len(number))

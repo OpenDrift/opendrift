@@ -25,13 +25,13 @@ x = [.9]
 y = [.5]
 lon, lat = double_gyre.xy2lonlat(x, y)
 
-o.seed_elements(lon, lat, radius=.1, number=10000,
+o.seed_elements(lon, lat, radius=.1, number=5000,
                 time=double_gyre.initial_time)
 
 o.run(duration=timedelta(seconds=10), time_step=0.1)
-o.animation(buffer=0)
+o.animation(buffer=0, hide_landmask=True)
 
 #%%
 # .. image:: /gallery/animations/example_double_gyre_0.gif
 
-o.plot(buffer=0)
+o.plot(buffer=0, hide_landmask=True)

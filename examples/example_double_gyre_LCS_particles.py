@@ -53,7 +53,7 @@ o.seed_elements(lon, lat, radius=.15, number=2000,
 o.disable_vertical_motion()
 o.run(duration=duration, time_step=time_step,
       time_step_output=time_step_output)
-o.animation(buffer=0, lcs=lcs)
+o.animation(buffer=0, lcs=lcs, hide_landmask=True)
 
 #%%
 # .. image:: /gallery/animations/example_double_gyre_LCS_particles_0.gif
