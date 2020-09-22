@@ -404,7 +404,8 @@ class Leeway(OpenDriftSimulation):
         f.close()
 
     def _substance_name(self):
-        if len(self.elements.objectType) == 0:
-            return self.leewayprop[self.elements_scheduled.objectType]['OBJKEY']
+        if hasattr(self, 'history'):
+            objectType = self.history['objectType'][0,0]
         else:
-            return self.leewayprop[self.elements.objectType[0]]['OBJKEY']
+            objectType = np.atleast_1d(self.elements_scheduled.objectType)[0]
+        return self.leewayprop[objectType]['OBJKEY']
