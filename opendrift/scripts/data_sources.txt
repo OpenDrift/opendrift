@@ -18,3 +18,4 @@ https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmosp
 http://tds.hycom.org/thredds/dodsC/GLBy0.08/latest
 http://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z
 http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z
+{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh", "cmems_user": null, "cmems_password": null}
