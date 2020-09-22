@@ -74,12 +74,13 @@ class Reader(NCReader):
                  time_end=datetime.now() + timedelta(days=1)):
 
         if cmems_user is None:
-            if 'CMEMS_USER' in os.environ and 'CMEMS_PASSWORD' in os.environ:
-                self.cmems_user = os.environ['CMEMS_USER']
-                self.cmems_password = os.environ['CMEMS_PASSWORD']
-            else:
+            try:
+                import netrc
+                n = netrc.netrc()
+                self.cmems_user, dummy, self.cmems_password = n.authenticators('cmems')
+            except:
                 raise ValueError('CMEMS username and password must be provided, '
-                                 'or stored as environment variables CMEMS_USER and CMEMS_PASSWORD')
+                                 'or stored in a .netrc file under machine name "cmems"')
         else:
             self.cmems_user = cmems_user
             self.cmems_password = cmems_password
