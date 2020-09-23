@@ -3097,7 +3097,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
             vmin, vmax: minimum and maximum values for colors of background.
 
-            linecolor: name of variable to be used for coloring trajectories.
+            linecolor: name of variable to be used for coloring trajectories, or matplotlib color string.
 
             lvmin, lvmax: minimum and maximum values for colors of trajectories.
 
@@ -3133,7 +3133,12 @@ class OpenDriftSimulation(PhysicsMethods):
             legend = None
         if hasattr(self, 'history') and linewidth != 0:
             # Plot trajectories
-            if linecolor is None:
+            from matplotlib.colors import is_color_like
+            if linecolor is None or is_color_like(linecolor) is True:
+                if is_color_like(linecolor):
+                    linecolor = linecolor
+                else:
+                    linecolor = 'gray'
                 if compare is not None and legend is not None:
                     if legend is True:
                         if hasattr(compare, 'len'):
@@ -3142,10 +3147,10 @@ class OpenDriftSimulation(PhysicsMethods):
                             numleg = 2
                         legend = ['Simulation %d' % (i+1) for i in
                                   range(numleg)]
-                    ax.plot(x[:,0], y[:,0], color='gray', alpha=alpha, label=legend[0], linewidth=linewidth, transform = gcrs)
-                    ax.plot(x, y, color='gray', alpha=alpha, label='_nolegend_', linewidth=linewidth, transform = gcrs)
+                    ax.plot(x[:,0], y[:,0], color=linecolor, alpha=alpha, label=legend[0], linewidth=linewidth, transform = gcrs)
+                    ax.plot(x, y, color=linecolor, alpha=alpha, label='_nolegend_', linewidth=linewidth, transform = gcrs)
                 else:
-                    ax.plot(x, y, color='gray', alpha=alpha, linewidth=linewidth, transform = gcrs)
+                    ax.plot(x, y, color=linecolor, alpha=alpha, linewidth=linewidth, transform = gcrs)
             else:
                 colorbar = True
                 # Color lines according to given parameter
