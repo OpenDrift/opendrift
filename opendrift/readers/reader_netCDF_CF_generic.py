@@ -376,10 +376,10 @@ class Reader(BaseReader):
                     standard_name = self.variable_aliases[standard_name]  
                 self.variable_mapping[standard_name] = standard_name 
             # ------------------------------------
-        self.variables = self.variable_mapping.keys()
+        # self.variables = self.variable_mapping.keys()
 # =======
 
-#         self.variables = list(self.variable_mapping.keys())
+        self.variables = list(self.variable_mapping.keys())
 # >>>>>>> upstream/master
 
         # Run constructor of parent Reader class
