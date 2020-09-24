@@ -16,9 +16,8 @@
 
 import numpy as np
 
-from opendrift.models.opendrift3D import \
-    OpenDrift3DSimulation, Lagrangian3DArray
-from opendrift.elements import LagrangianArray
+from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+#from opendrift.elements import LagrangianArray
 
 
 # Defining the oil element properties
@@ -26,7 +25,7 @@ class PelagicEgg(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for pelagic eggs
     """
 
-    variables = LagrangianArray.add_variables([
+    variables = Lagrangian3DArray.add_variables([
         ('diameter', {'dtype': np.float32,
                       'units': 'm',
                       'default': 0.0014}),  # for NEA Cod
@@ -41,7 +40,7 @@ class PelagicEgg(Lagrangian3DArray):
                      'default': 0.})])
 
 
-class PelagicEggDrift(OpenDrift3DSimulation):
+class PelagicEggDrift(OceanDrift):
     """Buoyant particle trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway
@@ -112,6 +111,9 @@ class PelagicEggDrift(OpenDrift3DSimulation):
 
         # By default, eggs do not strand towards coastline
         self.set_config('general:coastline_action', 'previous')
+
+        # Vertical mixing is enabled by default
+        self.set_config('drift:vertical_mixing', True)
 
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
@@ -205,5 +207,5 @@ class PelagicEggDrift(OpenDrift3DSimulation):
         self.advect_ocean_current()
 
         # Vertical advection
-        if self.get_config('processes:verticaladvection') is True:
+        if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()

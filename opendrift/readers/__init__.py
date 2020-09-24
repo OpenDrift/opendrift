@@ -1,8 +1,25 @@
+import importlib
 import logging
 import glob
+import json
 
 def reader_from_url(url, timeout=10):
     '''Make readers from URLs or paths to datasets'''
+
+    try:  # Initialise reader from JSON string
+        j = json.loads(url)
+        try:
+            reader_module = importlib.import_module(
+                    'opendrift.readers.' + j['reader'])
+            reader = getattr(reader_module, 'Reader')
+            del j['reader']
+            reader = reader(**j)
+            return reader
+        except Exception as e:
+            logging.warning('Creating reader from JSON failed:')
+            logging.warning(e)
+    except:
+        pass
 
     from opendrift.readers import reader_netCDF_CF_generic
 

@@ -34,31 +34,31 @@ class LeewayObj(LagrangianArray):
     """
     variables = LagrangianArray.add_variables([
         ('objectType', {'dtype': np.int16,
-                        'unit': '1',
+                        'units': '1',
                         'default': 0}),
         ('orientation', {'dtype': np.int16,
-                         'unit': '1',
+                         'units': '1',
                          'default': 1}),
         ('jibeProbability', {'dtype': np.float32,
-                             'unit': '1/h',
+                             'units': '1/h',
                              'default': 0.04}),
         ('downwindSlope', {'dtype': np.float32,
-                           'unit': '%',
+                           'units': '%',
                            'default': 1}),
         ('crosswindSlope', {'dtype': np.float32,
-                            'unit': '1',
+                            'units': '1',
                             'default': 1}),
         ('downwindOffset', {'dtype': np.float32,
-                            'unit': 'cm/s',
+                            'units': 'cm/s',
                             'default': 0}),
         ('crosswindOffset', {'dtype': np.float32,
-                             'unit': 'cm/s',
+                             'units': 'cm/s',
                              'default': 0}),
         ('downwindEps', {'dtype': np.float32,
-                         'unit': 'cm/s',
+                         'units': 'cm/s',
                          'default': 0}),
         ('crosswindEps', {'dtype': np.float32,
-                          'unit': 'cm/s',
+                          'units': 'cm/s',
                           'default': 0})
         ])
 
@@ -146,7 +146,7 @@ class Leeway(OpenDriftSimulation):
                          'Output time step in minutes',
                          overwrite=True)
 
-    def seed_elements(self, lon, lat, radius=0, number=1, time=None,
+    def seed_elements(self, lon, lat, radius=0, number=None, time=None,
                       objectType=None, cone=None, jibeProbability=None,
                       **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
@@ -154,6 +154,9 @@ class Leeway(OpenDriftSimulation):
         # but so far we only use one for each sim
         # objtype = np.ones(number)*objectType
         # Note: cone is not used, simply to provide same interface as others
+
+        if number is None:
+            number = self.get_config('seed:number_of_elements')
 
         if objectType is None:
             object_name = self.get_config('seed:object_type')
@@ -171,22 +174,6 @@ class Leeway(OpenDriftSimulation):
         self.logger.info('Seeding elements of object type %i: %s (%s)' %
                      (objectType, self.leewayprop[objectType]['OBJKEY'],
                       self.leewayprop[objectType]['Description']))
-
-        if time is None:
-            # Use first time of first reader if time is not given for seeding
-            try:
-                for reader in self.readers.items():
-                    if reader[1].start_time is not None:
-                        firstReader = reader[1]
-                        break
-            except:
-                raise ValueError('Time must be specified when no '
-                                 'reader is added')
-            self.logger.info('Using start time (%s) of reader %s' %
-                         (firstReader.start_time, firstReader.name))
-            self.start_time = firstReader.start_time
-        else:
-            self.start_time = time
 
         # Drift orientation of particles.  0 is right of downwind,
         # 1 is left of downwind
@@ -415,3 +402,10 @@ class Leeway(OpenDriftSimulation):
                         orientation[i]))
 
         f.close()
+
+    def _substance_name(self):
+        if hasattr(self, 'history'):
+            objectType = self.history['objectType'][0,0]
+        else:
+            objectType = np.atleast_1d(self.elements_scheduled.objectType)[0]
+        return self.leewayprop[objectType]['OBJKEY']

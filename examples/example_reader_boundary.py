@@ -34,8 +34,10 @@ lons, lats = np.meshgrid(lons, lats)
 o.seed_elements(lons, lats, radius=0, number=2500,
                 time=reader_norkyst.start_time)
 
+o.set_config('drift:vertical_mixing', False)
+
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(steps=16*4, time_step=900, time_step_output=1800)
 
 #%%

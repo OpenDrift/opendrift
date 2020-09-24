@@ -3,23 +3,23 @@
 Droplet distribution
 ==================================
 
-Plotting different droplet size distributions used in Opendrift (see openoil3D.py script)
+Plotting different droplet size distributions used in Opendrift
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from datetime import datetime, timedelta
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 
 #%%
-# droplet size interval for simulation and plotting
-dmin = 1.e-5
-dmax = 5.e-3
+# droplet size interval for plotting
+dmin = 1.e-6
+dmax = 3.e-3
 
 #%%
 # simulation with Johansen et al. (2015) droplet spectrum
-o = OpenOil3D(loglevel=20, weathering_model='noaa')
+o = OpenOil(loglevel=20, weathering_model='noaa')
 o.fallback_values['land_binary_mask'] = 0
 o.fallback_values['x_sea_water_velocity'] = -.2
 o.fallback_values['y_sea_water_velocity'] = 0
@@ -31,9 +31,7 @@ o.fallback_values['sea_surface_wave_stokes_drift_y_velocity'] = 0
 o.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (2015)')
 o.set_config('processes:evaporation', False)
 o.set_config('processes:dispersion', False)
-o.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', dmin)
-o.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', dmax)
-o.seed_elements(lon=4, lat=60, time=datetime.now(), number=10000, radius=100,
+o.seed_elements(lon=4, lat=60, time=datetime.utcnow(), number=10000, radius=100,
                  z=0, oiltype='TROLL, STATOIL', oil_film_thickness=0.005)
 o.run(duration=timedelta(hours=2), time_step=3600)
 
@@ -53,7 +51,7 @@ plt.subplot(3, 2, 1)
 nVpdf, binsV, patches = plt.hist(droplet_diameters, 100, range=(dmin,dmax), align='mid')
 plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('V(d)', fontsize=8)
-plt.title('volume spectrum\nJohansen et al. (2015) distribution in OpenOil3D', fontsize=10)
+plt.title('volume spectrum\nJohansen et al. (2015) distribution in OpenOil', fontsize=10)
 
 plt.subplot(3,2,2)
 nVcum, binsV, patches = plt.hist(droplet_diameters, 100, range=(dmin,dmax), align='mid', cumulative=True)
@@ -70,7 +68,7 @@ Ncum = np.cumsum(Npdf)
 
 #%%
 # calculate theoretical cumulative Number distribution
-spectrum = (np.exp(-(np.log(d) - np.log(DN_50))**2 / (2 * Sd**2))) / (d * Sd * np.sqrt(2 * np.pi)) # from OpenOil3D median diameter
+spectrum = (np.exp(-(np.log(d) - np.log(DN_50))**2 / (2 * Sd**2))) / (d * Sd * np.sqrt(2 * np.pi)) # from OpenOil median diameter
 DN_50_johansen = 0.000483
 spectrumJ = (np.exp(-(np.log(d) - np.log(DN_50_johansen))**2 / (2 * Sd**2))) / (d * Sd * np.sqrt(2 * np.pi)) # from parameters in Johansen et al. 2015
 
@@ -83,15 +81,15 @@ spectrumJ_cum = np.cumsum(spectrumJ)
 
 plt.subplot(3,2,3)
 plt.plot(d, Npdf/np.sum(Npdf), lw=2)
-#plt.plot(d, spectrum/np.sum(spectrum), label='curve fit from OpenOil3D', lw=2)
+#plt.plot(d, spectrum/np.sum(spectrum), label='curve fit from OpenOil', lw=2)
 plt.plot(d, spectrumJ/np.sum(spectrumJ), label='curve fit from Johansen et al. 2015', lw=2)
 plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('N(d)', fontsize=8)
 plt.title('number spectrum', fontsize=10)
 
 plt.subplot(3,2,4)
-plt.plot(d, Ncum/np.max(Ncum), label='OpenOil3D result', lw=2)
-#plt.plot(d, spectrum_cum/np.max(spectrum_cum), label='OpenOil3D par.', lw=2)
+plt.plot(d, Ncum/np.max(Ncum), label='OpenOil result', lw=2)
+#plt.plot(d, spectrum_cum/np.max(spectrum_cum), label='OpenOil par.', lw=2)
 plt.plot(d, spectrumJ_cum/np.max(spectrumJ_cum), label='Johansen et al. 2015', lw=2)
 plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('N(d)', fontsize=8)
@@ -100,15 +98,15 @@ plt.legend(loc='lower right')
 
 plt.subplot(3,2,5)
 plt.loglog(d, Npdf/np.sum(Npdf), lw=2)
-#plt.loglog(d, spectrum/np.sum(spectrum), label='curve fit from OpenOil3D', lw=2)
+#plt.loglog(d, spectrum/np.sum(spectrum), label='curve fit from OpenOil', lw=2)
 plt.loglog(d, spectrumJ/np.sum(spectrumJ), label='curve fit from Johansen et al. 2015', lw=2)
 plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('N(d)', fontsize=8)
 plt.title('number spectrum', fontsize=10)
 
 plt.subplot(3,2,6)
-plt.semilogx(d, Ncum/np.max(Ncum), label='OpenOil3D result', lw=2)
-#plt.semilogx(d, spectrum_cum/np.max(spectrum_cum), label='OpenOil3D par.', lw=2)
+plt.semilogx(d, Ncum/np.max(Ncum), label='OpenOil result', lw=2)
+#plt.semilogx(d, spectrum_cum/np.max(spectrum_cum), label='OpenOil par.', lw=2)
 plt.semilogx(d, spectrumJ_cum/np.max(spectrumJ_cum), label='Johansen et al. 2015', lw=2)
 plt.xlabel('Droplet diameter d [m]', fontsize=8)
 plt.ylabel('N(d)', fontsize=8)

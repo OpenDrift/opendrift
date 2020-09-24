@@ -2,13 +2,14 @@
 /vol/vvfelles/opendrift/forcing_data/norkyst/norkyst_aggregate.nc
 /vol/vvfelles/opendrift/forcing_data/meps/meps_aggregate.nc
 /vol/vvfelles/opendrift/forcing_data/ecmwf/ecmwf_aggregate.nc
-/vol/vvfelles/opendrift/forcing_data/nordic/nordic_aggregate.nc
 /lustre/storeB/project/metproduction/products/norkyst/NorKyst-800m_ZDEPTHS_his_00.nc
-/lustre/storeB/project/metproduction/products/meps/symlinks/thredds/meps_det_extracted_2_5km_latest.nc
+/lustre/storeB/project/metproduction/products/meps/thredds/latest/meps_lagged_6_h_latest_2_5km_latest.nc
 /lustre/storeB/project/copernicus/sea/mywavewam4/*fc*.nc
-/lustre/storeB/project/metproduction/from_opdata/roms/Nordic-4km_SURF_1h_avg_00.nc
 https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
 https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc
+https://thredds.met.no/thredds/dodsC/barents25km_agg
+/lustre/storeB/project/metproduction/from_opdata/roms/Nordic-4km_SURF_1h_avg_00.nc
+/vol/vvfelles/opendrift/forcing_data/nordic/nordic_aggregate.nc
 https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
 https://thredds.met.no/thredds/dodsC/topaz/dataset-topaz4-arc-unmasked-be
 https://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc
@@ -17,3 +18,4 @@ https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmosp
 http://tds.hycom.org/thredds/dodsC/GLBy0.08/latest
 http://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z
 http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z
+{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh", "cmems_user": null, "cmems_password": null}

@@ -2,7 +2,61 @@ History
 =======
 
 Next release
---------------------------
+
+* Readers may be initialised from a JSON string, where `reader` is name of reader module, and other parameters are forwarded to reader constructor, e.g.: `{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh"}`
+* CMEMS reader now obtains username/password from .netrc instead of environment variables. CMEMS-motuclient is added to environment.yml
+* CMEMS reader now takes dataset name and not product name as input, and it is possible to provide variable mapping.
+* Vertical mixing is now disabled by default in OceanDrift, but enabled in all submodules (PelagicEggDrift, SedimentDrift, RadionuclideDrift, OpenOil)
+* NOAA ADIOS is now default (and only) option for oil weathering, as the "built in" oil weathering module ("basic") is removed.
+* GUI is generalised, to be usable for any modules. This includes taking default seed options from `config:seed:` (e.g. m3_per_hour for OpenOil)
+
+2020-08-21 / Release v1.3.2
+---------------------------
+
+* Fixed ``vmax`` value for animations with density array
+* Fixed animation marker color for deactivated elements
+* Introduced mechanism to store environment variables from previous time step
+* New element property ``moving``, giving possibility to temporarily freeze elements, e.g. used for sedimentation and resuspension in SedimentDrift module
+* Improved robustness using Xarray in netCDF-readers. Xarray is still optional dependency, but is now tested on Travis
+* nc-time-axis is new dependency, providing support for cftime axis in matplotlib
+
+2020-07-03 / Release v1.3.1
+---------------------------
+
+* NOAA oil weathering model is now default choice in OpenOil
+* Bugfix in reader_netCDF_CF_generic for particles with negative longitudes combined with global datasets with longitudes from 0-360
+* Added module ``SedimentDrift``
+* Removed two options from OpenOil, with corresponding config parameters:
+
+  * Tkalich(2002) entrainment rate
+
+  * Exponential droplet size distribution
+
+* Renamed two config settings:
+
+  * ``processes:turbulentmixing`` -> ``drift:vertical_mixing``
+
+  * ``processes:verticaladvection``-> ``drift:vertical_advection``
+
+2020-06-24 / Release v1.3.0
+------------------------------
+* OceanDrift3D and OpenDrift3D have been merged into OceanDrift, and OpenOil3D has been merged into OpenOil. Thus OpenOil and OceanDrift are now 3D modules, but can still be configured for 2D drift.
+
+2020-06-12 / Release v1.2.3
+---------------------------
+
+* Seed from shapefile: GDAL (ogr / osr) changed coordinate order, updates dependencies and call.
+
+2020-06-08 / Release v1.2.2
+---------------------------
+
+* `Victor de Aguiar <https://github.com/vic1309>`_: :mod:`Oil drift in sea ice <opendrift.models.openoil>` following Nordam et al., 2019, doi:10.1016/j.marpolbul.2019.01.019 (Sponsored by the Fram Centre in Tromsø, through the MIKON/OSMICO project).
+* OpenBerg module available from the GUI.
+* A generic shape reader for landmasks (use polygons directly or convenience method using shp files).
+* Drop rasterio dependency and include some significant thread-safety fixes for landmask-data.
+
+2020-05-14 / Release v1.2.1
+---------------------------
 
 * Specifying a positive time step with a negative duration is now an error. Duration should
   always be specified positive.

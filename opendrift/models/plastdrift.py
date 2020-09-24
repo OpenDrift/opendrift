@@ -15,23 +15,20 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
-from opendrift.models.oceandrift3D import OceanDrift3D
+from opendrift.models.oceandrift import OceanDrift
 from opendrift.elements.passivetracer import PassiveTracer
 
 # We add the property 'wind_drift_factor' to the element class
 PassiveTracer.variables = PassiveTracer.add_variables([
     ('wind_drift_factor', {'dtype': np.float32,
-                           'unit': '%',
+                           'units': '1',
                            'default': 0.02}),
     ('terminal_velocity', {'dtype': np.float32,
                            'units': 'm/s',
-                           'default': 0.01}),
-    ('origin_marker', {'dtype': np.int16,
-                       'unit': '',
-                       'default': 0})])
+                           'default': 0.01})])
 
 
-class PlastDrift(OceanDrift3D):
+class PlastDrift(OceanDrift):
     """Trajectory model based on the OpenDrift framework.
 
     Propagation of plastics particles with ocean currents and
@@ -70,10 +67,10 @@ class PlastDrift(OceanDrift3D):
         [general]
             coastline_action = option('none', 'stranding', 'previous', default='previous')
         [drift]
-            verticaladvection = boolean(default=True)
+            vertical_advection = boolean(default=True)
             use_tabularised_stokes_drift = boolean(default=True)
             wind_drift_depth = float(min=0, max=10, default=0.1)
-        [turbulentmixing]
+        [vertical_mixing]
             mixingmodel = option('randomwalk', 'analytical', default='analytical')
             diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='windspeed_Large1994')
         '''
@@ -104,12 +101,12 @@ class PlastDrift(OceanDrift3D):
     def update_particle_depth(self):
 
 
-        if self.get_config('turbulentmixing:mixingmodel') == 'randomwalk':
+        if self.get_config('vertical_mixing:mixingmodel') == 'randomwalk':
             self.logger.debug('Turbulent mixing of particles using random walk')
             self.vertical_mixing()
 
 
-        if self.get_config('turbulentmixing:mixingmodel') == 'analytical':
+        if self.get_config('vertical_mixing:mixingmodel') == 'analytical':
             self.logger.debug('Submerging according to wind')
             self.elements.z = -np.random.exponential(
                 scale=self.environment.ocean_vertical_diffusivity/

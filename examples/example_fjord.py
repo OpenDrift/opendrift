@@ -24,8 +24,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 #%%
 # Making customised, full resolution landmask
 reader_landmask = reader_global_landmask.Reader(
-                    llcrnrlon=5.5, llcrnrlat=61.05,
-                    urcrnrlon=6.65, urcrnrlat=61.21)
+                    extent=[5.5, 6.65, 61.05, 61.21])
 
 o.add_reader([reader_landmask, reader_norkyst, reader_arome])
 
@@ -47,6 +46,7 @@ o.run(duration=timedelta(hours=12), time_step=300, time_step_output=3600)
 print(o)
 o.animation()
 
+#%%
 # .. image:: /gallery/animations/example_fjord_0.gif
 
 o.plot()

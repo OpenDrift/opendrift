@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 """
-Oil 3d (vertical mixing)
+Oil vertical mixing
 ==================================
 """
 
 from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 
 
-o = OpenOil3D(loglevel=20)  # Set loglevel to 0 for debug information
+o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
-ncfile = 'oil3Dmixing.nc'
+ncfile = 'oilmixing.nc'
 import_file = False  # Set to True to import previous run
 
 if import_file is True:
@@ -27,10 +27,7 @@ else:
                     time=reader_arome.start_time)
 
     # Adjusting some configuration
-    o.set_config('processes:evaporation', False)
-    o.set_config('processes:turbulentmixing', True)
-    o.set_config('processes:dispersion', False)
-    #o.set_config('turbulentmixing:diffusivitymodel', 'windspeed_Sundby1983')
+    #o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983')
 
     # Running model
     o.run(end_time=reader_arome.start_time + timedelta(hours=12),
@@ -46,5 +43,5 @@ o.plot_oil_budget()
 o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/example_oil3d_verticalmixing_0.gif
+# .. image:: /gallery/animations/example_oil_verticalmixing_0.gif
 

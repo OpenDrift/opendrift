@@ -127,8 +127,7 @@ Most applications will need a landmask, for stranding towards a coastline. A hig
 
     from opendrift.readers import reader_global_landmask
     reader_landmask = reader_global_landmask.Reader(
-                           llcrnrlon=2, llcrnrlat=59,
-                           urcrnrlon=8, urcrnrlat=63)
+                           extent=[2, 8, 59, 63])  # lonmin, lonmax, latmin, latmax
 
 The longitude-latitude boundaries of the landmask reader should cover the area where the elements could possibly be advected during the run. The full resolution coastline will always be used, and a global rasterized version is used internally to speed up the checking for each element for each timestep of the model run.
 
@@ -150,7 +149,7 @@ In addition to providing variables interpolated to the element positions, reader
     required_profiles_z_range = [-120, 0]  # The depth range (in m) which
                                            # profiles shall cover
 
-Vertical profiles may be used by the model (``update()`` function) to calculate vertical mixing. See :doc:`gallery/example_long_codegg` for a demonstration.
+Vertical profiles may be used by the model (``update()`` function) to calculate vertical mixing. See :doc:`gallery/example_codegg` for a demonstration.
 
 2.1 Lazy Readers
 ****************
@@ -232,9 +231,9 @@ If time is also given as a two element list (of datetime objects), elements are 
 
 Specific OpenDrift models may have additional seed-functions. E.g. :mod:`opendrift.models.openoil` contains a function (seed_from_gml) to seed oil elements within contours from satellite detected oil slicks read from a GML-file. The Leeway model overloads the generic seed_elements function since it needs to read some object properties from a text-file.
 
-The seed functions may also be called repeatedly before starting the simulation, try :doc:`gallery/example_long_grid_time` for an example of this.
+The seed functions may also be called repeatedly before starting the simulation, try :doc:`gallery/example_grid_time` for an example of this.
 
-Run the script :doc:`gallery/example_long_seed_demonstration` for a demonstration of various ways to seed elements.
+Run the script :doc:`gallery/example_seed_demonstration` for a demonstration of various ways to seed elements.
 
 4. Configuration
 ################
@@ -382,6 +381,6 @@ The quality of mp4-files is quite low with older versions of Matplotlib, as bitr
 When exporting animation to mp4, an additional parameter ``fps`` may be provided to specify the number of frames per seconds (speed of animation), default is 20 frames/second.
 
 Specific models may define specific plotting functions. One example is ``OpenOil.plot_oil_budget()`` which plots the oil mass budget of a simulation.
-The examples :doc:`gallery/example_long_codegg` and :doc:`gallery/example_long_oil3d_verticalmixing` demonstrate the function plot_vertical_distribution() to show a histogram of the element depths, with an interactive time slider.
+The examples :doc:`gallery/example_codegg` and :doc:`gallery/example_oil3d_verticalmixing` demonstrate the function plot_vertical_distribution() to show a histogram of the element depths, with an interactive time slider.
 
 See the :doc:`gallery <gallery/index>` for some examples of output figures and animations.

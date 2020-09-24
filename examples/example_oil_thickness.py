@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Oil thickness
+Oil film thickness
 ==================================
 """
 
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 
 
 number = 10000
@@ -20,7 +20,7 @@ oiltype = '*GENERIC DIESEL'
 
 #%%
 # First run, where surface oil thickness is updated
-o1 = OpenOil3D(loglevel=30, weathering_model='noaa')
+o1 = OpenOil(loglevel=20, weathering_model='noaa')
 #%%
 # Northwards wind, eastwards current
 o1.fallback_values['land_binary_mask'] = 0
@@ -42,7 +42,7 @@ o1.set_config('processes:update_oilfilm_thickness', True)
 o1.seed_elements(lon=4.5, lat=60, number=number,
                 mass_oil=mass_oil, radius=1000,
                 oiltype=oiltype,
-                time=datetime.now())
+                time=datetime.utcnow())
 o1.run(time_step=timestep, time_step_output=timestep_output,
        duration=duration)
 
@@ -52,14 +52,14 @@ o1.run(time_step=timestep, time_step_output=timestep_output,
 unitfactor=1e6  # show film thickness in micrometers
 o1.animation(color='oil_film_thickness', fast=True,
              vmin=1e-7*unitfactor, vmax=1e-4*unitfactor,
-             unitfactor=unitfactor, surface_only=True,)
+             unitfactor=unitfactor, surface_only=True)
 
 #%%
 # .. image:: /gallery/animations/example_oil_thickness_0.gif
 
 #%%
 # Second run, identical but without updating surface oil thickness
-o2 = OpenOil3D(loglevel=30, weathering_model='noaa')
+o2 = OpenOil(loglevel=20, weathering_model='noaa')
 o2.fallback_values = o1.fallback_values
 
 o2.set_config('wave_entrainment:droplet_size_distribution',
@@ -72,7 +72,7 @@ o2.set_config('processes:update_oilfilm_thickness', False)
 o2.seed_elements(lon=4.5, lat=60, number=number,
                 mass_oil=mass_oil, radius=1000,
                 oiltype=oiltype,
-                time=datetime.now())
+                time=datetime.utcnow())
 o2.run(time_step=timestep, time_step_output=timestep_output,
        duration=duration)
 
@@ -116,7 +116,8 @@ plt.show()
 #%%
 # We see that oil film thickness has virtually no impact on horizontal drift
 o1.animation(compare=o2, fast=True,
-             legend=['Updated film thickness', 'Constant/default film thickness'],)
+             legend=['Updated film thickness',
+                     'Constant/default film thickness'])
 
 #%%
 # .. image:: /gallery/animations/example_oil_thickness_1.gif

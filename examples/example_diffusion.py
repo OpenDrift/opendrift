@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 """
-Diffusion
-=============
+Horizontal diffusion
+=====================
 """
 
 from datetime import datetime, timedelta
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
 lon = 4.5; lat = 60.0; # Outside Bergen
 
-o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
+# Adding readers
 # Arome atmospheric model
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 # Norkyst ocean model
@@ -25,21 +25,27 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov20
 o.add_reader([reader_norkyst, reader_arome])
 time = reader_arome.start_time
 o.seed_elements(lon, lat, radius=500, number=2000, time=time)
-o.set_config('drift:current_uncertainty', 0)  # 0 is default
+
+#%%
+# First run, with no horizontal diffusion
+o.set_config('drift:current_uncertainty', 0)
+o.set_config('drift:wind_uncertainty', 0)
 o.run(duration=timedelta(hours=24))
 
 #%%
 # Second run, identical, except for added diffusion
 
-o2 = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o2 = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_norkyst, reader_arome])
 o2.seed_elements(lon, lat, radius=500, number=2000, time=time)
 o2.set_config('drift:current_uncertainty', .2) # Difference from first run
+o2.set_config('drift:wind_uncertainty', 1)     # Difference from first run
 o2.run(duration=timedelta(hours=24))
 
 #%%
 # Comparing
-o2.animation(compare=o, legend=['0.2 m/s std for current components', 'No diffusion'], legend_loc='upper center')
+o2.animation(compare=o, legend=['Width diffusion', 'No diffusion'],
+             legend_loc='upper center', fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_diffusion_0.gif

@@ -15,9 +15,9 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 """
-OpenOil is an oil drift module bundled within the OpenDrift framework. There is both a 2D-version, and 3D-version which adds turbulent vertical mixing.
+OpenOil is a 3D oil drift module bundled within the OpenDrift framework.
 
-The oil weathering calculations is based on the NOAA-ERR-ERD OilLibrary package, which must be installed as a dependency. The code for evaporation and emulsification in OpenOil is borrowed from the NOAA PyGnome code, and adapted to the OpenDrift architecture.
+The oil weathering calculations is based on the NOAA-ERR-ERD OilLibrary package, which is installed as a dependency. The code for evaporation and emulsification in OpenOil is borrowed from the NOAA PyGnome code, and adapted to the OpenDrift architecture.
 
 Example of ship leaking oil along the coast of Northern Norway
 ##############################################################
@@ -36,7 +36,7 @@ Oil properties affecting the drift
 ***********************************
 The vertical (and thus indirectly also the horisontal) motion of oil (droplets) is affected by oil density and droplet diameters.
 
-When using the NOAA oil weathering model (``o = OpenOil3D(weathering_model='noaa')``), the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification). When using the default (primitive) weathering model (o = OpenOil3D()), the parameter 'density' may be set when seeding (default is 880 kg/m3).
+When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')``), which is the default, the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification).
 
 The droplet diameter may be given explicitly when seeding, e.g.::
 
@@ -46,38 +46,39 @@ In this case, the diameter will not change during the simulation, which is usefu
 
 If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
 
-    o.config['input']['spill']['droplet_diameter_min_subsea'] = 0.0005  # 0.5 mm
-    o.config['input']['spill']['droplet_diameter_max_subsea'] = 0.005   # 5 mm
+    o.set_config('seed:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
+    o.set_config('seed:droplet_diameter_max_subsea', 0.005)   # 5 mm
 
-After each wave breaking event, a new diameter will be chosen between configurable limits and exponent::
-
-    o.config['turbulentmixing']['droplet_diameter_min_wavebreaking'] = 1e-5
-    o.config['turbulentmixing']['droplet_diameter_max_wavebreaking'] = 1e-3
-    o.config['turbulentmixing']['droplet_size_exponent] = 0
-
-In this case a logarithmic distribution is used, with N ~ diameter^s, where s is the droplet_size_exponent. A droplet_size_exponent of 0 (default) gives uniform distribution. A value of -2.3 corresponds to the empirical number distribution as found by Delvigne and Sweeney, and 0.7 gives the corresponding volume distribution (number distribution multiplied by diameter3, since volume is proportinal to diameter3).
-
-The droplet size limits could also have been calculated dynamically from oil viscosity, but this is not yet implemented. The limits above should eventually be adjusted before the time of seeding.
+Note that these config settings must be adjusted before the seeding call.
+After each wave breaking event, a new droplet diameter will be chosen based on the config setting for droplet size distribution.
 """
 
 from io import open
 import os
+import json
 import numpy as np
 from datetime import datetime
 import logging
 import matplotlib; matplotlib.use('Tkagg') #hack to prevent display issues 
 import pyproj
 import matplotlib.pyplot as plt
+import nc_time_axis
 
-from opendrift.models.basemodel import OpenDriftSimulation
+from opendrift.models.oceandrift import OceanDrift
 from opendrift.elements import LagrangianArray
 import opendrift.models.noaa_oil_weathering as noaa
+from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
+
 
 try:
     from itertools import izip as zip
 except ImportError:
     pass
 
+try:
+    basestring
+except NameError:
+    basestring = str
 
 # Defining the oil element properties
 class Oil(LagrangianArray):
@@ -88,14 +89,13 @@ class Oil(LagrangianArray):
                       'units': 'kg',
                       'default': 1}),
         ('viscosity', {'dtype': np.float32,
-                       #'unit': 'mm2/s (centiStokes)',
                        'units': 'N s/m2 (Pa s)',
                        'default': 0.005}),
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 880}),
-        ('wind_drift_factor', {'dtype': np.float32,
-                               'units': '%',
+        ('wind_drift_factor', {'dtype': np.float32,  # TODO: inherit from 
+                               'units': '%',         # OceanDrift
                                'default': 0.03}),
         ('age_exposure_seconds', {'dtype': np.float32,
                                   'units': 's',
@@ -126,10 +126,14 @@ class Oil(LagrangianArray):
                             'default': 0}),
         ('oil_film_thickness', {'dtype': np.float32,
                                 'units': 'm',
-                                'default': 0.001})])
+                                'default': 0.001}),
+        ('diameter', {'dtype': np.float32,  # Particle diameter
+                      'units': 'm',
+                      'default': 0.})
+        ])
 
 
-class OpenOil(OpenDriftSimulation):
+class OpenOil(OceanDrift):
     """Open source oil trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway based on oil weathering parameterisations
@@ -141,40 +145,66 @@ class OpenOil(OpenDriftSimulation):
     ElementType = Oil
 
     required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
+                          'upward_sea_water_velocity',
                           'sea_surface_wave_significant_height',
                           'sea_surface_wave_stokes_drift_x_velocity',
                           'sea_surface_wave_stokes_drift_y_velocity',
+                          'sea_surface_wave_period_at_variance_spectral_density_maximum',
+                          'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
                           'sea_ice_area_fraction',
+                          'sea_ice_x_velocity', 'sea_ice_y_velocity',
                           'sea_water_temperature',
+                          'sea_water_salinity',
                           'sea_floor_depth_below_sea_level',
-                          'x_wind', 'y_wind', 'land_binary_mask']
+                          'x_wind', 'y_wind',
+                          'ocean_vertical_diffusivity',
+                          'land_binary_mask']
 
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
+    # Desired variables do not require initialisation of Lazy readers
+    desired_variables = [
+        'sea_surface_wave_significant_height',
+        'sea_surface_wave_stokes_drift_x_velocity',
+        'sea_surface_wave_stokes_drift_y_velocity',
+        'sea_surface_wave_period_at_variance_spectral_density_maximum',
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
+        'sea_ice_area_fraction',
+        'sea_ice_x_velocity', 'sea_ice_y_velocity',
+        'ocean_vertical_diffusivity',
+        'upward_sea_water_velocity'
+        ]
+
+
+    fallback_values = {# Comment out wind and current, as is mandatory
+                       #'x_sea_water_velocity': 0,
+                       #'y_sea_water_velocity': 0,
+                       'upward_sea_water_velocity': 0,
+                       #'x_wind': 0, 'y_wind': 0,
                        'sea_surface_wave_significant_height': 0,
                        'sea_surface_wave_stokes_drift_x_velocity': 0,
                        'sea_surface_wave_stokes_drift_y_velocity': 0,
-                       'sea_floor_depth_below_sea_level': 0,
+                       'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
+                       'sea_floor_depth_below_sea_level': 10000,
                        'sea_ice_area_fraction': 0,
-                       'sea_water_temperature': 12,
-                       'x_wind': 0, 'y_wind': 0}
+                       'sea_ice_x_velocity': 0,
+                       'sea_ice_y_velocity': 0,
+                       'sea_water_temperature': 10,
+                       'sea_water_salinity': 34.,
+                       'ocean_vertical_diffusivity': 0.02  # m2s-1
+                        }
+
+    required_profiles = ['sea_water_temperature',
+                         'sea_water_salinity',
+                         'ocean_vertical_diffusivity']
+    # The depth range (in m) which profiles shall cover
+    required_profiles_z_range = [-20, 0]
+
+    max_speed = 1.3  # m/s
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
                      'missing_data': 'gray', 'stranded': 'red',
                      'evaporated': 'yellow', 'dispersed': 'magenta'}
-
-    configspec = '''
-        [processes]
-            dispersion = boolean(default=True)
-            evaporation = boolean(default=True)
-            emulsification = boolean(default=True)
-            biodegradation = boolean(default=False)
-            update_oilfilm_thickness = boolean(default=False)
-        [drift]
-            current_uncertainty = float(min=0, max=5, default=0.05)
-            wind_uncertainty = float(min=0, max=5, default=.5)
-    '''
 
     duplicate_oils = ['ALVHEIM BLEND, STATOIL', 'DRAUGEN, STATOIL',
                       'EKOFISK BLEND 2000', 'EKOFISK BLEND, STATOIL',
@@ -197,10 +227,32 @@ class OpenOil(OpenDriftSimulation):
         'MARINE GAS OIL 500 ppm S 2017': 0.1,
         'FENJA (PIL) 2015': .75}
 
+    configspec = '''
+        [seed]
+            m3_per_hour = float(min=0, max=1e10, default=1)
+            droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
+            droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
+        [processes]
+            dispersion = boolean(default=True)
+            evaporation = boolean(default=True)
+            emulsification = boolean(default=True)
+            biodegradation = boolean(default=False)
+            update_oilfilm_thickness = boolean(default=False)
+        [drift]
+            wind_drift_depth = float(min=0, max=10, default=0.1)
+            vertical_advection = boolean(default=False)
+            vertical_mixing = boolean(default=True)
+            current_uncertainty = float(min=0, max=5, default=0.05)
+            wind_uncertainty = float(min=0, max=5, default=.5)
+        [wave_entrainment]
+            droplet_size_distribution = option('Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
+            entrainment_rate = option('Li et al. (2017)', default='Li et al. (2017)')
+    '''
 
-    def __init__(self, weathering_model='default', *args, **kwargs):
 
-        if weathering_model == 'noaa':
+    def __init__(self, weathering_model='noaa', *args, **kwargs):
+
+        if weathering_model == 'noaa':  # Currently the only option
             try:
                 from oil_library import _get_db_session
                 from oil_library.models import Oil, ImportedRecord
@@ -227,20 +279,7 @@ class OpenOil(OpenDriftSimulation):
             for so in sample_oils._sample_oils.keys() :
                 self.oiltypes.append(so) # using unicode for consistency
         else:
-            # Read oil properties from file
-            self.oiltype_file = os.path.dirname(os.path.realpath(__file__)) + \
-                '/oilprop.dat'
-            oiltypes = []
-            linenumbers = []
-            with open(self.oiltype_file) as f:
-                for i, line in enumerate(f):
-                    if line[0].isalpha():
-                        oiltype = line.strip()[:-2].strip()
-                        oiltypes.append(oiltype)
-                        linenumbers.append(i)
-            oiltypes, linenumbers = zip(*sorted(zip(oiltypes, linenumbers)))
-            self.oiltypes = oiltypes
-            self.oiltypes_linenumbers = linenumbers
+            raise ValueError('Weathering model unknown: ' + weathering_model)
 
         self.oil_weathering_model = weathering_model
 
@@ -253,10 +292,11 @@ class OpenOil(OpenDriftSimulation):
         super(OpenOil, self).__init__(*args, **kwargs)
 
         # Overriding with specific configspec
+        # TODO: want inheritance instead of simply overriding
         self._add_configstring(self.configspec)
 
     def update_surface_oilfilm_thickness(self):
-        '''The mass of oil is summed within a grid of 20x20
+        '''The mass of oil is summed within a grid of 100x100
         cells covering the oil at a given time. Each oil particle
         within each cell is given a film thickness as the amount of
         oil divided by the cell area.
@@ -264,9 +304,9 @@ class OpenOil(OpenDriftSimulation):
         from scipy.stats import binned_statistic_2d
         surface = np.where(self.elements.z == 0)[0]
         if len(surface) == 0:
-            print('No oil at surface, no film thickness to update')
+            self.logger.debug('No oil at surface, no film thickness to update')
             return
-        print('Updating oil film thickness for %s of %s elements at surface' % (len(surface), self.num_elements_active()))
+        self.logger.debug('Updating oil film thickness for %s of %s elements at surface' % (len(surface), self.num_elements_active()))
         meanlon = self.elements.lon[surface].mean()
         meanlat = self.elements.lat[surface].mean()
         # Using stereographic coordinates to get regular X and Y
@@ -285,11 +325,11 @@ class OpenOil(OpenDriftSimulation):
         max_thickness = 0.01  # 1 cm
         min_thickness = 1e-9  # 1 nanometer
         if film_thickness.max() > max_thickness:
-            print('Warning: decreasing thickness to %sm for %s of %s bins' % (max_thickness, np.sum(film_thickness>max_thickness), film_thickness.size))
+            self.logger.debug('Warning: decreasing thickness to %sm for %s of %s bins' % (max_thickness, np.sum(film_thickness>max_thickness), film_thickness.size))
             film_thickness[film_thickness>max_thickness] = max_thickness
         num_too_thin = np.sum((film_thickness<min_thickness) & (film_thickness>0))
         if num_too_thin > 0:
-            print('Warning: increasing thickness to %sm for %s of %s bins' % (min_thickness, num_too_thin, film_thickness.size))
+            self.logger.debug('Warning: increasing thickness to %sm for %s of %s bins' % (min_thickness, num_too_thin, film_thickness.size))
             film_thickness[film_thickness<min_thickness] = min_thickness
 
         # https://github.com/scipy/scipy/issues/7010
@@ -376,7 +416,8 @@ class OpenOil(OpenDriftSimulation):
         if self.get_config('processes:biodegradation') is True:
             '''
             Oil biodegradation function based on the article:
-            Adcroft et al. (2010), Simulations of underwater plumes of dissolved oil in the Gulf of Mexico.
+            Adcroft et al. (2010), Simulations of underwater plumes of
+            dissolved oil in the Gulf of Mexico.
             '''
             self.logger.debug('Calculating: biodegradation')
 
@@ -384,12 +425,16 @@ class OpenOil(OpenDriftSimulation):
             swt[swt > 100] -= 273.15 # K to C
             age0 = self.time_step.total_seconds()/(3600*24)
 
-            tau = (12)*(3**((20-swt)/10)) # Decay rate in days (temperature in Celsius)
+            # Decay rate in days (temperature in Celsius)
+            tau = (12)*(3**((20-swt)/10))
+
             fraction_biodegraded = (1 - np.exp(-age0/tau))
             biodegraded_now = self.elements.mass_oil*fraction_biodegraded
 
-            self.elements.mass_biodegraded = self.elements.mass_biodegraded + biodegraded_now
-            self.elements.mass_oil = self.elements.mass_oil - biodegraded_now
+            self.elements.mass_biodegraded = \
+                self.elements.mass_biodegraded + biodegraded_now
+            self.elements.mass_oil = \
+                self.elements.mass_oil - biodegraded_now
             if self.oil_weathering_model == 'noaa':
                 self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
                 self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_biodegraded[:, np.newaxis])
@@ -463,25 +508,7 @@ class OpenOil(OpenDriftSimulation):
         self.timer_start('main loop:updating elements:oil weathering')
         if self.oil_weathering_model == 'noaa':
             self.oil_weathering_noaa()
-        else:
-            self.oil_weathering_default()
         self.timer_end('main loop:updating elements:oil weathering')
-
-    def oil_weathering_default(self):
-
-        self.logger.debug('Default oil weathering')
-
-        ## Evaporation
-        self.evaporate()
-
-        # Emulsification
-        self.emulsification()
-
-        # Dispersion
-        self.disperse()
-
-        # Biodegradation
-        self.biodegradation()
 
     def prepare_run(self):
 
@@ -501,9 +528,6 @@ class OpenOil(OpenDriftSimulation):
                 self.oiltype.oil_water_surface_tension()[0]
             self.logger.info('Oil-water surface tension is %f Nm' %
                          self.oil_water_interfacial_tension)
-        else:
-            self.logger.info('Using default oil-water tension of 0.03Nm')
-            self.oil_water_interfacial_tension = 0.03
 
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:
@@ -682,29 +706,288 @@ class OpenOil(OpenDriftSimulation):
         self.elements.water_fraction[self.elements.interfacial_area >=
             ((6.0 / drop_max)*(Y_max/(1.0 - Y_max)))] = Y_max
 
+
+    def update_terminal_velocity(self, Tprofiles=None,
+                                 Sprofiles=None, z_index=None):
+        """Calculate terminal velocity for oil droplets
+
+        according to
+        Tkalich et al. (2002): Vertical mixing of oil droplets
+                               by breaking waves
+        Marine Pollution Bulletin 44, 1219-1229
+
+        If profiles of temperature and salt are passed into this function,
+        they will be interpolated from the profiles.
+        if not, T,S will be fetched from reader.
+        """
+        g = 9.81  # ms-2
+
+        r = self.elements.diameter  # NB: r is diameter, not radius
+
+        # Prepare interpolation of temp, salt
+
+        if not (Tprofiles is None and Sprofiles is None):
+            if z_index is None:
+                z_i = range(Tprofiles.shape[0])  # evtl. move out of loop
+                # evtl. move out of loop
+                z_index = interp1d(-self.environment_profiles['z'],
+                                   z_i, bounds_error=False)
+            zi = z_index(-self.elements.z)
+            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
+            weight_upper = 1 - (zi - upper)
+
+        # Do interpolation of temp, salt if profiles were passed into
+        # this function, if not, use reader by calling self.environment
+        if Tprofiles is None:
+            T0 = self.environment.sea_water_temperature
+        else:
+            T0 = Tprofiles[upper, range(Tprofiles.shape[1])] * \
+                weight_upper + \
+                Tprofiles[lower, range(Tprofiles.shape[1])] * \
+                (1-weight_upper)
+        if Sprofiles is None:
+            S0 = self.environment.sea_water_salinity
+        else:
+            S0 = Sprofiles[upper, range(Sprofiles.shape[1])] * \
+                weight_upper + \
+                Sprofiles[lower, range(Sprofiles.shape[1])] * \
+                (1-weight_upper)
+
+        rho_oil = self.elements.density
+        rho_water = self.sea_water_density(T=T0, S=S0)
+
+        # dynamic water viscosity
+        my_w = 0.001*(1.7915 - 0.0538*T0 + 0.007*(T0**(2.0)) - 0.0023*S0)
+        # ~0.0014 kg m-1 s-1
+        # kinemativ water viscosity
+        ny_w = my_w / rho_water
+        rhopr = rho_oil/rho_water
+
+        # terminal velocity for low Reynolds numbers
+        kw = 2*g*(1-rhopr)/(9*ny_w)
+        W = kw * r**2
+        
+        # check if we are in a high Reynolds number regime
+        Re = 2*r*W/ny_w
+        highRe = np.where(Re > 50)
+
+        # Terminal velocity in high Reynolds numbers
+        kw = (16*g*(1-rhopr)/3)**0.5
+        W2 = kw*r**0.5
+
+        W[highRe] = W2[highRe]
+        self.elements.terminal_velocity = W
+
+    def oil_wave_entrainment_rate(self):
+        er = self.get_config('wave_entrainment:entrainment_rate')
+        if er == 'Li et al. (2017)':
+            entrainment_rate = oil_wave_entrainment_rate_li2017(
+                    dynamic_viscosity=self.elements.viscosity*
+                        self.elements.density,
+                    oil_density=self.elements.density,
+                    interfacial_tension=self.oil_water_interfacial_tension,
+                    significant_wave_height=self.significant_wave_height(),
+                    wave_breaking_fraction=self.sea_surface_wave_breaking_fraction(),
+                    sea_water_density=self.sea_water_density())
+        return entrainment_rate
+
+    def prepare_vertical_mixing(self):
+        '''Calculate entrainment probability before main loop'''
+        self.oil_entrainment_probability = \
+            1 - np.exp(-self.oil_wave_entrainment_rate()*\
+                       self.get_config('vertical_mixing:timestep'))
+        # Calculate a random droplet diameter for each particle,
+        # to be used if this particle gets entrained
+        self.droplet_diameter_if_entrained = \
+            self.get_wave_breaking_droplet_diameter()
+        # Uncomment lines below to plot droplet size distribution at each step
+        #import matplotlib.pyplot as plt
+        #plt.hist(self.droplet_diameter_if_entrained, 200)
+        #plt.gca().set_xscale("log")
+        #plt.gca().set_yscale("log")
+        #plt.show()
+
+    def surface_wave_mixing(self, time_step_seconds):
+        """Mix surface oil into water column."""
+        # Entrain oil into uppermost layer (whitecapping from waves)
+        # TODO: optimise this by only calculate for surface elements
+        surface = self.elements.z >= 0
+        random_number = np.random.uniform(0, 1, len(self.elements.z))
+        entrained = np.logical_and(surface,
+                        random_number<self.oil_entrainment_probability)
+
+        # Intrusion depth for wave entrainment from
+        # Delvigne and Sweeney (1988), Li et al. (2017):
+        if entrained.sum() > 0:
+            self.logger.debug('Entraining %i of %i surface elements' %
+                          (entrained.sum(), surface.sum()))
+            zb = 1.5 * self.significant_wave_height() # between 0 and zb
+            intrusion_depth = np.random.uniform(0, np.mean(zb), entrained.sum())
+            self.elements.z[entrained] = - intrusion_depth
+            if self.keep_droplet_diameter is False:
+                # Give entrained elements a random diameter
+                self.elements.diameter[entrained] = \
+                    self.droplet_diameter_if_entrained[entrained]
+
+    def surface_stick(self):
+        """set surfaced particles to exactly zero depth to let them form a slick """
+
+        surface = np.where(self.elements.z >= 0)
+        if len(surface[0]) > 0:
+            self.elements.z[surface] = 0.
+
+    def get_wave_breaking_droplet_diameter(self):
+        dm = self.get_config('wave_entrainment:droplet_size_distribution')
+        if dm == 'Johansen et al. (2015)':
+            d = self.get_wave_breaking_droplet_diameter_johansen2015()
+        elif dm == 'Li et al. (2017)':
+            d = self.get_wave_breaking_droplet_diameter_liz2017()
+        return d
+
+    def get_wave_breaking_droplet_diameter_liz2017(self):
+        # Li,Zhengkai, M. Spaulding, D. French-McCay, D. Crowley, J.R. Payne: "Development of a unified oil droplet size distribution model 
+        # with application to surface breaking waves and subsea blowout releases considering dispersant effects" Mar. Pol. Bul.
+        # DOI: 10.1016/j.marpolbul.2016.09.008
+        # Should be prefered when the oil film thickness is unknown.
+        if not hasattr(self, 'droplet_spectrum_pdf'):
+            # Generate droplet spectrum as in Li (Zhengkai) et al. (2017)
+            # Bounds are hardcoded to 1 micron and 3mm
+            self.logger.debug('Generating wave breaking droplet size spectrum')
+            self.droplet_spectrum_diameter = np.linspace(1e-6, 3e-3, 1000000)
+            g = 9.81
+            interfacial_tension = self.oil_water_interfacial_tension
+            delta_rho = self.sea_water_density() - self.elements.density
+            d_o = 4 * (interfacial_tension / (delta_rho*g))**0.5
+            we = ( self.sea_water_density() * g * self.significant_wave_height() * d_o ) / interfacial_tension
+            oh = self.elements.viscosity * self.elements.density * (self.elements.density * interfacial_tension * d_o )**-0.5 # From kin. to dyn. viscosity by * density
+            r = 1.791
+            p = 0.460
+            q = -0.518
+            dV_50 = d_o * r * (1+10*oh)**p * we**q # median droplet diameter in volume distribution
+            sd = 0.4 # log standard deviation in log10 units
+            Sd = np.log(10) *sd # log standard deviation in natural log units
+            # TODO: calculation below with scalars, but we have arrays, with varying oil properties
+            # treat all particle in one go:
+            dV_50 = np.mean(dV_50) # mean log diameter
+            dN_50 = np.exp( np.log(dV_50) - 3*Sd**2 ) # convert number distribution to volume distribution
+            self.logger.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
+            spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
+            self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
+        if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
+                np.abs(np.sum(self.droplet_spectrum_pdf) - 1) > 1e-6:
+            self.logger.warning('Could not update droplet diameters.')
+            return self.elements.diameter
+        else:
+            return np.random.choice(self.droplet_spectrum_diameter,
+                                    size=self.num_elements_active(),
+                                    p=self.droplet_spectrum_pdf)
+
+    def get_wave_breaking_droplet_diameter_johansen2015(self):
+        # Johansen O, Reed M, Bodsberg NR, Natural dispersion revisited
+        # DOI: 10.1016/j.marpolbul.2015.02.026
+        # requires oil film thickness
+        if not hasattr(self, 'droplet_spectrum_pdf') or self.get_config('processes:update_oilfilm_thickness') is True:
+            # Generate droplet spectrum as in Johansen et al. (2015)
+            # Bounds are hardcoded to 1micron and 3mm
+            self.logger.debug('Generating wave breaking droplet size spectrum')
+            self.droplet_spectrum_diameter = np.linspace(1e-6, 3e-3, 1000000)
+            g = 9.81
+            interfacial_tension = self.oil_water_interfacial_tension
+            H = self.significant_wave_height() # fall height = 2 * wave amplitude
+            # Reyolds number (Eq. 7a from Johansen et al. 2015)
+            re = (self.elements.density*self.elements.oil_film_thickness*(g*H)**0.5) / (self.elements.viscosity*self.elements.density)
+            # Weber number (Eq. 7b from Johansen et al.2015)
+            we = (self.elements.density*self.elements.oil_film_thickness*g*H) / interfacial_tension # Weber number
+            A = 2.251 # parameters from Johansen et al. 2015
+            Bp = 0.027
+            B = A*Bp
+            dN_50 = (A*self.elements.oil_film_thickness*we**-0.6) + (
+                     B*self.elements.oil_film_thickness* re**-0.6)
+                     # median droplet diameter in number distribution
+            sd = 0.4 # log standard deviation in log10 units
+            Sd = np.log(10) *sd # log standard deviation in natural log units
+            # Convert number distribution to volume distribution
+            dV_50 = np.exp( np.log(dN_50) + 3*Sd**2 )
+            # TODO: calculation below with scalars, but we have
+            # arrays, with varying oil properties
+            # treat all particle in one go:
+            dV_50 = np.mean(dV_50) # mean log diameter
+            self.logger.debug('Droplet distribution median diameter dV_50: %f, dN_50: %f ' %( dV_50, np.mean(dN_50)))
+            spectrum = (np.exp(-(np.log(self.droplet_spectrum_diameter) - np.log(dV_50))**2 / (2 * Sd**2))) / (self.droplet_spectrum_diameter * Sd * np.sqrt(2 * np.pi))
+            self.droplet_spectrum_pdf = spectrum/np.sum(spectrum)
+        if ~np.isfinite(np.sum(self.droplet_spectrum_pdf)) or \
+                np.abs(np.sum(self.droplet_spectrum_pdf) - 1) > 1e-6:
+            self.logger.warning('Could not update droplet diameters.')
+            return self.elements.diameter
+        else:
+            return np.random.choice(self.droplet_spectrum_diameter,
+                                    size=self.num_elements_active(),
+                                    p=self.droplet_spectrum_pdf)
+
+    def resurface_elements(self, minimum_depth=None):
+        """Oil elements reaching surface (or above) form slick, not droplet"""
+        surface = np.where(self.elements.z >= 0)[0]
+        self.elements.z[surface] = 0
+
     def advect_oil(self):
+
+        # Calculating various drift factors according to ice concentration
+        if hasattr(self.environment, 'sea_ice_area_fraction'):
+            A = self.environment.sea_ice_area_fraction
+            # According to 
+            # Nordam T, Beegle-Krause CJ, Skancke J, Nepstad R, Reed M.
+            # Improving oil spill trajectory modelling in the Arctic.
+            # Mar Pollut Bull. 2019;140:65-74.
+            # doi:10.1016/j.marpolbul.2019.01.019
+            k_ice = (A - 0.3) / (0.8 - 0.3)
+            k_ice[A<0.3] = 0
+            k_ice[A>0.8] = 1
+            if k_ice.max() > 0.3:
+                self.logger.info('Ice concentration above 30%, using Nordam scheme for advection in ice')
+            # Using decreased Stokes drift according to
+            # Arneborg, L. (2017). Oil drift modellling in pack ice
+            # - Sensitivity of oil-in-ice parameters.
+            # Ocean Engineering 144 (2017) 340-350
+            factor_stokes = (0.7 - A) / 0.7
+            factor_stokes[A>0.7] = 0
+        else:
+            k_ice = 0
+            factor_stokes = 1
+
         # Simply move particles with ambient current
-        self.advect_ocean_current()
+        self.advect_ocean_current(factor=1-k_ice)
 
         # Wind drag for elements at ocean surface
-        self.advect_wind()
+        self.advect_wind(factor=1-k_ice)
 
         # Stokes drift
-        self.stokes_drift()
+        self.stokes_drift(factor_stokes)
 
-        # Deactivate elements hitting sea ice
-        if hasattr(self.environment, 'sea_ice_area_fraction'):
-            self.deactivate_elements(
-                self.environment.sea_ice_area_fraction > 0.6,
-                reason='oil-in-ice')
+        # Advect with ice
+        self.advect_with_sea_ice(factor=k_ice)
 
     def update(self):
         """Update positions and properties of oil particles."""
 
-        # Oil weathering
+        # TODO: move all config-checking inside respective methods
+        if self.get_config('processes:update_oilfilm_thickness') is True:
+            self.update_surface_oilfilm_thickness()
+
+        # Oil weathering (inherited from OpenOil)
         self.oil_weathering()
 
-        # Horizontal advection
+        # Turbulent Mixing
+        if self.get_config('drift:vertical_mixing') is True:
+            self.update_terminal_velocity()
+            self.vertical_mixing()
+            del self.droplet_spectrum_pdf
+
+        # Vertical advection
+        if self.get_config('drift:vertical_advection') is True:
+            self.vertical_advection()
+
+        # Horizontal advection (inherited from OpenOil)
         self.advect_oil()
 
     def get_oil_budget(self):
@@ -770,15 +1053,16 @@ class OpenOil(OpenDriftSimulation):
             'mass_evaporated': mass_evaporated,
             'mass_biodegraded': mass_biodegraded,
             'mass_total': (mass_dispersed + mass_submerged +
-                           mass_surface + mass_stranded + mass_evaporated + mass_biodegraded)
-            }
+                           mass_surface + mass_stranded +
+                           mass_evaporated + mass_biodegraded)
+             }
 
         return oil_budget
 
+    def plot_oil_budget(self, filename=None, ax=None,
+                        show_density_viscosity=True,
+                        show_wind_and_current=True):
 
-    def plot_oil_budget(self, filename=None, ax=None, show_density_viscosity=True,
-                        show_wind_and_waves=True):
-        plt.close()
         if self.time_step.days < 0:  # Backwards simulation
             fig = plt.figure(figsize=(10, 6.))
             plt.text(0.1, 0.5, 'Oil weathering deactivated for '
@@ -795,7 +1079,8 @@ class OpenOil(OpenDriftSimulation):
 
         oil_budget = np.row_stack(
             (b['mass_dispersed'], b['mass_submerged'],
-             b['mass_surface'], b['mass_stranded'], b['mass_evaporated'], b['mass_biodegraded']))
+             b['mass_surface'], b['mass_stranded'],
+             b['mass_evaporated'], b['mass_biodegraded']))
         oil_density = b['oil_density']
 
         budget = np.cumsum(oil_budget, axis=0)
@@ -809,7 +1094,7 @@ class OpenOil(OpenDriftSimulation):
             nrows = 1
             if show_density_viscosity is True:
                 nrows = nrows + 1
-            if show_wind_and_waves is True:
+            if show_wind_and_current is True:
                 nrows = nrows + 1
             fig, axs = plt.subplots(nrows=nrows, ncols=1, figsize=(10, 6.+(nrows-1)*3))  # Suitable aspect ratio
             #ax1 = fig.add_subplot(nrows=nrows, 1, 1)
@@ -819,7 +1104,7 @@ class OpenOil(OpenDriftSimulation):
                 ax1 = axs[0]
                 if show_density_viscosity is True:
                     self.plot_oil_density_and_viscosity(ax=axs[1], show=False)
-                if show_wind_and_waves is True:
+                if show_wind_and_current is True:
                     self.plot_environment(ax=axs[nrows-1], show=False)
         else:
             ax1 = ax
@@ -865,12 +1150,8 @@ class OpenOil(OpenDriftSimulation):
         mass_total = b['mass_total'][-1]
         ax2.set_ylim([0, mass_total/oil_density])
         ax2.set_ylabel('Volume oil [m3]')
-        if not hasattr(self, 'oil_name'):  # TODO
-            self.oil_name = 'unknown oiltype'
-            # TODO line below is dangerous when importing old files
-            self.oil_name = self.get_config('seed:oil_type')
         plt.title('%s (%.1f kg/m3) - %s to %s' %
-                  (self.oil_name,
+                  (self.get_oil_name(),
                    oil_density,
                    self.start_time.strftime('%Y-%m-%d %H:%M'),
                    self.time.strftime('%Y-%m-%d %H:%M')))
@@ -887,6 +1168,27 @@ class OpenOil(OpenDriftSimulation):
             plt.close()
         else:
             plt.show()
+
+    def get_oil_name(self):
+        if not hasattr(self, 'oil_name'):  # TODO
+            return 'unknown oiltype'
+        else:
+            # TODO line below is dangerous when importing old files
+            return self.get_config('seed:oil_type')
+
+    def cumulative_oil_entrainment_fraction(self):
+        '''Returns the fraction of oil elements which has been entrained vs time'''
+        z = self.get_property('z')[0].copy()
+        z = np.ma.masked_where(z==0, z)
+        me = np.ma.notmasked_edges(z, axis=0)
+        maskfirst = me[0][0]
+        maskrow = me[0][1]
+        z = z*0
+        for mf, mr in zip(maskfirst, maskrow):
+            z[mf:z.shape[0], mr] = 1  # has been entrained
+        totentrained = np.sum(z, 1)
+        cumulative_fraction_entrained = np.sum(z, 1)/z.shape[1]
+        return cumulative_fraction_entrained
 
     def plot_oil_density_and_viscosity(self, ax=None, show=True):
         if ax is None:
@@ -980,6 +1282,76 @@ class OpenOil(OpenDriftSimulation):
         self.oil_data['oiltype'] = oiltype  # Store name of oil type
 
     def seed_elements(self, *args, **kwargs):
+
+        # Old OpenOil3D seeding code
+        if len(args) == 2:
+            kwargs['lon'] = args[0]
+            kwargs['lat'] = args[1]
+            args = {}
+
+        seed_json = {'start':{}, 'end':{}}
+        for kw in kwargs:
+            data = kwargs[kw]
+            if not isinstance(data, basestring):
+                data = np.atleast_1d(data)
+            if isinstance(data[0], datetime):
+                data[0] = str(data[0])
+                if len(data) == 2:
+                    data[1] = str(data[1])
+            if not isinstance(kwargs[kw], basestring):
+                if kw in ['lon', 'lat', 'z', 'radius', 'time']:
+                    pointer = seed_json['start']
+                    pointer2 = seed_json['end']
+                else:
+                    pointer = seed_json
+                if len(data) == 1:
+                    self.add_metadata('seed_' + kw, data[0])
+                    pointer[kw] = data[0]
+                elif len(kwargs[kw]) == 2:
+                    self.add_metadata('seed_' + kw + '_start', str(kwargs[kw][0]))
+                    self.add_metadata('seed_' + kw + '_end', str(kwargs[kw][1]))
+                    pointer[kw] = data[0]
+                    pointer2[kw] = data[1]
+                else:
+                    pass
+                    #self.logger.info('Not adding array %s to metadata' % kw)
+            else:
+                self.add_metadata('seed_' + kw, str(data))
+                seed_json[kw] = data
+
+        if 'number' not in kwargs:
+            number = 1
+        else:
+            number = kwargs['number']
+        if 'diameter' in kwargs:
+            self.logger.info('Droplet diameter is provided, and will '
+                         'be kept constant during simulation')
+            self.keep_droplet_diameter = True
+        else:
+            self.keep_droplet_diameter = False
+        if 'z' not in kwargs:
+            kwargs['z'] = 0
+        if isinstance(kwargs['z'], basestring) and \
+                kwargs['z'][0:8] == 'seafloor':
+            z = -np.ones(number)
+        else:
+            z = np.atleast_1d(kwargs['z'])
+        if len(z) == 1:
+            z = z*np.ones(number)  # Convert scalar z to array
+        subsea = z < 0
+        if np.sum(subsea) > 0 and 'diameter' not in kwargs:
+            # Droplet min and max for particles seeded below sea surface
+            sub_dmin = self.get_config('seed:droplet_diameter_min_subsea')
+            sub_dmax = self.get_config('seed:droplet_diameter_max_subsea')
+            self.logger.info('Using particle diameters between %s and %s m for '
+                         'elements seeded below sea surface.' %
+                         (sub_dmin, sub_dmax))
+            kwargs['diameter'] = np.random.uniform(sub_dmin, sub_dmax, number)
+
+
+        ##########################
+        # Old OpenOil seeding
+        
         if 'oiltype' in kwargs:
             self.set_config('seed:oil_type', kwargs['oiltype'])
             del kwargs['oiltype']
@@ -989,32 +1361,65 @@ class OpenOil(OpenDriftSimulation):
         self.set_oiltype(self.get_config('seed:oil_type'))
 
         if self.oil_weathering_model == 'noaa':
-            try:  # Older version of OilLibrary
-                oil_density = self.oiltype.get_density(285)  # 12 degrees
-                oil_viscosity = self.oiltype.get_viscosity(285)
-            except:  # Newer version of OilLibrary
-                oil_density = self.oiltype.density_at_temp(285)
-                oil_viscosity = self.oiltype.kvis_at_temp(285)
+            oil_density = self.oiltype.density_at_temp(285)
+            oil_viscosity = self.oiltype.kvis_at_temp(285)
             self.logger.info('Using density %s and viscosity %s of oiltype %s' %
                          (oil_density, oil_viscosity, self.get_config('seed:oil_type')))
             kwargs['density'] = oil_density
             kwargs['viscosity'] = oil_viscosity
 
         if 'm3_per_hour' in kwargs:
-            # From given volume rate, we calculate the mass per element
-            num_elements = kwargs['number']
-            time = kwargs['time']
-            if type(time) is list:
-                duration_hours = ((time[1] - time[0]).total_seconds())/3600
-                if duration_hours == 0:
-                    duration_hours = 1.
-            else:
-                duration_hours = 1.  # For instantaneous spill, we use 1h
-            kwargs['mass_oil'] = (kwargs['m3_per_hour']*duration_hours/
-                                  num_elements*kwargs['density'])
+            m3_per_hour = kwargs['m3_per_hour']
             del kwargs['m3_per_hour']
+        else:
+            m3_per_hour = self.get_config('seed:m3_per_hour')
+
+        if 'number' in kwargs:
+            num_elements = kwargs['number']
+        else:
+            num_elements = self.get_config('seed:number_of_elements')
+        time = kwargs['time']
+        if type(time) is list:
+            duration_hours = ((time[1] - time[0]).total_seconds())/3600
+            if duration_hours == 0:
+                duration_hours = 1.
+        else:
+            duration_hours = 1.  # For instantaneous spill, we use 1h
+        kwargs['mass_oil'] = (m3_per_hour*duration_hours/
+                              num_elements*kwargs['density'])
 
         super(OpenOil, self).seed_elements(*args, **kwargs)
+
+        # Add oil metadata
+        self.add_metadata('seed_oil_density',
+                          self.oiltype.density_at_temp(283))
+        seed_json['oil_density'] = self.oiltype.density_at_temp(283)
+        self.add_metadata('seed_oil_viscosity',
+                          self.oiltype.kvis_at_temp(283))
+        seed_json['oil_viscosity'] = self.oiltype.kvis_at_temp(283)
+
+        if not hasattr(self, 'seed_json'):
+            self.seed_json = []
+        self.seed_json.append(seed_json)
+
+        class MyEncoder(json.JSONEncoder):  # Serialisation of json
+            def default(self, obj):
+                if isinstance(obj, np.bool_) :
+                    return str(obj)
+                elif isinstance(obj, bool) :
+                    return str(obj)
+                elif isinstance(obj, np.integer):
+                    return int(obj)
+                elif isinstance(obj, np.floating):
+                    return float(obj)
+                elif isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                else:
+                    return super(MyEncoder, self).default(obj)
+
+        self.add_metadata('seed_json', json.dumps(self.seed_json,
+                                            cls=MyEncoder))
+
 
     def seed_from_gml(self, gmlfile, num_elements=1000, *args, **kwargs):
         """Read oil slick contours from GML file, and seed particles within."""
@@ -1196,3 +1601,5 @@ class OpenOil(OpenDriftSimulation):
                 mass_oil=mass_oil[i]/num,
                 number=num, time=time, *args, **kwargs)
 
+    def _substance_name(self):
+        return self.get_oil_name()

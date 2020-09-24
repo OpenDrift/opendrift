@@ -25,7 +25,7 @@ time = datetime(td.year, td.month, td.day, 0)
 #latseed= 61.2; lonseed= 4.3    # Sognesjen
 latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
 
-ntraj=2000
+ntraj=1000
 iniz=np.random.rand(ntraj) * -10. # seeding the radionuclides in the upper 10m
 init_speciation = np.ones(ntraj)*0
 diam=np.zeros_like(init_speciation,dtype=np.float32)
@@ -44,11 +44,11 @@ o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
 #                 diameter=diam, specie=init_speciation)
 
 # Adjusting some configuration
-o.set_config('processes:turbulentmixing', True)
-o.set_config('turbulentmixing:diffusivitymodel','zero')  # include settling without vertical turbulent mixing
-#o.set_config('turbulentmixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
+o.set_config('drift:vertical_mixing', True)
+o.set_config('vertical_mixing:diffusivitymodel','zero')  # include settling without vertical turbulent mixing
+#o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
 # Vertical mixing requires fast time step
-o.set_config('turbulentmixing:timestep', 600.) # seconds
+o.set_config('vertical_mixing:timestep', 600.) # seconds
 
 #%%
 # Activate the desired species
@@ -89,7 +89,7 @@ o.set_config('general:coastline_action', 'previous')
 o.list_configspec()
 
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(steps=48*2, time_step=1800, time_step_output=3600)
 
 

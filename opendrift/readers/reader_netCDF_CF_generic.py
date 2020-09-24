@@ -27,7 +27,6 @@ try:
 except:
     has_xarray = False
 
-
 def proj_from_CF_dict(c):
 
     # This method should be extended to other projections:
@@ -114,7 +113,7 @@ class Reader(BaseReader):
 
     """
 
-    def __init__(self, filename=None, name=None, proj4=None):
+    def __init__(self, filename=None, name=None, proj4=None, standard_name_mapping={}):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -131,13 +130,18 @@ class Reader(BaseReader):
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 self.logger.info('Opening files with MFDataset')
                 if has_xarray:
-                    self.Dataset = xr.open_mfdataset(filename)
+                    self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
+                                                     decode_times=False)
                 else:
-                    self.Dataset = MFDataset(filename,aggdim='time')
+                    try:
+                        self.Dataset = MFDataset(filename, aggdim='time')
+                    except Exception as e:
+                        self.logger.warning('Aggdim *time* does not exist')
+                        self.Dataset = MFDataset(filename)
             else:
                 self.logger.info('Opening file with Dataset')
                 if has_xarray:
-                    self.Dataset = xr.open_dataset(filename)
+                    self.Dataset = xr.open_dataset(filename, decode_times=False)
                 else:
                     self.Dataset = Dataset(filename, 'r')
         except Exception as e:
@@ -262,15 +266,25 @@ class Reader(BaseReader):
                 if has_xarray:
                     var_data = var.values
                 else:
+                    var.set_auto_mask(False)  # workaround
                     var_data = var[:]
                 time = var_data
                 time_units = units
-                if has_xarray:
-                    self.times = [datetime.utcfromtimestamp((OT -
-                        np.datetime64('1970-01-01T00:00:00Z')
-                            ) / np.timedelta64(1, 's')) for OT in time]
+
+                if isinstance(time[0], np.bytes_):
+                    # This hack is probably only necessary for CERSAT/GELOBCURRENT
+                    time = [t.decode('ascii') for t in time]
+                    self.times = [datetime.fromisoformat(t.replace('Z', '')) for t in time]
+                elif time.ndim == 2:
+                    self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
                 else:
                     self.times = num2date(time, time_units)
+                #if has_xarray:
+                #    self.times = [datetime.utcfromtimestamp((OT -
+                #        np.datetime64('1970-01-01T00:00:00Z')
+                #            ) / np.timedelta64(1, 's')) for OT in time]
+                #else:
+                #    self.times = num2date(time, time_units)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
@@ -376,9 +390,13 @@ class Reader(BaseReader):
                     standard_name = self.variable_aliases[standard_name]  
                 self.variable_mapping[standard_name] = standard_name 
             # ------------------------------------
-        # self.variables = self.variable_mapping.keys()
 # =======
-
+# =======
+#             elif var_name in standard_name_mapping:
+#                 # User may specify mapping if standard_name is missing
+#                 standard_name = standard_name_mapping[var_name]
+#                 self.variable_mapping[standard_name] = str(var_name)
+# >>>>>>> upstream/master
         self.variables = list(self.variable_mapping.keys())
 # >>>>>>> upstream/master
 
@@ -433,7 +451,8 @@ class Reader(BaseReader):
                 #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
                 if indx.min() < 0:  # Primitive fix for crossing 0-meridian
                     indx = indx + self.numx
-                indx = np.arange(np.max([0, indx.min()-buffer]),np.min([indx.max()+buffer, self.numx]))
+                indx = np.arange(np.max([0, indx.min()-buffer]),
+                                 np.min([indx.max()+buffer, self.numx]))
             else:
                 indx = np.arange(np.max([0, indx.min()-buffer]),
                                  np.min([indx.max()+buffer, self.numx]))
@@ -515,8 +534,9 @@ class Reader(BaseReader):
                 variables[par].mask[outside] = True
 
             # Mask extreme values which might have slipped through
-            variables[par] = np.ma.masked_outside(
-                variables[par], -30000, 30000)
+            with np.errstate(invalid='ignore'):
+                variables[par] = np.ma.masked_outside(
+                    variables[par], -30000, 30000)
 
             # Ensemble blocks are split into lists
             if ensemble_dim is not None:
@@ -550,9 +570,10 @@ class Reader(BaseReader):
             variables['x'] = np.asarray(variables['x'])
             variables['y'] = np.asarray(variables['y'])
         if self.global_coverage():
-            if self.xmax + self.delta_x >= 360 and self.xmin > 180:
-                variables['x'][variables['x']>180] -= 360
-
+            # TODO: this should be checked
+            if self.xmax + self.delta_x >= 360 and variables['x'].max() > 180:
+                variables['x'] -= 360
+                    
         variables['time'] = nearestTime
 
         # Rotate any east/north vectors if necessary

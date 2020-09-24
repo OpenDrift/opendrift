@@ -8,7 +8,7 @@ import numpy as np
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
-o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
 # Creating and adding reader for Nordic 4km current dataset
@@ -26,7 +26,7 @@ o.seed_elements(lon=12.0, lat=68.3, radius=0, number=10,
 o.run(time_step=3600)
 
 #%%
-# Print and plot results
+# Print and plot results, with lines colord by particle depth
 print(o)
 o.plot(linecolor='z', fast=True)
 #o.animation()

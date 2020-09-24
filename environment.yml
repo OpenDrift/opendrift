@@ -9,19 +9,17 @@ dependencies:
   - numpy>=1.15.4
   - scipy>=1.2.0
   - netcdf4
-  - future
   - ffmpeg
-  - pillow
   - pyproj>=2.3
   - configobj
-  - libgdal>=2.3.3
-  - gdal>=2.3.3
+  - libgdal>=3.1
+  - gdal>=3.1
   - requests
   - pytest
   - pytest-cov
   - pytest-benchmark
   - cartopy
-  - rasterio
+  - nc-time-axis
   - opendrift-landmask-data
   - oil_library-opendrift
   - pygrib
@@ -30,3 +28,5 @@ dependencies:
   - xarray
   - dask
   - toolz 
+  - pip:
+    - motuclient

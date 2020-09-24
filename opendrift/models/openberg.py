@@ -17,31 +17,41 @@
 # Caveat: This copyright will not interfere with the open nature of OpenDrift and OpenBerg
 
 """
-OpenBerg is an iceberg drift module bundled within the OpenDrift framework. It is a 2D- driftmodel, but utilizes 3D current data. The latest verion of the module is an improved version of a model initially created by Ron Saper at the Carleton University as a part of a larger project funded by the MITACS Organization.
+OpenBerg is an iceberg drift module bundled within the OpenDrift framework. It is a 2D- drift model, but utilizes 3D current data. The latest version of the module is an improved version of a model initially created by Ron Saper at the Carleton University as a part of a larger project funded by the MITACS Organization.
 
-See :doc:`gallery/example_long_openberg_det` for an example of a deterministic simulation.
+See :ref:`sphx_glr_gallery_example_openberg_det.py` for an example of a deterministic simulation.
 
 Statistical modeling of current velocity
 ########################################
+
 The reader :mod:`opendrift.readers.reader_current_from_track` is designed specifically for iceberg drift modeling. The reader uses observed positions and (if available) wind data to extrapolate the current velocity. The reader creates a uniform current field equal to the average residual speed (after subtracting wind component) of the iceberg between two observations.
 
-This reader allows for a statistical or partly statistical modeling of iceberg drift when used with the OpenBerg module. An example script utilizing this reader can be found :doc:`here <gallery/example_long_openberg_stat>`.
+This reader allows for a statistical or partly statistical modeling of iceberg drift when used with the OpenBerg module. An example script utilizing this reader can be found in :ref:`sphx_glr_gallery_example_openberg_stat.py`.
+
+.. _openberg_parameters:
 
 Parameters and iceberg properties affecting drift
 #################################################
-Icebergs are advected at a constant fraction of the wind velocity, default setting is ``wind_drift_factor = 0.018``
 
-The module accounts for Iceberg geometry by creating a compostite iceberg using the method described by `Barker et. al. (2004) <https://www.researchgate.net/publication/44062061_Determination_of_Iceberg_Draft_Mass_and_Cross-Sectional_Areas>`_, where the geometry is described as a function of the waterline length and the keel depth of the iceberg. For further reading the article is available on this link.
+Icebergs are advected at a constant fraction of the wind velocity, the default setting is ``wind_drift_factor = 0.018``.
 
-Default setting: ``water_line_length = 90.5`` and ``keel_depth = 60``. The composite iceberg is used to calculate a weighted average of the current velocity across the iceberg keel.
+The module accounts for iceberg geometry by creating a composite iceberg using the method described by `Barker et. al. (2004) <https://www.researchgate.net/publication/44062061_Determination_of_Iceberg_Draft_Mass_and_Cross-Sectional_Areas>`_, where the geometry is described as a function of the waterline length and the keel depth of the iceberg. For further information please refer to `Barker et. al. (2004)`.
 
-The values of wind_drift_factor, water_line_length and keel_depth may explicitly be altered during seeding, e.g.::
+The default settings for the geometry is  ``water_line_length = 90.5`` and ``keel_depth = 60``. The composite iceberg is used to calculate a weighted average of the current velocity across the iceberg keel.
+
+`water_line_length` is normally used to describe the length of a ship where it sits in the water. It should therefore be taken not as the circumference, but the width (or length) of the iceberg (presumably at its longest cross-section).
+
+`keel_depth` is the depth of the ice berg from the water line. Ice bergs usually have a density of `0.92 g/mL`, sea water has a density of about `1.03 g/mL`. This means that about 90% of the ice berg mass is below the water. For a reasonably symmetric iceberg the keel depth can be estimated naively to be 9 times greater than the observed height above the water line.
+
+The values of `wind_drift_factor`, `water_line_length` and `keel_depth` may be explicitly altered during seeding, e.g.:
+
+.. code::
 
     o.seed_elements(4, 62, time=datetime.now(),
                     water_line_length=100, keel_depth=90, wind_drift_factor=0.02)
 
 
-Ref: Barker, A., Sayed, M., Carrieres, T., et al. (2004). Determination of iceberg draft, mass and cross-sectional areas.
+Reference: Barker, A., Sayed, M., Carrieres, T., et al. (2004). `Determination of iceberg draft, mass and cross-sectional areas <https://www.researchgate.net/publication/44062061_Determination_of_Iceberg_Draft_Mass_and_Cross-Sectional_Areas>`_.
 
 """
 
@@ -55,7 +65,6 @@ from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.elements import LagrangianArray
 from opendrift.readers.basereader import BaseReader
 
-
 # Defining the iceberg element properties
 class IcebergObj(LagrangianArray):
     """Extending LagrangianArray with variables relevant for iceberg objects.
@@ -65,14 +74,14 @@ class IcebergObj(LagrangianArray):
     # We add the properties to the element class
     variables = LagrangianArray.add_variables([
         ('wind_drift_factor', {'dtype': np.float32,				# The fraction of the wind speed at which an iceberg is moved
-                       	     		'unit': '%',
-                       	        	'default': 0.018}),
+                               'units': '1',
+                       	       'default': 0.018}),
         ('water_line_length', {'dtype': np.float32,				# Iceberg size
-        							'unit': 'm',
-                       	        	'default': 90.5}),
+                               'units': 'm',
+                               'default': 90.5}),
         ('keel_depth', {'dtype': np.float32,					# Iceberg keel depth
-        							'unit': 'm',
-                       	        	'default': 60})])
+                        'units': 'm',
+                        'default': 60.})])
 
 class OpenBerg(OpenDriftSimulation):
     """The Deterministic iceberg model in the OpenDrift framework.
@@ -94,23 +103,39 @@ class OpenBerg(OpenDriftSimulation):
                        'y_sea_water_velocity': 0.0}
 
     # Default colors for plotting
-    status_colors = {'initial': 'green', 'active': 'red',
-                     'missing_data': 'gray', 'stranded': 'blue'}
+    status_colors = {'initial': 'green', 'active': 'blue',
+                     'missing_data': 'gray', 'stranded': 'red'}
+
+    configspec = '''
+        [seed]
+            wind_drift_factor = float(min=0, max=1, default=0.018)
+            water_line_length = float(min=0.1, max=99999, default=90.5)
+            keel_depth = float(min=.1, max=10000, default=60.0)
+        [drift]
+            current_uncertainty = float(min=0, max=5, default=0.15)
+            wind_uncertainty = float(min=0, max=5, default=1.5)
+        '''
 
     # Configuration
     def __init__(self, d=None, label=None, *args, **kwargs):
-
         self.name = 'OpenBerg'
         self.label=label
 
         self.required_profiles = ['x_sea_water_velocity',
                                   'y_sea_water_velocity']  # Get vertical current profiles
 
-        self.required_profiles_z_range = [-190, 0] # [min_depth, max_depth]
+        self.required_profiles_z_range = [-120, 0] # [min_depth, max_depth]
 
         # Calling general constructor of parent class
         super(OpenBerg, self).__init__(*args, **kwargs)
+        self._add_configstring(self.configspec)
 
+    def seed_elements(self, *args, **kwargs):
+        for var in ['wind_drift_factor', 'water_line_length', 'keel_depth']:
+            if var not in kwargs:
+                kwargs[var] = self.get_config('seed:' + var)
+
+        super(OpenBerg, self).seed_elements(*args, **kwargs)
 
     def update(self):
         """Update positions and properties of icebergs."""
@@ -249,14 +274,12 @@ class OpenBerg(OpenDriftSimulation):
     	area_list=[]
 
     	for i in range(0,d):
-
     		A = self.lin_func(a_param[i],b_param[i],water_line_length)
     		area_list.append(A)
 
     	A_list = np.array(area_list)
 
     	# Normalize array such that it sums to 1:
-
     	weigthing_array = np.array(area_list)/sum(np.array(area_list))
 
     	return weigthing_array

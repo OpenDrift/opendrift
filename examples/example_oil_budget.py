@@ -6,9 +6,9 @@ Oil budget
 
 from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 
-o = OpenOil3D(loglevel=20, weathering_model='noaa')
+o = OpenOil(loglevel=20, weathering_model='noaa')
 
 # Arome
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -42,14 +42,14 @@ o.seed_elements(lon=4.8, lat=60.0, z=0, radius=3000, number=1000,
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', True)
 o.set_config('processes:emulsification', True)
-o.set_config('processes:turbulentmixing', True)
-o.set_config('turbulentmixing:timestep', 20.) # seconds
+o.set_config('drift:vertical_mixing', True)
+o.set_config('vertical_mixing:timestep', 20.) # seconds
 
 #%%
 # Running model
 o.run(duration=timedelta(hours=24), time_step=1800)
 
-o.plot_oil_budget(show_density_viscosity=True, show_wind_and_waves=True)
+o.plot_oil_budget(show_density_viscosity=True, show_wind_and_current=True)
 
 o.animation(color='viscosity')
 

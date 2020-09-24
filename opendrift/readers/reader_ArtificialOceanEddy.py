@@ -64,7 +64,7 @@ class Reader(BaseReader):
 
         variables = {}
         # Construct cyclonic current field
-        size = np.int(self.xmax-self.xmin) / self.pixelsize + 1
+        size = np.int(np.int(self.xmax-self.xmin) / self.pixelsize + 1)
         if block is True:
             x = np.linspace(self.xmin, self.xmax, size)
             y = np.linspace(self.ymin, self.ymax, size)

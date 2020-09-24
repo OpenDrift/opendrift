@@ -49,6 +49,8 @@ class Reader(BaseReader):
             # 'v_northward' : 'y_sea_water_velocity',
             'u': 'x_sea_water_velocity',
             'v': 'y_sea_water_velocity',
+            'u_eastward': 'x_sea_water_velocity',
+            'v_northward': 'y_sea_water_velocity',
             'w': 'upward_sea_water_velocity',
             'temp': 'sea_water_temperature',
             'salt': 'sea_water_salinity',
@@ -95,6 +97,8 @@ class Reader(BaseReader):
                 if has_xarray is True:
                     self.Dataset = xr.open_mfdataset(filename,
                         chunks={'ocean_time': 1}, concat_dim='ocean_time',
+                        combine='by_coords',
+                        compat='override',
                         preprocess=drop_non_essential_vars_pop,
                         data_vars='minimal', coords='minimal')
                 else:
@@ -107,6 +111,17 @@ class Reader(BaseReader):
                     self.Dataset = Dataset(filename, 'r')
         except Exception as e:
             raise ValueError(e)
+
+
+        if 'Vtransform' in self.Dataset.variables:
+            if has_xarray is True:
+                self.Vtransform = self.Dataset.variables['Vtransform'].data  # scalar
+            else:
+                self.Vtransform = self.Dataset.variables['Vtransform'][:]
+        else:
+            self.logger.warning('Vtransform not found, using 1')
+            self.Vtransform = 1
+        self.Vtransform = np.asarray(self.Vtransform)
 
         if 's_rho' not in self.Dataset.variables:
             dimensions = 2
@@ -143,6 +158,10 @@ class Reader(BaseReader):
             self.num_layers = 1
             self.ROMS_variable_mapping['ubar'] = 'x_sea_water_velocity'
             self.ROMS_variable_mapping['vbar'] = 'y_sea_water_velocity'
+            del self.ROMS_variable_mapping['u']
+            del self.ROMS_variable_mapping['v']
+
+        if 'u_eastward' in self.Dataset.variables:
             del self.ROMS_variable_mapping['u']
             del self.ROMS_variable_mapping['v']
 
@@ -281,14 +300,16 @@ class Reader(BaseReader):
                     self.Dataset.variables['h'][:]
 
                 Htot = self.sea_floor_depth_below_sea_level
-                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r, Vtransform = np.asarray(self.Dataset['Vtransform']) )
+                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,
+                                              Vtransform=self.Vtransform)
 
             if has_xarray is False:
                 indxgrid, indygrid = np.meshgrid(indx, indy)
                 H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
             else:
                 H = self.sea_floor_depth_below_sea_level[indy, indx]
-            z_rho = depth.sdepth(H, self.hc, self.Cs_r, Vtransform = np.asarray(self.Dataset['Vtransform']) )
+            z_rho = depth.sdepth(H, self.hc, self.Cs_r,
+                                 Vtransform=self.Vtransform)
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
             indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
@@ -523,7 +544,12 @@ class Reader(BaseReader):
             if has_xarray is False:
                 rad = self.angle_xi_east[tuple(np.meshgrid(indy, indx))].T
             else:
-                rad = self.angle_xi_east[indy, indx].values # need to extract actual values for rotate_vectors_angle to work
+# <<<<<<< HEAD
+#                 rad = self.angle_xi_east[indy, indx].values # need to extract actual values for rotate_vectors_angle to work
+# =======
+                rad = self.angle_xi_east[indy, indx]
+                rad = np.ma.asarray(rad)
+# >>>>>>> upstream/master
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(

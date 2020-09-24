@@ -24,7 +24,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from opendrift.models.openoil3D import OpenOil3D
 from opendrift.models.openoil import OpenOil
 
 try:
@@ -39,14 +38,14 @@ class TestOil(unittest.TestCase):
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_oils(self):
-        o = OpenOil3D(loglevel=50, weathering_model='noaa')
+        o = OpenOil(loglevel=50, weathering_model='noaa')
 
         assert len(o.oiltypes) >= 1478
 
         for oiltype in o.oiltypes[12:14]:
             if oiltype == 'JP-8':
                 continue
-            o = OpenOil3D(loglevel=50, weathering_model='noaa')
+            o = OpenOil(loglevel=50, weathering_model='noaa')
             o.fallback_values['x_wind'] = 7
             o.fallback_values['y_wind'] = 0
             o.fallback_values['x_sea_water_velocity'] = .7
@@ -56,14 +55,15 @@ class TestOil(unittest.TestCase):
             time=datetime.now(), oiltype=oiltype)
             o.set_config('processes:evaporation', True)
             o.set_config('processes:emulsification', True)
-            o.set_config('processes:turbulentmixing', False)
+            o.set_config('drift:vertical_mixing', False)
             o.set_config('drift:wind_uncertainty', 0)
             o.set_config('drift:current_uncertainty', 0)
             o.run(steps=3)
+            initial_mass = o.get_property('mass_oil')[0][0, 0]
             self.assertEqual(o.elements.mass_evaporated.min(),
                              o.elements.mass_evaporated.max())
             self.assertTrue(o.elements.mass_evaporated.min() > 0)
-            self.assertTrue(o.elements.mass_evaporated.max() <= 1)
+            self.assertTrue(o.elements.mass_evaporated.max()/initial_mass <= 1)
             print(oiltype, o.elements.mass_evaporated.min())
 
     @unittest.skipIf(has_oil_library is False,
@@ -71,7 +71,7 @@ class TestOil(unittest.TestCase):
     def test_oilbudget(self):
         for windspeed in [3, 8]:
             for dispersion in [True, False]:
-                o = OpenOil3D(loglevel=30, weathering_model='noaa')
+                o = OpenOil(loglevel=30, weathering_model='noaa')
                 o.fallback_values['x_wind'] = windspeed
                 o.fallback_values['y_wind'] = 0
                 o.fallback_values['x_sea_water_velocity'] = 0
@@ -108,7 +108,7 @@ class TestOil(unittest.TestCase):
             for windspeed in [3, 8]:
                 if oil == 'SKRUGARD' and windspeed == 3:
                     continue
-                o = OpenOil3D(loglevel=30, weathering_model='noaa')
+                o = OpenOil(loglevel=20, weathering_model='noaa')
                 oilname = oil
                 if oil not in o.oiltypes:
                     if oilname == 'SKRUGARD':
@@ -118,8 +118,7 @@ class TestOil(unittest.TestCase):
                 o.seed_elements(lon=4.8, lat=60, number=100,
                                 time=datetime.now(), oiltype=oilname)
                 o.set_config('processes:dispersion', True)
-                o.set_config('wave_entrainment:droplet_size_distribution', 'Exponential')
-                o.set_config('turbulentmixing:timestep', 10)
+                o.set_config('vertical_mixing:timestep', 10)
                 o.fallback_values['land_binary_mask'] = 0
                 o.fallback_values['x_wind'] = windspeed
                 o.fallback_values['y_wind'] = 0
@@ -141,14 +140,14 @@ class TestOil(unittest.TestCase):
                     meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
                     fraction_dispersed = 0.086
-                    fraction_submerged = 0.313
-                    fraction_evaporated = 0.497
-                    meanlon = 4.819
+                    fraction_submerged = 0.302
+                    fraction_evaporated = 0.491
+                    meanlon = 4.816
                 elif oil == 'SKRUGARD' and windspeed == 8:
                     fraction_dispersed = 0.133
-                    fraction_submerged = 0.260
-                    fraction_evaporated = 0.197
-                    meanlon = 4.830
+                    fraction_submerged = 0.328
+                    fraction_evaporated = 0.187
+                    meanlon = 4.827
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
@@ -163,7 +162,7 @@ class TestOil(unittest.TestCase):
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_no_dispersion(self):
-        o = OpenOil3D(loglevel=50, weathering_model='noaa')
+        o = OpenOil(loglevel=50, weathering_model='noaa')
 
         o.seed_elements(lon=4.8, lat=60, number=100,
                         time=datetime.now(), oiltype='SIRTICA')
@@ -178,7 +177,7 @@ class TestOil(unittest.TestCase):
         actual_dispersed = b['mass_dispersed']/b['mass_total']
         self.assertAlmostEqual(actual_dispersed[-1], 0)
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.lon[0:3], [4.808547, 4.798853, 4.809264]))
+            o.elements.lon[0:3], [4.799928, 4.80109 , 4.810431], 3))
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
@@ -198,16 +197,17 @@ class TestOil(unittest.TestCase):
         o.fallback_values['y_sea_water_velocity'] = 0
         o.fallback_values['sea_water_temperature'] = 30
         o.run(duration=timedelta(days=1), time_step=1800)
+        initial_mass = o.get_property('mass_oil')[0][0, 0]
         biodegraded30 = o.elements.mass_biodegraded
         factor = 0.126 #(1-e^(-1))
-        self.assertAlmostEqual(biodegraded30[-1], factor, 3)
+        self.assertAlmostEqual(biodegraded30[-1]/initial_mass, factor, 3)
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
     def test_droplet_distribution(self):
-        for droplet_distribution in ['Johansen et al. (2015)',
-                                     'Exponential']:
-            o = OpenOil3D(loglevel=50, weathering_model='noaa')
+        # TODO: Should also add Li2017 here
+        for droplet_distribution in ['Johansen et al. (2015)']:
+            o = OpenOil(loglevel=50, weathering_model='noaa')
             if 'SKRUGARD' in o.oiltypes:
                 oiltype = 'SKRUGARD'
             else:
@@ -224,9 +224,7 @@ class TestOil(unittest.TestCase):
             o.run(duration=timedelta(hours=1), time_step=1800)
             d = o.elements.diameter
             # Suspicious, Sintef-param should give larer droplets
-            if droplet_distribution == 'Exponential':
-                self.assertAlmostEqual(d.mean(), 0.000849, 2)
-            elif droplet_distribution == 'Johansen et al. (2015)':
+            if droplet_distribution == 'Johansen et al. (2015)':
                 #self.assertAlmostEqual(d.mean(), 0.000072158)
                 self.assertAlmostEqual(d.mean(), 0.000653, 2)
 

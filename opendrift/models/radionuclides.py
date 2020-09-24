@@ -16,9 +16,8 @@
 
 import numpy as np
 
-from opendrift.models.opendrift3D import \
-    OpenDrift3DSimulation, Lagrangian3DArray
-from opendrift.elements import LagrangianArray
+from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+#from opendrift.elements import LagrangianArray
 
 from opendrift.readers.basereader import pyproj
 
@@ -27,7 +26,7 @@ class Radionuclide(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for radionuclides
     """
 
-    variables = LagrangianArray.add_variables([
+    variables = Lagrangian3DArray.add_variables([
         ('diameter', {'dtype': np.float32,
                       'units': 'm',
                       'default': 0.}),
@@ -46,7 +45,7 @@ class Radionuclide(Lagrangian3DArray):
         ])
 
 
-class RadionuclideDrift(OpenDrift3DSimulation):
+class RadionuclideDrift(OceanDrift):
     """Radionuclide particle trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway
@@ -92,7 +91,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                          'sea_water_salinity',
                          'ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-120, 0]
+    required_profiles_z_range = [-20, 0]
 
     fallback_values = {#'x_sea_water_velocity': 0,
                        #'y_sea_water_velocity': 0,
@@ -137,6 +136,8 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 #                     }
 
     configspec_radionuclidedrift = '''
+        [drift]
+            vertical_mixing = boolean(default=True)
         [radionuclide]
             transfer_setup = option('Sandnesfj_Al','Bokna_137Cs', 'dummy', default='dummy')
             slowly_fraction = boolean(default=False)
@@ -774,7 +775,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             self.elements.lat[self.elements.specie==self.num_sirrev] = lat[self.elements.specie==self.num_sirrev]
 
         # Vertical advection
-        if self.get_config('processes:verticaladvection') is True:
+        if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
 
         # Reset z for sedimented trajectories (reject vertical advection and mixing)

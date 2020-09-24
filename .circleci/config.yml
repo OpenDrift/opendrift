@@ -17,18 +17,18 @@ jobs:
           name: Install packages
           command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick
       - restore_cache:
-          key: v2-deps1-{{ checksum "environment.yml" }}
+          key: v3-deps1-{{ checksum "environment.yml" }}
       - run:
           name: Install requirements
           command: |
             if [ ! -e /opt/conda/envs/opendrift ]; then
               conda env create --file environment.yml
               source activate opendrift
-              conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.5.0
+              conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
               pip install sphinx-rtd-theme
             fi
       - save_cache:
-          key: v2-deps1-{{ checksum "environment.yml" }}
+          key: v3-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
@@ -48,10 +48,10 @@ jobs:
           command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
 
       - restore_cache:
-          key: gallery-v3-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v4-{{ checksum "/tmp/gallery-checksum.txt" }}
 
       - restore_cache:
-          key: plots-{{ checksum "/tmp/plots-checksum.txt" }}
+          key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
 
       - run:
           name: Build docs
@@ -59,12 +59,12 @@ jobs:
           no_output_timeout: 40m
 
       - save_cache:
-          key: gallery-v3-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v4-{{ checksum "/tmp/gallery-checksum.txt" }}
           paths:
             - "docs/source/gallery"
 
       - save_cache:
-          key: plots-{{ checksum "/tmp/plots-checksum.txt" }}
+          key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
           paths:
             - "docs/build/plot_directive"
 

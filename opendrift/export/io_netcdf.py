@@ -1,9 +1,7 @@
-from future.utils import iteritems
 import sys
 from datetime import datetime, timedelta
 import string
 from shutil import move
-import logging
 
 import numpy as np
 from netCDF4 import Dataset, num2date, date2num
@@ -60,7 +58,7 @@ def init(self, filename):
 
     # Write additionaly metadata attributes, if given
     if hasattr(self, 'metadata_dict'):
-        for key, value in iteritems(self.metadata_dict):
+        for key, value in self.metadata_dict.items():
             self.outfile.setncattr(key, str(value))
 
     # Add all element properties as variables
@@ -108,7 +106,7 @@ def write_buffer(self):
     self.outfile.variables['status'].flag_meanings = \
         " ".join(self.status_categories)
 
-    logging.info('Wrote %s steps to file %s' % (num_steps_to_export,
+    self.logger.info('Wrote %s steps to file %s' % (num_steps_to_export,
                                                 self.outfile_name))
     self.history.mask = True  # Reset history array, for new data
     self.steps_exported = self.steps_exported + num_steps_to_export
@@ -150,21 +148,21 @@ def close(self):
     # Fortunately this is quite fast.
     # https://www.unidata.ucar.edu/software/thredds/current/netcdf-java/reference/FeatureDatasets/CFpointImplement.html
     try:
-        logging.debug('Making netCDF file CDM compliant with fixed dimensions')
+        self.logger.debug('Making netCDF file CDM compliant with fixed dimensions')
         if self.num_elements_scheduled() > 0:
-            logging.info('Removing %i unseeded elements already written to file' % self.num_elements_scheduled())
+            self.logger.info('Removing %i unseeded elements already written to file' % self.num_elements_scheduled())
             mask = np.ones(self.history.shape[0], dtype=bool)
             mask[self.elements_scheduled.ID-1] = False
         with Dataset(self.outfile_name) as src, \
                 Dataset(self.outfile_name + '_tmp', 'w') as dst:
-            for name, dimension in iteritems(src.dimensions):
+            for name, dimension in src.dimensions.items():
                 if name=='trajectory':
                     # Truncate dimension length to  number actually seeded
                     dst.createDimension(name, self.num_elements_activated())
                 else:
                     dst.createDimension(name, len(dimension))
 
-            for name, variable in iteritems(src.variables):
+            for name, variable in src.variables.items():
                 dstVar = dst.createVariable(name, variable.datatype,
                                              variable.dimensions)
                 srcVar = src.variables[name]
@@ -192,9 +190,9 @@ def close(self):
         print('Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)')
     
 
-def import_file(self, filename, times=None):
+def import_file(self, filename, times=None, elements=None):
 
-    logging.debug('Importing from ' + filename)
+    self.logger.debug('Importing from ' + filename)
     infile = Dataset(filename, 'r')
     # 'times' can be used to import subset. Not yet implemented.
     if times is None and hasattr(infile, 'steps_exported'):
@@ -216,7 +214,11 @@ def import_file(self, filename, times=None):
     self.time = self.end_time  # Using end time as default
     self.status_categories = infile.variables['status'].flag_meanings.split()
 
-    num_elements = len(infile.dimensions['trajectory'])
+    if elements is None:
+        num_elements = len(infile.dimensions['trajectory'])
+        elements=np.arange(num_elements)
+    else:
+        num_elements=len(elements)
 
     dtype = np.dtype([(var[0], var[1]['dtype'])
                       for var in self.ElementType.variables.items()])
@@ -232,7 +234,7 @@ def import_file(self, filename, times=None):
             self.history_metadata[env_var] = {}
     history_dtype = np.dtype(history_dtype_fields)
 
-    # Import whole dataset (history)
+    # Import dataset (history)
     self.history = np.ma.array(
         np.zeros([num_elements, self.steps_output]),
         dtype=history_dtype, mask=[True])
@@ -240,9 +242,9 @@ def import_file(self, filename, times=None):
         if var in ['time', 'trajectory']:
             continue
         try:
-            self.history[var] = infile.variables[var][:, 0:self.steps_output]
+            self.history[var] = infile.variables[var][elements, 0:self.steps_output]
         except Exception as e:
-            logging.info(e)
+            self.logger.info(e)
             pass
 
     # Initialise elements from given (or last) state/time
@@ -253,7 +255,7 @@ def import_file(self, filename, times=None):
         if var in self.ElementType.variables:
             kwargs[var] = self.history[var][
                 np.arange(len(index_of_last)), index_of_last]
-    kwargs['ID'] = np.arange(len(kwargs['lon'])) + 1
+    kwargs['ID'] = elements + 1
     self.elements = self.ElementType(**kwargs)
     self.elements_deactivated = self.ElementType()
 
@@ -274,21 +276,28 @@ def import_file(self, filename, times=None):
                 value = None
             try:
                 self.set_config(conf_key, value)
-                logging.debug('Setting imported config: %s -> %s' %
+                self.logger.debug('Setting imported config: %s -> %s' %
                              (conf_key, value))
             except:
-                logging.warning('Could not set config: %s -> %s' %
+                self.logger.warning('Could not set config: %s -> %s' %
                                 (conf_key, value))
 
     # Import time steps from metadata
+    def timedelta_from_string(timestring):
+        if 'day' in timestring:
+            days = int(timestring.split('day')[0])
+            hs = timestring.split(' ')[-1]
+            th = datetime.strptime(hs, '%H:%M:%S')
+            return timedelta(days=days, hours=th.hour, minutes=th.minute, seconds=th.second)
+        else:
+            t = datetime.strptime(timestring, '%H:%M:%S')
+            return timedelta(
+                hours=t.hour, minutes=t.minute, seconds=t.second)
     try:
-        t = datetime.strptime(infile.time_step_calculation, '%H:%M:%S')
-        self.time_step = timedelta(
-            hours=t.hour, minutes=t.minute, seconds=t.second)
-        t = datetime.strptime(infile.time_step_output, '%H:%M:%S')
-        self.time_step_output = timedelta(
-            hours=t.hour, minutes=t.minute, seconds=t.second)
-    except:
-        logging.warning('Could not parse time_steps from netCDF file')
+        self.time_step = timedelta_from_string(infile.time_step_calculation)
+        self.time_step_output = timedelta_from_string(infile.time_step_output)
+    except Exception as e:
+        self.logger.warning(e)
+        self.logger.warning('Could not parse time_steps from netCDF file')
 
     infile.close()

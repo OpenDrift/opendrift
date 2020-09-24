@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Double gyre, advection
-=============
+======================
 
 Illustrating the difference between Euler and Runge-Kutta propagation
 schemes, using an idealised (analytical) eddy current field.
@@ -38,4 +38,4 @@ for scheme in ['euler', 'runge-kutta', 'runge-kutta4']:
         runs.append(o)
         i = i + 1
 
-runs[0].plot(compare=runs[1:], legend=leg, buffer=0.000001)
+runs[0].plot(compare=runs[1:], legend=leg, buffer=0.000001, hide_landmask=True)

@@ -20,6 +20,9 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 
 o.add_reader([reader_norkyst, reader_arome])
 o.set_config('processes:evaporation', False)
+o.set_config('drift:vertical_mixing', False)
+o.fallback_values['x_sea_water_velocity'] = 0
+o.fallback_values['y_sea_water_velocity'] = 0
 
 #%%
 # Seed oil particles within contour detected from satellite
@@ -36,7 +39,7 @@ o.seed_elements([3.6, 4.4], [61.5, 61.2], radius=[1000, 10000],
                 time=[datetime(2015,11,16,1), datetime(2015,11,16,8)])
 
 #%%
-# Running model (until end of driver data)
+# Running model
 o.run(steps=50*4, time_step=900, time_step_output=3600)
 
 #%%

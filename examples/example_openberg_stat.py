@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Openberg stat
-==================================
+Openberg - statistical mode
+==============================
 """
 
 from datetime import datetime, timedelta
@@ -18,7 +18,7 @@ obstime = [datetime(2015, 11, 16, 0), datetime(2015, 11, 16, 6)]
 #%%
 # Initialize model
 steps = 60   # This is the number of forecast steps
-o = OpenBerg()  # Basic drift model suitable for icebergs
+o = OpenBerg(loglevel=30)  # Basic drift model suitable for icebergs
 
 #%%
 # Preparing Readers
@@ -43,7 +43,7 @@ o.add_reader([reader_current, reader_wind])
 #					Waterline length = 90.5m
 # 					NB! Iceberg size is irrelevant for current_reader with 1D z-profile
 
-o.seed_elements(3.3, 61.3, radius=3000, number=10,
+o.seed_elements(3.3, 61.3, radius=3000, number=100,
                 time=reader_current.start_time)
 
 #%%
@@ -56,8 +56,8 @@ o.run(time_step=3600, steps=steps)
 
 #%%
 # Print and plot results
-o.plot()
-o.animation()
+o.plot(fast=True)
+o.animation(fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_openberg_stat_0.gif

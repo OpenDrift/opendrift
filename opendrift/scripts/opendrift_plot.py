@@ -30,10 +30,12 @@ if __name__ == '__main__':
     parser.add_argument('-b', dest='buffer',
                         default=0.1,
                         help='Buffer around plot in degrees lon/lat.')
+    parser.add_argument('-f', dest='outfile',
+                        default=None, help='Save plot to filename.')
 
     args = parser.parse_args()
 
 
     o = opendrift.open(args.filename)
     print(o)
-    o.plot(buffer=np.float(args.buffer))
+    o.plot(buffer=np.float(args.buffer), filename=args.outfile)

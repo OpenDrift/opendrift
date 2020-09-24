@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """
-Double gyre (propagation schemes)
-==================================
+Double gyre - Lagrangian Coherent Structures
+============================================
 
-Illustrating the difference between Euler and Runge-Kutta propagation
-schemes, using an idealised (analytical) eddy current field.
+Calculating attracting and repelling LCS for an idealised (analytical) eddy current field.
 """
 
 from datetime import datetime, timedelta

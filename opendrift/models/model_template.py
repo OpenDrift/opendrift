@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2015, 2020, Knut-Frode Dagestad, MET Norway
 
 """
 This file is a template for an ocean trajectory model
@@ -32,36 +32,33 @@ another module - see examples in the folder "elements"
 """
 
 import numpy as np
-from opendrift.elements import LagrangianArray
-from opendrift.models.basemodel import OpenDriftSimulation
+from opendrift.models.oceandrift import OceanDrift
+from opendrift.models.oceandrift import Lagrangian3DArray
 
-class TemplateElementType(LagrangianArray):
+class TemplateElementType(Lagrangian3DArray):
     """
     Extending LagrangianArray with relevant properties.
 
     Define and name the properties which the elements shall have.
-    These are added to the four core properties (ID, lon, lat, z)
-    inherited from the basic/generic LagrangianArray class.
+    These are added to the inherited properties (e.g. from OceanDrift)
     Property names may be freely chosen, but the "update" function (below)
     will refer to the names in the specifications of the processes.
     """
-    variables = LagrangianArray.add_variables([
-        ('mass_oil', {'dtype': np.float32,
-                      'unit': 'kg'}),
-        ('mass_evaporated', {'dtype': np.float32,
-                             'unit': 'kg',
-                             'default': 0}),
-        ('mass_emulsion', {'dtype': np.float32,
-                           'unit': 'kg',
-                           'default': 0})])
+    variables = Lagrangian3DArray.add_variables([
+        ('new_property_1', {'dtype': np.float32,
+                            'units': '1',
+                            'default': 0}),
+        ('new_property_2', {'dtype': np.float32,
+                            'units': '1',
+                            'default': 0})])
 
 
-class ModelTemplate(OpenDriftSimulation):
+class ModelTemplate(OceanDrift):
     """Open source trajectory model based on the OpenDrift framework.
 
     This is a template model, to be copied and modified according to need.
-    This class is a subclass of "OpenDriftSimulation", and thus inherits
-    all functionality. More specialised models may also be subclassed.
+    This class is a subclass of "OceanDrift", and thus inherits all its
+    functionality. More specialised models may also be subclassed.
     """
 
     # Specify which element/particle type (class) to be used by this model.
@@ -89,8 +86,8 @@ class ModelTemplate(OpenDriftSimulation):
     def __init__(self, *args, **kwargs):
         """
 
-        Here any preprocessing may be performed,
-        e.g. importing external data from file.
+        Here any preprocessing and initialisation of a simulation
+        may be performed, e.g. importing external data from file.
 
         .. code::
 
@@ -107,15 +104,15 @@ class ModelTemplate(OpenDriftSimulation):
     def update(self):
         """Update positions and properties of particles.
 
-        This function ("update", may not be renamed) defines
+        This function (``update``, may not be renamed) defines
         the actions (processes) to be performed at each time step.
         The default timestep is one hour, but this may be overriden
-        by the user (setting model.time_step, see e.g. example.py)
+        by the user.
 
         The elements and corresponding environment information
         (wind, waves, current...) is available to this function as
-        the recarrays "elements" and "environment", respectively.
-        Element properties and environvent variables are namedarrays
+        the recarrays ``elements`` and ``environment``, respectively.
+        Element properties and environvent variables are named arrays
         of same length (number of active particles), or scalars.
 
         E.g.:
@@ -135,25 +132,54 @@ class ModelTemplate(OpenDriftSimulation):
                 np.sqrt(self.environment.x_wind**2 + \
                         self.environment.y_wind**2)*.01
 
+        If particles need to be deactived (e.g. if
+        self.environemtn.someproperty is 0), the special function
+        `self.deactivate_elements()` should be used:
+        `self.deactivate_elements(self.environment.someproperty==0)`
+
+        Interaction with coast is handled by ``basemodel`` and is
+        chosen with configutation mechanism available to each module.
+
         Horizontal position of the particles (lon, lat) are the
         only properties which should not be modified directly/freely.
         Due to the need to correct for the curvature of the coordinate
-        systems, a dedicated function (self.update_positions() should be
-        used instead, with x- and y-velocity as arguments:
+        systems, and taking into account vector orientations, a dedicated 
+        method ``self.update_positions()`` is
+        available using x- and y-velocity as arguments:
         E.g. to simply move particles with ambient current:
+        ``
         self.update_positions(self.environment.x_sea_water_velocity,
-                              self.environment.y_sea_water_velocity)
-        E.g. to move particles with 3 percent of the wind speed:
+                              self.environment.y_sea_water_velocity)``
 
-        .. code::
+        However, instead of using this method directly, most
+        OpenDrift modules use a set of ready-made and reusable
+        advection methods, added below. 
 
-            wind_factor = 0.03
-
-            self.update_positions(self.environment.x_wind*wind_factor,
-                                self.environment.y_wind*wind_factor)
-
-        If particles need to be deactived (e.g. when hitting land),
-        the special function `self.deactivate_elements()` should be used:
-        `self.deactivate_elements(self.environment.land_binary_mask==1)`
         """
-        pass
+       
+        # Advection with horizontal ocean currents
+        self.advect_ocean_current()
+
+        # Advection with vertical ocean currents
+        self.vertical_advection()
+
+        # Additional advection due to wind shear in upper 10cm of ocean:
+        # ``wind_drift_factor`` multiplied by wind vector
+        self.advect_wind()
+
+        # If Stokes drift is not available from a reader,
+        # it is parameterized by wind
+        self.stokes_drift()
+
+        # Vertical turbulent mixing, taking into account:
+        # - element property ``terminal_velocity`` (buoyancy)
+        # - environment property ``ocean_vertical_diffusivity``
+        # - interaction with surface through method ``surface_wave_mixing``  (should be renamed)
+        # - interaction with seafloor through method ``bottom_interaction``
+        self.vertical_mixing()
+
+    def prepare_run(self):
+        """Code to be run before a simulation loop (``update()``)"""
+
+    def bottom_interaction(self, seafloor_depth):
+        """Sub method of vertical_mixing, determines settling"""

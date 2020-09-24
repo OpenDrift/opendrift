@@ -10,6 +10,7 @@ from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
+# Seeding at a grid at regular interval
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -18,8 +19,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 #%%
 # Landmask
 reader_landmask = reader_global_landmask.Reader(
-                    llcrnrlon=4.0, llcrnrlat=59.9,
-                    urcrnrlon=5.5, urcrnrlat=61.2)
+                    extent=[4.0, 5.5, 59.9, 61.2])
 
 o.add_reader([reader_landmask, reader_norkyst])
 
@@ -41,7 +41,7 @@ for i in range(num_steps+1):
                     time=start_time + i*time_step)
 
 #%%
-# Running model (until end of driver data)
+# Running model for 60 hours
 o.run(steps=60*4, time_step=900, time_step_output=3600)
 
 #%%

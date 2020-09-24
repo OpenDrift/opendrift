@@ -5,6 +5,43 @@ from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
+def test_landmask_generate():
+    import os, tempfile
+
+    tmpdir = os.path.join (tempfile.gettempdir(), 'landmask')
+    mmapf = os.path.join(tmpdir, 'mask.dat')
+
+    if os.path.exists(mmapf): os.unlink(mmapf)
+
+    import opendrift_landmask_data as old
+    l = old.Landmask()
+
+    assert os.path.exists(mmapf)
+
+def test_reader_landmask_generate():
+    import os, tempfile
+
+    tmpdir = os.path.join (tempfile.gettempdir(), 'landmask')
+    mmapf = os.path.join(tmpdir, 'mask.dat')
+
+    if os.path.exists(mmapf): os.unlink(mmapf)
+
+    reader_global = reader_global_landmask.Reader()
+
+    assert os.path.exists(mmapf)
+
+def test_reader_landmask_generate_extent():
+    import os, tempfile
+
+    tmpdir = os.path.join (tempfile.gettempdir(), 'landmask')
+    mmapf = os.path.join(tmpdir, 'mask.dat')
+
+    if os.path.exists(mmapf): os.unlink(mmapf)
+
+    reader_global = reader_global_landmask.Reader (extent = [4, 55, 11, 65])
+
+    assert os.path.exists(mmapf)
+
 def test_landmask_global():
     reader_global = reader_global_landmask.Reader (extent = [4, 55, 11, 65])
 
@@ -35,8 +72,7 @@ def test_global_array(test_data):
 def test_plot(tmpdir):
     print("setting up global landmask")
     reader_global = reader_global_landmask.Reader(
-                        llcrnrlon=18.64, llcrnrlat=69.537,
-                        urcrnrlon=19.37, urcrnrlat=69.81)
+                        extent=[18.64, 19.37, 69.537, 69.81])
 
     x = np.linspace(18.641, 19.369, 10)
     y = np.linspace(69.538, 69.80, 10)

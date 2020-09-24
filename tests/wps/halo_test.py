@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 import glob
 from opendrift.models.leeway import Leeway
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 from opendrift.readers import reader_netCDF_CF_generic
 
 readers = [  # Note that order (priority) is important!
@@ -24,7 +24,7 @@ for case in ['oil', 'leeway']:  # test two models
     for timestep in [900, -900]:  # forwards and backwards
         for z in [0, -200]:  # seeding at sea surface and at 200 m depth
             if case == 'oil':
-                o = OpenOil3D(weathering_model='noaa')
+                o = OpenOil(weathering_model='noaa')
                 args = {'oiltype': 'IVAR AASEN 2012',
                 #args = {'oiltype': 'WISTING',
                         'z': z}

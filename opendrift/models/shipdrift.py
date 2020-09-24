@@ -33,28 +33,28 @@ class ShipObject(LagrangianArray):
     """
     variables = LagrangianArray.add_variables([
         ('orientation', {'dtype': np.int16,
-                         'unit': '1',
+                         'units': '1',
                          'default': 1}),
         ('length', {'dtype': np.float32,
-                         'unit': 'm',
+                         'units': 'm',
                          'default': 80}),
         ('height', {'dtype': np.float32,
-                         'unit': 'm',
+                         'units': 'm',
                          'default': 9}),
         ('draft', {'dtype': np.float32,  # wet part of ship [m]
-                         'unit': 'm',
+                         'units': 'm',
                          'default': 4.0}),
         ('beam', {'dtype': np.float32,  # width of ship
-                         'unit': 'm',
+                         'units': 'm',
                          'default': 10}),
         ('wind_drag_coeff', {'dtype': np.float32,  # Cf
-                             'unit': '1',
+                             'units': '1',
                              'default': 1}),
         ('water_drag_coeff', {'dtype': np.float32,  # Cd
-                              'unit': '1',
+                              'units': '1',
                               'default': 1}),
         ('jibeProbability', {'dtype': np.float32,
-                             'unit': '1/h',
+                             'units': '1/h',
                              'default': 0.04}),
        ])
 

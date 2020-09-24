@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 """
-Entrainment rate (oil types)
-==================================
+Entrainment rate for light and heavy oils
+=========================================
 """
 
 from datetime import datetime, timedelta
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 import matplotlib.pyplot as plt
 import numpy as np
 
 #%%
 # Li et al. (2017) entrainment rate (light vs. heavy oil)
-o2 = OpenOil3D(loglevel=20, weathering_model='noaa')
+o2 = OpenOil(loglevel=20, weathering_model='noaa')
 o2.fallback_values['land_binary_mask'] = 0
 o2.fallback_values['x_sea_water_velocity'] = -.2
 o2.fallback_values['y_sea_water_velocity'] = 0
@@ -23,13 +23,11 @@ o2.set_config('wave_entrainment:entrainment_rate', 'Li et al. (2017)')
 o2.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (2015)')
 o2.set_config('processes:evaporation', False)
 o2.set_config('processes:dispersion', False)
-o2.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
-o2.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
-o2.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000,
+o2.seed_elements(lon=4, lat=60, time=datetime.utcnow(), number=1000,
                 radius=100, z=0, oiltype='TIA JUANA HEAVY, OIL & GAS')
 o2.run(duration=timedelta(hours=12), time_step=900, time_step_output=3600)
 
-o3 = OpenOil3D(loglevel=20, weathering_model='noaa')
+o3 = OpenOil(loglevel=20, weathering_model='noaa')
 o3.fallback_values['land_binary_mask'] = 0
 o3.fallback_values['x_sea_water_velocity'] = -.2
 o3.fallback_values['y_sea_water_velocity'] = 0
@@ -41,9 +39,7 @@ o3.set_config('wave_entrainment:entrainment_rate', 'Li et al. (2017)')
 o3.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (2015)')
 o3.set_config('processes:evaporation', False)
 o3.set_config('processes:dispersion', False)
-o3.set_config('turbulentmixing:droplet_diameter_min_wavebreaking', 1e-6)
-o3.set_config('turbulentmixing:droplet_diameter_max_wavebreaking', 1e-3)
-o3.seed_elements(lon=4, lat=60, time=datetime.now(), number=1000,
+o3.seed_elements(lon=4, lat=60, time=datetime.utcnow(), number=1000,
                  radius=100, z=0, oiltype='TIA JUANA LIGHT, OIL & GAS') #'EKOFISK BLEND, STATOIL' similar ent.
 o3.run(duration=timedelta(hours=12), time_step=900, time_step_output=3600)
 
@@ -66,7 +62,7 @@ o2.animation_profile(compare=o3, legend=legend)
 #%%
 # .. image:: /gallery/animations/example_entrainment_rate_oil_types_0.gif
 
-o2.animation(compare=o3, legend=legend)
+o2.animation(compare=o3, legend=legend, fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_entrainment_rate_oil_types_1.gif

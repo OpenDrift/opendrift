@@ -15,7 +15,6 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 # Copyright 2020, Gaute Hope, MET Norway
 
-from future.utils import iteritems
 import sys
 import logging
 import copy
@@ -95,6 +94,10 @@ class BaseReader(object):
         'y_wind_10m': 'y_wind',
         'sea_water_x_velocity': 'x_sea_water_velocity',
         'sea_water_y_velocity': 'y_sea_water_velocity',
+        'x_sea_ice_velocity': 'sea_ice_x_velocity',
+        'y_sea_ice_velocity': 'sea_ice_y_velocity',
+        'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
+        'barotropic_sea_water_y_velocity': 'sea_ice_y_velocity',
         'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity'
         }
 
@@ -181,7 +184,7 @@ class BaseReader(object):
             self.start_time = None
         if not hasattr(self, 'end_time'):
             self.end_time = None
-        if self.start_time is not None:# and len(self.times) > 1:
+        if self.start_time is not None and self.time_step is not None:# and len(self.times) > 1:
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
                 self.time_step.total_seconds()) + 1
@@ -222,12 +225,11 @@ class BaseReader(object):
                     self.rotate_mapping[xvar] = var
 
         # Adding variables which may be derived from existing ones
-        self.logger.debug('Adding new variable mappings')
         self.derived_variables = {}
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
             if em['output'][0] not in self.variables and em['input'][0] in self.variables:
-                self.logger.debug('Adding method!')
+                self.logger.debug('Adding variable mapping: %s -> %s' % (em['input'][0], em['output'][0]))
                 for v in em['output']:
                     self.variables.append(v)
                     self.derived_variables[v] = em['input']
@@ -382,15 +384,21 @@ class BaseReader(object):
                 env[variable] = env[variable].filled(np.nan)
             # Mask values outside valid_min, valid_max (self.standard_names)
             if variable in standard_names.keys():
-                if (env[variable].min() < standard_names[variable]['valid_min']) or (
-                    env[variable].max() > standard_names[variable]['valid_max']):
-                    self.logger.warning('Invalid values found for ' + variable +
-                                        ', replacing with NaN')
+                if isinstance(env[variable], list):
+                    self.logger.warning('Skipping min-max checking for ensemble data')
+                    continue
+                with np.errstate(invalid='ignore'):
+                    invalid_indices = np.logical_and(
+                        np.isfinite(env[variable]), np.logical_or(
+                        env[variable]<standard_names[variable]['valid_min'],
+                        env[variable]>standard_names[variable]['valid_max']))
+                if np.sum(invalid_indices) > 0:
+                    invalid_values = env[variable][invalid_indices]
+                    self.logger.warning('Invalid values (%s to %s) found for %s, replacing with NaN' % (invalid_values.min(), invalid_values.max(), variable))
                     self.logger.warning('(allowed range: [%s, %s])' %
                                     (standard_names[variable]['valid_min'],
                                      standard_names[variable]['valid_max']))
-                    env[variable][np.logical_or(env[variable]<standard_names[variable]['valid_min'],
-                                  env[variable]>standard_names[variable]['valid_max'])] = np.nan
+                    env[variable][invalid_indices] = np.nan
 
         # Convolve arrays with a kernel, if reader.convolve is set
         if hasattr(self, 'convolve'):
@@ -674,7 +682,7 @@ class BaseReader(object):
                             if counterpart in variables:
                                 vector_pairs.append(vector_pair)
                             else:
-                                sys.exit('Missing component of vector pair:' +
+                                self.logger.warning('Missing component of vector pair, cannot rotate:' +
                                          counterpart)
                 # Extract unique vector pairs
                 vector_pairs = [list(x) for x in set(tuple(x)
@@ -748,11 +756,10 @@ class BaseReader(object):
                 delta_y = .1  # 0.1 degree northwards
         else:
             delta_y = 10  # 10 m along y-axis
-        x2, y2 = pyproj.transform(proj_from, proj_to,
-                                  reader_x, reader_y)
-        x2_delta, y2_delta = pyproj.transform(proj_from,
-                                              proj_to,
-                                              reader_x, reader_y + delta_y)
+        
+        transformer = pyproj.Transformer.from_proj(proj_from, proj_to)
+        x2, y2 = transformer.transform(reader_x, reader_y)
+        x2_delta, y2_delta = transformer.transform(reader_x, reader_y + delta_y)
 
         if proj_to.crs.is_geographic:
             geod = pyproj.Geod(ellps='WGS84')
@@ -806,6 +813,13 @@ class BaseReader(object):
     def lonlat2xy(self, lon, lat):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
+        
+        # Two methods needed for parallelisation
+        def get_x(lon_part, lat_part, num):
+            out_x[num] = self.spl_x(lon_part, lat_part)
+        def get_y(lon_part, lat_part, num):
+            out_y[num] = self.spl_y(lon_part, lat_part)
+
         if self.projected is True:
             if 'ob_tran' in self.proj4:
                 x, y = self.proj(lon, lat, inverse=False)
@@ -819,7 +833,7 @@ class BaseReader(object):
             # For larger arrays, we split and calculate in parallel
             # The number of CPUs to use can be improved/optimised
             num_elements = len(np.atleast_1d(lon))
-            if num_elements > 100 and not hasattr(self, 'multiptocessing_fail'):
+            if num_elements > 100 and not hasattr(self, 'multiprocessing_fail'):
                 try:
                     nproc = 2
                     if num_elements > 1000:
@@ -837,10 +851,6 @@ class BaseReader(object):
                     split_lat = np.array_split(lat, nproc)
                     out_x = Manager().dict()
                     out_y = Manager().dict()
-                    def get_x(lon_part, lat_part, num):
-                        out_x[num] = self.spl_x(lon_part, lat_part)
-                    def get_y(lon_part, lat_part, num):
-                        out_y[num] = self.spl_y(lon_part, lat_part)
                     processes = []
                     for i in range(nproc):
                         processes.append(Process(target=get_x, args=
@@ -856,16 +866,17 @@ class BaseReader(object):
                 except Exception as e:
                     self.logger.warning('Parallelprocessing failed:')
                     self.logger.warning(e)
-                    self.multiptocessing_fail = True
+                    self.multiprocessing_fail = True
             else:
-                if hasattr(self, 'multiptocessing_fail'):
+                if hasattr(self, 'multiprocessing_fail'):
                     self.logger.warning('Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy')
                 else:
                     # For smaller arrays, we run sequentially
-                    self.logger.debug('Calculating lonlat->xy sequentially')
-                x = self.spl_x(lon, lat)
-                y = self.spl_y(lon, lat)
-                return (x, y)
+                    pass
+            self.logger.debug('Calculating lonlat->xy sequentially')
+            x = self.spl_x(lon, lat)
+            y = self.spl_y(lon, lat)
+            return (x, y)
 
     def y_azimuth(self, lon, lat):
         """Calculate azimuth orientation of the y-axis of the reader SRS."""
@@ -1033,6 +1044,8 @@ class BaseReader(object):
                 indx_nearest = indx_after
             nearest_time = self.times[indx_nearest]
         else:  # Time step is constant (no holes)
+            if self.time_step is None:
+                return None, None, None, None, None, None
             indx = float((time - self.start_time).total_seconds()) / \
                 float(self.time_step.total_seconds())
             indx_nearest = int(round(indx))
@@ -1127,7 +1140,10 @@ class BaseReader(object):
         if self.start_time is not None and self.time_step is not None:
             outStr += '    %i times (%i missing)\n' % (
                       self.expected_time_steps, self.missing_time_steps)
-        outStr += 'Variables:\n'
+        if hasattr(self, 'realizations'):
+            outStr += 'Variables (%i ensemble members):\n' % len(self.realizations)
+        else:
+            outStr += 'Variables:\n'
         for variable in self.variables:
             if variable in self.derived_variables:
                 outStr += '  ' + variable + ' - derived from ' + \
@@ -1143,7 +1159,7 @@ class BaseReader(object):
         '''Report the time spent on various tasks'''
         outStr = ''
         if hasattr(self, 'timing'):
-            for cat, time in iteritems(self.timing):
+            for cat, time in self.timing.items():
                 time = str(time)[0:str(time).find('.') + 2]
                 outStr += '%10s  %s\n' % (time, cat)
         return outStr
@@ -1191,9 +1207,6 @@ class BaseReader(object):
             # Global map if reader domain is large
             sp = ccrs.Mercator()
             ax = fig.add_subplot(1, 1, 1, projection=sp)
-            #map = Basemap(np.array(corners[0]).min(), -89,
-            #              np.array(corners[0]).max(), 89,
-            #              resolution='c', projection='cyl')
 
         # GSHHS coastlines
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
@@ -1205,7 +1218,7 @@ class BaseReader(object):
             edgecolor='black')
 
         gl = ax.gridlines(ccrs.PlateCarree())
-        gl.xlabels_top = False
+        gl.top_labels = False
 
         # Get boundary
         npoints = 10  # points per side
@@ -1252,7 +1265,6 @@ class BaseReader(object):
                                       rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rlon, rlat = self.xy2lonlat(rx, ry)
-            #map_x, map_y = map(rlon, rlat, inverse=False)
             data[variable] = np.ma.masked_invalid(data[variable])
             if hasattr(self, 'convolve'):
                 from scipy import ndimage
@@ -1265,10 +1277,13 @@ class BaseReader(object):
                 self.logger.debug('Convolving variables with kernel: %s' % kernel)
                 data[variable] = ndimage.convolve(
                             data[variable], kernel, mode='nearest')
-            #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
-            ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
-            #cbar = map.colorbar()
-            #cbar.set_label(variable)
+            if data[variable].ndim > 2:
+                self.logger.warning('Ensemble data, plotting only first member')
+                data[variable] = data[variable][0,:,:]
+            mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
+                                     transform=ccrs.PlateCarree())
+            cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
+            cbar.set_label(variable)
 
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()

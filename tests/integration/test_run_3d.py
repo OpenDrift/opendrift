@@ -26,7 +26,7 @@ from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.pelagicegg import PelagicEggDrift
-from opendrift.models.oceandrift3D import OceanDrift3D
+from opendrift.models.oceandrift import OceanDrift
 
 #try:
 #    netCDF4.Dataset('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
@@ -51,7 +51,7 @@ class TestRun(unittest.TestCase):
         # Seed close to Nordic boundary
         o.seed_elements(lon=14.9, lat=71.1, radius=2000, number=100,
                         time=reader_nordic.start_time, z=0)
-        o.set_config('turbulentmixing:timestep', 20)
+        o.set_config('vertical_mixing:timestep', 20)
 
         o.set_config('drift:scheme', 'runge-kutta')
         o.run(steps=5, time_step=3600, time_step_output=3600)
@@ -76,13 +76,13 @@ class TestRun(unittest.TestCase):
     #    lon = 0.2; lat = 61.0; # Close to NorKyst boundary
     #    time = reader_nordic.start_time
     #    o.seed_elements(lon, lat, radius=5000, number=100, time=time, z=0)
-    #    o.set_config('turbulentmixing:timestep', 5)
+    #    o.set_config('vertical_mixing:timestep', 5)
     #    o.run(steps=5, time_step=3600,
     #          time_step_output=3600)
 
 
     def test_truncate_ocean_model(self):
-        o = OceanDrift3D(loglevel=30)
+        o = OceanDrift(loglevel=30)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + \
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader(reader_nordic)
@@ -92,7 +92,7 @@ class TestRun(unittest.TestCase):
         o.set_config('general:use_auto_landmask', False)
         o.run(steps=5)
 
-        o2 = OceanDrift3D(loglevel=30)
+        o2 = OceanDrift(loglevel=30)
         o2.add_reader(reader_nordic)
         o2.set_config('drift:truncate_ocean_model_below_m', 50)
         o2.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
@@ -101,7 +101,7 @@ class TestRun(unittest.TestCase):
         o2.set_config('general:use_auto_landmask', False)
         o2.run(steps=5)
 
-        o3 = OceanDrift3D(loglevel=30)
+        o3 = OceanDrift(loglevel=30)
         o3.add_reader(reader_nordic)
         o3.set_config('drift:truncate_ocean_model_below_m', 50)
         o3.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,

@@ -14,7 +14,7 @@ import matplotlib
 import scipy
 import platform
 import netCDF4
-from opendrift.models.openoil3D import OpenOil3D
+from opendrift.models.openoil import OpenOil
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_global_landmask
 from opendrift.readers.interpolation import ReaderBlock
@@ -56,8 +56,7 @@ print('Test 1: generation of landmask instance at full resolution')
 print('  54.0 seconds on reference machine.')
 start_time = datetime.now()
 reader_landmask = reader_global_landmask.Reader(
-    llcrnrlon=5, llcrnrlat=59.8,
-    urcrnrlon=5.5, urcrnrlat=60.3)
+    extent=[5, 5.5, 59.8, 60.3])
 time_spent = datetime.now() - start_time
 print('%6.1f seconds on this machine' % time_spent.total_seconds())
 
@@ -65,7 +64,7 @@ print('%6.1f seconds on this machine' % time_spent.total_seconds())
 print('------------------------------------------------')
 print('Test 2: Reading from netCDF file')
 print('  0.05 seconds on reference machine.')
-o = OpenOil3D(loglevel=50) # Quiet
+o = OpenOil(loglevel=50) # Quiet
 reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
 x = reader_arctic.x[10:12]
 y = reader_arctic.y[10:12]
@@ -101,10 +100,10 @@ print('Test 4: Vertical mixing with 50 elements and 7200 cycles (CPU-heavy)')
 print('  10.0 seconds on reference machine.')
 reader_arctic.buffer=10
 reader_arctic.verticalbuffer=1
-o = OpenOil3D(loglevel=50) # Quiet
+o = OpenOil(loglevel=50) # Quiet
 o.add_reader(reader_arctic)
 o.fallback_values['x_wind'] = 10
-o.set_config('turbulentmixing:timestep', 1)
+o.set_config('vertical_mixing:timestep', 1)
 o.seed_elements(lon=15, lat=72, number=50, radius=10000,
                 time=reader_arctic.start_time)
 start_time = datetime.now()
@@ -116,11 +115,11 @@ print('%6.1f seconds on this machine' % time_spent.total_seconds())
 print('--------------------------------------------------------')
 print('Test 5: Vertical mixing with 500000 elements and 10 cycles (memory-heavy)')
 print('  38.0 seconds on reference machine.')
-o = OpenOil3D(loglevel=50) # Quiet
+o = OpenOil(loglevel=50) # Quiet
 o.add_reader(reader_arctic)
 o.fallback_values['x_wind'] = 10
-o.set_config('turbulentmixing:verticalresolution', 3)
-o.set_config('turbulentmixing:timestep', 50)
+o.set_config('vertical_mixing:verticalresolution', 3)
+o.set_config('vertical_mixing:timestep', 50)
 o.seed_elements(lon=15, lat=72, number=500000, radius=10000,
                 time=reader_arctic.start_time)
 start_time = datetime.now()

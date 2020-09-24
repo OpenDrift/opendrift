@@ -11,15 +11,16 @@ from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
-# Seed oil particles within contours from shapefile
+# Seed particles within contours from shapefile
 o.seed_from_shapefile(o.test_data_folder() +
                       'shapefile_spawning_areas/Torsk.shp',
                       number=2000, layername=None,
-                      featurenum=[2, 4], time=datetime.now())
+                      featurenum=[2, 4], time=datetime.utcnow())
 
 o.fallback_values['x_wind'] = -4  # Constant wind drift
 o.fallback_values['y_wind'] = 8
 o.set_config('drift:wind_uncertainty', 4) # Adding some diffusion
+o.set_config('drift:vertical_mixing', False)
 
 #%%
 # Running model

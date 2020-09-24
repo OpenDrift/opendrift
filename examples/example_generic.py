@@ -5,7 +5,6 @@ Generic example
 """
 
 from datetime import datetime, timedelta
-
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
@@ -35,6 +34,7 @@ o.seed_elements(lon=4.6, lat=60.0, radius=50, number=3000, time=time,
 
 #%%
 # Adjusting some configuration
+o.set_config('drift:vertical_mixing', False)
 o.set_config('processes:dispersion', False)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)

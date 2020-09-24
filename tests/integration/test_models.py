@@ -20,6 +20,7 @@
 import unittest
 from datetime import datetime, timedelta
 import numpy as np
+import pyproj
 
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ArtificialOceanEddy
@@ -121,12 +122,14 @@ class TestModels(unittest.TestCase):
         """Check if weighting array is set correctly
         and if model returns expected positions"""
         o = OpenBerg(loglevel=50)
+        o.set_config('drift:current_uncertainty', 0)
+        o.set_config('drift:wind_uncertainty', 0)
 
         reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                 '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
 
-        reader_landmask = reader_global_landmask.Reader(llcrnrlon=3., llcrnrlat=60.,
-                            urcrnrlon=5., urcrnrlat=63.5)
+        reader_landmask = reader_global_landmask.Reader(
+                extent=[3., 5., 60., 63.5])
 
         o.add_reader([reader_current,reader_landmask])
         o.seed_elements(4.,62.,time=reader_current.start_time)
@@ -139,6 +142,54 @@ class TestModels(unittest.TestCase):
 
         self.assertAlmostEqual(o.history['lon'].data[0][1],3.9921231,3)
         self.assertAlmostEqual(o.history['lat'].data[0][1],62.0108299,3)
+    
+    def test_oil_in_ice(self):
+        """ Testing ice-in-oil transport with 
+        different values of sea ice concentration as defined by Nordam et al. 2019"""
+        
+        # Distances calculated with fallback_values and Nordam's equation
+        distances = {'0.2':21.2914, '0.5':15.1405, '0.8':7.2}
+
+        geod = pyproj.Geod(ellps='WGS84')
+
+        o = OpenOil(loglevel=50)
+
+        lon = 24; lat = 81
+
+        o.fallback_values['x_wind'] = 0  # zonal wind 
+        o.fallback_values['y_wind'] = 4  # meridional wind
+
+        o.fallback_values['x_sea_water_velocity'] = 0  # eastward current
+        o.fallback_values['y_sea_water_velocity'] = .4  # meridional current
+
+        o.fallback_values['sea_ice_x_velocity'] = 0  # zonal ice velocity
+        o.fallback_values['sea_ice_y_velocity'] = .2  # meridional ice velocity
+
+        o.fallback_values['sea_surface_wave_stokes_drift_y_velocity'] = 0.1 # meridional Stokes drif
+
+        o.set_config('processes:dispersion',  False)
+        o.set_config('processes:evaporation',  False)
+        o.set_config('processes:emulsification',  False)
+        o.set_config('drift:stokes_drift',  True)
+        o.set_config('processes:update_oilfilm_thickness',  False)
+        o.set_config('drift:current_uncertainty',  0)
+        o.set_config('drift:wind_uncertainty',  0)
+
+        c = [0.2, 0.5, 0.8]
+
+        for i in c: 
+            o.fallback_values['sea_ice_area_fraction'] = i
+
+            o.seed_elements(lon, lat, radius=1, number=10, time=datetime.now(), wind_drift_factor=0.03)
+
+            o.run(duration=timedelta(hours=10))
+
+            latf = o.history['lat'][0][-1]
+            lonf = o.history['lon'][0][-1]
+
+            azimuth1, azimuth2, dist = geod.inv(lon, lat, lonf, latf)
+
+            self.assertAlmostEqual(distances[str(i)], dist/1000, 2)
 
 
 if __name__ == '__main__':

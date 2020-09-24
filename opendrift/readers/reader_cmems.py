@@ -28,6 +28,7 @@ from xml.etree import ElementTree
 import numpy as np
 import pyproj
 import isodate
+from netCDF4 import Dataset
 
 
 logger = logging.getLogger('opendrift')  # using common logger
@@ -40,84 +41,94 @@ except:
 from opendrift.readers.reader_netCDF_CF_generic import Reader as NCReader
 
 
-motu_URL='https://nrt.cmems-du.eu/motu-web/Motu'
+motu_URL='http://nrt.cmems-du.eu/motu-web/Motu'
 products = {
-    'NORTHWESTSHELF_ANALYSIS_FORECAST_PHY_004_013-TDS': 
-        {'productID': 'MetO-NWS-PHY-hi-CUR',
-         'variables': {'uo': 'x_sea_water_velocity',
-                       'vo': 'y_sea_water_velocity'}},
-    'GLOBAL_ANALYSIS_FORECAST_PHY_001_024-TDS':
-        {'productID': 'global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh',
-         'variables': {'uo': 'x_sea_water_velocity',
-                       'vo': 'y_sea_water_velocity'}}
+    #  product: { dataset1: {variable_mapping: {var: standard_name}},
+    #             dataset2: {variable_mapping: {var: standard_name}} }
+    'NORTHWESTSHELF_ANALYSIS_FORECAST_PHY_004_013-TDS': {
+        'MetO-NWS-PHY-hi-CUR': {
+            'variable_mapping': {'uo': 'x_sea_water_velocity',
+                                 'vo': 'y_sea_water_velocity'}}
+         },
+    'GLOBAL_ANALYSIS_FORECAST_PHY_001_024-TDS': {
+        'global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh': {
+            'variable_mapping': {'uo': 'x_sea_water_velocity',
+                                 'vo': 'y_sea_water_velocity'}},
+        'global-analysis-forecast-phy-001-024-hourly-merged-uv': {
+            'variable_mapping': {'utotal': 'x_sea_water_velocity',
+                                 'vtotal': 'y_sea_water_velocity',
+                                 'vsdx': 'sea_surface_wave_stokes_drift_x_velocity',
+                                 'vsdy': 'sea_surface_wave_stokes_drift_y_velocity',
+                          }}
         }
+    }
+
 
 class Reader(NCReader):
 
-    def __init__(self, cmems_user=None, cmems_password=None,
-                 serviceID='GLOBAL_ANALYSIS_FORECAST_PHY_001_024-TDS',
+    def __init__(self, dataset, product=None, variable_mapping=None,
+                 cmems_user=None, cmems_password=None,
                  lon_min=None, lon_max=None, lat_min=None, lat_max=None,
                  depth_min=0, depth_max=3,
                  time_start=datetime.now(), ID='',
                  time_end=datetime.now() + timedelta(days=1)):
 
         if cmems_user is None:
-            if 'CMEMS_USER' in os.environ and 'CMEMS_PASSWORD' in os.environ:
-                self.cmems_user = os.environ['CMEMS_USER']
-                self.cmems_password = os.environ['CMEMS_PASSWORD']
-            else:
+            try:
+                import netrc
+                n = netrc.netrc()
+                self.cmems_user, dummy, self.cmems_password = n.authenticators('cmems')
+            except:
                 raise ValueError('CMEMS username and password must be provided, '
-                                 'or stored as environment variables CMEMS_USER and CMEMS_PASSWORD')
+                                 'or stored in a .netrc file under machine name "cmems"')
         else:
             self.cmems_user = cmems_user
             self.cmems_password = cmems_password
 
-        content = products[serviceID]
-        if serviceID not in products:
-            raise ValueError('serviceID must be one of: ' + str(products.keys()))
-        else:
-            self.productID = content['productID']
+        for productname, product in products.items():
+            if productname == dataset:
+                raise ValueError(
+                    'Product name is provided, please use dataset name.')
+            if dataset in product:
+                self.product = productname
+                self.dataset = dataset
+                if variable_mapping is None:
+                    self.variable_mapping = product[dataset]['variable_mapping']
+                else:  # Using custom variable mapping
+                    self.variable_mapping = variable_mapping
+                break
 
-        self.serviceID = serviceID
-        self.variables = list(content['variables'].values())
+        if not hasattr(self, 'dataset'):
+            raise ValueError('Dataset not available: ' + dataset)
+
+        self.variables = list(self.variable_mapping.values())
 
         # Downloaded data will be stored in this file, to be overwritten by subsequent downloads
-        self.nc_file = self.productID + ID + '.nc'
+        self.nc_file = self.dataset + ID + '.nc'
 
         # Download xml file specifying content
-        content_file = self.productID + '.xml'
+        content_file = self.dataset + ID + '.xml'
         #cmd = 'motuclient -D --auth-mode=cas -m %s -s %s -d %s -u %s -p %s -f %s' % (
         cmd = 'motuclient -D -m %s -s %s -d %s -u %s -p %s -f %s' % (
-            motu_URL, serviceID, self.productID, self.cmems_user, self.cmems_password, content_file)
+            motu_URL, self.product, self.dataset,
+            self.cmems_user, self.cmems_password, content_file)
         print(cmd.replace(self.cmems_password, '****'))
 
-        if os.path.exists(content_file) and True is False:  # reloading each time, TBD
-            print('Reusing contents file')
-        else:
-            print('Downloading contents file')
-            p = subprocess.Popen(cmd.split(' '))
-            try:
-                p.wait(60)  # timeout in seconds
-            except subprocess.TimeoutExpired:
-                print('TIEMOUT!')
-                p.kill()
-
-            if os.path.exists(content_file):
-                print('Success')
-            else:
-                print('Failure')
-
-        
-        #with open(content_file, 'rt') as e:
-        #    tree = ElementTree.parse(e)
-        #tc = tree.findall('timeCoverage')[0]
+        print('Downloading contents file')
+        p = subprocess.Popen(cmd.split(' '))
+        try:
+            p.wait(120)  # timeout in seconds
+        except subprocess.TimeoutExpired:
+            print('TIEMOUT!')
+            p.kill()
 
         xml = open(content_file, 'rt').read()
         root = ElementTree.fromstring(xml)
         # Time
         #times = root.find('timeCoverage')
         times = root.find('availableTimes')
-        start_time, end_time, time_step = (times.text.split('/'))
+        start_time, end_time, time_step = (times.text.split('/'))[0:3]
+        time_step = time_step.split(',')[0]
         start_time = start_time.split('Z')[0]
         end_time = end_time.split('Z')[0]
         self.time_step = isodate.parse_duration(time_step)
@@ -154,49 +165,24 @@ class Reader(NCReader):
                 lonmin = np.float(axis.attrib['lower'])
                 lonmax = np.float(axis.attrib['upper'])
         # Presently only supporting lonlat-projection, which is most common from CMEMS
+        self.proj4 = '+proj=latlong'
         self.xmin = lonmin
         self.xmax = lonmax
         self.ymin = latmin
         self.ymax = latmax
 
-        variables = root.find('variables')
-        self.variables = []
-        for variable in variables:
-            standard_name = variable.attrib['standardName']
-            self.variables.append(standard_name)
+        #variables = root.find('variables')
+        #self.variables = []
+        #for variable in variables:
+        #    standard_name = variable.attrib['standardName']
+        #    self.variables.append(standard_name)
 
-        self.name = 'CMEMS'
-        self.proj4 = '+proj=latlong'
-        self.time_step = timedelta(hours=1)
-
-        self.name = self.productID
-        self.proj4 = '+proj=latlong'
+        self.name = self.dataset
 
         super(NCReader, self).__init__()
 
     def prepare(self, extent, start_time, end_time):
         print('Preparing reader ' + self.name)
-
-        #if os.path.exists(nc_file):
-        #    try:
-        #        r = NCReader(nc_file)
-        #        if (r.xmin <= lon_min and r.xmax >= lon_max and
-        #            r.ymin <= lat_min and r.ymin <= lat_max and
-        #            r.start_time <= time_start and r.end_time >= time_end):
-        #            print('Reusing downloaded file: ' + nc_file)
-        #            super(Reader, self).__init__(filename=nc_file)
-        #            return
-        #        else:
-        #            print(r.xmin <= lon_min and r.xmax >= lon_max)
-        #            print(r.end_time >= time_end)
-        #            print(r.start_time <= time_start)
-        #            print('NOCOVER...')
-        #    except Exception as e:
-        #        print(e)
-        #        pass
-        #else:
-        #    print('Does not exist: ' + nc_file)
-        ##stop
 
         lon_min, lat_min, lon_max, lat_max = extent
         time_start = start_time - timedelta(hours=1)  # Some extra coverage
@@ -207,17 +193,23 @@ class Reader(NCReader):
         #  Using only surface current:
         depth_max = np.abs(self.z.max()) + 1
 
-        # TODO
-        # Hardcoded for current, presently
-        cmd = 'motuclient --auth-mode=cas -m %s -s %s -d %s -x %s -X %s -y %s -Y %s -z %s -Z %s -t %s -T %s -v uo -v vo -f %s -u %s -p %s' % (
-            motu_URL, self.serviceID, self.productID,
+        varstring = ''.join(['-v %s ' % v for v in self.variable_mapping])
+        cmd = 'motuclient --auth-mode=cas -m %s -s %s -d %s -x %s -X %s -y %s -Y %s -z %s -Z %s -t %s -T %s %s -f %s -u %s -p %s' % (
+            motu_URL, self.product, self.dataset,
             lon_min, lon_max, lat_min, lat_max, depth_min, depth_max,
             time_start.strftime('"%Y-%m-%d %H:%M:%S"'),
             time_end.strftime('"%Y-%m-%d %H:%M:%S"'),
+            varstring,
             self.nc_file, self.cmems_user, self.cmems_password)
         print(cmd.replace(self.cmems_password, '*****'), 'CMD')
         self.logger.info('Downloading file from CMEMS server, using motu-client:')
         self.logger.info(cmd)
         os.system(cmd)
+
+        # Update standard_name attribute with provided variable mapping
+        d = Dataset(self.nc_file, 'a')
+        for var, val in self.variable_mapping.items():
+            print('Setting standard_name of %s to %s' % (var, val))
+            d.variables[var].standard_name = val
 
         super(Reader, self).__init__(filename=self.nc_file)
