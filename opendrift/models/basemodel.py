@@ -137,6 +137,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
                 current_uncertainty_uniform = float(min=0, max=5, default=0)
+                horizontal_diffusivity = float(min=0, max=100, default=0)
                 wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
                 lift_to_seafloor = boolean(default=True)
@@ -1868,6 +1869,20 @@ class OpenDriftSimulation(PhysicsMethods):
         self.schedule_elements(elements, time)
 
 
+    def horizontal_diffusion(self):
+        """Move elements with random walk according to given horizontal diffuivity."""
+        D = self.get_config('drift:horizontal_diffusivity')
+        if D == 0:
+            self.logger.debug('Horizontal diffusivity is 0, no random walk.')
+            return
+        dt = self.time_step.total_seconds()
+        x_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        y_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        speed = np.sqrt(x_vel*x_vel+y_vel*y_vel)
+        self.logger.debug('Moving elements according to horizontal diffusivity of %s, with speeds between %s and %s m/s'
+                          % (D, speed.min(), speed.max()))
+        self.update_positions(x_vel, y_vel)
+
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
         if any(indices) is False:
@@ -2331,6 +2346,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     self.logger.info('No active elements, skipping update() method')
                 #####################################################
+
+                self.horizontal_diffusion()
 
                 if self.num_elements_active() == 0 and self.num_elements_scheduled() == 0:
                     raise ValueError('No active or scheduled elements, quitting simulation')

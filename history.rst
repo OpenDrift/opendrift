@@ -3,6 +3,7 @@ History
 
 Next release
 
+* New config setting `drift:horizontal_diffusivity`, providing time-step independent diffusion, in contrast to `drift:current_uncertainty` and `drift:wind_uncertainty`
 * Readers may be initialised from a JSON string, where `reader` is name of reader module, and other parameters are forwarded to reader constructor, e.g.: `{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh"}`
 * CMEMS reader now obtains username/password from .netrc instead of environment variables. CMEMS-motuclient is added to environment.yml
 * CMEMS reader now takes dataset name and not product name as input, and it is possible to provide variable mapping.
