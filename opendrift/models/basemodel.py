@@ -3069,7 +3069,7 @@ class OpenDriftSimulation(PhysicsMethods):
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
-             linewidth=1, lcs=None, show_particles=True,
+             linewidth=1, lcs=None, show_particles=True, show_initial=True,
              density_pixelsize_m=1000,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
@@ -3201,7 +3201,8 @@ class OpenDriftSimulation(PhysicsMethods):
             color_initial = 'gray'
             color_active = 'gray'
         if show_particles is True:
-            ax.scatter(x[index_of_first, range(x.shape[1])],
+            if show_initial is True:
+                ax.scatter(x[index_of_first, range(x.shape[1])],
                        y[index_of_first, range(x.shape[1])],
                        s=markersize,
                        zorder=10, edgecolor=markercolor, linewidths=.2,
@@ -3945,8 +3946,8 @@ class OpenDriftSimulation(PhysicsMethods):
         if 'sphinx_gallery' in sys.modules:
             plt.close()
 
-    def calculate_ftle(self, reader=None, delta=None,
-                       time=None, time_step=None, duration=None,
+    def calculate_ftle(self, reader=None, delta=None, domain=None,
+                       time=None, time_step=None, duration=None, z=0,
                        RLCS=True, ALCS=True):
 
         if reader is None:
@@ -3959,8 +3960,14 @@ class OpenDriftSimulation(PhysicsMethods):
         if not isinstance(duration, timedelta):
             duration = timedelta(seconds=duration)
 
-        xs = np.arange(reader.xmin, reader.xmax, delta)
-        ys = np.arange(reader.ymin, reader.ymax, delta)
+        if domain==None:
+            xs = np.arange(reader.xmin, reader.xmax, delta)
+            ys = np.arange(reader.ymin, reader.ymax, delta)
+        else:
+            xmin, xmax, ymin, ymax = domain
+            xs = np.arange(xmin, xmax, delta)
+            ys = np.arange(ymin, ymax, delta)
+
         X, Y = np.meshgrid(xs, ys)
         lons, lats = reader.xy2lonlat(X, Y)
 
@@ -3979,7 +3986,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if RLCS is True:
                 self.reset()
                 self.seed_elements(lons.ravel(), lats.ravel(),
-                                   time=t)
+                                   time=t, z=z)
                 self.run(duration=duration, time_step=time_step)
                 f_x1, f_y1 = reader.lonlat2xy(
                     self.history['lon'].T[-1].reshape(X.shape),
@@ -3989,7 +3996,7 @@ class OpenDriftSimulation(PhysicsMethods):
             if ALCS is True:
                 self.reset()
                 self.seed_elements(lons.ravel(), lats.ravel(),
-                                   time=t+duration)
+                                   time=t+duration, z=z)
                 self.run(duration=duration, time_step=-time_step)
                 b_x1, b_y1 = reader.lonlat2xy(
                     self.history['lon'].T[-1].reshape(X.shape),
