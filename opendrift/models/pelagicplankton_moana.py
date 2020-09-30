@@ -12,25 +12,38 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
 #
+# Copyright 2015, Knut-Frode Dagestad, MET Norway
 # 
-# This module is based on the work and codes of Kristiansen,Romagnoni,Kvile
+##################################################################################################
+# 
+# Module to simulate behaviour of Plankton, including phytoplankton (plants) and zooplankton (animals)
+#
+# Developed by Simon Weppe based on several sources to fit requirements for use in MetOceanTrack model
+# developped by MetOcean/MetService NZ as part of the Moana project (https://www.moanaproject.org/)
+# 
+##################################################################################################
+# 
+# Sources:
+# 
+# This module is based on several sources:
+# a) the work and codes of Kristiansen,Romagnoni,Kvile
 #   >> https://github.com/trondkr/KINO-ROMS/tree/master/Romagnoni-2019-OpenDrift/kino
+#   >> https://github.com/trondkr/KINO-ROMS/blob/master/Romagnoni-2019-OpenDrift/kino/pelagicplankton.py
+#
 # "This code simulates cod egg and larvae and was developed by Trond Kristiansen (me (at) trondkristiansen.com)
 # and Kristina Kvile (kristokv (at) gmail.com)""
 # 
+# b) Opendrift's pelagicegg module 
+# >> https://github.com/OpenDrift/opendrift/blob/master/opendrift/models/pelagicegg.py
+# 
+# c ) Some components of code are taken from 
+# >> https://github.com/metocean/ercore/tree/ercore_opensrc/ercore/lib
+# 
 ##################################################################################################
-# 
-# The module was modified by S.Weppe to fit requirements for use in MetOceanTrack model developped 
-# by MetOcean as part of the Moana project (https://www.moanaproject.org/)
-# 
-##################################################################################################
-# 
-# Copyright 2015, Knut-Frode Dagestad, MET Norway
-
 
 import os
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,timezone
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 from opendrift.elements import LagrangianArray
@@ -40,7 +53,7 @@ if False: # disabling for now
     from kino import calclight
     from kino import bioenergetics
 
-# Defining the oil element properties
+# Defining the PelagicPlankton element properties
 class PelagicPlankton(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for pelagic plankton
 
@@ -92,8 +105,31 @@ class PelagicPlankton(Lagrangian3DArray):
          ('survival', {'dtype': np.float32, 
                           'units': '',
                           'default': 1.})])
-         # - to be extended ...
+         # ERcore characteristics:
+         # 
+         # 'spwn':1,          can or cannot spawn 
+         # 'spawnclass':None, spawnclass: Class of offspring
+         # 'spawnage':1,      spawnage: Age at which spwaning occurs (days)
+         # 'spawnratio':1,    spawnratio: Ratio of offspring numbers/mass to parent
+         # 'mortality':0,     mortality: Mortality rate (per day)
+         # 'vposday':0,       vposday: Day time vertical position (m)
+         # 'vposnight':0,     vposnight: Night time vertical position (m)
+         # 'vspeed':0,        vspeed: Vertical migration rate (m/s)
+         # 'tempmin':None,    tempmin: Minimum temperature tolerated (C)
+         # 'tempmax':None,    tempmax: Maximum temperature tolerated (C)
+         # 'temptol':1, 
+         # 'temptaxis':0,     temptaxis: Temperature taxis rate (m/s per C/m)
+         # 'saltmin':None,    saltmin: Minimum salinity tolerated (PSU)
+         # 'saltmax':None,    saltmax: Maximum salinity tolerated (PSU)
+         # 'salttol':1,
+         # 'salttaxis':0      salttaxis: Salinity taxis rate (m/s per PSU/m)  
+         # 
+         # 
+         # - likley to be extended or modifed ...
 
+      
+    
+   
     
          
 
@@ -125,6 +161,7 @@ class PelagicPlanktonDrift(OceanDrift):
                           'turbulent_kinetic_energy',
                           'turbulent_generic_length_scale',
                           'upward_sea_water_velocity'
+                          # 'cloud_coverage' ?
                           ]
 
     # Vertical profiles of the following parameters will be available in
@@ -171,7 +208,6 @@ class PelagicPlanktonDrift(OceanDrift):
         # Vertical mixing is enabled by default
         self.set_config('drift:vertical_mixing', True)
 
-        
         #IBM-specific configuration options - to be extended
         self._add_config('biology:constantIngestion', 'float(min=0.0, max=1.0, default=0.5)', comment='Ingestion constant')
         self._add_config('biology:activemetabOn', 'float(min=0.0, max=1.0, default=1.0)', comment='Active metabolism')
@@ -194,6 +230,9 @@ class PelagicPlanktonDrift(OceanDrift):
         Method copied from ibm.f90 module of LADIM:
         Vikebo, F., S. Sundby, B. Aadlandsvik and O. Otteraa (2007),
         Fish. Oceanogr. (16) pp. 216-228
+
+        same as Opendrift's PelagicEggDrift model
+
         """
         g = 9.81  # ms-2
 
@@ -263,13 +302,46 @@ class PelagicPlanktonDrift(OceanDrift):
         W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W
 
-    # IBM-specific routines
-    # 
-    # reproduce behaviours included in Plankton class
-    # in https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py
-    # 
-
     ##################################################################################################
+    # IBM-specific routines\
+    ##################################################################################################
+    # >> reproduce behaviours included in Plankton class
+    #    in https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py
+    # 
+    # 
+    ##################################################################################################
+    
+    def calculateMaxSunLight(self):
+        # Calculates the max sun radiation at given positions and dates 
+        # Using third party library PySolar : https://pysolar.readthedocs.io/en/latest/#
+        # 
+        # 
+        # some other available options:
+        # https://github.com/trondkr/pyibm/blob/master/light.py
+        # use calclight from Kino Module here  : https://github.com/trondkr/KINO-ROMS/tree/master/Romagnoni-2019-OpenDrift/kino
+        # ERcore : dawn and sunset times : https://github.com/metocean/ercore/blob/ercore_opensrc/ercore/lib/suncalc.py
+        #         # 
+        from pysolar import solar
+        date = self.time
+        date = date.replace(tzinfo=timezone.utc)
+        sun_altitude = solar.get_altitude(self.elements.lon, self.elements.lat, date)
+        sun_azimut = solar.get_azimuth(self.elements.lon, self.elements.lat, date)
+        sun_radiation = np.zeros(len(sun_azimut))
+        # not ideal get_radiation_direct doesnt accept arrays...
+        for elem_i,alt in enumerate(sun_altitude):
+          sun_radiation[elem_i] = solar.radiation.get_radiation_direct(date, alt)  # watts per square meter for that time of day
+        import pdb;pdb.set_trace()
+
+        # # test night time ?
+        # date=  datetime.datetime(2016, 2, 2, 0, 0)
+        # date=  datetime.datetime(2016, 2, 2, 12, 0)
+        # date = date.replace(tzinfo=datetime.timezone.utc)
+        # lon = 0
+        # lat = 0
+        # sun_altitude = get_altitude(lon,lat, date)
+        # sun_radiation = radiation.get_radiation_direct(date, sun_altitude)  
+
+
     def calculateMaximumDailyLight(self):
         """LIGHT == Get the maximum light at the current latitude, and the current surface light at the current time.
         These values are used in calculateGrowth and  predation.FishPredAndStarvation, but need only be calcuated once per time step. """
@@ -319,7 +391,7 @@ class PelagicPlanktonDrift(OceanDrift):
         self.elements.stage_fraction += amb_fraction #Add fraction completed during present timestep to cumulative fraction completed
         self.elements.hatched[self.elements.stage_fraction>=1] = 1 #Eggs with total development time completed are hatched (1)
 
-    def updateVertialPosition(self,length,oldLight,currentLight,currentDepth,stomach_fullness,dt):
+    def updateVerticalPosition(self,length,oldLight,currentLight,currentDepth,stomach_fullness,dt):
         # Update the vertical position of the current larva
         swimSpeed=0.261*(length**(1.552*length**(0.920-1.0)))-(5.289/length)
         fractionOfTimestepSwimming = self.get_config('biology:fractionOfTimestepSwimming')
@@ -398,9 +470,14 @@ class PelagicPlanktonDrift(OceanDrift):
         self.update_terminal_velocity()
         self.vertical_mixing() #Mixes the eggs according to terminal_velocity calculation
         
-        # Plankton development
-        self.updatePlanktonDevelopment()
-        self.updateSurvival()
+        # testing the sunlight computation
+        self.calculateMaxSunLight()
+        
+        if False:
+          # Plankton development
+          self.updatePlanktonDevelopment()
+          self.updateSurvival()
+
 
         # Horizontal advection
         self.advect_ocean_current()
