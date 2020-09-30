@@ -399,6 +399,12 @@ class Reader(BaseReader):
         for par in requested_variables:
             varname = [name for name, cf in
                        self.ROMS_variable_mapping.items() if cf == par]
+            # make sure the mapped variable names are actually in the dataset
+            # some variable may have different name in different file version
+            # e.g. u or u_eastward for 'x_sea_water_velocity'
+            if len(varname)>1:
+                varname = list(set(varname).intersection(self.Dataset.variables))
+            # load the variable    
             var = self.Dataset.variables[varname[0]]
 
             if par == 'land_binary_mask':
