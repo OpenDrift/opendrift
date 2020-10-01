@@ -102,36 +102,9 @@ class PelagicPlankton(Lagrangian3DArray):
          ('stomach', {'dtype': np.float32, 
                           'units': '',
                           'default': 0.}),
-         ('survival', {'dtype': np.float32, 
+         ('survival', {'dtype': np.float32, # generic load to track mortality
                           'units': '',
                           'default': 1.})])
-         # ERcore characteristics:
-         # 
-         # 'spwn':1,          can or cannot spawn 
-         # 'spawnclass':None, spawnclass: Class of offspring
-         # 'spawnage':1,      spawnage: Age at which spwaning occurs (days)
-         # 'spawnratio':1,    spawnratio: Ratio of offspring numbers/mass to parent
-         # 'mortality':0,     mortality: Mortality rate (per day)
-         # 'vposday':0,       vposday: Day time vertical position (m)
-         # 'vposnight':0,     vposnight: Night time vertical position (m)
-         # 'vspeed':0,        vspeed: Vertical migration rate (m/s)
-         # 'tempmin':None,    tempmin: Minimum temperature tolerated (C)
-         # 'tempmax':None,    tempmax: Maximum temperature tolerated (C)
-         # 'temptol':1, 
-         # 'temptaxis':0,     temptaxis: Temperature taxis rate (m/s per C/m)
-         # 'saltmin':None,    saltmin: Minimum salinity tolerated (PSU)
-         # 'saltmax':None,    saltmax: Maximum salinity tolerated (PSU)
-         # 'salttol':1,
-         # 'salttaxis':0      salttaxis: Salinity taxis rate (m/s per PSU/m)  
-         # 
-         # 
-         # - likley to be extended or modifed ...
-
-      
-    
-   
-    
-         
 
 class PelagicPlanktonDrift(OceanDrift):
     """Buoyant particle trajectory model based on the OpenDrift framework.
@@ -208,7 +181,8 @@ class PelagicPlanktonDrift(OceanDrift):
         # Vertical mixing is enabled by default
         self.set_config('drift:vertical_mixing', True)
 
-        #IBM-specific configuration options - to be extended
+        #IBM-specific configuration options
+        # specifications on pelagicplankton module by Trond Kristiansen
         self._add_config('biology:constantIngestion', 'float(min=0.0, max=1.0, default=0.5)', comment='Ingestion constant')
         self._add_config('biology:activemetabOn', 'float(min=0.0, max=1.0, default=1.0)', comment='Active metabolism')
         self._add_config('biology:attenuationCoefficient', 'float(min=0.0, max=1.0, default=0.18)', comment='Attenuation coefficient')
@@ -216,6 +190,40 @@ class PelagicPlanktonDrift(OceanDrift):
         self._add_config('biology:lowerStomachLim', 'float(min=0.0, max=1.0, default=0.3)', comment='Limit of stomach fullness for larvae to go down if light increases')
         self._add_config('biology:haddock', 'boolean(default=False)', comment='Species=haddock')
         self._add_config('biology:cod', 'boolean(default=True)', comment='Species=cod')
+
+         # ERcore specifications:
+         # 
+         # 'spwn':1,          can or cannot spawn 
+         # 'spawnclass':None, spawnclass: Class of offspring
+         # 'spawnage':1,      spawnage: Age at which spwaning occurs (days)
+         # 'spawnratio':1,    spawnratio: Ratio of offspring numbers/mass to parent
+         # 'mortality':0,     mortality: Mortality rate (per day)
+         # 'vposday':0,       vposday: Day time vertical position (m)
+         # 'vposnight':0,     vposnight: Night time vertical position (m)
+         # 'vspeed':0,        vspeed: Vertical migration rate (m/s)
+         # 'tempmin':None,    tempmin: Minimum temperature tolerated (C)
+         # 'tempmax':None,    tempmax: Maximum temperature tolerated (C)
+         # 'temptol':1, 
+         # 'temptaxis':0,     temptaxis: Temperature taxis rate (m/s per C/m)
+         # 'saltmin':None,    saltmin: Minimum salinity tolerated (PSU)
+         # 'saltmax':None,    saltmax: Maximum salinity tolerated (PSU)
+         # 'salttol':1,
+         # 'salttaxis':0      salttaxis: Salinity taxis rate (m/s per PSU/m)  
+         # 
+        self._add_config('biology:mortality_daily_rate', 'float(min=0.0, max=100.0, default=0.05)', comment='Mortality rate (percentage of biomass dying per day)') 
+        self._add_config('biology:min_settlement_age_seconds', 'float(min=0.0, max=100.0, default=0.0)', comment='Minimum age before beaching can occur, in seconds')
+        self._add_config('biology:vertical_position_daytime', 'float(min=-1000.0, max=0.0, default=-5.0)',   comment='the depth a species is expected to inhabit during the day time, in meters, negative down') #
+        self._add_config('biology:vertical_position_nighttime', 'float(min=-1000.0, max=0.0, default=-1.0)', comment='the depth a species is expected to inhabit during the night time, in meters, negative down') #
+        self._add_config('biology:vertical_migration_speed', 'float(min=0.0, max=1e-3, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
+        self._add_config('biology:temperature_min', 'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
+        self._add_config('biology:temperature_max', 'float(min=0.0, max=100.0, default=None)', comment=' upper threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
+        self._add_config('biology:temperature_tolerance', 'float(min=0.0, max=1.0, default=1.0)', comment=' temperature tolerance before dying in degrees Celsius') #
+        self._add_config('biology:salinity_min', 'float(min=0.0, max=100.0, default=None)', comment=' lower threshold salinity where a species population quickly declines to extinction in ppt') #
+        self._add_config('biology:salinity_max', 'float(min=0.0, max=100.0, default=None)', comment=' upper threshold salinity where a species population quickly declines to extinction in ppt') #
+        self._add_config('biology:salinity_tolerance', 'float(min=0.0, max=1.0, default=1.0)', comment=' salinity tolerance before dying in ppt') #
+        # below not implemented yet
+        self._add_config('biology:thermotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of heat, in (m/s per C/m)') #
+        self._add_config('biology:halotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of salt, in (m/s per C/m)') #
 
 
     def update_terminal_velocity(self, Tprofiles=None,
@@ -303,7 +311,7 @@ class PelagicPlanktonDrift(OceanDrift):
         self.elements.terminal_velocity = W
 
     ##################################################################################################
-    # IBM-specific routines\
+    # IBM-specific routines
     ##################################################################################################
     # >> reproduce behaviours included in Plankton class
     #    in https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py
@@ -312,27 +320,32 @@ class PelagicPlanktonDrift(OceanDrift):
     ##################################################################################################
     
     def calculateMaxSunLight(self):
-        # Calculates the max sun radiation at given positions and dates 
-        # Using third party library PySolar : https://pysolar.readthedocs.io/en/latest/#
+        # Calculates the max sun radiation at given positions and dates (and returns zero for night time)
+        # 
+        # The method is using the third party library PySolar : https://pysolar.readthedocs.io/en/latest/#
         # 
         # 
         # some other available options:
+        # https://pypi.org/project/solarpy/
         # https://github.com/trondkr/pyibm/blob/master/light.py
         # use calclight from Kino Module here  : https://github.com/trondkr/KINO-ROMS/tree/master/Romagnoni-2019-OpenDrift/kino
         # ERcore : dawn and sunset times : https://github.com/metocean/ercore/blob/ercore_opensrc/ercore/lib/suncalc.py
-        #         # 
+        # https://nasa-develop.github.io/dnppy/modules/solar.html#examples
+        # 
         from pysolar import solar
         date = self.time
-        date = date.replace(tzinfo=timezone.utc)
-        sun_altitude = solar.get_altitude(self.elements.lon, self.elements.lat, date)
-        sun_azimut = solar.get_azimuth(self.elements.lon, self.elements.lat, date)
+        date = date.replace(tzinfo=timezone.utc) # make the datetime object aware of timezone
+        # longitude convention in pysolar, consistent with Opendrift : negative reckoning west from prime meridian in Greenwich, England
+        # the particle longitude should be converted to the convention [-180,180] if that is not the case
+        sun_altitude = solar.get_altitude(self.elements.lon, self.elements.lat, date) # get sun altitude in degrees
+        sun_azimut = solar.get_azimuth(self.elements.lon, self.elements.lat, date) # get sun azimuth in degrees
         sun_radiation = np.zeros(len(sun_azimut))
         # not ideal get_radiation_direct doesnt accept arrays...
         for elem_i,alt in enumerate(sun_altitude):
-          sun_radiation[elem_i] = solar.radiation.get_radiation_direct(date, alt)  # watts per square meter for that time of day
-        import pdb;pdb.set_trace()
+            sun_radiation[elem_i] = solar.radiation.get_radiation_direct(date, alt)  # watts per square meter [W/m2] for that time of day
+        self.elements.light = sun_radiation * 4.6 #Converted from W/m2 to umol/m2/s-1"" - 1 W/m2 ≈ 4.6 μmole.m2/s
 
-        # # test night time ?
+        # # test night time vs daytime
         # date=  datetime.datetime(2016, 2, 2, 0, 0)
         # date=  datetime.datetime(2016, 2, 2, 12, 0)
         # date = date.replace(tzinfo=datetime.timezone.utc)
@@ -340,6 +353,105 @@ class PelagicPlanktonDrift(OceanDrift):
         # lat = 0
         # sun_altitude = get_altitude(lon,lat, date)
         # sun_radiation = radiation.get_radiation_direct(date, sun_altitude)  
+    
+    def plankton_development(self):
+        self.update_survival() # mortality based on user-input mortality rate
+        self.update_weight_temperature() # # mortality based on "liveable" temperature range
+        self.update_weight_temperature() # # mortality based on "liveable" salinity range
+        if self.get_config('biology:vertical_migration_speed') is not None :
+            self.update_vertical_velocity() #use a constant vertical migration rate towards day or night time position
+        else:
+            pass # update of vertical velocity is handled by update_terminal_velocity() in update() method
+
+    def update_survival(self):
+        # update survval fraction based on mortality rate in [day-1]
+        mortality_daily_rate = self.get_config('biology:mortality_daily_rate')
+        # update survival fraction, accounting for mortality rate over that timestep
+        fraction_died = self.elements.survival * mortality_daily_rate * (self.time_step.total_seconds()/(3600*24))
+        self.elements.survival -=  fraction_died
+
+    def update_weight_temperature(self):
+        #update particle survival fraction based on temperature, if a temperature range was input
+        import pdb;pdb.set_trace()
+        temp_tol = self.get_config('biology:temperature_tolerance')
+        temp_min = self.get_config('biology:temperature_min')
+        temp_max = self.get_config('biology:temperature_max')
+        temp_xy = self.environment.sea_water_temperature # at particle positions
+        # to test
+        temp_min = 10.0
+        temp_max = 20.0
+
+        if (temp_min is not None) or (temp_max is not None) :
+            if temp_max is not None :
+                m=(temp_xy-temp_max+temp_tol)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L60
+                if (m>0).any():
+                  logging.debug('Maximum temperature reached for %s particles' % np.sum(m>0))
+                self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L62
+            if temp_min is not None :
+                m=(temp_min+temp_tol-temp_xy)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L64
+                if (m>0).any():
+                  logging.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
+                self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L65
+
+    def update_weight_salinity(self):
+        #update particle survival fraction based on salinity, if a salinity range was input
+        import pdb;pdb.set_trace()
+        >> copy/paste & modify content of update_weight_temperature()
+
+    def update_vertical_velocity(self):
+    # modify the same variable than update_terminal_velocity() but using a different algorithm based on day or night
+    #  
+    # use light to see if it is day or night at particle 
+        import pdb;pdb.set_trace()
+
+    # def spawn(self):
+    #   # particle change type after a certain time
+    #   # need more info to implement
+    #   xx
+
+# >> 
+#   def react(self,t1,t2):
+#     np=self.np
+#     if np==0:return
+#     #Mortality - note killing after maxage already handled in material base class
+#      if self.props['mortality']>0:self.mass[:np]-=self.props['mortality']*(t2-t1)*self.mass[:np]  
+    
+#     if (self.props['tempmin'] is not None) or (self.props['tempmax'] is not None):
+#       temp=self.reactors['temp'].interp(self.pos[:np,:],t1)[:,0]
+#       if (self.props['tempmax'] is not None):
+#         m=(temp-self.props['tempmax']+self.props['temptol'])/self.props['temptol']
+#         if (m>0).any():print 'Temperature maximum reached for some %s' % (self.id)
+#         self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]
+#       if (self.props['tempmin'] is not None):
+#         m=(self.props['tempmin']+self.props['temptol']-temp)/self.props['temptol']
+#         self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]
+#         if (m>0).any():print 'Temperature minimum reached for some %s' % (self.id)
+#     if (self.props['saltmin'] is not None) or (self.props['saltmax'] is not None):
+#       salt=self.reactors['salt'].interp(self.pos[:np,:],t1)[:,0]
+#       if (self.props['saltmax'] is not None):
+#         m=(salt-self.props['saltmax']+self.props['salttol'])/self.props['salttol']
+#         if (m>0).any():print 'Salinity maximum reached for some %s' % (self.id)
+#         self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]
+#       if (self.props['saltmin'] is not None):
+#         m=(self.props['saltmin']+self.props['salttol']-salt)/self.props['salttol']
+#         if (m>0).any():print 'Salinity minimum reached for some %s' % (self.id)
+#         self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]  
+    
+#     #Vertical migration
+#     if self.props['vspeed']>0:
+#       sun=Sun(self.pos[:np,0],self.pos[:np,1])
+#       stimes=sun.getTimes(t1)
+#       #Go down if day time
+#       day=(t1>=stimes['Dawn']) & ((stimes['Dawn']>stimes['SunsetStart']) | (t1<=stimes['SunsetStart']))
+#       self.pos[:np,2]=numpy.where(day,numpy.maximum(self.pos[:np,2]-(t2-t1)*self.props['vspeed'],self.props['vposday']),self.pos[:np,2])
+#       #Go up if night time
+#       night=(t1>=stimes['SunsetStart']) & ((stimes['SunsetStart']>stimes['Dawn']) | (t1<=stimes['Dawn']))
+#       self.pos[:np,2]=numpy.where(night,numpy.minimum(self.pos[:np,2]+(t2-t1)*self.props['vspeed'],self.props['vposnight']),self.pos[:np,2])
+#     #Thermotaxis
+#     #Halotaxis
+
+
+
 
 
     def calculateMaximumDailyLight(self):
@@ -466,12 +578,16 @@ class PelagicPlanktonDrift(OceanDrift):
         # Update element age
         self.elements.age_seconds += self.time_step.total_seconds()
 
-        # Turbulent Mixing
+        # compute vertical velocities
         self.update_terminal_velocity()
+        # Turbulent Mixing
         self.vertical_mixing() #Mixes the eggs according to terminal_velocity calculation
         
         # testing the sunlight computation
         self.calculateMaxSunLight()
+
+        if True:
+          self.plankton_development()
         
         if False:
           # Plankton development

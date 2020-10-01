@@ -136,8 +136,8 @@ class BivalveLarvae(OpenDrift3DSimulation):
 
         # resuspend larvae that reach seabed by default 
         self.set_config('drift:lift_to_seafloor', 'True')
-        # set the deafult min_settlement_age_seconds to 0.0
-        # self.set_config('drfit:min_settlement_age_seconds', '0.0')
+        # set the defasult min_settlement_age_seconds to 0.0
+        # self.set_config('drift:min_settlement_age_seconds', '0.0')
 
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
