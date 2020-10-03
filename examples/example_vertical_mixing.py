@@ -8,7 +8,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from opendrift.models.oceandrift import OceanDrift
 
-#%% Configuration. Edit this section to see the differences.
+#%%
+# Configuration. Edit this section to see the differences.
 N = 10000  # Number of particles
 hours = 3  # Number of hours to mix particles
 sea_floor_depth = 100  # m
@@ -25,7 +26,7 @@ diffusivity = np.ones(z.shape)*.01  # Constant diffusivity
 diffusivity[z<-20] = 0.001  # uncomment to reduce mixing below 20m
 
 #%%
-# Calculation
+# Preparing mixing timestep
 time = datetime(2020, 1, 1, 0)
 o = OceanDrift(loglevel=0)
 o.set_config('drift:vertical_mixing', True)
@@ -43,9 +44,13 @@ o.environment_profiles = {
         'ocean_vertical_diffusivity':
          np.tile(diffusivity, (N, 1)).T}
 
-#%% Calculate vertical mixing, and return particle depths at all positions
+#%%
+# Calculate vertical mixing, and return particle depths at all positions
 print('Calculating...')
 depths = o.vertical_mixing(store_depths=True)
 
 print('Making animation...')
 o.animate_vertical_distribution(depths=depths)
+
+#%%
+# .. image:: /gallery/animations/example_vertical_mixing_0.gif
