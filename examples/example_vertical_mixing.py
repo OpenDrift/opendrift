@@ -11,7 +11,7 @@ from opendrift.models.oceandrift import OceanDrift
 #%%
 # Configuration. Edit this section to see the differences.
 N = 10000  # Number of particles
-hours = 3  # Number of hours to mix particles
+hours = 2  # Number of hours to mix particles
 sea_floor_depth = 100  # m
 timestep_seconds = 60  # Timestep for vertical mixing
 

@@ -14,6 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import sys
 from datetime import timedelta
 import numpy as np
 from scipy.interpolate import interp1d
@@ -476,10 +477,10 @@ class OceanDrift(OpenDriftSimulation):
             #axn.set_ylabel('Depth [m]')
 
         animation = animation.FuncAnimation(fig, update_histogram, len(times))
-        if filename is None:
-            plt.show()
+        if filename is not None or 'sphinx_gallery' in sys.modules:
+            self._save_animation(animation, filename, fps=10)
         else:
-            animation.save(filename)
+            plt.show()
 
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""
