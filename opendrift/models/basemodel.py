@@ -304,7 +304,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
         d = self.configobj
         ds = self.configobj.configspec
-        default, minval, maxval, opt = self.get_configspec_default_min_max(key)
+        try:
+            default, minval, maxval, opt = self.get_configspec_default_min_max(key)
+        except:
+            self.logger.warning(self.list_configspec())
+            raise ValueError('Config item %s is not available, se above for valid items' % key)
         for i, s in enumerate(key.split(':')):
             if s not in d:
                 self.list_configspec()
@@ -418,6 +422,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                    self.get_configspec(key))
         str += '==============================================\n'
         self.logger.info(str)
+        return str
 
     def list_config(self):
         """List all possible configuration settings with values"""
