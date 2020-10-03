@@ -3921,16 +3921,16 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 adir = os.path.realpath('../docs/source/gallery/animations')
 
-            if not hasattr(OpenDriftSimulation, '__anim_no__'):
-                OpenDriftSimulation.__anim_no__ = { }
+            if not hasattr(self, '__anim_no__'):
+                self.__anim_no__ = { }
 
-            if not hasattr(OpenDriftSimulation.__anim_no__, caller):
-                OpenDriftSimulation.__anim_no__[caller] = 0
+            if caller not in  self.__anim_no__:
+                self.__anim_no__[caller] = 0
 
             os.makedirs(adir, exist_ok=True)
 
-            filename = '%s_%d.gif' % (caller, OpenDriftSimulation.__anim_no__[caller])
-            OpenDriftSimulation.__anim_no__[caller] += 1
+            filename = '%s_%d.gif' % (caller, self.__anim_no__[caller])
+            self.__anim_no__[caller] += 1
 
             filename = os.path.join(adir, filename)
 
