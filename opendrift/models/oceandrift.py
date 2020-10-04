@@ -90,7 +90,7 @@ class OceanDrift(OpenDriftSimulation):
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
         'x_wind': 0,
         'y_wind': 0,
-        'ocean_vertical_diffusivity': 0.02,
+        'ocean_vertical_diffusivity': 0,
         'surface_downward_x_stress': 0,
         'surface_downward_y_stress': 0,
         'turbulent_kinetic_energy': 0,
@@ -261,7 +261,7 @@ class OceanDrift(OpenDriftSimulation):
         # get vertical eddy diffusivity from environment or specific model
         diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
         if diffusivity_model == 'environment':
-            if 'ocean_vertical_diffusivity' in self.environment_profiles and self.environment_profiles['ocean_vertical_diffusivity'].min() != self.fallback_values['ocean_vertical_diffusivity'] or self.environment_profiles['ocean_vertical_diffusivity'].max() != self.fallback_values['ocean_vertical_diffusivity']:
+            if 'ocean_vertical_diffusivity' in self.environment_profiles and not (self.environment_profiles['ocean_vertical_diffusivity'].min() == self.fallback_values['ocean_vertical_diffusivity'] and self.environment_profiles['ocean_vertical_diffusivity'].max() == self.fallback_values['ocean_vertical_diffusivity']):
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
                 self.logger.debug('Using diffusivity from ocean model')
