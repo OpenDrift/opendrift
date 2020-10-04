@@ -11,6 +11,7 @@ from opendrift.models.oceandrift import OceanDrift
 #%%
 # Configuration. Edit this section to see the differences.
 N = 10000  # Number of particles
+seed_depth = -10 # meters
 hours = 2  # Number of hours to mix particles
 sea_floor_depth = 100  # m
 timestep_seconds = 60  # Timestep for vertical mixing
@@ -32,7 +33,7 @@ o = OceanDrift(loglevel=0)
 o.set_config('drift:vertical_mixing', True)
 o.set_config('vertical_mixing:diffusivitymodel', 'environment')
 o.set_config('vertical_mixing:timestep', timestep_seconds)
-o.seed_elements(lon=4, lat=60, z=-10, time=time, number=N, terminal_velocity=terminal_velocity)
+o.seed_elements(lon=4, lat=60, z=seed_depth, time=time, number=N, terminal_velocity=terminal_velocity)
 o.time = time
 o.time_step = timedelta(hours=hours)
 o.release_elements()

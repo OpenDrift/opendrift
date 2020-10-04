@@ -331,6 +331,48 @@ class TestRun(unittest.TestCase):
         self.assertAlmostEqual(o1.history['z'].max(), 0.0, 1)
         os.remove('verticalmixing.nc')
 
+    def test_vertical_mixing_profiles(self):
+        # Testing an isolated mixing timestep
+        cases = [  # Some cases with expected outcome
+                {'vt': 0, 'K': 0, 'K_below': .01, 'T': 60, # No mixing
+                    'zmin': -10, 'zmax': -10, 'zmean': -10},
+                {'vt': -.005, 'K': 0, 'K_below': .01, 'T': 60, # Sinking
+                    'zmin': -73.1, 'zmax': -21.6, 'zmean': -50.2},
+                {'vt': 0, 'K': .01, 'K_below': .01, 'T': 60, # Mixing
+                    'zmin': -39.8, 'zmax': -0.1, 'zmean': -14.5},
+                {'vt': .005, 'K': .01, 'K_below': .01, 'T': 60, # Mixing and rising
+                    'zmin': -8.1, 'zmax': -0.01, 'zmean': -2.1},
+                {'vt': -0.005, 'K': .01, 'K_below': .01, 'T': 60, # Mixing and sinking
+                    'zmin': -75.8, 'zmax': -20.7, 'zmean': -48.1},
+                {'vt': 0, 'K': .02, 'K_below': .001, 'T': 60,  # Mixing in mixed layer
+                    'zmin': -20.8, 'zmax': -0.06, 'zmean': -10.3},
+                ]
+        N=100
+        z = np.arange(0, -30, -2)
+        time = datetime.now()
+        for case in cases:
+            diffusivity = np.ones(z.shape)*case['K']
+            diffusivity[z<-15] = case['K_below']
+            o = OceanDrift(loglevel=20)
+            o.set_config('drift:vertical_mixing', True)
+            o.set_config('vertical_mixing:diffusivitymodel', 'environment')
+            o.set_config('vertical_mixing:timestep', case['T'])
+            o.seed_elements(lon=4, lat=60, z=-10, time=time, number=100,
+                            terminal_velocity=case['vt'])
+            o.time = time
+            o.time_step = timedelta(hours=2)
+            o.release_elements()
+            o.fallback_values['land_binary_mask'] = 0
+            o.environment = np.array(np.ones(N)*100,
+                            dtype=[('sea_floor_depth_below_sea_level',
+                                    np.float32)]).view(np.recarray)
+            o.environment_profiles = { 'z': z, 'ocean_vertical_diffusivity':
+                                      np.tile(diffusivity, (N, 1)).T}
+            o.vertical_mixing()
+            self.assertAlmostEqual(o.elements.z.min(), case['zmin'], 1)
+            self.assertAlmostEqual(o.elements.z.max(), case['zmax'], 1)
+            self.assertAlmostEqual(o.elements.z.mean(), case['zmean'], 1)
+
     def test_export_step_interval(self):
         # Export to file only at end
         o1 = OceanDrift(loglevel=20)
