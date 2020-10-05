@@ -418,10 +418,12 @@ class OceanDrift(OpenDriftSimulation):
 
         if depths is not None:
             axk.plot(np.mean(self.environment_profiles['ocean_vertical_diffusivity'], 1), self.environment_profiles['z'])
+            xmax = self.environment_profiles['ocean_vertical_diffusivity'].max()
         else:
             axk.plot(K, z, 'k.')
+            xmax = K.max()
         axk.set_ylim([maxdepth, 0])
-        axk.set_xlim([0, self.environment_profiles['ocean_vertical_diffusivity'].max()*1.1])
+        axk.set_xlim([0, xmax*1.1])
         axk.set_ylabel('Depth [m]')
         axk.set_xlabel('Vertical diffusivity [$m^2/s$]')
 
