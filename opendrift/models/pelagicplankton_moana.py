@@ -59,7 +59,7 @@ class PelagicPlankton(Lagrangian3DArray):
 
     """
 
-    variables = LagrangianArray.add_variables([
+    variables = Lagrangian3DArray.add_variables([
         ('diameter', {'dtype': np.float32,
                       'units': 'm',
                       'default': 0.0014}),  # for NEA Cod
@@ -183,6 +183,7 @@ class PelagicPlanktonDrift(OceanDrift):
 
         #IBM-specific configuration options
         # specifications on pelagicplankton module by Trond Kristiansen
+        # https://github.com/trondkr/KINO-ROMS/blob/master/Romagnoni-2019-OpenDrift/kino/pelagicplankton.py
         self._add_config('biology:constantIngestion', 'float(min=0.0, max=1.0, default=0.5)', comment='Ingestion constant')
         self._add_config('biology:activemetabOn', 'float(min=0.0, max=1.0, default=1.0)', comment='Active metabolism')
         self._add_config('biology:attenuationCoefficient', 'float(min=0.0, max=1.0, default=0.18)', comment='Attenuation coefficient')
@@ -192,29 +193,14 @@ class PelagicPlanktonDrift(OceanDrift):
         self._add_config('biology:cod', 'boolean(default=True)', comment='Species=cod')
 
          # ERcore specifications:
-         # 
-         # 'spwn':1,          can or cannot spawn 
-         # 'spawnclass':None, spawnclass: Class of offspring
-         # 'spawnage':1,      spawnage: Age at which spwaning occurs (days)
-         # 'spawnratio':1,    spawnratio: Ratio of offspring numbers/mass to parent
-         # 'mortality':0,     mortality: Mortality rate (per day)
-         # 'vposday':0,       vposday: Day time vertical position (m)
-         # 'vposnight':0,     vposnight: Night time vertical position (m)
-         # 'vspeed':0,        vspeed: Vertical migration rate (m/s)
-         # 'tempmin':None,    tempmin: Minimum temperature tolerated (C)
-         # 'tempmax':None,    tempmax: Maximum temperature tolerated (C)
-         # 'temptol':1, 
-         # 'temptaxis':0,     temptaxis: Temperature taxis rate (m/s per C/m)
-         # 'saltmin':None,    saltmin: Minimum salinity tolerated (PSU)
-         # 'saltmax':None,    saltmax: Maximum salinity tolerated (PSU)
-         # 'salttol':1,
-         # 'salttaxis':0      salttaxis: Salinity taxis rate (m/s per PSU/m)  
-         # 
+         # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L25 
         self._add_config('biology:mortality_daily_rate', 'float(min=0.0, max=100.0, default=0.05)', comment='Mortality rate (percentage of biomass dying per day)') 
-        self._add_config('biology:min_settlement_age_seconds', 'float(min=0.0, max=100.0, default=0.0)', comment='Minimum age before beaching can occur, in seconds')
+        self._add_config('biology:min_settlement_age_seconds', 'float(min=0.0, max=7.0e6, default=0.0)', comment='Minimum age before beaching can occur, in seconds')
         self._add_config('biology:vertical_position_daytime', 'float(min=-1000.0, max=0.0, default=-5.0)',   comment='the depth a species is expected to inhabit during the day time, in meters, negative down') #
         self._add_config('biology:vertical_position_nighttime', 'float(min=-1000.0, max=0.0, default=-1.0)', comment='the depth a species is expected to inhabit during the night time, in meters, negative down') #
-        self._add_config('biology:vertical_migration_speed', 'float(min=0.0, max=1e-3, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
+        # vertical_migration_speed_constant is the speed at which larvae will move to vertical_position_daytime or vertical_position_nighttime (depeding if it is day or nighttime)
+        # if set to None the model will use the vertical velocity defined in update_terminal_velocity() (and so will not take into account vertical_position_daytime/vertical_position_nighttime)
+        self._add_config('biology:vertical_migration_speed_constant', 'float(min=0.0, max=1e-2, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
         self._add_config('biology:temperature_min', 'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
         self._add_config('biology:temperature_max', 'float(min=0.0, max=100.0, default=None)', comment=' upper threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
         self._add_config('biology:temperature_tolerance', 'float(min=0.0, max=1.0, default=1.0)', comment=' temperature tolerance before dying in degrees Celsius') #
@@ -223,25 +209,25 @@ class PelagicPlanktonDrift(OceanDrift):
         self._add_config('biology:salinity_tolerance', 'float(min=0.0, max=1.0, default=1.0)', comment=' salinity tolerance before dying in ppt') #
         # below not implemented yet
         self._add_config('biology:thermotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of heat, in (m/s per C/m)') #
-        self._add_config('biology:halotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of salt, in (m/s per C/m)') #
+        self._add_config('biology:halotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of salt, in (m/s per PSU/m)') #
 
 
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
         """Calculate terminal velocity for Pelagic Egg
 
-        according to
-        S. Sundby (1983): A one-dimensional model for the vertical
-        distribution of pelagic fish eggs in the mixed layer
-        Deep Sea Research (30) pp. 645-661
+            according to
+            S. Sundby (1983): A one-dimensional model for the vertical
+            distribution of pelagic fish eggs in the mixed layer
+            Deep Sea Research (30) pp. 645-661
 
-        Method copied from ibm.f90 module of LADIM:
-        Vikebo, F., S. Sundby, B. Aadlandsvik and O. Otteraa (2007),
-        Fish. Oceanogr. (16) pp. 216-228
+            Method copied from ibm.f90 module of LADIM:
+            Vikebo, F., S. Sundby, B. Aadlandsvik and O. Otteraa (2007),
+            Fish. Oceanogr. (16) pp. 216-228
 
-        same as Opendrift's PelagicEggDrift model
-
+            same as Opendrift's PelagicEggDrift model. This function is called in update()
         """
+
         g = 9.81  # ms-2
 
         # Pelagic Egg properties that determine buoyancy
@@ -334,7 +320,7 @@ class PelagicPlanktonDrift(OceanDrift):
         # 
         from pysolar import solar
         date = self.time
-        date = date.replace(tzinfo=timezone.utc) # make the datetime object aware of timezone
+        date = date.replace(tzinfo=timezone.utc) # make the datetime object aware of timezone, set to UTC
         # longitude convention in pysolar, consistent with Opendrift : negative reckoning west from prime meridian in Greenwich, England
         # the particle longitude should be converted to the convention [-180,180] if that is not the case
         sun_altitude = solar.get_altitude(self.elements.lon, self.elements.lat, date) # get sun altitude in degrees
@@ -344,24 +330,22 @@ class PelagicPlanktonDrift(OceanDrift):
         for elem_i,alt in enumerate(sun_altitude):
             sun_radiation[elem_i] = solar.radiation.get_radiation_direct(date, alt)  # watts per square meter [W/m2] for that time of day
         self.elements.light = sun_radiation * 4.6 #Converted from W/m2 to umol/m2/s-1"" - 1 W/m2 ≈ 4.6 μmole.m2/s
-
+        
+        import pdb;pdb.set_trace()
         # # test night time vs daytime
-        # date=  datetime.datetime(2016, 2, 2, 0, 0)
-        # date=  datetime.datetime(2016, 2, 2, 12, 0)
-        # date = date.replace(tzinfo=datetime.timezone.utc)
-        # lon = 0
-        # lat = 0
-        # sun_altitude = get_altitude(lon,lat, date)
-        # sun_radiation = radiation.get_radiation_direct(date, sun_altitude)  
+        date=  datetime(2016, 2, 2, 0, 0)
+        date=  datetime(2016, 2, 2, 12, 0)
+        date = date.replace(tzinfo=timezone.utc)
+        lon = 0
+        lat = -45
+        sun_altitude = solar.get_altitude(lon,lat, date)
+        sun_radiation = solar.radiation.get_radiation_direct(date, sun_altitude) 
+        print(sun_radiation) 
     
     def plankton_development(self):
         self.update_survival() # mortality based on user-input mortality rate
         self.update_weight_temperature() # # mortality based on "liveable" temperature range
-        self.update_weight_temperature() # # mortality based on "liveable" salinity range
-        if self.get_config('biology:vertical_migration_speed') is not None :
-            self.update_vertical_velocity() #use a constant vertical migration rate towards day or night time position
-        else:
-            pass # update of vertical velocity is handled by update_terminal_velocity() in update() method
+        self.update_weight_salinity() # # mortality based on "liveable" salinity range
 
     def update_survival(self):
         # update survval fraction based on mortality rate in [day-1]
@@ -372,88 +356,78 @@ class PelagicPlanktonDrift(OceanDrift):
 
     def update_weight_temperature(self):
         #update particle survival fraction based on temperature, if a temperature range was input
-        import pdb;pdb.set_trace()
         temp_tol = self.get_config('biology:temperature_tolerance')
         temp_min = self.get_config('biology:temperature_min')
         temp_max = self.get_config('biology:temperature_max')
         temp_xy = self.environment.sea_water_temperature # at particle positions
-        # to test
-        temp_min = 10.0
-        temp_max = 20.0
 
         if (temp_min is not None) or (temp_max is not None) :
             if temp_max is not None :
                 m=(temp_xy-temp_max+temp_tol)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L60
                 if (m>0).any():
-                  logging.debug('Maximum temperature reached for %s particles' % np.sum(m>0))
+                  self.logger.debug('Maximum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L62
             if temp_min is not None :
                 m=(temp_min+temp_tol-temp_xy)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L64
                 if (m>0).any():
-                  logging.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
+                  self.logger.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L65
 
     def update_weight_salinity(self):
         #update particle survival fraction based on salinity, if a salinity range was input
-        import pdb;pdb.set_trace()
-        >> copy/paste & modify content of update_weight_temperature()
+        salt_tol = self.get_config('biology:salinity_tolerance')
+        salt_min = self.get_config('biology:salinity_min')
+        salt_max = self.get_config('biology:salinity_max')
+        salt_xy = self.environment.sea_water_salinity # at particle positions
 
-    def update_vertical_velocity(self):
-    # modify the same variable than update_terminal_velocity() but using a different algorithm based on day or night
-    #  
-    # use light to see if it is day or night at particle 
-        import pdb;pdb.set_trace()
+        if (salt_min is not None) or (salt_max is not None) :
+            if salt_max is not None :
+                m=(salt_xy-salt_max+salt_tol)/salt_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L60
+                if (m>0).any():
+                  self.logger.debug('Maximum salinity reached for %s particles' % np.sum(m>0))
+                self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L73
+            if salt_min is not None :
+                m=(salt_min+salt_tol-salt_xy)/salt_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L64
+                if (m>0).any():
+                  self.logger.debug('Minimum salinity reached for %s particles' % np.sum(m>0))
+                self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L77
 
-    # def spawn(self):
-    #   # particle change type after a certain time
-    #   # need more info to implement
-    #   xx
+    def update_terminal_velocity_constant(self):
+        # modifies the same variable than update_terminal_velocity(), self.elements.terminal_velocity = W, but using a different algorithm.
+        # Larvae are assumed to move to daytime or nighttime vertical positions in the water column, at a constant rate
+        self.calculateMaxSunLight() # compute solar radiation at particle positions (using PySolar)
+        # it is expected that larve will go down during day time and up during night time but that is not fixed in the code. 
+        # Particles will simply go towards the daytime or nighttime poistions.
+        # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L80
+        vertical_velocity = np.abs(self.get_config('biology:vertical_migration_speed_constant'))  # magnitude in m/s 
+        z_day = self.get_config('biology:vertical_position_daytime')    #  the depth a species is expected to inhabit during the day time, in meters, negative down') #
+        z_night =self.get_config('biology:vertical_position_nighttime') # 'the depth a species is expected to inhabit during the night time, in meters, negative down') #
+        ind_day = np.where(self.elements.light>0)
+        ind_night = np.where(self.elements.light==0)
+        self.logger.debug('Using constant migration rate (%s m/s) towards day and night time positions' % (vertical_velocity) )
+        self.logger.debug('%s particles in day time' % (len(ind_day[0])))
+        self.logger.debug('%s particles in night time' % (len(ind_night[0])))
+        
+        >> check the day vs night time computaion
 
-# >> 
-#   def react(self,t1,t2):
-#     np=self.np
-#     if np==0:return
-#     #Mortality - note killing after maxage already handled in material base class
-#      if self.props['mortality']>0:self.mass[:np]-=self.props['mortality']*(t2-t1)*self.mass[:np]  
-    
-#     if (self.props['tempmin'] is not None) or (self.props['tempmax'] is not None):
-#       temp=self.reactors['temp'].interp(self.pos[:np,:],t1)[:,0]
-#       if (self.props['tempmax'] is not None):
-#         m=(temp-self.props['tempmax']+self.props['temptol'])/self.props['temptol']
-#         if (m>0).any():print 'Temperature maximum reached for some %s' % (self.id)
-#         self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]
-#       if (self.props['tempmin'] is not None):
-#         m=(self.props['tempmin']+self.props['temptol']-temp)/self.props['temptol']
-#         self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]
-#         if (m>0).any():print 'Temperature minimum reached for some %s' % (self.id)
-#     if (self.props['saltmin'] is not None) or (self.props['saltmax'] is not None):
-#       salt=self.reactors['salt'].interp(self.pos[:np,:],t1)[:,0]
-#       if (self.props['saltmax'] is not None):
-#         m=(salt-self.props['saltmax']+self.props['salttol'])/self.props['salttol']
-#         if (m>0).any():print 'Salinity maximum reached for some %s' % (self.id)
-#         self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]
-#       if (self.props['saltmin'] is not None):
-#         m=(self.props['saltmin']+self.props['salttol']-salt)/self.props['salttol']
-#         if (m>0).any():print 'Salinity minimum reached for some %s' % (self.id)
-#         self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]  
-    
-#     #Vertical migration
-#     if self.props['vspeed']>0:
-#       sun=Sun(self.pos[:np,0],self.pos[:np,1])
-#       stimes=sun.getTimes(t1)
-#       #Go down if day time
-#       day=(t1>=stimes['Dawn']) & ((stimes['Dawn']>stimes['SunsetStart']) | (t1<=stimes['SunsetStart']))
-#       self.pos[:np,2]=numpy.where(day,numpy.maximum(self.pos[:np,2]-(t2-t1)*self.props['vspeed'],self.props['vposday']),self.pos[:np,2])
-#       #Go up if night time
-#       night=(t1>=stimes['SunsetStart']) & ((stimes['SunsetStart']>stimes['Dawn']) | (t1<=stimes['Dawn']))
-#       self.pos[:np,2]=numpy.where(night,numpy.minimum(self.pos[:np,2]+(t2-t1)*self.props['vspeed'],self.props['vposnight']),self.pos[:np,2])
-#     #Thermotaxis
-#     #Halotaxis
+        # particles below the daytime position need to go up while particles above the daytime position need to go down
+        # depth convention is neagtive down in Opendrift
+        # e.g. z=-5, z_day = -3, below daytime position,  need to go up (terminal_velocity>0) 
+        #      diff = (z - z_day) = -2, so w = - np.sign(diff) * vertical_velocity
+        self.elements.terminal_velocity[ind_day] = - np.sign(self.elements.z[ind_day] - z_day) * vertical_velocity
+        self.elements.terminal_velocity[ind_night] = - np.sign(self.elements.z[ind_night] - z_night) * vertical_velocity
 
+    def spawn(self):
+        pass
+        # particles change types after a certain time
+        # need more info to implement
+        # this could call a new seed_elements() method (that may or may not need to be changed relative to the one in basemodel.py) or 
+        # simply change some parameters of existing particles at a certan time...
+        # 
 
-
-
-
+    ##################################################################################################
+    # Not used for now
+    ##################################################################################################
     def calculateMaximumDailyLight(self):
         """LIGHT == Get the maximum light at the current latitude, and the current surface light at the current time.
         These values are used in calculateGrowth and  predation.FishPredAndStarvation, but need only be calcuated once per time step. """
@@ -571,7 +545,10 @@ class PelagicPlanktonDrift(OceanDrift):
               self.elements.stomach_fullness[ind],
               dt)
     ##################################################################################################
-              
+    # above not used for now
+    ##################################################################################################
+
+
     def update(self):
         """Update positions and properties of buoyant particles."""
 
@@ -579,7 +556,11 @@ class PelagicPlanktonDrift(OceanDrift):
         self.elements.age_seconds += self.time_step.total_seconds()
 
         # compute vertical velocities
-        self.update_terminal_velocity()
+        if self.get_config('biology:vertical_migration_speed_constant') is None:
+            self.update_terminal_velocity() # same as pelagicegg.py
+        else:
+            self.update_terminal_velocity_constant() # constant migration rate towards day or night time positions
+
         # Turbulent Mixing
         self.vertical_mixing() #Mixes the eggs according to terminal_velocity calculation
         
@@ -599,5 +580,5 @@ class PelagicPlanktonDrift(OceanDrift):
         self.advect_ocean_current()
        
         # Vertical advection
-        if self.get_config('processes:verticaladvection') is True:
+        if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
