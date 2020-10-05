@@ -321,6 +321,11 @@ class OceanDrift(OpenDriftSimulation):
         if store_depths is not False:
             depths = np.zeros((ntimes_mix, self.num_elements_active()))
             depths[0, :] = self.elements.z
+
+        # Calculating dK/dz for all profiles before the loop
+        gradK = -np.gradient(Kprofiles, self.environment_profiles['z'], axis=0)
+        gradK[np.abs(gradK)<1e-10] = 0
+
         for i in range(0, ntimes_mix):
             #remember which particles belong to the exact surface
             surface = self.elements.z == 0
@@ -337,51 +342,10 @@ class OceanDrift(OpenDriftSimulation):
 
             w = self.elements.terminal_velocity
 
-            # diffusivity K at depth z+dz
-            dz = 1e-3
-            if z_index == 0:
-                zi = 0*self.elements.z
-            else:
-                zi = z_index(-self.elements.z+0.5*dz)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
-            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
-            weight_upper = 1 - (zi - upper)
-            weight_upper[np.isnan(weight_upper)] = 1
-            K1 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
-                weight_upper + \
-                Kprofiles[lower, range(Kprofiles.shape[1])] * \
-                (1-weight_upper)
-
-            # diffusivity K at depth z-dz
-            if z_index == 0:
-                zi = 0*self.elements.z
-            else:
-                zi = z_index(-self.elements.z-0.5*dz)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
-            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
-            weight_upper = 1 - (zi - upper)
-            weight_upper[np.isnan(weight_upper)] = 1
-            K2 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
-                weight_upper + \
-                Kprofiles[lower, range(Kprofiles.shape[1])] * \
-                (1-weight_upper)
-
-            # diffusivity gradient
-            dKdz = (K1 - K2) / dz
-
-            # K at depth z+dKdz*dt/2 
-            if z_index == 0:
-                zi = 0*self.elements.z
-            else:
-                zi = z_index(-(self.elements.z+dKdz*dt_mix/2))
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
-            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
-            weight_upper = 1 - (zi - upper)
-            weight_upper[np.isnan(weight_upper)] = 1
-            K3 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
-                weight_upper + \
-                Kprofiles[lower, range(Kprofiles.shape[1])] * \
-                (1-weight_upper)
+            # Diffusivity and its gradient at z
+            zi = np.round(z_index(-self.elements.z)).astype(np.int)
+            Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
+            dKdz = gradK[zi, range(Kprofiles.shape[1])]
 
             # Visser et al. 1996 random walk mixing
             # requires an inner loop time step dt such that
@@ -390,7 +354,7 @@ class OceanDrift(OpenDriftSimulation):
             r = 1.0/3
             # New position  =  old position   - up_K_flux   + random walk
             self.elements.z = self.elements.z - self.elements.moving*(
-                dKdz*dt_mix - R*np.sqrt(( K3*dt_mix*2/r)))
+                dKdz*dt_mix - R*np.sqrt((Kz*dt_mix*2/r)))
  
             # Reflect from surface 
             reflect = np.where(self.elements.z >= 0)
