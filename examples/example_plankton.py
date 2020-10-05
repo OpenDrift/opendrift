@@ -53,30 +53,32 @@ o.seed_elements(lon=12.0, lat=68.3, z=-3.0, #z should be between vertical_positi
 
 ####################################################################################################################
 # CONFIG
-#%%
 # Adjusting some configuration
 o.set_config('general:coastline_action', 'previous')
 o.set_config('drift:vertical_advection', True)
 
 o.set_config('drift:vertical_mixing', True)
-#o.o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
+# o.o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
 o.set_config('vertical_mixing:diffusivitymodel', 'environment') # use eddy diffusivity from ocean model, or fallback value
-o.set_config('vertical_mixing:timestep', 60.) # seconds - # Vertical mixing requires fast time step
-
+o.set_config('vertical_mixing:timestep', 3600.) # seconds - # Vertical mixing requires fast time step  (but for constant diffusivity, use same as model step)
+####################################################################################################################
 if True:
     # plankton-specific config for developped module based on 
     o.set_config('biology:mortality_daily_rate', 0.05)    # 'float(min=0.0, max=100.0, default=0.05)', comment='Mortality rate (percentage of biomass dying per day)') 
     o.set_config('biology:min_settlement_age_seconds', 5*24*3600.0)  #'float(min=0.0, max=100.0, default=0.0)', comment='Minimum age before beaching can occur, in seconds')
     o.set_config('biology:vertical_position_daytime', -5.0)#'float(min=-1000.0, max=0.0, default=-5.0)',   comment='the depth a species is expected to inhabit during the day time, in meters, negative down') #
     o.set_config('biology:vertical_position_nighttime', -1.0) #'float(min=-1000.0, max=0.0, default=-1.0)', comment='the depth a species is expected to inhabit during the night time, in meters, negative down') #
-    o.set_config('biology:vertical_migration_speed_constant', 0.01) #'float(min=0.0, max=1e-3, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
-    o.set_config('biology:temperature_min', 10.0)#'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
+    o.set_config('biology:vertical_migration_speed_constant',1e-4) #'float(min=0.0, max=1e-3, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
+    o.set_config('biology:temperature_min', 5.0)#'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
     o.set_config('biology:temperature_max', 25.0)#'float(min=0.0, max=100.0, default=None)', comment=' upper threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
     o.set_config('biology:temperature_tolerance', 1.0)#'float(min=0.0, max=1.0, default=1.0)', comment=' temperature tolerance before dying in degrees Celsius') #
     o.set_config('biology:salinity_min', 30.0)#'float(min=0.0, max=100.0, default=None)', comment=' lower threshold salinity where a species population quickly declines to extinction in ppt') #
     o.set_config('biology:salinity_max', 39.0)#'float(min=0.0, max=100.0, default=None)', comment=' upper threshold salinity where a species population quickly declines to extinction in ppt') #
     o.set_config('biology:salinity_tolerance',1.0)#'float(min=0.0, max=1.0, default=1.0)', comment=' salinity tolerance before dying in ppt') #
 
+    # to switch off the constant migration rate towards day or night time position
+    # o.set_config('biology:vertical_migration_speed_constant',None) 
+####################################################################################################################
 if False:
     # plankton-specific config for module in :
     # https://github.com/trondkr/KINO-ROMS/blob/master/Romagnoni-2019-OpenDrift/kino/pelagicplankton.py
@@ -89,20 +91,17 @@ if False:
     o.set_config('biology:cod', True ) #'boolean(default=True)', comment='Species=cod')
 ####################################################################################################################
 
-#%%
-# Running model
-o.run(end_time=nordic_native.start_time + timedelta(days=2.0), time_step=3600)
 
-#%%
+# Running model
+o.run(end_time=nordic_native.start_time + timedelta(days=4.0), time_step=3600)
+
 # Print and plot results.
 # At the end the wind vanishes, and eggs come to surface
 print(o)
 
 o.plot(fast=True)
+
 o.animation(fast=True, color='z')
 
-#%%
-# .. image:: /gallery/animations/example_codegg_0.gif
-
-#%% Interactive slider (not working in browser)
+# Interactive slider (not working in browser)
 o.plot_vertical_distribution()

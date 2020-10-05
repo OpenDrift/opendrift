@@ -200,7 +200,7 @@ class PelagicPlanktonDrift(OceanDrift):
         self._add_config('biology:vertical_position_nighttime', 'float(min=-1000.0, max=0.0, default=-1.0)', comment='the depth a species is expected to inhabit during the night time, in meters, negative down') #
         # vertical_migration_speed_constant is the speed at which larvae will move to vertical_position_daytime or vertical_position_nighttime (depeding if it is day or nighttime)
         # if set to None the model will use the vertical velocity defined in update_terminal_velocity() (and so will not take into account vertical_position_daytime/vertical_position_nighttime)
-        self._add_config('biology:vertical_migration_speed_constant', 'float(min=0.0, max=1e-2, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
+        self._add_config('biology:vertical_migration_speed_constant', 'float(min=0.0, max=1e-3, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
         self._add_config('biology:temperature_min', 'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
         self._add_config('biology:temperature_max', 'float(min=0.0, max=100.0, default=None)', comment=' upper threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
         self._add_config('biology:temperature_tolerance', 'float(min=0.0, max=1.0, default=1.0)', comment=' temperature tolerance before dying in degrees Celsius') #
@@ -211,8 +211,16 @@ class PelagicPlanktonDrift(OceanDrift):
         self._add_config('biology:thermotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of heat, in (m/s per C/m)') #
         self._add_config('biology:halotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of salt, in (m/s per PSU/m)') #
 
+    
+    def update_terminal_velocity(self): 
+        # function to update vertical velocities (negative = settling down)
+        # called in update() method
+        if self.get_config('biology:vertical_migration_speed_constant') is None:
+            self.update_terminal_velocity_pelagicegg() # same as pelagicegg.py
+        else:
+            self.update_terminal_velocity_constant() # constant migration rate towards day or night time positions
 
-    def update_terminal_velocity(self, Tprofiles=None,
+    def update_terminal_velocity_pelagicegg(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
         """Calculate terminal velocity for Pelagic Egg
 
@@ -331,18 +339,25 @@ class PelagicPlanktonDrift(OceanDrift):
             sun_radiation[elem_i] = solar.radiation.get_radiation_direct(date, alt)  # watts per square meter [W/m2] for that time of day
         self.elements.light = sun_radiation * 4.6 #Converted from W/m2 to umol/m2/s-1"" - 1 W/m2 ≈ 4.6 μmole.m2/s
         
-        import pdb;pdb.set_trace()
+        print(np.min(sun_radiation))
+        print(date)
+
+        # print(self.solar_elevation())  # works out solar elevation at current particle positions and date , but returns quite different results
+        # print(sun_altitude)
+        # import pdb;pdb.set_trace()
+        
         # # test night time vs daytime
-        date=  datetime(2016, 2, 2, 0, 0)
-        date=  datetime(2016, 2, 2, 12, 0)
-        date = date.replace(tzinfo=timezone.utc)
-        lon = 0
-        lat = -45
-        sun_altitude = solar.get_altitude(lon,lat, date)
-        sun_radiation = solar.radiation.get_radiation_direct(date, sun_altitude) 
-        print(sun_radiation) 
+        # date=  datetime(2016, 2, 2, 0, 0)
+        # date=  datetime(2016, 2, 2, 12, 0)
+        # date = date.replace(tzinfo=timezone.utc)
+        # lon = 0
+        # lat = 68
+        # sun_altitude = solar.get_altitude(lon,lat, date)
+        # sun_radiation = solar.radiation.get_radiation_direct(date, sun_altitude) 
+        # print(sun_radiation) 
     
     def plankton_development(self):
+
         self.update_survival() # mortality based on user-input mortality rate
         self.update_weight_temperature() # # mortality based on "liveable" temperature range
         self.update_weight_salinity() # # mortality based on "liveable" salinity range
@@ -353,6 +368,7 @@ class PelagicPlanktonDrift(OceanDrift):
         # update survival fraction, accounting for mortality rate over that timestep
         fraction_died = self.elements.survival * mortality_daily_rate * (self.time_step.total_seconds()/(3600*24))
         self.elements.survival -=  fraction_died
+        # import pdb;pdb.set_trace()
 
     def update_weight_temperature(self):
         #update particle survival fraction based on temperature, if a temperature range was input
@@ -372,6 +388,9 @@ class PelagicPlanktonDrift(OceanDrift):
                 if (m>0).any():
                   self.logger.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L65
+        # print('TEMP')
+        # print(self.elements.survival)
+        # import pdb;pdb.set_trace()
 
     def update_weight_salinity(self):
         #update particle survival fraction based on salinity, if a salinity range was input
@@ -391,10 +410,15 @@ class PelagicPlanktonDrift(OceanDrift):
                 if (m>0).any():
                   self.logger.debug('Minimum salinity reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L77
+        # print('SALT')
+        # print(self.elements.survival)
+        # import pdb;pdb.set_trace()
 
     def update_terminal_velocity_constant(self):
         # modifies the same variable than update_terminal_velocity(), self.elements.terminal_velocity = W, but using a different algorithm.
         # Larvae are assumed to move to daytime or nighttime vertical positions in the water column, at a constant rate
+        #
+        # the actual settling is taken care of in vertical_mixing() or vertical_buoyancy() (i.e. from OceanDrift methods)
         self.calculateMaxSunLight() # compute solar radiation at particle positions (using PySolar)
         # it is expected that larve will go down during day time and up during night time but that is not fixed in the code. 
         # Particles will simply go towards the daytime or nighttime poistions.
@@ -407,15 +431,15 @@ class PelagicPlanktonDrift(OceanDrift):
         self.logger.debug('Using constant migration rate (%s m/s) towards day and night time positions' % (vertical_velocity) )
         self.logger.debug('%s particles in day time' % (len(ind_day[0])))
         self.logger.debug('%s particles in night time' % (len(ind_night[0])))
-        
-        >> check the day vs night time computaion
-
-        # particles below the daytime position need to go up while particles above the daytime position need to go down
-        # depth convention is neagtive down in Opendrift
+        # for particles in daytime : particles below the daytime position need to go up while particles above the daytime position need to go down
+        # (same for for particles in nightime)
+        # Note : depth convention is neagtive down in Opendrift
+        # 
         # e.g. z=-5, z_day = -3, below daytime position,  need to go up (terminal_velocity>0) 
         #      diff = (z - z_day) = -2, so w = - np.sign(diff) * vertical_velocity
         self.elements.terminal_velocity[ind_day] = - np.sign(self.elements.z[ind_day] - z_day) * vertical_velocity
         self.elements.terminal_velocity[ind_night] = - np.sign(self.elements.z[ind_night] - z_night) * vertical_velocity
+        # print(self.elements.z)
 
     def spawn(self):
         pass
@@ -548,25 +572,36 @@ class PelagicPlanktonDrift(OceanDrift):
     # above not used for now
     ##################################################################################################
 
-
     def update(self):
         """Update positions and properties of buoyant particles."""
 
         # Update element age
         self.elements.age_seconds += self.time_step.total_seconds()
 
-        # compute vertical velocities
-        if self.get_config('biology:vertical_migration_speed_constant') is None:
-            self.update_terminal_velocity() # same as pelagicegg.py
-        else:
-            self.update_terminal_velocity_constant() # constant migration rate towards day or night time positions
+        # move particles with ambient current
+        self.advect_ocean_current()
 
-        # Turbulent Mixing
-        self.vertical_mixing() #Mixes the eggs according to terminal_velocity calculation
+        # Disabled for now
+        if False:
+            # Advect particles due to surface wind drag,
+            # according to element property wind_drift_factor
+            self.advect_wind()
+
+            # Stokes drift
+            self.stokes_drift()
+
+        # Turbulent Mixing or settling-only 
+        if self.get_config('drift:vertical_mixing') is True:
+            self.update_terminal_velocity()  #compute vertical velocities, two cases possible - constant, or same as pelagic egg
+            self.vertical_mixing()
+        else:  # Buoyancy
+            self.update_terminal_velocity()
+            self.vertical_buoyancy()
+
+        # Vertical advection
+        self.vertical_advection()
         
-        # testing the sunlight computation
-        self.calculateMaxSunLight()
-
+        # Plankton specific
         if True:
           self.plankton_development()
         
@@ -574,11 +609,3 @@ class PelagicPlanktonDrift(OceanDrift):
           # Plankton development
           self.updatePlanktonDevelopment()
           self.updateSurvival()
-
-
-        # Horizontal advection
-        self.advect_ocean_current()
-       
-        # Vertical advection
-        if self.get_config('drift:vertical_advection') is True:
-            self.vertical_advection()
