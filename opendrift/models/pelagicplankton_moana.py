@@ -329,6 +329,7 @@ class PelagicPlanktonDrift(OceanDrift):
         from pysolar import solar
         date = self.time
         date = date.replace(tzinfo=timezone.utc) # make the datetime object aware of timezone, set to UTC
+        self.logger.debug('Assuming UTC time for solar calculations')
         # longitude convention in pysolar, consistent with Opendrift : negative reckoning west from prime meridian in Greenwich, England
         # the particle longitude should be converted to the convention [-180,180] if that is not the case
         sun_altitude = solar.get_altitude(self.elements.lon, self.elements.lat, date) # get sun altitude in degrees
@@ -338,23 +339,30 @@ class PelagicPlanktonDrift(OceanDrift):
         for elem_i,alt in enumerate(sun_altitude):
             sun_radiation[elem_i] = solar.radiation.get_radiation_direct(date, alt)  # watts per square meter [W/m2] for that time of day
         self.elements.light = sun_radiation * 4.6 #Converted from W/m2 to umol/m2/s-1"" - 1 W/m2 ≈ 4.6 μmole.m2/s
-        
-        print(np.min(sun_radiation))
-        print(date)
+        self.logger.debug('Solar radiation from %s to %s [W/m2]' % (sun_radiation.min(), sun_radiation.max() ) )
+        # print(np.min(sun_radiation))
+        # print(date)
 
-        # print(self.solar_elevation())  # works out solar elevation at current particle positions and date , but returns quite different results
+        # Opendrift has a built-in function to work out solar elevation at current particle positions and date (from physics_methods.py)
+        # but it returns results that are quite different from Pysolar.
         # print(sun_altitude)
-        # import pdb;pdb.set_trace()
-        
-        # # test night time vs daytime
-        # date=  datetime(2016, 2, 2, 0, 0)
-        # date=  datetime(2016, 2, 2, 12, 0)
+        # print(self.solar_elevation()) 
+
+        # Quick test on night time vs daytime
+        # lon = -3 #(France)
+        # lat = 47
+        # date=  datetime(2020, 10, 6, 12, 0)
         # date = date.replace(tzinfo=timezone.utc)
-        # lon = 0
-        # lat = 68
-        # sun_altitude = solar.get_altitude(lon,lat, date)
-        # sun_radiation = solar.radiation.get_radiation_direct(date, sun_altitude) 
-        # print(sun_radiation) 
+        # date_vec = date + np.arange(48) * timedelta(hours=1)
+        # sun_radiation = np.zeros(len(date_vec)) 
+        # sun_radiation = np.zeros(len(date_vec))       
+        # for ii,date_i in enumerate(date_vec):
+        #     sun_altitude[ii] = solar.get_altitude(lon,lat, date_i)
+        #     sun_radiation[ii] = solar.radiation.get_radiation_direct(date_i, sun_altitude[ii])
+        # import matplotlib.pyplot as plt
+        # plt.ion()
+        # plt.plot(date_vec,sun_radiation)
+        # import pdb;pdb.set_trace()
     
     def plankton_development(self):
 
