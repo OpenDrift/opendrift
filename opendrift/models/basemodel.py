@@ -3976,6 +3976,13 @@ class OpenDriftSimulation(PhysicsMethods):
             self.logger.info('No reader provided, using first available:')
             reader = list(self.readers.items())[0][1]
             self.logger.info(reader.name)
+        if isinstance(reader, pyproj.Proj):
+            proj = reader
+        elif isinstance(reader,str):
+            proj = pyproj.Proj(reader)
+        else:
+            proj = reader.proj
+
         import scipy.ndimage as ndimage
         from opendrift.models.physics_methods import ftle
 
@@ -3991,7 +3998,7 @@ class OpenDriftSimulation(PhysicsMethods):
             ys = np.arange(ymin, ymax, delta)
 
         X, Y = np.meshgrid(xs, ys)
-        lons, lats = reader.xy2lonlat(X, Y)
+        lons, lats = proj(X, Y, inverse=True)
 
         if time is None:
             time = reader.start_time
@@ -4010,7 +4017,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.seed_elements(lons.ravel(), lats.ravel(),
                                    time=t, z=z)
                 self.run(duration=duration, time_step=time_step)
-                f_x1, f_y1 = reader.lonlat2xy(
+                f_x1, f_y1 = proj(
                     self.history['lon'].T[-1].reshape(X.shape),
                     self.history['lat'].T[-1].reshape(X.shape))
                 lcs['RLCS'][i,:,:] = ftle(f_x1-X, f_y1-Y, delta, T)
@@ -4020,7 +4027,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.seed_elements(lons.ravel(), lats.ravel(),
                                    time=t+duration, z=z)
                 self.run(duration=duration, time_step=-time_step)
-                b_x1, b_y1 = reader.lonlat2xy(
+                b_x1, b_y1 = proj(
                     self.history['lon'].T[-1].reshape(X.shape),
                     self.history['lat'].T[-1].reshape(X.shape))
                 lcs['ALCS'][i,:,:] = ftle(b_x1-X, b_y1-Y, delta, T)
