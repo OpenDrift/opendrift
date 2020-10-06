@@ -63,14 +63,14 @@ o.seed_elements(lon, lat, z=-1.0, radius=5, number=3000, time=time,terminal_velo
 # o.seed_elements(lon, lat, z='seafloor', radius=5, number=3000, time=time)
 
 # processes
-o.set_config('processes:verticaladvection' , False) # no vertical current available, so no vertical advection
+o.set_config('drift:vertical_advection' , False) # no vertical current available, so no vertical advection
 # New process added to SedimentDrift3D : resuspension
 # This still needs to be implemented/tested but will eventually allow checking bed shear stress at particle position 
 # and evaualte if resuspension is possible based on a "critical" shear stress
 # already False be default but mentioned here for reference
-o.set_config('processes:resuspension',False) 
-o.set_config('processes:turbulentmixing', True) 
-o.set_config('turbulentmixing:timestep',  5)
+o.set_config('drift:resuspension',False) 
+o.set_config('drift:vertical_mixing', True) 
+o.set_config('vertical_mixing:timestep',  5)
 
 # Running model
 # o.run(steps=5*12*2, time_step=300, time_step_output=300)
@@ -79,8 +79,10 @@ o.run(end_time=reader_norkyst.end_time, time_step=300, time_step_output=300)
 
 # Print and plot results
 print(o)
-o.animation_profile(filename='sediment_settling_profile.gif')
-o.animation(filename='sediment_settling_2D.gif', background='sea_floor_depth_below_sea_level')
+o.plot(fast=True)
+
+o.animation_profile() #filename='sediment_settling_profile.gif')
+o.animation(color='z', background='sea_floor_depth_below_sea_level')#,filename='sediment_settling_2D.gif',)
 
 #%%
 # .. image:: /gallery/animations/sediment_settling_from_surface.gif

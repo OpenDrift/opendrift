@@ -17,24 +17,32 @@
 
 import numpy as np
 import logging
-from opendrift.models.opendrift3D import OpenDrift3DSimulation
 from opendrift.models.oceandrift import OceanDrift
-# from opendrift.elements.passivetracer import PassiveTracer
-from opendrift.elements.buoyanttracer import BuoyantTracer
-# from opendrift.elements.sedimenttracer import SedimentTracer
+from opendrift.models.oceandrift import Lagrangian3DArray
 
 
-class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation base class
-    """Trajectory model based on the OpenDrift framework using the OpenDrift3DSimulation baseclass
+class SedimentElement(Lagrangian3DArray):
+    # Lagrangian3DArray has already the variables terminal_velocity, and wind_drift_factor
+    variables = Lagrangian3DArray.add_variables([
+        ('settled', {'dtype': np.int16,  # 0 is active, 1 is settled
+                     'units': '1',
+                     'default': 0}),
+        ('age_seconds', {'dtype': np.float32,
+                 'units': 's',
+                 'default': 0})
+        ])
+
+class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
+    """Trajectory model based on the OpenDrift framework using the OceanDrift baseclass
 
     Sediment 3D motion 
     Propagation with horizontal and vertical ocean currents, horizontal and 
     vertical diffusions (additional wind drag inherited from base class if needed).
     Suitable for sediment tracers, e.g. for tracking sediment particles.
-    Adapted from OpenDrift3DSimulation by Simon Weppe - MetOcean Solutions.
+    Adapted from OceanDrift by Simon Weppe - MetOcean Solutions.
 
     """
-    ElementType = BuoyantTracer # simply use BuoyantTracer for now - will eventually move to SedimentTracer
+    ElementType = SedimentElement 
     required_variables = [
         'x_sea_water_velocity',
         'y_sea_water_velocity',
@@ -47,10 +55,9 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         'sea_surface_wave_stokes_drift_y_velocity',
         'sea_surface_wave_period_at_variance_spectral_density_maximum',
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-        'sea_floor_depth_below_sea_level'
+        'sea_floor_depth_below_sea_level',
+        'land_binary_mask'
         ]
-
-    required_variables.append('land_binary_mask')
 
     required_profiles = ['ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
@@ -80,9 +87,10 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
                              'active': 'blue',
                              'missing_data': 'gray',
                              'settled': 'red'}
-    # adding processes switch to contol resuspension
+
+    # adding processes to OceanDrift class to switch on/off resuspension
     configspec_sedimentdrift3d = '''
-        [processes]
+        [drift]
             resuspension = boolean(default=False)
     '''
 
@@ -93,25 +101,26 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
         # Calling general constructor of parent class
         super(SedimentDrift3D, self).__init__(*args, **kwargs)
 
-        # Turbulent mixing switched off by default
-        self.set_config('processes:turbulentmixing', False)
+        # By default, sediments do strand at coastline
+        self.set_config('general:coastline_action', 'stranding') 
+        # Vertical mixing is enabled as default
+        self.set_config('drift:vertical_mixing', True)
+        # Vertical advection switched on by default (if w is available)
+        self.set_config('drift:vertical_advection', True)
         # resuspension switched off by default
-        self.set_config('processes:resuspension', False)
+        self.set_config('drift:resuspension', False)
 
-        self.max_speed = 1.5
+        self.max_speed = 5.0
 
-    def update_terminal_velocity(self, *args, **kwargs):
-        '''
-        Terminal velocity due to buoyancy or sedimentation rate,
-        to be used in turbulent mixing module.
-        stored as an array in self.elements.terminal_velocity
-        '''
-        # conserve user-input terminal_velocity
-        #
-        # could include some  more sophisticated calculations of terminal_velocity/settling velocity based on temp/salinity etc..
-        #
-        # self.elements.terminal_velocity = 0.
-        pass
+    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
+                                 z_index=None):
+        """Calculate terminal velocity due to bouyancy from own properties
+        and environmental variables. Sub-modules should overload
+        this method for particle-specific behaviour
+
+        Same as OceanDrfit for now - could include more sophisticaed models based on temp/salinity etc..
+        """
+        pass 
 
     def horizontal_diffusion(self, *args, **kwargs):
         '''
@@ -185,10 +194,14 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
 
         # Stokes drift
         self.stokes_drift()
-
+        
         # Turbulent Mixing
-        self.update_terminal_velocity() # routine to estimate settling velocity - simply keeps the user-input one for now 
-        self.vertical_mixing() # using subroutine from opendrift3D.py - include buoyancy-related settling and mixing
+        if self.get_config('drift:vertical_mixing') is True:
+            self.update_terminal_velocity()  # routine to estimate settling velocity - simply keeps the user-input one for now 
+            self.vertical_mixing()
+        else:  # Buoyancy
+            self.update_terminal_velocity() # routine to estimate settling velocity - simply keeps the user-input one for now 
+            self.vertical_buoyancy()
 
         # Vertical advection
         self.vertical_advection()
@@ -201,8 +214,9 @@ class SedimentDrift3D(OpenDrift3DSimulation): # based on OpenDrift3DSimulation b
             self.deactivate_elements(self.elements.age_seconds >=
                                      self.get_config('drift:max_age_seconds'),
                                      reason='retired')
-        # When no resuspension is required, deactivate that reached the seabed
-        if self.get_config('processes:resuspension') is False:
+        # When no resuspension is required, deactivate particles that reached the seabed
+        # this could probably be moved to a bottom_interaction()
+        if self.get_config('drift:resuspension') is False:
             self.deactivate_elements(self.elements.z ==
                                      -1.*self.environment.sea_floor_depth_below_sea_level,
                                      reason='settled')
