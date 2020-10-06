@@ -182,7 +182,16 @@ class OceanDrift(OpenDriftSimulation):
         if len(in_ocean) > 0:
             self.elements.z[in_ocean] = np.minimum(0,
                 self.elements.z[in_ocean] + self.elements.terminal_velocity[in_ocean] * self.time_step.total_seconds())
-
+	
+        # check for minimum height/maximum depth for each particle
+        Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+        # Let particles stick to bottom 
+        bottom = np.where(self.elements.z < Zmin)
+        if len(bottom[0]) > 0:
+            self.logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+            self.elements.z[bottom] = Zmin[bottom]
+            self.bottom_interaction(Zmin)
+	
     def surface_stick(self):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
 
