@@ -138,7 +138,7 @@ class TestPhysics(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -46.3, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -46.2, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
@@ -177,7 +177,7 @@ class TestPhysics(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -42.6, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -42.1, 1)
         ########################################################
 
     def test_verticalmixing_schemes(self):
@@ -199,9 +199,9 @@ class TestPhysics(unittest.TestCase):
             o.run(duration=timedelta(hours=2), time_step=900)
 
             if scheme == 'environment':  # presently this is fallback
-                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -41.5, 1)
             elif scheme == 'windspeed_Large1994':
-                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -41.5, 1)
             elif scheme == 'windspeed_Sundby1983':
                 self.assertAlmostEqual(o.elements.z.min(), -36.7, 1)
             elif scheme == 'zero':

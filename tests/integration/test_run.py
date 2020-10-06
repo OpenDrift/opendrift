@@ -327,17 +327,18 @@ class TestRun(unittest.TestCase):
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -38.1, 1)
+        self.assertAlmostEqual(o1.history['z'].min(), -38.7, 1)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0, 1)
         os.remove('verticalmixing.nc')
 
     def test_vertical_mixing_profiles(self):
         # Testing an isolated mixing timestep
+
         cases = [  # Some cases with expected outcome
                 {'vt': 0, 'K': 0, 'K_below': .01, 'T': 60, # No mixing
                     'zmin': -10, 'zmax': -10, 'zmean': -10},
                 {'vt': -.005, 'K': 0, 'K_below': .01, 'T': 60, # Sinking
-                    'zmin': -73.1, 'zmax': -21.6, 'zmean': -50.2},
+                    'zmin': -74.0, 'zmax': -21.4, 'zmean': -50.2},
                 {'vt': 0, 'K': .01, 'K_below': .01, 'T': 60, # Mixing
                     'zmin': -39.8, 'zmax': -0.1, 'zmean': -14.5},
                 {'vt': .005, 'K': .01, 'K_below': .01, 'T': 60, # Mixing and rising
@@ -345,8 +346,9 @@ class TestRun(unittest.TestCase):
                 {'vt': -0.005, 'K': .01, 'K_below': .01, 'T': 60, # Mixing and sinking
                     'zmin': -75.8, 'zmax': -20.7, 'zmean': -48.1},
                 {'vt': 0, 'K': .02, 'K_below': .001, 'T': 60,  # Mixing in mixed layer
-                    'zmin': -20.8, 'zmax': -0.06, 'zmean': -10.3},
+                    'zmin': -22.8, 'zmax': -0.1, 'zmean': -9.8},
                 ]
+
         N=100
         z = np.arange(0, -30, -2)
         time = datetime.now()
@@ -357,7 +359,7 @@ class TestRun(unittest.TestCase):
             o.set_config('drift:vertical_mixing', True)
             o.set_config('vertical_mixing:diffusivitymodel', 'environment')
             o.set_config('vertical_mixing:timestep', case['T'])
-            o.seed_elements(lon=4, lat=60, z=-10, time=time, number=100,
+            o.seed_elements(lon=4, lat=60, z=-10, time=time, number=N,
                             terminal_velocity=case['vt'])
             o.time = time
             o.time_step = timedelta(hours=2)
