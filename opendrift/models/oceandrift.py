@@ -107,7 +107,7 @@ class OceanDrift(OpenDriftSimulation):
                 vertical_mixing = boolean(default=False)
             [vertical_mixing]
                 timestep = float(min=0.1, max=3600, default=60.)
-                diffusivitymodel = option('environment', 'zero', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke','constant', default='environment')
+                diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke','constant', default='environment')
                 TSprofiles = boolean(default=False)
                 '''
         self._add_configstring(configspec_oceandrift)
@@ -217,8 +217,6 @@ class OceanDrift(OpenDriftSimulation):
             return verticaldiffusivity_Large1994(wind, depth)
         elif model == 'windspeed_Sundby1983':
             return verticaldiffusivity_Sundby1983(wind)
-        elif model == 'zero':
-            return np.zeros(wind.shape)
         elif model == 'gls_tke':
             if not hasattr(self, 'gls_parameters'):
                 self.logger.info('Searching readers for GLS parameters...')
@@ -281,7 +279,8 @@ class OceanDrift(OpenDriftSimulation):
                 Kprofiles = self.get_diffusivity_profile('windspeed_Large1994')
         elif diffusivity_model == 'constant':
             self.logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (self.fallback_values['ocean_vertical_diffusivity']))
-            Kprofiles = self.environment_profiles['ocean_vertical_diffusivity'] # keep constant value for ocean_vertical_diffusivity
+            Kprofiles = self.fallback_values['ocean_vertical_diffusivity']*np.ones(
+                    self.environment_profiles['ocean_vertical_diffusivity'].shape) # keep constant value for ocean_vertical_diffusivity
         else:
             self.logger.debug('Using functional expression for diffusivity')
             # Using higher vertical resolution when analytical
