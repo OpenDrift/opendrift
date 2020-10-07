@@ -51,5 +51,8 @@ o.animation(fast=True, color='z')
 #%%
 # .. image:: /gallery/animations/example_codegg_0.gif
 
-#%% Interactive slider (not working in browser)
-o.plot_vertical_distribution()
+#%% Vertical distribution of particles
+o.animate_vertical_distribution()
+
+#%%
+# .. image:: /gallery/animations/example_codegg_1.gif

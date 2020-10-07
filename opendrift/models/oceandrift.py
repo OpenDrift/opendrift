@@ -14,6 +14,8 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import sys
+from datetime import timedelta
 import numpy as np
 from scipy.interpolate import interp1d
 from opendrift.models.basemodel import OpenDriftSimulation
@@ -88,7 +90,7 @@ class OceanDrift(OpenDriftSimulation):
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
         'x_wind': 0,
         'y_wind': 0,
-        'ocean_vertical_diffusivity': 0.02,
+        'ocean_vertical_diffusivity': 0,
         'surface_downward_x_stress': 0,
         'surface_downward_y_stress': 0,
         'turbulent_kinetic_energy': 0,
@@ -180,7 +182,16 @@ class OceanDrift(OpenDriftSimulation):
         if len(in_ocean) > 0:
             self.elements.z[in_ocean] = np.minimum(0,
                 self.elements.z[in_ocean] + self.elements.terminal_velocity[in_ocean] * self.time_step.total_seconds())
-
+	
+        # check for minimum height/maximum depth for each particle
+        Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+        # Let particles stick to bottom 
+        bottom = np.where(self.elements.z < Zmin)
+        if len(bottom[0]) > 0:
+            self.logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+            self.elements.z[bottom] = Zmin[bottom]
+            self.bottom_interaction(Zmin)
+	
     def surface_stick(self):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
 
@@ -229,7 +240,7 @@ class OceanDrift(OpenDriftSimulation):
         else:
             raise ValueError('Unknown diffusivity model: ' + model)
 
-    def vertical_mixing(self):
+    def vertical_mixing(self, store_depths=False):
         """Mix particles vertically according to eddy diffusivity and buoyancy
 
             Buoyancy is expressed as terminal velocity, which is the
@@ -259,7 +270,7 @@ class OceanDrift(OpenDriftSimulation):
         # get vertical eddy diffusivity from environment or specific model
         diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
         if diffusivity_model == 'environment':
-            if 'ocean_vertical_diffusivity' in self.environment_profiles and self.environment_profiles['ocean_vertical_diffusivity'].min() != self.fallback_values['ocean_vertical_diffusivity'] or self.environment_profiles['ocean_vertical_diffusivity'].max() != self.fallback_values['ocean_vertical_diffusivity']:
+            if 'ocean_vertical_diffusivity' in self.environment_profiles and not (self.environment_profiles['ocean_vertical_diffusivity'].min() == self.fallback_values['ocean_vertical_diffusivity'] and self.environment_profiles['ocean_vertical_diffusivity'].max() == self.fallback_values['ocean_vertical_diffusivity']):
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
                 self.logger.debug('Using diffusivity from ocean model')
@@ -316,6 +327,14 @@ class OceanDrift(OpenDriftSimulation):
                       'scheme using ' + str(ntimes_mix) +
                       ' fast time steps of dt=' + str(dt_mix) + 's')
 
+        if store_depths is not False:
+            depths = np.zeros((ntimes_mix, self.num_elements_active()))
+            depths[0, :] = self.elements.z
+
+        # Calculating dK/dz for all profiles before the loop
+        gradK = -np.gradient(Kprofiles, self.environment_profiles['z'], axis=0)
+        gradK[np.abs(gradK)<1e-10] = 0
+
         for i in range(0, ntimes_mix):
             #remember which particles belong to the exact surface
             surface = self.elements.z == 0
@@ -332,51 +351,10 @@ class OceanDrift(OpenDriftSimulation):
 
             w = self.elements.terminal_velocity
 
-            # diffusivity K at depth z+dz
-            dz = 1e-3
-            if z_index == 0:
-                zi = 0*self.elements.z
-            else:
-                zi = z_index(-self.elements.z+0.5*dz)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
-            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
-            weight_upper = 1 - (zi - upper)
-            weight_upper[np.isnan(weight_upper)] = 1
-            K1 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
-                weight_upper + \
-                Kprofiles[lower, range(Kprofiles.shape[1])] * \
-                (1-weight_upper)
-
-            # diffusivity K at depth z-dz
-            if z_index == 0:
-                zi = 0*self.elements.z
-            else:
-                zi = z_index(-self.elements.z-0.5*dz)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
-            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
-            weight_upper = 1 - (zi - upper)
-            weight_upper[np.isnan(weight_upper)] = 1
-            K2 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
-                weight_upper + \
-                Kprofiles[lower, range(Kprofiles.shape[1])] * \
-                (1-weight_upper)
-
-            # diffusivity gradient
-            dKdz = (K1 - K2) / dz
-
-            # K at depth z+dKdz*dt/2 
-            if z_index == 0:
-                zi = 0*self.elements.z
-            else:
-                zi = z_index(-(self.elements.z+dKdz*dt_mix/2))
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
-            lower = np.minimum(upper+1, Kprofiles.shape[0]-1)
-            weight_upper = 1 - (zi - upper)
-            weight_upper[np.isnan(weight_upper)] = 1
-            K3 = Kprofiles[upper, range(Kprofiles.shape[1])] * \
-                weight_upper + \
-                Kprofiles[lower, range(Kprofiles.shape[1])] * \
-                (1-weight_upper)
+            # Diffusivity and its gradient at z
+            zi = np.round(z_index(-self.elements.z)).astype(np.int)
+            Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
+            dKdz = gradK[zi, range(Kprofiles.shape[1])]
 
             # Visser et al. 1996 random walk mixing
             # requires an inner loop time step dt such that
@@ -385,7 +363,7 @@ class OceanDrift(OpenDriftSimulation):
             r = 1.0/3
             # New position  =  old position   - up_K_flux   + random walk
             self.elements.z = self.elements.z - self.elements.moving*(
-                dKdz*dt_mix - R*np.sqrt(( K3*dt_mix*2/r)))
+                dKdz*dt_mix - R*np.sqrt((Kz*dt_mix*2/r)))
  
             # Reflect from surface 
             reflect = np.where(self.elements.z >= 0)
@@ -416,40 +394,68 @@ class OceanDrift(OpenDriftSimulation):
                 self.logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
                 self.elements.z[bottom] = Zmin[bottom]
                 self.bottom_interaction(Zmin)
+
+            if store_depths is not False:
+                depths[i, :] = self.elements.z
  
         self.timer_end('main loop:updating elements:vertical mixing')
 
-    def plot_vertical_distribution_new(self, maxdepth=None, numtimes=5):
-        """Function to plot vertical distribution of particles"""
-        import matplotlib.pyplot as plt
+        if store_depths is not False:
+            return depths
+        else:
+            return None
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        z = self.history['z']
+    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None):
+        """Function to animate vertical distribution of particles"""
+        import matplotlib.pyplot as plt
+        import matplotlib.animation as animation
+
+        fig, (axk, axn) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
+        if depths is not None:  # Debug mode, output from one cycle has been provided
+            z = depths
+            time_step = self.get_config('vertical_mixing:timestep')
+            times = [self.time + i*timedelta(seconds=time_step) for i in range(z.shape[0])]
+        else:
+            z = self.history['z'].T
+            K = self.history['ocean_vertical_diffusivity'].T
+            time_step = self.time_step.total_seconds()
+            times = self.get_time_array()[0]
         if maxdepth is None:
             maxdepth = z.min()
         if maxdepth > 0:
             maxdepth = -maxdepth  # negative z
-        dz=1
-        times = self.get_time_array()[0]
-        step = int(np.ceil(len(times)/numtimes))
-        ii = np.arange(1, len(times), step)
-        for i in ii:
-            ax.hist(z[:, i]+.01, bins=int(-maxdepth/dz),
-                    histtype='step',
-                    range=[maxdepth, 0], orientation='horizontal',
-                    label='hours: %s' % str(self.time_step.total_seconds()*i/3600))
-        ax.set_ylim([maxdepth, 0])
-        ax.set_xlabel('number of particles')
-        ax.set_ylabel('depth [m]')
-        #x_wind = self.history['x_wind'].T[tindex, :]
-        #y_wind = self.history['y_wind'].T[tindex, :]
-        #windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
-        #mainplot.set_title(str(self.get_time_array()[0][tindex]) +
-        #                   #'   Percent at surface: %.1f %' % percent_at_surface)
-        #                   '   Mean windspeed: %.1f m/s' % windspeed)
-        plt.legend()
-        plt.show()
+
+        if depths is not None:
+            axk.plot(np.mean(self.environment_profiles['ocean_vertical_diffusivity'], 1), self.environment_profiles['z'])
+            xmax = self.environment_profiles['ocean_vertical_diffusivity'].max()
+        else:
+            axk.plot(K, z, 'k.')
+            xmax = K.max()
+        axk.set_ylim([maxdepth, 0])
+        axk.set_xlim([0, xmax*1.1])
+        axk.set_ylabel('Depth [m]')
+        axk.set_xlabel('Vertical diffusivity [$m^2/s$]')
+
+        hist_series = np.zeros((bins, len(times)))
+        bin_series = np.zeros((bins+1, len(times)))
+        for i in range(len(times)):
+            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:], bins=bins)
+        maxnum = hist_series.max()
+
+        def update_histogram(i):
+            axn.clear()
+            axn.barh(bin_series[0:-1,i], hist_series[:,i], height=1)
+            axn.set_ylim([maxdepth, 0])
+            axn.set_xlim([0, maxnum])
+            axn.set_title('%s UTC' % times[i])
+            axn.set_xlabel('Number of particles')
+            #axn.set_ylabel('Depth [m]')
+
+        animation = animation.FuncAnimation(fig, update_histogram, len(times))
+        if filename is not None or 'sphinx_gallery' in sys.modules:
+            self._save_animation(animation, filename, fps=10)
+        else:
+            plt.show()
 
     def plot_vertical_distribution(self):
         """Function to plot vertical distribution of particles"""

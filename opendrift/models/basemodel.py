@@ -138,6 +138,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
                 current_uncertainty_uniform = float(min=0, max=5, default=0)
+                horizontal_diffusivity = float(min=0, max=100, default=0)
                 wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
                 lift_to_seafloor = boolean(default=True)
@@ -304,7 +305,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
         d = self.configobj
         ds = self.configobj.configspec
-        default, minval, maxval, opt = self.get_configspec_default_min_max(key)
+        try:
+            default, minval, maxval, opt = self.get_configspec_default_min_max(key)
+        except:
+            self.logger.warning(self.list_configspec())
+            raise ValueError('Config item %s is not available, se above for valid items' % key)
         for i, s in enumerate(key.split(':')):
             if s not in d:
                 self.list_configspec()
@@ -419,6 +424,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                    self.get_configspec(key))
         str += '==============================================\n'
         self.logger.info(str)
+        return str
 
     def list_config(self):
         """List all possible configuration settings with values"""
@@ -1870,6 +1876,20 @@ class OpenDriftSimulation(PhysicsMethods):
         self.schedule_elements(elements, time)
 
 
+    def horizontal_diffusion(self):
+        """Move elements with random walk according to given horizontal diffuivity."""
+        D = self.get_config('drift:horizontal_diffusivity')
+        if D == 0:
+            self.logger.debug('Horizontal diffusivity is 0, no random walk.')
+            return
+        dt = self.time_step.total_seconds()
+        x_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        y_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        speed = np.sqrt(x_vel*x_vel+y_vel*y_vel)
+        self.logger.debug('Moving elements according to horizontal diffusivity of %s, with speeds between %s and %s m/s'
+                          % (D, speed.min(), speed.max()))
+        self.update_positions(x_vel, y_vel)
+
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
         if any(indices) is False:
@@ -2333,6 +2353,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 else:
                     self.logger.info('No active elements, skipping update() method')
                 #####################################################
+
+                self.horizontal_diffusion()
 
                 if self.num_elements_active() == 0 and self.num_elements_scheduled() == 0:
                     raise ValueError('No active or scheduled elements, quitting simulation')
@@ -3071,7 +3093,7 @@ class OpenDriftSimulation(PhysicsMethods):
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
-             linewidth=1, lcs=None, show_particles=True,
+             linewidth=1, lcs=None, show_particles=True, show_initial=True,
              density_pixelsize_m=1000,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
@@ -3203,7 +3225,8 @@ class OpenDriftSimulation(PhysicsMethods):
             color_initial = 'gray'
             color_active = 'gray'
         if show_particles is True:
-            ax.scatter(x[index_of_first, range(x.shape[1])],
+            if show_initial is True:
+                ax.scatter(x[index_of_first, range(x.shape[1])],
                        y[index_of_first, range(x.shape[1])],
                        s=markersize,
                        zorder=10, edgecolor=markercolor, linewidths=.2,
@@ -3900,16 +3923,16 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 adir = os.path.realpath('../docs/source/gallery/animations')
 
-            if not hasattr(OpenDriftSimulation, '__anim_no__'):
-                OpenDriftSimulation.__anim_no__ = { }
+            if not hasattr(self, '__anim_no__'):
+                self.__anim_no__ = { }
 
-            if not hasattr(OpenDriftSimulation.__anim_no__, caller):
-                OpenDriftSimulation.__anim_no__[caller] = 0
+            if caller not in  self.__anim_no__:
+                self.__anim_no__[caller] = 0
 
             os.makedirs(adir, exist_ok=True)
 
-            filename = '%s_%d.gif' % (caller, OpenDriftSimulation.__anim_no__[caller])
-            OpenDriftSimulation.__anim_no__[caller] += 1
+            filename = '%s_%d.gif' % (caller, self.__anim_no__[caller])
+            self.__anim_no__[caller] += 1
 
             filename = os.path.join(adir, filename)
 
@@ -3947,24 +3970,37 @@ class OpenDriftSimulation(PhysicsMethods):
         if 'sphinx_gallery' in sys.modules:
             plt.close()
 
-    def calculate_ftle(self, reader=None, delta=None,
-                       time=None, time_step=None, duration=None,
+    def calculate_ftle(self, reader=None, delta=None, domain=None,
+                       time=None, time_step=None, duration=None, z=0,
                        RLCS=True, ALCS=True):
 
         if reader is None:
             self.logger.info('No reader provided, using first available:')
             reader = list(self.readers.items())[0][1]
             self.logger.info(reader.name)
+        if isinstance(reader, pyproj.Proj):
+            proj = reader
+        elif isinstance(reader,str):
+            proj = pyproj.Proj(reader)
+        else:
+            proj = reader.proj
+
         import scipy.ndimage as ndimage
         from opendrift.models.physics_methods import ftle
 
         if not isinstance(duration, timedelta):
             duration = timedelta(seconds=duration)
 
-        xs = np.arange(reader.xmin, reader.xmax, delta)
-        ys = np.arange(reader.ymin, reader.ymax, delta)
+        if domain==None:
+            xs = np.arange(reader.xmin, reader.xmax, delta)
+            ys = np.arange(reader.ymin, reader.ymax, delta)
+        else:
+            xmin, xmax, ymin, ymax = domain
+            xs = np.arange(xmin, xmax, delta)
+            ys = np.arange(ymin, ymax, delta)
+
         X, Y = np.meshgrid(xs, ys)
-        lons, lats = reader.xy2lonlat(X, Y)
+        lons, lats = proj(X, Y, inverse=True)
 
         if time is None:
             time = reader.start_time
@@ -3981,9 +4017,9 @@ class OpenDriftSimulation(PhysicsMethods):
             if RLCS is True:
                 self.reset()
                 self.seed_elements(lons.ravel(), lats.ravel(),
-                                   time=t)
+                                   time=t, z=z)
                 self.run(duration=duration, time_step=time_step)
-                f_x1, f_y1 = reader.lonlat2xy(
+                f_x1, f_y1 = proj(
                     self.history['lon'].T[-1].reshape(X.shape),
                     self.history['lat'].T[-1].reshape(X.shape))
                 lcs['RLCS'][i,:,:] = ftle(f_x1-X, f_y1-Y, delta, T)
@@ -3991,9 +4027,9 @@ class OpenDriftSimulation(PhysicsMethods):
             if ALCS is True:
                 self.reset()
                 self.seed_elements(lons.ravel(), lats.ravel(),
-                                   time=t+duration)
+                                   time=t+duration, z=z)
                 self.run(duration=duration, time_step=-time_step)
-                b_x1, b_y1 = reader.lonlat2xy(
+                b_x1, b_y1 = proj(
                     self.history['lon'].T[-1].reshape(X.shape),
                     self.history['lat'].T[-1].reshape(X.shape))
                 lcs['ALCS'][i,:,:] = ftle(b_x1-X, b_y1-Y, delta, T)

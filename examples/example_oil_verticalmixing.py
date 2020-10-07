@@ -41,7 +41,9 @@ o.plot(linecolor='z', fast=True)
 o.plot_property('z')
 o.plot_oil_budget()
 o.animation(fast=True)
+o.animate_vertical_distribution()
 
 #%%
 # .. image:: /gallery/animations/example_oil_verticalmixing_0.gif
+# .. image:: /gallery/animations/example_oil_verticalmixing_1.gif
 
