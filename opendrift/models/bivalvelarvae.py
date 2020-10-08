@@ -17,8 +17,7 @@
 
 
 import numpy as np
-from opendrift.models.opendrift3D import \
-    OpenDrift3DSimulation, Lagrangian3DArray
+from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 from opendrift.elements import LagrangianArray
 import logging
 
@@ -45,7 +44,7 @@ class BivalveLarvaeObj(Lagrangian3DArray):
                        'default': 0.})])
 
 
-class BivalveLarvae(OpenDrift3DSimulation):
+class BivalveLarvae(OceanDrift):
     """Buoyant particle trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway
@@ -169,16 +168,23 @@ class BivalveLarvae(OpenDrift3DSimulation):
     def update(self):
         """Update positions and properties of buoyant particles."""
 
-        # Turbulent Mixing
-        self.update_terminal_velocity()
-        self.vertical_mixing()
+        # Update element age
+        # self.elements.age_seconds += self.time_step.total_seconds()
+        # already taken care of in increase_age_and_retire() in basemodel.py
 
         # Horizontal advection
         self.advect_ocean_current()
 
-        # Vertical advection
-        if self.get_config('processes:verticaladvection') is True:
-            self.vertical_advection()           
+        # Turbulent Mixing or settling-only 
+        if self.get_config('drift:vertical_mixing') is True:
+            self.update_terminal_velocity()  #compute vertical velocities, two cases possible - constant, or same as pelagic egg
+            self.vertical_mixing()
+        else:  # Buoyancy
+            self.update_terminal_velocity()
+            self.vertical_buoyancy()
+
+        self.vertical_advection()     
+
 
     def lift_elements_to_seafloor(self):  ###Initiate settlement if particles touch bottom during competence period
         '''Lift any elements which are below seafloor and check age

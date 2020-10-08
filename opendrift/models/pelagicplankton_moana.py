@@ -584,7 +584,7 @@ class PelagicPlanktonDrift(OceanDrift):
         """Update positions and properties of buoyant particles."""
 
         # Update element age
-        self.elements.age_seconds += self.time_step.total_seconds()
+        # self.elements.age_seconds += self.time_step.total_seconds() # not needed already taken care of in increase_age_and_retire() in basemodel.py
 
         # move particles with ambient current
         self.advect_ocean_current()
