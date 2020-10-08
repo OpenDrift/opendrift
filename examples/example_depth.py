@@ -6,7 +6,6 @@ Drift at different depths
 
 from datetime import datetime, timedelta
 import numpy as np
-from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
@@ -26,13 +25,11 @@ print(o)
 
 #%%
 # Adding some diffusion
-o.set_config('drift:current_uncertainty', .1)
-o.set_config('drift:wind_uncertainty', 2)
+o.set_config('drift:horizontal_diffusivity', 10)  # m2/s
 
 #%%
 # Running model
-o.run(duration=timedelta(hours=24), time_step=1800, outfile='openoil.nc',
-      export_buffer_length=5)  # Writing to netCDF file every 5 time steps
+o.run(duration=timedelta(hours=24), time_step=1800, outfile='openoil.nc')
 
 #%%
 # Plot results with lines and particles colored by depth

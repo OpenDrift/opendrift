@@ -21,9 +21,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 #%%
-# Adding readers succesively, and specifying which variables they
-# shall provide. This way, order of adding readers does not matter,
-# except for small rounding differences due to different projection
+# Adding readers successively, and specifying which variables they
+# shall provide. This way, order of adding readers does not matter
 lw.add_reader(reader_norkyst,
               variables=['x_sea_water_velocity', 'y_sea_water_velocity'])
 lw.add_reader(reader_arome, variables=['x_wind', 'y_wind'])
@@ -44,6 +43,7 @@ lw.run(duration=timedelta(hours=48), time_step=900, time_step_output=3600)
 # Print and plot results
 print(lw)
 
+#%%
 # Animation with current as background.
 # Note that drift is also depending on wind, which is not shown.
 lw.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
