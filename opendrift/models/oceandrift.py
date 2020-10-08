@@ -176,6 +176,7 @@ class OceanDrift(OpenDriftSimulation):
                 self.elements.z[in_ocean] + w * self.time_step.total_seconds())
         else:
             self.logger.debug('No vertical advection for elements at surface')
+
     def vertical_buoyancy(self):
         """Move particles vertically according to their buoyancy"""
         in_ocean = np.where(self.elements.z<0)[0]
@@ -185,6 +186,7 @@ class OceanDrift(OpenDriftSimulation):
 	
         # check for minimum height/maximum depth for each particle
         Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+
         # Let particles stick to bottom 
         bottom = np.where(self.elements.z < Zmin)
         if len(bottom[0]) > 0:
@@ -341,16 +343,8 @@ class OceanDrift(OpenDriftSimulation):
             #remember which particles belong to the exact surface
             surface = self.elements.z == 0
 
-            # update terminal velocity according to environmental variables
-            if self.get_config('vertical_mixing:TSprofiles') is True:
-                self.update_terminal_velocity(Tprofiles=Tprofiles,
-                                              Sprofiles=Sprofiles,
-                                              z_index=z_index)
-            else:
-                # this is faster, but ignores density gradients in
-                # water column for the inner loop
-                self.update_terminal_velocity()
-
+            # Update the terminal velocity of particles
+            self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index)
             w = self.elements.terminal_velocity
 
             # Diffusivity and its gradient at z
@@ -418,21 +412,22 @@ class OceanDrift(OpenDriftSimulation):
             time_step = self.get_config('vertical_mixing:timestep')
             times = [self.time + i*timedelta(seconds=time_step) for i in range(z.shape[0])]
         else:
-            z = self.history['z'].T
-            K = self.history['ocean_vertical_diffusivity'].T
+            z = self.get_property('z')[0]
+            z = np.ma.filled(z, np.nan)
+            K = self.get_property('ocean_vertical_diffusivity')[0]
             time_step = self.time_step.total_seconds()
             times = self.get_time_array()[0]
         if maxdepth is None:
-            maxdepth = z.min()
+            maxdepth = np.nanmin(z)
         if maxdepth > 0:
             maxdepth = -maxdepth  # negative z
 
         if depths is not None:
-            axk.plot(np.mean(self.environment_profiles['ocean_vertical_diffusivity'], 1), self.environment_profiles['z'])
+            axk.plot(np.nanmean(self.environment_profiles['ocean_vertical_diffusivity'], 1), self.environment_profiles['z'])
             xmax = self.environment_profiles['ocean_vertical_diffusivity'].max()
         else:
             axk.plot(K, z, 'k.')
-            xmax = K.max()
+            xmax = np.nanmax(K)
         axk.set_ylim([maxdepth, 0])
         axk.set_xlim([0, xmax*1.1])
         axk.set_ylabel('Depth [m]')
@@ -441,12 +436,12 @@ class OceanDrift(OpenDriftSimulation):
         hist_series = np.zeros((bins, len(times)))
         bin_series = np.zeros((bins+1, len(times)))
         for i in range(len(times)):
-            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:], bins=bins)
+            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins)
         maxnum = hist_series.max()
 
         def update_histogram(i):
             axn.clear()
-            axn.barh(bin_series[0:-1,i], hist_series[:,i], height=1)
+            axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
             axn.set_ylim([maxdepth, 0])
             axn.set_xlim([0, maxnum])
             axn.set_title('%s UTC' % times[i])
