@@ -1624,6 +1624,52 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.schedule_elements(elements, time_array)
 
+    def seed_repeated_segment(self, lons, lats,
+                              start_time, end_time, time_interval=None,
+                              number_per_segment=None,
+                              total_number=None, **kwargs):
+        """Seed elements repeatedly in time along a segment.
+
+        The segment goes from lon[0],lat[0] to lon[1],lat[1].
+        The number of elements should be proved as either:
+        1) number_per_segment, in which case total number of elements
+           is number_per_segment * len(times), or
+        2) total_number, in which case the number of elements
+           per segment is: total_number / len(times).
+           Any extra elements are duplicated along at the first segment.
+       
+        """
+
+        numtimes = int((end_time-start_time).total_seconds()/
+                        time_interval.total_seconds() + 1)
+        times = [start_time+i*time_interval for i in range(numtimes)]
+
+        geod = pyproj.Geod(ellps='WGS84')
+        if number_per_segment is None:
+            number_per_segment = np.int(np.floor(total_number/numtimes))
+
+        s_lonlats= geod.npts(lons[0], lats[0], lons[1], lats[1],
+                             number_per_segment, radians=False)
+        slon, slat = list(zip(*s_lonlats))
+        slon = np.atleast_1d(slon)
+        slat = np.atleast_1d(slat)
+
+        lon, time = np.meshgrid(slon, times)
+        lat, time = np.meshgrid(slat, times)
+        lon = lon.ravel()
+        lat = lat.ravel()
+        time = time.ravel()
+
+        if total_number is not None:
+            additional_elements = total_number - len(lon.ravel())
+            print('Repeating the %d last points, to obtain %d elements' %
+                  (additional_elements, total_number))
+            lon = np.concatenate((lon, lon[-additional_elements::]))
+            lat = np.concatenate((lat, lat[-additional_elements::]))
+            time = np.concatenate((time, time[-additional_elements::]))
+
+        self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
+
     def seed_within_polygon(self, lons, lats, number, **kwargs):
         """Seed a number of elements within given polygon.
 
