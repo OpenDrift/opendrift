@@ -56,8 +56,10 @@ class Reader(BaseReader):
     skippoly = False
 
     def __init__(self,
-                 polygon_file = None):
-        self.proj4 = '+proj=lonlat +ellps=WGS84' 
+                 polygon_file = None,
+                 proj4_str = '+proj=lonlat +ellps=WGS84'):
+
+        self.proj4 = proj4_str
         self.crs = pyproj.CRS(self.proj4)
         # self.skippoly = skippoly
 
