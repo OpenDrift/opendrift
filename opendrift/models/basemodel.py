@@ -1265,9 +1265,12 @@ class OpenDriftSimulation(PhysicsMethods):
         Also assigns a unique ID to each particle, monotonically increasing."""
 
         # prepare time
-        time = np.array(time)
-        if time.size == 1:  # Convert to array of same length
-            time = np.array(len(elements)*[time])
+        if isinstance(time, np.ndarray):
+            time = list(time)
+        if not isinstance(time, list):
+            time = [time]
+        if len(time) == 1 and len(elements) > 1:
+            time = time*len(elements)
 
         if not hasattr(self, 'elements_scheduled'):
             self.elements_scheduled = elements
