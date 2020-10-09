@@ -1265,8 +1265,10 @@ class OpenDriftSimulation(PhysicsMethods):
         Also assigns a unique ID to each particle, monotonically increasing."""
 
         # prepare time
-        if not isinstance(time, list):
-            time = [time]*len(elements)  # Convert to array of same length
+        time = np.array(time)
+        if time.size == 1:  # Convert to array of same length
+            time = np.array(len(elements)*[time])
+
         if not hasattr(self, 'elements_scheduled'):
             self.elements_scheduled = elements
             self.elements_scheduled_time = np.array(time)
@@ -1546,22 +1548,15 @@ class OpenDriftSimulation(PhysicsMethods):
                 kwargs['z'] = \
                     -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
 
-            # Recursively seeding elements around each point
-            scalarargs = {}
+            # Seeding array and returning
             if 'time_array' not in locals():
                 time_array = time
-            for i in range(len(lon)):
-                for kwarg in kwargs:
-                    try:
-                        scalarargs[kwarg] = kwargs[kwarg][i]
-                    except:
-                        scalarargs[kwarg] = kwargs[kwarg]
-                # Make sure to call seed function of base class,
-                # not of a specific Children class
-                OpenDriftSimulation.seed_elements(
-                    self, lon=[lon[i]], lat=[lat[i]], radius=radius_array[i],
-                    number=int(number_array[i]),
-                    time=time_array[i], cone=False, **scalarargs)
+            if isinstance(time_array[0], list):
+                time_array = [t[0] for t in time_array]
+
+            elements = self.ElementType(lon=lon, lat=lat, **kwargs)
+            time_array = np.array(time_array)
+            self.schedule_elements(elements, time_array)
             return
 
         # Below we have only for single points
