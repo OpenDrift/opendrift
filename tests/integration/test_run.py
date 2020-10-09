@@ -231,7 +231,7 @@ class TestRun(unittest.TestCase):
     #    o.run(steps=3)
     #    o.write_geotiff('geotiff.tif')
 
-    def test1_seed_single_point_over_time(self):
+    def test_seed_single_point_over_time(self):
         """Test a model run"""
         self.make_OceanDrift_object()
         self.o.seed_elements(2.0, 61.0, radius=0, number=9,
@@ -252,42 +252,6 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self.o.num_elements_activated(), 5)
         self.assertEqual(self.o.num_elements_deactivated(), 0)
         self.assertEqual(self.o.num_elements_total(), 9)
-
-    def test2_seed_elements(self):
-        """Test a model run"""
-        self.make_OceanDrift_object()
-        self.o.seed_elements([2.0, 5.0, 3.0], [61.0, 60.0, 62.0],
-                             radius=0, number=9,
-                             time=[datetime(2015, 1, 1), datetime(2015, 1, 3)])
-
-        # Check that 6 elements are scheduled, but none seeded
-        self.assertEqual(self.o.num_elements_scheduled(), 9)
-        self.assertEqual(self.o.num_elements_active(), 0)
-        self.assertEqual(self.o.num_elements_activated(), 0)
-        self.assertEqual(self.o.num_elements_deactivated(), 0)
-        self.assertEqual(self.o.num_elements_total(), 9)
-        # Run simulation
-        self.o.run(steps=30, outfile='unittest.nc')
-        # Check that 1 element is deactivated (stranded),
-        # 1 yet not seeded and 4 active
-        self.assertEqual(self.o.num_elements_scheduled(), 4)
-        self.assertEqual(self.o.num_elements_active(), 4)
-        self.assertEqual(self.o.num_elements_activated(), 5)
-        self.assertEqual(self.o.num_elements_deactivated(), 1)
-        self.assertEqual(self.o.num_elements_total(), 9)
-
-    def test3_run_import(self):
-        """Import output file from previous test, and check elements"""
-        self.o = OceanDrift(loglevel=20)
-        self.o.io_import_file('unittest.nc')
-        self.assertEqual(self.o.num_elements_active(), 4)
-        self.assertEqual(self.o.num_elements_activated(), 5)
-        self.assertEqual(self.o.num_elements_deactivated(), 1)
-        self.assertEqual(self.o.num_elements_total(), 5)
-
-    def test4_cleaning(self):
-        """Cleaning up"""
-        os.remove('unittest.nc')
 
     def test_temporal_seed(self):
         self.o = OceanDrift(loglevel=20)
