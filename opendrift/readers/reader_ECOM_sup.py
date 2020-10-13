@@ -46,6 +46,8 @@ class Reader(BaseReader):
             #Variaveis do ECOM sem CF-standard-name
             'xpos':'X_coordinate_in_Cartesian system',
             'ypos':'Y_coordinate_in_Cartesian system',
+            #'x':'X_coordinate_in_Cartesian system',
+            #'y':'Y_coordinate_in_Cartesian system',
             'date':'Date_Time',
             'layer_bnds':'bounds_of_stretched_vertical_coordinate_levels',
             'x':'Corner_longitude',
@@ -128,14 +130,14 @@ class Reader(BaseReader):
             except:
                 pass
             self.sigma = self.Dataset.variables['sigma'][:]
-            try:
-                self.depth = self.Dataset.variables['depth'][:]
+            #try:
+            #    self.depth = self.Dataset.variables['depth'][:]
 
-            except:
-                if has_xarray is True:
-                    self.depth = self.Dataset.variables['depth'].data  # scalar
-                else:
-                    self.depth = self.Dataset.variables['depth'][0]
+            #except:
+                #if has_xarray is True:
+                #    self.depth = self.Dataset.variables['depth'].data  # scalar
+                #else:
+                #    self.depth = self.Dataset.variables['depth'][0]
 
             self.num_layers = len(self.sigma)
 
@@ -184,7 +186,7 @@ class Reader(BaseReader):
                 time_units = 'seconds since 2000-01-01 00:00:00'
             self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
-        self.delay_time = self.times[90]
+        
         self.end_time = self.times[-1]
         if len(self.times) > 1:
             self.time_step = self.times[1] - self.times[0]
@@ -200,17 +202,22 @@ class Reader(BaseReader):
 
 
         if has_xarray:
-            self.xmax = self.Dataset['xpos'].shape[0] - 1.
-            self.ymax = self.Dataset['ypos'].shape[0] - 1.
+
             
+            self.xmax = self.Dataset['xpos'].shape[0] - 1.
+            self.ymax = self.Dataset['ypos'].shape[0] - 1. 
+            #self.xmax = self.Dataset['x'].shape[0] - 1.
+            #self.ymax = self.Dataset['y'].shape[0] - 1.                 
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
-            self.sigma = self.sigma.data
+            self.sigma = self.sigma.data 
 
-       
         else:
+            
             self.xmax = np.float(len(self.Dataset.dimensions['xpos'])) - 1
-            self.ymax = np.float(len(self.Dataset.dimensions['ypos'])) - 1
+            self.ymax = np.float(len(self.Dataset.dimensions['ypos'])) - 1            
+            #self.xmax = np.float(len(self.Dataset.dimensions['x'])) - 1
+            #self.ymax = np.float(len(self.Dataset.dimensions['y'])) - 1
 
         self.name = 'ECOM'
 
@@ -366,7 +373,7 @@ class Reader(BaseReader):
 
             variables[par] = np.asarray(variables[par])  # If Xarrays ######!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#################
             start = datetime.now()
-
+            '''
             if par not in mask_values:
                 if has_xarray is False:
                     indxgrid, indygrid = np.meshgrid(indx, indy)
@@ -399,6 +406,8 @@ class Reader(BaseReader):
                         upper = variables[par][0,:,:]
                     else:
                         upper = variables[par]
+
+            '''
 ##################################################################################################################################
 #########################---This must be converted to work with sigma in 3D later ----############################################
 ##################################################################################################################################
@@ -507,7 +516,7 @@ class Reader(BaseReader):
 
         if 'x_sea_water_velocity' or 'x_wind' in variables.keys():
  
-
+            '''
             if not hasattr(self, 'angle_of_rotation_from_east_to_x'):
                 self.logger.debug('Reading angle between xi and east...')
                 self.angle_of_rotation_from_east_to_x = self.Dataset.variables['ang'][:]
@@ -516,7 +525,7 @@ class Reader(BaseReader):
             else:
                 rad = self.angle_of_rotation_from_east_to_x[indy, indx]
                 rad = np.nan_to_num(rad)
-
+            '''
             #print ("angle_of_rotation_from_east_to_x ==", rad)
 
             if 'x_sea_water_velocity' in variables.keys():
