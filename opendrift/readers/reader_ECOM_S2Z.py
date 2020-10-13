@@ -45,6 +45,8 @@ class Reader(BaseReader):
             'salt':'sea_water_salinity',
             'temp':'sea_water_temperature',
             #Variaveis do ECOM sem CF-standard-name
+            #'x':'X_coordinate_in_Cartesian system',
+            #'y':'Y_coordinate_in_Cartesian system',
             'xpos':'X_coordinate_in_Cartesian system',
             'ypos':'Y_coordinate_in_Cartesian system',
             'date':'Date_Time',
@@ -64,7 +66,7 @@ class Reader(BaseReader):
 
 
              # z-levels to which sigma-layers may be interpolated (21 niveis sigma, depth max = 2000m, +0)
-        self.zlevels = np.array([0, -5, -10, -15, -25,-30, -50, -75, -100, -150, -200,
+        self.zlevels = np.array([0, -5, -10, -25,-30, -50, -75, -100, -150, -200,
             -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
             -2000])
 
@@ -138,6 +140,8 @@ class Reader(BaseReader):
                 else:
                     self.depth = self.Dataset.variables['depth'][0]
 
+
+
             self.num_layers = len(self.sigma)
 
         else:
@@ -149,12 +153,12 @@ class Reader(BaseReader):
 
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
-            self.lat = self.Dataset.variables['lat'][:]
-            self.lat =  np.nan_to_num(self.lat)
-            self.lon = self.Dataset.variables['lon'][:]            
-            self.lon =  np.nan_to_num(self.lon)
+            self.lat_t = self.Dataset.variables['lat'][:]
+            self.lat =  np.nan_to_num(self.lat_t)
 
-           
+            self.lon_t = self.Dataset.variables['lon'][:]            
+            self.lon =  np.nan_to_num(self.lon_t)
+
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
@@ -200,15 +204,19 @@ class Reader(BaseReader):
 
 
         if has_xarray:
+            #self.xmax = self.Dataset['x'].shape[0] - 1.
+            #self.ymax = self.Dataset['y'].shape[0] - 1. 
             self.xmax = self.Dataset['xpos'].shape[0] - 1.
             self.ymax = self.Dataset['ypos'].shape[0] - 1.
             
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
-            #self.sigma = self.sigma.data
+            self.sigma = self.sigma.data
 
        
         else:
+            #self.xmax = np.float(len(self.Dataset.dimensions['x'])) - 1
+            #self.ymax = np.float(len(self.Dataset.dimensions['y'])) - 1
             self.xmax = np.float(len(self.Dataset.dimensions['xpos'])) - 1
             self.ymax = np.float(len(self.Dataset.dimensions['ypos'])) - 1
 
@@ -250,9 +258,7 @@ class Reader(BaseReader):
 
         variables = {}   
 
-        #if z is None:
-            #z = np.atleast_1d(0) #Convert inputs to arrays with at least one dimension.
-
+        
 # Find horizontal indices corresponding to requested x and y
         if hasattr(self, 'clipped'):
             clipped = self.clipped
@@ -266,13 +272,17 @@ class Reader(BaseReader):
 
         
         def find_nearest(array, value):
+            '''
+            Function to find the nearst value to an array:
+            This will be used to interpolate sigma to z
+            '''
             array = np.asarray(array)
                 
             idx = (np.abs(array - value)).argmin()
 
             return idx
 
-        # define an empty list as indz
+        # define indz,i.e, the vertical position
         if not hasattr(self, 'z') and (z is not None):   
             print ("z ==", z)
             
@@ -305,18 +315,16 @@ class Reader(BaseReader):
         sigma = np.asarray(self.sigma)
         H_ND = np.asarray(self.depth)
         
-        layers = self.num_layers - 1  # surface layer
-        #meters_cell = depth[indy,indx]*sigma_val
+        layers = self.num_layers - 1  # total layers, except by the surface
         H_shape = H_ND.shape      # Save the shape of H
         H = H_ND.ravel()        # and make H 1D for easy shape maniplation
         L_C = len(sigma)
         outshape = (L_C,) + H_shape
-        S = -1.0 + (0.5+np.arange(L_C))/L_C 
+        S = -1.0 + (0.5+np.arange(L_C))/L_C #stting the centre of a layer
         A = (S - sigma)[:, None]
         B = np.outer(sigma, H)
-        self.z_rho_tot = (A + B).reshape(outshape)  
+        self.z_rho_tot = (A + B).reshape(outshape)  #total depth layers
         
-        #print ("Z_rho_tot ==", self.z_rho_tot)
 ##################################################################################################################################
 ##################################################################################################################################
 ##################################################################################################################################
@@ -349,9 +357,10 @@ class Reader(BaseReader):
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-            variables[par] = np.asarray(variables[par])  # If Xarrays ######!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#################
+            variables[par] = np.asarray(variables[par])  
             start = datetime.now()
-
+            
+            #setting the land masks
             if par not in mask_values:
                 if has_xarray is False:
                     indxgrid, indygrid = np.meshgrid(indx, indy)
@@ -386,67 +395,66 @@ class Reader(BaseReader):
                         upper = variables[par]
 
                 print("par_requested ==", par)
+            
 ##################################################################################################################################
-#########################---This must be converted to work with sigma in 3D----############################################
+#########################---Converting  sigma variables to Z variables----########################################################
 ##################################################################################################################################
             
             if var.ndim == 4:
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) >= 1:
                     self.logger.debug('sigma to z for ' + varname[0])
-                    if self.precalculate_s2z_coefficients is True: #what it is (view line 216)
-                        y_depth = self.depth[0]
-                        x_depth = self.depth[1]
-                        M = len(y_depth)
-                        N = len(x_depth) 
-                        O = len(self.z_rho_tot)
+                    if self.precalculate_s2z_coefficients is True: 
 
-                        if not hasattr(self, 's2z_A'):
+                        #y_depth = self.Dataset['y'][:] #Positions of depth by Y
+                        #x_depth = self.Dataset['x'][:] #Positions of depth by X
+                        y_depth = self.Dataset.variables['y'][:] #Positions of depth by Y
+                        x_depth = self.Dataset.variables['x'][:] #Positions of depth by X
+                        L_Y = len(y_depth)
+                        L_X = len(x_depth) 
+                        L_Z = len(self.z_rho_tot)
+
+                        if not hasattr(self, 's2z_A'): #This is not present in this version of ECOM
                             self.logger.debug('Calculating sigma2z-coefficients for whole domain')
                             starttime = datetime.now()
-                            dummyvar = np.ones((21, 137, 110))
+                            dummyvar = np.ones((L_Z, L_Y, L_X))
                             dummy, self.s2z_total = depth_ECOM.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
                             # Store arrays/coefficients
-                            self.s2z_A = self.s2z_total[0].reshape(len(self.zlevels), 137, 110)
-                            self.s2z_C = self.s2z_total[1].reshape(len(self.zlevels), 137, 110)
-                            self.s2z_I = self.s2z_total[2].reshape(137, 110)
+                            self.s2z_A = self.s2z_total[0].reshape(len(self.zlevels), L_Y, L_X)
+                            self.s2z_C = self.s2z_total[1].reshape(len(self.zlevels), L_Y, L_X)
+                            self.s2z_I = self.s2z_total[2].reshape(L_Y, L_X)
                             self.s2z_kmax = self.s2z_total[3]
                             del self.s2z_total  # Free memory
                             self.logger.info('Time: ' + str(datetime.now() - starttime))
                                         
                     self.logger.debug('Applying sigma2z-coefficients')
-                    # Re-using sigma2z koefficients:
-                    S = np.asarray(self.z_rho_tot)
-                    Z = self.zlevels
-                    kmax = Z.size
-                    dummyvar = np.ones((21, 137, 110))
+                    # Calculating sigma2z coefficients:
+                    S = np.asarray(self.z_rho_tot) #array of total depths
+                    Z = self.zlevels #Array of Z setted levels to use as base
+                    kmax = Z.size #Maximun value
+                    dummyvar = np.ones((L_Z, L_Y, L_X)) #array of ones just to keep the matrix size later
                     F = np.asarray(dummyvar)
                     Fshape = F.shape
-                    N = F.shape[0]
-                    M = F.size // N
-                    I = np.arange(M, dtype= int)
+                    N = F.shape[0] #firsts indices of dummy matrix
+                    M = F.size // N #usuable matrix
+                    I = np.arange(M, dtype= int) # Horizontal index
                     F = F.reshape((N, M))
-                    Z = Z[:, np.newaxis] + np.zeros((kmax, M))
+                    Z = Z[:, np.newaxis] + np.zeros((kmax, M)) #complete the Z array dimension
 
-                    S = S.reshape((N, M))
-                    G = np.sum(S[np.newaxis, :, :] < Z[:, np.newaxis, :], axis=1)
+                    S = S.reshape((N, M)) # Flat all dimensions after first variable
+                    G = np.sum(S[np.newaxis, :, :] < Z[:, np.newaxis, :], axis=1) # shape: kmax, N, M => kmax, M
                     G = np.asarray(G, dtype = int)
                     G = G.clip(1, N-1)
-                    A = (Z - S[(G-1, I)])/(S[(G, I)]-S[(G-1, I)])
+                    A = (Z - S[(G-1, I)])/(S[(G, I)]-S[(G-1, I)])# Compute interpolation weigh
                     A = A.clip(0.0, 1.0)
 
-                    R = (1-A)*F[(G-1, I)]+A*F[(G, I)]
-                    R = np.nan_to_num(R)
-                    interp_coefs = R.reshape((kmax,) + Fshape[1:])
-                    variables[par]= var[indxTime, indz, indy, indx]*interp_coefs[indz,indy,indx]
-                    variables[par] = np.nan_to_num(variables[par])
+                    R = (1-A)*F[(G-1, I)]+A*F[(G, I)]# Do the interpolation
+                    R = np.nan_to_num(R) #remove possible nans
+                    interp_coefs = R.reshape((kmax,) + Fshape[1:]) #Give the coeficient result the correct shape
+                    variables[par]= var[indxTime, indz, indy, indx]*interp_coefs[indz,indy,indx] #aplly the interpolation to 4D varaibles
+                    variables[par] = np.nan_to_num(variables[par]) #again, never forget to remove the nan
 
-                    # Nan in input to multi_zslice gives extreme values in output
-                    #variables[par][variables[par]>1e+9] = np.nan                   
-                    #variables[par][variables[par]<=1e-9] = np.nan
-
-
-
+                   
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
             if variables[par].ndim > 1 and block is False:
@@ -473,41 +481,22 @@ class Reader(BaseReader):
         variables['x'] = variables['x'].astype(np.float)
         variables['y'] = variables['y'].astype(np.float)
         variables['time'] = nearestTime
-
-        if 'x_sea_water_velocity' or 'x_wind' in variables.keys():
+        
+        
  
+        
+        if 'x_sea_water_velocity' in variables.keys():
 
-            if not hasattr(self, 'angle_of_rotation_from_east_to_x'):
-                self.logger.debug('Reading angle between xi and east...')
-                self.angle_of_rotation_from_east_to_x = self.Dataset.variables['ang'][:]
-            if has_xarray is False:
-                rad = self.angle_of_rotation_from_east_to_x[tuple(np.meshgrid(indy, indx))].T
-            else:
-                rad = self.angle_of_rotation_from_east_to_x[indy, indx]
-                rad = np.nan_to_num(rad)
-
-            #print ("angle_of_rotation_from_east_to_x ==", rad)
-
-            if 'x_sea_water_velocity' in variables.keys():
-                #variables['x_sea_water_velocity'], \
-                #    variables['y_sea_water_velocity'] = rotate_vectors_angle(
-                #        variables['x_sea_water_velocity'],
-                #        variables['y_sea_water_velocity'], rad)
-                
-                variables['x_sea_water_velocity'] = np.nan_to_num(variables['x_sea_water_velocity'])
-                variables['y_sea_water_velocity'] = np.nan_to_num(variables['y_sea_water_velocity'])
               
-                print ("u ==", variables['x_sea_water_velocity'])
-                print ("v ==", variables['y_sea_water_velocity'])
-                print ("w ==", variables['upward_sea_water_velocity'])
+            variables['x_sea_water_velocity'] = np.nan_to_num(variables['x_sea_water_velocity'])
+            variables['y_sea_water_velocity'] = np.nan_to_num(variables['y_sea_water_velocity'])
+              
+            print ("u ==", variables['x_sea_water_velocity'])
+            print ("v ==", variables['y_sea_water_velocity'])
+                #print ("w ==", variables['upward_sea_water_velocity'])
 
-            if 'x_wind' in variables.keys():
+        if 'x_wind' in variables.keys():
 
-               # variables['x_wind'], \
-               #     variables['y_wind'] = rotate_vectors_angle(
-               #         variables['x_wind'],
-               #         variables['y_wind'], rad)
-               # 
                 variables['x_wind'] = np.nan_to_num(variables['x_wind'])
                 variables['y_wind'] = np.nan_to_num(variables['y_wind'])
 
