@@ -122,7 +122,8 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         """
         pass 
 
-    def horizontal_diffusion(self, *args, **kwargs):
+    def horizontal_diffusion_depreciated(self, *args, **kwargs):
+        #  official code base now has the equivalent one, called horizontal_diffusion()
         '''
         Horizontal diffusion based on random walk technique
         using diffusion coefficients K_xy (in m2/s - constant or interpolaote from field)
