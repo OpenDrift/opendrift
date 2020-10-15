@@ -1,9 +1,10 @@
 History
 =======
 
-Next release
+2020-10-15 / Release v1.3.3
+---------------------------
 
-* New seed method `seed_repeated_segment`
+* New seed method `seed_repeated_segment()`
 * New method `animate_vertical_distribution()`
 * Vertical mixing scheme is greatly simplified, and should be faster for large number of elements.
 * Vertical mixing is now disabled by default in OceanDrift, but enabled in all submodules (PelagicEggDrift, SedimentDrift, RadionuclideDrift, OpenOil)
