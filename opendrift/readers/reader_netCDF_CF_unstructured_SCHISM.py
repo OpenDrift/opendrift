@@ -108,10 +108,10 @@ class Reader(BaseReader):
             'temp' : 'sea_water_temperature',
             'salt' : 'sea_water_salinity',
             'zcor' : 'vertical_levels', # time-varying vertical coordinates
-            'sigma': 'ocean_s_coordinate'}
+            'sigma': 'ocean_s_coordinate',
+            'vertical_velocity' : 'upward_sea_water_velocity'}
             # diffusivity
             # viscosity
-            # vertical_velocity
 
         self.return_block = True
 
@@ -378,41 +378,9 @@ class Reader(BaseReader):
 
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
-
-        # Initialising dictionary to contain data
+        
         variables = {'x': self.lon, 'y': self.lat, 'z': 0.*self.lat,
                      'time': nearestTime}
-
-        ###########################################################
-        # SUBSET OF MESH NODES ---- NOT USED FOR NOW ----##########
-        # # Find a subset of mesh nodes that include the particle 
-        # # cloud. The frame should not be made too small to make sure
-        # # particles remain inside the frame over the time 
-        # # that interpolator is used (i.e. depends on model timestep)
-        # # 
-
-        # deg2meters = 1.1e5 # approx
-        # buffer = .1  # degrees around given positions ~10km
-        # buffer = .05  # degrees around given positions ~ 5km
-
-        # if x.max() <= 360 :
-        #     buffer = buffer_deg # latlong reference system
-        # else:
-        #     buffer = buffer * deg2meters# projected reference system in meters
-
-        # lonmin = x.min() - buffer
-        # lonmax = x.max() + buffer
-        # latmin = y.min() - buffer
-        # latmax = y.max() + buffer
-        # id_frame = np.where((self.lon > lonmin) &
-        #              (self.lon < lonmax) &
-        #              (self.lat > latmin) &
-        #              (self.lat < latmax))[0]
-        # # Initialising dictionary to contain data
-        # variables = {'x': self.lon[id_frame], 'y': self.lat[id_frame], 'z': 0.*self.lat[id_frame],
-        #              'time': nearestTime}
-        ###########################################################
-
 
         # extracts the full slices of requested_variables at time indxTime
         for par in requested_variables:
@@ -423,10 +391,10 @@ class Reader(BaseReader):
                     data = var[:] # e.g. depth
                     logging.debug('reading constant data from unstructured reader %s' % (par))
                 elif var.ndim == 2: 
-                    data = var[indxTime,:] # e.g. dahv
+                    data = var[indxTime,:] # e.g. 2D temperature
                     logging.debug('reading 2D data from unstructured reader %s' % (par))
                 elif var.ndim == 3:
-                    data = var[indxTime,:,:] # e.g. 3d salt [time,node,lev]
+                    data = var[indxTime,:,:] # e.g. 3D salt [time,node,lev]
                     logging.debug('reading 3D data from unstructured reader %s' % (par))
                     # convert 3D data matrix to one column array and define corresponding data coordinates [x,y,z]
                     # (+ update variables dictionary with 3d coords if needed)
@@ -456,16 +424,18 @@ class Reader(BaseReader):
                     # convert 3D data matrix to one column array and define corresponding data coordinates [x,y,z]
                     # (+ update variables dictionary with 3d coords if needed)
                     data,variables = self.convert_3d_to_array(indxTime,data,variables)
-                    
-            variables[par] = data # save all data slice to dictionary with key 'par'
-
-            if has_xarray is True:
-                variables[par] = np.asarray(variables[par])
             
+            variables[par] = data # save all data slice to dictionary with key 'par'
             # Store coordinates of returned points
             #  >> done in previous steps here, line 380 and in convert_3d_to_array()
+            if has_xarray is True:
+                variables[par] = np.asarray(variables[par])
 
-
+        self.use_subset = 0 # need more work
+        if self.use_subset == 1: # for testing subsetting data before computin KD-trees
+            variables = self.clip_reader_data(variables_dict = variables, x_particle = x,y_particle = y, requested_variables = requested_variables) # clip reader data to particle cloud coverage 
+            # this part is now functional
+            
         return variables 
 
 
@@ -521,9 +491,65 @@ class Reader(BaseReader):
             variable_dict['x_3d'] = np.ravel(lon_tiled_ma[~vertical_levels.mask]) 
             variable_dict['y_3d'] = np.ravel(lat_tiled_ma[~vertical_levels.mask])
             variable_dict['z_3d'] = np.ravel(vertical_levels[~vertical_levels.mask])
-        
+
         return data,variable_dict
+
+    def clip_reader_data(self,variables_dict, x_particle,y_particle,requested_variables=None):
+        # clip "variables_dict" to current particle cloud extents [x_particle,y_particle] (+ buffer)
+        # 
+        # # Find a subset of mesh nodes that include the particle 
+        # cloud. The frame should not be made too small to make sure
+        # particles remain inside the frame over the time 
+        # that interpolator is used (i.e. depends on model timestep)
+        # 
+        # 
+        #  returns updated "variables" dict and data array
+        deg2meters = 1.1e5 # approx
+        buffer = .1  # degrees around given positions ~10km
+        buffer = .01  # degrees around given positions ~ 5km
+        if self.xmax <= 360 :
+            buffer = buffer_deg # latlong reference system
+        else:
+            buffer = buffer * deg2meters# projected reference system in meters
+        self.subset_frame = [x_particle.min() - buffer,
+                             x_particle.max() + buffer, 
+                             y_particle.min() - buffer,
+                             y_particle.max() + buffer]
+        # find lon,lat of reader that are within the particle cloud
+        self.id_frame = np.where((self.lon >= self.subset_frame[0]) &
+                     (self.lon <= self.subset_frame[1]) &
+                     (self.lat >= self.subset_frame[2]) &
+                     (self.lat <= self.subset_frame[3]))[0]
+        print(variables_dict['x'].shape)
+        print( self.id_frame.max())
         
+        variables_dict['x'] = variables_dict['x'][self.id_frame]
+        variables_dict['y'] = variables_dict['y'][self.id_frame]
+        variables_dict['z'] = variables_dict['z'][self.id_frame]
+
+        if 'x_3d' in variables_dict:
+            ID= np.where((variables_dict['x_3d'] >= self.subset_frame[0]) &
+                 (variables_dict['x_3d'] <= self.subset_frame[1]) &
+                 (variables_dict['y_3d'] >= self.subset_frame[2]) &
+                 (variables_dict['y_3d']<= self.subset_frame[3]))[0]  
+            variables_dict['x_3d'] = variables_dict['x_3d'][ID]
+            variables_dict['y_3d'] = variables_dict['y_3d'][ID]
+            variables_dict['z_3d'] = variables_dict['z_3d'][ID]
+
+        for par in requested_variables:
+            if 'x_3d' not in variables_dict:
+                # 2D data
+                variables_dict[par] = variables_dict[par][self.id_frame]
+            else: # can be either 2D or 3D data, in case requested_variables includes both 2D and 3D data
+                if variables_dict[par].shape[0] == self.lon.shape[0] : # this "par" is 2D data
+                    variables_dict[par] = variables_dict[par][self.id_frame]
+                else:
+                    # 3D data converted to array
+                    variables_dict[par] = variables_dict[par][ID]
+
+        return variables_dict
+        
+
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader.
         
