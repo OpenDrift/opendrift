@@ -189,6 +189,44 @@ def close(self):
         print(me)
         print('Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)')
     
+def import_file_xarray(self, filename, chunks):
+
+    import xarray as xr
+    self.logger.debug('Importing with Xarray from ' + filename)
+    self.ds = xr.open_dataset(filename, chunks=chunks)
+
+    self.steps_output = len(self.ds.time)
+    ts0 = (self.ds.time[0] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+    self.start_time = datetime.utcfromtimestamp(ts0)
+    tse = (self.ds.time[-1] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+    self.end_time = datetime.utcfromtimestamp(tse)
+    if len(self.ds.time) > 1:
+        ts1 = (self.ds.time[1] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        self.time_step_output = timedelta(seconds=np.float(ts1 - ts0))
+    self.time = self.end_time  # Using end time as default
+    self.status_categories = self.ds.status.flag_meanings.split()
+
+    num_elements = len(self.ds.trajectory)
+    elements=np.arange(num_elements)
+
+    # Data types for variables
+    dtype = np.dtype([(var[0], var[1]['dtype'])
+                      for var in self.ElementType.variables.items()])
+    history_dtype_fields = [
+        (name, self.ElementType.variables[name]['dtype'])
+        for name in self.ElementType.variables]
+    # Add environment variables
+    self.history_metadata = self.ElementType.variables.copy()
+    for env_var in self.required_variables:
+        if env_var in self.ds.variables:
+            history_dtype_fields.append((env_var, np.dtype('float32')))
+            self.history_metadata[env_var] = {}
+    history_dtype = np.dtype(history_dtype_fields)
+
+    # Masking where elements are not been seeded
+    # TODO: mask from deactivation towards end
+    for da in ['lon', 'lat']:
+        self.ds[da] = self.ds[da].where(self.ds.status>=0)
 
 def import_file(self, filename, times=None, elements=None):
 
