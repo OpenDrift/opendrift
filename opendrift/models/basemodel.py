@@ -249,6 +249,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_write_buffer = types.MethodType(io_module.write_buffer, self)
         self.io_close = types.MethodType(io_module.close, self)
         self.io_import_file = types.MethodType(io_module.import_file, self)
+        self.io_import_file_xarray = types.MethodType(io_module.import_file_xarray, self)
 
         self.timer_start('total time')
         self.timer_start('configuration')
@@ -2600,21 +2601,28 @@ class OpenDriftSimulation(PhysicsMethods):
         provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection
         """
 
-        lons, lats = self.get_lonlats()
-
         # Initialise map
-        if corners==None:
-            lonmin = np.nanmin(lons) - buffer*2
-            lonmax = np.nanmax(lons) + buffer*2
-            latmin = np.nanmin(lats) - buffer
-            latmax = np.nanmax(lats) + buffer
-        else:
+        if corners is not None:
+            lons, lats = self.get_lonlats()  # TODO: to be removed
             lonmin = corners[0]
             lonmax = corners[1]
             latmin = corners[2]
             latmax = corners[3]
+        elif hasattr(self, 'ds'):
+            lons = self.ds.lon
+            lats = self.ds.lat
+            lonmin = np.nanmin(self.ds.lon)
+            lonmax = np.nanmax(self.ds.lon)
+            latmin = np.nanmin(self.ds.lat)
+            latmax = np.nanmax(self.ds.lat)
+        else:
+            lons, lats = self.get_lonlats()
+            lonmin = np.nanmin(lons) - buffer*2
+            lonmax = np.nanmax(lons) + buffer*2
+            latmin = np.nanmin(lats) - buffer
+            latmax = np.nanmax(lats) + buffer
 
-        if fast:
+        if fast is True:
             self.logger.warning("plotting fast. this will make your plots less accurate.")
 
             import matplotlib.style as mplstyle
@@ -2766,7 +2774,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """Animate last run."""
 
 
-        if self.num_elements_total() == 0:
+        if self.num_elements_total() == 0 and not hasattr(self, 'ds'):
             raise ValueError('Please run simulation before animating')
 
         start_time = datetime.now()
@@ -2857,7 +2865,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale,
+            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
                             fast=fast, hide_landmask=hide_landmask)
 
         if surface_only is True:
@@ -2944,10 +2952,18 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if density is True:
             cmap.set_under('w')
-            H, H_submerged, H_stranded, lon_array, lat_array = \
-                self.get_density_array(pixelsize_m=density_pixelsize_m,
-                                       weight=density_weight)
-            H = H + H_submerged + H_stranded
+            if hasattr(self, 'ds'):  # opened with Xarray
+                H, lon_array, lat_array = self.get_density_xarray(pixelsize_m=density_pixelsize_m)
+                H = H[0]  # Presently only for origin_marker = 0
+                deltalon = (lon_array[1]-lon_array[0])
+                lon_array = np.append(lon_array, lon_array[-1] + deltalon) - deltalon
+                deltalat = (lat_array[1]-lat_array[0])
+                lat_array = np.append(lat_array, lat_array[-1] + deltalat) - deltalat
+            else:
+                H, H_submerged, H_stranded, lon_array, lat_array = \
+                    self.get_density_array(pixelsize_m=density_pixelsize_m,
+                                           weight=density_weight)
+                H = H + H_submerged + H_stranded
             H = np.ma.masked_where(H==0, H)
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
             if vmax is None:
@@ -3186,7 +3202,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree()
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
+            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 
         markercolor = self.plot_comparison_colors[0]
 
@@ -3533,6 +3549,64 @@ class OpenDriftSimulation(PhysicsMethods):
                 scalar, kernel, mode='nearest')
 
         return map_x, map_y, scalar, u_component, v_component
+
+    def get_density_xarray(self, pixelsize_m, weight=None, per_origin_marker=False):
+        from xhistogram.xarray import histogram
+
+        if self.analysis_file is not None and \
+                os.path.exists(self.analysis_file):  # Import from file
+            self.logger.info('Importing from saved analysis file')
+            import xarray as xr
+            self.af = xr.open_dataset(self.analysis_file)
+            histograms = []
+            for var in self.af.variables:
+                if var[0:9] == 'histogram':
+                    histograms.append(self.af[var])
+            lonbin = self.af.lon_bin.values
+            latbin = self.af.lat_bin.values
+
+        else:  # Calculate
+            start = datetime.now()
+            self.logger.info('Calculating density array, this may take some time...')
+            deltalat = pixelsize_m/111000.0  # m to degrees
+            self.logger.debug('Finding min and max of lon and lat...')
+            lonmin = np.nanmin(self.ds.lon)
+            lonmax = np.nanmax(self.ds.lon)
+            latmin = np.nanmin(self.ds.lat)
+            latmax = np.nanmax(self.ds.lat)
+            deltalon = deltalat/np.cos(np.radians((latmin+latmax)/2))
+            latbin = np.arange(latmin-deltalat, latmax+deltalat, deltalat)
+            lonbin = np.arange(lonmin-deltalon, lonmax+deltalon, deltalon)
+
+            histograms = []
+            if per_origin_marker is True:
+                max_om = self.ds.origin_marker.max().compute().values
+                for om in range(max_om+1):
+                    self.logger.info('\tcalculating for origin_marker %s...' % om)
+                    h = histogram(self.ds.lon.where(self.ds.origin_marker==om),
+                                  self.ds.lat.where(self.ds.origin_marker==om), bins=[lonbin, latbin],
+                                  dim=['trajectory'])
+                    h.name = 'histogram_lon_lat_' + str(om)
+                    histograms.append(h)
+            else:
+                h = histogram(self.ds.lon, self.ds.lat, bins=[lonbin, latbin],
+                              dim=['trajectory'])
+                histograms = [h]
+
+            if self.analysis_file is not None:
+                self.logger.info('Writing density array to analysis file: %s'
+                                 % self.analysis_file)
+                for om, h in enumerate(histograms):
+                    if os.path.exists(self.analysis_file):
+                        mode = 'a'
+                    else:
+                        mode = 'w'
+                    self.logger.info('\twriting for origin_marker %s...' % om)
+                    h.to_netcdf(self.analysis_file, mode)
+            self.logger.info('Time to calculate density array: %s' %
+                             (datetime.now() - start))
+
+        return histograms, lonbin, latbin
 
     def get_density_array(self, pixelsize_m, weight=None):
         lon = self.get_property('lon')[0]
