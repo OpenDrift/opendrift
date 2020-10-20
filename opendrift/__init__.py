@@ -110,9 +110,9 @@ def open_xarray(filename, analysis_file=None, chunks={'trajectory': 50000, 'time
         from opendrift.models import oceandrift
         cls = oceandrift.OceanDrift
     o = cls()
+    o.analysis_file = analysis_file
     o.io_import_file_xarray(filename, chunks=chunks)
 
-    o.analysis_file = analysis_file
 
     logging.info('Returning ' + str(type(o)) + ' object')
     return o
