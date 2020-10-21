@@ -2648,7 +2648,7 @@ class OpenDriftSimulation(PhysicsMethods):
             latmax = np.nanmax(lats) + buffer
 
         if fast is True:
-            self.logger.warning("plotting fast. this will make your plots less accurate.")
+            self.logger.warning("plotting fast. This will make your plots less accurate.")
 
             import matplotlib.style as mplstyle
             mplstyle.use(['fast'])

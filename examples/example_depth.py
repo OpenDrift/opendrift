@@ -17,7 +17,7 @@ o.add_readers_from_list([
 
 #%%
 # Seed 1000 elements at random depths
-z = -np.random.rand(1000)*50
+z = -np.random.rand(2000)*50
 o.seed_elements(lon=4.8, lat=60.0, z=z, radius=0, number=2000,
                 time=datetime.utcnow())
 
@@ -34,7 +34,7 @@ o.run(duration=timedelta(hours=24), time_step=1800, outfile='openoil.nc')
 #%%
 # Plot results with lines and particles colored by depth
 print(o)
-o.plot(linecolor='z', buffer=.1, show_particles=False, fast=True)
+o.plot(linecolor='z', buffer=.1, show_particles=False, fast=False)
 o.animation(color='z', buffer=.1, fast=True)
 
 #%%
