@@ -1,4 +1,5 @@
 import sys
+import os
 from datetime import datetime, timedelta
 import string
 from shutil import move
@@ -196,12 +197,12 @@ def import_file_xarray(self, filename, chunks):
     self.ds = xr.open_dataset(filename, chunks=chunks)
 
     self.steps_output = len(self.ds.time)
-    ts0 = (self.ds.time[0] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-    self.start_time = datetime.utcfromtimestamp(ts0)
-    tse = (self.ds.time[-1] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-    self.end_time = datetime.utcfromtimestamp(tse)
+    ts0 = (self.ds.time[0] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
+    self.start_time = datetime.utcfromtimestamp(np.float(ts0))
+    tse = (self.ds.time[-1] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
+    self.end_time = datetime.utcfromtimestamp(np.float(tse))
     if len(self.ds.time) > 1:
-        ts1 = (self.ds.time[1] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        ts1 = (self.ds.time[1] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
         self.time_step_output = timedelta(seconds=np.float(ts1 - ts0))
     self.time = self.end_time  # Using end time as default
     self.status_categories = self.ds.status.flag_meanings.split()
@@ -227,6 +228,14 @@ def import_file_xarray(self, filename, chunks):
     # TODO: mask from deactivation towards end
     for da in ['lon', 'lat']:
         self.ds[da] = self.ds[da].where(self.ds.status>=0)
+
+    # Read some saved parameters
+    if os.path.exists(self.analysis_file):
+        self.af = xr.open_dataset(self.analysis_file)
+        self.lonmin = self.af.lonmin
+        self.lonmax = self.af.lonmax
+        self.latmin = self.af.latmin
+        self.latmax = self.af.latmax
 
 def import_file(self, filename, times=None, elements=None):
 
