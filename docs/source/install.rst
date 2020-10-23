@@ -23,6 +23,11 @@ Alternative 1: Using Miniconda and Git (recommended)
 
 This installs the OpenDrift package as an editable package. You can therefore directly make changes to the repository or fetch the newest changes with :code:`git pull`. You do not need to add OpenDrift to PYTHONPATH as long as you have the :code:`opendrift` environment activated.
 
+Occasionally, new dependencies will be added to environment.yml. Then the local conda environment can be updated with:
+
+.. code-block:: bash
+
+  $ conda env update -f environment.yml
 
 Alternative 2: Using Miniconda
 ++++++++++++++++++++++++++++++

@@ -27,6 +27,8 @@ from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
 import netCDF4
 import nc_time_axis
+import xarray as xr
+from netCDF4 import Dataset, date2num
 
 import numpy as np
 import scipy
@@ -137,6 +139,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 stokes_drift = boolean(default=True)
                 current_uncertainty = float(min=0, max=5, default=0)
                 current_uncertainty_uniform = float(min=0, max=5, default=0)
+                horizontal_diffusivity = float(min=0, max=100, default=0)
                 wind_uncertainty = float(min=0, max=5, default=0)
                 relative_wind = boolean(default=False)
                 lift_to_seafloor = boolean(default=True)
@@ -248,6 +251,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_write_buffer = types.MethodType(io_module.write_buffer, self)
         self.io_close = types.MethodType(io_module.close, self)
         self.io_import_file = types.MethodType(io_module.import_file, self)
+        self.io_import_file_xarray = types.MethodType(io_module.import_file_xarray, self)
 
         self.timer_start('total time')
         self.timer_start('configuration')
@@ -303,7 +307,11 @@ class OpenDriftSimulation(PhysicsMethods):
 
         d = self.configobj
         ds = self.configobj.configspec
-        default, minval, maxval, opt = self.get_configspec_default_min_max(key)
+        try:
+            default, minval, maxval, opt = self.get_configspec_default_min_max(key)
+        except:
+            self.logger.warning(self.list_configspec())
+            raise ValueError('Config item %s is not available, se above for valid items' % key)
         for i, s in enumerate(key.split(':')):
             if s not in d:
                 self.list_configspec()
@@ -417,6 +425,7 @@ class OpenDriftSimulation(PhysicsMethods):
                                    self.get_configspec(key))
         str += '==============================================\n'
         self.logger.info(str)
+        return str
 
     def list_config(self):
         """List all possible configuration settings with values"""
@@ -1259,8 +1268,13 @@ class OpenDriftSimulation(PhysicsMethods):
         Also assigns a unique ID to each particle, monotonically increasing."""
 
         # prepare time
+        if isinstance(time, np.ndarray):
+            time = list(time)
         if not isinstance(time, list):
-            time = [time]*len(elements)  # Convert to array of same length
+            time = [time]
+        if len(time) == 1 and len(elements) > 1:
+            time = time*len(elements)
+
         if not hasattr(self, 'elements_scheduled'):
             self.elements_scheduled = elements
             self.elements_scheduled_time = np.array(time)
@@ -1540,22 +1554,15 @@ class OpenDriftSimulation(PhysicsMethods):
                 kwargs['z'] = \
                     -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
 
-            # Recursively seeding elements around each point
-            scalarargs = {}
+            # Seeding array and returning
             if 'time_array' not in locals():
                 time_array = time
-            for i in range(len(lon)):
-                for kwarg in kwargs:
-                    try:
-                        scalarargs[kwarg] = kwargs[kwarg][i]
-                    except:
-                        scalarargs[kwarg] = kwargs[kwarg]
-                # Make sure to call seed function of base class,
-                # not of a specific Children class
-                OpenDriftSimulation.seed_elements(
-                    self, lon=[lon[i]], lat=[lat[i]], radius=radius_array[i],
-                    number=int(number_array[i]),
-                    time=time_array[i], cone=False, **scalarargs)
+            if isinstance(time_array[0], list):
+                time_array = [t[0] for t in time_array]
+
+            elements = self.ElementType(lon=lon, lat=lat, **kwargs)
+            time_array = np.array(time_array)
+            self.schedule_elements(elements, time_array)
             return
 
         # Below we have only for single points
@@ -1617,6 +1624,52 @@ class OpenDriftSimulation(PhysicsMethods):
         elements = self.ElementType(**kwargs)
 
         self.schedule_elements(elements, time_array)
+
+    def seed_repeated_segment(self, lons, lats,
+                              start_time, end_time, time_interval=None,
+                              number_per_segment=None,
+                              total_number=None, **kwargs):
+        """Seed elements repeatedly in time along a segment.
+
+        The segment goes from lon[0],lat[0] to lon[1],lat[1].
+        The number of elements should be proved as either:
+        1) number_per_segment, in which case total number of elements
+           is number_per_segment * len(times), or
+        2) total_number, in which case the number of elements
+           per segment is: total_number / len(times).
+           Any extra elements are duplicated along at the first segment.
+       
+        """
+
+        numtimes = int((end_time-start_time).total_seconds()/
+                        time_interval.total_seconds() + 1)
+        times = [start_time+i*time_interval for i in range(numtimes)]
+
+        geod = pyproj.Geod(ellps='WGS84')
+        if number_per_segment is None:
+            number_per_segment = np.int(np.floor(total_number/numtimes))
+
+        s_lonlats= geod.npts(lons[0], lats[0], lons[1], lats[1],
+                             number_per_segment, radians=False)
+        slon, slat = list(zip(*s_lonlats))
+        slon = np.atleast_1d(slon)
+        slat = np.atleast_1d(slat)
+
+        lon, time = np.meshgrid(slon, times)
+        lat, time = np.meshgrid(slat, times)
+        lon = lon.ravel()
+        lat = lat.ravel()
+        time = time.ravel()
+
+        if total_number is not None:
+            additional_elements = total_number - len(lon.ravel())
+            print('Repeating the %d last points, to obtain %d elements' %
+                  (additional_elements, total_number))
+            lon = np.concatenate((lon, lon[-additional_elements::]))
+            lat = np.concatenate((lat, lat[-additional_elements::]))
+            time = np.concatenate((time, time[-additional_elements::]))
+
+        self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
 
     def seed_within_polygon(self, lons, lats, number, **kwargs):
         """Seed a number of elements within given polygon.
@@ -1867,6 +1920,20 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.schedule_elements(elements, time)
 
+
+    def horizontal_diffusion(self):
+        """Move elements with random walk according to given horizontal diffuivity."""
+        D = self.get_config('drift:horizontal_diffusivity')
+        if D == 0:
+            self.logger.debug('Horizontal diffusivity is 0, no random walk.')
+            return
+        dt = self.time_step.total_seconds()
+        x_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        y_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        speed = np.sqrt(x_vel*x_vel+y_vel*y_vel)
+        self.logger.debug('Moving elements according to horizontal diffusivity of %s, with speeds between %s and %s m/s'
+                          % (D, speed.min(), speed.max()))
+        self.update_positions(x_vel, y_vel)
 
     def deactivate_elements(self, indices, reason='deactivated'):
         """Schedule deactivated particles for deletion (at end of step)"""
@@ -2332,6 +2399,8 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.logger.info('No active elements, skipping update() method')
                 #####################################################
 
+                self.horizontal_diffusion()
+
                 if self.num_elements_active() == 0 and self.num_elements_scheduled() == 0:
                     raise ValueError('No active or scheduled elements, quitting simulation')
 
@@ -2534,22 +2603,52 @@ class OpenDriftSimulation(PhysicsMethods):
         provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection
         """
 
-        lons, lats = self.get_lonlats()
-
         # Initialise map
-        if corners==None:
-            lonmin = np.nanmin(lons) - buffer*2
-            lonmax = np.nanmax(lons) + buffer*2
-            latmin = np.nanmin(lats) - buffer
-            latmax = np.nanmax(lats) + buffer
-        else:
+        if corners is not None:
+            lons, lats = self.get_lonlats()  # TODO: to be removed
             lonmin = corners[0]
             lonmax = corners[1]
             latmin = corners[2]
             latmax = corners[3]
+        elif hasattr(self, 'ds'):
+            lons = self.ds.lon
+            lats = self.ds.lat
+            if hasattr(self, 'lonmin'):
+                lonmin = self.lonmin
+                lonmax = self.lonmax
+                latmin = self.latmin
+                latmax = self.latmax
+            else:
+                self.logger.debug('Finding min longitude...')
+                lonmin = np.nanmin(self.ds.lon)
+                self.logger.debug('Finding max longitude...')
+                lonmax = np.nanmax(self.ds.lon)
+                self.logger.debug('Finding min latitude...')
+                latmin = np.nanmin(self.ds.lat)
+                self.logger.debug('Finding max latitude...')
+                latmax = np.nanmax(self.ds.lat)
+                self.lonmin = lonmin
+                self.lonmax = lonmax
+                self.latmin = latmin
+                self.latmax = latmax
+                if os.path.exists(self.analysis_file):
+                    self.af = Dataset(self.analysis_file, 'a')
+                else:
+                    self.af = Dataset(self.analysis_file, 'w')
+                self.af.lonmin = lonmin
+                self.af.lonmax = lonmax
+                self.af.latmin = latmin
+                self.af.latmax = latmax
+                self.af.close()
+        else:
+            lons, lats = self.get_lonlats()
+            lonmin = np.nanmin(lons) - buffer*2
+            lonmax = np.nanmax(lons) + buffer*2
+            latmin = np.nanmin(lats) - buffer
+            latmax = np.nanmax(lats) + buffer
 
-        if fast:
-            self.logger.warning("plotting fast. this will make your plots less accurate.")
+        if fast is True:
+            self.logger.warning("plotting fast. This will make your plots less accurate.")
 
             import matplotlib.style as mplstyle
             mplstyle.use(['fast'])
@@ -2654,12 +2753,16 @@ class OpenDriftSimulation(PhysicsMethods):
         fig.canvas.draw()
         fig.set_tight_layout(True)
 
-        try:
-            firstlast = np.ma.notmasked_edges(lons, axis=1)
-            index_of_first = firstlast[0][1]
-            index_of_last = firstlast[1][1]
-        except:
-            index_of_last = 0
+        if not hasattr(self, 'ds'):
+            try:
+                firstlast = np.ma.notmasked_edges(lons, axis=1)
+                index_of_first = firstlast[0][1]
+                index_of_last = firstlast[1][1]
+            except:
+                index_of_last = 0
+        else:
+            index_of_first = None
+            index_of_last = None
 
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
@@ -2695,12 +2798,12 @@ class OpenDriftSimulation(PhysicsMethods):
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   show_trajectories=False, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
-                  surface_only=False, markersize=20,
+                  surface_only=False, markersize=20, origin_marker=None,
                   legend=None, legend_loc='best', fps=10, lscale=None, fast=False):
         """Animate last run."""
 
 
-        if self.num_elements_total() == 0:
+        if self.num_elements_total() == 0 and not hasattr(self, 'ds'):
             raise ValueError('Please run simulation before animating')
 
         start_time = datetime.now()
@@ -2722,7 +2825,22 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             if density is True:
                 density_weight = None
-
+        if density is True:  # Get density arrays
+            if hasattr(self, 'ds'):  # opened with Xarray
+                if origin_marker is None:
+                    origin_marker = 0
+                    per_origin_marker = False
+                else:
+                    per_origin_marker = True
+                H, lon_array, lat_array = self.get_density_xarray(pixelsize_m=density_pixelsize_m,
+                                            per_origin_marker=per_origin_marker)
+                H = H[origin_marker]  # Presently only for origin_marker = 0
+            else:
+                H, H_submerged, H_stranded, lon_array, lat_array = \
+                    self.get_density_array(pixelsize_m=density_pixelsize_m,
+                                           weight=density_weight)
+                H = H + H_submerged + H_stranded
+         
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree()
 
@@ -2791,7 +2909,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale,
+            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
                             fast=fast, hide_landmask=hide_landmask)
 
         if surface_only is True:
@@ -2802,7 +2920,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if show_trajectories is True:
             ax.plot(x, y, color='gray', alpha=.1, transform = gcrs)
 
-        if color is not False:
+        if color is not False and show_elements is True:
             if isinstance(color, basestring):
                 colorarray = self.get_property(color)[0].T
                 colorarray = colorarray*unitfactor
@@ -2838,8 +2956,9 @@ class OpenDriftSimulation(PhysicsMethods):
                                   transform = gcrs)
 
         times = self.get_time_array()[0]
-        index_of_last_deactivated = \
-            index_of_last[self.elements_deactivated.ID-1]
+        if show_elements is True:
+            index_of_last_deactivated = \
+                index_of_last[self.elements_deactivated.ID-1]
         if legend is None:
             legend = ['']
 
@@ -2878,10 +2997,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if density is True:
             cmap.set_under('w')
-            H, H_submerged, H_stranded, lon_array, lat_array = \
-                self.get_density_array(pixelsize_m=density_pixelsize_m,
-                                       weight=density_weight)
-            H = H + H_submerged + H_stranded
             H = np.ma.masked_where(H==0, H)
             lat_array, lon_array = np.meshgrid(lat_array, lon_array)
             if vmax is None:
@@ -3120,7 +3235,7 @@ class OpenDriftSimulation(PhysicsMethods):
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree()
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer,corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
+            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 
         markercolor = self.plot_comparison_colors[0]
 
@@ -3468,6 +3583,83 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return map_x, map_y, scalar, u_component, v_component
 
+    def get_density_xarray(self, pixelsize_m, weight=None, per_origin_marker=False):
+        from xhistogram.xarray import histogram
+
+        if os.path.exists(self.analysis_file) and 'lon_bin' in xr.open_dataset(self.analysis_file):  # Import from file
+            self.logger.info('Importing from saved analysis file')
+            self.af = xr.open_dataset(self.analysis_file)
+            histograms = []
+            for var in self.af.variables:
+                if var[0:9] == 'histogram':
+                    histograms.append(self.af[var])
+            lonbin = self.af.lon_bin.values
+            latbin = self.af.lat_bin.values
+            deltalon = (lonbin[1]-lonbin[0])
+            lonbin = np.append(lonbin, lonbin[-1] + deltalon) - deltalon/2
+            deltalat = (latbin[1]-latbin[0])
+            latbin = np.append(latbin, latbin[-1] + deltalat) - deltalat/2
+            self.af.close()
+
+        else:  # Calculate
+            start = datetime.now()
+            self.logger.info('Calculating density array, this may take some time...')
+            deltalat = pixelsize_m/111000.0  # m to degrees
+            if hasattr(self, 'lonmin'):
+                lonmin = self.lonmin
+                lonmax = self.lonmax
+                latmin = self.latmin
+                latmax = self.latmax
+            else:
+                self.logger.debug('Finding min and max of lon and lat...')
+                lonmin = np.nanmin(self.ds.lon)
+                lonmax = np.nanmax(self.ds.lon)
+                latmin = np.nanmin(self.ds.lat)
+                latmax = np.nanmax(self.ds.lat)
+                if os.path.exists(self.analysis_file):
+                    self.af = Dataset(self.analysis_file, 'a')
+                else:
+                    self.af = Dataset(self.analysis_file, 'w')
+                self.af.lonmin = lonmin
+                self.af.lonmax = lonmax
+                self.af.latmin = latmin
+                self.af.latmax = latmax
+                self.af.close()
+
+            deltalon = deltalat/np.cos(np.radians((latmin+latmax)/2))
+            latbin = np.arange(latmin-deltalat, latmax+deltalat, deltalat)
+            lonbin = np.arange(lonmin-deltalon, lonmax+deltalon, deltalon)
+
+            histograms = []
+            if per_origin_marker is True:
+                max_om = self.ds.origin_marker.max().compute().values
+                for om in range(max_om+1):
+                    self.logger.info('\tcalculating for origin_marker %s...' % om)
+                    h = histogram(self.ds.lon.where(self.ds.origin_marker==om),
+                                  self.ds.lat.where(self.ds.origin_marker==om), bins=[lonbin, latbin],
+                                  dim=['trajectory'])
+                    h.name = 'histogram_lon_lat_' + str(om)
+                    histograms.append(h)
+            else:
+                h = histogram(self.ds.lon, self.ds.lat, bins=[lonbin, latbin],
+                              dim=['trajectory'])
+                histograms = [h]
+
+            if self.analysis_file is not None:
+                self.logger.info('Writing density array to analysis file: %s'
+                                 % self.analysis_file)
+                for om, h in enumerate(histograms):
+                    if os.path.exists(self.analysis_file):
+                        mode = 'a'
+                    else:
+                        mode = 'w'
+                    self.logger.info('\twriting for origin_marker %s...' % om)
+                    h.to_netcdf(self.analysis_file, mode)
+            self.logger.info('Time to calculate density array: %s' %
+                             (datetime.now() - start))
+
+        return histograms, lonbin, latbin
+
     def get_density_array(self, pixelsize_m, weight=None):
         lon = self.get_property('lon')[0]
         lat = self.get_property('lat')[0]
@@ -3554,7 +3746,6 @@ class OpenDriftSimulation(PhysicsMethods):
         lon_array = (lon_array[0:-1] + lon_array[1::])/2
         lat_array = (lat_array[0:-1] + lat_array[1::])/2
 
-        from netCDF4 import Dataset, date2num
         nc = Dataset(filename, 'w')
         nc.createDimension('lon', len(lon_array))
         nc.createDimension('lat', len(lat_array))
@@ -3899,16 +4090,16 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 adir = os.path.realpath('../docs/source/gallery/animations')
 
-            if not hasattr(OpenDriftSimulation, '__anim_no__'):
-                OpenDriftSimulation.__anim_no__ = { }
+            if not hasattr(self, '__anim_no__'):
+                self.__anim_no__ = { }
 
-            if not hasattr(OpenDriftSimulation.__anim_no__, caller):
-                OpenDriftSimulation.__anim_no__[caller] = 0
+            if caller not in  self.__anim_no__:
+                self.__anim_no__[caller] = 0
 
             os.makedirs(adir, exist_ok=True)
 
-            filename = '%s_%d.gif' % (caller, OpenDriftSimulation.__anim_no__[caller])
-            OpenDriftSimulation.__anim_no__[caller] += 1
+            filename = '%s_%d.gif' % (caller, self.__anim_no__[caller])
+            self.__anim_no__[caller] += 1
 
             filename = os.path.join(adir, filename)
 

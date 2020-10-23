@@ -635,7 +635,7 @@ class BaseReader(object):
             # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
-                self.logger.info('Interpolating profiles in time')
+                self.logger.debug('Interpolating profiles in time')
                 # Truncating layers not present both before and after
                 numlayers = np.minimum(len(env_profiles_before['z']),
                                        len(env_profiles_after['z']))

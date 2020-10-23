@@ -35,7 +35,6 @@ o.set_config('processes:dispersion', False)
 o.set_config('processes:evaporation', True)
 o.set_config('processes:emulsification', True)
 o.set_config('drift:vertical_mixing', True)
-o.set_config('vertical_mixing:timestep', 2)
 
 #%%
 # Running model

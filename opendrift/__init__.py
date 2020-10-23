@@ -75,6 +75,49 @@ def open(filename, times=None, elements=None):
     logging.info('Returning ' + str(type(o)) + ' object')
     return o
 
+def open_xarray(filename, analysis_file=None, chunks={'trajectory': 50000, 'time': 1000}):
+    '''Import netCDF output file as OpenDrift object of correct class'''
+
+    import os
+    import pydoc
+    import xarray as xr
+    if not os.path.exists(filename):
+        logging.info('File does not exist, trying to retrieve from URL')
+        import urllib
+        try:
+            urllib.urlretrieve(filename, 'opendrift_tmp.nc')
+            filename = 'opendrift_tmp.nc'
+        except:
+            raise ValueError('%s does not exist' % filename)
+    n = xr.open_dataset(filename)
+    try:
+        module_name = n.opendrift_module
+        class_name = n.opendrift_class
+    except:
+        raise ValueError(filename + ' does not contain '
+                         'necessary global attributes '
+                         'opendrift_module and opendrift_class')
+    n.close()
+
+    if class_name == 'OpenOil3D':
+        class_name = 'OpenOil'
+        module_name = 'opendrift.models.openoil'
+    if class_name == 'OceanDrift3D':
+        class_name = 'OceanDrift'
+        module_name = 'opendrift.models.oceandrift'
+    cls = pydoc.locate(module_name + '.' + class_name)
+    if cls is None:
+        from opendrift.models import oceandrift
+        cls = oceandrift.OceanDrift
+    o = cls()
+    o.analysis_file = analysis_file
+    o.io_import_file_xarray(filename, chunks=chunks)
+
+
+    logging.info('Returning ' + str(type(o)) + ' object')
+    return o
+
+
 def versions():
     import multiprocessing
     import platform

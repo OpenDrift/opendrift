@@ -1,12 +1,18 @@
 History
 =======
 
-Next release
+2020-10-15 / Release v1.3.3
+---------------------------
 
+* New seed method `seed_repeated_segment()`
+* New method `animate_vertical_distribution()`
+* Vertical mixing scheme is greatly simplified, and should be faster for large number of elements.
+* Vertical mixing is now disabled by default in OceanDrift, but enabled in all submodules (PelagicEggDrift, SedimentDrift, RadionuclideDrift, OpenOil)
+* Vertical diffusivity option `zero` is replaced with `constant`, which means using the fallback value.
+* New config setting `drift:horizontal_diffusivity`, providing time-step independent diffusion, in contrast to `drift:current_uncertainty` and `drift:wind_uncertainty`
 * Readers may be initialised from a JSON string, where `reader` is name of reader module, and other parameters are forwarded to reader constructor, e.g.: `{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh"}`
 * CMEMS reader now obtains username/password from .netrc instead of environment variables. CMEMS-motuclient is added to environment.yml
 * CMEMS reader now takes dataset name and not product name as input, and it is possible to provide variable mapping.
-* Vertical mixing is now disabled by default in OceanDrift, but enabled in all submodules (PelagicEggDrift, SedimentDrift, RadionuclideDrift, OpenOil)
 * NOAA ADIOS is now default (and only) option for oil weathering, as the "built in" oil weathering module ("basic") is removed.
 * GUI is generalised, to be usable for any modules. This includes taking default seed options from `config:seed:` (e.g. m3_per_hour for OpenOil)
 
