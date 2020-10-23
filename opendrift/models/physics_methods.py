@@ -25,7 +25,7 @@ def oil_wave_entrainment_rate_li2017(dynamic_viscosity, oil_density, interfacial
     # Z. Li, M.L. Spaulding, D. French McCay, J. Mar. Pollut. Bull. (2016):
     # An algorithm for modeling entrainment and naturally and chemically dispersed
     # oil droplet size distribution under surface breaking wave conditions
-    
+
     if wave_breaking_fraction is None:
         if wind_speed is None:
             raise ValueError('wave_breaking_fraction or wind_speed must be provided')
@@ -216,6 +216,39 @@ def ftle(X, Y, delta, duration):
 
     return FTLE
 
+def cauchygreen_eigvals(X, Y, delta, duration):
+    """Calculate eigenvector and eigenvalues of cauchy-green strain tensor
+    returns eigenvalues, eigenvectors of the flow map X,Y 
+    """
+
+    # From Johannes Rohrs
+    nx = X.shape[0]
+    ny = X.shape[1]
+    J = np.empty([nx,ny,2,2],np.float)
+    lamba = np.empty([nx,ny,2],np.float)
+    xi = np.empty([nx,ny,2,2],np.float)
+
+    # gradient
+    dx = np.gradient(X)
+    dy = np.gradient(Y)
+
+    # Jacobian
+    J[:,:,0,0] = dx[0] / (2*delta)
+    J[:,:,1,0] = dy[0] / (2*delta)
+    J[:,:,0,1] = dx[1] / (2*delta)
+    J[:,:,1,1] = dy[1] / (2*delta)
+
+    for i in range(0,nx):
+        for j in range(0,ny):
+            # Green-Cauchy tensor
+            D = np.dot(np.transpose(J[i,j]), J[i,j])
+            # its largest eigenvalue
+            lamda[i,j], xi[i,j] = np.linalg.eigh(D)
+
+    return lamba, xi
+
+
+
 class PhysicsMethods(object):
     """Physics methods to be inherited by OpenDriftSimulation class"""
 
@@ -341,7 +374,7 @@ class PhysicsMethods(object):
             ice_velocity_y = self.environment.y_sea_water_velocity + \
                     0.015*self.environment.y_wind
             self.update_positions(
-                    factor*ice_velocity_x, 
+                    factor*ice_velocity_x,
                     factor*ice_velocity_y)
 
     def advect_wind(self, factor=1):

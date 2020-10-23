@@ -9,18 +9,19 @@ plotted on top of the LCS. This takes some minutes to calculate.
 
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
+import numpy as np
 
 from opendrift.readers import reader_double_gyre
 from opendrift.models.oceandrift import OceanDrift
 
 #%%
 # Setting some parameters
-duration = timedelta(seconds=12)  # T
+plot_time =  timedelta(seconds=12)
+duration = timedelta(seconds=6)  # T
 time_step=timedelta(seconds=.5)
 time_step_output=timedelta(seconds=.5)
 delta=.02  # spatial resolution
-steps = int(duration.total_seconds()/
-            time_step_output.total_seconds() + 1)
+#steps = int(duration.total_seconds()/ time_step_output.total_seconds() + 1)
 
 o = OceanDrift(loglevel=20)
 
@@ -34,26 +35,31 @@ double_gyre = reader_double_gyre.Reader(epsilon=.25, omega=0.628, A=0.1)
 print(double_gyre)
 o.add_reader(double_gyre)
 
+
 #%%
 # Calculate Lyapunov exponents
-times = [double_gyre.initial_time +
-         n*time_step_output for n in range(steps)]
-lcs = o.calculate_ftle(time=times, time_step=time_step,
+#times = [double_gyre.initial_time +  n*time_step_output for n in range(steps)]
+ftle = o.calculate_ftle(time=double_gyre.initial_time + plot_time, time_step=time_step,
                        duration=duration, delta=delta, RLCS=False)
 
 #%%
 # Make run with particles for the same period
 o.reset()
-x = [.9]
-y = [.5]
-lon, lat = double_gyre.xy2lonlat(x, y)
+x = np.linspace(0.1,1.9,1000)
+y = np.linspace(0.1,0.9,1000)
+#X,Y = np.meshgrid(x,y)
+lon, lat = double_gyre.xy2lonlat(x,y)
 
-o.seed_elements(lon, lat, radius=.15, number=2000,
+o.seed_elements(lon, lat,
                 time=double_gyre.initial_time)
 o.disable_vertical_motion()
-o.run(duration=duration, time_step=time_step,
+o.run(duration=plot_time, time_step=time_step,
       time_step_output=time_step_output)
-o.animation(buffer=0, lcs=lcs, cmap='cividis', hide_landmask=True)
+lonmin, latmin = double_gyre.xy2lonlat(0.,0.)
+lonmax, latmax = double_gyre.xy2lonlat(2.,1.)
+o.plot(lcs=ftle, show_initial=False, linewidth = 0, corners =[lonmin, lonmax, latmin, latmax], cmap='cividis')
+
+#o.animation(buffer=0, lcs=ftle, hide_landmask=True)
 
 #%%
 # .. image:: /gallery/animations/example_double_gyre_LCS_particles_0.gif

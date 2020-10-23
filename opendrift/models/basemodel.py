@@ -4002,8 +4002,10 @@ class OpenDriftSimulation(PhysicsMethods):
             # Backwards
             if ALCS is True:
                 self.reset()
+                #self.seed_elements(lons.ravel(), lats.ravel(),
+                #                   time=t+duration, z=z)
                 self.seed_elements(lons.ravel(), lats.ravel(),
-                                   time=t+duration, z=z)
+                                   time=t, z=z)
                 self.run(duration=duration, time_step=-time_step)
                 b_x1, b_y1 = proj(
                     self.history['lon'].T[-1].reshape(X.shape),
