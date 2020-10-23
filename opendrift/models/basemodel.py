@@ -4019,6 +4019,75 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return lcs
 
+    def calculate_lcs(self, reader=None, delta=None, domain=None,
+                       time=None, time_step=None, duration=None, z=0,
+                       forward=False):
+
+        if reader is None:
+            self.logger.info('No reader provided, using first available:')
+            reader = list(self.readers.items())[0][1]
+            self.logger.info(reader.name)
+        if isinstance(reader, pyproj.Proj):
+            proj = reader
+        elif isinstance(reader,str):
+            proj = pyproj.Proj(reader)
+        else:
+            proj = reader.proj
+
+        import scipy.ndimage as ndimage
+        from opendrift.models.physics_methods import cg_eigenvectors
+
+        if not isinstance(duration, timedelta):
+            duration = timedelta(seconds=duration)
+
+        if domain==None:
+            xs = np.arange(reader.xmin, reader.xmax, delta)
+            ys = np.arange(reader.ymin, reader.ymax, delta)
+        else:
+            xmin, xmax, ymin, ymax = domain
+            xs = np.arange(xmin, xmax, delta)
+            ys = np.arange(ymin, ymax, delta)
+
+        X, Y = np.meshgrid(xs, ys)
+        lons, lats = proj(X, Y, inverse=True)
+
+        if time is None:
+            time = reader.start_time
+        if not isinstance(time, list):
+            time = [time]
+        # dictionary to hold LCS calculation
+        lcs = {'time': time, 'lon': lons, 'lat':lats}
+        lcs['LCS'] = np.zeros((len(time), len(ys), len(xs)))
+        lcs['eigvec'] = np.zeros((len(time), len(ys), len(xs), 2, 2 ))
+        lcs['eigval'] = np.zeros((len(time), len(ys), len(xs), 2))
+
+        T = np.abs(duration.total_seconds())
+        for i, t in enumerate(time):
+            self.logger.info('Calculating LCS for ' + str(t))
+            # Forward or bachward flow map
+            dir = -1
+            if forward==True:
+                dir = 1.
+            self.reset()
+            self.seed_elements(lons.ravel(), lats.ravel(),
+                               time=t, z=z)
+            self.run(duration=duration, time_step=time_step)
+            x1, y1 = proj(
+                self.history['lon'].T[-1].reshape(X.shape),
+                self.history['lat'].T[-1].reshape(X.shape))
+            lamba,xi =  cg_eigenvectors(x1-X, y1-Y, delta, T)
+            lcs['eigval'][i,:,:,:] = lamba
+            lcs['eigvec'][i,:,:,:,:] = xi
+
+        #lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
+        #lcs['ALCS'] = np.ma.masked_invalid(lcs['ALCS'])
+        # Flipping ALCS left-right. Not sure why this is needed
+        #lcs['ALCS'] = lcs['ALCS'][:,::-1,::-1]
+        lcs['eigval'] = lcs['eigval'][:,::-1,::-1]
+        lcs['eigvec'] = lcs['eigvec'][:,::-1,::-1]
+        return lcs
+
+
     def center_of_gravity(self, onlysurface=False):
         """
         calculate center of mass and variance of all elements

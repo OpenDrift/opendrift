@@ -189,7 +189,7 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
 
 
 def ftle(X, Y, delta, duration):
-    """Calculate Finite Time Lyapunov Exponents"""
+    """Calculate Finite Time Lyapunov Exponents from flow map"""
     # From Johannes Rohrs
     nx = X.shape[0]
     ny = X.shape[1]
@@ -216,9 +216,9 @@ def ftle(X, Y, delta, duration):
 
     return FTLE
 
-def cauchygreen_eigvals(X, Y, delta, duration):
+def cg_eigenvectors(X, Y, delta, duration):
     """Calculate eigenvector and eigenvalues of cauchy-green strain tensor
-    returns eigenvalues, eigenvectors of the flow map X,Y 
+    returns eigenvalues, eigenvectors of the flow map X,Y
     """
 
     # From Johannes Rohrs
@@ -243,7 +243,7 @@ def cauchygreen_eigvals(X, Y, delta, duration):
             # Green-Cauchy tensor
             D = np.dot(np.transpose(J[i,j]), J[i,j])
             # its largest eigenvalue
-            lamda[i,j], xi[i,j] = np.linalg.eigh(D)
+            lamba[i,j], xi[i,j] = np.linalg.eigh(D)
 
     return lamba, xi
 

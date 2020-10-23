@@ -17,10 +17,10 @@ from opendrift.models.oceandrift import OceanDrift
 #%%
 # Setting some parameters
 plot_time =  timedelta(seconds=12)
-duration = timedelta(seconds=6)  # T
+duration = timedelta(seconds=12)  # T
 time_step=timedelta(seconds=.5)
 time_step_output=timedelta(seconds=.5)
-delta=.02  # spatial resolution
+delta=.01  # spatial resolution
 #steps = int(duration.total_seconds()/ time_step_output.total_seconds() + 1)
 
 o = OceanDrift(loglevel=20)
@@ -42,13 +42,15 @@ o.add_reader(double_gyre)
 ftle = o.calculate_ftle(time=double_gyre.initial_time + plot_time, time_step=time_step,
                        duration=duration, delta=delta, RLCS=False)
 
+lcs = o.calculate_lcs(time=double_gyre.initial_time + plot_time, time_step=-time_step,
+                       duration=duration, delta=delta)
 #%%
 # Make run with particles for the same period
 o.reset()
-x = np.linspace(0.1,1.9,1000)
-y = np.linspace(0.1,0.9,1000)
-#X,Y = np.meshgrid(x,y)
-lon, lat = double_gyre.xy2lonlat(x,y)
+x = np.linspace(0.1,1.9,100)
+y = np.linspace(0.1,0.9,100)
+X,Y = np.meshgrid(x.ravel(),y.ravel())
+lon, lat = double_gyre.xy2lonlat(X,Y)
 
 o.seed_elements(lon, lat,
                 time=double_gyre.initial_time)
@@ -58,6 +60,14 @@ o.run(duration=plot_time, time_step=time_step,
 lonmin, latmin = double_gyre.xy2lonlat(0.,0.)
 lonmax, latmax = double_gyre.xy2lonlat(2.,1.)
 o.plot(lcs=ftle, show_initial=False, linewidth = 0, corners =[lonmin, lonmax, latmin, latmax], cmap='cividis')
+
+fig = plt.figure()
+fig.add_subplot(211)
+plt.pcolormesh(np.log(np.sqrt(lcs['eigval'][0,:,:,0])), cmap='cividis'),plt.colorbar()
+plt.quiver(lcs['eigvec'][0,:,:,0,0], lcs['eigvec'][0,:,:,0,1])
+fig.add_subplot(212)
+plt.pcolormesh(np.log(np.sqrt(lcs['eigval'][0,:,:,1])), cmap='cividis'),plt.colorbar()
+plt.quiver(lcs['eigvec'][0,:,:,0,0], lcs['eigvec'][0,:,:,0,1])
 
 #o.animation(buffer=0, lcs=ftle, hide_landmask=True)
 
