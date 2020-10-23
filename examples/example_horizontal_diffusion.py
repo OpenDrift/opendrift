@@ -34,18 +34,28 @@ o.run(duration=timedelta(hours=24))
 
 #%%
 # Second run, identical, except for added diffusion
-
 o2 = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_norkyst, reader_arome])
 o2.seed_elements(lon, lat, radius=500, number=2000, time=time)
-o2.set_config('drift:current_uncertainty', .2) # Difference from first run
-o2.set_config('drift:wind_uncertainty', 1)     # Difference from first run
+#o2.set_config('drift:current_uncertainty', .2) # Difference from first run
+#o2.set_config('drift:wind_uncertainty', 1)     # Difference from first run
+o2.set_config('drift:horizontal_diffusivity', 10)     # Difference from first run
 o2.run(duration=timedelta(hours=24))
 
 #%%
+# Third run, identical, except for diffusion and shorter timestep
+o3 = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
+o3.add_reader([reader_norkyst, reader_arome])
+o3.seed_elements(lon, lat, radius=500, number=2000, time=time)
+#o3.set_config('drift:current_uncertainty', .2) # Difference from first run
+#o3.set_config('drift:wind_uncertainty', 1)     # Difference from first run
+o3.set_config('drift:horizontal_diffusivity', 10)     # Difference from first run
+o3.run(duration=timedelta(hours=24), time_step=300, time_step_output=3600)
+
+#%%
 # Comparing
-o2.animation(compare=o, legend=['Width diffusion', 'No diffusion'],
+o2.animation(compare=[o3, o], legend=['Diffusion, timstep 3600s', 'Diffusion, timestep 300s', 'No diffusion'],
              legend_loc='upper center', fast=True)
 
 #%%
-# .. image:: /gallery/animations/example_diffusion_0.gif
+# .. image:: /gallery/animations/example_horizontal_diffusion_0.gif

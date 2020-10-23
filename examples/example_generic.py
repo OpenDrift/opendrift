@@ -43,17 +43,16 @@ o.set_config('drift:wind_uncertainty', 1)
 
 #%%
 # Running model
-
 o.run(end_time=reader_norkyst.end_time, time_step=1800,
       time_step_output=3600, outfile='openoil.nc',
       export_variables=['mass_oil'])
 
 #%%
 # Print and plot results
-#o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
-# o.animation(fast=True)
-# o.animation(density=True, show_elements=False, fast=True)
 o.plot(fast=True)
+#o.plot(background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer=.5)
+#o.animation(fast=True)
+#o.animation(density=True, show_elements=False, fast=True)
 
 #%%
 # Or an animation can be generated with:

@@ -138,7 +138,7 @@ class TestPhysics(unittest.TestCase):
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -46.3, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -46.2, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
@@ -177,20 +177,20 @@ class TestPhysics(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -42.6, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -42.1, 1)
         ########################################################
 
     def test_verticalmixing_schemes(self):
 
         for scheme in ['environment', 'windspeed_Large1994',
-                       'windspeed_Sundby1983', 'zero']:
+                       'windspeed_Sundby1983', 'constant']:
             o = OpenOil(loglevel=50, weathering_model='noaa')
             o.fallback_values['land_binary_mask'] = 0
             o.fallback_values['x_wind'] = 10
             o.fallback_values['y_wind'] = 0
             o.fallback_values['x_sea_water_velocity'] = 0
             o.fallback_values['y_sea_water_velocity'] = 0
-            o.fallback_values['ocean_vertical_diffusivity'] = 0.02
+            o.fallback_values['ocean_vertical_diffusivity'] = 0
             o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
                             density=865, time=datetime.now())
 
@@ -199,12 +199,12 @@ class TestPhysics(unittest.TestCase):
             o.run(duration=timedelta(hours=2), time_step=900)
 
             if scheme == 'environment':  # presently this is fallback
-                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -41.5, 1)
             elif scheme == 'windspeed_Large1994':
-                self.assertAlmostEqual(o.elements.z.min(), -41.37, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -41.5, 1)
             elif scheme == 'windspeed_Sundby1983':
                 self.assertAlmostEqual(o.elements.z.min(), -36.7, 1)
-            elif scheme == 'zero':
+            elif scheme == 'constant':
                 self.assertAlmostEqual(o.elements.z.min(), -3.62, 1)
 
     def test_parameterised_stokes(self):
