@@ -391,8 +391,9 @@ class OpenDriftGUI(tk.Tk):
             con.destroy()
         self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
         self.con.grid(row=0, column=1, rowspan=1)
-        for i, cs in enumerate(self.o._config_hashstrings()):
-            tk.Label(self.config, text=cs).grid(row=i, column=1, rowspan=1)
+        #for i, cs in enumerate(self.o._config_hashstrings()):
+        for key in self.o._config:
+            tk.Label(self.config, text=key).grid(row=i, column=1, rowspan=1)
         try:
             self.results.destroy()
         except:
@@ -406,7 +407,8 @@ class OpenDriftGUI(tk.Tk):
             pass
 
         print(self.o.list_configspec())
-        sc = self.o.get_seed_config()
+        #sc = self.o.get_seed_config()
+        sc = self.o.get_configspec(level=self.o.CONFIG_LEVEL_ESSENTIAL)
         print(sc)
         self.seed_input = {}
         self.seed_input_var = {}

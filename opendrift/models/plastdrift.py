@@ -63,26 +63,30 @@ class PlastDrift(OceanDrift):
     required_profiles = ['ocean_vertical_diffusivity']
 
 
-    configspecPlastDrift = '''
-        [general]
-            coastline_action = option('none', 'stranding', 'previous', default='previous')
-        [drift]
-            vertical_advection = boolean(default=True)
-            use_tabularised_stokes_drift = boolean(default=True)
-            wind_drift_depth = float(min=0, max=10, default=0.1)
-        [vertical_mixing]
-            mixingmodel = option('randomwalk', 'analytical', default='analytical')
-            diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='windspeed_Large1994')
-        '''
-
     def __init__(self, *args, **kwargs):
 
         # Call parent constructor
         super(PlastDrift, self).__init__(*args, **kwargs)
 
         # Add specific config settings
-        self._add_configstring(self.configspecPlastDrift)
-
+        self._add_config({
+            'vertical_mixing:mixingmodel': {'type': 'enum',
+                'enum': ['randomwalk', 'analytical'], 'default': 'analytical',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                    'Scheme to be used for vertical turbulent mixing'},
+            'vertical_mixing:diffusivitymodel': {'type': 'enum',
+                'enum': ['environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke'],
+                'default': 'windspeed_Large1994',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                    'Diffusivity model to be used for vertical turbulent mixing'},
+            'drift:wind_drift_depth': {'type': 'float', 'min': 0, 'max': 10, 'default': .1,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'units': 'meters', 'description':
+                'The direct wind drift (windage) is linearly decreasing from the surface value (wind_drift_factor) until 0 at this depth.'},
+            }, overwrite=True)
+    
+        self.set_config('drift:vertical_advection', True)
+        self.set_config('drift:use_tabularised_stokes_drift', True)
+        self.set_config('general:coastline_action', 'previous')
 
     def update(self):
         """Update positions and properties of elements."""

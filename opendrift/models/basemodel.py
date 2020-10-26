@@ -20,6 +20,7 @@ import os
 import glob
 import types
 import traceback
+import inspect
 import logging; logging.captureWarnings(True)
 import warnings
 from datetime import datetime, timedelta
@@ -33,7 +34,6 @@ from netCDF4 import Dataset, date2num
 import numpy as np
 import scipy
 import pyproj
-import configobj, validate
 try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
@@ -124,32 +124,9 @@ class OpenDriftSimulation(PhysicsMethods):
                              'active': 'blue',
                              'missing_data': 'gray'}
 
-    configspec_basemodel = '''
-            [general]
-                use_auto_landmask = boolean(default=True)
-                coastline_action = option('none', 'stranding', 'previous', default='stranding')
-                time_step_minutes = integer(min=1, max=1440, default=60)
-                time_step_output_minutes = integer(min=1, max=1440, default=None)
-            [seed]
-                ocean_only = boolean(default=True)
-                number_of_elements = integer(min=1, max=100000000, default=1)
-            [drift]
-                max_age_seconds = float(min=0, default=None)
-                scheme = option('euler', 'runge-kutta', 'runge-kutta4', default='euler')
-                stokes_drift = boolean(default=True)
-                current_uncertainty = float(min=0, max=5, default=0)
-                current_uncertainty_uniform = float(min=0, max=5, default=0)
-                horizontal_diffusivity = float(min=0, max=100, default=0)
-                wind_uncertainty = float(min=0, max=5, default=0)
-                relative_wind = boolean(default=False)
-                lift_to_seafloor = boolean(default=True)
-                truncate_ocean_model_below_m = float(min=0, max=10000, default=None)
-                deactivate_north_of = float(min=-90, max=90, default=None)
-                deactivate_south_of = float(min=-90, max=90, default=None)
-                deactivate_east_of = float(min=-360, max=360, default=None)
-                deactivate_west_of = float(min=-360, max=360, default=None)
-                use_tabularised_stokes_drift = boolean(default=False)
-                tabularised_stokes_drift_fetch = option(5000, 25000, 50000, default=25000)'''
+    CONFIG_LEVEL_ESSENTIAL=1
+    CONFIG_LEVEL_BASIC=2
+    CONFIG_LEVEL_ADVANCED=3
 
     max_speed = 1  # Assumed max average speed of any element
     required_profiles = None  # Optional possibility to get vertical profiles
@@ -183,8 +160,6 @@ class OpenDriftSimulation(PhysicsMethods):
                      (e.g. '%H:%M:%S')
         """
 
-        # Set default configuration
-        self._add_configstring(self.configspec_basemodel)
         self.show_continuous_performance = False
 
         # Dict to store readers
@@ -253,6 +228,94 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_import_file = types.MethodType(io_module.import_file, self)
         self.io_import_file_xarray = types.MethodType(io_module.import_file_xarray, self)
 
+        # Set configuration options
+        self._add_config({
+            # type, default, min, max, enum, important, value, units, description
+            'general:use_auto_landmask': {'type': 'bool', 'default': True,
+                'description': 'A built-in GSHHG global landmask is used if True, '
+                 'otherwise landmask is taken from reader or fallback value.',
+                 'level': self.CONFIG_LEVEL_ADVANCED},
+            'general:coastline_action': {'type': 'enum', 'enum': ['none', 'stranding', 'previous'],
+                'default': 'stranding', 'level': self.CONFIG_LEVEL_BASIC, 
+                 'description': 'None means that objects may also move over land. '
+                    'stranding means that objects are deactivated if they hit land. '
+                    'previous means that objects will move back to the previous location '
+                    'if they hit land'},
+            'general:time_step_minutes': {'type': 'int', 'min': 1, 'max': 1440, 'default': 60,
+                'units': 'minutes', 'level': self.CONFIG_LEVEL_BASIC, 'description':
+                'Calculation time step used for the simulation. The output time step may '
+                'be equal or larger than this.'},
+            'general:time_step_output_minutes': {'type': 'int', 'min': 1, 'max': 1440, 'default': None,
+                'units': 'minutes', 'level': self.CONFIG_LEVEL_BASIC, 'description':
+                'Output time step, i.e. the interval at which output is saved. This must be larger than '
+                'the calculation time step, and be an integer multiple of this.'},
+            'seed:ocean_only': {'type': 'bool', 'default': True,
+                'description': 'If True, elements seeded on land will be moved to the closest '
+                    'position in ocean.', 'level': self.CONFIG_LEVEL_ADVANCED},
+            'seed:number_of_elements': {'type': 'int', 'default': 1,
+                'min': 1, 'max': 100000000, 'units': 1,
+                'description': 'The number of elements for the simulation.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'drift:max_age_seconds': {'type': 'float', 'default': None,
+                'min': 0, 'max': np.inf, 'units': 'seconds',
+                'description': 'Elements will be deactivated when this age is reached..',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:scheme': {'type': 'enum', 'enum': ['euler', 'runge-kutta', 'runge-kutta4'], 'default': 'euler',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                'Numerical advection scheme for ocean current advection.'},
+            'drift:stokes_drift': {'type': 'bool', 'default': True,
+                'description': 'Advection elements with Stokes drift (wave orbital motion).',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:use_tabularised_stokes_drift': {'type': 'bool', 'default': False,
+                'description': 'If True, Stokes drift is estimated from wind based on look-up-tables for given fetch (drift:tabularised_stokes_drift_fetch).',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:tabularised_stokes_drift_fetch': {'type': 'enum', 'enum': ['5000', '25000', '50000'], 'default': '25000',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                'The fetch length when using tabularised Stokes drift.'},
+            'drift:current_uncertainty': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 5, 'units': 'm/s',
+                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step.',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:current_uncertainty_uniform': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 5, 'units': 'm/s',
+                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step.',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:horizontal_diffusivity': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 100, 'units': 'm2/s',
+                'description': 'Add horizontal diffusivity (random walk)',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:wind_uncertainty': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 5, 'units': 'm/s',
+                'description': 'Add gaussian perturbation with this standard deviation to wind components at each time step.',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:relative_wind': {'type': 'bool', 'default': False,
+                'description': 'If True, wind drift is calculated for absolute wind (wind vector minus ocean surface current vector).',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:lift_to_seafloor': {'type': 'bool', 'default': True,
+                'description': 'If True, elements hitting/penetrating seafloor, are lifted to seafloor height. The alternative (False) is to deactivate elements).',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:truncate_ocean_model_below_m': {'type': 'float', 'default': None,
+                'min': 0, 'max': 10000, 'units': 'm',
+                'description': 'Ocean model data are only read down to at most this depth, and extrapolated below. May be specified to read less data to improve performance.',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:deactivate_north_of': {'type': 'float', 'default': None,
+                'min': -90, 'max': 90, 'units': 'degrees',
+                'description': 'Elements are deactivated if the move further north than this limit',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:deactivate_south_of': {'type': 'float', 'default': None,
+                'min': -90, 'max': 90, 'units': 'degrees',
+                'description': 'Elements are deactivated if the move further south than this limit',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:deactivate_east_of': {'type': 'float', 'default': None,
+                'min': -360, 'max': 360, 'units': 'degrees',
+                'description': 'Elements are deactivated if the move further east than this limit',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:deactivate_west_of': {'type': 'float', 'default': None,
+                'min': -360, 'max': 360, 'units': 'degrees',
+                'description': 'Elements are deactivated if the move further west than this limit',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+        })
+
         self.timer_start('total time')
         self.timer_start('configuration')
 
@@ -260,181 +323,101 @@ class OpenDriftSimulation(PhysicsMethods):
         self.logger.info('OpenDriftSimulation initialised (version %s)' %
                      opendrift.__version__)
 
-    def _add_config(self, key, value, comment, overwrite=False):
-        """Add a configuration item to the current model."""
-        if isinstance(value, list):
-            value = 'option(%s, default=\'%s\')' % (
-                     str(value)[1:-1], value[0])
-        cs = ''  # configstring
-        for i, s in enumerate(key.split(':')):
-            if i < len(key.split(':')) - 1:
-                cs += '\n' + '['*(i+1) + s + ']'*(i+1)
-            else:
-                cs += '\n\t' + s + ' = ' + value
-        newconf = configobj.ConfigObj(configspec=cs.split('\n'),
-                    encoding='utf8')
-        newconf.validate(validate.Validator())
-        if not hasattr(self, 'configobj'):
-            self.configobj = newconf
-        else:
-            self._merge_config(newconf, overwrite=True)
-
-    def _merge_config(self, newconf, overwrite=False):
-        if overwrite is True:
-            self.configobj.merge(newconf)
-            self.configobj.configspec.merge(newconf.configspec)
-        else:
-            newconf.configspec.merge(self.configobj.configspec)
-            self.configobj.configspec = newconf.configspec
-            newconf.merge(self.configobj)
-            self.configobj = newconf
-
-    def _add_configstring(self, configstring):
-        """Add several configuration items from string (INI-format)."""
-        newconf = configobj.ConfigObj(configspec=configstring.split('\n'),                      encoding='utf8')
-        newconf.validate(validate.Validator())
-        if not hasattr(self, 'configobj'):
-            self.configobj = newconf
-        else:
-            self.configobj.merge(newconf)
-            self.configobj.configspec.merge(newconf.configspec)
-
-    def set_config(self, key, value):
-        """Provide a value for a configuration setting"""
-        if key == 'general:use_basemap_landmask':
-            warnings.warn("use_basemap_landmask is deprecated in favor of use_auto_landmask", DeprecationWarning)
-            key = 'general:use_auto_landmask'
-
-        d = self.configobj
-        ds = self.configobj.configspec
-        try:
-            default, minval, maxval, opt = self.get_configspec_default_min_max(key)
-        except:
-            self.logger.warning(self.list_configspec())
-            raise ValueError('Config item %s is not available, se above for valid items' % key)
-        for i, s in enumerate(key.split(':')):
-            if s not in d:
-                self.list_configspec()
-                raise ValueError('Wrong configuration')
-            if not isinstance(d[s], dict):
-                if ds[s][0:5] == 'float' and value is not None:
-                    value = float(value)
-                if ds[s][0:5] == 'integ' and value is not None:
-                    value = int(value)
-                if isinstance(value, float) or isinstance(value, int):
-                    if (minval is not None and value<minval) or (maxval is not None and value>maxval):
-                        raise ValueError('Value of %s (%s) is outside allowed interval: (%s - %s)' %
-                                         (key, value, minval, maxval))
-                d[s] = value
-            else:
-                d = d[s]
-                ds = ds[s]
-        valid = self.configobj.validate(validate.Validator())
-        if self.configobj.validate(validate.Validator()) is not True:
-            if hasattr(self, 'oiltypes') or hasattr(self, 'leewayprop'):
-                # Provide some suggestion if config is very long list (e.g. oiltype/leewaycategory)
-                if hasattr(self, 'oiltypes'):
-                    elements = self.oiltypes
-                elif hasattr(self, 'leewayprop'):
-                    elements = [self.leewayprop[la]['OBJKEY'] for la in self.leewayprop]
-                import difflib
-                matches = difflib.get_close_matches(value, elements, n=20, cutoff=.3)
-                containing = [el for el in elements if value in el]
-                matches = list(set(matches) | set(containing))
-                if len(matches) > 0:
-                    matches.sort()
-                    suggestion = '\nDid you mean any of these?\n%s' % str(matches)
-                else:
-                    suggestion = ''
-                raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
-
-    def _config_hash_to_dict(self, hashstring):
-        """Return configobj-dict from section:section:key format"""
-        c = self.configobj
-        cs = self.configobj.configspec
-        for i, s in enumerate(hashstring.split(':')):
-            if isinstance(c[s], dict):
-                c = c[s]
-                cs = cs[s]
-        return c, cs, s
-
-    def get_config(self, key):
-        """Get value of a configuration setting"""
-        c, cs, s = self._config_hash_to_dict(key)
-        return c[s]
-
-    def get_configspec(self, key):
-        """Get configuration specification of a configuration setting"""
-        c, cs, s = self._config_hash_to_dict(key)
-        return cs[s]
-
-    def get_configspec_default_min_max(self, key):
-        """Get default, min and max config values for configuration setting"""
-        c, cs, s = self._config_hash_to_dict(key)
-        v = validate.Validator()
-        default = v.get_default_value(cs[s])
-        datatype = cs[s].split('(')[0]
-        if datatype in ['float', 'integer'] and 'min' in cs[s] and 'max' in cs[s]:
-            minimum = cs[s].split('min=')[-1].split(',')[0]
-            maximum = cs[s].split('max=')[-1].split(',')[0]
-            if datatype == 'float':
-                minimum = float(minimum)
-                maximum = float(maximum)
-            elif datatype == 'integer':
-                minimum = int(minimum)
-                maximum = int(maximum)
-        else:
-            minimum = maximum = None
-        if datatype == 'option':
-            # Parsing options list
-            options = cs[s][len('options'):-1]
-            options = options.split('default=')[0][:-2]
-            import ast
-            options = ast.literal_eval('[' + options + ']')
-        else:
-            options = None
-        return default, minimum, maximum, options
-
-    def get_seed_config(self):
-        """Get dictionary with all config options under category seed"""
-        sc = {}
-        for c in self._config_hashstrings():
-            if c[0:5] == 'seed:':
-                name = c[5:]
-                sc[name] = {}
-                sn = sc[name]
-                sn['default'], sn['min'], sn['max'], sn['options'] = \
-                    self.get_configspec_default_min_max(c)
-        return sc
-
-    def _config_hashstrings(self):
-        """Get list of strings section:section:key for all config items"""
-        def fun(k, d, pre):
-            path = '%s:%s' % (pre, k) if pre else k
-            return path if type(d[k]) is not configobj.Section else \
-                ",".join([fun(i,d[k], path) for i in d[k]])
-        return ",".join([fun(k,self.configobj, '') for
-                         k in self.configobj]).split(',')
-
-    def list_configspec(self):
-        """List all possible configuration settings with specifications"""
-        keys = self._config_hashstrings()
-        str = '\n==============================================\n'
-        for key in keys:
-            str += '%s [%s] %s\n' % (key, self.get_config(key),
-                                   self.get_configspec(key))
-        str += '==============================================\n'
-        self.logger.info(str)
-        return str
-
     def list_config(self):
         """List all possible configuration settings with values"""
-        keys = self._config_hashstrings()
         str = '\n=============================================\n'
-        for key in keys:
+        for key in self._config:
             str += '%s [%s]\n' % (key, self.get_config(key))
         str += '=============================================\n'
         self.logger.info(str)
+
+    def list_configspec(self):
+        """Readable formatting of config specification"""
+        for c, i in self._config.items():
+            val = i['value'] if 'value' in i else None
+            if i['type'] == 'bool':
+                rang=''
+            elif i['type'] in ['float', 'int']:
+                rang = 'min: %s, max: %s [%s]' % (i['min'], i['max'], i['units'])
+            elif i['type'] == 'enum':
+                rang = i['enum']
+            print('%-35s [%s] %-5s %s %s...' % (c, val, i['type'], rang, i['description'][0:20]))
+
+    def get_configspec(self, prefix='', level=[1,2,3]):
+        if not isinstance(level, list):
+            level = [level]
+        configspec = {k:v for (k,v) in self._config.items() if k.startswith(prefix)
+                        and self._config[k]['level'] in level}
+        return configspec
+
+    def _add_config(self, config, overwrite=False):
+        caller = inspect.stack()[1]
+        caller = os.path.splitext(os.path.basename(caller.filename))[0]
+        print('Adding %i config items from %s' % (len(config), caller))
+        if not hasattr(self, '_config'):
+            self._config = {}
+        remove = []
+        for c, i in config.items():  # Check that provided config is conistent
+            if c in self._config:
+                if overwrite is False:
+                    print('  Config item %s is already specified, not overwriting' % c)
+                    remove.append(c)
+                else:
+                    print('  Overriding config item %s' % c)
+            for p in ['type', 'description', 'level']:
+                if p not in i:
+                    raise ValueError('"%s" must be specified for config item %s' % (p, c))
+            if i['level'] != self.CONFIG_LEVEL_ESSENTIAL and 'default' not in i:#or i['default'] is None:
+                raise ValueError('A default value must be provided for config item %s' % c)
+            if i['type'] == 'enum':
+                if 'enum' not in i or not isinstance(i['enum'], list):
+                    raise ValueError('"enum" of type list must be provided for config item %s' % (c))
+            elif i['type'] in ['float', 'int']:
+                for p in ['min', 'max', 'units']:
+                    if p not in i:
+                        raise ValueError('"%s" not provided for config item %s' % (p, c))
+            elif i['type'] == 'bool':
+                pass  # no check for bool
+            else:
+                raise ValueError('Config type "%s" (%s) is not defined. Valid options are: '
+                                 'float, int, enum, bool' % (i['type'], c))
+            if 'default' in i:
+                i['value'] = i['default']
+        for r in remove:
+            del config[r]
+        self._config.update(config)
+
+    def set_config(self, key, value):
+        if not key in self._config:
+            raise ValueError('No config setting named %s' % key)
+        i = self._config[key]
+        if i['type'] == 'bool':
+            if value not in [True, False]:
+                raise ValueError('Config value must be True or False')
+        elif i['type'] in ['float', 'int']:
+            if value < i['min'] or value > i['max']:
+                raise ValueError('Config value must be between %s and %s' % (i['min'], i['max']))
+        elif i['type'] == 'enum':
+            if value not in i['enum']:
+                if len(i['enum']) > 5:
+                    import difflib
+                    matches = difflib.get_close_matches(value, i['enum'], n=20, cutoff=.3)
+                    containing = [e for e in i['enum'] if value in e]
+                    matches = list(set(matches) | set(containing))
+                    if len(matches) > 0:
+                        matches.sort()
+                        suggestion = '\nDid you mean any of these?\n%s' % str(matches)
+                    else:
+                        suggestion = ''
+                    raise ValueError('Wrong configuration, possible values are:\n\t%s\n%s' %
+                                     (i['enum'], suggestion))
+
+        self._config[key]['value'] = value
+
+    def get_config(self, key):
+        if not key in self._config:
+            raise ValueError('No config setting named %s' % key)
+        return(self._config[key]['value'])
 
     def add_metadata(self, key, value):
         """Add item to metadata dictionary, for export as netCDF global attributes"""
@@ -2031,12 +2014,6 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.timer_end('configuration')
         self.timer_start('preparing main loop')
-        # Check that configuration is proper
-        validation = self.configobj.validate(validate.Validator())
-        if validation is True:
-            self.logger.info('Config validation OK')
-        else:
-            raise ValueError('Configuration error: ' + str(validation))
 
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
@@ -4079,7 +4056,6 @@ class OpenDriftSimulation(PhysicsMethods):
             # This assumes that the calling script is two frames up in the stack. If
             # _save_animation is called through a more deeply nested method, it will
             # not give the correct result.
-            import inspect
             caller = inspect.stack()[2]
             caller = os.path.splitext(os.path.basename(caller.filename))[0]
 

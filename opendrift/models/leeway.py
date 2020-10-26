@@ -127,24 +127,28 @@ class Leeway(OpenDriftSimulation):
         # Config
         descriptions = [self.leewayprop[p]['Description'] for
                         p in self.leewayprop]
-        self._add_config('seed:object_type', descriptions, 'Object type',
-                         overwrite=True)
-        # Default jibe probability is 4% per hour
-        self._add_config('seed:jibeProbability',
-                         'float(min=0, max=1, default=0.04)',
-                         'Jibe probability', overwrite=True)
+
+        self._add_config({
+            'seed:object_type': {'type': 'enum', 'enum': descriptions,
+                'default': descriptions[0],
+                'description': 'Leeway object category for this simulation',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:jibeProbability': {'type': 'float',
+                'default': 0.04, 'min': 0, 'max': 1,
+                'description': 'Probability per hour for jibing (objects changing orientation',
+                'units': 'probability', 'level': self.CONFIG_LEVEL_BASIC},
+            'general:time_step_minutes': {'type': 'int', 'min': 1,
+                'units': 'minutes',
+                'max': 1440, 'default': 10, 'level': self.CONFIG_LEVEL_ADVANCED,
+                'description': 'Calculation time step used for simulation.'},
+            'general:time_step_output_minutes': {'type': 'int', 'min': 1,
+                'units': 'minutes',
+                'max': 1440, 'default': 60, 'level': self.CONFIG_LEVEL_ADVANCED,
+                'description': 'Output time step used for simulation.'}
+            })
 
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
-
-        self._add_config('general:time_step_minutes',
-                         'integer(min=1, max=1440, default=10)',
-                         'Time step in minutes',
-                         overwrite=True)
-        self._add_config('general:time_step_output_minutes',
-                         'integer(min=1, max=1440, default=60)',
-                         'Output time step in minutes',
-                         overwrite=True)
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
                       objectType=None, cone=None, jibeProbability=None,

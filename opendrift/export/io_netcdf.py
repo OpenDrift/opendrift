@@ -51,7 +51,7 @@ def init(self, filename):
     #self.outfile.variables['time'].axis = 'T'
 
     # Write config settings
-    for key in self._config_hashstrings():
+    for key in self._config:
         value = self.get_config(key)
         if isinstance(value, (bool, type(None))):
             value = str(value)

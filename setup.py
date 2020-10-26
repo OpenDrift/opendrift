@@ -19,7 +19,6 @@ setuptools.setup(
         'scipy',
         'matplotlib',
         'netCDF4',
-        'configobj',
         'pyproj',
         'cartopy',
         'opendrift-landmask-data'
