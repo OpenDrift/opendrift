@@ -1,15 +1,23 @@
 History
 =======
 
+2020-10-27 / Release v1.4.0
+---------------------------
+
+* New internal config mechanism, and configobj package is no longer needed. The user API (``get_config()``, ``set_config()``) is unchanged, but model developers must use the `new mechanism <https://opendrift.github.io/autoapi/opendrift/models/basemodel/index.html#opendrift.models.basemodel.OpenDriftSimulation._add_config>`_ to add configuration settings.
+* Added new reader for static 2D fields (``reader_constant_2d.py``)
+* Xarray, Dask and Xhistogram are new requirements. New method ``opendrift.open_xarray`` to open an output netCDF file lazily, with possibility to e.g. calculate density arrays/plots from datasets to large to fit in memory.
+* New model chemicaldrift
+
 2020-10-15 / Release v1.3.3
 ---------------------------
 
-* New seed method `seed_repeated_segment()`
-* New method `animate_vertical_distribution()`
+* New seed method ``seed_repeated_segment()``
+* New method ``animate_vertical_distribution()``
 * Vertical mixing scheme is greatly simplified, and should be faster for large number of elements.
 * Vertical mixing is now disabled by default in OceanDrift, but enabled in all submodules (PelagicEggDrift, SedimentDrift, RadionuclideDrift, OpenOil)
-* Vertical diffusivity option `zero` is replaced with `constant`, which means using the fallback value.
-* New config setting `drift:horizontal_diffusivity`, providing time-step independent diffusion, in contrast to `drift:current_uncertainty` and `drift:wind_uncertainty`
+* Vertical diffusivity option `zero` is replaced with ``constant``, which means using the fallback value.
+* New config setting ``drift:horizontal_diffusivity``, providing time-step independent diffusion, in contrast to ``drift:current_uncertainty`` and ``drift:wind_uncertainty``
 * Readers may be initialised from a JSON string, where `reader` is name of reader module, and other parameters are forwarded to reader constructor, e.g.: `{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh"}`
 * CMEMS reader now obtains username/password from .netrc instead of environment variables. CMEMS-motuclient is added to environment.yml
 * CMEMS reader now takes dataset name and not product name as input, and it is possible to provide variable mapping.
