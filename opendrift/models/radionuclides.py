@@ -239,7 +239,7 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             })
 
-        self.set_config('drift:vertical_mixing', True)
+        self._set_config_default('drift:vertical_mixing', True)
 
     def prepare_run(self):
 

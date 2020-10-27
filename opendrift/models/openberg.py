@@ -116,6 +116,9 @@ class OpenBerg(OpenDriftSimulation):
 
         self.required_profiles_z_range = [-120, 0] # [min_depth, max_depth]
 
+        # Calling general constructor of parent class
+        super(OpenBerg, self).__init__(*args, **kwargs)
+
         self._add_config({
             'seed:wind_drift_factor': {'type': 'float', 'min': 0, 'max': 1,
                 'default': 0.018, 'units': 'fraction',
@@ -129,18 +132,10 @@ class OpenBerg(OpenDriftSimulation):
                 'default': 60, 'units': 'meters',
                 'level': self.CONFIG_LEVEL_ADVANCED,
                 'description': 'Length of iceberg keel (part belor sea surface).'},
-            'drift:current_uncertainty': {'type': 'float', 'default': 0.15,
-                'min': 0, 'max': 5, 'units': 'm/s',
-                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step.',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:wind_uncertainty': {'type': 'float', 'default': 0.5,
-                'min': 0, 'max': 5, 'units': 'm/s',
-                'description': 'Add gaussian perturbation with this standard deviation to wind components at each time step.',
-                'level': self.CONFIG_LEVEL_ADVANCED},
             })
 
-        # Calling general constructor of parent class
-        super(OpenBerg, self).__init__(*args, **kwargs)
+        self._set_config_default('drift:current_uncertainty', .15)
+        self._set_config_default('drift:wind_uncertainty', .5)
 
     def seed_elements(self, *args, **kwargs):
         for var in ['wind_drift_factor', 'water_line_length', 'keel_depth']:

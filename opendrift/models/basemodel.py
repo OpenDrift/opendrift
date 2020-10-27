@@ -241,11 +241,11 @@ class OpenDriftSimulation(PhysicsMethods):
                     'stranding means that objects are deactivated if they hit land. '
                     'previous means that objects will move back to the previous location '
                     'if they hit land'},
-            'general:time_step_minutes': {'type': 'int', 'min': 1, 'max': 1440, 'default': 60,
+            'general:time_step_minutes': {'type': 'float', 'min': .01, 'max': 1440, 'default': 60,
                 'units': 'minutes', 'level': self.CONFIG_LEVEL_BASIC, 'description':
                 'Calculation time step used for the simulation. The output time step may '
                 'be equal or larger than this.'},
-            'general:time_step_output_minutes': {'type': 'int', 'min': 1, 'max': 1440, 'default': None,
+            'general:time_step_output_minutes': {'type': 'float', 'min': 1, 'max': 1440, 'default': None,
                 'units': 'minutes', 'level': self.CONFIG_LEVEL_BASIC, 'description':
                 'Output time step, i.e. the interval at which output is saved. This must be larger than '
                 'the calculation time step, and be an integer multiple of this.'},
@@ -263,15 +263,6 @@ class OpenDriftSimulation(PhysicsMethods):
             'drift:scheme': {'type': 'enum', 'enum': ['euler', 'runge-kutta', 'runge-kutta4'], 'default': 'euler',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description':
                 'Numerical advection scheme for ocean current advection.'},
-            'drift:stokes_drift': {'type': 'bool', 'default': True,
-                'description': 'Advection elements with Stokes drift (wave orbital motion).',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:use_tabularised_stokes_drift': {'type': 'bool', 'default': False,
-                'description': 'If True, Stokes drift is estimated from wind based on look-up-tables for given fetch (drift:tabularised_stokes_drift_fetch).',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:tabularised_stokes_drift_fetch': {'type': 'enum', 'enum': ['5000', '25000', '50000'], 'default': '25000',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
-                'The fetch length when using tabularised Stokes drift.'},
             'drift:current_uncertainty': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 5, 'units': 'm/s',
                 'description': 'Add gaussian perturbation with this standard deviation to current components at each time step.',
@@ -290,13 +281,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:relative_wind': {'type': 'bool', 'default': False,
                 'description': 'If True, wind drift is calculated for absolute wind (wind vector minus ocean surface current vector).',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:lift_to_seafloor': {'type': 'bool', 'default': True,
-                'description': 'If True, elements hitting/penetrating seafloor, are lifted to seafloor height. The alternative (False) is to deactivate elements).',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:truncate_ocean_model_below_m': {'type': 'float', 'default': None,
-                'min': 0, 'max': 10000, 'units': 'm',
-                'description': 'Ocean model data are only read down to at most this depth, and extrapolated below. May be specified to read less data to improve performance.',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:deactivate_north_of': {'type': 'float', 'default': None,
                 'min': -90, 'max': 90, 'units': 'degrees',
@@ -350,20 +334,20 @@ class OpenDriftSimulation(PhysicsMethods):
                         and self._config[k]['level'] in level}
         return configspec
 
-    def _add_config(self, config, overwrite=False):
+    def _add_config(self, config, overwrite=True):
         caller = inspect.stack()[1]
         caller = os.path.splitext(os.path.basename(caller.filename))[0]
-        print('Adding %i config items from %s' % (len(config), caller))
+        self.logger.debug('Adding %i config items from %s' % (len(config), caller))
         if not hasattr(self, '_config'):
             self._config = {}
         remove = []
         for c, i in config.items():  # Check that provided config is conistent
             if c in self._config:
                 if overwrite is False:
-                    print('  Config item %s is already specified, not overwriting' % c)
+                    self.logger.debug('  Config item %s is already specified, not overwriting' % c)
                     remove.append(c)
                 else:
-                    print('  Overriding config item %s' % c)
+                    self.logger.debug('  Overwriting config item %s' % c)
             for p in ['type', 'description', 'level']:
                 if p not in i:
                     raise ValueError('"%s" must be specified for config item %s' % (p, c))
@@ -397,6 +381,10 @@ class OpenDriftSimulation(PhysicsMethods):
         elif i['type'] in ['float', 'int']:
             if value < i['min'] or value > i['max']:
                 raise ValueError('Config value must be between %s and %s' % (i['min'], i['max']))
+            if i['type'] == 'float':
+                value = np.float(value)
+            elif i['type'] == 'int':
+                value = np.int(value)
         elif i['type'] == 'enum':
             if value not in i['enum']:
                 if len(i['enum']) > 5:
@@ -413,6 +401,11 @@ class OpenDriftSimulation(PhysicsMethods):
                                      (i['enum'], suggestion))
 
         self._config[key]['value'] = value
+
+    def _set_config_default(self, key, value):
+        """Update both default and actual value of a config setting"""
+        self.set_config(key, value)
+        self._config[key]['default'] = self.get_config(key)
 
     def get_config(self, key):
         if not key in self._config:
@@ -882,15 +875,16 @@ class OpenDriftSimulation(PhysicsMethods):
         # Discard any existing readers which are not relevant
         self.discard_irrelevant_readers()
 
-        truncate_depth = self.get_config('drift:truncate_ocean_model_below_m')
-        if truncate_depth is not None:
-            self.logger.debug('Truncating ocean models below %s m' % truncate_depth)
-            z = z.copy()
-            z[z<-truncate_depth] = -truncate_depth
-            if self.required_profiles_z_range is not None:
-                self.required_profiles_z_range = np.array(
-                    self.required_profiles_z_range)
-                self.required_profiles_z_range[self.required_profiles_z_range<-truncate_depth] = -truncate_depth
+        if 'drift:truncate_ocean_model_below_m' in self._config:
+            truncate_depth = self.get_config('drift:truncate_ocean_model_below_m')
+            if truncate_depth is not None:
+                self.logger.debug('Truncating ocean models below %s m' % truncate_depth)
+                z = z.copy()
+                z[z<-truncate_depth] = -truncate_depth
+                if self.required_profiles_z_range is not None:
+                    self.required_profiles_z_range = np.array(
+                        self.required_profiles_z_range)
+                    self.required_profiles_z_range[self.required_profiles_z_range<-truncate_depth] = -truncate_depth
 
         # Initialise more lazy readers if necessary
         missing_variables = ['missingvar']
@@ -1115,7 +1109,7 @@ class OpenDriftSimulation(PhysicsMethods):
         #######################################################
         # Parameterisation of unavailable variables
         #######################################################
-        if self.get_config('drift:use_tabularised_stokes_drift') is True:
+        if 'drift:use_tabularised_stokes_drift' in self._config and self.get_config('drift:use_tabularised_stokes_drift') is True:
             if 'x_wind' not in variables:
                 self.logger.debug('No wind available to calculate Stokes drift')
             else:

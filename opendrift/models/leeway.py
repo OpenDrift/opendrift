@@ -128,6 +128,9 @@ class Leeway(OpenDriftSimulation):
         descriptions = [self.leewayprop[p]['Description'] for
                         p in self.leewayprop]
 
+        # Calling general constructor of parent class
+        super(Leeway, self).__init__(*args, **kwargs)
+
         self._add_config({
             'seed:object_type': {'type': 'enum', 'enum': descriptions,
                 'default': descriptions[0],
@@ -137,18 +140,10 @@ class Leeway(OpenDriftSimulation):
                 'default': 0.04, 'min': 0, 'max': 1,
                 'description': 'Probability per hour for jibing (objects changing orientation',
                 'units': 'probability', 'level': self.CONFIG_LEVEL_BASIC},
-            'general:time_step_minutes': {'type': 'int', 'min': 1,
-                'units': 'minutes',
-                'max': 1440, 'default': 10, 'level': self.CONFIG_LEVEL_ADVANCED,
-                'description': 'Calculation time step used for simulation.'},
-            'general:time_step_output_minutes': {'type': 'int', 'min': 1,
-                'units': 'minutes',
-                'max': 1440, 'default': 60, 'level': self.CONFIG_LEVEL_ADVANCED,
-                'description': 'Output time step used for simulation.'}
             })
 
-        # Calling general constructor of parent class
-        super(Leeway, self).__init__(*args, **kwargs)
+        self._set_config_default('general:time_step_minutes', 10)
+        self._set_config_default('general:time_step_output_minutes', 60)
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
                       objectType=None, cone=None, jibeProbability=None,

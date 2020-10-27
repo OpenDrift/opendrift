@@ -254,6 +254,9 @@ class OpenOil(OceanDrift):
 
         self.oil_weathering_model = weathering_model
 
+        # Calling general constructor of parent class
+        super(OpenOil, self).__init__(*args, **kwargs)
+
         # Update config with oiltypes
         oiltypes = [str(a) for a in self.oiltypes]
 
@@ -285,24 +288,6 @@ class OpenOil(OceanDrift):
             'processes:update_oilfilm_thickness': {'type': 'bool', 'default': False,
                 'description': 'Oil film thickness is calculated at each time step. The alternative is that oil film thickness is kept constant with value provided at seeding.',
                 'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:wind_drift_depth': {'type': 'float', 'default': 0.1,
-                'min': 0, 'max': 10, 'units': 'meters',
-                'description': 'The direct wind drift (windage) is linearly decreasing from the surface value (wind_drift_factor) until 0 at this depth.',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:vertical_advection': {'type': 'bool', 'default': False,
-                'description': 'Elements are moved vertically with vertical component of ocean current.',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:vertical_mixing': {'type': 'bool', 'default': True,
-                'description': 'Elements are mixed vertically in the ocean column due to turbulence.',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:current_uncertainty': {'type': 'float', 'default': 0.05,
-                'min': 0, 'max': 5, 'units': 'm/s',
-                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step.',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:wind_uncertainty': {'type': 'float', 'default': 0.5,
-                'min': 0, 'max': 5, 'units': 'm/s',
-                'description': 'Add gaussian perturbation with this standard deviation to wind components at each time step.',
-                'level': self.CONFIG_LEVEL_ADVANCED},
             'wave_entrainment:droplet_size_distribution': {'type': 'enum', 'enum': ['Johansen et al. (2015)', 'Li et al. (2017)'], 'default': 'Johansen et al. (2015)',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description':
                 'Algorithm to be used for calculating oil droplet size spectrum after entrainment by breaking waves.'},
@@ -314,9 +299,10 @@ class OpenOil(OceanDrift):
                 'Oil type to be used for the simulation, from the NOAA ADIOS database.'},
             })
 
-
-        # Calling general constructor of parent class
-        super(OpenOil, self).__init__(*args, **kwargs)
+        self._set_config_default('drift:vertical_advection', False)
+        self._set_config_default('drift:vertical_mixing', True)
+        self._set_config_default('drift:current_uncertainty', 0.05)
+        self._set_config_default('drift:wind_uncertainty', 0.5)
 
     def update_surface_oilfilm_thickness(self):
         '''The mass of oil is summed within a grid of 100x100

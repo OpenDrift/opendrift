@@ -101,6 +101,9 @@ class OceanDrift(OpenDriftSimulation):
 
     def __init__(self, *args, **kwargs):
 
+        # Calling general constructor of parent class
+        super(OceanDrift, self).__init__(*args, **kwargs) 
+
         self._add_config({
             'drift:vertical_advection': {'type': 'bool', 'default': True, 'description': 
                 'Advect elements with vertical component of ocean current.',
@@ -117,11 +120,28 @@ class OceanDrift(OpenDriftSimulation):
             'vertical_mixing:TSprofiles': {'type': 'bool', 'default': False, 'level':
                 self.CONFIG_LEVEL_ADVANCED,
                 'description': 'Update T and S profiles within inner loop of vertical mixing.'},
+            'drift:wind_drift_depth': {'type': 'float', 'default': 0.1,
+                'min': 0, 'max': 10, 'units': 'meters',
+                'description': 'The direct wind drift (windage) is linearly decreasing from the surface value (wind_drift_factor) until 0 at this depth.',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:stokes_drift': {'type': 'bool', 'default': True,
+                'description': 'Advection elements with Stokes drift (wave orbital motion).',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:use_tabularised_stokes_drift': {'type': 'bool', 'default': False,
+                'description': 'If True, Stokes drift is estimated from wind based on look-up-tables for given fetch (drift:tabularised_stokes_drift_fetch).',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:tabularised_stokes_drift_fetch': {'type': 'enum', 'enum': ['5000', '25000', '50000'], 'default': '25000',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                'The fetch length when using tabularised Stokes drift.'},
+            'drift:lift_to_seafloor': {'type': 'bool', 'default': True,
+                'description': 'If True, elements hitting/penetrating seafloor, are lifted to seafloor height. The alternative (False) is to deactivate elements).',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:truncate_ocean_model_below_m': {'type': 'float', 'default': None,
+                'min': 0, 'max': 10000, 'units': 'm',
+                'description': 'Ocean model data are only read down to at most this depth, and extrapolated below. May be specified to read less data to improve performance.',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+
             })
-
-        # Calling general constructor of parent class
-        super(OceanDrift, self).__init__(*args, **kwargs) 
-
 
     def update(self):
         """Update positions and properties of elements."""

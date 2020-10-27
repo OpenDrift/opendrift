@@ -91,33 +91,6 @@ class ShipDrift(OpenDriftSimulation):
 
     def __init__(self, *args, **kwargs):
 
-        self._add_config({
-            'seed:length': {'type': 'float', 'min': 1, 'max': 500,
-                'default': 80, 'units': 'meter',
-                'description': 'Ship length',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'seed:height': {'type': 'float', 'min': 1, 'max': 100,
-                'default': 12, 'units': 'meter',
-                'description': 'Total height of ship',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'seed:draft': {'type': 'float', 'min': 1, 'max': 20,
-                'default': 4, 'units': 'meter',
-                'description': 'Draft of ship (depth below water)',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'seed:beam': {'type': 'float', 'min': 1, 'max': 50,
-                'default': 10, 'units': 'meter',
-                'description': 'Beam (width) of ship',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'drift:current_uncertainty': {'type': 'float', 'min': 0, 'max': 5,
-                'default': 0.05, 'units': 'm/s',
-                'description': 'A Gaussian perturbation of this magnitude is added to ocean velocity components at each time step',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:wind_uncertainty': {'type': 'float', 'min': 0, 'max': 5,
-                'default': 0.5, 'units': 'm/s',
-                'description': 'A Gaussian perturbation of this magnitude is added to wind velocity components at each time step',
-                'level': self.CONFIG_LEVEL_ADVANCED},
-            })
-
         # Read ship properties
         d = os.path.dirname(os.path.realpath(__file__))
         w = open(d + '/wforce.dat', 'r')
@@ -158,10 +131,34 @@ class ShipDrift(OpenDriftSimulation):
 
         super(ShipDrift, self).__init__(*args, **kwargs)
 
+        self._add_config({
+            'seed:length': {'type': 'float', 'min': 1, 'max': 500,
+                'default': 80, 'units': 'meter',
+                'description': 'Ship length',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:height': {'type': 'float', 'min': 1, 'max': 100,
+                'default': 12, 'units': 'meter',
+                'description': 'Total height of ship',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:draft': {'type': 'float', 'min': 1, 'max': 20,
+                'default': 4, 'units': 'meter',
+                'description': 'Draft of ship (depth below water)',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:beam': {'type': 'float', 'min': 1, 'max': 50,
+                'default': 10, 'units': 'meter',
+                'description': 'Beam (width) of ship',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            })
+
+        self._set_config_default('drift:current_uncertainty', .05)
+        self._set_config_default('drift:wind_uncertainty', .5)
 
     def seed_elements(self, *args, **kwargs):
         
-        num = kwargs['number']
+        if 'number' in kwargs:
+            num = kwargs['number']
+        else:
+            num = self.get_config('seed:number_of_elements')
         for var in ['length', 'height', 'draft', 'beam']:
             if var not in kwargs:
                 kwargs[var] = self.get_config('seed:' + var)

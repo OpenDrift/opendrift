@@ -78,17 +78,20 @@ class TestReaders(unittest.TestCase):
             '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset'])
 
     def test_repeated_run(self):
+        # NOTE: this test fails if outfile is not None
+        #outfile = 'leeway_test.nc'
+        outfile = None
         o = OceanDrift(loglevel=50)
         o.set_config('drift:vertical_mixing', False)
         o.add_readers_from_list(reader_list)
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
-        o.run(steps=5)
+        o.run(steps=5, outfile=outfile)
         lon1 = o.get_property('lon')[0]
         # Repeated run with same object
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
-        o.run(steps=5)
+        o.run(steps=5, outfile=outfile)
         lon2 = o.get_property('lon')[0]
         # Third run, with different config
         o.seed_elements(lon=14, lat=67.85,
@@ -101,12 +104,14 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 13),
                         wind_drift_factor=.1)
-        o.run(steps=5)
+        o.run(steps=5, outfile=outfile)
         lon4 = o.get_property('lon')[0]
 
         # Check results
         self.assertEqual(lon1[-1][0], lon2[-1][0])
         self.assertNotEqual(lon3[-1][0], lon2[-1][0])
+
+        #os.remove(outfile)
 
     def test_reader_from_url(self):
         readers = reader_from_url(reader_list)
