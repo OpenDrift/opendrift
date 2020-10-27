@@ -32,3 +32,4 @@ o.animation(fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_static_2d_current_0.gif
+

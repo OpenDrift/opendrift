@@ -352,13 +352,15 @@ class OpenDriftSimulation(PhysicsMethods):
         enum (list): (only when type is 'enum')
             A list of possible values for this setting.
 
-        default (number/bool/string/None): The default value for this setting.
+        default (number/bool/string/None):
+            The default value for this setting.
 
         value (number/bool/string/None): The actual value for this setting.
             This is updated with self.set_config(key, value) and retrieved
             with self.get_config(key)
 
-        description (string): A description of this config setting, for users/documentation/GUIs.
+        description (string):
+            A description of this config setting, for users/documentation/GUIs.
 
         level (int): A parameter to determine the level of exposure in GUIs
             1 self.CONFIG_LEVEL_ESSENTIAL: important setting which user has to consider
