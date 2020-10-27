@@ -135,75 +135,111 @@ class RadionuclideDrift(OceanDrift):
 #                     7:{'name':'Sediment irreversible','color':'darkred'}
 #                     }
 
-    configspec_radionuclidedrift = '''
-        [drift]
-            vertical_mixing = boolean(default=True)
-        [radionuclide]
-            transfer_setup = option('Sandnesfj_Al','Bokna_137Cs', 'dummy', default='dummy')
-            slowly_fraction = boolean(default=False)
-            irreversible_fraction = boolean(default=False)
-            dissolved_diameter = float(min=0., max=100.e-6,default=0.)
-            particle_diameter = float(min=0., max=100.e-6,default=5.e-6)
-            particle_diameter_uncertainty = float(min=0., max=100.e-6, default=1.e-7)
-            activity_per_element = float(min=0., max=1.e18, default=1.)
-            [[species]]
-                LMM                        = boolean(default=False)
-                LMMcation                  = boolean(default=False)
-                LMManion                   = boolean(default=False)
-                Colloid                    = boolean(default=False)
-                Humic_colloid              = boolean(default=False)
-                Polymer                    = boolean(default=False)
-                Particle_reversible        = boolean(default=False)
-                Particle_slowly_reversible = boolean(default=False)
-                Particle_irreversible      = boolean(default=False)
-                Sediment_reversible        = boolean(default=False)
-                Sediment_slowly_reversible = boolean(default=False)
-                Sediment_irreversible      = boolean(default=False)
-            [[transformations]]
-                Kd         = float(min=0., max=1.e9, default=0.)
-                Dc         = float(min=0., max=1.e6, default=1.16e-5)
-                slow_coeff = float(min=0., max=1.e6, default=1.2e-7)
-            [[sediment]]
-                sedmixdepth        = float(min=0., max=100., default=1.)
-                sediment_density   = float(min=0., max=10000., default=2600.)
-                effective_fraction = float(min=0., max=1., default=0.9)
-                corr_factor        = float(min=0., max=10., default=0.1)
-                porosity           = float(min=0., max=1., default=0.6)
-                layer_thick        = float(min=0., max=100., default=1.)
-                desorption_depth          = float(min=0., max=100., default=1.)
-                desorption_depth_uncert   = float(min=0., max=100., default=.5)
-                resuspension_depth        = float(min=0., max=100., default=1.)
-                resuspension_depth_uncert = float(min=0., max=100., default=.5)
-                resuspension_critvel      = float(min=0., max=1., default=.01)
-            '''
-
-
     def specie_num2name(self,num):
         return self.name_species[num]
-
-
 
     def specie_name2num(self,name):
         num = self.name_species.index(name)
         return num
-#
-
-
 
     def __init__(self, *args, **kwargs):
-
-        self._add_configstring(self.configspec_radionuclidedrift)
 
         # Calling general constructor of parent class
         super(RadionuclideDrift, self).__init__(*args, **kwargs)
 
+        # TODO: descriptions and units must be added in config setting below
+        self._add_config({
+            'radionuclide:transfer_setup': {'type': 'enum',
+                'enum': ['Sandnesfj_Al','Bokna_137Cs', 'dummy'], 'default': 'dummy',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:slowly_fraction': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:irreversible_fraction': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:dissolved_diameter': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 100e-6, 'units': 'm',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:particle_diameter': {'type': 'float', 'default': 5e-6,
+                'min': 0, 'max': 100e-6, 'units': 'm',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
+                'min': 0, 'max': 100e-6, 'units': 'm',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:activity_per_element': {'type': 'float', 'default': 1,
+                'min': 0, 'max': 1e18, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            # Species
+            'radionuclide:species:LMM': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:LMMcation': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:LMManion': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Colloid': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Humic_colloid': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Polymer': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Particle_reversible': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Particle_slowly_reversible': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Particle_irreversible': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Sediment_reversible': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Sediment_slowly_reversible': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Sediment_irreversible': {'type': 'bool', 'default': False,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            # Transformations
+            'radionuclide:transformations:Kd': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 1e9, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:transformations:Dc': {'type': 'float', 'default': 1.16e-5,
+                'min': 0, 'max': 1e6, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:transformations:slow_coeff': {'type': 'float', 'default': 1.2e-7,
+                'min': 0, 'max': 1e6, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            # Sediment
+            'radionuclide:sediment:sedmixdepth': {'type': 'float', 'default': 1,
+                'min': 0, 'max': 100, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:sediment_density': {'type': 'float', 'default': 2600,
+                'min': 0, 'max': 10000, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:effective_fraction': {'type': 'float', 'default': 0.9,
+                'min': 0, 'max': 1, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:corr_factor': {'type': 'float', 'default': 0.1,
+                'min': 0, 'max': 10, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:porosity': {'type': 'float', 'default': 0.6,
+                'min': 0, 'max': 1, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:layer_thick': {'type': 'float', 'default': 1,
+                'min': 0, 'max': 100, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:desorption_depth': {'type': 'float', 'default': 1,
+                'min': 0, 'max': 100, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:desorption_depth_uncert': {'type': 'float', 'default': .5,
+                'min': 0, 'max': 100, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:resuspension_depth': {'type': 'float', 'default': 1,
+                'min': 0, 'max': 100, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:resuspension_depth_uncert': {'type': 'float', 'default': .5,
+                'min': 0, 'max': 100, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:sediment:resuspension_critvel': {'type': 'float', 'default': .01,
+                'min': 0, 'max': 1, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            })
 
-
-
-
-
-
-
+        self._set_config_default('drift:vertical_mixing', True)
 
     def prepare_run(self):
 
@@ -248,9 +284,6 @@ class RadionuclideDrift(OceanDrift):
             self.logger.info( '{:>3} {}'.format( i, sp ) )
 
         self.init_transfer_rates()
-
-
-
 
     def init_transfer_rates(self):
         ''' Initialization of background values in the transfer rates 2D array.

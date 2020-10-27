@@ -11,7 +11,6 @@ dependencies:
   - netcdf4
   - ffmpeg
   - pyproj>=2.3
-  - configobj
   - libgdal>=3.1
   - gdal>=3.1
   - xarray

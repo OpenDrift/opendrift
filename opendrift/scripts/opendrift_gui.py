@@ -369,7 +369,7 @@ class OpenDriftGUI(tk.Tk):
             print('='*30 + '\nPlot saved to file: '
                   + filename + '\n' + '='*30)
 
-    def set_model(self, model):
+    def set_model(self, model, rebuild_gui=True):
         
         # Creating simulation object (self.o) of chosen model class
         print('Setting model: ' + model)
@@ -378,6 +378,7 @@ class OpenDriftGUI(tk.Tk):
         else:
             extra_args = {}
         self.o = self.opendrift_models[model](**extra_args)
+        self.modelname = model  # So that new instance may be initiated at repeated run
 
         # Setting GUI-specific default config values
         for k,v in self.GUI_config.items():
@@ -386,13 +387,17 @@ class OpenDriftGUI(tk.Tk):
             except:
                 pass
 
+        if rebuild_gui is False:
+            return
+
         # Remove current GUI components and rebuild with new
         for con in self.config.winfo_children():
             con.destroy()
         self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
         self.con.grid(row=0, column=1, rowspan=1)
-        for i, cs in enumerate(self.o._config_hashstrings()):
-            tk.Label(self.config, text=cs).grid(row=i, column=1, rowspan=1)
+        #for i, cs in enumerate(self.o._config_hashstrings()):
+        for i, key in enumerate(self.o._config):
+            tk.Label(self.config, text=key).grid(row=i, column=1, rowspan=1)
         try:
             self.results.destroy()
         except:
@@ -406,7 +411,8 @@ class OpenDriftGUI(tk.Tk):
             pass
 
         print(self.o.list_configspec())
-        sc = self.o.get_seed_config()
+        # Only ESSENTIAL config items are shown on front page with seeding
+        sc = self.o.get_configspec(level=self.o.CONFIG_LEVEL_ESSENTIAL)
         print(sc)
         self.seed_input = {}
         self.seed_input_var = {}
@@ -430,12 +436,12 @@ class OpenDriftGUI(tk.Tk):
                                                 text=varlabel + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
             self.seed_input_var[i] = tk.StringVar()
-            actual_val = self.o.get_config('seed:' + i)
-            if type(sc[i]['options']) is list:
+            actual_val = self.o.get_config(i)
+            if sc[i]['type'] == 'enum':
                 self.seed_input[i] = ttk.Combobox(
                     self.seed_frame, width=50,
                     textvariable=self.seed_input_var[i],
-                    values=sc[i]['options'])
+                    values=sc[i]['enum'])
                 self.seed_input_var[i].set(actual_val)
             else:
                 self.seed_input[i] = tk.Entry(
@@ -509,6 +515,10 @@ class OpenDriftGUI(tk.Tk):
 
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
+
+        # Creating fresh instance of the current model
+        self.set_model(self.modelname, rebuild_gui=False)
+    
         try:
             self.budgetbutton.destroy()
         except Exception as e:
@@ -549,7 +559,7 @@ class OpenDriftGUI(tk.Tk):
                 extra_seed_args[se] = np.float(val)
             except:
                 extra_seed_args[se] = val
-            self.o.set_config('seed:' + se, val)
+            self.o.set_config(se, extra_seed_args[se])
 
         self.o.add_readers_from_file(self.o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
@@ -566,15 +576,15 @@ class OpenDriftGUI(tk.Tk):
                         **extra_seed_args)
 
         time_step = self.o.get_config('general:time_step_minutes')*60
+        time_step_output = self.o.get_config('general:time_step_output_minutes')*60
         duration = int(self.durationhours.get())*3600/time_step
+        extra_args = {'time_step': time_step, 'time_step_output': time_step_output}
         if self.directionvar.get() == 'backwards':
-            time_step = -time_step
+            extra_args['time_step'] = -extra_args['time_step']
+            extra_args['time_step_output'] = -extra_args['time_step_output']
         if self.has_diana is True:
-            extra_args = {'outfile': self.outputdir + '/opendrift_' +
-                self.model.get() +
-                self.o.start_time.strftime('_%Y%m%d_%H%M.nc')}
-        else:
-            extra_args = {}
+            extra_args['outfile'] = self.outputdir + '/opendrift_' + \
+                self.model.get() + self.o.start_time.strftime('_%Y%m%d_%H%M.nc')
 
         self.simulationname = 'opendrift_' + self.model.get() + \
             self.o.start_time.strftime('_%Y%m%d_%H%M')

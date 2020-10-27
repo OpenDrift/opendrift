@@ -89,18 +89,6 @@ class ShipDrift(OpenDriftSimulation):
     max_speed = 2  # m/s
     winwav_angle = 20  # Angular offset in degrees
 
-    configspec = '''
-        [seed]
-            length = float(min=1, max=500, default=80)
-            height = float(min=1, max=50, default=12)
-            draft = float(min=1, max=20, default=4)
-            beam = float(min=1, max=30, default=10)
-        [drift]
-            current_uncertainty = float(min=0, max=5, default=0.05)
-            wind_uncertainty = float(min=0, max=5, default=.5)
-        '''
-
-
     def __init__(self, *args, **kwargs):
 
         # Read ship properties
@@ -143,15 +131,36 @@ class ShipDrift(OpenDriftSimulation):
 
         super(ShipDrift, self).__init__(*args, **kwargs)
 
-        self._add_configstring(self.configspec)
+        self._add_config({
+            'seed:length': {'type': 'float', 'min': 1, 'max': 500,
+                'default': 80, 'units': 'meter',
+                'description': 'Ship length',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:height': {'type': 'float', 'min': 1, 'max': 100,
+                'default': 12, 'units': 'meter',
+                'description': 'Total height of ship',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:draft': {'type': 'float', 'min': 1, 'max': 20,
+                'default': 4, 'units': 'meter',
+                'description': 'Draft of ship (depth below water)',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:beam': {'type': 'float', 'min': 1, 'max': 50,
+                'default': 10, 'units': 'meter',
+                'description': 'Beam (width) of ship',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            })
 
+        self._set_config_default('drift:current_uncertainty', .05)
+        self._set_config_default('drift:wind_uncertainty', .5)
 
     def seed_elements(self, *args, **kwargs):
         
-        num = kwargs['number']
+        if 'number' in kwargs:
+            num = kwargs['number']
+        else:
+            num = self.get_config('seed:number_of_elements')
         for var in ['length', 'height', 'draft', 'beam']:
             if var not in kwargs:
-                #kwargs[var] = self.ElementType.variables[var]['default']
                 kwargs[var] = self.get_config('seed:' + var)
             kwargs[var] = np.atleast_1d(kwargs[var])
             if len(kwargs[var] == 1):

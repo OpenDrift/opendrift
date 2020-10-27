@@ -63,26 +63,24 @@ class PlastDrift(OceanDrift):
     required_profiles = ['ocean_vertical_diffusivity']
 
 
-    configspecPlastDrift = '''
-        [general]
-            coastline_action = option('none', 'stranding', 'previous', default='previous')
-        [drift]
-            vertical_advection = boolean(default=True)
-            use_tabularised_stokes_drift = boolean(default=True)
-            wind_drift_depth = float(min=0, max=10, default=0.1)
-        [vertical_mixing]
-            mixingmodel = option('randomwalk', 'analytical', default='analytical')
-            diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='windspeed_Large1994')
-        '''
-
     def __init__(self, *args, **kwargs):
 
         # Call parent constructor
         super(PlastDrift, self).__init__(*args, **kwargs)
 
         # Add specific config settings
-        self._add_configstring(self.configspecPlastDrift)
-
+        self._add_config({
+            # TODO: this option should be moved to OceanDrift
+            'vertical_mixing:mixingmodel': {'type': 'enum',
+                'enum': ['randomwalk', 'analytical'], 'default': 'analytical',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                    'Scheme to be used for vertical turbulent mixing'},
+            })
+    
+        self._set_config_default('drift:vertical_advection', True)
+        self._set_config_default('drift:use_tabularised_stokes_drift', True)
+        self._set_config_default('general:coastline_action', 'previous')
+        self._set_config_default('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 
     def update(self):
         """Update positions and properties of elements."""

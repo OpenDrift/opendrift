@@ -225,29 +225,6 @@ class OpenOil(OceanDrift):
         'MARINE GAS OIL 500 ppm S 2017': 0.1,
         'FENJA (PIL) 2015': .75}
 
-    configspec = '''
-        [seed]
-            m3_per_hour = float(min=0, max=1e10, default=1)
-            droplet_diameter_min_subsea = float(min=1e-8, max=1, default=0.0005)
-            droplet_diameter_max_subsea = float(min=1e-8, max=1, default=0.005)
-        [processes]
-            dispersion = boolean(default=True)
-            evaporation = boolean(default=True)
-            emulsification = boolean(default=True)
-            biodegradation = boolean(default=False)
-            update_oilfilm_thickness = boolean(default=False)
-        [drift]
-            wind_drift_depth = float(min=0, max=10, default=0.1)
-            vertical_advection = boolean(default=False)
-            vertical_mixing = boolean(default=True)
-            current_uncertainty = float(min=0, max=5, default=0.05)
-            wind_uncertainty = float(min=0, max=5, default=.5)
-        [wave_entrainment]
-            droplet_size_distribution = option('Johansen et al. (2015)', 'Li et al. (2017)', default='Johansen et al. (2015)')
-            entrainment_rate = option('Li et al. (2017)', default='Li et al. (2017)')
-    '''
-
-
     def __init__(self, weathering_model='noaa', *args, **kwargs):
 
         if weathering_model == 'noaa':  # Currently the only option
@@ -277,17 +254,55 @@ class OpenOil(OceanDrift):
 
         self.oil_weathering_model = weathering_model
 
-        # Update config with oiltypes
-        oiltypes = [str(a) for a in self.oiltypes]
-        self._add_config('seed:oil_type', oiltypes,
-                         'Oil type', overwrite=True)
-
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
 
-        # Overriding with specific configspec
-        # TODO: want inheritance instead of simply overriding
-        self._add_configstring(self.configspec)
+        # Update config with oiltypes
+        oiltypes = [str(a) for a in self.oiltypes]
+
+        self._add_config({
+            'seed:m3_per_hour': {'type': 'float', 'default': 1,
+                'min': 0, 'max': 1e10, 'units': 'm3 per hour',
+                'description': 'The amount (volume) of oil released per hour (or total amount if release is instantaneous',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:droplet_diameter_min_subsea': {'type': 'float', 'default': 0.0005,
+                'min': 1e-8, 'max': 1, 'units': 'meters',
+                'description': 'The minimum dimaeter of oil droplet for a subsea release.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'seed:droplet_diameter_max_subsea': {'type': 'float', 'default': 0.005,
+                'min': 1e-8, 'max': 1, 'units': 'meters',
+                'description': 'The maximum dimaeter of oil droplet for a subsea release.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'processes:dispersion': {'type': 'bool', 'default': True,
+                'description': 'Oil is removed from simulation (dispersed), if entrained as very small droplets.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'processes:evaporation': {'type': 'bool', 'default': True,
+                'description': 'Surface oil is evaporated.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'processes:emulsification': {'type': 'bool', 'default': True,
+                'description': 'Surface oil is emulsified, i.e. water droplets are mixed into oil due to wave mixing, with resulting increas of viscosity.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'processes:biodegradation': {'type': 'bool', 'default': False,
+                'description': 'Oil mass is biodegraded (eaten by bacteria).',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'processes:update_oilfilm_thickness': {'type': 'bool', 'default': False,
+                'description': 'Oil film thickness is calculated at each time step. The alternative is that oil film thickness is kept constant with value provided at seeding.',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'wave_entrainment:droplet_size_distribution': {'type': 'enum', 'enum': ['Johansen et al. (2015)', 'Li et al. (2017)'], 'default': 'Johansen et al. (2015)',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                'Algorithm to be used for calculating oil droplet size spectrum after entrainment by breaking waves.'},
+            'wave_entrainment:entrainment_rate': {'type': 'enum', 'enum': ['Li et al. (2017)'], 'default': 'Li et al. (2017)',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                'Algorithm to be used for calculating the entrainment rate of oil due to wave breaking.'},
+            'seed:oil_type': {'type': 'enum', 'enum': oiltypes, 'default': oiltypes[0],
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description':
+                'Oil type to be used for the simulation, from the NOAA ADIOS database.'},
+            })
+
+        self._set_config_default('drift:vertical_advection', False)
+        self._set_config_default('drift:vertical_mixing', True)
+        self._set_config_default('drift:current_uncertainty', 0.05)
+        self._set_config_default('drift:wind_uncertainty', 0.5)
 
     def update_surface_oilfilm_thickness(self):
         '''The mass of oil is summed within a grid of 100x100

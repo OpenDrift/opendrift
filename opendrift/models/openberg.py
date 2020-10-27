@@ -106,16 +106,6 @@ class OpenBerg(OpenDriftSimulation):
     status_colors = {'initial': 'green', 'active': 'blue',
                      'missing_data': 'gray', 'stranded': 'red'}
 
-    configspec = '''
-        [seed]
-            wind_drift_factor = float(min=0, max=1, default=0.018)
-            water_line_length = float(min=0.1, max=99999, default=90.5)
-            keel_depth = float(min=.1, max=10000, default=60.0)
-        [drift]
-            current_uncertainty = float(min=0, max=5, default=0.15)
-            wind_uncertainty = float(min=0, max=5, default=1.5)
-        '''
-
     # Configuration
     def __init__(self, d=None, label=None, *args, **kwargs):
         self.name = 'OpenBerg'
@@ -128,7 +118,24 @@ class OpenBerg(OpenDriftSimulation):
 
         # Calling general constructor of parent class
         super(OpenBerg, self).__init__(*args, **kwargs)
-        self._add_configstring(self.configspec)
+
+        self._add_config({
+            'seed:wind_drift_factor': {'type': 'float', 'min': 0, 'max': 1,
+                'default': 0.018, 'units': 'fraction',
+                'level': self.CONFIG_LEVEL_ADVANCED,
+                'description': 'Icebergs are moved with this fraction of the wind speed, in addition to ocean current forcing'},
+            'seed:water_line_length': {'type': 'float', 'min': 0.1, 'max': 99999,
+                'default': 90.5, 'units': 'meters',
+                'level': self.CONFIG_LEVEL_ADVANCED,
+                'description': 'Length of iceberg.'},
+            'seed:keel_depth': {'type': 'float', 'min': 0.1, 'max': 1000,
+                'default': 60, 'units': 'meters',
+                'level': self.CONFIG_LEVEL_ADVANCED,
+                'description': 'Length of iceberg keel (part belor sea surface).'},
+            })
+
+        self._set_config_default('drift:current_uncertainty', .15)
+        self._set_config_default('drift:wind_uncertainty', .5)
 
     def seed_elements(self, *args, **kwargs):
         for var in ['wind_drift_factor', 'water_line_length', 'keel_depth']:

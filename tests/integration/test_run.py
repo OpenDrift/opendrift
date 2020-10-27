@@ -33,6 +33,7 @@ from opendrift.readers import reader_oscillating
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
+from opendrift.models.leeway import Leeway
 from opendrift.models.pelagicegg import PelagicEggDrift
 from opendrift.models.plastdrift import PlastDrift
 
@@ -123,10 +124,19 @@ class TestRun(unittest.TestCase):
 
     def test_invalid_config(self):
         o = OceanDrift(loglevel=20)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # outside min-max
             o.set_config('seed:number_of_elements', 0)
+        with self.assertRaises(ValueError):  # not in list/enum
+            o.set_config('vertical_mixing:diffusivitymodel', 'not_in_list')
         o.set_config('seed:number_of_elements', 100)
         self.assertEqual(o.get_config('seed:number_of_elements'), 100)
+
+    def test_config_suggestion(self):
+        o = Leeway(loglevel=20)
+        try:
+            o.set_config('seed:object_type', 'person')
+        except Exception as e:
+            self.assertTrue('Did you mean' in str(e))
 
     def test_runge_kutta(self):
         number = 50
