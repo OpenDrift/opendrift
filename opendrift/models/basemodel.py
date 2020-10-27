@@ -335,6 +335,38 @@ class OpenDriftSimulation(PhysicsMethods):
         return configspec
 
     def _add_config(self, config, overwrite=True):
+        """Add configuration settings
+
+        config is a dictionary where keys are configuration keywords,
+        and values are dictionaries with the following contents:
+
+        type (string): 'float', 'int', 'bool' or 'enum'
+
+        min, max (float/int/None): (only when type is 'float' or 'int')
+            The minimum and maximum allowed values for this setting.
+            May also be None if there are no upper/lowe limits.
+
+        units (string): (only when type is 'float' or 'int')
+            The units of this config setting.
+
+        enum (list): (only when type is 'enum')
+            A list of possible values for this setting.
+
+        default (number/bool/string/None): The default value for this setting.
+
+        value (number/bool/string/None): The actual value for this setting.
+            This is updated with self.set_config(key, value) and retrieved
+            with self.get_config(key)
+
+        description (string): A description of this config setting, for users/documentation/GUIs.
+
+        level (int): A parameter to determine the level of exposure in GUIs
+            1 self.CONFIG_LEVEL_ESSENTIAL: important setting which user has to consider
+            2 self.CONFIG_LEVEL_BASIC: setting which many users may consider
+            3 self.CONFIG_LEVEL_ADVANCED: setting relevant only to advanced users
+
+        """
+
         caller = inspect.stack()[1]
         caller = os.path.splitext(os.path.basename(caller.filename))[0]
         self.logger.debug('Adding %i config items from %s' % (len(config), caller))
