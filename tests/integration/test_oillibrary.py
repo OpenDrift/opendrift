@@ -81,8 +81,9 @@ class TestOil(unittest.TestCase):
                 o.set_config('processes:dispersion', dispersion)
                 seed_hours=3
                 m3_per_hour=200
+                o.set_config('seed:m3_per_hour', m3_per_hour)
                 o.seed_elements(lon=0, lat=60, number=100,
-                                m3_per_hour=m3_per_hour,
+                                #m3_per_hour=m3_per_hour,
                                 time=[datetime.now(),
                                       datetime.now() +
                                         timedelta(hours=seed_hours)])
@@ -100,6 +101,22 @@ class TestOil(unittest.TestCase):
                 filename = 'oilbudget_%s_%s.png' % (windspeed, disp)
                 o.plot_oil_budget(filename=filename)
                 os.remove(filename)
+
+    def test_oil_volume(self):
+        o = OpenOil(loglevel=50)
+        m3_per_hour=50
+        o.set_config('seed:m3_per_hour', m3_per_hour)
+        o.seed_elements(lon=4, lat=60, time=datetime.now())
+        o.fallback_values['x_wind']=0
+        o.fallback_values['y_wind']=0
+        o.fallback_values['x_sea_water_velocity']=0
+        o.fallback_values['y_sea_water_velocity']=0
+        o.fallback_values['land_binary_mask']=0
+        o.run(steps=1)
+        b = o.get_oil_budget()
+        volume = b['mass_total']/b['oil_density']
+        self.assertEqual(volume[0], m3_per_hour)
+        self.assertEqual(volume[1], m3_per_hour)
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
