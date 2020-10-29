@@ -35,30 +35,38 @@ class LeewayObj(LagrangianArray):
     variables = LagrangianArray.add_variables([
         ('objectType', {'dtype': np.int16,
                         'units': '1',
+                        'seed': False,
                         'default': 0}),
         ('orientation', {'dtype': np.int16,
                          'units': '1',
                          'default': 1}),
         ('jibeProbability', {'dtype': np.float32,
                              'units': '1/h',
+            'description': 'Probability per hour that an object may change orientation (jibing)',
                              'default': 0.04}),
         ('downwindSlope', {'dtype': np.float32,
                            'units': '%',
+                           'seed': False,
                            'default': 1}),
         ('crosswindSlope', {'dtype': np.float32,
                             'units': '1',
+                           'seed': False,
                             'default': 1}),
         ('downwindOffset', {'dtype': np.float32,
                             'units': 'cm/s',
+                           'seed': False,
                             'default': 0}),
         ('crosswindOffset', {'dtype': np.float32,
                              'units': 'cm/s',
+                           'seed': False,
                              'default': 0}),
         ('downwindEps', {'dtype': np.float32,
                          'units': 'cm/s',
+                           'seed': False,
                          'default': 0}),
         ('crosswindEps', {'dtype': np.float32,
                           'units': 'cm/s',
+                           'seed': False,
                           'default': 0})
         ])
 
@@ -153,7 +161,7 @@ class Leeway(OpenDriftSimulation):
         # objtype = np.ones(number)*objectType
 
         if number is None:
-            number = self.get_config('seed:number_of_elements')
+            number = self.get_config('seed:number')
 
         if objectType is None:
             object_name = self.get_config('seed:object_type')

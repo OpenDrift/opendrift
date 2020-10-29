@@ -85,6 +85,7 @@ class Oil(LagrangianArray):
     variables = LagrangianArray.add_variables([
         ('mass_oil', {'dtype': np.float32,
                       'units': 'kg',
+                      'seed': False,
                       'default': 1}),
         ('viscosity', {'dtype': np.float32,
                        'units': 'N s/m2 (Pa s)',
@@ -97,27 +98,35 @@ class Oil(LagrangianArray):
                                'default': 0.03}),
         ('age_exposure_seconds', {'dtype': np.float32,
                                   'units': 's',
+                                  'seed': False,
                                   'default': 0}),
         ('age_emulsion_seconds', {'dtype': np.float32,
                                   'units': 's',
+                                  'seed': False,
                                   'default': 0}),
         ('bulltime', {'dtype': np.float32,
                       'units': 's',
+                      'seed': False,
                       'default': 0}),
         ('interfacial_area', {'dtype': np.float32,
                               'units': 'm2',
+                              'seed': False,
                               'default': 0}),
         ('mass_dispersed', {'dtype': np.float32,
                             'units': 'kg',
+                            'seed': False,
                             'default': 0}),
         ('mass_evaporated', {'dtype': np.float32,
                              'units': 'kg',
+                             'seed': False,
                              'default': 0}),
         ('mass_biodegraded', {'dtype': np.float32,
                              'units': 'kg',
+                             'seed': False,
                              'default': 0}),
         ('fraction_evaporated', {'dtype': np.float32,
                                  'units': '%',
+                                 'seed': False,
                                  'default': 0}),
         ('water_fraction', {'dtype': np.float32,
                             'units': '%',
@@ -127,6 +136,7 @@ class Oil(LagrangianArray):
                                 'default': 0.001}),
         ('diameter', {'dtype': np.float32,  # Particle diameter
                       'units': 'm',
+                      'seed': False,
                       'default': 0.})
         ])
 
@@ -1379,7 +1389,7 @@ class OpenOil(OceanDrift):
         if 'number' in kwargs:
             num_elements = kwargs['number']
         else:
-            num_elements = self.get_config('seed:number_of_elements')
+            num_elements = self.get_config('seed:number')
         time = kwargs['time']
         if type(time) is list:
             duration_hours = ((time[1] - time[0]).total_seconds())/3600

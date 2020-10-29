@@ -70,7 +70,7 @@ class TestSeed(unittest.TestCase):
 
         for case in cases:
             o = OceanDrift(loglevel=50)
-            o._set_config_default('seed:number_of_elements', number_config)
+            o._set_config_default('seed:number', number_config)
             expected = case['expected']
             del case['expected']
             if 'maxlat' in case:
@@ -104,6 +104,7 @@ class TestSeed(unittest.TestCase):
                         o.elements_scheduled.wind_drift_factor.max())
 
     def test_seed_cone(self):
+
         # Some cases with expected outcome
         lon0 = 3
         lon1 = 4
@@ -152,11 +153,15 @@ class TestSeed(unittest.TestCase):
                   #'wind_drift_factor': [.01, .02, .03],
             {'lon': [lon0, lon1], 'lat': [lat0, lat1], 'time': [t0, t1],
                   'number': None, 'expected': number_config, 'maxtime': t1},
+            {'lon': [lon0, lon1], 'lat': [lat0, lat1], 'time': [t0, t1], 'radius': [r0, r1],
+                  'number': None, 'expected': number_config, 'maxtime': t1},
+            {'lon': [lon0, lon1], 'lat': [lat0, lat1], 'time': [t0, t1], 'radius': [r0, r0],
+                  'number': None, 'expected': number_config, 'maxtime': t1},
         ]
 
         for case in cases:
             o = OceanDrift(loglevel=50)
-            o._set_config_default('seed:number_of_elements', number_config)
+            o._set_config_default('seed:number', number_config)
             expected = case['expected']
             del case['expected']
             if 'maxlat' in case:

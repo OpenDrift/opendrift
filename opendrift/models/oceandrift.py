@@ -32,9 +32,11 @@ class Lagrangian3DArray(LagrangianArray):
     variables = LagrangianArray.add_variables([
         ('wind_drift_factor', {'dtype': np.float32,
                                'units': '1',
+            'description': 'Elements at surface are moved with this fraction of the vind vector.',
                                'default': 0.02}),
         ('terminal_velocity', {'dtype': np.float32,
                                'units': 'm/s',
+            'description': 'Terminal rise/sinking velocity (buoyancy) in the ocean column',
                                'default': 0.})])
 
 

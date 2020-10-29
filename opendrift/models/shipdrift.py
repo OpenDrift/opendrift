@@ -37,15 +37,31 @@ class ShipObject(LagrangianArray):
                          'default': 1}),
         ('length', {'dtype': np.float32,
                          'units': 'm',
+                         'min': 1,
+                         'max': 500,
+            'description': 'Length of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 80}),
         ('height', {'dtype': np.float32,
                          'units': 'm',
-                         'default': 9}),
+                         'min': 1,
+                         'max': 100,
+            'description': 'Total height of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
+                         'default': 8}),
         ('draft', {'dtype': np.float32,  # wet part of ship [m]
                          'units': 'm',
+                         'min': 1,
+                         'max': 20,
+            'description': 'Draft of ship (depth below water)',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 4.0}),
         ('beam', {'dtype': np.float32,  # width of ship
+                         'min': 1,
+                         'max': 50,
                          'units': 'm',
+            'description': 'Beam (width) of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 10}),
         ('wind_drag_coeff', {'dtype': np.float32,  # Cf
                              'units': '1',
@@ -131,25 +147,6 @@ class ShipDrift(OpenDriftSimulation):
 
         super(ShipDrift, self).__init__(*args, **kwargs)
 
-        self._add_config({
-            'seed:length': {'type': 'float', 'min': 1, 'max': 500,
-                'default': 80, 'units': 'meter',
-                'description': 'Ship length',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'seed:height': {'type': 'float', 'min': 1, 'max': 100,
-                'default': 12, 'units': 'meter',
-                'description': 'Total height of ship',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'seed:draft': {'type': 'float', 'min': 1, 'max': 20,
-                'default': 4, 'units': 'meter',
-                'description': 'Draft of ship (depth below water)',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'seed:beam': {'type': 'float', 'min': 1, 'max': 50,
-                'default': 10, 'units': 'meter',
-                'description': 'Beam (width) of ship',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
-            })
-
         self._set_config_default('drift:current_uncertainty', .05)
         self._set_config_default('drift:wind_uncertainty', .5)
 
@@ -158,7 +155,7 @@ class ShipDrift(OpenDriftSimulation):
         if 'number' in kwargs:
             num = kwargs['number']
         else:
-            num = self.get_config('seed:number_of_elements')
+            num = self.get_config('seed:number')
         for var in ['length', 'height', 'draft', 'beam']:
             if var not in kwargs:
                 kwargs[var] = self.get_config('seed:' + var)

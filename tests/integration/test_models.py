@@ -82,6 +82,24 @@ class TestModels(unittest.TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(
             s.elements.lat, 59.876, 2))
 
+    def test_shipdrift_defaults(self):
+        s = ShipDrift(loglevel=50)
+        s.list_configspec()
+        s.fallback_values['land_binary_mask'] = 0
+        c = reader_constant.Reader({
+            'sea_surface_wave_significant_height': 5,
+            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 11,
+            'x_wind': 14.14213562,
+            'y_wind': -14.14213562,
+            'x_sea_water_velocity': 0.05656854249,
+            'y_sea_water_velocity': -0.05656854249})
+        s.add_reader(c)
+        s.set_config('seed:height', 14)
+        s.seed_elements(lon=2, lat=60, time=datetime.now(), number=1)
+        s.run(duration=timedelta(hours=4))
+        #self.assertAlmostEqual(s.elements.lon.max(), 2.1273, 3)  # Without setting config
+        self.assertAlmostEqual(s.elements.lon.max(), 2.1990, 3)
+
     def test_shipdrift_backwards(self):
         """Case above, reversed"""
         s = ShipDrift(loglevel=50)
