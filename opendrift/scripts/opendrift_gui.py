@@ -52,7 +52,7 @@ class OpenDriftGUI(tk.Tk):
     GUI_config = {
             'general:time_step_minutes': 15,
             'general:time_step_output_minutes': 30,
-            'seed:number_of_elements': 5000,
+            'seed:number': 5000,
             'seed:m3_per_hour': 100
             }
 
@@ -508,8 +508,12 @@ class OpenDriftGUI(tk.Tk):
             cone = False
 
         so = Leeway(loglevel=50)
-        so.seed_elements(lon=lon, lat=lat,
-                         radius=radius, time=start_time)
+        for k,v in self.GUI_config.items():
+            try:
+                so.set_config(k, v)
+            except:
+                pass
+        so.seed_cone(lon=lon, lat=lat, radius=radius, time=start_time)
         so.plot(buffer=.5, fast=True)
         del so
 
@@ -571,9 +575,9 @@ class OpenDriftGUI(tk.Tk):
             else:
                 z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
             extra_seed_args['z'] = z
-        self.o.seed_elements(lon=lon, lat=lat, radius=radius,
-                        time=start_time, cone=cone,
-                        **extra_seed_args)
+        self.o.seed_cone(lon=lon, lat=lat, radius=radius,
+                         time=start_time, #cone=cone,
+                         **extra_seed_args)
 
         time_step = self.o.get_config('general:time_step_minutes')*60
         time_step_output = self.o.get_config('general:time_step_output_minutes')*60

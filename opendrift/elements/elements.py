@@ -50,13 +50,17 @@ class LagrangianArray(object):
 
     variables = OrderedDict([
         ('ID', {'dtype': np.int32,  # Unique numerical identifier
+                'seed': False,
                 'default': -1}),  # ID to be assigned by application
         ('status', {'dtype': np.int32,  # Status categories
+                    'seed': False,
                     'default': 0}),
         ('moving', {'dtype': np.int32,  # Set to 0 for elements which are frosen
+                    'seed': False,
                     'default': 1}),
         ('age_seconds', {'dtype': np.float32,
                          'units': 's',
+                         'seed': False,
                          'default': 0}),
         ('origin_marker', {'dtype': np.int16,
                            'unit': '',
@@ -65,11 +69,13 @@ class LagrangianArray(object):
                  'units': 'degrees_east',
                  'standard_name': 'longitude',
                  'long_name': 'longitude',
+                 'seed': False,
                  'axis': 'X'}),
         ('lat', {'dtype': np.float32,
                  'units': 'degrees_north',
                  'standard_name': 'latitude',
                  'long_name': 'latitude',
+                 'seed': False,
                  'axis': 'Y'}),
         ('z', {'dtype': np.float32,
                    'units': 'm',

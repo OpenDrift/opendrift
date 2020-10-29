@@ -73,8 +73,9 @@ class IcebergObj(LagrangianArray):
 
     # We add the properties to the element class
     variables = LagrangianArray.add_variables([
-        ('wind_drift_factor', {'dtype': np.float32,				# The fraction of the wind speed at which an iceberg is moved
+        ('wind_drift_factor', {'dtype': np.float32,
                                'units': '1',
+            'description': 'The fraction of the wind speed at which an iceberg is moved',
                        	       'default': 0.018}),
         ('water_line_length', {'dtype': np.float32,				# Iceberg size
                                'units': 'm',

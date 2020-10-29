@@ -252,7 +252,7 @@ class OpenDriftSimulation(PhysicsMethods):
             'seed:ocean_only': {'type': 'bool', 'default': True,
                 'description': 'If True, elements seeded on land will be moved to the closest '
                     'position in ocean.', 'level': self.CONFIG_LEVEL_ADVANCED},
-            'seed:number_of_elements': {'type': 'int', 'default': 1,
+            'seed:number': {'type': 'int', 'default': 1,
                 'min': 1, 'max': 100000000, 'units': 1,
                 'description': 'The number of elements for the simulation.',
                 'level': self.CONFIG_LEVEL_BASIC},
@@ -299,6 +299,25 @@ class OpenDriftSimulation(PhysicsMethods):
                 'description': 'Elements are deactivated if the move further west than this limit',
                 'level': self.CONFIG_LEVEL_ADVANCED},
         })
+
+        # Add default element properties to config
+        c = {}
+        for p in self.ElementType.variables:
+            v = self.ElementType.variables[p]
+            if 'seed' in v and v['seed'] is False:
+                continue  # Properties which may not be provided by user
+            minval = v['min'] if 'min' in v else None
+            maxval = v['max'] if 'max' in v else None
+            units = v['units'] if 'units' in v else None
+            c['seed:%s' % p] = {
+                'type': v['type'] if 'type' in v else 'float',
+                'min': v['min'] if 'min' in v else None,
+                'max': v['max'] if 'max' in v else None,
+                'units': v['units'] if 'units' in v else None,
+                'default': v['default'] if 'default' in v else None,
+                'description': v['description'] if 'description' in v else 'Seeding value of %s' % p,
+                'level': v['level'] if 'level' in v else self.CONFIG_LEVEL_ADVANCED}
+        self._add_config(c)
 
         self.timer_start('total time')
         self.timer_start('configuration')
@@ -1465,7 +1484,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 if len(time) > 2:
                     number = len(time)  # Interpreting as time series
                 else:
-                    number = self.get_config('seed:number_of_elements')
+                    number = self.get_config('seed:number')
             lon = lon*np.ones(number)
             lat = lat*np.ones(number)
 
@@ -1541,7 +1560,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """
 
         if number is None:
-            number = self.get_config('seed:number_of_elements')
+            number = self.get_config('seed:number')
 
         lon = np.atleast_1d(lon).ravel()
         lat = np.atleast_1d(lat).ravel()
@@ -1562,7 +1581,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if len(radius) > 2:
             raise ValueError('Seed radius must have length 1 or 2')
-        elif len(radius) == 2 and radius[1] != radius[0]:  # Linear increase from r0 to r1
+        elif len(radius) == 2:  # Linear increase from r0 to r1
             radius = np.linspace(radius[0], radius[1], number)
 
         # Forwarding calculated cone points/radii to seed_elements
@@ -1634,7 +1653,7 @@ class OpenDriftSimulation(PhysicsMethods):
             return
 
         if number is None:
-            number = self.get_config('seed:number_of_elements')
+            number = self.get_config('seed:number')
 
         lons = np.asarray(lons)
         lats = np.asarray(lats)
@@ -1713,7 +1732,7 @@ class OpenDriftSimulation(PhysicsMethods):
             raise ValueError('OGR library is needed to parse WKT')
 
         if number is None:
-            number = self.get_config('seed:number_of_elements')
+            number = self.get_config('seed:number')
 
         geom = ogr.CreateGeometryFromWkt(wkt)
         total_area = 0
