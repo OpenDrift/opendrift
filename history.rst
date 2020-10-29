@@ -1,6 +1,10 @@
 History
 =======
 
+Next release:
+-------------
+* `seed_elements <https://opendrift.github.io/autoapi/opendrift/models/basemodel/index.html#opendrift.models.basemodel.OpenDriftSimulation.seed_elements>`_ is simplified, by factoring out a new method `seed_cone <https://opendrift.github.io/autoapi/opendrift/models/basemodel/index.html#opendrift.models.basemodel.OpenDriftSimulation.seed_cone>`_
+
 2020-10-27 / Release v1.4.0
 ---------------------------
 
