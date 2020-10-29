@@ -1614,7 +1614,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
 
-    def seed_within_polygon(self, lons, lats, number, **kwargs):
+    def seed_within_polygon(self, lons, lats, number=None, **kwargs):
         """Seed a number of elements within given polygon.
 
         Arguments:
@@ -1632,6 +1632,9 @@ class OpenDriftSimulation(PhysicsMethods):
         """
         if number == 0:
             return
+
+        if number is None:
+            number = self.get_config('seed:number_of_elements')
 
         lons = np.asarray(lons)
         lats = np.asarray(lats)
@@ -1699,7 +1702,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.seed_elements(lonpoints, latpoints, number=number,
                            **kwargs)
 
-    def seed_from_wkt(self, wkt, number, **kwargs):
+    def seed_from_wkt(self, wkt, number=None, **kwargs):
         """Seeds elements within (multi)polygons from WKT"""
 
         try:
@@ -1708,6 +1711,9 @@ class OpenDriftSimulation(PhysicsMethods):
         except Exception as e:
             self.logger.warning(e)
             raise ValueError('OGR library is needed to parse WKT')
+
+        if number is None:
+            number = self.get_config('seed:number_of_elements')
 
         geom = ogr.CreateGeometryFromWkt(wkt)
         total_area = 0
