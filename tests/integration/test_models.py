@@ -115,8 +115,9 @@ class TestModels(unittest.TestCase):
         o.run(duration=timedelta(hours=10))
         self.assertIsNone(np.testing.assert_array_almost_equal(
                             o.elements.lon,
-                          [5.013484,5.03395595,5.01149002]))
-        self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2])
+                          [5.011935,5.01738,5.011235]))
+                          #[5.013484,5.03395595,5.01149002]))  # With old seed_elements
+        self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2], 3)
 
     def test_openberg(self):
         """Check if weighting array is set correctly

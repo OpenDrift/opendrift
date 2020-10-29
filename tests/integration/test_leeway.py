@@ -59,7 +59,7 @@ def test_leewayrun(tmpdir):
     # Check that 7 out of 100 elements strand towards coast
     lee.run(steps=24, time_step=3600)
     assert lee.num_elements_scheduled() == 0
-    assert lee.num_elements_active() == 96
-    assert lee.num_elements_deactivated() == 4  # stranded
+    assert lee.num_elements_active() == 92
+    assert lee.num_elements_deactivated() == 8  # stranded
     lee.export_ascii(tmpdir + '/leeway_ascii.txt')
 

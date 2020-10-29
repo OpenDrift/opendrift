@@ -1409,219 +1409,102 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return lon, lat
 
-    def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                      cone=False, radius_type='gaussian', **kwargs):
-        """Seed a given number of particles around given position(s).
+    def seed_elements(self, lon, lat, time, radius=0, number=None,
+                      radius_type='gaussian', **kwargs):
+        """Seed elements with given position(s), time and properties.
 
         Arguments:
-            lon: scalar or array, central longitude(s).
-            lat: scalar or array, central latitude(s).
-            radius: scalar or array, radius in meters around each lon-lat
-            pair, within which particles will be randomly seeded.
-
+            lon: scalar or array
+                central longitude(s).
+            lat: scalar or array
+                central latitude(s).
+            radius: scalar or array
+                radius in meters around each lon-lat pair,
+                within which particles will be randomly seeded.
             number: integer, total number of particles to be seeded
-            Elements are spread equally among the given lon/lat points.
-            Default is one particle for each lon-lat pair.
-
-            time: datenum, the time at which particles are seeded/released.
-            If time is an array with two elements, elements are seeded
-            continously from start/first to end/last time.
-
-            cone: boolean or integer. If True, lon and lat must be two element
-            arrays, interpreted as the start and end position of a cone
-            within which elements will be seeded. Radius may also be a
-            two element array specifying the radius around the points.
-
+                If number is None, the number of elements is the
+                length of lon/lat or time if these are arrays. Otherwise
+                the number of elements are obtained from the config-default.
+            time: datenum or list
+                The time at which particles are seeded/released.
+                If time is a list with two elements, elements are seeded
+                continously from start/first to end/last time.
+                If time is a list with more than two elements, the number of elements
+                is equal to len(time) and are seeded as a time series.
             radius_type: string
-            If 'gaussian' (default), the radius is the standard deviation in
-            x-y-directions. If 'uniform', elements are spread evenly and
-            always inside a circle with the given radius.
-
-            kwargs: keyword arguments containing properties/attributes and
-            values corresponding to the actual particle type (ElementType).
-            These are forwarded to the ElementType class. All properties
-            for which there are no default value must be specified.
+                If 'gaussian' (default), the radius is the standard deviation in
+                x-y-directions. If 'uniform', elements are spread evenly and
+                always inside a circle with the given radius.
+            kwargs:
+                keyword arguments containing properties/attributes and
+                values corresponding to the actual particle type (ElementType).
+                These are forwarded to the ElementType class. All properties
+                for which there are no default value must be specified.
         """
 
-        if time is None:
-            raise ValueError('Time of seeding must be specified')
-
-        #################################################################
-        # Make arrays of all input parameters, with one element per
-        # lon/lat pair, for sequential seeding
-        #################################################################
-        lon = np.atleast_1d(lon).ravel()
-        lat = np.atleast_1d(lat).ravel()
-        if number is None:
-            number = self.get_config('seed:number_of_elements')
-            if len(lon) > 1:
-                number = len(lon)
-            elif isinstance(time, list) and len(time) > 2:
-                number = len(time)
-        number = np.atleast_1d(number).ravel()
-        if len(lon) == 1 and len(number) > 1:
-            ones = np.ones(len(number))
-            lon = lon*ones
-            lat = lat*ones
-        num_points = len(lon)  # Number of lon/lat pairs
-        if len(number) == 1:
-            number = number[0]
-            if number is not None and number < num_points:
-                raise ValueError('Number of elements must be greater or equal '
-                                 'to number of points.')
-        else:
-            number_array = number
-
-        if num_points == 1 and number is None:
-            try:
-                number = len(time)
-            except:
-                number = 1
-
-        if num_points > 1:
-            ###############################
-            # lon and lat are arrays
-            ###############################
-            radius_array = np.atleast_1d(radius).ravel()
-            if len(radius_array) == 1:
-                # If scalar radius is given, apply to all points
-                radius_array = radius_array*np.ones(num_points)
-            if number is None:
-                # Default is one element per given position
-                #number = 1*np.ones(num_points)
-                number = num_points  # temporarily scalar, should be array
-            number = np.atleast_1d(number)
-            if len(number) == 1 and num_points > 1:
-                number_array = np.floor(number/num_points)*np.ones(num_points)
-                # Add remaining elements to first point
-                remainder = number - np.floor(number/num_points)*num_points
-                number_array[0] = number_array[0] + remainder
-
-            if isinstance(time, datetime):
-                time = [time, time]
-
-            if type(time) == list and len(time) == 2:
-                td = (time[1]-time[0])/(number-1)  # timestep between points
-                if len(td) == 1:
-                    td = td[0]
-                time_array = [time[0] + i*td for i in range(number[0])]
-                indx_time_end = np.cumsum(number_array, dtype=int)
-                indx_time_start = np.append([0], indx_time_end[0:-1])
-                time_array2 = [time_array[int(indx_time_start[i]):
-                                          int(indx_time_end[i])]
-                               for i in range(num_points)]
-                time_array = time_array2  # Subset of times for this point
-            if type(time) == list and len(time) > 2:
-                time_array = time
-
-            if cone is True:
-                ###################################################
-                # lon and lat are start and end points of a cone
-                ###################################################
-                if len(lon) != 2 or len(lat) != 2:
-                    raise ValueError('When cone is True, lon and lat must '
-                                     'be 2-element arrays.')
-
-                geod = pyproj.Geod(ellps='WGS84')
-                conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
-                                        number, radians=False)
-                # Seed cone recursively
-                lon, lat = list(zip(*conelonlats))
-                lon = np.atleast_1d(lon)
-                lat = np.atleast_1d(lat)
-                number = int(number)
-                if len(radius_array) == 1:
-                    radius_array = [radius, radius]
-                radius_array = np.linspace(radius_array[0], radius_array[1],
-                                           number)
-                number_array = np.ones(number)
-                time_array = [time[0] + i*td for i in np.arange(number)]
-
-            if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
-                    and kwargs['z'][0:8] == 'seafloor':
-                # We need to fetch seafloor depth from reader
-                if ('sea_floor_depth_below_sea_level' not in self.priority_list
-                    ) and len(self._lazy_readers()) == 0:
-                    raise ValueError('A reader providing the variable '
-                                     'sea_floor_depth_below_sea_level must be '
-                                     'added before seeding elements at seafloor.')
-                if type(time) is list:
-                    t = time[0]
-                else:
-                    t = time
-                if not hasattr(self, 'time'):
-                    self.time = t
-                env, env_profiles, missing = \
-                    self.get_environment(['sea_floor_depth_below_sea_level'],
-                                         time=t, lon=lon, lat=lat,
-                                         z=0*lon, profiles=None)
-                # Add M meters if given as 'seafloor+M'
-                if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
-                    meters_above_seafloor = np.float(kwargs['z'][9::])
-                    self.logger.info('Seeding elements %f meters above seafloor'
-                                 % meters_above_seafloor)
-                else:
-                    meters_above_seafloor = 0
-                kwargs['z'] = \
-                    -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
-
-            # Seeding array and returning
-            if 'time_array' not in locals():
-                time_array = time
-            if isinstance(time_array[0], list):
-                time_array = [t[0] for t in time_array]
-
-            elements = self.ElementType(lon=lon, lat=lat, **kwargs)
-            time_array = np.array(time_array)
-            self.schedule_elements(elements, time_array)
+        if 'cone' in kwargs and kwargs['cone'] is True:
+            self.logger.warning('Keyword *cone* for seed_elements is deprecated, use seed_cone() instead.')
+            del kwargs['cone']
+            self.seed_cone(lon, lat, time, radius, number, **kwargs)
             return
 
-        # Below we have only for single points
-        if isinstance(time, datetime) and number > 1:
-            time = [time, time]
+        lon = np.atleast_1d(lon).ravel()
+        lat = np.atleast_1d(lat).ravel()
+        radius = np.atleast_1d(radius).ravel()
+        time = np.atleast_1d(time)
 
-        if type(time) == list and len(time) == 2 and number > 1:
-            td = (time[1]-time[0])/(number-1)  # timestep between points
-            # Spread seeding times equally between start/first and end/last
-            time_array = [time[0] + i*td for i in range(number)]
+        if len(lon) != len(lat):
+            raise ValueError('Lon and lat must have same lengths')
+
+        if len(lon) > 1:
+            if number is not None and number != len(lon):
+                raise ValueError('Lon and lat have length %s, but number is %s' % (len(lon), number))
+            number = len(lon)
         else:
-            time_array = time
+            if number is None:
+                if len(time) > 2:
+                    number = len(time)  # Interpreting as time series
+                else:
+                    number = self.get_config('seed:number_of_elements')
+            lon = lon*np.ones(number)
+            lat = lat*np.ones(number)
 
-        geod = pyproj.Geod(ellps='WGS84')
-        ones = np.ones(np.sum(number))
-        if radius_type == 'gaussian':
-            x = np.random.randn(np.sum(number))*radius
-            y = np.random.randn(np.sum(number))*radius
-            az = np.degrees(np.arctan2(x, y))
-            dist = np.sqrt(x*x+y*y)
-        elif radius_type == 'uniform':
-            az = np.random.randn(np.sum(number))*360
-            dist = np.sqrt(np.random.uniform(0, 1, np.sum(number)))*radius
-        if len(lat) == 1 and len(ones) > 1:
-            lat = lat*ones
-            lon = lon*ones
-        kwargs['lon'], kwargs['lat'], az = \
-            geod.fwd(lon, lat, az, dist, radians=False)
+        if len(time) != number and len(time) > 1:
+            if len(time) == 2:  # start -> end
+                td = (time[1]-time[0])/(number-1)  # timestep between points
+                time = [time[0] + i*td for i in range(number)]
+            else:
+                raise ValueError('Time array has length %s, must be 1, 2 or %s' % (len(time), number))
 
+        # Add radius / perturbation
+        if radius.max() > 0:
+            geod = pyproj.Geod(ellps='WGS84')
+            ones = np.ones(np.sum(number))
+            if radius_type == 'gaussian':
+                x = np.random.randn(np.sum(number))*radius
+                y = np.random.randn(np.sum(number))*radius
+                az = np.degrees(np.arctan2(x, y))
+                dist = np.sqrt(x*x+y*y)
+            elif radius_type == 'uniform':
+                az = np.random.randn(np.sum(number))*360
+                dist = np.sqrt(np.random.uniform(0, 1, np.sum(number)))*radius
+            lon, lat, az = geod.fwd(lon, lat, az, dist, radians=False)
+
+        # If z is 'seafloor'
         if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
                 and kwargs['z'][0:8] == 'seafloor':
             # We need to fetch seafloor depth from reader
-            # Unfortunately, this is duplication of code above
             if ('sea_floor_depth_below_sea_level' not in self.priority_list
-                    ) and len(self._lazy_readers()) == 0:
+                ) and len(self._lazy_readers()) == 0:
                 raise ValueError('A reader providing the variable '
                                  'sea_floor_depth_below_sea_level must be '
                                  'added before seeding elements at seafloor.')
-            if type(time) is list:
-                t = time[0]
-            else:
-                t = time
             if not hasattr(self, 'time'):
-                self.time = t
+                self.time = time[0]
             env, env_profiles, missing = \
                 self.get_environment(['sea_floor_depth_below_sea_level'],
-                                     t, kwargs['lon'], kwargs['lat'],
-                                     0.*ones, None)
+                                     time=time[0], lon=lon, lat=lat,
+                                     z=0*lon, profiles=None)
             # Add M meters if given as 'seafloor+M'
             if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
                 meters_above_seafloor = np.float(kwargs['z'][9::])
@@ -1632,9 +1515,58 @@ class OpenDriftSimulation(PhysicsMethods):
             kwargs['z'] = \
                 -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
 
-        elements = self.ElementType(**kwargs)
 
-        self.schedule_elements(elements, time_array)
+        # Creating and scheduling elements
+        elements = self.ElementType(lon=lon, lat=lat, **kwargs)
+        time_array = np.array(time)
+        self.schedule_elements(elements, time)
+
+    def seed_cone(self, lon, lat, time, radius=0, number=None, **kwargs):
+        """Seed elements along a transect/cone between two points/times
+
+        Arguments:
+            lon: scalar or list with 2 elements [lon0, lon1]
+            lat: scalar or list with 2 elements [lat0, lat]
+            time: datetime or list with 2 elements [t0, t1]
+            radius: scalar or list with 2 elements [r0, r1] Unit: meters
+            number: int
+                The number of elements. If this is None, the number of 
+                elements is taken from configuration.
+
+        Elements are seeded along a transect from
+            (lon0, lat0) with uncertainty radius r0 at time t0, towards
+            (lon1, lat1) with uncertainty radius r1 at time t1.
+            If r0 != r1, the unceetainty radius is linearly changed along
+            the transect, thus outlining a "cone".
+        """
+
+        if number is None:
+            number = self.get_config('seed:number_of_elements')
+
+        lon = np.atleast_1d(lon).ravel()
+        lat = np.atleast_1d(lat).ravel()
+        radius = np.atleast_1d(radius).ravel()
+        if len(lon) != len(lat):
+            raise ValueError('Lon and lat must have same length (1 or 2)')
+        elif len(lon) > 2:
+            raise ValueError('Lon and lat must have length 1 or 2, given length is %s' % (len(lon)))
+        elif len(lon) == 1:
+            lon = lon*np.ones(number)
+            lat = lat*np.ones(number)
+        elif len(lon) == 2:  # Segment from lon0,lat1 to lon1,lat2
+            geod = pyproj.Geod(ellps='WGS84')
+            # Note that npts places points in-between start and end, and does not include these
+            conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
+                                    number, radians=False)
+            lon, lat = zip(*conelonlats)
+
+        if len(radius) > 2:
+            raise ValueError('Seed radius must have length 1 or 2')
+        elif len(radius) == 2 and radius[1] != radius[0]:  # Linear increase from r0 to r1
+            radius = np.linspace(radius[0], radius[1], number)
+
+        # Forwarding calculated cone points/radii to seed_elements
+        self.seed_elements(lon=lon, lat=lat, time=time, radius=radius, number=number, **kwargs)
 
     def seed_repeated_segment(self, lons, lats,
                               start_time, end_time, time_interval=None,
@@ -1682,7 +1614,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
 
-    def seed_within_polygon(self, lons, lats, number, **kwargs):
+    def seed_within_polygon(self, lons, lats, number=None, **kwargs):
         """Seed a number of elements within given polygon.
 
         Arguments:
@@ -1700,6 +1632,9 @@ class OpenDriftSimulation(PhysicsMethods):
         """
         if number == 0:
             return
+
+        if number is None:
+            number = self.get_config('seed:number_of_elements')
 
         lons = np.asarray(lons)
         lats = np.asarray(lats)
@@ -1767,7 +1702,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.seed_elements(lonpoints, latpoints, number=number,
                            **kwargs)
 
-    def seed_from_wkt(self, wkt, number, **kwargs):
+    def seed_from_wkt(self, wkt, number=None, **kwargs):
         """Seeds elements within (multi)polygons from WKT"""
 
         try:
@@ -1776,6 +1711,9 @@ class OpenDriftSimulation(PhysicsMethods):
         except Exception as e:
             self.logger.warning(e)
             raise ValueError('OGR library is needed to parse WKT')
+
+        if number is None:
+            number = self.get_config('seed:number_of_elements')
 
         geom = ogr.CreateGeometryFromWkt(wkt)
         total_area = 0
