@@ -157,14 +157,14 @@ class TestOil(unittest.TestCase):
                     meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
                     fraction_dispersed = 0.086
-                    fraction_submerged = 0.354
+                    fraction_submerged = 0.372
                     fraction_evaporated = 0.479
-                    meanlon = 4.812
+                    meanlon = 4.811
                 elif oil == 'SKRUGARD' and windspeed == 8:
-                    fraction_dispersed = 0.133
-                    fraction_submerged = 0.328
-                    fraction_evaporated = 0.187
-                    meanlon = 4.825
+                    fraction_dispersed = 0.139
+                    fraction_submerged = 0.367
+                    fraction_evaporated = 0.180
+                    meanlon = 4.824
                 else:
                     fraction_dispersed = -1  # not defined
                 self.assertAlmostEqual(actual_dispersed[-1],
@@ -194,7 +194,7 @@ class TestOil(unittest.TestCase):
         actual_dispersed = b['mass_dispersed']/b['mass_total']
         self.assertAlmostEqual(actual_dispersed[-1], 0)
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.lon[0:3], [4.803, 4.815 , 4.819], 3))
+            o.elements.lon[0:3], [4.797, 4.802 , 4.826], 3))
 
     @unittest.skipIf(has_oil_library is False,
                      'NOAA OilLibrary is needed')
@@ -216,7 +216,7 @@ class TestOil(unittest.TestCase):
         o.run(duration=timedelta(days=1), time_step=1800)
         initial_mass = o.get_property('mass_oil')[0][0, 0]
         biodegraded30 = o.elements.mass_biodegraded
-        factor = 0.126 #(1-e^(-1))
+        factor = 0.127 #(1-e^(-1))
         self.assertAlmostEqual(biodegraded30[-1]/initial_mass, factor, 3)
 
     @unittest.skipIf(has_oil_library is False,

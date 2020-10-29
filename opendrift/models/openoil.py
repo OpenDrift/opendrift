@@ -263,7 +263,7 @@ class OpenOil(OceanDrift):
         self._add_config({
             'seed:m3_per_hour': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 1e10, 'units': 'm3 per hour',
-                'description': 'The amount (volume) of oil released per hour (or total amount if release is instantaneous',
+                'description': 'The amount (volume) of oil released per hour (or total amount if release is instantaneous)',
                 'level': self.CONFIG_LEVEL_ESSENTIAL},
             'seed:droplet_diameter_min_subsea': {'type': 'float', 'default': 0.0005,
                 'min': 1e-8, 'max': 1, 'units': 'meters',

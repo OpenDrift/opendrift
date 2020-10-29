@@ -138,7 +138,7 @@ class Leeway(OpenDriftSimulation):
                 'level': self.CONFIG_LEVEL_ESSENTIAL},
             'seed:jibeProbability': {'type': 'float',
                 'default': 0.04, 'min': 0, 'max': 1,
-                'description': 'Probability per hour for jibing (objects changing orientation',
+                'description': 'Probability per hour for jibing (objects changing orientation)',
                 'units': 'probability', 'level': self.CONFIG_LEVEL_BASIC},
             })
 
@@ -146,13 +146,11 @@ class Leeway(OpenDriftSimulation):
         self._set_config_default('general:time_step_output_minutes', 60)
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                      objectType=None, cone=None, jibeProbability=None,
-                      **kwargs):
+                      objectType=None, jibeProbability=None, **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own objectType (number),
         # but so far we only use one for each sim
         # objtype = np.ones(number)*objectType
-        # Note: cone is not used, simply to provide same interface as others
 
         if number is None:
             number = self.get_config('seed:number_of_elements')
@@ -238,7 +236,7 @@ class Leeway(OpenDriftSimulation):
         # with the specific values calculated
         super(Leeway, self).seed_elements(
             lon=lon, lat=lat, radius=radius,
-            number=number, time=time, cone=cone,
+            number=number, time=time,
             orientation=orientation, objectType=objectType,
             downwindSlope=downwindSlope,
             crosswindSlope=crosswindSlope,

@@ -447,7 +447,7 @@ class TestReaders(unittest.TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(
             [0, 1, 2],
             reader_arctic.covers_positions(testlon, testlat, testz)[0]))
-        o.seed_elements(testlon, testlat, testz, time=reader_nordic.start_time)
+        o.seed_elements(testlon, testlat, z=testz, time=reader_nordic.start_time)
         o.fallback_values['land_binary_mask'] = 0
         env, env_profiles, missing = \
             o.get_environment(o.required_variables,
