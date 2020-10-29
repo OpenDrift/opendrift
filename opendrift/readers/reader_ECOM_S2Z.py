@@ -153,11 +153,11 @@ class Reader(BaseReader):
 
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
-            self.lat_t = self.Dataset.variables['lat'][:]
-            self.lat =  np.nan_to_num(self.lat_t)
+            self.lat = self.Dataset.variables['lat'].fillna(0)
+            #self.lat =  np.nan_to_num(self.lat_t)
 
-            self.lon_t = self.Dataset.variables['lon'][:]            
-            self.lon =  np.nan_to_num(self.lon_t)
+            self.lon = self.Dataset.variables['lon'].fillna(0)            
+            #self.lon =  np.nan_to_num(self.lon_t)
 
         else:
             if gridfile is None:
@@ -408,8 +408,8 @@ class Reader(BaseReader):
 
                         #y_depth = self.Dataset['y'][:] #Positions of depth by Y
                         #x_depth = self.Dataset['x'][:] #Positions of depth by X
-                        y_depth = self.Dataset.variables['y'][:] #Positions of depth by Y
-                        x_depth = self.Dataset.variables['x'][:] #Positions of depth by X
+                        y_depth = self.Dataset.variables['ypos'][:] #Positions of depth by Y
+                        x_depth = self.Dataset.variables['xpos'][:] #Positions of depth by X
                         L_Y = len(y_depth)
                         L_X = len(x_depth) 
                         L_Z = len(self.z_rho_tot)
