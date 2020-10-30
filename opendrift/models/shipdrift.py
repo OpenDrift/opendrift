@@ -141,6 +141,11 @@ class ShipDrift(OpenDriftSimulation):
 
         super(ShipDrift, self).__init__(*args, **kwargs)
 
+        self._add_config({'seed:orientation': {'type': 'enum',
+            'enum':['left', 'right', 'random'], 'default': 'random',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
+            'description': 'If ships are oriented to the left or right of the downwind direction, or whether this is unknown.'}})
+
         self._set_config_default('drift:current_uncertainty', .05)
         self._set_config_default('drift:wind_uncertainty', .5)
 
@@ -189,7 +194,13 @@ class ShipDrift(OpenDriftSimulation):
         kwargs['water_drag_coeff'] = Cd
 
         if 'orientation' not in kwargs:
-            kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
+            oc = self.get_config('seed:orientation')
+            if oc == 'left':
+                kwargs['orientation'] = np.ones(num)*0
+            elif oc == 'right':
+                kwargs['orientation'] = np.ones(num)*1
+            else:
+                kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
 
         # Calling general constructor with calculated values
         super(ShipDrift, self).seed_elements(*args, **kwargs)
