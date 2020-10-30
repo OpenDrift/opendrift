@@ -40,7 +40,7 @@ class SedimentDrift(OceanDrift):
 
     ElementType = SedimentElement
 
-    required_variables = [
+    required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0},
