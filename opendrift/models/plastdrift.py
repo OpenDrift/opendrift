@@ -25,6 +25,8 @@ PassiveTracer.variables = PassiveTracer.add_variables([
                            'default': 0.02}),
     ('terminal_velocity', {'dtype': np.float32,
                            'units': 'm/s',
+                           'level': OceanDrift.CONFIG_LEVEL_ESSENTIAL,
+        'description': 'Positive value means rising particles (positive buoyancy)',
                            'default': 0.01})])
 
 
