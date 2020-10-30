@@ -281,6 +281,8 @@ class OceanDrift(OpenDriftSimulation):
         # get vertical eddy diffusivity from environment or specific model
         diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
         if diffusivity_model == 'environment':
+            if not hasattr(self, 'fallback_values'):
+                self.set_fallback_values()
             if 'ocean_vertical_diffusivity' in self.environment_profiles and not (self.environment_profiles['ocean_vertical_diffusivity'].min() == self.fallback_values['ocean_vertical_diffusivity'] and self.environment_profiles['ocean_vertical_diffusivity'].max() == self.fallback_values['ocean_vertical_diffusivity']):
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
@@ -297,6 +299,8 @@ class OceanDrift(OpenDriftSimulation):
         else:
             self.logger.debug('Using functional expression for diffusivity')
             # Using higher vertical resolution when analytical
+            if self.environment_profiles is None:
+                self.environment_profiles = {}
             self.environment_profiles['z'] = -np.arange(0, 50)
             # Note: although analytical functions, z is discretised
             Kprofiles = self.get_diffusivity_profile(diffusivity_model)

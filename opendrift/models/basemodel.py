@@ -470,10 +470,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     if len(matches) > 0:
                         matches.sort()
                         suggestion = '\nDid you mean any of these?\n%s' % str(matches)
-                    else:
-                        suggestion = ''
-                    raise ValueError('Wrong configuration, possible values are:\n\t%s\n%s' %
-                                     (i['enum'], suggestion))
+                else:
+                    suggestion = ''
+                raise ValueError('Wrong configuration, possible values are:\n\t%s\n%s' %
+                                 (i['enum'], suggestion))
 
         self._config[key]['value'] = value
 
