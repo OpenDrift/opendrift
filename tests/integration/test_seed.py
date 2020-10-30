@@ -195,5 +195,16 @@ class TestSeed(unittest.TestCase):
                         o.elements_scheduled.wind_drift_factor.max())
 
 
+    def test_seed_seafloor(self):
+        # Check that seed:seafloor overrides z to 'seafloor'
+        o = OceanDrift(loglevel=50)
+        from opendrift.readers import reader_constant
+        r = reader_constant.Reader({
+            'sea_floor_depth_below_sea_level': 200})
+        o.add_reader(r)
+        o.set_config('seed:seafloor', True)
+        o.seed_elements(lon=4, lat=60, time=datetime.now())
+        self.assertAlmostEqual(o.elements_scheduled.z[0], -200)
+
 if __name__ == '__main__':
     unittest.main()

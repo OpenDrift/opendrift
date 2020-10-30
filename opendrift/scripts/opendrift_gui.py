@@ -475,7 +475,7 @@ class OpenDriftGUI(tk.Tk):
             # Removing depth input boxes
             self.depthlabel.destroy()
             self.depth.destroy()
-            self.seafloor.destroy()
+            #self.seafloor.destroy()
         except:
             pass
 
@@ -503,41 +503,47 @@ class OpenDriftGUI(tk.Tk):
                                                 text=varlabel + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
             CreateToolTip(self.seed_input_label[i], text=sc[i]['description'])
-            self.seed_input_var[i] = tk.StringVar()
             actual_val = self.o.get_config(i)
             if sc[i]['type'] == 'enum':
+                self.seed_input_var[i] = tk.StringVar()
                 self.seed_input[i] = ttk.Combobox(
                     self.seed_frame, width=50,
                     textvariable=self.seed_input_var[i],
                     values=sc[i]['enum'])
                 self.seed_input_var[i].set(actual_val)
+            elif sc[i]['type'] == 'bool':
+                self.seed_input_var[i] = tk.IntVar(value=sc[i]['value'])
+                self.seed_input[i] = tk.Checkbutton(
+                    self.seed_frame, variable=self.seed_input_var[i],
+                    text=sc[i]['description'])
             else:
+                self.seed_input_var[i] = tk.StringVar()
                 self.seed_input[i] = tk.Entry(
                     self.seed_frame, textvariable=self.seed_input_var[i],
                     width=6, justify=tk.RIGHT)
                 self.seed_input[i].insert(0, actual_val)
             self.seed_input[i].grid(row=num, column=1)
 
-        # User shall be able to chose release depth for 3D models
-        if issubclass(type(self.o), OceanDrift):
-            self.depthlabel = tk.Label(self.duration, text='Release depth [m]')
-            self.depthlabel.grid(row=60, column=0)
-            self.depthvar = tk.StringVar()
-            self.depth = tk.Entry(self.duration, textvariable=self.depthvar,
-                                  width=6, justify=tk.RIGHT)
-            self.depth.grid(row=60, column=2)
-            self.depth.insert(0, '0')
-            self.seafloorvar = tk.IntVar()
-            self.seafloor = tk.Checkbutton(self.duration, variable=self.seafloorvar,
-                                           text='seafloor',
-                                           command=self.seafloorbutton)
-            self.seafloor.grid(row=60, column=3)
+        ## User shall be able to chose release depth for 3D models
+        #if issubclass(type(self.o), OceanDrift):
+        #    self.depthlabel = tk.Label(self.duration, text='Release depth [m]')
+        #    self.depthlabel.grid(row=60, column=0)
+        #    self.depthvar = tk.StringVar()
+        #    self.depth = tk.Entry(self.duration, textvariable=self.depthvar,
+        #                          width=6, justify=tk.RIGHT)
+        #    self.depth.grid(row=60, column=2)
+        #    self.depth.insert(0, '0')
+        #    self.seafloorvar = tk.IntVar()
+        #    self.seafloor = tk.Checkbutton(self.duration, variable=self.seafloorvar,
+        #                                   text='seafloor',
+        #                                   command=self.seafloorbutton)
+        #    self.seafloor.grid(row=60, column=3)
 
-    def seafloorbutton(self):
-        if self.seafloorvar.get() == 1:
-            self.depth.config(state='disabled')
-        else:
-            self.depth.config(state='normal')
+    #def seafloorbutton(self):
+    #    if self.seafloorvar.get() == 1:
+    #        self.depth.config(state='disabled')
+    #    else:
+    #        self.depth.config(state='normal')
 
     def show_help(self):
         help_url = 'https://opendrift.github.io/gui.html'
@@ -622,30 +628,31 @@ class OpenDriftGUI(tk.Tk):
         else:
             cone = False
 
-        extra_seed_args = {}
         for se in self.seed_input:
-            if se == 'ocean_only':
-                continue  # To be fixed/removed
-            val = self.seed_input[se].get()
-            try:
-                extra_seed_args[se] = np.float(val)
-            except:
-                extra_seed_args[se] = val
-            self.o.set_config(se, extra_seed_args[se])
+            val = self.seed_input_var[se].get()
+            if self.o._config[se]['type'] in ['float', 'int']:
+                val = np.float(val)
+            elif self.o._config[se]['type'] == 'bool':
+                if val == 1:
+                    val = True
+                elif val == 0:
+                    val = False
+                else:
+                    nothing
+            self.o.set_config(se, val)
 
         self.o.add_readers_from_file(self.o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
 
-        extra_seed_args = {}
-        if issubclass(type(self.o), OceanDrift):
-            if self.seafloorvar.get() == 1:
-                z = 'seafloor'
-            else:
-                z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
-            extra_seed_args['z'] = z
+        #if issubclass(type(self.o), OceanDrift):
+        #    if self.seafloorvar.get() == 1:
+        #        z = 'seafloor'
+        #    else:
+        #        z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
+        #    extra_seed_args['z'] = z
         self.o.seed_cone(lon=lon, lat=lat, radius=radius,
-                         time=start_time, #cone=cone,
-                         **extra_seed_args)
+                         time=start_time)#, #cone=cone,
+                         #**extra_seed_args)
 
         time_step = self.o.get_config('general:time_step_minutes')*60
         time_step_output = self.o.get_config('general:time_step_output_minutes')*60

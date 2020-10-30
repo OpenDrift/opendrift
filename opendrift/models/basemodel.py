@@ -1538,6 +1538,11 @@ class OpenDriftSimulation(PhysicsMethods):
             lon, lat, az = geod.fwd(lon, lat, az, dist, radians=False)
 
         # If z is 'seafloor'
+        if not 'z' in kwargs or kwargs['z'] is None:
+            if 'seed:seafloor' in self._config:
+                if self.get_config('seed:seafloor') is True:
+                    kwargs['z'] = 'seafloor'
+                    self.logger.debug('Seafloor is selected, neglecting z')
         if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
                 and kwargs['z'][0:8] == 'seafloor':
             # We need to fetch seafloor depth from reader
