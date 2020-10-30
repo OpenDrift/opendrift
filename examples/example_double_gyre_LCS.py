@@ -14,7 +14,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
 #%%
 # Note that Runge-Kutta here makes a difference to Euler scheme
 o.set_config('drift:scheme', 'runge-kutta4')

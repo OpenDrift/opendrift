@@ -46,8 +46,8 @@ class TestRun(unittest.TestCase):
         reader_nordic.zlevels = reader_arctic.z
         ######################################################
         o.add_reader([reader_nordic, reader_arctic])
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['x_wind'] = 10  # Some wind for mixing
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 10)  # Some wind for mixing
         # Seed close to Nordic boundary
         o.seed_elements(lon=14.9, lat=71.1, radius=2000, number=100,
                         time=reader_nordic.start_time, z=0)

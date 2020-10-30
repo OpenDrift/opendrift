@@ -13,10 +13,10 @@ def test_simulation_back_extent():
                             objectType=objectType,
                             time=datetime(2015, 1, 1))
 
-    leeb.fallback_values['x_wind'] = 1.5
-    leeb.fallback_values['y_wind'] = 10
-    leeb.fallback_values['x_sea_water_velocity'] = 1.5 # maximum speed in automatic landmask
-    leeb.fallback_values['y_sea_water_velocity'] = 0
+    leeb.set_config('environment:fallback:x_wind', 1.5)
+    leeb.set_config('environment:fallback:y_wind', 10)
+    leeb.set_config('environment:fallback:x_sea_water_velocity', 1.5) # maximum speed in automatic landmask
+    leeb.set_config('environment:fallback:y_sea_water_velocity', 0)
 
     with pytest.raises(ValueError) as ex:
         leeb.run(duration=timedelta(days=-1), time_step=3600, time_step_output=10*3600)
@@ -32,10 +32,10 @@ def test_simulation_matches_forw_backward():
                             objectType=objectType,
                             time=datetime(2015, 1, 1))
 
-    leef.fallback_values['x_wind'] = -1.5
-    leef.fallback_values['y_wind'] = -10
-    leef.fallback_values['x_sea_water_velocity'] = -1.5 # maximum speed in automatic landmask
-    leef.fallback_values['y_sea_water_velocity'] = 0
+    leef.set_config('environment:fallback:x_wind', -1.5)
+    leef.set_config('environment:fallback:y_wind', -10)
+    leef.set_config('environment:fallback:x_sea_water_velocity', -1.5) # maximum speed in automatic landmask
+    leef.set_config('environment:fallback:y_sea_water_velocity', 0)
 
     leef.run(steps=2, time_step=10*3600, time_step_output=10*3600)
 
@@ -47,10 +47,10 @@ def test_simulation_matches_forw_backward():
                             objectType=objectType,
                             time=datetime(2015, 1, 1))
 
-    leeb.fallback_values['x_wind'] = 1.5
-    leeb.fallback_values['y_wind'] = 10
-    leeb.fallback_values['x_sea_water_velocity'] = 1.5 # maximum speed in automatic landmask
-    leeb.fallback_values['y_sea_water_velocity'] = 0
+    leeb.set_config('environment:fallback:x_wind', 1.5)
+    leeb.set_config('environment:fallback:y_wind', 10)
+    leeb.set_config('environment:fallback:x_sea_water_velocity', 1.5) # maximum speed in automatic landmask
+    leeb.set_config('environment:fallback:y_sea_water_velocity', 0)
 
     leeb.run(steps=2, time_step=-10*3600, time_step_output=-10*3600)
 

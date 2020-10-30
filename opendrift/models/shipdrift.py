@@ -84,23 +84,17 @@ class ShipDrift(OpenDriftSimulation):
 
     ElementType = ShipObject 
 
-    required_variables = ['x_wind', 'y_wind', 'land_binary_mask',
-                          'x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_stokes_drift_x_velocity',
-                          'sea_surface_wave_stokes_drift_y_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
-                         ]
-
-    fallback_values = {'x_wind': 0,
-                       'y_wind': 0,
-                       'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_stokes_drift_x_velocity': 0,
-                       'sea_surface_wave_stokes_drift_y_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-                       }
+    required_variables = {
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0}
+        }
 
     max_speed = 2  # m/s
     winwav_angle = 20  # Angular offset in degrees

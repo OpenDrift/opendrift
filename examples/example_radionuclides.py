@@ -45,7 +45,7 @@ o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
 
 # Adjusting some configuration
 o.set_config('drift:vertical_mixing', False)
-#o.fallback_values['ocean_vertical_diffusivity'] = 0
+#o.set_config('environment:fallback:ocean_vertical_diffusivity', 0)
 #o.set_config('vertical_mixing:diffusivitymodel','constant')  # include settling without vertical turbulent mixing
 #o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
 # Vertical mixing requires fast time step

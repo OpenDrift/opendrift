@@ -17,7 +17,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 #reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 o.add_reader(reader_norkyst)
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
 
 #%%
 # Forward run
@@ -42,7 +42,7 @@ elements_final = o.elements
 time_final = o.time
 del o
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
 o.add_reader(reader_norkyst)
 o.schedule_elements(elements_final, time_final)
 o.disable_vertical_motion()

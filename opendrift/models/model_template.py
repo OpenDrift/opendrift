@@ -72,16 +72,17 @@ class ModelTemplate(OceanDrift):
     # allows reusing readers for many/all models.
     # Vector quantities should be referred to by the x-y components
     # (e.g. x_wind) and not the lon-lat componenets (e.g. east_wind).
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                          'x_wind', 'y_wind', 'land_binary_mask']
-
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        }
     # Default (fallback) numerical values may be specified.
     # These values will be used for particles outside of the
     # spatial or tempoaral domain of all the available readers,
     # or if no readers are given for the specific variables.
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'x_wind': 0, 'y_wind': 0}
 
     def __init__(self, *args, **kwargs):
         """

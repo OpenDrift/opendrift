@@ -152,58 +152,27 @@ class OpenOil(OceanDrift):
 
     ElementType = Oil
 
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                          'upward_sea_water_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_surface_wave_stokes_drift_x_velocity',
-                          'sea_surface_wave_stokes_drift_y_velocity',
-                          'sea_surface_wave_period_at_variance_spectral_density_maximum',
-                          'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-                          'sea_ice_area_fraction',
-                          'sea_ice_x_velocity', 'sea_ice_y_velocity',
-                          'sea_water_temperature',
-                          'sea_water_salinity',
-                          'sea_floor_depth_below_sea_level',
-                          'x_wind', 'y_wind',
-                          'ocean_vertical_diffusivity',
-                          'land_binary_mask']
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': None},
+        'y_sea_water_velocity': {'fallback': None},
+        'x_wind': {'fallback': None},
+        'y_wind': {'fallback': None},
+        'upward_sea_water_velocity': {'fallback': 0, 'important': False},
+        'sea_surface_wave_significant_height': {'fallback': 0, 'important': False},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0, 'important': False},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0, 'important': False},
+        'sea_surface_wave_period_at_variance_spectral_density_maximum': {'fallback': 0, 'important': False},
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0, 'important': False},
+        'sea_ice_area_fraction': {'fallback': 0, 'important': False},
+        'sea_ice_x_velocity': {'fallback': 0, 'important': False},
+        'sea_ice_y_velocity': {'fallback': 0, 'important': False},
+        'sea_water_temperature': {'fallback': 10, 'profiles': True},
+        'sea_water_salinity': {'fallback': 34, 'profiles': True},
+        'sea_floor_depth_below_sea_level': {'fallback': 10000},
+        'ocean_vertical_diffusivity': {'fallback': 0.02, 'important': False, 'profiles': True},
+        'land_binary_mask': {'fallback': 0}
+    }
 
-    # Desired variables do not require initialisation of Lazy readers
-    desired_variables = [
-        'sea_surface_wave_significant_height',
-        'sea_surface_wave_stokes_drift_x_velocity',
-        'sea_surface_wave_stokes_drift_y_velocity',
-        'sea_surface_wave_period_at_variance_spectral_density_maximum',
-        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-        'sea_ice_area_fraction',
-        'sea_ice_x_velocity', 'sea_ice_y_velocity',
-        'ocean_vertical_diffusivity',
-        'upward_sea_water_velocity'
-        ]
-
-
-    fallback_values = {# Comment out wind and current, as is mandatory
-                       #'x_sea_water_velocity': 0,
-                       #'y_sea_water_velocity': 0,
-                       'upward_sea_water_velocity': 0,
-                       #'x_wind': 0, 'y_wind': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_stokes_drift_x_velocity': 0,
-                       'sea_surface_wave_stokes_drift_y_velocity': 0,
-                       'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
-        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-                       'sea_floor_depth_below_sea_level': 10000,
-                       'sea_ice_area_fraction': 0,
-                       'sea_ice_x_velocity': 0,
-                       'sea_ice_y_velocity': 0,
-                       'sea_water_temperature': 10,
-                       'sea_water_salinity': 34.,
-                       'ocean_vertical_diffusivity': 0.02  # m2s-1
-                        }
-
-    required_profiles = ['sea_water_temperature',
-                         'sea_water_salinity',
-                         'ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
     required_profiles_z_range = [-20, 0]
 

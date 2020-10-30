@@ -94,14 +94,13 @@ class OpenBerg(OpenDriftSimulation):
 
     ElementType = IcebergObj
 
-    required_variables = ['x_wind', 'y_wind',
-                          'x_sea_water_velocity', 'y_sea_water_velocity',
-                          'land_binary_mask']
-
-    fallback_values = {'x_wind': 0.0,
-                       'y_wind': 0.0,
-                       'x_sea_water_velocity': 0.0,
-                       'y_sea_water_velocity': 0.0}
+    required_variables = {
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'x_sea_water_velocity': {'fallback': 0, 'profiles': True},
+        'y_sea_water_velocity': {'fallback': 0, 'profiles': True},
+        'land_binary_mask': {'fallback': None},
+        }
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
@@ -112,8 +111,8 @@ class OpenBerg(OpenDriftSimulation):
         self.name = 'OpenBerg'
         self.label=label
 
-        self.required_profiles = ['x_sea_water_velocity',
-                                  'y_sea_water_velocity']  # Get vertical current profiles
+        #self.required_profiles = ['x_sea_water_velocity',
+        #                          'y_sea_water_velocity']  # Get vertical current profiles
 
         self.required_profiles_z_range = [-120, 0] # [min_depth, max_depth]
 

@@ -52,10 +52,10 @@ def test_leewayrun(tmpdir):
     lee.seed_elements(lon=4.5, lat=60, number=100,
                             objectType=objectType,
                             time=datetime(2015, 1, 1))
-    lee.fallback_values['x_wind'] = 0
-    lee.fallback_values['y_wind'] = 10
-    lee.fallback_values['x_sea_water_velocity'] = 0
-    lee.fallback_values['y_sea_water_velocity'] = 0
+    lee.set_config('environment:fallback:x_wind', 0)
+    lee.set_config('environment:fallback:y_wind', 10)
+    lee.set_config('environment:fallback:x_sea_water_velocity', 0)
+    lee.set_config('environment:fallback:y_sea_water_velocity', 0)
     # Check that 7 out of 100 elements strand towards coast
     lee.run(steps=24, time_step=3600)
     assert lee.num_elements_scheduled() == 0

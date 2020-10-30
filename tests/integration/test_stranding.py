@@ -37,7 +37,7 @@ class TestStranding(unittest.TestCase):
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
         '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader(reader_nordic)
-        o.fallback_values['y_wind'] = 10  # Some wind for mixing
+        o.set_config('environment:fallback:y_wind', 10)  # Some wind for mixing
         o.seed_elements(lon=14.0, lat=68.15, radius=2000, number=100,
                         time=[reader_nordic.start_time,
                               reader_nordic.end_time], z=0)
@@ -63,7 +63,7 @@ class TestStranding(unittest.TestCase):
         '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader(reader_arctic)
         o.add_reader(reader_nordic)
-        o.fallback_values['x_sea_water_velocity'] = 1
+        o.set_config('environment:fallback:x_sea_water_velocity', 1)
         o.seed_elements(lon=13.0, lat=68.0, radius=20000, number=100,
                         time=[reader_arctic.start_time,
                               reader_nordic.end_time], z=-30)
@@ -96,7 +96,7 @@ class TestStranding(unittest.TestCase):
             o.set_config('general:coastline_action', option)
             o.add_reader([reader_osc, reader_global])
             # Adding northwards drift
-            o.fallback_values['y_sea_water_velocity'] = .2
+            o.set_config('environment:fallback:y_sea_water_velocity', .2)
             o.seed_elements(lon=12.2, lat=67.7, radius=0,
                             time=reader_osc.zero_time)
             o.run(steps=28, time_step=3600*2)
@@ -118,7 +118,7 @@ class TestStranding(unittest.TestCase):
         o.add_reader(reader_global)
         o.set_config('general:coastline_action', 'previous')
         o.set_config('general:use_auto_landmask', False)
-        o.fallback_values['x_sea_water_velocity'] = .7
+        o.set_config('environment:fallback:x_sea_water_velocity', .7)
         o.seed_elements(lon=5, lat=60.49, time=datetime.now())
         o.run(time_step=3600, steps=30)
         lons = o.history['lon'][0]
