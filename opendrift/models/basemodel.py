@@ -129,7 +129,6 @@ class OpenDriftSimulation(PhysicsMethods):
     CONFIG_LEVEL_ADVANCED=3
 
     max_speed = 1  # Assumed max average speed of any element
-    required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
     plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
@@ -167,12 +166,8 @@ class OpenDriftSimulation(PhysicsMethods):
         self.priority_list = OrderedDict()
         self.use_block = True  # Set to False if interpolation left to reader
 
-        if not hasattr(self, 'fallback_values'):
-            self.fallback_values = {}
-
         # Make copies of dictionaries so that they are private to each instance
         self.status_categories = ['active']  # Particles are active by default
-        self.fallback_values = self.fallback_values.copy()
         self.status_colors_default = self.status_colors_default.copy()
 
         if hasattr(self, 'status_colors'):
@@ -319,6 +314,31 @@ class OpenDriftSimulation(PhysicsMethods):
                 'level': v['level'] if 'level' in v else self.CONFIG_LEVEL_ADVANCED}
         self._add_config(c)
 
+        # Add constant and fallback environment variables to config
+        c = {}
+        for v in self.required_variables:
+            c['environment:constant:%s' % v] = {'type': 'float',
+                'min': None, 'max': None, 'units': None, 'default': None,
+                'level': OpenDriftSimulation.CONFIG_LEVEL_BASIC,
+                'description': 'Use constant value for %s' %v}
+            c['environment:fallback:%s' % v] = {'type': 'float',
+                'min': None, 'max': None, 'units': None, 'default':
+                 self.required_variables[v]['fallback'] if
+                    'fallback' in self.required_variables[v] else None,
+                'level': OpenDriftSimulation.CONFIG_LEVEL_BASIC,
+                'description': 'Fallback value for %s if not available from any reader' %v}
+        self._add_config(c)
+
+        # Find variables which require profiles
+        self.required_profiles = [var for var in self.required_variables
+            if 'profiles' in self.required_variables[var] and
+            self.required_variables[var]['profiles'] is True]
+
+        # Find variables which are desired, but not required
+        self.desired_variables = [var for var in self.required_variables
+            if 'important' in self.required_variables[var] and
+            self.required_variables[var]['important'] is False]
+
         self.timer_start('total time')
         self.timer_start('configuration')
 
@@ -326,25 +346,27 @@ class OpenDriftSimulation(PhysicsMethods):
         self.logger.info('OpenDriftSimulation initialised (version %s)' %
                      opendrift.__version__)
 
-    def list_config(self):
+    def list_config(self, prefix=''):
         """List all possible configuration settings with values"""
         str = '\n=============================================\n'
         for key in self._config:
-            str += '%s [%s]\n' % (key, self.get_config(key))
+            if key.startswith(prefix):
+                str += '%s [%s]\n' % (key, self.get_config(key))
         str += '=============================================\n'
         self.logger.info(str)
 
-    def list_configspec(self):
+    def list_configspec(self, prefix=''):
         """Readable formatting of config specification"""
         for c, i in self._config.items():
-            val = i['value'] if 'value' in i else None
-            if i['type'] == 'bool':
-                rang=''
-            elif i['type'] in ['float', 'int']:
-                rang = 'min: %s, max: %s [%s]' % (i['min'], i['max'], i['units'])
-            elif i['type'] == 'enum':
-                rang = i['enum']
-            print('%-35s [%s] %-5s %s %s...' % (c, val, i['type'], rang, i['description'][0:20]))
+            if c.startswith(prefix):
+                val = i['value'] if 'value' in i else None
+                if i['type'] == 'bool':
+                    rang=''
+                elif i['type'] in ['float', 'int']:
+                    rang = 'min: %s, max: %s [%s]' % (i['min'], i['max'], i['units'])
+                elif i['type'] == 'enum':
+                    rang = i['enum']
+                print('%-35s [%s] %-5s %s %s...' % (c, val, i['type'], rang, i['description'][0:20]))
 
     def get_configspec(self, prefix='', level=[1,2,3]):
         if not isinstance(level, list):
@@ -430,13 +452,13 @@ class OpenDriftSimulation(PhysicsMethods):
         i = self._config[key]
         if i['type'] == 'bool':
             if value not in [True, False]:
-                raise ValueError('Config value must be True or False')
+                raise ValueError('Config value %s must be True or False' % key)
         elif i['type'] in ['float', 'int']:
-            if value < i['min'] or value > i['max']:
-                raise ValueError('Config value must be between %s and %s' % (i['min'], i['max']))
-            if i['type'] == 'float':
+            if (i['min'] is not None and value < i['min']) or (i['max'] is not None and value > i['max']):
+                raise ValueError('Config value %s must be between %s and %s' % (key, i['min'], i['max']))
+            if i['type'] == 'float' and value is not None:
                 value = np.float(value)
-            elif i['type'] == 'int':
+            elif i['type'] == 'int' and value is not None:
                 value = np.int(value)
         elif i['type'] == 'enum':
             if value not in i['enum']:
@@ -448,10 +470,10 @@ class OpenDriftSimulation(PhysicsMethods):
                     if len(matches) > 0:
                         matches.sort()
                         suggestion = '\nDid you mean any of these?\n%s' % str(matches)
-                    else:
-                        suggestion = ''
-                    raise ValueError('Wrong configuration, possible values are:\n\t%s\n%s' %
-                                     (i['enum'], suggestion))
+                else:
+                    suggestion = ''
+                raise ValueError('Wrong configuration, possible values are:\n\t%s\n%s' %
+                                 (i['enum'], suggestion))
 
         self._config[key]['value'] = value
 
@@ -674,7 +696,7 @@ class OpenDriftSimulation(PhysicsMethods):
         outStr += '--------------------\n'
         return outStr
 
-    def add_reader(self, readers, variables=None):
+    def add_reader(self, readers, variables=None, first=False):
         """Add one or more readers providing variables used by this model.
 
         Method may be called subsequently to add more readers
@@ -683,7 +705,8 @@ class OpenDriftSimulation(PhysicsMethods):
         Args:
             readers: one or more (list) Reader objects.
             variables: optional, list of strings of standard_name of
-            variables to be provided by this/these reader(s).
+                variables to be provided by this/these reader(s).
+            first: Set to True if this reader should be set as first option
         """
 
         # Convert any strings to lists, for looping
@@ -735,7 +758,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 for variable in variables if variables else reader.variables:
                     if variable in list(self.priority_list):
                         if reader.name not in self.priority_list[variable]:
-                            self.priority_list[variable].append(reader.name)
+                            if first is True:
+                                self.priority_list[variable].insert(0, reader.name)
+                            else:
+                                self.priority_list[variable].append(reader.name)
                     else:
                         self.priority_list[variable] = [reader.name]
 
@@ -795,7 +821,7 @@ class OpenDriftSimulation(PhysicsMethods):
             each of the variable_groups.
         """
         if variables is None:
-            variables = self.required_variables
+            variables = list(self.required_variables)
         reader_groups = []
         # Find all unique reader groups
         for variable, readers in self.priority_list.items():
@@ -925,6 +951,9 @@ class OpenDriftSimulation(PhysicsMethods):
         dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon))*np.nan, dtype=dtype)
 
+        if not hasattr(self, 'fallback_values'):
+            self.set_fallback_values(refresh=False)
+
         # Discard any existing readers which are not relevant
         self.discard_irrelevant_readers()
 
@@ -971,10 +1000,9 @@ class OpenDriftSimulation(PhysicsMethods):
         variable_groups, reader_groups, missing_variables = \
             self.get_reader_groups(variables)
         for variable in variables:  # Fill with fallback value if no reader
-            if (self.fallback_values is not None
-                    and variable in self.fallback_values):
-                env[variable] = np.ma.ones(env[variable].shape)\
-                    * self.fallback_values[variable]
+            co = self.get_config('environment:fallback:%s' % variable)
+            if co is not None:
+                env[variable] = np.ma.ones(env[variable].shape) * co
 
         for i, variable_group in enumerate(variable_groups):
             self.logger.debug('----------------------------------------')
@@ -1956,6 +1984,16 @@ class OpenDriftSimulation(PhysicsMethods):
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
+    def set_fallback_values(self, refresh=False):
+        if hasattr(self, 'fallback_values') and refresh is False:
+            raise ValueError('Manually editing fallback_values dict is deprecated, please use set_config()')
+        else:
+            c = self.get_configspec('environment:fallback:')
+            self.fallback_values = {}
+            for var in list(c):
+                if c[var]['value'] is not None:
+                    self.fallback_values[var.split(':')[-1]] = c[var]['value']
+
     def run(self, time_step=None, steps=None, time_step_output=None,
             duration=None, end_time=None, outfile=None, export_variables=None,
             export_buffer_length=100, stop_on_error=False):
@@ -2004,6 +2042,9 @@ class OpenDriftSimulation(PhysicsMethods):
             raise ValueError('Please seed elements before starting a run.')
         self.elements = self.ElementType()
 
+        # Collect fallback values from config into dict
+        self.set_fallback_values(refresh=True)
+
         if outfile is None and export_buffer_length is not None:
             self.logger.debug('No output file is specified, '
                           'neglecting export_buffer_length')
@@ -2034,6 +2075,17 @@ class OpenDriftSimulation(PhysicsMethods):
                 reader.simulation_SRS = True
             else:
                 reader.simulation_SRS = False
+
+        # Make constant readers if config environment:constant:<var> is
+        c = self.get_configspec('environment:constant:')
+        mr = {}
+        for var in list(c):
+            if c[var]['value'] is not None:
+                mr[var.split(':')[-1]] = c[var]['value']
+        if len(mr) > 0:
+            from opendrift.readers import reader_constant
+            rc = reader_constant.Reader(mr)
+            self.add_reader(rc, first=True)
 
         missing_variables = self.missing_variables()
         missing_variables = [m for m in missing_variables if
@@ -2317,7 +2369,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.logger.debug('==================================='*2)
 
                 self.environment, self.environment_profiles, missing = \
-                    self.get_environment(self.required_variables,
+                    self.get_environment(list(self.required_variables),
                                          self.time,
                                          self.elements.lon,
                                          self.elements.lat,

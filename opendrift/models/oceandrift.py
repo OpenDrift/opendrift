@@ -58,48 +58,30 @@ class OceanDrift(OpenDriftSimulation):
 
     max_speed = 1  # m/s
 
-    required_variables = [
-        'x_sea_water_velocity',
-        'y_sea_water_velocity',
-        'x_wind', 'y_wind',
-        'upward_sea_water_velocity',
-        'ocean_vertical_diffusivity',
-        'sea_surface_wave_significant_height',
-        'sea_surface_wave_stokes_drift_x_velocity',
-        'sea_surface_wave_stokes_drift_y_velocity',
-        'sea_surface_wave_period_at_variance_spectral_density_maximum',
-        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-        'surface_downward_x_stress',
-        'surface_downward_y_stress',
-        'turbulent_kinetic_energy',
-        'turbulent_generic_length_scale',
-        'sea_floor_depth_below_sea_level',
-        'land_binary_mask'
-        ]
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'upward_sea_water_velocity': {'fallback': 0},
+        'ocean_vertical_diffusivity': {'fallback': 0,
+             'profiles': True},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_period_at_variance_spectral_density_maximum':
+            {'fallback': 0},
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
+        'surface_downward_x_stress': {'fallback': 0},
+        'surface_downward_y_stress': {'fallback': 0},
+        'turbulent_kinetic_energy': {'fallback': 0},
+        'turbulent_generic_length_scale': {'fallback': 0},
+        'sea_floor_depth_below_sea_level': {'fallback': 10000},
+        'land_binary_mask': {'fallback': None},
+        } 
 
-    required_profiles = ['ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
     required_profiles_z_range = [-20, 0]
-
-    fallback_values = {
-        'x_sea_water_velocity': 0,
-        'y_sea_water_velocity': 0,
-        'upward_sea_water_velocity': 0,
-        'sea_surface_wave_significant_height': 0,
-        'sea_surface_wave_stokes_drift_x_velocity': 0,
-        'sea_surface_wave_stokes_drift_y_velocity': 0,
-        'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
-        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-        'x_wind': 0,
-        'y_wind': 0,
-        'ocean_vertical_diffusivity': 0,
-        'surface_downward_x_stress': 0,
-        'surface_downward_y_stress': 0,
-        'turbulent_kinetic_energy': 0,
-        'turbulent_generic_length_scale': 0,
-        'sea_floor_depth_below_sea_level': 10000
-        }
-
 
     def __init__(self, *args, **kwargs):
 
@@ -299,6 +281,8 @@ class OceanDrift(OpenDriftSimulation):
         # get vertical eddy diffusivity from environment or specific model
         diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
         if diffusivity_model == 'environment':
+            if not hasattr(self, 'fallback_values'):
+                self.set_fallback_values()
             if 'ocean_vertical_diffusivity' in self.environment_profiles and not (self.environment_profiles['ocean_vertical_diffusivity'].min() == self.fallback_values['ocean_vertical_diffusivity'] and self.environment_profiles['ocean_vertical_diffusivity'].max() == self.fallback_values['ocean_vertical_diffusivity']):
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
@@ -315,6 +299,8 @@ class OceanDrift(OpenDriftSimulation):
         else:
             self.logger.debug('Using functional expression for diffusivity')
             # Using higher vertical resolution when analytical
+            if self.environment_profiles is None:
+                self.environment_profiles = {}
             self.environment_profiles['z'] = -np.arange(0, 50)
             # Note: although analytical functions, z is discretised
             Kprofiles = self.get_diffusivity_profile(diffusivity_model)

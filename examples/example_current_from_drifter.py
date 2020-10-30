@@ -10,7 +10,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 
 o = OceanDrift(loglevel=20)
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
 
 #%%
 # We make a reader which reconstructs the ocean current from

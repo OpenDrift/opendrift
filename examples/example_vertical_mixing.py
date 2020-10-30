@@ -37,7 +37,7 @@ o.seed_elements(lon=4, lat=60, z=seed_depth, time=time, number=N, terminal_veloc
 o.time = time
 o.time_step = timedelta(hours=hours)
 o.release_elements()
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
 o.environment = np.array(np.ones(N)*sea_floor_depth,
                 dtype=[('sea_floor_depth_below_sea_level', np.float32)]).view(np.recarray)
 o.environment_profiles = {

@@ -84,23 +84,17 @@ class ShipDrift(OpenDriftSimulation):
 
     ElementType = ShipObject 
 
-    required_variables = ['x_wind', 'y_wind', 'land_binary_mask',
-                          'x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_stokes_drift_x_velocity',
-                          'sea_surface_wave_stokes_drift_y_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
-                         ]
-
-    fallback_values = {'x_wind': 0,
-                       'y_wind': 0,
-                       'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_stokes_drift_x_velocity': 0,
-                       'sea_surface_wave_stokes_drift_y_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-                       }
+    required_variables = {
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0}
+        }
 
     max_speed = 2  # m/s
     winwav_angle = 20  # Angular offset in degrees
@@ -146,6 +140,11 @@ class ShipDrift(OpenDriftSimulation):
              self.wforce['D'].ravel())
 
         super(ShipDrift, self).__init__(*args, **kwargs)
+
+        self._add_config({'seed:orientation': {'type': 'enum',
+            'enum':['left', 'right', 'random'], 'default': 'random',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
+            'description': 'If ships are oriented to the left or right of the downwind direction, or whether this is unknown.'}})
 
         self._set_config_default('drift:current_uncertainty', .05)
         self._set_config_default('drift:wind_uncertainty', .5)
@@ -195,7 +194,13 @@ class ShipDrift(OpenDriftSimulation):
         kwargs['water_drag_coeff'] = Cd
 
         if 'orientation' not in kwargs:
-            kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
+            oc = self.get_config('seed:orientation')
+            if oc == 'left':
+                kwargs['orientation'] = np.ones(num)*0
+            elif oc == 'right':
+                kwargs['orientation'] = np.ones(num)*1
+            else:
+                kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
 
         # Calling general constructor with calculated values
         super(ShipDrift, self).seed_elements(*args, **kwargs)

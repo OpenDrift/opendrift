@@ -38,6 +38,47 @@ class TextRedirector(object):
     def flush(self):
         self.defstdout.flush()
 
+# Class for help-text
+# https://stackoverflow.com/questions/20399243/display-message-when-hovering-over-something-with-mouse-cursor-in-python
+class ToolTip(object):
+
+    def __init__(self, widget):
+        self.widget = widget
+        self.tipwindow = None
+        self.id = None
+        self.x = self.y = 0
+
+    def showtip(self, text):
+        "Display text in tooltip window"
+        self.text = text
+        if self.tipwindow or not self.text:
+            return
+        x, y, cx, cy = self.widget.bbox("insert")
+        x = x + self.widget.winfo_rootx() + 57
+        y = y + cy + self.widget.winfo_rooty() +27
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(1)
+        tw.wm_geometry("+%d+%d" % (x, y))
+        label = tk.Label(tw, text=self.text, justify=tk.LEFT,
+                      background="#ffff00", relief=tk.SOLID, borderwidth=1,
+                      font=("tahoma", "10", "normal"))
+        label.pack(ipadx=1)
+
+    def hidetip(self):
+        tw = self.tipwindow
+        self.tipwindow = None
+        if tw:
+            tw.destroy()
+
+def CreateToolTip(widget, text):
+    toolTip = ToolTip(widget)
+    def enter(event):
+        toolTip.showtip(text)
+    def leave(event):
+        toolTip.hidetip()
+    widget.bind('<Enter>', enter)
+    widget.bind('<Leave>', leave)
+
 
 class OpenDriftGUI(tk.Tk):
 
@@ -69,8 +110,12 @@ class OpenDriftGUI(tk.Tk):
         self.n.grid()
         self.seed = ttk.Frame(self.n)
         self.config = ttk.Frame(self.n)
+        self.constants = ttk.Frame(self.n)
+        self.fallback = ttk.Frame(self.n)
         self.n.add(self.seed, text='Seeding')
         self.n.add(self.config, text='Config')
+        self.n.add(self.constants, text='Constants')
+        self.n.add(self.fallback, text='Fallback')
 
         # Top
         self.top = tk.Frame(self.seed,
@@ -79,6 +124,12 @@ class OpenDriftGUI(tk.Tk):
         # Config
         self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
         self.con.grid(row=0, column=1, rowspan=1)
+        # Constants
+        self.const = tk.Label(self.constants, text="\n\nConstant environment variables\n\n")
+        self.const.grid(row=0, column=1, rowspan=1)
+        # Fallback
+        self.fall = tk.Label(self.fallback, text="\n\nFallback environment variables\n\n")
+        self.fall.grid(row=0, column=1, rowspan=1)
         # Time start and end
         self.start_t = tk.Frame(self.seed, relief=tk.FLAT)
         self.start_t.grid(row=20, column=0, rowspan=1)
@@ -395,9 +446,27 @@ class OpenDriftGUI(tk.Tk):
             con.destroy()
         self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
         self.con.grid(row=0, column=1, rowspan=1)
-        #for i, cs in enumerate(self.o._config_hashstrings()):
-        for i, key in enumerate(self.o._config):
-            tk.Label(self.config, text=key).grid(row=i, column=1, rowspan=1)
+        for con in self.constants.winfo_children():
+            con.destroy()
+        self.const = tk.Label(self.constants, text="\n\nConstants\n\n")
+        self.const.grid(row=0, column=1, rowspan=1)
+        for con in self.fallback.winfo_children():
+            con.destroy()
+        self.fall = tk.Label(self.fallback, text="\n\nFallback\n\n")
+        self.fall.grid(row=0, column=1, rowspan=1)
+
+        sc = self.o.get_configspec(level=[2, 3])
+        for i, key in enumerate(list(sc)):
+            if key.startswith('environment:constant'):
+                tab = self.const
+            elif key.startswith('environment:fallback'):
+                tab = self.fall
+            else:
+                tab = self.con
+            lab = tk.Label(tab, text=key)
+            lab.grid(row=i, column=1, rowspan=1)
+            CreateToolTip(lab, sc[key]['description'])
+
         try:
             self.results.destroy()
         except:
@@ -422,19 +491,18 @@ class OpenDriftGUI(tk.Tk):
         self.seed_frame.grid(row=60, columnspan=8, sticky='nsew')
         # FIND
         for num, i in enumerate(sc):
-            if i in ['ocean_only']:
-                continue  # workaround, should be avoided in future
-            varlabel = i
+            varlabel = i.split(':')[-1]
             if i in self.o.ElementType.variables.keys():
                 if 'units' in self.o.ElementType.variables[i].keys():
                     units = self.o.ElementType.variables[i]['units']
                     if units == '1':
                         units = 'fraction'
-                    varlabel = '%s [%s]' % (i, units)
+                    varlabel = '%s [%s]' % (varlabel, units)
         
             self.seed_input_label[i] = tk.Label(self.seed_frame,
                                                 text=varlabel + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
+            CreateToolTip(self.seed_input_label[i], text=sc[i]['description'])
             self.seed_input_var[i] = tk.StringVar()
             actual_val = self.o.get_config(i)
             if sc[i]['type'] == 'enum':

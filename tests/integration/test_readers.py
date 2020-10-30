@@ -180,8 +180,8 @@ class TestReaders(unittest.TestCase):
         o.add_reader(r)
         o.set_config('general:use_auto_landmask', False)
         o.set_config('drift:vertical_mixing', False)
-        o.fallback_values['x_wind'] = 0
-        o.fallback_values['y_wind'] = 10
+        o.set_config('environment:fallback:x_wind', 0)
+        o.set_config('environment:fallback:y_wind', 10)
         o.seed_elements(lon=15.2, lat=68.3, time=r.start_time,
                         wind_drift_factor=.02,
                         number=10, radius=1000)
@@ -203,11 +203,11 @@ class TestReaders(unittest.TestCase):
 
     #    print o
     #    o.seed_elements(lon=14.5, lat=68, time=datetime(2016,2,4))
-    #    o.fallback_values['x_wind'] = 0
-    #    o.fallback_values['y_wind'] = 0
-    #    del o.fallback_values['x_sea_water_velocity']
-    #    del o.fallback_values['y_sea_water_velocity']
-    #    o.fallback_values['land_binary_mask'] = 0
+    #    o.set_config('environment:fallback:'x_wind', 0)
+    #    o.set_config('environment:fallback:'y_wind', 0)
+    #    o.set_config('environment:fallback:'x_sea_water_velocity', None)
+    #    o.set_config('environment:fallback:'y_sea_water_velocity', None)
+    #    o.set_config('environment:fallback:'land_binary_mask', 0)
     #    print o
     #    o.run(steps=1)
 
@@ -241,7 +241,7 @@ class TestReaders(unittest.TestCase):
     def test_lazy_reader_leeway_compare(self):
 
         o1 = Leeway(loglevel=0)
-        #o1.fallback_values['land_binary_mask'] = 0
+        #o1.set_config('environment:fallback:land_binary_mask', 0)
         o1.required_variables = [r for r in o1.required_variables
                                  if r != 'land_binary_mask']
         o1.add_readers_from_list(reader_list, lazy=False)
@@ -250,7 +250,7 @@ class TestReaders(unittest.TestCase):
         o1.run(steps=5)
 
         o2 = Leeway(loglevel=20)
-        #o2.fallback_values['land_binary_mask'] = 0
+        #o2.set_config('environment:fallback:land_binary_mask', 0)
         o2.required_variables = [r for r in o1.required_variables
                                  if r != 'land_binary_mask']
         o2.add_readers_from_list(reader_list, lazy=True)
@@ -276,8 +276,8 @@ class TestReaders(unittest.TestCase):
         o = Leeway(loglevel=20)
         o.add_reader([cw, cc])
         o.add_readers_from_list(reader_list)
-        o.fallback_values['x_sea_water_velocity'] = 0.0
-        o.fallback_values['y_sea_water_velocity'] = 0.1
+        o.set_config('environment:fallback:x_sea_water_velocity', 0.0)
+        o.set_config('environment:fallback:y_sea_water_velocity', 0.1)
         time = datetime(2016,2,2,12)
         o.seed_elements(lat=67.85, lon=14, time=time)
         o.run(steps=2)
@@ -314,8 +314,8 @@ class TestReaders(unittest.TestCase):
         reader = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         o.add_reader(reader)
-        o.fallback_values['x_sea_water_velocity'] = 1
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:x_sea_water_velocity', 1)
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('drift:vertical_mixing', False)
         o.seed_elements(lon=4.8, lat=60, number=1, time=reader.end_time)
         o.run(steps=2)
@@ -429,7 +429,7 @@ class TestReaders(unittest.TestCase):
                                #-0.803, 2)
 
     def test_get_environment(self):
-        o = PelagicEggDrift(loglevel=30)
+        o = PelagicEggDrift(loglevel=0)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc', name='Nordic')
         reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc', name='Arctic')
         ######################################################
@@ -448,9 +448,9 @@ class TestReaders(unittest.TestCase):
             [0, 1, 2],
             reader_arctic.covers_positions(testlon, testlat, testz)[0]))
         o.seed_elements(testlon, testlat, z=testz, time=reader_nordic.start_time)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         env, env_profiles, missing = \
-            o.get_environment(o.required_variables,
+            o.get_environment(list(o.required_variables),
                               reader_nordic.start_time,
                               testlon, testlat, testz,
                               o.required_profiles)
@@ -525,16 +525,16 @@ class TestReaders(unittest.TestCase):
         self.assertEqual(r1.xmin, 20)
 
         o1 = OceanDrift(loglevel=50)
-        del o1.fallback_values['x_sea_water_velocity']
+        o1.set_config('environment:fallback:x_sea_water_velocity', None)
         o1.add_reader(r1)
         o1.seed_elements(lon=15, lat=70.1, time=r1.start_time)
-        o1.fallback_values['land_binary_mask'] = 0
+        o1.set_config('environment:fallback:land_binary_mask', 0)
         o1.run(time_step=3600*3, duration=timedelta(hours=48))
         o2 = OceanDrift(loglevel=50)
-        del o2.fallback_values['x_sea_water_velocity']
+        o2.set_config('environment:fallback:x_sea_water_velocity', None)
         o2.add_reader(r2)
         o2.seed_elements(lon=15, lat=70.1, time=r1.start_time)
-        o2.fallback_values['land_binary_mask'] = 0
+        o2.set_config('environment:fallback:land_binary_mask', 0)
         o2.run(time_step=3600*3, duration=timedelta(hours=48))
         # Compare
         lat1 = o1.get_property('lat')[0]
@@ -548,16 +548,16 @@ class TestReaders(unittest.TestCase):
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         self.assertEqual(r.shape, (301, 201))
         o3 = OceanDrift(loglevel=50)
-        del o3.fallback_values['x_sea_water_velocity']
-        o3.fallback_values['land_binary_mask'] = 0
+        o3.set_config('environment:fallback:x_sea_water_velocity', None)
+        o3.set_config('environment:fallback:land_binary_mask', 0)
         o3.add_reader(r)
         o3.seed_elements(lon=4.36, lat=61.7, time=r.start_time)
         o3.run(steps=24)
         r.clip_boundary_pixels(10)
         self.assertEqual(r.shape, (281, 181))
         o4 = OceanDrift(loglevel=50)
-        del o4.fallback_values['x_sea_water_velocity']
-        o4.fallback_values['land_binary_mask'] = 0
+        o4.set_config('environment:fallback:x_sea_water_velocity', None)
+        o4.set_config('environment:fallback:land_binary_mask', 0)
         o4.add_reader(r)
         o4.seed_elements(lon=4.36, lat=61.7, time=r.start_time)
         o4.run(steps=24)
@@ -594,10 +594,10 @@ class TestReaders(unittest.TestCase):
         reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
         o.add_reader(reader_wind)
-        o.fallback_values['x_sea_water_velocity'] = 0
-        o.fallback_values['x_wind'] = 2.0
-        o.fallback_values['y_sea_water_velocity'] = 0
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:x_sea_water_velocity', 0)
+        o.set_config('environment:fallback:x_wind', 2.0)
+        o.set_config('environment:fallback:y_sea_water_velocity', 0)
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=4, lat=60, time=reader_wind.start_time)
         o.run(steps=1)
         basereader.standard_names['x_wind']['valid_min'] = minval  # reset
@@ -610,7 +610,7 @@ class TestReaders(unittest.TestCase):
         maxval = basereader.standard_names['x_sea_water_velocity']['valid_max']
         basereader.standard_names['x_sea_water_velocity']['valid_max'] = .1
         o = OceanDrift(loglevel=50)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader(norkyst)
 

@@ -35,7 +35,7 @@ class TestXarray(unittest.TestCase):
         outfile = 'test_xarray.nc'
         analysis_file = 'test_xarray_analysis.nc'
         o = OceanDrift(loglevel=20)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         t1 = datetime.now()
         t2 = t1 + timedelta(hours=6)
         o.seed_elements(time=t1, lon=4, lat=60, number=100,

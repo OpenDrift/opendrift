@@ -21,8 +21,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 o.add_reader([reader_norkyst, reader_arome])
 o.set_config('processes:evaporation', False)
 o.set_config('drift:vertical_mixing', False)
-o.fallback_values['x_sea_water_velocity'] = 0
-o.fallback_values['y_sea_water_velocity'] = 0
+o.set_config('environment:fallback:x_sea_water_velocity', 0)
+o.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 #%%
 # Seed oil particles within contour detected from satellite
