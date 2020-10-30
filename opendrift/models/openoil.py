@@ -1310,8 +1310,11 @@ class OpenOil(OceanDrift):
             self.keep_droplet_diameter = True
         else:
             self.keep_droplet_diameter = False
-        if 'z' not in kwargs:
-            kwargs['z'] = 0
+        if 'z' not in kwargs or kwargs['z'] is None:
+            if self.get_config('seed:seafloor') is True:
+                kwargs['z'] = 'seafloor'
+            else:
+                kwargs['z'] = self.get_config('seed:z')
         if isinstance(kwargs['z'], basestring) and \
                 kwargs['z'][0:8] == 'seafloor':
             z = -np.ones(number)

@@ -124,7 +124,13 @@ class OceanDrift(OpenDriftSimulation):
                 'min': 0, 'max': 10000, 'units': 'm',
                 'description': 'Ocean model data are only read down to at most this depth, and extrapolated below. May be specified to read less data to improve performance.',
                 'level': self.CONFIG_LEVEL_ADVANCED},
-
+             'seed:z': {'type': 'float', 'default': 0,
+                    'min': -10000, 'max': 0, 'units': 'm',
+                'description': 'Depth below sea level where elements are released. This depth is neglected if seafloor seeding is set selected.',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:seafloor': {'type': 'bool', 'default': False,
+                'description': 'Elements are seeded at seafloor, and seeding depth (z) is neglected.',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
             })
 
     def update(self):
