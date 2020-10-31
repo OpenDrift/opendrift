@@ -1,8 +1,9 @@
 History
 =======
 
-Next release:
--------------
+2020-10-31 / Release v1.4.1
+---------------------------
+
 * Built in GUI is improved with docstrings and less hardcoding, based on new config mechanism, including a new bool setting ``seed:seafloor``.
 * ``model.required_variables`` is now a dictionary, which also includes the earlier ``fallback_values``, ``desired_variables`` and ``required_profiles``. Instead of providing fallback values directly in a dictionary, these shall now be provided through the config mechanism: ``o.set_config('environment:fallback:<variable>', <value>)``. Correspondingly, config setting ``environment:constant:<variable>`` may be used to specify constant values for the same variables (overriding any other readers).
 * `seed_elements <https://opendrift.github.io/autoapi/opendrift/models/basemodel/index.html#opendrift.models.basemodel.OpenDriftSimulation.seed_elements>`_ is simplified, by factoring out a new method `seed_cone <https://opendrift.github.io/autoapi/opendrift/models/basemodel/index.html#opendrift.models.basemodel.OpenDriftSimulation.seed_cone>`_
