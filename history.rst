@@ -1,6 +1,11 @@
 History
 =======
 
+2020-11-01 / Release v1.4.2
+---------------------------
+
+* Fixed bug in v1.4.1 that OpenOil and SedimentDrift had fallback_value of 0 for `land_binary_mask`, this shall be `None`.
+
 2020-10-31 / Release v1.4.1
 ---------------------------
 
