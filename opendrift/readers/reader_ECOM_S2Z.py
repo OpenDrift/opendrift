@@ -1,12 +1,11 @@
-#Horizontal reader to ECOM model at SBB
-#Based on ROMS_native_reader
-#Developed by Arian Dialectaquiz Santos and Danilo Silva from LHiCo - IO -USP (Brazil)
-
-
+'''
+3D reader to ECOM model at South Brazilian Bight
+Based on ROMS_native_reader
+Developed by Arian Dialectaquiz Santos and Danilo Silva from LHiCo - IO -USP (Brazil)
+'''
 
 from bisect import bisect_left, bisect_right
 from datetime import datetime
-
 import numpy as np
 import numpy.ma as ma
 from netCDF4 import Dataset, MFDataset, num2date
@@ -15,8 +14,6 @@ try:
     has_xarray = True
 except:
     has_xarray = False
-#has_xarray = False  # Temporary disabled
-
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers.roppy import depth_ECOM
 
@@ -44,7 +41,6 @@ class Reader(BaseReader):
             'w':'upward_sea_water_velocity',
             'salt':'sea_water_salinity',
             'temp':'sea_water_temperature',
-            #Variaveis do ECOM sem CF-standard-name
             #'x':'X_coordinate_in_Cartesian system',
             #'y':'Y_coordinate_in_Cartesian system',
             'xpos':'X_coordinate_in_Cartesian system',
@@ -65,7 +61,7 @@ class Reader(BaseReader):
             'lat':'lat'}
 
 
-             # z-levels to which sigma-layers may be interpolated (21 niveis sigma, depth max = 2000m, +0)
+        # z-levels to which sigma-layers may be interpolated (21 sigma levels, depth max = 2000m)
         self.zlevels = np.array([0, -5, -10, -25,-30, -50, -75, -100, -150, -200,
             -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
             -2000])
@@ -154,10 +150,7 @@ class Reader(BaseReader):
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'].fillna(0)
-            #self.lat =  np.nan_to_num(self.lat_t)
-
             self.lon = self.Dataset.variables['lon'].fillna(0)            
-            #self.lon =  np.nan_to_num(self.lon_t)
 
         else:
             if gridfile is None:
@@ -171,8 +164,6 @@ class Reader(BaseReader):
                 self.lon = gf.variables['lon_'][:]
                 self.lon =  np.nan_to_num(self.lon)
        
-
-
         # Get time coverage
 
         ocean_time = self.Dataset.variables['time']
@@ -208,6 +199,7 @@ class Reader(BaseReader):
             #self.ymax = self.Dataset['y'].shape[0] - 1. 
             self.xmax = self.Dataset['xpos'].shape[0] - 1.
             self.ymax = self.Dataset['ypos'].shape[0] - 1.
+            self.shape = (self.Dataset['xpos'], self.Dataset['ypos'])
             
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
@@ -256,7 +248,7 @@ class Reader(BaseReader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        variables = {}   
+        variables = {}
 
         
 # Find horizontal indices corresponding to requested x and y
@@ -448,7 +440,7 @@ class Reader(BaseReader):
                     A = (Z - S[(G-1, I)])/(S[(G, I)]-S[(G-1, I)])# Compute interpolation weigh
                     A = A.clip(0.0, 1.0)
 
-                    R = (1-A)*F[(G-1, I)]+A*F[(G, I)]# Do the interpolation
+                    R = (1-A)*F[(G-1, I)]+A*F[(G, I)]# Does the interpolation
                     R = np.nan_to_num(R) #remove possible nans
                     interp_coefs = R.reshape((kmax,) + Fshape[1:]) #Give the coeficient result the correct shape
                     variables[par]= var[indxTime, indz, indy, indx]*interp_coefs[indz,indy,indx] #aplly the interpolation to 4D varaibles
@@ -457,7 +449,7 @@ class Reader(BaseReader):
                    
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
-            if variables[par].ndim > 1 and block is False:
+            if variables[par].ndim > 1 and block is True:
                 variables[par] = variables[par].diagonal()
 
             # Mask values outside domain
@@ -493,7 +485,7 @@ class Reader(BaseReader):
               
             print ("u ==", variables['x_sea_water_velocity'])
             print ("v ==", variables['y_sea_water_velocity'])
-                #print ("w ==", variables['upward_sea_water_velocity'])
+            #print ("w ==", variables['upward_sea_water_velocity'])
 
         if 'x_wind' in variables.keys():
 
