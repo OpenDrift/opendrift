@@ -1594,6 +1594,8 @@ class OpenDriftSimulation(PhysicsMethods):
 
         if number is None:
             number = self.get_config('seed:number')
+        if number == 1:
+            raise ValueError('For a cone, the number of elements must be at least 2 or more, given is 1')
 
         lon = np.atleast_1d(lon).ravel()
         lat = np.atleast_1d(lat).ravel()
