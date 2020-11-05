@@ -24,9 +24,9 @@ information.
    :width: 250px
    :target: /gallery/example_depth.html
 
-.. |ex2| image:: /gallery/images/thumb/sphx_glr_example_double_gyre_thumb.png
+.. |ex2| image:: /gallery/animations/example_oilspill_seafloor_0.gif
    :width: 250px
-   :target: /gallery/example_double_gyre.html
+   :target: /gallery/example_oilspill_seafloor.html
 
 .. |ex3| image:: /gallery/images/thumb/sphx_glr_example_oil_budget_noaa_thumb.png
    :width: 250px
@@ -36,15 +36,15 @@ information.
    :width: 250px
    :target: /gallery/example_leeway.html
 
-+--------------------------+----------------------+
-| |ex1|                    | |ex2|                |
-|                          |                      |
-| Drift at different depths| Double gyre          |
-+--------------------------+----------------------+
-| |ex3|                    | |ex4|                |
-|                          |                      |
-| Oil budget               | Leeway               |
-+--------------------------+----------------------+
++--------------------------+-------------------------+
+| |ex1|                    | |ex2|                   |
+|                          |                         |
+| Drift at different depths| Buoyancy and turbulence |
++--------------------------+-------------------------+
+| |ex3|                    | |ex4|                   |
+|                          |                         |
+| Oil budget               | Search and Rescue       |
++--------------------------+-------------------------+
 
 Some key features of OpenDrift are:
 
