@@ -142,7 +142,7 @@ Most applications will need a landmask, for stranding towards a coastline. A hig
 
     from opendrift.readers import reader_global_landmask
     reader_landmask = reader_global_landmask.Reader(
-                           extent=[2, 8, 59, 63])  # lonmin, lonmax, latmin, latmax
+                           extent=[2, 59, 8, 63])  # lonmin, latmin, lonmax, latmax
 
 The longitude-latitude boundaries of the landmask reader should cover the area where the elements could possibly be advected during the run. The full resolution coastline will always be used, and a global rasterized version is used internally to speed up the checking for each element for each timestep of the model run.
 
