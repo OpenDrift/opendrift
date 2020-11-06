@@ -343,6 +343,7 @@ class Reader(BaseReader):
             variables[par] = np.asarray(variables[par]) 
             start = datetime.now()
 
+            '''
             if par not in mask_values:
                 if has_xarray is False:
                     indxgrid, indygrid = np.meshgrid(indx, indy)
@@ -377,6 +378,7 @@ class Reader(BaseReader):
                         upper = variables[par]
 
                 print("par_requested ==", par)
+            '''
 ##################################################################################################################################
 #########################---Converting  sigma variables to Z variables----########################################################
 ##################################################################################################################################
@@ -481,7 +483,7 @@ class Reader(BaseReader):
 
                 print ("u ==", variables['x_sea_water_velocity'])
                 print ("v ==", variables['y_sea_water_velocity'])
-                print ("w ==", variables['upward_sea_water_velocity'])
+                #print ("w ==", variables['upward_sea_water_velocity'])
 
             if 'x_wind' in variables.keys():
 
