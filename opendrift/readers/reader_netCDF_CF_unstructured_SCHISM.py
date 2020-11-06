@@ -146,7 +146,7 @@ class Reader(BaseReader):
         if proj4 is not None: #  user has provided a projection apriori
             self.proj4 = proj4
         else:                 # no input assumes latlon
-            logging.debug('Lon and lat are 1D arrays, assuming latlong projection: proj4 = ''+proj=latlong''')
+            self.logger.debug('Lon and lat are 1D arrays, assuming latlong projection: proj4 = ''+proj=latlong''')
             self.proj4 = '+proj=latlong'
 
         # check if 3d data is available and if we should use it
@@ -158,16 +158,16 @@ class Reader(BaseReader):
                 self.use_3d = False
 
         if self.use_3d and 'hvel' not in self.Dataset.variables:
-            logging.debug('No 3D velocity data in file - cannot find variable ''hvel'' ')
+            self.logger.debug('No 3D velocity data in file - cannot find variable ''hvel'' ')
         elif self.use_3d and 'hvel' in self.Dataset.variables:
             if 'zcor' in self.Dataset.variables: # both hvel and zcor in files - all good
                 self.nb_levels = self.Dataset.variables['hvel'].shape[2] #hvel dimensions : [time,node,lev,2]
             else:
-                logging.debug('No vertical level information present in file ''zcor'' ... stopping')
+                self.logger.debug('No vertical level information present in file ''zcor'' ... stopping')
                 raise ValueError('variable ''zcor'' must be present in netcdf file to be able to use 3D currents')
                         
 
-        logging.debug('Finding coordinate variables.')
+        self.logger.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
             
@@ -285,15 +285,15 @@ class Reader(BaseReader):
         self.lon = x
         self.lat = y
 
-        # computing KDtree and convex hull of reader's nodes
+        # computing KDtree and convex hull of reader's nodes (2D)
         # This is done using cython-based cKDTree from scipy for quick nearest-neighbor search
         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.html
-        logging.debug('Building KDtree for nearest-neighbor search')
+        self.logger.debug('Building KDtree for nearest-neighbor search')
         self.reader_KDtree = cKDTree(np.vstack((self.lon,self.lat)).T) 
         #do we need copy_data=True ..probably not since self.lon,self.lat wont change.
 
         # build convex hull of points for particle-in-mesh checks
-        logging.debug('Building convex hull of nodes for particle''s in-mesh checks')
+        self.logger.debug('Building convex hull of nodes for particle''s in-mesh checks')
         # *** this a very approximate way of doing it...ideally we would be able to 
         # have the actual contour of the grid....
         hull_obj = ConvexHull(np.vstack([self.lon.data,self.lat.data]).T)
@@ -389,13 +389,13 @@ class Reader(BaseReader):
                 var = self.Dataset.variables[self.variable_mapping[par]]
                 if var.ndim == 1:
                     data = var[:] # e.g. depth
-                    logging.debug('reading constant data from unstructured reader %s' % (par))
+                    self.logger.debug('reading constant data from unstructured reader %s' % (par))
                 elif var.ndim == 2: 
                     data = var[indxTime,:] # e.g. 2D temperature
-                    logging.debug('reading 2D data from unstructured reader %s' % (par))
+                    self.logger.debug('reading 2D data from unstructured reader %s' % (par))
                 elif var.ndim == 3:
                     data = var[indxTime,:,:] # e.g. 3D salt [time,node,lev]
-                    logging.debug('reading 3D data from unstructured reader %s' % (par))
+                    self.logger.debug('reading 3D data from unstructured reader %s' % (par))
                     # convert 3D data matrix to one column array and define corresponding data coordinates [x,y,z]
                     # (+ update variables dictionary with 3d coords if needed)
                     data,variables = self.convert_3d_to_array(indxTime,data,variables)
@@ -412,14 +412,14 @@ class Reader(BaseReader):
                        data = var[indxTime,:,0]
                     elif par == 'y_sea_water_velocity':
                        data = var[indxTime,:,1] 
-                    logging.debug('reading 2D velocity data from unstructured reader %s' % (par))
+                    self.logger.debug('reading 2D velocity data from unstructured reader %s' % (par))
 
                 elif var.ndim == 4: # #3D current data 'hvel' defined at each node, level, and time [time,node,zcor,2]
                     if par == 'x_sea_water_velocity':
                        data = var[indxTime,:,:,0]   #hvel dimensions : [time,node,lev,2]
                     elif par == 'y_sea_water_velocity':
                        data = var[indxTime,:,:,1] #hvel dimensions : [time,node,lev,2]
-                    logging.debug('reading 3D velocity data from unstructured reader %s' % (par))
+                    self.logger.debug('reading 3D velocity data from unstructured reader %s' % (par))
 
                     # convert 3D data matrix to one column array and define corresponding data coordinates [x,y,z]
                     # (+ update variables dictionary with 3d coords if needed)
@@ -431,10 +431,12 @@ class Reader(BaseReader):
             if has_xarray is True:
                 variables[par] = np.asarray(variables[par])
 
-        self.use_subset = 0 # need more work
+        self.use_subset = 1 # Functionnal now  - need to check results are consistent.
         if self.use_subset == 1: # for testing subsetting data before computin KD-trees
             variables = self.clip_reader_data(variables_dict = variables, x_particle = x,y_particle = y, requested_variables = requested_variables) # clip reader data to particle cloud coverage 
-            # this part is now functional
+            # update the 2D KDtree (will be used to initialize the ReaderBlockUnstruct)
+            self.reader_KDtree = cKDTree(np.vstack((variables['x'],variables['y'])).T) 
+            # the 3D KDtree in updated within ReaderBlockUnstruct()
             
         return variables 
 
@@ -468,7 +470,7 @@ class Reader(BaseReader):
                 data = np.asarray(data)
                 # vertical_levels.mask = np.isnan(vertical_levels.data) # masked using nan's when using xarray
         except:
-            logging.debug('no vertical level information present in file ''zcor'' ... stopping')
+            self.logger.debug('no vertical level information present in file ''zcor'' ... stopping')
             raise ValueError('variable ''zcor'' must be present in netcdf file to be able to use 3D currents')
         # flatten 3D data 
         data = np.ravel(data[~vertical_levels.mask])
@@ -506,7 +508,7 @@ class Reader(BaseReader):
         #  returns updated "variables" dict and data array
         deg2meters = 1.1e5 # approx
         buffer = .1  # degrees around given positions ~10km
-        buffer = .01  # degrees around given positions ~ 5km
+        buffer = .05  # degrees around given positions ~ 5km
         if self.xmax <= 360 :
             buffer = buffer_deg # latlong reference system
         else:
@@ -515,6 +517,7 @@ class Reader(BaseReader):
                              x_particle.max() + buffer, 
                              y_particle.min() - buffer,
                              y_particle.max() + buffer]
+        self.logger.debug('Spatial frame used for schism reader : ' + str(self.subset_frame))
         # find lon,lat of reader that are within the particle cloud
         self.id_frame = np.where((self.lon >= self.subset_frame[0]) &
                      (self.lon <= self.subset_frame[1]) &
@@ -644,7 +647,7 @@ class Reader(BaseReader):
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
             self.nearest_time(time)
-        logging.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
+        self.logger.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
                       (time_before, time_after))
         # For variables which are not time dependent, we do not care about time
         static_variables = ['sea_floor_depth_below_sea_level', 'land_binary_mask']
@@ -703,7 +706,7 @@ class Reader(BaseReader):
             # now use reader_data_dict to initialize 
             # a ReaderBlockUnstruct
             self.timer_start('preparing')
-            logging.debug('initialize ReaderBlockUnstruct var_block_before')
+            self.logger.debug('initialize ReaderBlockUnstruct var_block_before')
             self.var_block_before[blockvars_before] = \
                 ReaderBlockUnstruct(reader_data_dict,
                     KDtree = self.reader_KDtree,
@@ -712,7 +715,7 @@ class Reader(BaseReader):
                 len_z = len(self.var_block_before[blockvars_before].z)
             except:
                 len_z = 1
-            logging.debug(('Fetched env-block (size %ix%ix%i) ' +
+            self.logger.debug(('Fetched env-block (size %ix%ix%i) ' +
                           'for time before (%s)') %
                           (len(self.var_block_before[blockvars_before].x),
                            len(self.var_block_before[blockvars_before].y),
@@ -730,7 +733,7 @@ class Reader(BaseReader):
                                         reader_x, reader_y, z,
                                         block=block)
                 self.timer_start('preparing')
-                logging.debug('initialize ReaderBlockUnstruct var_block_after')
+                self.logger.debug('initialize ReaderBlockUnstruct var_block_after')
                 self.var_block_after[blockvars_after] = \
                     ReaderBlockUnstruct(
                         reader_data_dict,
@@ -741,7 +744,7 @@ class Reader(BaseReader):
                 except:
                     len_z = 1
 
-                logging.debug(('Fetched env-block (size %ix%ix%i) ' +
+                self.logger.debug(('Fetched env-block (size %ix%ix%i) ' +
                               'for time after (%s)') %
                               (len(self.var_block_after[blockvars_after].x),
                                len(self.var_block_after[blockvars_after].y),
@@ -766,14 +769,14 @@ class Reader(BaseReader):
         # Interpolate before/after blocks onto particles in space
         ############################################################
         self.timer_start('interpolation')
-        logging.debug('Interpolating before (%s) in space  (%s)' %
+        self.logger.debug('Interpolating before (%s) in space  (%s)' %
                       (block_before.time, self.interpolation))
         env_before, env_profiles_before = block_before.interpolate(
                 reader_x, reader_y, z, variables,
                 profiles, profiles_depth)
 
         if (time_after is not None) and (time_before != time):
-            logging.debug('Interpolating after (%s) in space  (%s)' %
+            self.logger.debug('Interpolating after (%s) in space  (%s)' %
                           (block_after.time, self.interpolation))
             env_after, env_profiles_after = block_after.interpolate(
                     reader_x, reader_y, z, variables,
@@ -789,7 +792,7 @@ class Reader(BaseReader):
         if (time_after is not None) and (time_before != time) and self.return_block is True:
             weight_after = ((time - time_before).total_seconds() /
                             (time_after - time_before).total_seconds())
-            logging.debug(('Interpolating before (%s, weight %.2f) and'
+            self.logger.debug(('Interpolating before (%s, weight %.2f) and'
                            '\n\t\t      after (%s, weight %.2f) in time') %
                           (block_before.time, 1 - weight_after,
                            block_after.time, weight_after))
@@ -832,7 +835,7 @@ class Reader(BaseReader):
                 env_profiles = None
 
         else:
-            logging.debug('No time interpolation needed - right on time.')
+            self.logger.debug('No time interpolation needed - right on time.')
             env = env_before
             if profiles is not None:
                 if 'env_profiles_before' in locals():
@@ -849,7 +852,7 @@ class Reader(BaseReader):
         ####################
         if rotate_to_proj is not None:
             if self.simulation_SRS is True:
-                logging.debug('Reader SRS is the same as calculation SRS - '
+                self.logger.debug('Reader SRS is the same as calculation SRS - '
                               'rotation of vectors is not needed.')
             else:
                 vector_pairs = []
@@ -889,7 +892,7 @@ class Reader(BaseReader):
         # Masking non-covered pixels
         self.timer_start('masking')
         if len(ind_covered) != len(lon):
-            logging.debug('Masking %i elements outside coverage' %
+            self.logger.debug('Masking %i elements outside coverage' %
                           (len(lon)-len(ind_covered)))
             for var in variables:
                 tmp = np.nan*np.ones(lon.shape)
@@ -917,6 +920,7 @@ class Reader(BaseReader):
         import cartopy.crs as ccrs
         import cartopy.feature as cfeature
         from opendrift_landmask_data import Landmask
+        import matplotlib.tri as mtri
         fig = plt.figure()
 
         #####################################
@@ -928,30 +932,32 @@ class Reader(BaseReader):
         #  - incorporate that to animation as in basemodel.py etc...
         # 
         #####################################
-        import matplotlib.tri as mtri
-        from mpl_toolkits.mplot3d import Axes3D
-        X=self.Dataset.variables['SCHISM_hgrid_node_x'][:]
-        Y=self.Dataset.variables['SCHISM_hgrid_node_y'][:]
-        Z=self.Dataset.variables['depth'][:]
-        face=self.Dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
-        # build triangulation
-        triang =mtri.Triangulation(X,Y, triangles=face, mask=None)
-        # quads=Triangulation(gr.x,gr.y,quads)
-        #
-        # plot the triangular mesh 
-        plt.triplot(triang) 
-        # plot the variable - here depth for now
-        plt.tricontourf(triang, Z)
-        # more complex 3D plots 
-        # ax = fig.add_subplot(1,1,1, projection='3d')
-        # ax.plot_trisurf(triang,Z, cmap='jet')
-        # or 
-        # from https://github.com/metocean/schism-public/blob/master/LSC/lsc.py
-        # tricon=ax.tricontourf(triang,Z,cmap='jet')
-        # ax.view_init(azim=-90, elev=90)
-        plt.ion()
-        plt.show()
-        import pdb;pdb.set_trace()
+        if False:
+            import pdb;pdb.set_trace()
+            import matplotlib.tri as mtri
+            from mpl_toolkits.mplot3d import Axes3D
+            X=self.Dataset.variables['SCHISM_hgrid_node_x'][:]
+            Y=self.Dataset.variables['SCHISM_hgrid_node_y'][:]
+            Z=self.Dataset.variables['depth'][:]
+            face=self.Dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
+            # build triangulation
+            triang =mtri.Triangulation(X,Y, triangles=face, mask=None)
+            # quads=Triangulation(gr.x,gr.y,quads)
+            #
+            # plot the triangular mesh 
+            plt.triplot(triang) 
+            # plot the variable - here depth for now
+            plt.tricontourf(triang, Z)
+            # more complex 3D plots 
+            # ax = fig.add_subplot(1,1,1, projection='3d')
+            # ax.plot_trisurf(triang,Z, cmap='jet')
+            # or 
+            # from https://github.com/metocean/schism-public/blob/master/LSC/lsc.py
+            # tricon=ax.tricontourf(triang,Z,cmap='jet')
+            # ax.view_init(azim=-90, elev=90)
+            plt.ion()
+            plt.show()
+            import pdb;pdb.set_trace()
         #####################################
 
 
@@ -1012,11 +1018,18 @@ class Reader(BaseReader):
         xsp = p[:, 0]
         ysp = p[:, 1]
 
-        if variable is None:
-
+        if variable is None: # generic plot to check extents
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
                                zorder=100)
             ax.add_patch(boundary)
+            # add nodes
+            rx = np.array([self.xmin, self.xmax])
+            ry = np.array([self.ymin, self.ymax])
+            data = self.get_variables_derived('sea_floor_depth_below_sea_level', self.start_time,rx, ry, block=True)
+            rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
+            ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
+            
+            # set extents
             buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
             buf = 0
             try:
@@ -1035,26 +1048,18 @@ class Reader(BaseReader):
             ry = np.array([self.ymin, self.ymax])
             data = self.get_variables_derived(variable, self.start_time,
                                       rx, ry, block=True)
-            rx, ry = np.meshgrid(data['x'], data['y'])
-            rlon, rlat = self.xy2lonlat(rx, ry)
-            #map_x, map_y = map(rlon, rlat, inverse=False)
-            data[variable] = np.ma.masked_invalid(data[variable])
-            if hasattr(self, 'convolve'):
-                from scipy import ndimage
-                N = self.convolve
-                if isinstance(N, (int, np.integer)):
-                    kernel = np.ones((N, N))
-                    kernel = kernel/kernel.sum()
-                else:
-                    kernel = N
-                self.logger.debug('Convolving variables with kernel: %s' % kernel)
-                data[variable] = ndimage.convolve(
-                            data[variable], kernel, mode='nearest')
-            #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
-            ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
-            #cbar = map.colorbar()
-            #cbar.set_label(variable)
 
+            rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
+            data[variable] = np.ma.masked_invalid(data[variable])
+            # ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
+            face=self.Dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
+            # build triangulation
+            triang =mtri.Triangulation(rlon,rlat, triangles=face, mask=None)
+            # plot the variable 
+            ax.tricontourf(triang, data[variable],vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+            # add the triangular mesh - too slow
+            # ax.triplot(triang, transform=ccrs.PlateCarree()) 
+            ax.set_extent([xsp.min()-.5, xsp.max()+.5, ysp.min()-.5, ysp.max()+.5], crs=sp)
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
             mng.toolbar.zoom()
@@ -1066,9 +1071,6 @@ class Reader(BaseReader):
             plt.close()
         else:
             plt.show()
-
-
-
 
 ###########################
 # ReaderBlockUnstruct class
@@ -1096,6 +1098,7 @@ class ReaderBlockUnstruct():
                     This is read from reader object, so that it is not recomputed every time
 
     """
+    logger = logging.getLogger('opendrift')  # using common logger
 
     def __init__(self, data_dict, 
                  KDtree = None,
@@ -1131,17 +1134,17 @@ class ReaderBlockUnstruct():
         # > save the 2D one by default (initizalied during reader __init__()
         # > compute and save the time-varying 3D KDtree if relevant     
         
-        logging.debug('saving reader''s 2D (horizontal) KDtree to ReaderBlockUnstruct')
+        self.logger.debug('saving reader''s 2D (horizontal) KDtree to ReaderBlockUnstruct')
         self.block_KDtree = KDtree # KDtree input to function = one computed during reader's __init__()
 
         # If we eventually use subset of nodes rather than full mesh, we'll need to re-compute the 2D KDtree
         # as well, instead of re-using the "full" one available from reader's init
-        # logging.debug('Compute time-varying KDtree for 2D nearest-neighbor search') 
+        # self.logger.debug('Compute time-varying KDtree for 2D nearest-neighbor search') 
         # self.block_KDtree = cKDTree(np.vstack((self.x,self.y)).T)  # KDtree input to function = one computed during reader's __init__()
 
         if hasattr(self,'z_3d'):
             # we need to compute a new KDtree for that time step using vertical coordinates at that time step
-            logging.debug('Compute time-varying KDtree for 3D nearest-neighbor search (i.e using ''zcor'') ')
+            self.logger.debug('Compute time-varying KDtree for 3D nearest-neighbor search (i.e using ''zcor'') ')
             # clean arrays if needed, especially z_3d (get rid of nan's) - keep only non-nan
             # 
             # check for nan's 
@@ -1175,7 +1178,7 @@ class ReaderBlockUnstruct():
                     filled_variables.add(var)
                 
         if len(filled_variables) > 0:
-            logging.debug('Filled NaN-values toward seafloor for :'
+            self.logger.debug('Filled NaN-values toward seafloor for :'
                           + str(list(filled_variables)))
         
         # below probably not be relevant any longer
@@ -1199,12 +1202,12 @@ class ReaderBlockUnstruct():
 
         if 'land_binary_mask' in self.data_dict.keys() and \
                 interpolation_horizontal != 'nearest':
-            logging.debug('Nearest interpolation will be used '
+            self.logger.debug('Nearest interpolation will be used '
                           'for landmask, and %s for other variables'
                           % interpolation_horizontal)
 
     def _initialize_interpolator(self, x, y, z=None):
-        logging.debug('Initialising interpolator.')
+        self.logger.debug('Initialising interpolator.')
         self.interpolator2d = self.Interpolator2DClass(self.x, self.y, x, y)
         if self.z is not None and len(np.atleast_1d(self.z)) > 1:
             self.interpolator1d = self.Interpolator1DClass(self.z, z)
@@ -1227,7 +1230,7 @@ class ReaderBlockUnstruct():
             # ensemble data
             if type(data) is list:
                 num_ensembles = len(data)
-                logging.debug('Interpolating %i ensembles for %s' % (num_ensembles, varname))
+                self.logger.debug('Interpolating %i ensembles for %s' % (num_ensembles, varname))
                 if data[0].ndim == 2:
                     horizontal = np.zeros(x.shape)*np.nan
                 else:
@@ -1245,7 +1248,6 @@ class ReaderBlockUnstruct():
                 # use KDtree to find nearest neighbours and interpolate based on distance, on 2D or 3D
                 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.query.html#scipy.spatial.cKDTree.query
                 # print(varname)
-                # import pdb;pdb.set_trace()
                 nb_closest_nodes = 3
                 DMIN=1.e-10
                 if data.shape[0] == self.x.shape[0] : # 2D data- full slice
@@ -1402,7 +1404,7 @@ class ReaderBlockUnstruct():
 #                    elif par == 'y_sea_water_velocity':
 #                        data = var[indxTime,c,1]
 #                 elif var.ndim == 4: # 3D current data , dimensions [time,node,zcor,2]
-#                    logging.debug('3D interp not supported yet by reader_netCDF_CF_unstructured_SCHISM')
+#                    self.logger.debug('3D interp not supported yet by reader_netCDF_CF_unstructured_SCHISM')
 #                    raise ValueError('Not supported - quitting')
 #                    import pdb;pdb.set_trace()
 #                    # if par == 'x_sea_water_velocity':
@@ -1415,7 +1417,7 @@ class ReaderBlockUnstruct():
 
 #             # now interpolate extracted data points onto regular grid
 #             if 'interpolator' not in locals():
-#                 logging.debug('Making interpolator...')
+#                 self.logger.debug('Making interpolator...')
 #                 interpolator = LinearNDInterpolator((self.lat[c],
 #                                                      self.lon[c]),
 #                                                     data)
