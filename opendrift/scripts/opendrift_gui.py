@@ -20,6 +20,7 @@ from opendrift.models.leeway import Leeway
 from opendrift.models.shipdrift import ShipDrift
 from opendrift.models.openberg import OpenBerg
 from opendrift.models.plastdrift import PlastDrift
+from opendrift.models.radionuclides import RadionuclideDrift
 
 # Class to redirect output to text box
 class TextRedirector(object):
@@ -84,7 +85,7 @@ class OpenDriftGUI(tk.Tk):
 
     # Supported models as dictionary {model_name:model_class}
     opendrift_models = {m.__name__:m for m in
-        [Leeway, OpenOil, ShipDrift, OpenBerg, OceanDrift, PlastDrift]}
+        [Leeway, OpenOil, ShipDrift, OpenBerg, OceanDrift, PlastDrift, RadionuclideDrift]}
 
     extra_args = {'OpenOil': {'location': 'NORWAY'}}
 

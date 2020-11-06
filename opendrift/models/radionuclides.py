@@ -16,9 +16,8 @@
 
 import numpy as np
 
-from opendrift.models.opendrift3D import \
-    OpenDrift3DSimulation, Lagrangian3DArray
-from opendrift.elements import LagrangianArray
+from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+#from opendrift.elements import LagrangianArray
 
 from opendrift.readers.basereader import pyproj
 
@@ -27,7 +26,7 @@ class Radionuclide(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for radionuclides
     """
 
-    variables = LagrangianArray.add_variables([
+    variables = Lagrangian3DArray.add_variables([
         ('diameter', {'dtype': np.float32,
                       'units': 'm',
                       'default': 0.}),
@@ -46,7 +45,7 @@ class Radionuclide(Lagrangian3DArray):
         ])
 
 
-class RadionuclideDrift(OpenDrift3DSimulation):
+class RadionuclideDrift(OceanDrift):
     """Radionuclide particle trajectory model based on the OpenDrift framework.
 
         Developed at MET Norway
@@ -92,7 +91,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
                          'sea_water_salinity',
                          'ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-120, 0]
+    required_profiles_z_range = [-20, 0]
 
     fallback_values = {#'x_sea_water_velocity': 0,
                        #'y_sea_water_velocity': 0,
@@ -137,8 +136,14 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 #                     }
 
     configspec_radionuclidedrift = '''
+    
+    
+        [seed]
+            diameter = float(min=0., max=100.e-6, default=5.e-6)
+            transfer_setup = option('Sandnesfj_Al','Bokna_137Cs', 'custom', default='Bokna_137Cs')
+        [drift]
+            vertical_mixing = boolean(default=True)
         [radionuclide]
-            transfer_setup = option('Sandnesfj_Al','Bokna_137Cs', 'dummy', default='dummy')
             slowly_fraction = boolean(default=False)
             irreversible_fraction = boolean(default=False)
             dissolved_diameter = float(min=0., max=100.e-6,default=0.)
@@ -193,6 +198,12 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
         self._add_configstring(self.configspec_radionuclidedrift)
 
+        # Update config with oiltypes
+        #transfer_setup = [str(a) for a in self.transfer_setup]
+#        transfer_setup = ['Sandnesfj_Al','Bokna_137Cs', 'dummy']
+#        self._add_config('seed:transfer_setup', transfer_setup,
+#                         'Transfer setup', overwrite=True, 'default=Bokna_137Cs')
+
         # Calling general constructor of parent class
         super(RadionuclideDrift, self).__init__(*args, **kwargs)
 
@@ -205,6 +216,23 @@ class RadionuclideDrift(OpenDrift3DSimulation):
 
 
     def prepare_run(self):
+        # Initialize specie types
+        if self.get_config('seed:transfer_setup')=='Bokna_137Cs':
+            self.set_config('radionuclide:species:LMM',True)
+            self.set_config('radionuclide:species:Particle_reversible', True)
+            self.set_config('radionuclide:species:Particle_slowly_reversible', True)
+            self.set_config('radionuclide:species:Sediment_reversible', True)
+            self.set_config('radionuclide:species:Sediment_slowly_reversible', True)
+
+        elif self.get_config('seed:transfer_setup')=='Sandnesfj_Al':
+            self.set_config('radionuclide:species:LMMcation', True)
+            self.set_config('radionuclide:species:LMManion', True)
+            self.set_config('radionuclide:species:Humic_colloid', True)
+            self.set_config('radionuclide:species:Polymer', True)
+            self.set_config('radionuclide:species:Particle_reversible', True)
+            self.set_config('radionuclide:species:Sediment_reversible', True)
+
+
 
         self.name_species=[]
         if self.get_config('radionuclide:species:LMM'):
@@ -255,7 +283,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         ''' Initialization of background values in the transfer rates 2D array.
         '''
 
-        transfer_setup=self.get_config('radionuclide:transfer_setup')
+        transfer_setup=self.get_config('seed:transfer_setup')
 
         self.logger.info( 'transfer setup: %s' % transfer_setup)
 
@@ -490,7 +518,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
         '''Pick out the correct row from transfer_rates for each element. Modify the
         transfer rates according to local environmental conditions '''
 
-        transfer_setup=self.get_config('radionuclide:transfer_setup')
+        transfer_setup=self.get_config('seed:transfer_setup')
         if transfer_setup == 'Bokna_137Cs' or transfer_setup=='dummy':
             self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
 
@@ -774,7 +802,7 @@ class RadionuclideDrift(OpenDrift3DSimulation):
             self.elements.lat[self.elements.specie==self.num_sirrev] = lat[self.elements.specie==self.num_sirrev]
 
         # Vertical advection
-        if self.get_config('processes:verticaladvection') is True:
+        if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
 
         # Reset z for sedimented trajectories (reject vertical advection and mixing)
