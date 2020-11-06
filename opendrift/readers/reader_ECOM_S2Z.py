@@ -1,8 +1,9 @@
 '''
-3D reader to ECOM model at South Brazilian Bight
+3D reader to ECOM model at SBB
 Based on ROMS_native_reader
 Developed by Arian Dialectaquiz Santos and Danilo Silva from LHiCo - IO -USP (Brazil)
 '''
+
 
 from bisect import bisect_left, bisect_right
 from datetime import datetime
@@ -41,8 +42,7 @@ class Reader(BaseReader):
             'w':'upward_sea_water_velocity',
             'salt':'sea_water_salinity',
             'temp':'sea_water_temperature',
-            #'x':'X_coordinate_in_Cartesian system',
-            #'y':'Y_coordinate_in_Cartesian system',
+            #Variaveis do ECOM sem CF-standard-name
             'xpos':'X_coordinate_in_Cartesian system',
             'ypos':'Y_coordinate_in_Cartesian system',
             'date':'Date_Time',
@@ -61,12 +61,10 @@ class Reader(BaseReader):
             'lat':'lat'}
 
 
-        # z-levels to which sigma-layers may be interpolated (21 sigma levels, depth max = 2000m)
-        self.zlevels = np.array([0, -5, -10, -25,-30, -50, -75, -100, -150, -200,
+             # z-levels to which sigma-layers may be interpolated (21 niveis sigma, depth max = 2000m, +0)
+        self.zlevels = np.array([0, -5, -10, -15, -25,-30, -50, -75, -100, -150, -200,
             -250, -300, -400, -500, -600, -700, -800, -900, -1000, -1500,
             -2000])
-
-
 
         filestr = str(filename)
 
@@ -120,7 +118,7 @@ class Reader(BaseReader):
                     'sigma not available in dataset, constructing from'
                     ' number of layers (%s).' % num_sigma)
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
-                
+
                 # Read sigma-coordinate transform parameters
             try:
                 self.Dataset.variables['sigma'].set_auto_mask(False)
@@ -136,8 +134,6 @@ class Reader(BaseReader):
                 else:
                     self.depth = self.Dataset.variables['depth'][0]
 
-
-
             self.num_layers = len(self.sigma)
 
         else:
@@ -150,7 +146,7 @@ class Reader(BaseReader):
         if 'lat' in self.Dataset.variables:
             # Horizontal coordinates and directions
             self.lat = self.Dataset.variables['lat'].fillna(0)
-            self.lon = self.Dataset.variables['lon'].fillna(0)            
+            self.lon = self.Dataset.variables['lon'].fillna(0)
 
         else:
             if gridfile is None:
@@ -163,7 +159,9 @@ class Reader(BaseReader):
                 self.lat =  np.nan_to_num(self.lat)
                 self.lon = gf.variables['lon_'][:]
                 self.lon =  np.nan_to_num(self.lon)
-       
+
+
+
         # Get time coverage
 
         ocean_time = self.Dataset.variables['time']
@@ -195,20 +193,15 @@ class Reader(BaseReader):
 
 
         if has_xarray:
-            #self.xmax = self.Dataset['x'].shape[0] - 1.
-            #self.ymax = self.Dataset['y'].shape[0] - 1. 
             self.xmax = self.Dataset['xpos'].shape[0] - 1.
             self.ymax = self.Dataset['ypos'].shape[0] - 1.
-            self.shape = (self.Dataset['xpos'], self.Dataset['ypos'])
-            
+
             self.lon = self.lon.data  # Extract, could be avoided downstream
             self.lat = self.lat.data
-            self.sigma = self.sigma.data
+            #self.sigma = self.sigma.data
 
-       
+
         else:
-            #self.xmax = np.float(len(self.Dataset.dimensions['x'])) - 1
-            #self.ymax = np.float(len(self.Dataset.dimensions['y'])) - 1
             self.xmax = np.float(len(self.Dataset.dimensions['xpos'])) - 1
             self.ymax = np.float(len(self.Dataset.dimensions['ypos'])) - 1
 
@@ -227,7 +220,7 @@ class Reader(BaseReader):
 
         super(Reader, self).__init__()
 
-       
+
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False):
 
@@ -248,9 +241,8 @@ class Reader(BaseReader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        variables = {}
+        variables = {}   
 
-        
 # Find horizontal indices corresponding to requested x and y
         if hasattr(self, 'clipped'):
             clipped = self.clipped
@@ -262,33 +254,30 @@ class Reader(BaseReader):
         indx_el = indx.copy()
         indy_el = indy.copy()
 
-        
+
         def find_nearest(array, value):
-            '''
-            Function to find the nearst value to an array:
-            This will be used to interpolate sigma to z
-            '''
             array = np.asarray(array)
-                
+
             idx = (np.abs(array - value)).argmin()
 
             return idx
 
-        # define indz,i.e, the vertical position
-        if not hasattr(self, 'z') and (z is not None):   
+        # define an empty list as indz
+        if not hasattr(self, 'z') and (z is not None):  #se não tiver z na entrada, mas for pedida: 
             print ("z ==", z)
-            
+
             dz = self.zlevels   
 
             indz = [find_nearest(dz, value) for value in z]
 
 
         else:
+            indz = []
             indz.append(0)
 
         indz = np.asarray(indz)
 
-        
+
 
         if block is True:
             # Adding buffer, to cover also future positions of elements
@@ -306,17 +295,19 @@ class Reader(BaseReader):
         # Find depth levels covering all elements 
         sigma = np.asarray(self.sigma)
         H_ND = np.asarray(self.depth)
-        
-        layers = self.num_layers - 1  # total layers, except by the surface
+
+        layers = self.num_layers - 1  # surface layer
+        #meters_cell = depth[indy,indx]*sigma_val
         H_shape = H_ND.shape      # Save the shape of H
         H = H_ND.ravel()        # and make H 1D for easy shape maniplation
         L_C = len(sigma)
         outshape = (L_C,) + H_shape
-        S = -1.0 + (0.5+np.arange(L_C))/L_C #stting the centre of a layer
+        S = -1.0 + (0.5+np.arange(L_C))/L_C 
         A = (S - sigma)[:, None]
         B = np.outer(sigma, H)
-        self.z_rho_tot = (A + B).reshape(outshape)  #total depth layers
-        
+        self.z_rho_tot = (A + B).reshape(outshape)  
+
+        #print ("Z_rho_tot ==", self.z_rho_tot)
 ##################################################################################################################################
 ##################################################################################################################################
 ##################################################################################################################################
@@ -344,15 +335,14 @@ class Reader(BaseReader):
                 variables[par] = var[indxTime, indy, indx]
             elif var.ndim == 4:
                 variables[par] = var[indxTime, indz, indy, indx]
-                
+
             else:
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
 
-            variables[par] = np.asarray(variables[par])  
+            variables[par] = np.asarray(variables[par]) 
             start = datetime.now()
-            
-            #setting the land masks
+
             if par not in mask_values:
                 if has_xarray is False:
                     indxgrid, indygrid = np.meshgrid(indx, indy)
@@ -387,7 +377,6 @@ class Reader(BaseReader):
                         upper = variables[par]
 
                 print("par_requested ==", par)
-            
 ##################################################################################################################################
 #########################---Converting  sigma variables to Z variables----########################################################
 ##################################################################################################################################
@@ -446,7 +435,6 @@ class Reader(BaseReader):
                     variables[par]= var[indxTime, indz, indy, indx]*interp_coefs[indz,indy,indx] #aplly the interpolation to 4D varaibles
                     variables[par] = np.nan_to_num(variables[par]) #again, never forget to remove the nan
 
-                   
             # If 2D array is returned due to the fancy slicing methods
             # of netcdf-python, we need to take the diagonal
             if variables[par].ndim > 1 and block is True:
@@ -456,7 +444,7 @@ class Reader(BaseReader):
             variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
             if block is False:
                 variables[par].mask[outside] = True
-        
+
 ##################################################################################################################################
 ##################################################################################################################################
 ##################################################################################################################################
@@ -473,21 +461,30 @@ class Reader(BaseReader):
         variables['x'] = variables['x'].astype(np.float)
         variables['y'] = variables['y'].astype(np.float)
         variables['time'] = nearestTime
-        
-        
- 
-        
-        if 'x_sea_water_velocity' in variables.keys():
 
-              
-            variables['x_sea_water_velocity'] = np.nan_to_num(variables['x_sea_water_velocity'])
-            variables['y_sea_water_velocity'] = np.nan_to_num(variables['y_sea_water_velocity'])
-              
-            print ("u ==", variables['x_sea_water_velocity'])
-            print ("v ==", variables['y_sea_water_velocity'])
-            #print ("w ==", variables['upward_sea_water_velocity'])
+        if 'x_sea_water_velocity' or 'x_wind' in variables.keys():
 
-        if 'x_wind' in variables.keys():
+
+            if not hasattr(self, 'angle_of_rotation_from_east_to_x'):
+                self.logger.debug('Reading angle between xi and east...')
+                self.angle_of_rotation_from_east_to_x = self.Dataset.variables['ang'][:]
+            if has_xarray is False:
+                rad = self.angle_of_rotation_from_east_to_x[tuple(np.meshgrid(indy, indx))].T
+            else:
+                rad = self.angle_of_rotation_from_east_to_x[indy, indx]
+                rad = np.nan_to_num(rad)
+
+            if 'x_sea_water_velocity' in variables.keys():
+
+                variables['x_sea_water_velocity'] = np.nan_to_num(variables['x_sea_water_velocity'])
+                variables['y_sea_water_velocity'] = np.nan_to_num(variables['y_sea_water_velocity'])
+
+                print ("u ==", variables['x_sea_water_velocity'])
+                print ("v ==", variables['y_sea_water_velocity'])
+                print ("w ==", variables['upward_sea_water_velocity'])
+
+            if 'x_wind' in variables.keys():
+
 
                 variables['x_wind'] = np.nan_to_num(variables['x_wind'])
                 variables['y_wind'] = np.nan_to_num(variables['y_wind'])
@@ -500,13 +497,13 @@ class Reader(BaseReader):
 
         # Masking NaN of the others variables, considering u and v always requested
         for var in requested_variables:
-          
+
             variables[var] = np.nan_to_num(variables[var])
 
         self.logger.debug('Time for ECOM reader: ' + str(datetime.now()-start_time))
 
         return variables
-        
+
 #This follow function is not to be used at the SBB grid.
 
 def rotate_vectors_angle(x_sea_water_velocity, y_sea_water_velocity, radians):
