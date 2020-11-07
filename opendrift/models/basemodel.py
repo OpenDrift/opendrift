@@ -1622,6 +1622,41 @@ class OpenDriftSimulation(PhysicsMethods):
         # Forwarding calculated cone points/radii to seed_elements
         self.seed_elements(lon=lon, lat=lat, time=time, radius=radius, number=number, **kwargs)
 
+    def seed_from_geojson(self, gjson):
+        """Under development"""
+        import geojson
+        try:
+            g = geojson.loads(gjson)
+        except:
+            raise ValueError('Could not load GeoJSON string: %s' % gjson)
+        if not g.is_valid:
+            raise ValueError('GeoJSON string is not valid: %s' % g.errors())
+        # Assuming temporally that g is a Feature, and not a FeatureCollection
+        if 'time' not in g['properties']:
+            raise ValueError('Property "time" is not available')
+        kwargs = {}
+        for prop in g['properties']:
+            if prop == 'time':
+                t = g['properties']['time']
+                if isinstance(t, list):
+                    time = [datetime.fromisoformat(t[0].replace("Z", "+00:00")),
+                            datetime.fromisoformat(t[1].replace("Z", "+00:00"))]
+                else:
+                    time = datetime.fromisoformat(g['properties']['time'].replace("Z", "+00:00"))
+            else:
+                kwargs[prop] = g['properties'][prop]
+
+        if g['geometry']['type'] == 'Polygon':
+            coords = list(geojson.utils.coords(g))
+            lon, lat = zip(*[(c[0], c[1]) for c in coords])
+            self.seed_within_polygon(lons=lon, lats=lat, time=time, **kwargs)
+        elif g['geometry']['type'] == 'LineString':
+            coords = list(geojson.utils.coords(g))
+            lon, lat = zip(*[(c[0], c[1]) for c in coords])
+            self.seed_cone(lon=lon, lat=lat, time=time, **kwargs)
+        else:
+            raise ValueError('Not yet implemented')
+
     def seed_repeated_segment(self, lons, lats,
                               start_time, end_time, time_interval=None,
                               number_per_segment=None,
