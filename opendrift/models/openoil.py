@@ -1301,7 +1301,7 @@ class OpenOil(OceanDrift):
                 seed_json[kw] = data
 
         if 'number' not in kwargs:
-            number = 1
+            number = self.get_config('seed:number')
         else:
             number = kwargs['number']
         if 'diameter' in kwargs:

@@ -1522,7 +1522,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 time = [time[0] + i*td for i in range(number)]
             else:
                 raise ValueError('Time array has length %s, must be 1, 2 or %s' % (len(time), number))
-
+        
         # Add radius / perturbation
         if radius.max() > 0:
             geod = pyproj.Geod(ellps='WGS84')
@@ -1546,17 +1546,24 @@ class OpenDriftSimulation(PhysicsMethods):
         if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
                 and kwargs['z'][0:8] == 'seafloor':
             # We need to fetch seafloor depth from reader
-            if ('sea_floor_depth_below_sea_level' not in self.priority_list
-                ) and len(self._lazy_readers()) == 0:
+            seafloor_constant = self.get_config('environment:constant:sea_floor_depth_below_sea_level')
+            seafloor_fallback = self.get_config('environment:fallback:sea_floor_depth_below_sea_level')
+            if seafloor_constant is not None:
+                env = {'sea_floor_depth_below_sea_level': np.array(seafloor_constant)}
+            elif ('sea_floor_depth_below_sea_level' in self.priority_list
+                        ) or len(self._lazy_readers()):
+                if not hasattr(self, 'time'):
+                    self.time = time[0]
+                env, env_profiles, missing = \
+                    self.get_environment(['sea_floor_depth_below_sea_level'],
+                                         time=time[0], lon=lon, lat=lat,
+                                         z=0*lon, profiles=None)
+            elif seafloor_fallback is not None:
+                env = {'sea_floor_depth_below_sea_level': np.array(seafloor_fallback)}
+            else:
                 raise ValueError('A reader providing the variable '
                                  'sea_floor_depth_below_sea_level must be '
                                  'added before seeding elements at seafloor.')
-            if not hasattr(self, 'time'):
-                self.time = time[0]
-            env, env_profiles, missing = \
-                self.get_environment(['sea_floor_depth_below_sea_level'],
-                                     time=time[0], lon=lon, lat=lat,
-                                     z=0*lon, profiles=None)
             # Add M meters if given as 'seafloor+M'
             if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
                 meters_above_seafloor = np.float(kwargs['z'][9::])
@@ -1566,7 +1573,6 @@ class OpenDriftSimulation(PhysicsMethods):
                 meters_above_seafloor = 0
             kwargs['z'] = \
                 -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
-
 
         # Creating and scheduling elements
         elements = self.ElementType(lon=lon, lat=lat, **kwargs)
@@ -1626,34 +1632,41 @@ class OpenDriftSimulation(PhysicsMethods):
         """Under development"""
         import geojson
         try:
-            g = geojson.loads(gjson)
+            gj = geojson.loads(gjson)
         except:
             raise ValueError('Could not load GeoJSON string: %s' % gjson)
-        if not g.is_valid:
-            raise ValueError('GeoJSON string is not valid: %s' % g.errors())
+        if not gj.is_valid:
+            raise ValueError('GeoJSON string is not valid: %s' % gj.errors())
         # Assuming temporally that g is a Feature, and not a FeatureCollection
-        if 'time' not in g['properties']:
+        properties = gj['properties']
+        if 'time' not in properties:
             raise ValueError('Property "time" is not available')
         kwargs = {}
-        for prop in g['properties']:
+        for prop in properties:
             if prop == 'time':
-                t = g['properties']['time']
+                t = properties['time']
                 if isinstance(t, list):
                     time = [datetime.fromisoformat(t[0].replace("Z", "+00:00")),
                             datetime.fromisoformat(t[1].replace("Z", "+00:00"))]
                 else:
-                    time = datetime.fromisoformat(g['properties']['time'].replace("Z", "+00:00"))
+                    time = datetime.fromisoformat(t.replace("Z", "+00:00"))
             else:
-                kwargs[prop] = g['properties'][prop]
+                kwargs[prop] = properties[prop]
 
-        if g['geometry']['type'] == 'Polygon':
-            coords = list(geojson.utils.coords(g))
+        geometry = gj['geometry']
+
+        if geometry['type'] == 'Polygon':
+            coords = list(geojson.utils.coords(gj))
             lon, lat = zip(*[(c[0], c[1]) for c in coords])
             self.seed_within_polygon(lons=lon, lats=lat, time=time, **kwargs)
-        elif g['geometry']['type'] == 'LineString':
-            coords = list(geojson.utils.coords(g))
+        elif geometry['type'] == 'LineString':
+            coords = list(geojson.utils.coords(gj))
             lon, lat = zip(*[(c[0], c[1]) for c in coords])
             self.seed_cone(lon=lon, lat=lat, time=time, **kwargs)
+        elif geometry['type'] == 'Point':
+            coords = list(geojson.utils.coords(gj))
+            lon, lat = zip(*[(c[0], c[1]) for c in coords])
+            self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
         else:
             raise ValueError('Not yet implemented')
 
