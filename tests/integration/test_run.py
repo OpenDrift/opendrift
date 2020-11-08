@@ -52,9 +52,7 @@ def gdal_error_handler(err_class, err_num, err_msg):
     print('Error Message: %s' % (err_msg))
 
 try:
-    import ogr
-    import osr
-    import gdal
+    from osgeo import ogr, osr, gdal
     version_num = int(gdal.VersionInfo('VERSION_NUM'))
     if version_num >= 2000000:
         has_ogr = True

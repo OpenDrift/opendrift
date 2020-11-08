@@ -1503,9 +1503,7 @@ class OpenOil(OceanDrift):
                                     *args, **kwargs):
         '''Seed from files as provided by Prof. Chuanmin Hu'''
 
-        import gdal
-        import ogr
-        import osr
+        from osgeo import gdal, ogr, osr
 
         if not 'time' in kwargs:
             try:  # get time from filename

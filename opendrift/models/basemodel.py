@@ -1795,8 +1795,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """Seeds elements within (multi)polygons from WKT"""
 
         try:
-            import ogr
-            import osr
+            from osgeo import ogr, osr
         except Exception as e:
             self.logger.warning(e)
             raise ValueError('OGR library is needed to parse WKT')
@@ -1845,8 +1844,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """Seeds elements within contours read from a shapefile"""
 
         try:
-            import ogr
-            import osr
+            from osgeo import ogr, osr
         except Exception as e:
             self.logger.warning(e)
             raise ValueError('OGR library is needed to read shapefiles.')
@@ -3868,8 +3866,7 @@ class OpenDriftSimulation(PhysicsMethods):
         '''
 
         try:
-            import gdal
-            import osr
+            from osgeo import gdal, osr
         except:
             raise ValueError('GDAL is needed to write geotiff images.')
         import matplotlib.pyplot as plt
