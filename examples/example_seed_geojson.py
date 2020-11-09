@@ -9,31 +9,6 @@ from opendrift.models.leeway import Leeway
 from opendrift.models.openoil import OpenOil
 
 #%%
-# Polygon
-#========
-
-o = OpenOil(loglevel=50)
-o.seed_from_geojson("""{
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [4.0, 60.0], [4.5, 60.0], [4.7, 60.1],
-            [4.2, 60.1], [4.0, 60.0]
-          ]
-        ]
-      },
-      "properties": {
-        "time": "2020-11-06T12:30:00Z",
-        "number": 1000,
-        "oiltype": "*GENERIC DIESEL",
-        "m3_per_hour": 50
-      }
-    }""")
-o.plot(fast=True)
-
-#%%
 # Point release at seafloor
 #==========================
 
@@ -89,3 +64,29 @@ o.animation(fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_seed_geojson_1.gif
+
+
+#%%
+# Polygon
+#========
+
+o = OpenOil(loglevel=50)
+o.seed_from_geojson("""{
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [4.0, 60.0], [4.5, 60.0], [4.7, 60.1],
+            [4.2, 60.1], [4.0, 60.0]
+          ]
+        ]
+      },
+      "properties": {
+        "time": "2020-11-06T12:30:00Z",
+        "number": 1000,
+        "oiltype": "*GENERIC DIESEL",
+        "m3_per_hour": 50
+      }
+    }""")
+o.plot(fast=True)
