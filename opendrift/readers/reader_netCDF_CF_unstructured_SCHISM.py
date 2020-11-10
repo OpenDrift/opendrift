@@ -508,24 +508,39 @@ class Reader(BaseReader):
         #  returns updated "variables" dict and data array
         deg2meters = 1.1e5 # approx
         buffer = .1  # degrees around given positions ~10km
-        buffer = .05  # degrees around given positions ~ 5km
+        buffer = .05  # degrees around given positions ~ 5km - reader seems quite sensitive to that buffer...
         if self.xmax <= 360 :
-            buffer = buffer_deg # latlong reference system
+            pass # latlong reference system - keep same buffer value
         else:
             buffer = buffer * deg2meters# projected reference system in meters
         self.subset_frame = [x_particle.min() - buffer,
                              x_particle.max() + buffer, 
                              y_particle.min() - buffer,
                              y_particle.max() + buffer]
-        self.logger.debug('Spatial frame used for schism reader : ' + str(self.subset_frame))
+        self.logger.debug('Spatial frame used for schism reader %s (buffer = %s) ' % (str(self.subset_frame) , buffer))
         # find lon,lat of reader that are within the particle cloud
         self.id_frame = np.where((self.lon >= self.subset_frame[0]) &
                      (self.lon <= self.subset_frame[1]) &
                      (self.lat >= self.subset_frame[2]) &
                      (self.lat <= self.subset_frame[3]))[0]
-        print(variables_dict['x'].shape)
-        print( self.id_frame.max())
-        
+        self.logger.debug('Using %s ' % (int(100*self.id_frame.shape[0]/self.lon.shape[0])) + '%' + ' of native nodes' )
+        # print(variables_dict['x'].shape)
+        # print( self.id_frame.max())
+
+        if False:
+            import matplotlib.pyplot as plt
+            plt.ion()
+            plt.plot(x_particle,y_particle,'.')
+            box = np.array([(self.subset_frame[0],self.subset_frame[2]),\
+                            (self.subset_frame[1],self.subset_frame[2]),\
+                            (self.subset_frame[1],self.subset_frame[3]),\
+                            (self.subset_frame[0],self.subset_frame[3]),\
+                            (self.subset_frame[0],self.subset_frame[2])])
+            plt.plot(box[:,0],box[:,1])
+            plt.title('frame used in clip_reader_data()')
+            import pdb;pdb.set_trace()
+            # plt.close()
+
         variables_dict['x'] = variables_dict['x'][self.id_frame]
         variables_dict['y'] = variables_dict['y'][self.id_frame]
         variables_dict['z'] = variables_dict['z'][self.id_frame]
@@ -1310,161 +1325,22 @@ class ReaderBlockUnstruct():
         
         indices = np.where((x >= self.x.min()) & (x <= self.x.max()) &
                            (y >= self.y.min()) & (y <= self.y.max()))[0]
+
+        if len(indices) != len(x):
+            import matplotlib.pyplot as plt
+            plt.ion()
+            plt.plot(x,y,'r.')
+            box = np.array([(self.x.min(),self.y.min()),\
+            (self.x.max(),self.y.min()),\
+            (self.x.max(),self.y.max()),\
+            (self.x.min(),self.y.max()),\
+            (self.x.min(),self.y.min())])
+            plt.plot(box[:,0],box[:,1],'k--')
+            plt.title('Increase buffer distance around particle cloud')
+            import pdb;pdb.set_trace()
+            plt.close()
+
         if len(indices) == len(x):
             return True
         else:
             return False
-
-###################################################################################
-#     def get_variables_depreciated(self, requested_variables, time=None,
-#                       x=None, y=None, z=None, block=False):
-#         """This version mimics what would be output from a regular 
-#            grid reader (e.g. reader_netCDF_CF_generic) by returning 
-#            data from unstructured grid interpolated to a regular grid
-#            that includes all particles (+some buffer)
-
-#            The get_variables() method is called inside get_variables_interpolated()
-#            which is invoked by model class. The get_variables_interpolated()
-#            returns variable data interpolated in space anb time at particle positions
-
-#            > Depreciated now - see new get_variables() method that is fetching the native SCHISM data
-           
-#         """
-
-#         requested_variables, time, x, y, z, outside = \
-#             self.check_arguments(requested_variables, time, x, y, z)
-
-#         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
-#             self.nearest_time(time)
-
-#         x = np.atleast_1d(x)
-#         y = np.atleast_1d(y)
-
-#         # Finding a subset around the particles, so that
-#         # we do not interpolate more points than is needed.
-#         # Performance is quite dependent on the given buffer,
-#         # but it should not be made too small to make sure
-#         # particles are inside box
-#         deg2meters = 1.1e5 # approx
-#         buffer = .1  # degrees around given positions
-#         buffer = .05  # degrees around given positions
-
-#         if x.max() <= 360 :
-#             buffer = buffer_deg # latlong reference system
-#         else:
-#             buffer = buffer * deg2meters# projected reference system in meters
-
-#         lonmin = x.min() - buffer
-#         lonmax = x.max() + buffer
-#         latmin = y.min() - buffer
-#         latmax = y.max() + buffer
-#         c = np.where((self.lon > lonmin) &
-#                      (self.lon < lonmax) &
-#                      (self.lat > latmin) &
-#                      (self.lat < latmax))[0]
-        
-
-#         # Making a lon-lat grid onto which data is interpolated
-#         lonstep = .01 * 0.25 # hardcoded for now
-#         latstep = .01 * 0.25 # hardcoded for now
-#         if x.max() >= 360 :
-#             lonstep = lonstep * deg2meters
-#             latstep = latstep * deg2meters
-        
-#         lons = np.arange(lonmin, lonmax, lonstep)
-#         lats = np.arange(latmin, latmax, latstep)
-#         lonsm, latsm = np.meshgrid(lons, lats)
-
-#         # Initialising dictionary to contain data
-#         variables = {'x': lons, 'y': lats, 'z': z,
-#                      'time': nearestTime}
-
-#         # Reader coordinates of subset
-#         for par in requested_variables:
-#             if par not in ['x_sea_water_velocity','y_sea_water_velocity'] :
-#                 # standard case - for all variables except current velocities
-#                 var = self.Dataset.variables[self.variable_mapping[par]]
-#                 if var.ndim == 1:
-#                     data = var[c]
-#                 elif var.ndim == 2:
-#                     data = var[indxTime,c]
-#                 elif var.ndim == 3:
-#                     data = var[indxTime,0,c]
-#                 else:
-#                     raise ValueError('Wrong dimension of %s: %i' %
-#                                      (self.variable_mapping[par], var.ndim))
-#             else :
-#                 # requested variables are current velocities
-#                 # In SCHISM netcdf filesboth [u,v] components are saved 
-#                 # as two different dimensions of the same variable.
-#                 var = self.Dataset.variables[self.variable_mapping[par]]
-#                 if var.ndim == 3: # 2D current data , dimensions [time,node,2]
-#                    if par == 'x_sea_water_velocity':
-#                        data = var[indxTime,c,0]
-#                    elif par == 'y_sea_water_velocity':
-#                        data = var[indxTime,c,1]
-#                 elif var.ndim == 4: # 3D current data , dimensions [time,node,zcor,2]
-#                    self.logger.debug('3D interp not supported yet by reader_netCDF_CF_unstructured_SCHISM')
-#                    raise ValueError('Not supported - quitting')
-#                    import pdb;pdb.set_trace()
-#                    # if par == 'x_sea_water_velocity':
-#                    #     data = var[indxTime,c,level,0]
-#                    # elif par == 'y_sea_water_velocity':
-#                    #     data = var[indxTime,c,level,1]
-#                 else:
-#                     raise ValueError('Wrong dimension of %s: %i' %
-#                                      (self.variable_mapping[par], var.ndim))
-
-#             # now interpolate extracted data points onto regular grid
-#             if 'interpolator' not in locals():
-#                 self.logger.debug('Making interpolator...')
-#                 interpolator = LinearNDInterpolator((self.lat[c],
-#                                                      self.lon[c]),
-#                                                     data)
-#             else:
-#                 # Re-use interpolator for other variables
-#                 interpolator.values[:,0] = data
-#             interpolator((0,0))
-
-#             variables[par] = interpolator(latsm, lonsm)
-        
-#         #print variables        
-#         return variables
-
-#     def covers_positions_depreciated(self, lon, lat, z=0):
-#         """Return indices of input points covered by reader."""
-#         import pdb;pdb.set_trace()
-        
-#         # weird bug in which x,y become 1e30 sometimes...
-#         # need to print stuff to make it work...
-
-#         # Calculate x,y coordinates from lon,lat
-#         print(lon.max()) # if I comment this...[x,y] may become 1e+30..have no idea why
-#                          # it runs fine if I have that print statement ....
-#         # print(lat.max())
-#         x, y = self.lonlat2xy(lon, lat)      
-#         # Only checking vertical coverage if zmin, zmax is defined
-#         zmin = -np.inf
-#         zmax = np.inf
-#         if hasattr(self, 'zmin') and self.zmin is not None:
-#             zmin = self.zmin
-#         if hasattr(self, 'zmax') and self.zmax is not None:
-#             zmax = self.zmax
-
-#         # sometimes x,y will are = 1e30 at this stage..and have no idea why
-#         # recomputing them below seems to fix the issue        
-#         # x, y = self.lonlat2xy(lon, lat)
-
-#         if self.global_coverage():
-#             # We need only check north-south and z coverage
-#             indices = np.where((y >= self.ymin) & (y <= self.ymax) &
-#                                (z >= zmin) & (z <= zmax))[0]
-#         else:
-#             indices = np.where((x >= self.xmin) & (x <= self.xmax) &
-#                                (y >= self.ymin) & (y <= self.ymax) &
-#                                (z >= zmin) & (z <= zmax))[0]
-        
-#         try:
-#             return indices, x[indices], y[indices]
-#         except:
-#             return indices, x, y
