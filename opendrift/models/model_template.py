@@ -36,24 +36,23 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
 
 class TemplateElementType(Lagrangian3DArray):
-    """
-    Extending LagrangianArray with relevant properties.
+    """Extending LagrangianArray with relevant properties."""
 
-    Define and name the properties which the elements shall have.
-    These are added to the inherited properties (e.g. from OceanDrift)
-    Property names may be freely chosen, but the "update" function (below)
-    will refer to the names in the specifications of the processes.
-    
-    The "default" value is used for alle elements, unless a custom
-    value is provided at time of seeding:
-    o.seed_elements(......., <property>=<value>)
-    
-    The default value can also be updated by the user
-    before seeding with the config mechanism:
-    o.set_config('seed:<property>', <new default value>)
-    
-    The "units" attribute is used for labeling.
-    """
+    # Define and name the properties which the elements shall have.
+    # These are added to the inherited properties (e.g. from OceanDrift)
+    # Property names may be freely chosen, but the "update" function (below)
+    # will refer to the names in the specifications of the processes.
+    #
+    # The "default" value is used for alle elements, unless a custom
+    # value is provided at time of seeding:
+    # o.seed_elements(......., <property>=<value>)
+    #
+    # The default value can also be updated by the user
+    # before seeding with the config mechanism:
+    # o.set_config('seed:<property>', <new default value>)
+    #
+    # The "units" attribute is used for labeling.
+
     variables = Lagrangian3DArray.add_variables([
         ('new_property_1', {'dtype': np.float32,
                             'units': '1',
@@ -160,7 +159,10 @@ class ModelTemplate(OceanDrift):
         #       The set_config() method will raise an error of provided values are outside of this range.
         # - If 'type' is 'enum' there is an additional item 'enum' which is a list
         #     of the allowed values. These may be strings or numbers.
-
+        #
+        # Dafault values of config-settings which are inherited from parent models
+        # may be overriden for the current module by:
+        self._set_config_default('drift:vertical_mixing', True)
 
     def update(self):
         """Update positions and properties of particles."""
