@@ -19,11 +19,10 @@ This file is a template for an ocean trajectory model
 to be implemented within the OpenDrift framework.
 To create a new model, make a copy (renamed) of this file, and
 modify the class names and details below, according to the comments.
-See e.g. module windblow.py for a minimalistic example.
+Alternatively, another existing class can be used as a starting point.
 
-For more help, see https://github.com/OpenDrift/opendrift/wiki
-or contact Knut-Frode Dagestad (knutfd@met.no)
-For usage of the new model, see example scripts (e.g. example.py)
+For more help, see https://opendrift.github.io/writing_a_new_model.html
+For usage of the new model, see example scripts.
 
 First we define an element type to be used by the trajectory model.
 An element type (class) may also be imported/reused from
