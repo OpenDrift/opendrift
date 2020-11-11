@@ -87,7 +87,7 @@ class ModelTemplate(OceanDrift):
         'y_sea_water_velocity': {'fallback': 0},
         'x_wind': {'fallback': 0, 'important': False},
         'y_wind': {'fallback': 0, 'important': False},
-        'ocean_vertical_diffusivity': {'fallback': 0.02, 'important': False, 'profiles': True}
+        'ocean_vertical_diffusivity': {'fallback': 0.02, 'important': False, 'profiles': True},
         'land_binary_mask': {'fallback': None},
         }
     # Default (fallback) numerical values will be used for particles 
@@ -111,17 +111,17 @@ class ModelTemplate(OceanDrift):
     
     def __init__(self, *args, **kwargs):
 
-       # Here any preprocessing and initialisation of a simulation
-       # may be performed, e.g. importing external data from file.
+        # Here any preprocessing and initialisation of a simulation
+        # may be performed, e.g. importing external data from file.
 
-       # The constructor of parent class must always be called
-       # to perform some necessary common initialisation tasks:
-       super(ModelTemplate, self).__init__(*args, **kwargs)
+        # The constructor of parent class must always be called
+        # to perform some necessary common initialisation tasks:
+        super(ModelTemplate, self).__init__(*args, **kwargs)
             
-       # The above initialisation includes adding common config options.
-       # Further config options specific to this subclass can be
-       # added with the following method:
-       self._add_config({
+        # The above initialisation includes adding common config options.
+        # Further config options specific to this subclass can be
+        # added with the following method (example options below from OpenOil):
+        self._add_config({
             'seed:m3_per_hour': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 1e10, 'units': 'm3 per hour',
                 'description': 'The amount (volume) of oil released per hour (or total amount if release is instantaneous)',
@@ -130,13 +130,12 @@ class ModelTemplate(OceanDrift):
                 'min': 1e-8, 'max': 1, 'units': 'meters',
                 'description': 'The minimum dimaeter of oil droplet for a subsea release.',
                 'level': self.CONFIG_LEVEL_BASIC},
-            'seed:droplet_diameter_max_subsea': {'type': 'float', 'default': 0.005,
-                'min': 1e-8, 'max': 1, 'units': 'meters',
-                'description': 'The maximum dimaeter of oil droplet for a subsea release.',
-                'level': self.CONFIG_LEVEL_BASIC},
             'processes:dispersion': {'type': 'bool', 'default': True,
                 'description': 'Oil is removed from simulation (dispersed), if entrained as very small droplets.',
-                'level': self.CONFIG_LEVEL_BASIC}
+                'level': self.CONFIG_LEVEL_BASIC},
+            'wave_entrainment:droplet_size_distribution': {'type': 'enum', 'enum': ['Johansen et al. (2015)', 'Li et al. (2017)'], 'default': 'Johansen et al. (2015)',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                'Algorithm to be used for calculating oil droplet size spectrum after entrainment by breaking waves.'},
            })
         
         # The _add_config method takes a dictionary where keys are config settings,
@@ -161,67 +160,57 @@ class ModelTemplate(OceanDrift):
         #       The set_config() method will raise an error of provided values are outside of this range.
         # - If 'type' is 'enum' there is an additional item 'enum' which is a list
         #     of the allowed values. These may be strings or numbers.
-           
-        
-        """
-        super(ModelTemplate, self).__init__(*args, **kwargs)
+
 
     def update(self):
-        """Update positions and properties of particles.
+        """Update positions and properties of particles."""
 
-        This function (``update``, may not be renamed) defines
-        the actions (processes) to be performed at each time step.
-        The default timestep is one hour, but this may be overriden
-        by the user.
+        # This function (``update``, may not be renamed) defines
+        # the actions (processes) to be performed at each time step.
+        # The default timestep is one hour, but this may be overriden
+        # by the user.
+        #
+        # The elements and corresponding environment information
+        # (wind, waves, current...) is available to this function as
+        # the recarrays ``elements`` and ``environment``, respectively.
+        # Element properties and environvent variables are named arrays
+        # of same length (number of active particles), or scalars.
+        #
+        # E.g.:
+        #    self.elements.z
+        #    self.elements.mass
+        #    self.environment.x_wind
+        #    self.environment.y_wind
+        #
+        # E.g. to specify evaporation (mass reduction) proportional to wind speed:
+        #
+        #    self.elements.mass = self.elements.mass - \
+        #        np.sqrt(self.environment.x_wind**2 + \
+        #                self.environment.y_wind**2)*.01
+        #
+        # If particles need to be deactived (e.g. if
+        # self.environemtn.someproperty is 0), the special function
+        # `self.deactivate_elements()` should be used:
+        # `self.deactivate_elements(self.environment.someproperty==0)`
+        # 
+        # Interaction with coast is handled by ``basemodel`` and is
+        # chosen with configutation mechanism available to each module.
+        #
+        # Horizontal position of the particles (lon, lat) are the
+        # only properties which should not be modified directly/freely.
+        # Due to the need to correct for the curvature of the coordinate
+        # systems, and taking into account vector orientations, a dedicated 
+        # method ``self.update_positions()`` is
+        # available using x- and y-velocity as arguments:
+        # E.g. to simply move particles with ambient current:
+        #
+        # self.update_positions(self.environment.x_sea_water_velocity,
+        #                       self.environment.y_sea_water_velocity)``
+        #
+        # However, instead of using this method directly, most
+        # OpenDrift modules use a set of ready-made and reusable
+        # advection methods, added below. 
 
-        The elements and corresponding environment information
-        (wind, waves, current...) is available to this function as
-        the recarrays ``elements`` and ``environment``, respectively.
-        Element properties and environvent variables are named arrays
-        of same length (number of active particles), or scalars.
-
-        E.g.:
-
-        .. code::
-
-            self.elements.z
-            self.elements.mass
-            self.environment.x_wind
-            self.environment.y_wind
-
-        E.g. to specify evaporation (mass reduction) proportional to wind speed:
-
-        .. code::
-
-            self.elements.mass = self.elements.mass - \
-                np.sqrt(self.environment.x_wind**2 + \
-                        self.environment.y_wind**2)*.01
-
-        If particles need to be deactived (e.g. if
-        self.environemtn.someproperty is 0), the special function
-        `self.deactivate_elements()` should be used:
-        `self.deactivate_elements(self.environment.someproperty==0)`
-
-        Interaction with coast is handled by ``basemodel`` and is
-        chosen with configutation mechanism available to each module.
-
-        Horizontal position of the particles (lon, lat) are the
-        only properties which should not be modified directly/freely.
-        Due to the need to correct for the curvature of the coordinate
-        systems, and taking into account vector orientations, a dedicated 
-        method ``self.update_positions()`` is
-        available using x- and y-velocity as arguments:
-        E.g. to simply move particles with ambient current:
-        ``
-        self.update_positions(self.environment.x_sea_water_velocity,
-                              self.environment.y_sea_water_velocity)``
-
-        However, instead of using this method directly, most
-        OpenDrift modules use a set of ready-made and reusable
-        advection methods, added below. 
-
-        """
-       
         # Advection with horizontal ocean currents
         self.advect_ocean_current()
 
