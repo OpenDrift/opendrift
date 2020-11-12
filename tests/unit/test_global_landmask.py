@@ -5,6 +5,7 @@ from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
+@pytest.mark.slow
 def test_landmask_generate():
     import os, tempfile
 
@@ -14,10 +15,11 @@ def test_landmask_generate():
     if os.path.exists(mmapf): os.unlink(mmapf)
 
     import opendrift_landmask_data as old
-    l = old.Landmask()
+    old.Landmask()
 
     assert os.path.exists(mmapf)
 
+@pytest.mark.slow
 def test_reader_landmask_generate():
     import os, tempfile
 
@@ -26,10 +28,11 @@ def test_reader_landmask_generate():
 
     if os.path.exists(mmapf): os.unlink(mmapf)
 
-    reader_global = reader_global_landmask.Reader()
+    reader_global_landmask.Reader()
 
     assert os.path.exists(mmapf)
 
+@pytest.mark.slow
 def test_reader_landmask_generate_extent():
     import os, tempfile
 
@@ -38,7 +41,7 @@ def test_reader_landmask_generate_extent():
 
     if os.path.exists(mmapf): os.unlink(mmapf)
 
-    reader_global = reader_global_landmask.Reader (extent = [4, 55, 11, 65])
+    reader_global_landmask.Reader (extent = [4, 55, 11, 65])
 
     assert os.path.exists(mmapf)
 
@@ -87,8 +90,6 @@ def test_plot(tmpdir):
     import matplotlib.pyplot as plt
     import cartopy.crs as ccrs
     import cartopy
-
-    reader = cartopy.feature.GSHHSFeature(scale = 'f')
 
     plt.figure()
     ax = plt.axes(projection=ccrs.PlateCarree())

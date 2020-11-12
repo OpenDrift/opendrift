@@ -280,7 +280,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self.o.num_elements_deactivated(), 0)
         self.assertEqual(self.o.num_elements_total(), 9)
         # Run simulation
-        self.o.run(steps=30, outfile='unittest.nc')
+        self.o.run(steps=30)
         # Check that 1 element is deactivated (stranded),
         # 1 yet not seeded and 4 active
         self.assertEqual(self.o.num_elements_scheduled(), 4)
