@@ -9,10 +9,10 @@ logger = logging.getLogger('opendrift')  # using common logger
 
 def expand_numpy_array(data):
     if isinstance(data, np.ma.MaskedArray):
-        self.logger.warning('Converting masked array to numpy array before interpolating')
+        logger.warning('Converting masked array to numpy array before interpolating')
         data = np.ma.filled(data, fill_value=np.nan)
     if not np.isfinite(data).any():
-        self.logger.warning('Only NaNs, returning')
+        logger.warning('Only NaNs, returning')
         return
     mask = ~np.isfinite(data)
     data[mask] = np.finfo(np.float64).min
@@ -98,13 +98,13 @@ class LinearND2DInterpolator():
                 array_ravel[valid])
             # Store valid array, to determine if can be used again
             self.interpolator.valid = valid
-            # Call interpolator to avoid threading-problem: 
+            # Call interpolator to avoid threading-problem:
             # https://github.com/scipy/scipy/issues/8856
             self.interpolator((0,0))
 
         return self.interpolator(self.y, self.x)
-        
-        
+
+
 class Linear2DInterpolator():
 
     logger = logging.getLogger('opendrift')
@@ -114,7 +114,7 @@ class Linear2DInterpolator():
         self.y = y
         self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
         self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
-        
+
 
     def __call__(self, array2d):
         if isinstance(array2d,np.ma.MaskedArray):
@@ -123,7 +123,7 @@ class Linear2DInterpolator():
         if not np.isfinite(array2d).any():
             self.logger.warning('Only NaNs input to linearNDFast - returning')
             return np.nan*np.ones(len(self.xi))
-    
+
         # Fill NaN-values with nearby real values
         interp = map_coordinates(array2d, [self.yi, self.xi],
                                  cval=np.nan, order=1)
@@ -261,7 +261,7 @@ class ReaderBlock():
                 filled = fill_NaN_towards_seafloor(self.data_dict[var])
                 if filled is True:
                     filled_variables.add(var)
-                
+
         if len(filled_variables) > 0:
             self.logger.debug('Filled NaN-values toward seafloor for :'
                           + str(list(filled_variables)))
