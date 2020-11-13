@@ -152,7 +152,7 @@ def import_from_ladim(ladimfile, romsfile):
     from models.oceandrift3D import OceanDrift3D
     o = OceanDrift3D()
     from netCDF4 import Dataset, date2num, num2date
-    if isinstance(romsfile, basestring):
+    if isinstance(romsfile, str):
         from opendrift.readers import reader_ROMS_native
         romsfile = reader_ROMS_native.Reader(romsfile)
     l = Dataset(ladimfile, 'r')

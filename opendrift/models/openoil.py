@@ -73,11 +73,6 @@ try:
 except ImportError:
     pass
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
 # Defining the oil element properties
 class Oil(LagrangianArray):
     """Extending LagrangianArray with variables relevant for oil particles."""
@@ -1273,13 +1268,13 @@ class OpenOil(OceanDrift):
         seed_json = {'start':{}, 'end':{}}
         for kw in kwargs:
             data = kwargs[kw]
-            if not isinstance(data, basestring):
+            if not isinstance(data, str):
                 data = np.atleast_1d(data)
             if isinstance(data[0], datetime):
                 data[0] = str(data[0])
                 if len(data) == 2:
                     data[1] = str(data[1])
-            if not isinstance(kwargs[kw], basestring):
+            if not isinstance(kwargs[kw], str):
                 if kw in ['lon', 'lat', 'z', 'radius', 'time']:
                     pointer = seed_json['start']
                     pointer2 = seed_json['end']
@@ -1315,7 +1310,7 @@ class OpenOil(OceanDrift):
                 kwargs['z'] = 'seafloor'
             else:
                 kwargs['z'] = self.get_config('seed:z')
-        if isinstance(kwargs['z'], basestring) and \
+        if isinstance(kwargs['z'], str) and \
                 kwargs['z'][0:8] == 'seafloor':
             z = -np.ones(number)
         else:
