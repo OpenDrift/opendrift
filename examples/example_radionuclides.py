@@ -23,21 +23,20 @@ td=datetime.today()
 time = datetime(td.year, td.month, td.day, 0)
 
 #latseed= 61.2; lonseed= 4.3    # Sognesjen
-latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
+#latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
 latseed= 60.0;   lonseed= 4.5 # Bergen (?)
 
 ntraj=5000
 iniz=np.random.rand(ntraj) * -10. # seeding the radionuclides in the upper 10m
-init_speciation = np.ones(ntraj)*0
-diam=np.zeros_like(init_speciation,dtype=np.float32)
-o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
-                time=time, diameter=diam, specie=init_speciation)
+#iniz=np.random.rand(ntraj) * 0
+#init_speciation = np.ones(ntraj)*0
+#diam=np.zeros_like(init_speciation,dtype=np.float32)
 
-init_speciation = np.ones(ntraj)*1
-diam=np.zeros_like(init_speciation,dtype=np.float32) * 5.e-6
-o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
-                time=time,
-                diameter=diam, specie=init_speciation)
+# init_speciation = np.ones(ntraj)*1
+# diam=np.zeros_like(init_speciation,dtype=np.float32) * 5.e-6
+# o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
+#                 time=time,
+#                 diameter=diam, specie=init_speciation)
 
 # init_speciation = np.ones(ntraj)*2
 # o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
@@ -46,7 +45,8 @@ o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
 
 # Adjusting some configuration
 o.set_config('drift:vertical_mixing', True)
-o.set_config('vertical_mixing:diffusivitymodel','zero')  # include settling without vertical turbulent mixing
+#o.set_config('environment:fallback:ocean_vertical_diffusivity', 0)
+#o.set_config('vertical_mixing:diffusivitymodel','constant')  # include settling without vertical turbulent mixing
 #o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
 # Vertical mixing requires fast time step
 o.set_config('vertical_mixing:timestep', 600.) # seconds
@@ -78,9 +78,9 @@ o.set_config('radionuclide:sediment:resuspension_critvel',0.15)
 
 
 #
-#o.set_config('radionuclide:transfer_setup','dummy')
+#o.set_config('radionuclide:transfer_setup','custom')
+o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
 #o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
-o.set_config('seed:transfer_setup','Bokna_137Cs')
 #o.set_config('radionuclide:transfer_setup','Sandnesfj_Al')
 
 # By default, radionuclides do not strand towards coastline
@@ -88,7 +88,19 @@ o.set_config('general:coastline_action', 'previous')
 
 #o.set_config('general:use_auto_landmask',False)
 
+
+o.set_config('seed:LMM_fraction',.45)
+o.set_config('seed:particle_fraction',.55)
+
 o.list_configspec()
+
+
+
+o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
+                time=time, 
+                #diameter=diam, specie=init_speciation
+                )
+
 
 #%%
 # Running model
