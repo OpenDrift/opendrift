@@ -431,8 +431,8 @@ class Reader(BaseReader):
             if has_xarray is True:
                 variables[par] = np.asarray(variables[par])
 
-        self.use_subset = 1 # Functionnal now  - need to check results are consistent.
-        if self.use_subset == 1: # for testing subsetting data before computin KD-trees
+        self.use_subset = False # Functionnal now  - need to check results are consistent.
+        if self.use_subset: # for testing subsetting data before computin KD-trees
             variables = self.clip_reader_data(variables_dict = variables, x_particle = x,y_particle = y, requested_variables = requested_variables) # clip reader data to particle cloud coverage 
             # update the 2D KDtree (will be used to initialize the ReaderBlockUnstruct)
             self.reader_KDtree = cKDTree(np.vstack((variables['x'],variables['y'])).T) 

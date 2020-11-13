@@ -3,7 +3,6 @@
 SCHISM native reader
 ==================================
 """
-# docker run -it  --rm -v C:/Users/Simon/Documents/GitHub/opendrift_simon:/code/ -v E:/metocean/0472_SpatNZ_MarlboroughSounds/schism_flows_netcdf/:/data opendrift/opendrift:py3-v1.0.7
 
 import numpy as np
 from opendrift.readers import reader_netCDF_CF_unstructured_SCHISM
@@ -27,8 +26,6 @@ reader_landmask = reader_global_landmask.Reader(
 proj4str_nztm = '+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
 schism_native = reader_netCDF_CF_unstructured_SCHISM.Reader(filename = '/data/schism_marl20080505_00z_3D.nc', proj4 = proj4str_nztm, use_3d = True)
 
-# nordic_native = reader_ROMS_native.Reader(o.test_data_folder() +
-#     '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 o.add_reader([reader_landmask,schism_native])
 
 # Seed elements at defined positions, depth and time
