@@ -8,7 +8,6 @@ from opendrift.readers import reader_netCDF_CF_generic, reader_ROMS_native
 from opendrift.models.radionuclides import RadionuclideDrift
 from datetime import timedelta, datetime
 import numpy as np
-from numpy import dtype
 
 
 o = RadionuclideDrift(loglevel=20, seed=0)  # Set loglevel to 0 for debug information
@@ -19,29 +18,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds
 
 o.add_reader([reader_norkyst])
 
-td=datetime.today()
-time = datetime(td.year, td.month, td.day, 0)
 
-#latseed= 61.2; lonseed= 4.3    # Sognesjen
-#latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
-latseed= 60.0;   lonseed= 4.5 # Bergen (?)
-
-ntraj=5000
-iniz=np.random.rand(ntraj) * -10. # seeding the radionuclides in the upper 10m
-#iniz=np.random.rand(ntraj) * 0
-#init_speciation = np.ones(ntraj)*0
-#diam=np.zeros_like(init_speciation,dtype=np.float32)
-
-# init_speciation = np.ones(ntraj)*1
-# diam=np.zeros_like(init_speciation,dtype=np.float32) * 5.e-6
-# o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
-#                 time=time,
-#                 diameter=diam, specie=init_speciation)
-
-# init_speciation = np.ones(ntraj)*2
-# o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
-#                 time=time,
-#                 diameter=diam, specie=init_speciation)
 
 # Adjusting some configuration
 o.set_config('drift:vertical_mixing', True)
@@ -96,9 +73,24 @@ o.list_configspec()
 
 
 
+# SEEDING
+
+td=datetime.today()
+time = datetime(td.year, td.month, td.day, 0)
+
+#latseed= 61.2; lonseed= 4.3    # Sognesjen
+#latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
+latseed= 60.0;   lonseed= 4.5 # Bergen (?)
+
+ntraj=5000
+iniz=np.random.rand(ntraj) * -10. # seeding the radionuclides in the upper 10m
+
 o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
                 time=time, 
-                #diameter=diam, specie=init_speciation
+#                LMM_fraction=0.25,
+#                particle_fraction=0.75
+#                diameter=99.e-6#diam, 
+                #specie=init_speciation
                 )
 
 

@@ -38,10 +38,18 @@ class Radionuclide(Lagrangian3DArray):
                      'default': 2650.}),  # Mineral particles
         ('specie', {'dtype': np.int32,
                     'units': '',
-                    'default': 0})#,
+                    'default': 0}),
 #         ('transfer_rates1D', {'dtype':np.array(3, dtype=np.float32),
 #                     'units': '1/s',
 #                     'default': 0.})
+        ('LMM_fraction', {'dtype':np.float32,
+                          'units':'',
+                          'default':0,
+                          'seeed':False}),
+        ('particle_fraction', {'dtype':np.float32,
+                          'units':'',
+                          'default':0,
+                          'seeed':False})
         ])
 
 
