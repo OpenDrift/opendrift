@@ -467,15 +467,7 @@ class Reader(BaseReader):
         if 'x_sea_water_velocity' or 'x_wind' in variables.keys():
 
 
-            if not hasattr(self, 'angle_of_rotation_from_east_to_x'):
-                self.logger.debug('Reading angle between xi and east...')
-                self.angle_of_rotation_from_east_to_x = self.Dataset.variables['ang'][:]
-            if has_xarray is False:
-                rad = self.angle_of_rotation_from_east_to_x[tuple(np.meshgrid(indy, indx))].T
-            else:
-                rad = self.angle_of_rotation_from_east_to_x[indy, indx]
-                rad = np.nan_to_num(rad)
-
+   
             if 'x_sea_water_velocity' in variables.keys():
 
                 variables['x_sea_water_velocity'] = np.nan_to_num(variables['x_sea_water_velocity'])
