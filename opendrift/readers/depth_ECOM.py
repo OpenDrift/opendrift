@@ -1,26 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+Side reader for sigma to z at reader ecom interpolation
 
-"""Vertical structure functions for ROMS
-
-:func:`sdepth`
-  Depth of s-levels
-:func:`zslice`
-  Slice a 3D field in s-coordinates to fixed depth
-:func:`multi_zslice`
-  Slice a 3D field to several depth levels
-:func:`z_average`
-  Vertical average of a 3D field
-:func:`s_stretch`
-  Compute vertical stretching arrays Cs_r or Cs_w
+Created by: Arian Dialectaquiz at LHiCo IO-USP Brazil
 
 """
 
-# -----------------------------------
-# Bjørn Ådlandsvik <bjorn@imr.no>
-# Institute of Marine Research
-# Bergen, Norway
-# 2010-09-30
-# -----------------------------------
+
 
 from __future__ import (absolute_import, division)
 
@@ -163,4 +149,5 @@ def multi_zslice(F, S, Z):
     return R, (A, C, I, kmax)
 
 # ------------------------------------------------------
+
 
