@@ -73,11 +73,6 @@ try:
 except ImportError:
     pass
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
 # Defining the oil element properties
 class Oil(LagrangianArray):
     """Extending LagrangianArray with variables relevant for oil particles."""
@@ -93,7 +88,7 @@ class Oil(LagrangianArray):
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 880}),
-        ('wind_drift_factor', {'dtype': np.float32,  # TODO: inherit from 
+        ('wind_drift_factor', {'dtype': np.float32,  # TODO: inherit from
                                'units': '%',         # OceanDrift
                                'default': 0.03}),
         ('age_exposure_seconds', {'dtype': np.float32,
@@ -755,7 +750,7 @@ class OpenOil(OceanDrift):
         # terminal velocity for low Reynolds numbers
         kw = 2*g*(1-rhopr)/(9*ny_w)
         W = kw * r**2
-        
+
         # check if we are in a high Reynolds number regime
         Re = 2*r*W/ny_w
         highRe = np.where(Re > 50)
@@ -834,7 +829,7 @@ class OpenOil(OceanDrift):
         return d
 
     def get_wave_breaking_droplet_diameter_liz2017(self):
-        # Li,Zhengkai, M. Spaulding, D. French-McCay, D. Crowley, J.R. Payne: "Development of a unified oil droplet size distribution model 
+        # Li,Zhengkai, M. Spaulding, D. French-McCay, D. Crowley, J.R. Payne: "Development of a unified oil droplet size distribution model
         # with application to surface breaking waves and subsea blowout releases considering dispersant effects" Mar. Pol. Bul.
         # DOI: 10.1016/j.marpolbul.2016.09.008
         # Should be prefered when the oil film thickness is unknown.
@@ -923,7 +918,7 @@ class OpenOil(OceanDrift):
         # Calculating various drift factors according to ice concentration
         if hasattr(self.environment, 'sea_ice_area_fraction'):
             A = self.environment.sea_ice_area_fraction
-            # According to 
+            # According to
             # Nordam T, Beegle-Krause CJ, Skancke J, Nepstad R, Reed M.
             # Improving oil spill trajectory modelling in the Arctic.
             # Mar Pollut Bull. 2019;140:65-74.
@@ -1273,13 +1268,13 @@ class OpenOil(OceanDrift):
         seed_json = {'start':{}, 'end':{}}
         for kw in kwargs:
             data = kwargs[kw]
-            if not isinstance(data, basestring):
+            if not isinstance(data, str):
                 data = np.atleast_1d(data)
             if isinstance(data[0], datetime):
                 data[0] = str(data[0])
                 if len(data) == 2:
                     data[1] = str(data[1])
-            if not isinstance(kwargs[kw], basestring):
+            if not isinstance(kwargs[kw], str):
                 if kw in ['lon', 'lat', 'z', 'radius', 'time']:
                     pointer = seed_json['start']
                     pointer2 = seed_json['end']
@@ -1315,7 +1310,7 @@ class OpenOil(OceanDrift):
                 kwargs['z'] = 'seafloor'
             else:
                 kwargs['z'] = self.get_config('seed:z')
-        if isinstance(kwargs['z'], basestring) and \
+        if isinstance(kwargs['z'], str) and \
                 kwargs['z'][0:8] == 'seafloor':
             z = -np.ones(number)
         else:
@@ -1335,7 +1330,7 @@ class OpenOil(OceanDrift):
 
         ##########################
         # Old OpenOil seeding
-        
+
         if 'oiltype' in kwargs:
             self.set_config('seed:oil_type', kwargs['oiltype'])
             del kwargs['oiltype']

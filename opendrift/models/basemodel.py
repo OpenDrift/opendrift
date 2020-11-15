@@ -58,12 +58,6 @@ from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers import reader_from_url
 from opendrift.models.physics_methods import PhysicsMethods
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
-
 class OpenDriftSimulation(PhysicsMethods):
     """Generic trajectory model class, to be extended (subclassed).
 
@@ -710,7 +704,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """
 
         # Convert any strings to lists, for looping
-        if isinstance(variables, basestring):
+        if isinstance(variables, str):
             variables = [variables]
         if isinstance(readers, BaseReader):
             readers = [readers]
@@ -778,7 +772,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def add_readers_from_list(self, urls, timeout=10, lazy=True):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
-        if isinstance(urls, basestring):
+        if isinstance(urls, str):
             urls = [urls]
         if lazy is True:
             from opendrift.readers.reader_lazy import Reader
@@ -1543,7 +1537,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 if self.get_config('seed:seafloor') is True:
                     kwargs['z'] = 'seafloor'
                     self.logger.debug('Seafloor is selected, neglecting z')
-        if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
+        if 'z' in kwargs and isinstance(kwargs['z'], str) \
                 and kwargs['z'][0:8] == 'seafloor':
             # We need to fetch seafloor depth from reader
             seafloor_constant = self.get_config('environment:constant:sea_floor_depth_below_sea_level')
@@ -2876,7 +2870,7 @@ class OpenDriftSimulation(PhysicsMethods):
         start_time = datetime.now()
         if cmap is None:
             cmap = 'jet'
-        if isinstance(cmap, basestring):
+        if isinstance(cmap, str):
             cmap = matplotlib.cm.get_cmap(cmap)
 
         if color is False and background is None and lcs is None and density is False:
@@ -2884,7 +2878,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         markercolor = self.plot_comparison_colors[0]
 
-        if isinstance(density, basestring):
+        if isinstance(density, str):
             # Density field is weighted by this variable
             # TODO: not yet implemented!
             density_weight = density
@@ -2941,7 +2935,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     y_deactive[index_of_last_deactivated < i]])
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
-                    if isinstance(color, basestring):
+                    if isinstance(color, str):
                         points_deactivated.set_array(
                             colorarray_deactivated[
                                 index_of_last_deactivated < i])
@@ -2988,7 +2982,7 @@ class OpenDriftSimulation(PhysicsMethods):
             ax.plot(x, y, color='gray', alpha=.1, transform = gcrs)
 
         if color is not False and show_elements is True:
-            if isinstance(color, basestring):
+            if isinstance(color, str):
                 colorarray = self.get_property(color)[0].T
                 colorarray = colorarray*unitfactor
                 colorarray_deactivated = \
@@ -3081,7 +3075,7 @@ class OpenDriftSimulation(PhysicsMethods):
         fig.set_tight_layout(True)
         if colorbar is True:
             if color is not False:
-                if isinstance(color, basestring) or clabel is not None:
+                if isinstance(color, str) or clabel is not None:
                     if clabel is None:
                         clabel = color
                 item = points
@@ -3337,7 +3331,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 colorbar = True
                 # Color lines according to given parameter
                 try:
-                    if isinstance(linecolor, basestring):
+                    if isinstance(linecolor, str):
                         param = self.history[linecolor]
                     else:
                         param = linecolor

@@ -32,11 +32,6 @@ from opendrift.readers.interpolation import ReaderBlock
 
 import pyproj
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
 # Som valid (but extreme) ranges for checking that values are reasonable
 standard_names = {
     'x_wind': {'valid_min': -50, 'valid_max': 50},
@@ -333,7 +328,7 @@ class BaseReader(object):
 
     def get_variables_derived(self, variables, *args, **kwargs):
         """Wrapper around get_variables, adding derived"""
-        if isinstance(variables, basestring):
+        if isinstance(variables, str):
             variables = [variables]
         if not isinstance(variables, list):
             variables = list(variables)
@@ -978,7 +973,7 @@ class BaseReader(object):
             time = self.start_time  # Use first timestep, if not given
 
         # Convert variables to list and x,y to ndarrays
-        if isinstance(variables, basestring):
+        if isinstance(variables, str):
             variables = [variables]
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
