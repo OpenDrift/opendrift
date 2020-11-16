@@ -56,7 +56,7 @@ class TestInterpolation(unittest.TestCase):
         # Make another horizontal slice ("below") with more holes
         slice2 = slice1*1.1
         slice2[70:80, 20:28] = np.nan
-        
+
         # Add a 2D and a 3D variable to dictionary
         data_dict['var2d'] = slice1
         data_dict['var3d'] = np.ma.array([slice1, slice2, 1.2*slice1,
@@ -71,7 +71,7 @@ class TestInterpolation(unittest.TestCase):
         return data_dict, x, y, z
 
     def test_covers_positions(self):
-        
+
         data_dict, x, y, z = self.get_synthetic_data_dict()
         # Make block from dictionary, and apply tests
         b = ReaderBlock(data_dict)
@@ -105,7 +105,6 @@ class TestInterpolation(unittest.TestCase):
         self.assertEqual(sum(values.mask), 15)
 
     def test_interpolation_ensemble(self):
-        
         data_dict, x, y, z = self.get_synthetic_data_dict()
         x = x[0:15]
         y = y[0:15]
@@ -125,7 +124,7 @@ class TestInterpolation(unittest.TestCase):
         v2e = interp['var2de']
         v3 = interp['var3d']
         v3e = interp['var3de']
-        
+
         self.assertEqual(v2[0], 1)
         self.assertEqual(v2e[0], 1)
         self.assertEqual(v2e[1], 2)
