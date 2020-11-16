@@ -12,7 +12,6 @@ build
 /*.egg
 /*.eggs
 /MyTests/
-/docs/
 /.project
 /.pydevproject
 

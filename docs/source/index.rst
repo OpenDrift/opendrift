@@ -112,6 +112,7 @@ Contents
    gallery/index
    oil_types
    interaction_with_coastline
+   docker
    gui
    references
    autoapi/index
