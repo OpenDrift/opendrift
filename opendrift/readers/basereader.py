@@ -77,6 +77,8 @@ class BaseReader(object):
     # Default interpolation method, see function interpolate_block()
     interpolation = 'linearNDFast'
 
+    convolve = None # Convolution kernel or kernel size
+
     verticalbuffer = 1  # To be overridden by application as needed
 
     start_time = None
@@ -252,6 +254,10 @@ class BaseReader(object):
                           'a maximum average speed of %g m/s.' %
                           (self.buffer, self.name, max_speed))
 
+    def set_convolution_kernel(self, convolve):
+        """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
+        self.convolve = convolve
+
     def pixel_size(self):
         # Find typical pixel size (e.g. for calculating size of buffer)
         if self.projected is True:
@@ -273,7 +279,6 @@ class BaseReader(object):
                             lons[1], lats[1], radians=False)[2]
             pixelsize = dist/self.shape[0]
         return pixelsize
-
     # TODO:  Duplication from Basemodel, should be unified
     def timer_start(self, category):
         if not hasattr(self, 'timers'):
@@ -297,7 +302,7 @@ class BaseReader(object):
     @abstractmethod
     def get_variables(self, variables, time=None,
                       x=None, y=None, z=None, block=False):
-        """Method which must be invoked by any reader (subclass).
+        """Method which must be implemented by all reader-subclasses.
 
         Obtain and return values of the requested variables at all positions
         (x, y, z) closest to given time.
@@ -309,7 +314,7 @@ class BaseReader(object):
                 Can be None (default) if reader/variable has no time
                 dimension (e.g. climatology or landmask).
             x, y: float or ndarrays; coordinates of requested points in the
-                Spatial Reference System (SRS) of the reader (NB!!)
+                Spatial Reference System (SRS) _of the reader (NB!!)_.
             z: float or ndarray; vertical position (in meters, positive up)
                 of requested points.
                 default: 0 m (unless otherwise documented by reader)
@@ -320,7 +325,7 @@ class BaseReader(object):
                 keywords: variables (string)
                 values:
                     - 1D ndarray of len(x) if block=False. Nearest values
-                        (neichbour) of requested position are returned.
+                        (neighbour) of requested position are returned.
                     - 3D ndarray encompassing all requested points in
                         x,y,z domain if block=True. It is task of invoking
                         application (OpenDriftSimulation) to perform
@@ -397,7 +402,7 @@ class BaseReader(object):
                     env[variable][invalid_indices] = np.nan
 
         # Convolve arrays with a kernel, if reader.convolve is set
-        if hasattr(self, 'convolve'):
+        if self.convolve is not None:
             from scipy import ndimage
             N = self.convolve
             if isinstance(N, (int, np.integer)):
@@ -752,7 +757,7 @@ class BaseReader(object):
                 delta_y = .1  # 0.1 degree northwards
         else:
             delta_y = 10  # 10 m along y-axis
-        
+
         transformer = pyproj.Transformer.from_proj(proj_from, proj_to)
         x2, y2 = transformer.transform(reader_x, reader_y)
         x2_delta, y2_delta = transformer.transform(reader_x, reader_y + delta_y)
@@ -809,7 +814,7 @@ class BaseReader(object):
     def lonlat2xy(self, lon, lat):
         """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        
+
         # Two methods needed for parallelisation
         def get_x(lon_part, lat_part, num):
             out_x[num] = self.spl_x(lon_part, lat_part)

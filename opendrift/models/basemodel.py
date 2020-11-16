@@ -3638,7 +3638,7 @@ class OpenDriftSimulation(PhysicsMethods):
         map_x, map_y = (rlons, rlats)
 
         scalar = np.ma.masked_invalid(scalar)
-        if hasattr(reader, 'convolve'):
+        if reader.convolve is not None:
             from scipy import ndimage
             N = reader.convolve
             if isinstance(N, (int, np.integer)):
