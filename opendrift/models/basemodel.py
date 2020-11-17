@@ -225,7 +225,7 @@ class OpenDriftSimulation(PhysicsMethods):
                  'otherwise landmask is taken from reader or fallback value.',
                  'level': self.CONFIG_LEVEL_ADVANCED},
             'general:coastline_action': {'type': 'enum', 'enum': ['none', 'stranding', 'previous'],
-                'default': 'stranding', 'level': self.CONFIG_LEVEL_BASIC, 
+                'default': 'stranding', 'level': self.CONFIG_LEVEL_BASIC,
                  'description': 'None means that objects may also move over land. '
                     'stranding means that objects are deactivated if they hit land. '
                     'previous means that objects will move back to the previous location '
@@ -1516,7 +1516,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 time = [time[0] + i*td for i in range(number)]
             else:
                 raise ValueError('Time array has length %s, must be 1, 2 or %s' % (len(time), number))
-        
+
         # Add radius / perturbation
         if radius.max() > 0:
             geod = pyproj.Geod(ellps='WGS84')
@@ -1582,7 +1582,7 @@ class OpenDriftSimulation(PhysicsMethods):
             time: datetime or list with 2 elements [t0, t1]
             radius: scalar or list with 2 elements [r0, r1] Unit: meters
             number: int
-                The number of elements. If this is None, the number of 
+                The number of elements. If this is None, the number of
                 elements is taken from configuration.
 
         Elements are seeded along a transect from
@@ -1677,7 +1677,7 @@ class OpenDriftSimulation(PhysicsMethods):
         2) total_number, in which case the number of elements
            per segment is: total_number / len(times).
            Any extra elements are duplicated along at the first segment.
-       
+
         """
 
         numtimes = int((end_time-start_time).total_seconds()/
@@ -2901,7 +2901,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.get_density_array(pixelsize_m=density_pixelsize_m,
                                            weight=density_weight)
                 H = H + H_submerged + H_stranded
-         
+
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree()
 
