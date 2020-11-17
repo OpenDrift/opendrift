@@ -17,12 +17,12 @@
 from datetime import datetime
 import numpy as np
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     '''Returning values oscillating in time with given amplitude and period'''
-    
+
     def __init__(self, variable, amplitude, period_seconds=3600*24,
                  phase=0, zero_time=datetime(2017, 1, 1, 0)):
         '''init with '''
@@ -44,15 +44,15 @@ class Reader(BaseReader):
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
-        
+
     def get_variables(self, requestedVariables, time=None,
                       x=None, y=None, z=None, block=False):
-        
+
         variables = {'time': time, 'x': x, 'y': y, 'z': z}
 
         phase = ((time - self.zero_time).total_seconds()/
                  self.period_seconds)*np.pi
         value = self.amplitude*np.sin(phase)
         variables[self.variables[0]] = value*np.ones(x.shape)
-       
+
         return variables

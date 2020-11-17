@@ -1,6 +1,8 @@
 import numpy as np
-from scipy.ndimage import map_coordinates
 import pyproj
+from scipy.ndimage import map_coordinates
+from bisect import bisect_left
+import copy
 
 from abc import abstractmethod
 
@@ -8,6 +10,7 @@ from opendrift.timer import Timeable
 from .consts import standard_names, vector_pairs_xy
 
 class ReaderDomain(Timeable):
+    simulation_SRS = False
     projected = None
     proj4     = None
     proj      = None
@@ -27,6 +30,7 @@ class ReaderDomain(Timeable):
     start_time  = None
     end_time    = None
     time_step   = None
+    times       = None
 
     def rotate_vectors(self, reader_x, reader_y,
                        u_component, v_component,
@@ -325,12 +329,58 @@ class ReaderDomain(Timeable):
         else:
             return True
 
+    def nearest_time(self, time):
+        """Return nearest times before and after the requested time.
+
+        Returns:
+            nearest_time: datetime
+            time_before: datetime
+            time_after: datetime
+            indx_nearest: int
+            indx_before: int
+            indx_after: int
+        """
+        if self.start_time == self.end_time:
+            return self.start_time, self.start_time, None, 0, 0, 0
+        if self.start_time is None:
+            return None, None, None, None, None, None
+        if self.times is not None:  # Time as array, possibly with holes
+            indx_before = np.max((0, bisect_left(self.times, time) - 1))
+            if self.times[indx_before + 1] == time:
+                # Correction needed when requested time exists in times
+                indx_before = indx_before + 1
+            time_before = self.times[indx_before]
+            indx_after = np.minimum(indx_before + 1,
+                                    len(self.times) - 1)  # At the end
+            time_after = self.times[indx_after]
+            if (time - time_before) < (time_after - time):
+                indx_nearest = indx_before
+            else:
+                indx_nearest = indx_after
+            nearest_time = self.times[indx_nearest]
+        else:  # Time step is constant (no holes)
+            if self.time_step is None:
+                return None, None, None, None, None, None
+            indx = float((time - self.start_time).total_seconds()) / \
+                float(self.time_step.total_seconds())
+            indx_nearest = int(round(indx))
+            nearest_time = self.start_time + indx_nearest*self.time_step
+            indx_before = int(np.floor(indx))
+            time_before = self.start_time + indx_before*self.time_step
+            indx_after = int(np.ceil(indx))
+            time_after = self.start_time + indx_after*self.time_step
+        return nearest_time, time_before, time_after,\
+            indx_nearest, indx_before, indx_after
+
 class Variables(ReaderDomain):
     """
     Handles reading and interpolation of variables.
     """
     derived_variables = None
     name = None
+
+    buffer = 0
+    convolve = None # Convolution kernel or kernel size
 
     environment_mappers = []
     environment_mappings = {
@@ -345,6 +395,27 @@ class Variables(ReaderDomain):
 
     def __init__(self):
         self.derived_variables = {}
+
+    def set_convolution_kernel(self, convolve):
+        """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
+        self.convolve = convolve
+
+    def set_buffer_size(self, max_speed, max_vertical_speed=None):
+        '''Adjust buffer to minimise data block size needed to cover elements'''
+        self.buffer = 0
+        pixelsize = self.pixel_size()
+        if pixelsize is not None:
+            if self.time_step is not None:
+                time_step_seconds = self.time_step.total_seconds()
+            else:
+                time_step_seconds = 3600  # 1 hour if not given
+            self.buffer = np.int(np.ceil(max_speed *
+                                         time_step_seconds /
+                                         pixelsize)) + 2
+            self.logger.debug('Setting buffer size %i for reader %s, assuming '
+                          'a maximum average speed of %g m/s.' %
+                          (self.buffer, self.name, max_speed))
+
 
     def wind_from_speed_and_direction(self, env):
         north_wind = env['wind_speed']*np.cos(
@@ -575,7 +646,7 @@ class Variables(ReaderDomain):
 
         self.timer_end('preparing')
 
-        env, env_profile = self._get_variables_interpolated_(variables, profiles, profiles_depth,
+        env, env_profiles = self._get_variables_interpolated_(variables, profiles, profiles_depth,
                 time, lon, lat, z, block, rotate_to_proj, ind_covered, reader_x, reader_y)
 
         # Rotating vectors fields
@@ -638,6 +709,6 @@ class Variables(ReaderDomain):
         self.timer_end('masking')
 
         self.timer_end('total')
-        return env, env_profile
+        return env, env_profiles
 
 

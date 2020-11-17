@@ -18,10 +18,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import pyproj
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     """Analytical current field with double gyre"""
 
     def __init__(self, initial_time=datetime(2000,1,1,0,0),

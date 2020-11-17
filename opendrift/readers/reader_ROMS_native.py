@@ -21,11 +21,11 @@ import numpy as np
 from netCDF4 import num2date
 import xarray as xr
 
-from opendrift.readers.basereader import BaseReader, vector_pairs_xy
+from opendrift.readers.basereader import BaseReader, vector_pairs_xy, StructuredReader
 from opendrift.readers.roppy import depth
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, StructuredReader):
 
     def __init__(self, filename=None, name=None, gridfile=None):
 
@@ -224,10 +224,10 @@ class Reader(BaseReader):
         # If one vector component is requested, but not the other
         # we must add the other for correct rotation
         for vector_pair in vector_pairs_xy:
-            if (vector_pair[0] in requested_variables and 
+            if (vector_pair[0] in requested_variables and
                 vector_pair[1] not in requested_variables):
                 requested_variables.extend([vector_pair[1]])
-            if (vector_pair[1] in requested_variables and 
+            if (vector_pair[1] in requested_variables and
                 vector_pair[0] not in requested_variables):
                 requested_variables.extend([vector_pair[0]])
 
@@ -522,7 +522,7 @@ class Reader(BaseReader):
         # Masking NaN
         for var in requested_variables:
             variables[var] = np.ma.masked_invalid(variables[var])
-        
+
         self.logger.debug('Time for ROMS native reader: ' + str(datetime.now()-start_time))
 
         return variables
