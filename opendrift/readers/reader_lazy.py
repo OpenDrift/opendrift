@@ -19,7 +19,7 @@ from opendrift.readers.basereader import BaseReader
 from opendrift.readers import reader_from_url
 
 
-class Reader(object):
+class Reader:
     '''For lazy initialisation'''
 
     logger = logging.getLogger('opendrift')  # using common logger

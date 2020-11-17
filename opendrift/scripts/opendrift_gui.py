@@ -23,7 +23,7 @@ from opendrift.models.plastdrift import PlastDrift
 from opendrift.models.radionuclides import RadionuclideDrift
 
 # Class to redirect output to text box
-class TextRedirector(object):
+class TextRedirector:
 
     def __init__(self, widget, tag='stdout'):
         self.defstdout = sys.stdout
