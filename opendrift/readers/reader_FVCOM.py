@@ -54,8 +54,6 @@ class Reader(BaseReader):
             'um': 'x_sea_water_velocity',
             'vm': 'y_sea_water_velocity'}
 
-        self.return_block = True
-
         try:
             # Open file, check that everything is ok
             self.logger.info('Opening dataset: ' + filestr)

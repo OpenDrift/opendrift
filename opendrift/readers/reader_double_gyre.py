@@ -35,7 +35,6 @@ class Reader(BaseReader, ContinuousReader):
         self.proj4 = proj4
         self.proj = pyproj.Proj(proj4)
 
-        self.return_block = False
         self.xmin = 0.
         self.xmax = 2.
         self.ymin = 0.

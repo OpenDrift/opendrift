@@ -37,7 +37,6 @@ class Reader(BaseReader, ContinuousReader):
         self.end_time = None
         self.time_step = None
         self.name = 'constant_reader'
-        self.return_block = False
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()

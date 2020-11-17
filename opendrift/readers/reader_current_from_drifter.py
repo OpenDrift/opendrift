@@ -23,8 +23,6 @@ from opendrift.readers.basereader import BaseReader, StructuredReader
 
 
 class Reader(BaseReader, StructuredReader):
-
-    return_block = False
     variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
 
     def __init__(self, lons, lats, times, wind=None, waves=None, z=0,

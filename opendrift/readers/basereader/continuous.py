@@ -25,13 +25,10 @@ class ContinuousReader(Variables):
         self.logger.debug('Fetched env-before')
         env_profiles = None
         if profiles is not None:
-            if 'env_profiles_before' in locals():
-                env_profiles = env_profiles_before
-            else:
-                # Copying data from environment to vertical profiles
-                env_profiles = {'z': profiles_depth}
-                for var in profiles:
-                    env_profiles[var] = np.ma.array([env[var], env[var]])
+            # Copying data from environment to vertical profiles
+            env_profiles = {'z': profiles_depth}
+            for var in profiles:
+                env_profiles[var] = np.ma.array([env[var], env[var]])
 
         return env, env_profiles
 

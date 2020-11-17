@@ -41,10 +41,6 @@ class BaseReader(Variables):
 
     __metaclass__ = ABCMeta
 
-    return_block = True  # By default, all readers should be
-                         # capable of returning blocks of data
-
-
     verticalbuffer = 1  # To be overridden by application as needed
 
     # Mapping variable names, e.g. from east-north to x-y, temporarily
