@@ -48,7 +48,6 @@ class Reader(BaseReader, ContinuousReader):
         :type skippoly: bool, optional, default False.
     """
     name = 'global_landmask'
-    return_block = False
     variables = ['land_binary_mask']
     proj4 = None
     crs   = None

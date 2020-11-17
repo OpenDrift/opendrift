@@ -36,7 +36,6 @@ class Reader(BaseReader, ContinuousReader):
         :type proj4_str: string.
     """
     name = 'shape'
-    return_block = False
     variables = ['land_binary_mask']
     proj4 = None
     crs   = None

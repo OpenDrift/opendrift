@@ -2,6 +2,7 @@ import numpy as np
 import pyproj
 from scipy.ndimage import map_coordinates
 from bisect import bisect_left
+from multiprocessing import Process, Manager, cpu_count
 import copy
 
 from abc import abstractmethod

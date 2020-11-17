@@ -195,11 +195,6 @@ class OpenBerg(OpenDriftSimulation):
         else:  # ROMS sigma levels
             profile = np.abs(np.ma.filled(self.readers[reader_name].zlevels))
 
-       # Make sure that interpolation is left to reader if no blocks are used .
-       # NB! This is a workaround, two additional points should be removed in basereader!
-        if self.readers[reader_name].return_block == False:
-        	self.use_block = False
-
         # If current data is missing in at least one dimension, no weighting is performed:
         if len(missing_variables) > 0:
         	self.logger.warning('Missing current data, weigthing array set to [1]')

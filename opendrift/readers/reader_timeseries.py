@@ -45,7 +45,6 @@ class Reader(BaseReader, ContinuousReader):
         #self.end_time = None
         self.time_step = self.times[1] - self.times[0]
         self.name = 'reader_timeseries'
-        self.return_block = False
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
