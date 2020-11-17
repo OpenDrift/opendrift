@@ -148,7 +148,7 @@ class Reader(BaseReader, StructuredReader):
             axis = ''
             units = ''
             CoordinateAxisType = ''
-            if not hasattr(self, 'proj4'):
+            if self.proj4 is None:
                 for att in attributes:
                     if 'proj4' in att:
                         self.proj4 = str(att_dict[att])
@@ -297,14 +297,14 @@ class Reader(BaseReader, StructuredReader):
             self.x = x  # Store coordinate vectors
             self.y = y
         else:
-            if hasattr(self, 'lon') and hasattr(self, 'lat'):
+            if self.lon is not None and self.lat is not None:
                 self.logger.info('No projection found, using lon/lat arrays')
                 self.xname = lon_var_name
                 self.yname = lat_var_name
             else:
                 raise ValueError('Neither x/y-coordinates or lon/lat arrays found')
 
-        if not hasattr(self, 'proj4'):
+        if self.proj4 is None:
             if self.lon.ndim == 1:
                 self.logger.debug('Lon and lat are 1D arrays, assuming latong projection')
                 self.proj4 = '+proj=latlong'
@@ -318,7 +318,7 @@ class Reader(BaseReader, StructuredReader):
                 self.lon = self.lon[0,:,:]
                 self.lat = self.lat[0,:,:]
 
-        if hasattr(self, 'proj4') and 'latlong' in self.proj4 and hasattr(self, 'xmax') and self.xmax > 360:
+        if self.proj4 is not None and 'latlong' in self.proj4 and self.xmax is not None and self.xmax > 360:
             self.logger.info('Longitudes > 360 degrees, subtracting 360')
             self.xmin -= 360
             self.xmax -= 360
