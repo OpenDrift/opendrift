@@ -1949,7 +1949,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
 
     def seed_from_ladim(self, ladimfile, roms):
-        """Seed elements from ladim \*.rls text file: [time, x, y, z, name]"""
+        """Seed elements from ladim \\*.rls text file: [time, x, y, z, name]"""
 
         data = np.loadtxt(ladimfile,
             dtype={'names': ('time', 'x', 'y', 'z'),

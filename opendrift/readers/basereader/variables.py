@@ -1,16 +1,369 @@
 import numpy as np
+from scipy.ndimage import map_coordinates
+import pyproj
+
 from abc import abstractmethod
 
 from opendrift.timer import Timeable
-
 from .consts import standard_names
 
-class Variables(Timeable):
+class ReaderDomain(Timeable):
+    projected = None
+    proj4     = None
+    proj      = None
+
+    lon  = None
+    lat  = None
+    xmin = None
+    xmax = None
+    ymin = None
+    ymax = None
+    zmin = -np.inf
+    zmax = np.inf
+    delta_x = None
+    delta_y = None
+
+    ## Temporal
+    start_time  = None
+    end_time    = None
+    time_step   = None
+
+    def rotate_vectors(self, reader_x, reader_y,
+                       u_component, v_component,
+                       proj_from, proj_to):
+        """Rotate vectors from one srs to another."""
+
+        if type(proj_from) is str:
+            proj_from = pyproj.Proj(proj_from)
+        if type(proj_from) is not pyproj.Proj:
+            proj_from = pyproj.Proj('+proj=latlong +R=6370997.0 +ellps=WGS84')
+            reader_x, reader_y = self.xy2lonlat(reader_x, reader_y)
+        if type(proj_to) is str:
+            proj_to = pyproj.Proj(proj_to)
+
+        if proj_from.crs.is_geographic:
+                delta_y = .1  # 0.1 degree northwards
+        else:
+            delta_y = 10  # 10 m along y-axis
+
+        transformer = pyproj.Transformer.from_proj(proj_from, proj_to)
+        x2, y2 = transformer.transform(reader_x, reader_y)
+        x2_delta, y2_delta = transformer.transform(reader_x, reader_y + delta_y)
+
+        if proj_to.crs.is_geographic:
+            geod = pyproj.Geod(ellps='WGS84')
+            rot_angle_vectors_rad = np.radians(
+                geod.inv(x2, y2, x2_delta, y2_delta)[0])
+        else:
+            rot_angle_vectors_rad = np.arctan2(x2_delta - x2, y2_delta - y2)
+        self.logger.debug('Rotating vectors between %s and %s degrees.' %
+                      (np.degrees(rot_angle_vectors_rad).min(),
+                       np.degrees(rot_angle_vectors_rad).max()))
+        rot_angle_rad = - rot_angle_vectors_rad
+        u_rot = (u_component*np.cos(rot_angle_rad) -
+                 v_component*np.sin(rot_angle_rad))
+        v_rot = (u_component*np.sin(rot_angle_rad) +
+                 v_component*np.cos(rot_angle_rad))
+
+        return u_rot, v_rot
+
+    def xy2lonlat(self, x, y):
+        """Calculate x,y in own projection from given lon,lat (scalars/arrays).
+        """
+        if self.projected is True:
+            if self.proj.crs.is_geographic:
+                if 'ob_tran' in self.proj4:
+                    self.logger.debug('NB: Converting degrees to radians ' +
+                                 'due to ob_tran srs')
+                    x = np.radians(np.array(x))
+                    y = np.radians(np.array(y))
+                    return self.proj(x, y, inverse=True)
+                else:
+                    return x, y
+            else:
+                return self.proj(x, y, inverse=True)
+        else:
+            np.seterr(invalid='ignore')  # Disable warnings for nan-values
+            y = np.atleast_1d(np.array(y))
+            x = np.atleast_1d(np.array(x))
+
+            # NB: mask coordinates outside domain
+            x[x < self.xmin] = np.nan
+            x[x > self.xmax] = np.nan
+            y[y < self.ymin] = np.nan
+            y[y < self.ymin] = np.nan
+
+            lon = map_coordinates(self.lon, [y, x], order=1,
+                                  cval=np.nan, mode='nearest')
+            lat = map_coordinates(self.lat, [y, x], order=1,
+                                  cval=np.nan, mode='nearest')
+            return (lon, lat)
+
+    def lonlat2xy(self, lon, lat):
+        """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
+        """
+
+        # Two methods needed for parallelisation
+        def get_x(lon_part, lat_part, num):
+            out_x[num] = self.spl_x(lon_part, lat_part)
+        def get_y(lon_part, lat_part, num):
+            out_y[num] = self.spl_y(lon_part, lat_part)
+
+        if self.projected is True:
+            if 'ob_tran' in self.proj4:
+                x, y = self.proj(lon, lat, inverse=False)
+                return np.degrees(x), np.degrees(y)
+            elif self.proj.crs.is_geographic:
+                return lon, lat
+            else:
+                x, y = self.proj(lon, lat, inverse=False)
+                return x, y
+        else:
+            # For larger arrays, we split and calculate in parallel
+            # The number of CPUs to use can be improved/optimised
+            num_elements = len(np.atleast_1d(lon))
+            if num_elements > 100 and not hasattr(self, 'multiprocessing_fail'):
+                try:
+                    nproc = 2
+                    if num_elements > 1000:
+                        nproc = 16
+                    if num_elements > 100000:
+                        nproc = 32
+                    if num_elements > 1000000:
+                        nproc = 64
+                    cpus = cpu_count()
+                    nproc = np.minimum(nproc, cpus-1)
+                    nproc = np.maximum(2, nproc)
+                    self.logger.debug('Running lonlat2xy in parallel, using %i of %i CPUs'
+                                  % (nproc, cpus))
+                    split_lon = np.array_split(lon, nproc)
+                    split_lat = np.array_split(lat, nproc)
+                    out_x = Manager().dict()
+                    out_y = Manager().dict()
+                    processes = []
+                    for i in range(nproc):
+                        processes.append(Process(target=get_x, args=
+                                         (split_lon[i], split_lat[i], i)))
+                        processes.append(Process(target=get_y, args=
+                                         (split_lon[i], split_lat[i], i)))
+                    [p.start() for p in processes]
+                    [p.join() for p in processes]
+                    x = np.concatenate(out_x)
+                    y = np.concatenate(out_y)
+                    self.logger.debug('Completed lonlat2xy in parallel')
+                    return (x, y)
+                except Exception as e:
+                    self.logger.warning('Parallelprocessing failed:')
+                    self.logger.warning(e)
+                    self.multiprocessing_fail = True
+            else:
+                if hasattr(self, 'multiprocessing_fail'):
+                    self.logger.warning('Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy')
+                else:
+                    # For smaller arrays, we run sequentially
+                    pass
+            self.logger.debug('Calculating lonlat->xy sequentially')
+            x = self.spl_x(lon, lat)
+            y = self.spl_y(lon, lat)
+            return (x, y)
+
+    def y_azimuth(self, lon, lat):
+        """Calculate azimuth orientation of the y-axis of the reader SRS."""
+        x0, y0 = self.lonlat2xy(lon, lat)
+        distance = 1000.0  # Create points 1 km away to determine azimuth
+        lon_2, lat_2 = self.xy2lonlat(x0, y0 + distance)
+        geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
+        y_az = geod.inv(lon_2, lat_2, lon, lat, radians=False)
+        dist = y_az[2]
+        return y_az[0]
+
+    def pixel_size(self):
+        # Find typical pixel size (e.g. for calculating size of buffer)
+        if self.projected is True:
+            if self.delta_x is not None:
+                pixelsize = self.delta_x
+                if self.proj.crs.is_geographic is True or \
+                        ('ob_tran' in self.proj4) or \
+                        ('longlat' in self.proj4) or \
+                        ('latlon' in self.proj4):
+                    pixelsize = pixelsize*111000  # deg to meters
+            else:
+                pixelsize = None  # Pixel size not defined
+        else:
+            lons, lats = self.xy2lonlat([self.xmin, self.xmax],
+                                        [self.ymin, self.ymin])
+            typicalsize = lons
+            geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
+            dist = geod.inv(lons[0], lats[0],
+                            lons[1], lats[1], radians=False)[2]
+            pixelsize = dist/self.shape[0]
+        return pixelsize
+
+    def covers_positions(self, lon, lat, z=0):
+        """Return indices of input points covered by reader."""
+
+        z = np.atleast_1d(z)
+        # Calculate x,y coordinates from lon,lat
+        x, y = self.lonlat2xy(lon, lat)
+
+        if self.global_coverage():
+            # We need only check north-south and z coverage
+            indices = np.where((y >= self.ymin) & (y <= self.ymax) &
+                               (z >= self.zmin) & (z <= self.zmax))[0]
+        else:
+            indices = np.where((x >= self.xmin) & (x <= self.xmax) &
+                               (y >= self.ymin) & (y <= self.ymax) &
+                               (z >= self.zmin) & (z <= self.zmax))[0]
+
+        try:
+            return indices, x[indices], y[indices]
+        except:
+            return indices, x, y
+    def global_coverage(self):
+        """Return True if global coverage east-west"""
+
+        if self.proj.crs.is_geographic is True and self.delta_x is not None:
+            if (self.xmin - self.delta_x <= 0) and (
+                self.xmax + self.delta_x >= 360):
+                return True  # Global 0 to 360
+            if (self.xmin - self.delta_x <= -180) and (
+                self.xmax + self.delta_x >= 180):
+                return True  # Global -180 to 180
+
+        return False
+
+    def domain_grid(self, npoints=1000):
+        """Return arrays of lon,lat points spread evenly over reader domain."""
+        numx = np.floor(np.sqrt(npoints))
+        numy = np.floor(np.sqrt(npoints))
+        x = np.linspace(self.xmin, self.xmax - self.delta_x, numx)
+        y = np.linspace(self.ymin, self.ymax - self.delta_y, numy)
+        x, y = np.meshgrid(x, y)
+        lons, lats = self.xy2lonlat(x, y)
+        return lons, lats
+
+    def coverage_string(self):
+        """Coverage of reader to be reported as string for debug output"""
+        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                 [self.ymax, self.ymin, self.ymax, self.ymin])
+        return '%.2f-%.2fE, %.2f-%.2fN' % (
+                    np.min(corners[0]), np.max(corners[0]),
+                    np.min(corners[1]), np.max(corners[1]))
+
+    def check_arguments(self, variables, time, x, y, z):
+        """Check validity of arguments input to method get_variables.
+
+        Checks that requested positions and time are within coverage of
+        this reader, and that it can provide the requested variable(s).
+        Returns the input arguments, possibly modified/corrected (below)
+
+        Arguments:
+            See function get_variables for definition.
+
+        Returns:
+            variables: same as input, but converted to list if given as string.
+            time: same as input, or start_time of reader if given as None.
+            x, y, z: same as input, but converted to ndarrays
+                if given as scalars.
+            outside: boolean array which is True for any particles outside
+                the spatial domain covered by this reader.
+
+        Raises:
+            ValueError:
+                - if requested time is outside coverage of reader.
+                - if all requested positions are outside coverage of reader.
+        """
+
+        # Check time
+        if time is None:
+            time = self.start_time  # Use first timestep, if not given
+
+        # Convert variables to list and x,y to ndarrays
+        if isinstance(variables, str):
+            variables = [variables]
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
+        if z is not None:
+            z = np.asarray(z)
+
+        for variable in variables:
+            if variable not in self.variables:
+                raise ValueError('Variable not available: ' + variable +
+                                 '\nAvailable parameters are: ' +
+                                 str(self.variables))
+        if (self.start_time is not None and time < self.start_time) and self.always_valid is False:
+            raise ValueError('Requested time (%s) is before first available '
+                             'time (%s) of %s' % (time, self.start_time,
+                                                  self.name))
+        if (self.end_time is not None and time > self.end_time) and self.always_valid is False:
+            raise ValueError('Requested time (%s) is after last available '
+                             'time (%s) of %s' % (time, self.end_time,
+                                                  self.name))
+        if self.global_coverage():
+            outside = np.where(~np.isfinite(x+y) |
+                               (y < self.ymin) | (y > self.ymax))[0]
+        else:
+            outside = np.where(~np.isfinite(x+y) |
+                               (x < self.xmin) | (x > self.xmax) |
+                               (y < self.ymin) | (y > self.ymax))[0]
+        if np.size(outside) == np.size(x):
+            lon, lat = self.xy2lonlat(x, y)
+            raise ValueError(('Argcheck: all %s particles (%.2f-%.2fE, ' +
+                              '%.2f-%.2fN) are outside domain of %s (%s)') %
+                             (len(lon), lon.min(), lon.max(), lat.min(),
+                              lat.max(), self.name, self.coverage_string()))
+
+        return variables, time, x, y, z, outside
+
+    def covers_time(self, time):
+        if self.always_valid is True:
+            return True
+        if self.start_time is None:
+            return True  # No time limitations of reader
+        if (time < self.start_time) or (time > self.end_time):
+            return False
+        else:
+            return True
+
+class Variables(ReaderDomain):
+    """
+    Handles reading and interpolation of variables.
+    """
     derived_variables = None
     name = None
 
+    environment_mappers = []
+    environment_mappings = {
+        'wind_from_speed_and_direction': {
+            'input': ['wind_speed', 'wind_to_direction'],
+            'output': ['x_wind', 'y_wind'],
+            'method': lambda reader, var: reader.wind_from_speed_and_direction(var)},
+        'testvar': {
+            'input': ['sea_ice_thickness'],
+            'output': ['istjukkleik']}
+        }
+
     def __init__(self):
         self.derived_variables = {}
+
+    def wind_from_speed_and_direction(self, env):
+        north_wind = env['wind_speed']*np.cos(
+            np.radians(env['wind_to_direction']))
+        east_wind = env['wind_speed']*np.sin(
+            np.radians(env['wind_to_direction']))
+        env['x_wind'] = east_wind
+        env['y_wind'] = north_wind
+        # Rotating might be necessary generally
+        #x,y = np.meshgrid(env['x'], env['y'])
+        #env['x_wind'], env['y_wind'] = self.rotate_vectors(
+        #    x, y,
+        #    east_wind, north_wind,
+        #    None, self.proj)
+
+    def calculate_derived_environment_variables(self, env):
+
+        if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
+            self.wind_from_speed_and_direction(env)
 
     def __get_variables__(self, variables, profiles, profiles_depth,
                        time, x, y, z, block):
