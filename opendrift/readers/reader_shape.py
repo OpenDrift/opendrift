@@ -14,7 +14,7 @@
 #
 # Copyright 2020, Gaute Hope, MET Norway
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 from opendrift_landmask_data import Landmask
 
 import pyproj
@@ -23,7 +23,7 @@ import shapely.ops
 import cartopy
 import itertools
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     """
     The shape reader can be used to load generic shapes as the 'landmask' variable.
 

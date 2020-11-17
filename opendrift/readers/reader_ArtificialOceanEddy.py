@@ -17,10 +17,10 @@
 import numpy as np
 import pyproj
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     """Artificial reader, with cyclonic surface current around selected centre.
 
     Purpose is demonstration and testing (unittest).

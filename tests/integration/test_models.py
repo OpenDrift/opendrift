@@ -163,11 +163,11 @@ class TestModels(unittest.TestCase):
 
         self.assertAlmostEqual(o.history['lon'].data[0][1],3.9921231,3)
         self.assertAlmostEqual(o.history['lat'].data[0][1],62.0108299,3)
-    
+
     def test_oil_in_ice(self):
-        """ Testing ice-in-oil transport with 
+        """ Testing ice-in-oil transport with
         different values of sea ice concentration as defined by Nordam et al. 2019"""
-        
+
         c = [0.2, 0.5, 0.8]
         lon = 24; lat = 81
 
@@ -176,9 +176,9 @@ class TestModels(unittest.TestCase):
 
         geod = pyproj.Geod(ellps='WGS84')
 
-        for i in c: 
+        for i in c:
             o = OpenOil(loglevel=50)
-            o.set_config('environment:fallback:x_wind', 0)  # zonal wind 
+            o.set_config('environment:fallback:x_wind', 0)  # zonal wind
             o.set_config('environment:fallback:y_wind', 4)  # meridional wind
 
             o.set_config('environment:fallback:x_sea_water_velocity', 0)  # eastward current

@@ -14,11 +14,11 @@
 #
 # Copyright 2020, Knut-Frode Dagestad, MET Norway
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 import numpy as np
 
-class Reader(BaseReader):
-    '''Reader providing the neares value in time from a given time series.'''
+class Reader(BaseReader, ContinuousReader):
+    '''Reader providing the nearest value in time from a given time series.'''
 
     def __init__(self, parameter_value_map):
         '''init with a map {'time':, time array, 'variable_name': value, ...}'''

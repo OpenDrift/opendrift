@@ -20,11 +20,11 @@ import numpy as np
 from datetime import timedelta, datetime
 import pyproj
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, StructuredReader
 
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, StructuredReader):
 
 	return_block = False
 	variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
