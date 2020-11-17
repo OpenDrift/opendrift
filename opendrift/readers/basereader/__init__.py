@@ -29,7 +29,7 @@ import pyproj
 
 from .structured import StructuredReader
 from .unstructured import UnstructuredReader
-from .analytical import AnalyticalReader
+from .continuous import ContinuousReader
 from .variables import Variables
 from .fakeproj import fakeproj
 from .consts import *
@@ -233,7 +233,7 @@ class BaseReader(Variables):
         logging.debug('Nothing to prepare for ' + self.name)
         pass  # to be overriden by specific readers
 
-    def get_variables_interpolated(self, variables, profiles=None,
+    def disabled_get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
                                    lon=None, lat=None, z=None,
                                    block=False, rotate_to_proj=None):
@@ -316,7 +316,7 @@ class BaseReader(Variables):
         if block is False or self.return_block is False:
             # Analytical reader, continous in space and time
             self.timer_end('preparing')
-            env_before = self.__get_variables__(variables, profiles,
+            env_before = self.get_variables_impl(variables, profiles,
                                              profiles_depth,
                                              time,
                                              #time_before,
@@ -361,7 +361,7 @@ class BaseReader(Variables):
                     block_before.time != time_before:
                 self.timer_end('preparing')
                 reader_data_dict = \
-                    self.__get_variables__(blockvariables_before, profiles,
+                    self.get_variables_impl(blockvariables_before, profiles,
                                         profiles_depth, time_before,
                                         reader_x, reader_y, z,
                                         block=block)
@@ -386,7 +386,7 @@ class BaseReader(Variables):
                 else:
                     self.timer_end('preparing')
                     reader_data_dict = \
-                        self.__get_variables__(blockvariables_after, profiles,
+                        self.get_variables_impl(blockvariables_after, profiles,
                                             profiles_depth, time_after,
                                             reader_x, reader_y, z,
                                             block=block)
