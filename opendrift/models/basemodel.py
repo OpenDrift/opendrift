@@ -54,11 +54,12 @@ except ImportError:
     print('matplotlib and/or cartopy is not available, can not make plots')
 
 import opendrift
+from opendrift.timer import Timeable
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers import reader_from_url
 from opendrift.models.physics_methods import PhysicsMethods
 
-class OpenDriftSimulation(PhysicsMethods):
+class OpenDriftSimulation(PhysicsMethods, Timeable):
     """Generic trajectory model class, to be extended (subclassed).
 
     This as an Abstract Base Class, meaning that only subclasses can
