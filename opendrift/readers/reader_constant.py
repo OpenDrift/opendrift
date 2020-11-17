@@ -14,11 +14,11 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, AnalyticalReader
 import numpy as np
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, AnalyticalReader):
     '''A very simple reader that always give the same value for its variables'''
 
     def __init__(self, parameter_value_map):

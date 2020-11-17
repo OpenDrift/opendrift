@@ -1,6 +1,6 @@
-from opendrift.timer import Timeable
+from .variables import Variables
 
-class UnstructuredReader(Timeable):
+class UnstructuredReader(Variables):
     """
     An unstructured reader. Data is gridded irregularily.
     """

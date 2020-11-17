@@ -365,7 +365,7 @@ class Variables(ReaderDomain):
         if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
             self.wind_from_speed_and_direction(env)
 
-    def __get_variables__(self, variables, profiles, profiles_depth,
+    def get_variables_impl(self, variables, profiles, profiles_depth,
                        time, x, y, z, block):
         """Wrapper around reader-specific function get_variables()
 

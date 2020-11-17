@@ -12,16 +12,16 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright 2019, Gaute Hope, MET Norway
+# Copyright 2020, Gaute Hope, MET Norway
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, AnalyticalReader
 from opendrift_landmask_data import Landmask
 
 import warnings
 import pyproj
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, AnalyticalReader):
     """
     The global landmask reader is based on the coastline data from
     GSHHG (https://www.ngdc.noaa.gov/mgg/shorelines/) optimized for
