@@ -1,6 +1,6 @@
-from opendrift.timer import Timeable
+from .variables import Variables
 
-class StructuredReader(Timeable):
+class StructuredReader(Variables):
     """
     A structured reader. Data is gridded regularily.
     """

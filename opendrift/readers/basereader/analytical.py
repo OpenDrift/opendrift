@@ -1,4 +1,6 @@
+import numpy as np
 from .variables import Variables
+from .consts import *
 
 class AnalyticalReader(Variables):
     """
@@ -41,7 +43,7 @@ class AnalyticalReader(Variables):
 
         # Analytical reader, continous in space and time
         self.timer_end('preparing')
-        env = self._get_variables(variables, profiles,
+        env = self.get_variables_impl(variables, profiles,
                                             profiles_depth,
                                             time,
                                             #time_before,
@@ -49,7 +51,7 @@ class AnalyticalReader(Variables):
                                             block=block)
         self.logger.debug('Fetched env-before')
         self.timer_start('preparing')
-
+        env_profiles = None
         if profiles is not None:
             if 'env_profiles_before' in locals():
                 env_profiles = env_profiles_before
