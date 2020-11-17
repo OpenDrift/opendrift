@@ -26,46 +26,18 @@ from multiprocessing import Process, Manager, cpu_count
 from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
 import numpy as np
-
-from opendrift.timer import Timeable
-from opendrift.readers.interpolation import ReaderBlock
-
 import pyproj
 
-# Som valid (but extreme) ranges for checking that values are reasonable
-standard_names = {
-    'x_wind': {'valid_min': -50, 'valid_max': 50},
-    'y_wind': {'valid_min': -50, 'valid_max': 50},
-    'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
-    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
-    'ocean_vertical_diffusivity': {'valid_min': 0, 'valid_max': 1}}
+from .structured import StructuredReader
+from .unstructured import UnstructuredReader
+from .analytical import AnalyticalReader
+from .variables import Variables
+from .fakeproj import fakeproj
+from .consts import *
 
-# Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
-vector_pairs_xy = [
-    ['x_wind', 'y_wind'],
-    ['sea_ice_x_velocity', 'sea_ice_y_velocity'],
-    ['x_sea_water_velocity', 'y_sea_water_velocity'],
-    ['sea_surface_wave_stokes_drift_x_velocity',
-     'sea_surface_wave_stokes_drift_y_velocity']
-    ]
+from opendrift.readers.interpolation import ReaderBlock
 
-
-class fakeproj():
-    # For readers with unprojected domain, we emulate a
-    # pyproj class with needed functions
-    class _crs:
-        is_geographic = False
-
-    crs = _crs()
-
-    def __call__(self, x, y, inverse=False):
-        # Simply return x and y since these are also row/column indices
-        return x, y
-
-    srs = 'None'
-
-
-class BaseReader(Timeable):
+class BaseReader(Variables):
     """Parent Reader class, to be subclassed by specific readers.
     """
 
@@ -117,7 +89,8 @@ class BaseReader(Timeable):
     logger = logging.getLogger('opendrift')  # using common logger
 
     def __init__(self):
-        # Common constructor for all readers
+        """Common constructor for all readers"""
+        super().__init__()
 
         # Dictionaries to store blocks of data for reuse (buffering)
         self.var_block_before = {}  # Data for last timestep before present
@@ -223,7 +196,6 @@ class BaseReader(Timeable):
                     self.rotate_mapping[xvar] = var
 
         # Adding variables which may be derived from existing ones
-        self.derived_variables = {}
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
             if em['output'][0] not in self.variables and em['input'][0] in self.variables:
@@ -284,133 +256,6 @@ class BaseReader(Timeable):
         logging.debug('Nothing to prepare for ' + self.name)
         pass  # to be overriden by specific readers
 
-    @abstractmethod
-    def get_variables(self, variables, time=None,
-                      x=None, y=None, z=None, block=False):
-        """Method which must be implemented by all reader-subclasses.
-
-        Obtain and return values of the requested variables at all positions
-        (x, y, z) closest to given time.
-
-        Arguments:
-            variables: string, or list of strings (standard_name) of
-                requested variables. These must be provided by reader.
-            time: datetime or None, time at which data are requested.
-                Can be None (default) if reader/variable has no time
-                dimension (e.g. climatology or landmask).
-            x, y: float or ndarrays; coordinates of requested points in the
-                Spatial Reference System (SRS) _of the reader (NB!!)_.
-            z: float or ndarray; vertical position (in meters, positive up)
-                of requested points.
-                default: 0 m (unless otherwise documented by reader)
-            block: bool, see return below
-
-          Returns:
-            data: Dictionary
-                keywords: variables (string)
-                values:
-                    - 1D ndarray of len(x) if block=False. Nearest values
-                        (neighbour) of requested position are returned.
-                    - 3D ndarray encompassing all requested points in
-                        x,y,z domain if block=True. It is task of invoking
-                        application (OpenDriftSimulation) to perform
-                        interpolation in space and time.
-        """
-
-    def get_variables_derived(self, variables, *args, **kwargs):
-        """Wrapper around get_variables, adding derived"""
-        if isinstance(variables, str):
-            variables = [variables]
-        if not isinstance(variables, list):
-            variables = list(variables)
-        derive_variables = False
-        for var in variables:
-            if var in self.derived_variables:
-                fromvars = self.derived_variables[var]
-                for v in fromvars:
-                    variables.append(v)
-                # Removing the derived variable name
-                variables = [v for v in variables if v != var]
-                derive_variables = True
-
-        env = self.get_variables(variables, *args, **kwargs)
-        if derive_variables is True:
-            self.calculate_derived_environment_variables(env)
-
-        return env
-
-    def _get_variables(self, variables, profiles, profiles_depth,
-                       time, x, y, z, block):
-        """Wrapper around reader-specific function get_variables()
-
-        Performs some common operations which should not be duplicated:
-        - monitor time spent by this reader
-        - convert any numpy arrays to masked arrays
-        """
-        self.logger.debug('Fetching variables from ' + self.name)
-        self.timer_start('reading')
-
-        if profiles is not None and block is True:
-            # If profiles are requested for any parameters, we
-            # add two fake points at the end of array to make sure that the
-            # requested block has the depth range required for profiles
-            x = np.append(x, [x[-1], x[-1]])
-            y = np.append(y, [y[-1], y[-1]])
-            z = np.append(z, [profiles_depth[0], profiles_depth[1]])
-        env = self.get_variables_derived(variables, time, x, y, z, block)
-
-        # Make sure x and y are floats (and not e.g. int64)
-        if 'x' in env.keys():
-            env['x'] = np.array(env['x'], dtype=np.float)
-            env['y'] = np.array(env['y'], dtype=np.float)
-
-        for variable in variables:
-            # Convert any masked arrays to NumPy arrays
-            if isinstance(env[variable], np.ma.MaskedArray):
-                env[variable] = env[variable].filled(np.nan)
-            # Mask values outside valid_min, valid_max (self.standard_names)
-            if variable in standard_names.keys():
-                if isinstance(env[variable], list):
-                    self.logger.warning('Skipping min-max checking for ensemble data')
-                    continue
-                with np.errstate(invalid='ignore'):
-                    invalid_indices = np.logical_and(
-                        np.isfinite(env[variable]), np.logical_or(
-                        env[variable]<standard_names[variable]['valid_min'],
-                        env[variable]>standard_names[variable]['valid_max']))
-                if np.sum(invalid_indices) > 0:
-                    invalid_values = env[variable][invalid_indices]
-                    self.logger.warning('Invalid values (%s to %s) found for %s, replacing with NaN' % (invalid_values.min(), invalid_values.max(), variable))
-                    self.logger.warning('(allowed range: [%s, %s])' %
-                                    (standard_names[variable]['valid_min'],
-                                     standard_names[variable]['valid_max']))
-                    env[variable][invalid_indices] = np.nan
-
-        # Convolve arrays with a kernel, if reader.convolve is set
-        if self.convolve is not None:
-            from scipy import ndimage
-            N = self.convolve
-            if isinstance(N, (int, np.integer)):
-                kernel = np.ones((N, N))
-                kernel = kernel/kernel.sum()
-            else:
-                kernel = N
-            self.logger.debug('Convolving variables with kernel: %s' % kernel)
-            for variable in env.keys():
-                if variable in ['x', 'y', 'z', 'time']:
-                    pass
-                else:
-                    if env[variable].ndim == 2:
-                        env[variable] = ndimage.convolve(
-                            env[variable], kernel, mode='nearest')
-                    elif env[variable].ndim == 3:
-                        env[variable] = ndimage.convolve(
-                            env[variable], kernel[:,:,None],
-                            mode='nearest')
-
-        self.timer_end('reading')
-
-        return env
 
     environment_mappers = []
 
@@ -451,7 +296,7 @@ class BaseReader(Timeable):
         `get_variables_interpolated` is the interface to the basemodel, and is
         responsible for returning variables at the correct positions. This is done by:
 
-            1. Calling `_get_variables` which,
+            1. Calling `__get_variables__` which,
             2. calls `get_variables_derived`, which, finally
             3. calls `get_variables`.
 
@@ -526,7 +371,7 @@ class BaseReader(Timeable):
         if block is False or self.return_block is False:
             # Analytical reader, continous in space and time
             self.timer_end('preparing')
-            env_before = self._get_variables(variables, profiles,
+            env_before = self.__get_variables__(variables, profiles,
                                              profiles_depth,
                                              time,
                                              #time_before,
@@ -571,7 +416,7 @@ class BaseReader(Timeable):
                     block_before.time != time_before:
                 self.timer_end('preparing')
                 reader_data_dict = \
-                    self._get_variables(blockvariables_before, profiles,
+                    self.__get_variables__(blockvariables_before, profiles,
                                         profiles_depth, time_before,
                                         reader_x, reader_y, z,
                                         block=block)
@@ -596,7 +441,7 @@ class BaseReader(Timeable):
                 else:
                     self.timer_end('preparing')
                     reader_data_dict = \
-                        self._get_variables(blockvariables_after, profiles,
+                        self.__get_variables__(blockvariables_after, profiles,
                                             profiles_depth, time_after,
                                             reader_x, reader_y, z,
                                             block=block)
