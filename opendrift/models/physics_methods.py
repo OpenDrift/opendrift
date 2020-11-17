@@ -25,7 +25,7 @@ def oil_wave_entrainment_rate_li2017(dynamic_viscosity, oil_density, interfacial
     # Z. Li, M.L. Spaulding, D. French McCay, J. Mar. Pollut. Bull. (2016):
     # An algorithm for modeling entrainment and naturally and chemically dispersed
     # oil droplet size distribution under surface breaking wave conditions
-    
+
     if wave_breaking_fraction is None:
         if wind_speed is None:
             raise ValueError('wave_breaking_fraction or wind_speed must be provided')
@@ -216,7 +216,7 @@ def ftle(X, Y, delta, duration):
 
     return FTLE
 
-class PhysicsMethods(object):
+class PhysicsMethods:
     """Physics methods to be inherited by OpenDriftSimulation class"""
 
     @staticmethod
@@ -341,7 +341,7 @@ class PhysicsMethods(object):
             ice_velocity_y = self.environment.y_sea_water_velocity + \
                     0.015*self.environment.y_wind
             self.update_positions(
-                    factor*ice_velocity_x, 
+                    factor*ice_velocity_x,
                     factor*ice_velocity_y)
 
     def advect_wind(self, factor=1):

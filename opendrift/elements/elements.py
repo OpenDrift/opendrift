@@ -17,7 +17,7 @@
 from collections import OrderedDict
 import numpy as np
 
-class LagrangianArray(object):
+class LagrangianArray:
     """A generic array-like class for Lagrangian particle tracking.
 
     A LagrangianArray is a generic class keeping the values of given
