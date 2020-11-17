@@ -21,13 +21,13 @@ import copy
 from bisect import bisect_left
 from abc import abstractmethod, ABCMeta
 from datetime import datetime, timedelta
-from collections import OrderedDict
 from multiprocessing import Process, Manager, cpu_count
 
 from scipy.interpolate import LinearNDInterpolator
 from scipy.ndimage import map_coordinates
 import numpy as np
 
+from opendrift.timer import Timeable
 from opendrift.readers.interpolation import ReaderBlock
 
 import pyproj
@@ -65,7 +65,7 @@ class fakeproj():
     srs = 'None'
 
 
-class BaseReader(object):
+class BaseReader(Timeable):
     """Parent Reader class, to be subclassed by specific readers.
     """
 
@@ -279,21 +279,6 @@ class BaseReader(object):
                             lons[1], lats[1], radians=False)[2]
             pixelsize = dist/self.shape[0]
         return pixelsize
-    # TODO:  Duplication from Basemodel, should be unified
-    def timer_start(self, category):
-        if not hasattr(self, 'timers'):
-            self.timers = OrderedDict()
-        if not hasattr(self, 'timing'):
-            self.timing = OrderedDict()
-        if category not in self.timing:
-            self.timing[category] = timedelta(0)
-        self.timers[category] = datetime.now()
-
-    def timer_end(self, category):
-        if self.timers[category] is not None:
-            self.timing[category] += datetime.now() - self.timers[category]
-        self.timers[category] = None
-
     def prepare(self, extent, start_time, end_time):
         """Prepare reader for given simulation coverage in time and space."""
         logging.debug('Nothing to prepare for ' + self.name)
@@ -462,6 +447,52 @@ class BaseReader(object):
                                    profiles_depth=None, time=None,
                                    lon=None, lat=None, z=None,
                                    block=False, rotate_to_proj=None):
+        """
+        `get_variables_interpolated` is the interface to the basemodel, and is
+        responsible for returning variables at the correct positions. This is done by:
+
+            1. Calling `_get_variables` which,
+            2. calls `get_variables_derived`, which, finally
+            3. calls `get_variables`.
+
+        This function is responsible for setting up an interpolator,
+        `ReaderBlock` for regular gridded datasets.
+
+        Arguments:
+            variables: string, or list of strings (standard_name) of
+                requested variables. These must be provided by reader.
+
+            profiles: N/A
+
+            profiles_depth: N/A
+
+            time: datetime or None, time at which data are requested.
+                Can be None (default) if reader/variable has no time
+                dimension (e.g. climatology or landmask).
+
+            lon: N/A
+
+            lat: N/A
+
+            z: float or ndarray; vertical position (in meters, positive up)
+                of requested points.
+                default: 0 m (unless otherwise documented by reader)
+
+            block: bool, see return below
+
+            rotate_to_proj: N/A
+
+          Returns:
+            data: Dictionary
+                keywords: variables (string)
+                values:
+                    - 1D ndarray of len(x) if block=False. Nearest values
+                        (neighbour) of requested position are returned.
+                    - 3D ndarray encompassing all requested points in
+                        x,y,z domain if block=True. It is task of invoking
+                        application (OpenDriftSimulation) to perform
+                        interpolation in space and time.
+        """
 
         self.timer_start('total')
         self.timer_start('preparing')
