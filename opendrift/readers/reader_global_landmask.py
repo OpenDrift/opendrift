@@ -14,14 +14,14 @@
 #
 # Copyright 2020, Gaute Hope, MET Norway
 
-from opendrift.readers.basereader import BaseReader, AnalyticalReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 from opendrift_landmask_data import Landmask
 
 import warnings
 import pyproj
 
 
-class Reader(BaseReader, AnalyticalReader):
+class Reader(BaseReader, ContinuousReader):
     """
     The global landmask reader is based on the coastline data from
     GSHHG (https://www.ngdc.noaa.gov/mgg/shorelines/) optimized for
