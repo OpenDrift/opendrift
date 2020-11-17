@@ -38,10 +38,18 @@ class Radionuclide(Lagrangian3DArray):
                      'default': 2650.}),  # Mineral particles
         ('specie', {'dtype': np.int32,
                     'units': '',
-                    'default': 0})#,
+                    'default': 0}),
 #         ('transfer_rates1D', {'dtype':np.array(3, dtype=np.float32),
 #                     'units': '1/s',
 #                     'default': 0.})
+        ('LMM_fraction', {'dtype':np.float32,
+                          'units':'',
+                          'default':0,
+                          'seeed':False}),
+        ('particle_fraction', {'dtype':np.float32,
+                          'units':'',
+                          'default':0,
+                          'seeed':False})
         ])
 
 
@@ -124,8 +132,8 @@ class RadionuclideDrift(OceanDrift):
         # TODO: descriptions and units must be added in config setting below
         self._add_config({
             'radionuclide:transfer_setup': {'type': 'enum',
-                'enum': ['Sandnesfj_Al','Bokna_137Cs', 'dummy'], 'default': 'dummy',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'enum': ['Sandnesfj_Al','Bokna_137Cs', 'custom'], 'default': 'custom',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:slowly_fraction': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:irreversible_fraction': {'type': 'bool', 'default': False,
@@ -135,42 +143,48 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:particle_diameter': {'type': 'float', 'default': 5e-6,
                 'min': 0, 'max': 100e-6, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:activity_per_element': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 1e18, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'seed:LMM_fraction': {'type': 'float','default': .1,
+                'min': 0, 'max': 1, 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'seed:particle_fraction': {'type': 'float','default': 0.9,
+                'min': 0, 'max': 1, 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             # Species
-            'radionuclide:species:LMM': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:LMM': {'type': 'bool', 'default': True,
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Toggle LMM species'},
             'radionuclide:species:LMMcation': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:species:LMManion': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:species:Colloid': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:species:Humic_colloid': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:species:Polymer': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'radionuclide:species:Particle_reversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Particle_reversible': {'type': 'bool', 'default': True,
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:species:Particle_slowly_reversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:species:Particle_irreversible': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'radionuclide:species:Sediment_reversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'radionuclide:species:Sediment_reversible': {'type': 'bool', 'default': True,
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:species:Sediment_slowly_reversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:species:Sediment_irreversible': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Transformations
-            'radionuclide:transformations:Kd': {'type': 'float', 'default': 0,
+            'radionuclide:transformations:Kd': {'type': 'float', 'default': 2.0,
                 'min': 0, 'max': 1e9, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:transformations:Dc': {'type': 'float', 'default': 1.16e-5,
                 'min': 0, 'max': 1e6, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
@@ -179,10 +193,10 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Sediment
             'radionuclide:sediment:sedmixdepth': {'type': 'float', 'default': 1,
-                'min': 0, 'max': 100, 'units': '',
+                'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:sediment_density': {'type': 'float', 'default': 2600,
-                'min': 0, 'max': 10000, 'units': '',
+                'min': 0, 'max': 10000, 'units': 'kg/m3',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:effective_fraction': {'type': 'float', 'default': 0.9,
                 'min': 0, 'max': 1, 'units': '',
@@ -194,28 +208,57 @@ class RadionuclideDrift(OceanDrift):
                 'min': 0, 'max': 1, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:layer_thick': {'type': 'float', 'default': 1,
-                'min': 0, 'max': 100, 'units': '',
+                'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:desorption_depth': {'type': 'float', 'default': 1,
-                'min': 0, 'max': 100, 'units': '',
+                'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:desorption_depth_uncert': {'type': 'float', 'default': .5,
-                'min': 0, 'max': 100, 'units': '',
+                'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:resuspension_depth': {'type': 'float', 'default': 1,
-                'min': 0, 'max': 100, 'units': '',
+                'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:resuspension_depth_uncert': {'type': 'float', 'default': .5,
-                'min': 0, 'max': 100, 'units': '',
+                'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:resuspension_critvel': {'type': 'float', 'default': .01,
-                'min': 0, 'max': 1, 'units': '',
+                'min': 0, 'max': 1, 'units': 'm/s',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             })
 
         self._set_config_default('drift:vertical_mixing', True)
 
+
+
+
     def prepare_run(self):
+
+        pass 
+
+
+
+    def init_species(self):
+        # Initialize specie types
+        if self.get_config('radionuclide:transfer_setup')=='Bokna_137Cs':
+            self.set_config('radionuclide:species:LMM',True)
+            self.set_config('radionuclide:species:Particle_reversible', True)
+            self.set_config('radionuclide:species:Particle_slowly_reversible', True)
+            self.set_config('radionuclide:species:Sediment_reversible', True)
+            self.set_config('radionuclide:species:Sediment_slowly_reversible', True)
+        elif self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
+            self.set_config('radionuclide:species:LMMcation', True)
+            self.set_config('radionuclide:species:LMManion', True)
+            self.set_config('radionuclide:species:Humic_colloid', True)
+            self.set_config('radionuclide:species:Polymer', True)
+            self.set_config('radionuclide:species:Particle_reversible', True)
+            self.set_config('radionuclide:species:Sediment_reversible', True)
+        elif self.get_config('radionuclide:transfer_setup')=='custom':
+            # Do nothing, species must be set manually
+            pass
+        else:
+            self.logger.error('No valid transfer_setup {}'.format(self.get_config('radionuclide:transfer_setup')))
+
 
         self.name_species=[]
         if self.get_config('radionuclide:species:LMM'):
@@ -257,7 +300,74 @@ class RadionuclideDrift(OceanDrift):
         for i,sp in enumerate(self.name_species):
             self.logger.info( '{:>3} {}'.format( i, sp ) )
 
+
+
+        # Make sure vertical mixing is active when particles are simulated
+        if self.get_config('radionuclide:species:Particle_reversible'):
+            self.set_config('drift:vertical_mixing', True)
+            
+
+
+
+    def seed_elements(self, *args, **kwargs):
+
+        self.init_species()
+
         self.init_transfer_rates()
+
+
+
+        if 'number' in kwargs:
+            num_elements = kwargs['number']
+        else:
+            num_elements = self.get_config('seed:number')
+
+        
+        # Set initial speciation
+        if 'particle_fraction' in kwargs:
+            particle_frac = kwargs['particle_fraction']
+        else:
+            particle_frac = self.get_config('seed:particle_fraction')
+        
+        if 'LMM_fraction' in kwargs:
+            lmm_frac = kwargs['LMM_fraction']
+        else:
+            lmm_frac = self.get_config('seed:LMM_fraction')
+
+        shift = int(num_elements * (1-particle_frac))
+        if not lmm_frac + particle_frac == 1.:
+            self.logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
+            self.logger.error('LMM fraction: %s ' % str(lmm_frac))
+            self.logger.error( 'Particle fraction %s '% str(particle_frac) )
+            raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
+
+        init_specie = np.ones(num_elements, int)
+        init_specie[:shift] = self.num_lmm
+        init_specie[shift:] = self.num_prev 
+        
+        kwargs['specie'] = init_specie
+  
+  
+        self.logger.info('Initial speciation:')
+        for i,sp in enumerate(self.name_species):
+            self.logger.info( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
+  
+        # Set initial particle size according to speciation
+        if 'diameter' in kwargs:
+            diameter = kwargs['diameter']
+        else:
+            diameter = self.get_config('radionuclide:particle_diameter')
+
+        init_diam =np.zeros(num_elements,float)
+        init_diam[init_specie==self.num_prev] = diameter
+        kwargs['diameter'] = init_diam
+
+      
+
+        super(RadionuclideDrift, self).seed_elements(*args, **kwargs)
+
+
+
 
     def init_transfer_rates(self):
         ''' Initialization of background values in the transfer rates 2D array.
@@ -302,8 +412,8 @@ class RadionuclideDrift(OceanDrift):
             self.transfer_rates[self.num_ssrev,self.num_srev] = slow_coeff*.1
             self.transfer_rates[self.num_psrev,self.num_prev] = slow_coeff*.1
 
-        elif transfer_setup=='dummy':
-        # Set of dummy values for testing/development
+        elif transfer_setup=='custom':
+        # Set of custom values for testing/development
 
             self.num_lmm   = self.specie_name2num('LMM')
             if self.get_config('radionuclide:species:Colloid'):
@@ -322,9 +432,13 @@ class RadionuclideDrift(OceanDrift):
 
             if self.get_config('radionuclide:species:Particle_reversible'):
                 self.transfer_rates[self.num_lmm,self.num_prev] = 5.e-6 #*0.
-                self.transfer_rates[self.num_lmm,self.num_srev] = 1.e-5 #*0.
+                self.transfer_rates[self.num_prev,self.num_lmm] = \
+                    self.get_config('radionuclide:transformations:Dc')
             if self.get_config('radionuclide:species:Sediment_reversible'):
-                self.transfer_rates[self.num_srev,self.num_lmm] = 5.e-6
+                self.transfer_rates[self.num_lmm,self.num_srev] = 1.e-5 #*0.
+                self.transfer_rates[self.num_srev,self.num_lmm] = \
+                    self.get_config('radionuclide:transformations:Dc') * self.get_config('radionuclide:sediment:corr_factor') 
+#                self.transfer_rates[self.num_srev,self.num_lmm] = 5.e-6
 
             if self.get_config('radionuclide:slowly_fraction'):
                 self.transfer_rates[self.num_prev,self.num_psrev] = 2.e-6
@@ -499,7 +613,7 @@ class RadionuclideDrift(OceanDrift):
         transfer rates according to local environmental conditions '''
 
         transfer_setup=self.get_config('radionuclide:transfer_setup')
-        if transfer_setup == 'Bokna_137Cs' or transfer_setup=='dummy':
+        if transfer_setup == 'Bokna_137Cs' or transfer_setup=='custom':
             self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
 
             if self.get_config('radionuclide:species:Sediment_reversible'):
@@ -520,7 +634,6 @@ class RadionuclideDrift(OceanDrift):
                             self.elements.transfer_rates1D[kktmp, self.num_prev] * \
                             self.environment.conc3[kktmp] / 1.e-3
         #                    self.environment.particle_conc[kktmp] / 1.e-3
-
 
         elif transfer_setup=='Sandnesfj_Al':
             sal = self.environment.sea_water_salinity
@@ -979,6 +1092,17 @@ class RadionuclideDrift(OceanDrift):
         nc.variables['concfactor'][:] = activity_per_element
         nc.variables['concfactor'].long_name = 'Activity per unit element'
         nc.variables['concfactor'].unit = activity_unit
+        
+        # Cell size
+        nc.createVariable('cell_size','f8')
+        nc.variables['cell_size'][:] = pixelsize_m
+        nc.variables['cell_size'].long_name = 'Length of cell'
+        nc.variables['cell_size'].unit = 'm'
+        
+        nc.createVariable('smoothing_cells','i8')
+        nc.variables['smoothing_cells'][:] = smoothing_cells
+        nc.variables['smoothing_cells'].long_name = 'Number of cells in each direction for horizontal smoothing'
+        nc.variables['smoothing_cells'].units = '1'
 
         # Coordinates
         nc.createVariable('lon', 'f8', ('y','x'))
