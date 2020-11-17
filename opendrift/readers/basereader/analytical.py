@@ -1,6 +1,6 @@
-from opendrift.timer import Timeable
+from .variables import Variables
 
-class AnalyticalReader(Timeable):
+class AnalyticalReader(Variables):
     """
     An analytical and continuous  (in space and time) reader, able to provide
     exact values at any desired point (within bounds).
