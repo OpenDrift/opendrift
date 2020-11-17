@@ -8,12 +8,8 @@ from .interpolators import Nearest2DInterpolator, fill_NaN_towards_seafloor, hor
 
 logger = logging.getLogger('opendrift')  # using common logger
 
-###########################
-# ReaderBlock
-###########################
-
 class ReaderBlock():
-    """Class to store and interpolate the output from a reader."""
+    """Class to store and interpolate the output from a reader with data on a regular (structured) grid."""
 
     logger = logging.getLogger('opendrift')  # using common logger
 

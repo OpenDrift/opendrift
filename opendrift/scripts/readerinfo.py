@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 #
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 
@@ -29,13 +29,15 @@ import numpy as np
 
 try:
     from opendrift.readers import reader_netCDF_CF_generic
+    from opendrift.readers import reader_netCDF_CF_unstructured
     from opendrift.readers import reader_ROMS_native
+
+    readers = [reader_netCDF_CF_generic, reader_ROMS_native, reader_netCDF_CF_unstructured]
     try:
         from opendrift.readers import reader_grib
-        readers = [reader_netCDF_CF_generic, reader_ROMS_native,
-                   reader_grib]
+        readers.append(reader_grib)
     except:
-        readers = [reader_netCDF_CF_generic, reader_ROMS_native]
+        pass
 
 except ImportError: # development
     sys.exit('Please add opendrift folder to your PYTHONPATH.')
@@ -79,7 +81,7 @@ if __name__ == '__main__':
                 print('---------------------------------------')
             print('...not applicable.')
 
-    if not 'r' in locals():            
+    if not 'r' in locals():
         sys.exit('No readers applicable for ' + args.filename)
 
     if args.lon is not None:
@@ -112,5 +114,5 @@ if __name__ == '__main__':
                 vmax = None
             else:
                 vmax = np.float(args.vmax)
-            
+
             r.plot(args.variable, vmin=vmin, vmax=vmax)

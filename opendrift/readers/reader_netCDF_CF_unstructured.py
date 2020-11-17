@@ -13,13 +13,8 @@
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
-
-#####################################
-# NOTE:
-# This reader is under development,
-# and presently not fully functional
-#####################################
-
+# Copyright 2020, Simon Weppe, MetOcean Solution, MetService New Zealand
+# Copyright 2020, Gaute Hope, MET Norway
 
 import numpy as np
 from netCDF4 import Dataset, MFDataset, num2date
@@ -28,9 +23,7 @@ import pyproj
 
 from opendrift.readers.basereader import BaseReader
 
-
 class Reader(BaseReader):
-
     def __init__(self, filename=None, name=None, buffer=0.2,
                  latstep=0.01, lonstep=0.01):
 
@@ -245,6 +238,7 @@ class Reader(BaseReader):
             interpolator((0,0))
 
             variables[par] = interpolator(latsm, lonsm)
+            asdf
 
         #print variables
         return variables
