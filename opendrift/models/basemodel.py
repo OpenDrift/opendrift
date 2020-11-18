@@ -442,6 +442,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def set_config(self, key, value):
         if not key in self._config:
+            self.list_config()
             raise ValueError('No config setting named %s' % key)
         i = self._config[key]
         if i['type'] == 'bool':
