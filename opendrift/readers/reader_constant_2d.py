@@ -14,10 +14,10 @@
 #
 # Copyright 2015,2020 Knut-Frode Dagestad, MET Norway
 
-from opendrift.readers.basereader import BaseReader, ContinuousReader
+from opendrift.readers.basereader import BaseReader, StructuredReader
 
 
-class Reader(BaseReader, ContinuousReader):
+class Reader(BaseReader, StructuredReader):
     '''Reader based on static 2D arrays of variables'''
 
     def __init__(self, x, y, array_dict, proj4='+proj=latlong'):
