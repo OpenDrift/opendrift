@@ -447,7 +447,7 @@ class OpenDriftSimulation(PhysicsMethods):
         if i['type'] == 'bool':
             if value not in [True, False]:
                 raise ValueError('Config value %s must be True or False' % key)
-        elif i['type'] in ['float', 'int']:
+        elif i['type'] in ['float', 'int'] and value is not None:
             if (i['min'] is not None and value < i['min']) or (i['max'] is not None and value > i['max']):
                 raise ValueError('Config value %s must be between %s and %s' % (key, i['min'], i['max']))
             if i['type'] == 'float' and value is not None:
