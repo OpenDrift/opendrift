@@ -1,5 +1,5 @@
 [MASTER]
-extension-pkg-whitelist=netCDF4,numpy
+extension-pkg-whitelist=netCDF4,numpy,scipy
 
 [MESSAGES CONTROL]
 disable = all
