@@ -185,7 +185,7 @@ class OpenDriftSimulation(PhysicsMethods):
         self.elements = self.ElementType()  # Empty array
 
         if loglevel != 'custom':
-            format = '%(levelname)s %(name)s: %(message)s'
+            format = '%(levelname)-7s %(name)s: %(message)s'
             datefmt = None
             if logtime is not False:
                 format = '%(asctime)s ' + format
