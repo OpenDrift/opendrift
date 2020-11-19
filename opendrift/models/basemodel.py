@@ -185,23 +185,30 @@ class OpenDriftSimulation(PhysicsMethods):
         self.elements = self.ElementType()  # Empty array
 
         if loglevel != 'custom':
-            if logfile is not None:
-                handler = logging.FileHandler(logfile, mode='w')
-            else:
-                handler = logging.StreamHandler()
-            format = '%(levelname)s: %(message)s'
+            format = '%(levelname)s %(name)s: %(message)s'
             datefmt = None
             if logtime is not False:
                 format = '%(asctime)s ' + format
                 if logtime is not True:
                     datefmt = logtime
             formatter = logging.Formatter(format, datefmt=datefmt)
-            handler.setFormatter(formatter)
+
             if loglevel < 10:  # 0 is NOTSET, giving no output
                 loglevel=10
-            self.logger.setLevel(loglevel)
-            self.logger.handlers = []
-            self.logger.addHandler(handler)
+
+            if logfile is not None:
+                handler = logging.FileHandler(logfile, mode='w')
+                handler.setFormatter(formatter)
+                self.logger.setLevel(loglevel)
+                self.logger.handlers = []
+                self.logger.addHandler(handler)
+            else:
+                import coloredlogs
+                fields = coloredlogs.DEFAULT_FIELD_STYLES
+                fields['levelname']['color'] = 'magenta'
+                coloredlogs.install(level = loglevel, logger = self.logger, fmt = format, datefmt = datefmt, field_styles = fields)
+                # handler = logging.StreamHandler()
+
             self.logger.propagate = False
 
         # Prepare outfile

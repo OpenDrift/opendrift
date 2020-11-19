@@ -27,6 +27,7 @@ dependencies:
   - oil_library-opendrift
   - pygrib
   - isodate
+  - coloredlogs
   - pip
   - pip:
     - motuclient
