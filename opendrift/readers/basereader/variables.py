@@ -614,15 +614,11 @@ class Variables(ReaderDomain):
             rotate_to_proj: N/A
 
           Returns:
-            data: Dictionary
-                keywords: variables (string)
-                values:
-                    - 1D ndarray of len(x) if block=False. Nearest values
-                        (neighbour) of requested position are returned.
-                    - 3D ndarray encompassing all requested points in
-                        x,y,z domain if block=True. It is task of invoking
-                        application (OpenDriftSimulation) to perform
-                        interpolation in space and time.
+
+            (env, env_profiles)
+
+            Interpolated variables at x, y and z
+
         """
         self.timer_start('total')
         self.timer_start('preparing')
