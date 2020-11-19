@@ -1,4 +1,6 @@
 import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 
 from .variables import Variables
 
@@ -30,7 +32,7 @@ class UnstructuredReader(Variables):
                                             reader_x, reader_y, z,
                                             block=block)
 
-        self.logger.debug('Fetched env-before')
+        logger.debug('Fetched env-before')
         env_profiles = None
         if profiles is not None:
             # Copying data from environment to vertical profiles
@@ -99,6 +101,9 @@ class UnstructuredReader(Variables):
         Check which points are within boundary of mesh.
         """
         assert self.boundary is not None, "Boundary of mesh has not been prepared by reader"
+
+        # TODO: Check z coordinates
+        logger.warning("z-coordinates are not bounds-checked")
 
         from shapely.vectorized import contains
         return contains(self.boundary, x, y)

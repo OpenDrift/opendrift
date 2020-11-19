@@ -21,6 +21,8 @@ from datetime import datetime, timedelta, timezone
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
 import pyproj
+import logging
+logger = logging.getLogger(__name__)
 
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
 
@@ -73,24 +75,24 @@ class Reader(BaseReader, UnstructuredReader):
         # https://github.com/pydata/xarray/issues/2233
 
         self.timer_start("open dataset")
-        self.logger.info('Opening dataset: ' + filestr)
+        logger.info('Opening dataset: ' + filestr)
         if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-            self.logger.info('Opening files with MFDataset')
+            logger.info('Opening files with MFDataset')
             self.dataset = MFDataset(filename)
         else:
-            self.logger.info('Opening file with Dataset')
+            logger.info('Opening file with Dataset')
             self.dataset = Dataset(filename, 'r')
 
         if proj4 is not None:
-            self.logger.debug('Using custom projection: %s..' % proj4)
+            logger.info('Using custom projection: %s..' % proj4)
             self.proj4 = proj4
         else:
             self.proj4 = self.dataset.CoordinateProjection.strip()
             if self.proj4 == 'none': self.proj4 = None
-            self.logger.debug('Reading projection..: %s', self.proj4)
+            logger.info('Reading projection..: %s', self.proj4)
             assert self.proj4 is not None and len(self.proj4) > 0, "No projection in data-file, please supply to reader"
 
-        self.logger.debug('Reading grid and coordinate variables..')
+        logger.info('Reading grid and coordinate variables..')
         assert self.dataset.CoordinateSystem == "Cartesian", "Only cartesian coordinate systems supported"
 
         self.x = self.dataset['x'][:]
@@ -114,7 +116,7 @@ class Reader(BaseReader, UnstructuredReader):
 
         self.variable_mapping = {}
         for var_name in self.dataset.variables:
-            self.logger.debug("Parsing variable: %s" % var_name)
+            logger.debug("Parsing variable: %s" % var_name)
 
             # skipping coordinate variables
             if var_name in ['x', 'y', 'time', 'lon', 'lat', 'lonc', 'latc',
