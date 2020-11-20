@@ -4,13 +4,22 @@ logger = logging.getLogger(__name__)
 
 from .variables import Variables
 
+
 class UnstructuredReader(Variables):
     """
     An unstructured reader. Data is gridded irregularily.
+
+    In order to support the heterogeneous types of unstructured grids, the
+    unstructured readers are built up slightly differently than the
+    :class:`.structured.StructuredReader` readers. This class, which readers of
+    unstrctured grids subclass, provide several methods for aiding in
+    interpolation and caching.
+
+
     """
 
     var_block_before = None
-    var_block_after  = None
+    var_block_after = None
     boundary = None
 
     def __init__(self):
@@ -18,19 +27,23 @@ class UnstructuredReader(Variables):
 
         # Dictionaries to store blocks of data for reuse (buffering)
         self.var_block_before = {}  # Data for last timestep before present
-        self.var_block_after = {}   # Data for first timestep after present
+        self.var_block_after = {}  # Data for first timestep after present
 
-    def _get_variables_interpolated_(self, variables, profiles,
-                                   profiles_depth, time,
-                                   lon, lat, z,
-                                   block, rotate_to_proj,
-                                   ind_covered, reader_x, reader_y):
+    def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
+                                     time, lon, lat, z, block, rotate_to_proj,
+                                     ind_covered, reader_x, reader_y):
 
-        env = self.get_variables_impl(variables, profiles,
-                                            profiles_depth,
-                                            time,
-                                            reader_x, reader_y, z,
-                                            block=block)
+        env = self.get_variables_impl(variables,
+                                      profiles,
+                                      profiles_depth,
+                                      time,
+                                      reader_x,
+                                      reader_y,
+                                      z,
+                                      block=block)
+
+        # We probably have to use an UnstructuredBlock to store closest time-steps, and thus avoid fetching
+        # more data on every call.
 
         logger.debug('Fetched env-before')
         env_profiles = None
@@ -107,4 +120,3 @@ class UnstructuredReader(Variables):
 
         from shapely.vectorized import contains
         return contains(self.boundary, x, y)
-

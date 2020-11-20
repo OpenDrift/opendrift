@@ -4,20 +4,22 @@ from scipy.ndimage import map_coordinates
 from bisect import bisect_left
 from multiprocessing import Process, Manager, cpu_count
 import copy
-
 from abc import abstractmethod
+import logging
+logger = logging.getLogger(__name__)
 
 from opendrift.timer import Timeable
 from .consts import standard_names, vector_pairs_xy
 
+
 class ReaderDomain(Timeable):
     simulation_SRS = False
     projected = None
-    proj4     = None
-    proj      = None
+    proj4 = None
+    proj = None
 
-    lon  = None
-    lat  = None
+    lon = None
+    lat = None
     xmin = None
     xmax = None
     ymin = None
@@ -28,13 +30,12 @@ class ReaderDomain(Timeable):
     delta_y = None
 
     ## Temporal
-    start_time  = None
-    end_time    = None
-    time_step   = None
-    times       = None
+    start_time = None
+    end_time = None
+    time_step = None
+    times = None
 
-    def rotate_vectors(self, reader_x, reader_y,
-                       u_component, v_component,
+    def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
         """Rotate vectors from one srs to another."""
 
@@ -47,13 +48,14 @@ class ReaderDomain(Timeable):
             proj_to = pyproj.Proj(proj_to)
 
         if proj_from.crs.is_geographic:
-                delta_y = .1  # 0.1 degree northwards
+            delta_y = .1  # 0.1 degree northwards
         else:
             delta_y = 10  # 10 m along y-axis
 
         transformer = pyproj.Transformer.from_proj(proj_from, proj_to)
         x2, y2 = transformer.transform(reader_x, reader_y)
-        x2_delta, y2_delta = transformer.transform(reader_x, reader_y + delta_y)
+        x2_delta, y2_delta = transformer.transform(reader_x,
+                                                   reader_y + delta_y)
 
         if proj_to.crs.is_geographic:
             geod = pyproj.Geod(ellps='WGS84')
@@ -61,14 +63,14 @@ class ReaderDomain(Timeable):
                 geod.inv(x2, y2, x2_delta, y2_delta)[0])
         else:
             rot_angle_vectors_rad = np.arctan2(x2_delta - x2, y2_delta - y2)
-        self.logger.debug('Rotating vectors between %s and %s degrees.' %
-                      (np.degrees(rot_angle_vectors_rad).min(),
-                       np.degrees(rot_angle_vectors_rad).max()))
-        rot_angle_rad = - rot_angle_vectors_rad
-        u_rot = (u_component*np.cos(rot_angle_rad) -
-                 v_component*np.sin(rot_angle_rad))
-        v_rot = (u_component*np.sin(rot_angle_rad) +
-                 v_component*np.cos(rot_angle_rad))
+        logger.debug('Rotating vectors between %s and %s degrees.' %
+                     (np.degrees(rot_angle_vectors_rad).min(),
+                      np.degrees(rot_angle_vectors_rad).max()))
+        rot_angle_rad = -rot_angle_vectors_rad
+        u_rot = (u_component * np.cos(rot_angle_rad) -
+                 v_component * np.sin(rot_angle_rad))
+        v_rot = (u_component * np.sin(rot_angle_rad) +
+                 v_component * np.cos(rot_angle_rad))
 
         return u_rot, v_rot
 
@@ -78,7 +80,7 @@ class ReaderDomain(Timeable):
         if self.projected is True:
             if self.proj.crs.is_geographic:
                 if 'ob_tran' in self.proj4:
-                    self.logger.debug('NB: Converting degrees to radians ' +
+                    logger.debug('NB: Converting degrees to radians ' +
                                  'due to ob_tran srs')
                     x = np.radians(np.array(x))
                     y = np.radians(np.array(y))
@@ -98,10 +100,14 @@ class ReaderDomain(Timeable):
             y[y < self.ymin] = np.nan
             y[y < self.ymin] = np.nan
 
-            lon = map_coordinates(self.lon, [y, x], order=1,
-                                  cval=np.nan, mode='nearest')
-            lat = map_coordinates(self.lat, [y, x], order=1,
-                                  cval=np.nan, mode='nearest')
+            lon = map_coordinates(self.lon, [y, x],
+                                  order=1,
+                                  cval=np.nan,
+                                  mode='nearest')
+            lat = map_coordinates(self.lat, [y, x],
+                                  order=1,
+                                  cval=np.nan,
+                                  mode='nearest')
             return (lon, lat)
 
     def lonlat2xy(self, lon, lat):
@@ -111,6 +117,7 @@ class ReaderDomain(Timeable):
         # Two methods needed for parallelisation
         def get_x(lon_part, lat_part, num):
             out_x[num] = self.spl_x(lon_part, lat_part)
+
         def get_y(lon_part, lat_part, num):
             out_y[num] = self.spl_y(lon_part, lat_part)
 
@@ -124,10 +131,14 @@ class ReaderDomain(Timeable):
                 x, y = self.proj(lon, lat, inverse=False)
                 return x, y
         else:
+            # TODO: Use ThreadPool, maximum number of threads should not exceed
+            # available cpus.
+
             # For larger arrays, we split and calculate in parallel
             # The number of CPUs to use can be improved/optimised
             num_elements = len(np.atleast_1d(lon))
-            if num_elements > 100 and not hasattr(self, 'multiprocessing_fail'):
+            if num_elements > 100 and not hasattr(self,
+                                                  'multiprocessing_fail'):
                 try:
                     nproc = 2
                     if num_elements > 1000:
@@ -137,37 +148,42 @@ class ReaderDomain(Timeable):
                     if num_elements > 1000000:
                         nproc = 64
                     cpus = cpu_count()
-                    nproc = np.minimum(nproc, cpus-1)
+                    nproc = np.minimum(nproc, cpus - 1)
                     nproc = np.maximum(2, nproc)
-                    self.logger.debug('Running lonlat2xy in parallel, using %i of %i CPUs'
-                                  % (nproc, cpus))
+                    logger.debug(
+                        'Running lonlat2xy in parallel, using %i of %i CPUs' %
+                        (nproc, cpus))
                     split_lon = np.array_split(lon, nproc)
                     split_lat = np.array_split(lat, nproc)
                     out_x = Manager().dict()
                     out_y = Manager().dict()
                     processes = []
                     for i in range(nproc):
-                        processes.append(Process(target=get_x, args=
-                                         (split_lon[i], split_lat[i], i)))
-                        processes.append(Process(target=get_y, args=
-                                         (split_lon[i], split_lat[i], i)))
+                        processes.append(
+                            Process(target=get_x,
+                                    args=(split_lon[i], split_lat[i], i)))
+                        processes.append(
+                            Process(target=get_y,
+                                    args=(split_lon[i], split_lat[i], i)))
                     [p.start() for p in processes]
                     [p.join() for p in processes]
                     x = np.concatenate(out_x)
                     y = np.concatenate(out_y)
-                    self.logger.debug('Completed lonlat2xy in parallel')
+                    logger.debug('Completed lonlat2xy in parallel')
                     return (x, y)
                 except Exception as e:
-                    self.logger.warning('Parallelprocessing failed:')
-                    self.logger.warning(e)
+                    logger.warning('Parallelprocessing failed:')
+                    logger.warning(e)
                     self.multiprocessing_fail = True
             else:
                 if hasattr(self, 'multiprocessing_fail'):
-                    self.logger.warning('Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy')
+                    logger.warning(
+                        'Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy'
+                    )
                 else:
                     # For smaller arrays, we run sequentially
                     pass
-            self.logger.debug('Calculating lonlat->xy sequentially')
+            logger.debug('Calculating lonlat->xy sequentially')
             x = self.spl_x(lon, lat)
             y = self.spl_y(lon, lat)
             return (x, y)
@@ -191,7 +207,7 @@ class ReaderDomain(Timeable):
                         ('ob_tran' in self.proj4) or \
                         ('longlat' in self.proj4) or \
                         ('latlon' in self.proj4):
-                    pixelsize = pixelsize*111000  # deg to meters
+                    pixelsize = pixelsize * 111000  # deg to meters
             else:
                 pixelsize = None  # Pixel size not defined
         else:
@@ -199,9 +215,9 @@ class ReaderDomain(Timeable):
                                         [self.ymin, self.ymin])
             typicalsize = lons
             geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
-            dist = geod.inv(lons[0], lats[0],
-                            lons[1], lats[1], radians=False)[2]
-            pixelsize = dist/self.shape[0]
+            dist = geod.inv(lons[0], lats[0], lons[1], lats[1],
+                            radians=False)[2]
+            pixelsize = dist / self.shape[0]
         return pixelsize
 
     def covers_positions(self, lon, lat, z=0):
@@ -213,26 +229,27 @@ class ReaderDomain(Timeable):
 
         if self.global_coverage():
             # We need only check north-south and z coverage
-            indices = np.where((y >= self.ymin) & (y <= self.ymax) &
-                               (z >= self.zmin) & (z <= self.zmax))[0]
+            indices = np.where((y >= self.ymin) & (y <= self.ymax)
+                               & (z >= self.zmin) & (z <= self.zmax))[0]
         else:
-            indices = np.where((x >= self.xmin) & (x <= self.xmax) &
-                               (y >= self.ymin) & (y <= self.ymax) &
-                               (z >= self.zmin) & (z <= self.zmax))[0]
+            indices = np.where((x >= self.xmin) & (x <= self.xmax)
+                               & (y >= self.ymin) & (y <= self.ymax)
+                               & (z >= self.zmin) & (z <= self.zmax))[0]
 
         try:
             return indices, x[indices], y[indices]
         except:
             return indices, x, y
+
     def global_coverage(self):
         """Return True if global coverage east-west"""
 
         if self.proj.crs.is_geographic is True and self.delta_x is not None:
-            if (self.xmin - self.delta_x <= 0) and (
-                self.xmax + self.delta_x >= 360):
+            if (self.xmin - self.delta_x <= 0) and (self.xmax + self.delta_x >=
+                                                    360):
                 return True  # Global 0 to 360
-            if (self.xmin - self.delta_x <= -180) and (
-                self.xmax + self.delta_x >= 180):
+            if (self.xmin - self.delta_x <= -180) and (self.xmax + self.delta_x
+                                                       >= 180):
                 return True  # Global -180 to 180
 
         return False
@@ -251,9 +268,9 @@ class ReaderDomain(Timeable):
         """Coverage of reader to be reported as string for debug output"""
         corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
                                  [self.ymax, self.ymin, self.ymax, self.ymin])
-        return '%.2f-%.2fE, %.2f-%.2fN' % (
-                    np.min(corners[0]), np.max(corners[0]),
-                    np.min(corners[1]), np.max(corners[1]))
+        return '%.2f-%.2fE, %.2f-%.2fN' % (np.min(
+            corners[0]), np.max(corners[0]), np.min(
+                corners[1]), np.max(corners[1]))
 
     def check_arguments(self, variables, time, x, y, z):
         """Check validity of arguments input to method get_variables.
@@ -296,21 +313,23 @@ class ReaderDomain(Timeable):
                 raise ValueError('Variable not available: ' + variable +
                                  '\nAvailable parameters are: ' +
                                  str(self.variables))
-        if (self.start_time is not None and time < self.start_time) and self.always_valid is False:
+        if (self.start_time is not None
+                and time < self.start_time) and self.always_valid is False:
             raise ValueError('Requested time (%s) is before first available '
-                             'time (%s) of %s' % (time, self.start_time,
-                                                  self.name))
-        if (self.end_time is not None and time > self.end_time) and self.always_valid is False:
+                             'time (%s) of %s' %
+                             (time, self.start_time, self.name))
+        if (self.end_time is not None
+                and time > self.end_time) and self.always_valid is False:
             raise ValueError('Requested time (%s) is after last available '
-                             'time (%s) of %s' % (time, self.end_time,
-                                                  self.name))
+                             'time (%s) of %s' %
+                             (time, self.end_time, self.name))
         if self.global_coverage():
-            outside = np.where(~np.isfinite(x+y) |
-                               (y < self.ymin) | (y > self.ymax))[0]
+            outside = np.where(~np.isfinite(x + y) | (y < self.ymin)
+                               | (y > self.ymax))[0]
         else:
-            outside = np.where(~np.isfinite(x+y) |
-                               (x < self.xmin) | (x > self.xmax) |
-                               (y < self.ymin) | (y > self.ymax))[0]
+            outside = np.where(~np.isfinite(x + y) | (x < self.xmin)
+                               | (x > self.xmax) | (y < self.ymin)
+                               | (y > self.ymax))[0]
         if np.size(outside) == np.size(x):
             lon, lat = self.xy2lonlat(x, y)
             raise ValueError(('Argcheck: all %s particles (%.2f-%.2fE, ' +
@@ -365,13 +384,14 @@ class ReaderDomain(Timeable):
             indx = float((time - self.start_time).total_seconds()) / \
                 float(self.time_step.total_seconds())
             indx_nearest = int(round(indx))
-            nearest_time = self.start_time + indx_nearest*self.time_step
+            nearest_time = self.start_time + indx_nearest * self.time_step
             indx_before = int(np.floor(indx))
-            time_before = self.start_time + indx_before*self.time_step
+            time_before = self.start_time + indx_before * self.time_step
             indx_after = int(np.ceil(indx))
-            time_after = self.start_time + indx_after*self.time_step
+            time_after = self.start_time + indx_after * self.time_step
         return nearest_time, time_before, time_after,\
             indx_nearest, indx_before, indx_after
+
 
 class Variables(ReaderDomain):
     """
@@ -381,18 +401,21 @@ class Variables(ReaderDomain):
     name = None
 
     buffer = 0
-    convolve = None # Convolution kernel or kernel size
+    convolve = None  # Convolution kernel or kernel size
 
     environment_mappers = []
     environment_mappings = {
         'wind_from_speed_and_direction': {
             'input': ['wind_speed', 'wind_to_direction'],
             'output': ['x_wind', 'y_wind'],
-            'method': lambda reader, var: reader.wind_from_speed_and_direction(var)},
+            'method':
+            lambda reader, var: reader.wind_from_speed_and_direction(var)
+        },
         'testvar': {
             'input': ['sea_ice_thickness'],
-            'output': ['istjukkleik']}
+            'output': ['istjukkleik']
         }
+    }
 
     def __init__(self):
         self.derived_variables = {}
@@ -410,18 +433,16 @@ class Variables(ReaderDomain):
                 time_step_seconds = self.time_step.total_seconds()
             else:
                 time_step_seconds = 3600  # 1 hour if not given
-            self.buffer = np.int(np.ceil(max_speed *
-                                         time_step_seconds /
-                                         pixelsize)) + 2
-            self.logger.debug('Setting buffer size %i for reader %s, assuming '
-                          'a maximum average speed of %g m/s.' %
-                          (self.buffer, self.name, max_speed))
-
+            self.buffer = np.int(
+                np.ceil(max_speed * time_step_seconds / pixelsize)) + 2
+            logger.debug('Setting buffer size %i for reader %s, assuming '
+                         'a maximum average speed of %g m/s.' %
+                         (self.buffer, self.name, max_speed))
 
     def wind_from_speed_and_direction(self, env):
-        north_wind = env['wind_speed']*np.cos(
+        north_wind = env['wind_speed'] * np.cos(
             np.radians(env['wind_to_direction']))
-        east_wind = env['wind_speed']*np.sin(
+        east_wind = env['wind_speed'] * np.sin(
             np.radians(env['wind_to_direction']))
         env['x_wind'] = east_wind
         env['y_wind'] = north_wind
@@ -437,15 +458,15 @@ class Variables(ReaderDomain):
         if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
             self.wind_from_speed_and_direction(env)
 
-    def get_variables_impl(self, variables, profiles, profiles_depth,
-                       time, x, y, z, block):
+    def get_variables_impl(self, variables, profiles, profiles_depth, time, x,
+                           y, z, block):
         """Wrapper around reader-specific function get_variables()
 
         Performs some common operations which should not be duplicated:
         - monitor time spent by this reader
         - convert any numpy arrays to masked arrays
         """
-        self.logger.debug('Fetching variables from ' + self.name)
+        logger.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
 
         if profiles is not None and block is True:
@@ -469,19 +490,26 @@ class Variables(ReaderDomain):
             # Mask values outside valid_min, valid_max (self.standard_names)
             if variable in standard_names.keys():
                 if isinstance(env[variable], list):
-                    self.logger.warning('Skipping min-max checking for ensemble data')
+                    logger.warning(
+                        'Skipping min-max checking for ensemble data')
                     continue
                 with np.errstate(invalid='ignore'):
                     invalid_indices = np.logical_and(
-                        np.isfinite(env[variable]), np.logical_or(
-                        env[variable]<standard_names[variable]['valid_min'],
-                        env[variable]>standard_names[variable]['valid_max']))
+                        np.isfinite(env[variable]),
+                        np.logical_or(
+                            env[variable] <
+                            standard_names[variable]['valid_min'],
+                            env[variable] >
+                            standard_names[variable]['valid_max']))
                 if np.sum(invalid_indices) > 0:
                     invalid_values = env[variable][invalid_indices]
-                    self.logger.warning('Invalid values (%s to %s) found for %s, replacing with NaN' % (invalid_values.min(), invalid_values.max(), variable))
-                    self.logger.warning('(allowed range: [%s, %s])' %
-                                    (standard_names[variable]['valid_min'],
-                                     standard_names[variable]['valid_max']))
+                    logger.warning(
+                        'Invalid values (%s to %s) found for %s, replacing with NaN'
+                        %
+                        (invalid_values.min(), invalid_values.max(), variable))
+                    logger.warning('(allowed range: [%s, %s])' %
+                                   (standard_names[variable]['valid_min'],
+                                    standard_names[variable]['valid_max']))
                     env[variable][invalid_indices] = np.nan
 
         # Convolve arrays with a kernel, if reader.convolve is set
@@ -490,21 +518,22 @@ class Variables(ReaderDomain):
             N = self.convolve
             if isinstance(N, (int, np.integer)):
                 kernel = np.ones((N, N))
-                kernel = kernel/kernel.sum()
+                kernel = kernel / kernel.sum()
             else:
                 kernel = N
-            self.logger.debug('Convolving variables with kernel: %s' % kernel)
+            logger.debug('Convolving variables with kernel: %s' % kernel)
             for variable in env.keys():
                 if variable in ['x', 'y', 'z', 'time']:
                     pass
                 else:
                     if env[variable].ndim == 2:
-                        env[variable] = ndimage.convolve(
-                            env[variable], kernel, mode='nearest')
+                        env[variable] = ndimage.convolve(env[variable],
+                                                         kernel,
+                                                         mode='nearest')
                     elif env[variable].ndim == 3:
-                        env[variable] = ndimage.convolve(
-                            env[variable], kernel[:,:,None],
-                            mode='nearest')
+                        env[variable] = ndimage.convolve(env[variable],
+                                                         kernel[:, :, None],
+                                                         mode='nearest')
 
         self.timer_end('reading')
 
@@ -534,8 +563,13 @@ class Variables(ReaderDomain):
         return env
 
     @abstractmethod
-    def get_variables(self, variables, time=None,
-                      x=None, y=None, z=None, block=False):
+    def get_variables(self,
+                      variables,
+                      time=None,
+                      x=None,
+                      y=None,
+                      z=None,
+                      block=False):
         """Method which must be implemented by all reader-subclasses.
 
         Obtain and return values of the requested variables at all positions
@@ -567,17 +601,21 @@ class Variables(ReaderDomain):
         """
 
     @abstractmethod
-    def _get_variables_interpolated_(self, variables, profiles,
-                                   profiles_depth, time,
-                                   lon, lat, z,
-                                   block, rotate_to_proj,
-                                   ind_covered, reader_x, reader_y):
+    def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
+                                     time, lon, lat, z, block, rotate_to_proj,
+                                     ind_covered, reader_x, reader_y):
         pass
 
-    def get_variables_interpolated(self, variables, profiles=None,
-                                   profiles_depth=None, time=None,
-                                   lon=None, lat=None, z=None,
-                                   block=False, rotate_to_proj=None):
+    def get_variables_interpolated(self,
+                                   variables,
+                                   profiles=None,
+                                   profiles_depth=None,
+                                   time=None,
+                                   lon=None,
+                                   lat=None,
+                                   z=None,
+                                   block=False,
+                                   rotate_to_proj=None):
         """
         `get_variables_interpolated` is the interface to the basemodel, and is
         responsible for returning variables at the correct positions. This is done by:
@@ -593,9 +631,9 @@ class Variables(ReaderDomain):
             variables: string, or list of strings (standard_name) of
                 requested variables. These must be provided by reader.
 
-            profiles: N/A
+            profiles: List of variable names that should be returned for the range in `profiles_depth`.
 
-            profiles_depth: N/A
+            profiles_depth: A range [z-start, z-end] for which to return values for profile-variables. The exact z-depth are given by the reader and returned as `z` variable in `env_profiles`.
 
             time: datetime or None, time at which data are requested.
                 Can be None (default) if reader/variable has no time
@@ -617,7 +655,8 @@ class Variables(ReaderDomain):
 
             (env, env_profiles)
 
-            Interpolated variables at x, y and z
+            Interpolated variables at x, y and z. `env` contains values at a fixed depth (`z`), while `env_profiles` contains depth-profiles in the range `profile_depth` for the variables listed in `profiles` for each element (in `x`, `y`). The exact depth is determined by the reader and specified in
+            `env_profiles['z']`. Thus variables in `env_profiles` are not interpolated in z-direction.
 
         """
         self.timer_start('total')
@@ -638,19 +677,20 @@ class Variables(ReaderDomain):
 
         # Make copy of z to avoid modifying original array
         if len(z) == 1 and len(lon) > 1:
-            z = z.copy()*np.ones(lon.shape)
+            z = z.copy() * np.ones(lon.shape)
         z = z.copy()[ind_covered]
 
         self.timer_end('preparing')
 
-        env, env_profiles = self._get_variables_interpolated_(variables, profiles, profiles_depth,
-                time, lon, lat, z, block, rotate_to_proj, ind_covered, reader_x, reader_y)
+        env, env_profiles = self._get_variables_interpolated_(
+            variables, profiles, profiles_depth, time, lon, lat, z, block,
+            rotate_to_proj, ind_covered, reader_x, reader_y)
 
         # Rotating vectors fields
         if rotate_to_proj is not None:
             if self.simulation_SRS is True:
-                self.logger.debug('Reader SRS is the same as calculation SRS - '
-                              'rotation of vectors is not needed.')
+                logger.debug('Reader SRS is the same as calculation SRS - '
+                             'rotation of vectors is not needed.')
             else:
                 vector_pairs = []
                 for var in variables:
@@ -661,11 +701,13 @@ class Variables(ReaderDomain):
                             if counterpart in variables:
                                 vector_pairs.append(vector_pair)
                             else:
-                                self.logger.warning('Missing component of vector pair, cannot rotate:' +
-                                         counterpart)
+                                logger.warning(
+                                    'Missing component of vector pair, cannot rotate:'
+                                    + counterpart)
                 # Extract unique vector pairs
-                vector_pairs = [list(x) for x in set(tuple(x)
-                                for x in vector_pairs)]
+                vector_pairs = [
+                    list(x) for x in set(tuple(x) for x in vector_pairs)
+                ]
 
                 if len(vector_pairs) > 0:
                     self.timer_start('rotating vectors')
@@ -683,23 +725,22 @@ class Variables(ReaderDomain):
                                             self.proj,
                                             rotate_to_proj)
 
-
                     self.timer_end('rotating vectors')
 
         # Masking non-covered pixels
         self.timer_start('masking')
         if len(ind_covered) != len(lon):
-            self.logger.debug('Masking %i elements outside coverage' %
-                          (len(lon)-len(ind_covered)))
+            logger.debug('Masking %i elements outside coverage' %
+                         (len(lon) - len(ind_covered)))
             for var in variables:
-                tmp = np.nan*np.ones(lon.shape)
+                tmp = np.nan * np.ones(lon.shape)
                 tmp[ind_covered] = env[var].copy()
                 env[var] = np.ma.masked_invalid(tmp)
                 # Filling also fin missing columns
                 # for env_profiles outside coverage
                 if env_profiles is not None and var in env_profiles.keys():
-                    tmp = np.nan*np.ones((env_profiles[var].shape[0],
-                                          len(lon)))
+                    tmp = np.nan * np.ones(
+                        (env_profiles[var].shape[0], len(lon)))
                     tmp[:, ind_covered] = env_profiles[var].copy()
                     env_profiles[var] = np.ma.masked_invalid(tmp)
 
@@ -707,5 +748,3 @@ class Variables(ReaderDomain):
 
         self.timer_end('total')
         return env, env_profiles
-
-

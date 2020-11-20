@@ -26,12 +26,17 @@ logger = logging.getLogger(__name__)
 
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
 
+
 class Reader(BaseReader, UnstructuredReader):
     """
-    A reader for unstructured (irregularily gridded) `CF-compliant
+    A reader for unsjructured (irregularily gridded) `CF-compliant
     <https://cfconventions.org/>`_ netCDF files.
 
     The reader interpolates on the projected grid (meters).
+
+    See also:
+
+        :mod:`opendrift.readers.basereader.unstructured`.
 
     Args:
         :param filename: A single netCDF file, or a pattern of files. The
@@ -51,18 +56,31 @@ class Reader(BaseReader, UnstructuredReader):
         'Northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward wind': 'x_wind',
         'northward wind': 'y_wind'
-        }
+    }
 
     # Mapping FVCOM variable names to CF standard_name
     fvcom_mapping = {
         'um': 'x_sea_water_velocity',
-        'vm': 'y_sea_water_velocity'}
+        'vm': 'y_sea_water_velocity'
+    }
+
+    node_variables = [
+            'salinity',
+            'temperature',
+            'sea_floor_depth_below_sea_level',
+            'sea_surface_height_above_geoid',
+            ]
+
+    face_variables = [
+            'x_sea_water_velocity',
+            'y_sea_water_velocity',
+            ]
 
     dataset = None
     x = None
     y = None
 
-    def __init__(self, filename = None, name = None, proj4 = None):
+    def __init__(self, filename=None, name=None, proj4=None):
         if filename is None:
             raise ValueError('Filename is missing')
         filestr = str(filename)
@@ -90,7 +108,9 @@ class Reader(BaseReader, UnstructuredReader):
             self.proj4 = self.dataset.CoordinateProjection.strip()
             if self.proj4 == 'none': self.proj4 = None
             logger.info('Reading projection..: %s', self.proj4)
-            assert self.proj4 is not None and len(self.proj4) > 0, "No projection in data-file, please supply to reader"
+            assert self.proj4 is not None and len(
+                self.proj4
+            ) > 0, "No projection in data-file, please supply to reader"
 
         logger.info('Reading grid and coordinate variables..')
         assert self.dataset.CoordinateSystem == "Cartesian", "Only cartesian coordinate systems supported"
@@ -103,8 +123,11 @@ class Reader(BaseReader, UnstructuredReader):
         assert self.dataset['time'].time_zone == 'UTC'
         assert self.dataset['time'].units == 'days since 1858-11-17 00:00:00'
         assert self.dataset['time'].format == 'modified julian day (MJD)'
-        ref_time = datetime(1858, 11, 17, 00, 00, 00, tzinfo = timezone.utc)
-        self.times = np.array([ ref_time + timedelta(days = d.item()) for d in self.dataset['time'][:] ])
+        ref_time = datetime(1858, 11, 17, 00, 00, 00, tzinfo=timezone.utc)
+        self.times = np.array([
+            ref_time + timedelta(days=d.item())
+            for d in self.dataset['time'][:]
+        ])
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
         # time steps are not constant
@@ -119,8 +142,14 @@ class Reader(BaseReader, UnstructuredReader):
             logger.debug("Parsing variable: %s" % var_name)
 
             # skipping coordinate variables
-            if var_name in ['x', 'y', 'time', 'lon', 'lat', 'lonc', 'latc',
-                    'siglay', 'siglev', 'siglay_center', 'siglev_center']:
+            if var_name in [
+                    'x', 'y', 'time', 'lon', 'lat', 'lonc', 'latc', 'siglay',
+                    'siglev', 'siglay_center', 'siglev_center'
+            ]:
+                continue
+
+            # We only use sea_floor at nodes
+            if var_name in ['h_center']:
                 continue
 
             var = self.dataset[var_name]
@@ -137,26 +166,39 @@ class Reader(BaseReader, UnstructuredReader):
         # Run constructor of parent Reader class
         super().__init__()
 
-        self.boundary = self._build_boundary_polygon_(self.x.compressed(), self.y.compressed())
+        self.boundary = self._build_boundary_polygon_(self.x.compressed(),
+                                                      self.y.compressed())
 
         self.timer_end("open dataset")
 
-    def plot_nodes(self):
+    def plot_mesh(self):
+        """
+        Plot the grid mesh. Does not automatically show the figure.
+        """
         import matplotlib.pyplot as plt
         plt.figure()
-        plt.scatter(self.x, self.y, marker = 'x', color = 'blue', label = 'nodes')
-        plt.scatter(self.dataset['xc'][:], self.dataset['yc'][:], marker = 'o', color = 'red', label = 'centroids')
+        plt.scatter(self.x, self.y, marker='x', color='blue', label='nodes')
+        plt.scatter(self.dataset['xc'][:],
+                    self.dataset['yc'][:],
+                    marker='o',
+                    color='red',
+                    label='centroids')
 
-        x,y = getattr(self.boundary, 'context').exterior.xy
-        plt.plot(x, y, color = 'green', label = 'boundary')
+        x, y = getattr(self.boundary, 'context').exterior.xy
+        plt.plot(x, y, color='green', label='boundary')
 
         plt.legend()
         plt.title('Unstructured grid: %s\n%s' % (self.name, self.proj))
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
 
-    def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
+    def get_variables(self,
+                      requested_variables,
+                      time=None,
+                      x=None,
+                      y=None,
+                      z=None,
+                      block=False):
         """
         FVCOM
         ---------------
@@ -198,15 +240,22 @@ class Reader(BaseReader, UnstructuredReader):
 
         """
 
+        logger.debug("Requested variabels: %s" % requested_variables)
+
         requested_variables, time, x, y, z, outside = \
             self.check_arguments(requested_variables, time, x, y, z)
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
+        node_variables = [
+            var for var in requested_variables if var in self.node_variables
+        ]
+        face_variables = [
+            var for var in requested_variables if var in self.face_variables
+        ]
 
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
-
 
         pass
