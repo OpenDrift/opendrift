@@ -170,13 +170,14 @@ class Reader(BaseReader, UnstructuredReader):
         self.boundary = self._build_boundary_polygon_(self.x.compressed(),
                                                       self.y.compressed())
 
-        self.timer_start("build rtree")
-        logger.debug("building rtree of nodes..")
-        self.nodes_rtree = self._build_rtree_(self.x, self.y)
+        self.timer_start("build index")
+        logger.debug("building index of nodes..")
+        self.nodes_idx = self._build_ckdtree_(self.x, self.y)
 
-        logger.debug("building rtree of faces..")
-        self.faces_rtree = self._build_rtree_(self.xc, self.yc)
-        self.timer_end("build rtree")
+        logger.debug("building index of faces..")
+        self.faces_idx = self._build_ckdtree_(self.xc, self.yc)
+
+        self.timer_end("build index")
 
         self.timer_end("open dataset")
 
