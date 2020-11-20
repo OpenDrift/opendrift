@@ -28,13 +28,13 @@ class UnstructuredReader(Variables):
     x = None
     y = None
     node_variables = None # list of std-name variables defined at nodes
-    nodes_rtree = None
+    nodes_idx = None
 
     # faces
     xc = None
     yc = None
     face_variables = None # list of std-name variables defined at center of faces
-    faces_rtree = None
+    faces_idx = None
 
     def __init__(self):
         super().__init__()
@@ -146,15 +146,35 @@ class UnstructuredReader(Variables):
 
         return idx
 
+    def _build_ckdtree_(self, x, y):
+        from scipy.spatial import cKDTree
+        P = np.vstack((x, y)).T
+        return cKDTree(P)
+
+    @staticmethod
+    def __nearest_ckdtree__(idx, x, y):
+        """
+        Return index of nearest points in cKDTree
+        """
+        q = np.vstack((x, y)).T
+        return idx.query(q, k = 1, n_jobs = -1)[1]
+
+    @staticmethod
+    def __nearest_rtree__(idx, x, y):
+        """
+        Take array of points and get nearest point in rtree index.
+        """
+        return [idx.nearest((x, y, x, y), objects = False) for x, y in zip(x, y)]
+
     def _nearest_node_(self, x, y):
         """
         Return nearest node (id) for x and y
         """
-        self.nodes_rtree.nearest((x, y, x, y), objects = 'raw')
+        return self.__nearest_ckdtree__(self.nodes_idx, x, y)
 
     def _nearest_face_(self, xc, yc):
         """
         Return nearest element or face (id) for xc and yc
         """
-        self.nodes_rtree.nearest((xc, yc, xc, yc), objects = 'raw')
+        return self.__nearest_ckdtree__(self.faces_idx, x, y)
 

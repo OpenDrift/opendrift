@@ -58,8 +58,12 @@ def test_get_nearest(benchmark):
     proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     r = reader_netCDF_CF_unstructured.Reader("niva/AkvaplanNiva_sample.nc",
                                              proj4=proj)
-    x = np.array([5.6e5])
-    y = np.array([7.76e6])
+    x = np.linspace(5.6e5, 6.0e5, 100)
+    y = np.linspace(7.4e6, 7.6e6, 100)
+    x, y = np.meshgrid(x, y)
+    x = x.ravel()
+    y = y.ravel()
+    print("getting nearest for %d points" % len(x))
 
     benchmark(r._nearest_node_, x, y)
 
