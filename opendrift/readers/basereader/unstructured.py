@@ -15,12 +15,26 @@ class UnstructuredReader(Variables):
     unstrctured grids subclass, provide several methods for aiding in
     interpolation and caching.
 
+    The initial type of grid that this class supports are `triangular prisms <https://en.wikipedia.org/wiki/Types_of_mesh#Triangular_prism>`_. Unstructured in xy-coordinates, x and y is constant in z. z might be non-cartesian (e.g. sigma-levels).
+
 
     """
 
     var_block_before = None
     var_block_after = None
     boundary = None
+
+    # nodes
+    x = None
+    y = None
+    node_variables = None # list of std-name variables defined at nodes
+    nodes_rtree = None
+
+    # faces
+    xc = None
+    yc = None
+    face_variables = None # list of std-name variables defined at center of faces
+    faces_rtree = None
 
     def __init__(self):
         super().__init__()
@@ -120,3 +134,27 @@ class UnstructuredReader(Variables):
 
         from shapely.vectorized import contains
         return contains(self.boundary, x, y)
+
+    def _build_rtree_(self, x, y):
+        """
+        Builds an R-tree of x, y
+        """
+        from rtree import index
+
+        data = ((i, (xy[0], xy[1], xy[0], xy[1]), None) for i, xy in enumerate(zip(x, y)))
+        idx = index.Index(data)
+
+        return idx
+
+    def _nearest_node_(self, x, y):
+        """
+        Return nearest node (id) for x and y
+        """
+        self.nodes_rtree.nearest((x, y, x, y), objects = 'raw')
+
+    def _nearest_face_(self, xc, yc):
+        """
+        Return nearest element or face (id) for xc and yc
+        """
+        self.nodes_rtree.nearest((xc, yc, xc, yc), objects = 'raw')
+
