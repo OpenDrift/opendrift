@@ -65,20 +65,18 @@ class Reader(BaseReader, UnstructuredReader):
     }
 
     node_variables = [
-            'salinity',
-            'temperature',
-            'sea_floor_depth_below_sea_level',
-            'sea_surface_height_above_geoid',
-            ]
+        'salinity',
+        'temperature',
+        'sea_floor_depth_below_sea_level',
+        'sea_surface_height_above_geoid',
+    ]
 
     face_variables = [
-            'x_sea_water_velocity',
-            'y_sea_water_velocity',
-            ]
+        'x_sea_water_velocity',
+        'y_sea_water_velocity',
+    ]
 
     dataset = None
-    x = None
-    y = None
 
     def __init__(self, filename=None, name=None, proj4=None):
         if filename is None:
@@ -117,13 +115,16 @@ class Reader(BaseReader, UnstructuredReader):
 
         self.x = self.dataset['x'][:]
         self.y = self.dataset['y'][:]
+        self.xc = self.dataset['xc'][:]
+        self.yc = self.dataset['yc'][:]
 
         # Times in FVCOM files are 'Modified Julian Day (MJD)', or fractional days since
         # 1858-11-17 00:00:00 UTC
         assert self.dataset['time'].time_zone == 'UTC'
         assert self.dataset['time'].units == 'days since 1858-11-17 00:00:00'
         assert self.dataset['time'].format == 'modified julian day (MJD)'
-        ref_time = datetime(1858, 11, 17, 00, 00, 00, tzinfo=timezone.utc)
+        ref_time = datetime(1858, 11, 17, 00, 00,
+                            00)  # TODO: include , tzinfo=timezone.utc)
         self.times = np.array([
             ref_time + timedelta(days=d.item())
             for d in self.dataset['time'][:]
@@ -169,6 +170,14 @@ class Reader(BaseReader, UnstructuredReader):
         self.boundary = self._build_boundary_polygon_(self.x.compressed(),
                                                       self.y.compressed())
 
+        self.timer_start("build rtree")
+        logger.debug("building rtree of nodes..")
+        self.nodes_rtree = self._build_rtree_(self.x, self.y)
+
+        logger.debug("building rtree of faces..")
+        self.faces_rtree = self._build_rtree_(self.xc, self.yc)
+        self.timer_end("build rtree")
+
         self.timer_end("open dataset")
 
     def plot_mesh(self):
@@ -178,8 +187,8 @@ class Reader(BaseReader, UnstructuredReader):
         import matplotlib.pyplot as plt
         plt.figure()
         plt.scatter(self.x, self.y, marker='x', color='blue', label='nodes')
-        plt.scatter(self.dataset['xc'][:],
-                    self.dataset['yc'][:],
+        plt.scatter(self.xc,
+                    self.yc,
                     marker='o',
                     color='red',
                     label='centroids')
@@ -239,8 +248,10 @@ class Reader(BaseReader, UnstructuredReader):
         * salinity
 
         """
-
         logger.debug("Requested variabels: %s" % requested_variables)
+
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
 
         requested_variables, time, x, y, z, outside = \
             self.check_arguments(requested_variables, time, x, y, z)
@@ -255,7 +266,4 @@ class Reader(BaseReader, UnstructuredReader):
             var for var in requested_variables if var in self.face_variables
         ]
 
-        x = np.atleast_1d(x)
-        y = np.atleast_1d(y)
-
-        pass
+        variables = {}
