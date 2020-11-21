@@ -54,7 +54,7 @@ def test_get_variables():
 
     u = r.get_variables(['x_sea_water_velocity'], r.start_time, x, y, z)
 
-def test_get_nearest(benchmark):
+def test_nearest_node(benchmark):
     proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     r = reader_netCDF_CF_unstructured.Reader("niva/AkvaplanNiva_sample.nc",
                                              proj4=proj)

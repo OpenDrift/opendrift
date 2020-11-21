@@ -1,7 +1,10 @@
 import numpy as np
+from abc import abstractmethod
 
 from opendrift.readers.interpolation.structured import ReaderBlock
 from .variables import Variables
+import logging
+logger = logging.getLogger(__name__)
 
 class StructuredReader(Variables):
     """
@@ -87,7 +90,7 @@ class StructuredReader(Variables):
                 len_z = len(self.var_block_before[blockvars_before].z)
             except:
                 len_z = 1
-            self.logger.debug(('Fetched env-block (size %ix%ix%i) ' +
+            logger.debug(('Fetched env-block (size %ix%ix%i) ' +
                             'for time before (%s)') %
                             (len(self.var_block_before[blockvars_before].x),
                             len(self.var_block_before[blockvars_before].y),
@@ -114,7 +117,7 @@ class StructuredReader(Variables):
                 except:
                     len_z = 1
 
-                self.logger.debug(('Fetched env-block (size %ix%ix%i) ' +
+                logger.debug(('Fetched env-block (size %ix%ix%i) ' +
                                 'for time after (%s)') %
                                 (len(self.var_block_after[blockvars_after].x),
                                 len(self.var_block_after[blockvars_after].y),
@@ -125,7 +128,7 @@ class StructuredReader(Variables):
             reader_x, reader_y) is False) or (\
             block_after is not None and block_after.covers_positions(
                 reader_x, reader_y) is False):
-            self.logger.warning('Data block from %s not large enough to '
+            logger.warning('Data block from %s not large enough to '
                             'cover element positions within timestep. '
                             'Buffer size (%s) must be increased.' %
                             (self.name, str(self.buffer)))
@@ -135,14 +138,14 @@ class StructuredReader(Variables):
         # Interpolate before/after blocks onto particles in space
         ############################################################
         self.timer_start('interpolation')
-        self.logger.debug('Interpolating before (%s) in space  (%s)' %
+        logger.debug('Interpolating before (%s) in space  (%s)' %
                         (block_before.time, self.interpolation))
         env_before, env_profiles_before = block_before.interpolate(
                 reader_x, reader_y, z, variables,
                 profiles, profiles_depth)
 
         if (time_after is not None) and (time_before != time):
-            self.logger.debug('Interpolating after (%s) in space  (%s)' %
+            logger.debug('Interpolating after (%s) in space  (%s)' %
                             (block_after.time, self.interpolation))
             env_after, env_profiles_after = block_after.interpolate(
                     reader_x, reader_y, z, variables,
@@ -158,7 +161,7 @@ class StructuredReader(Variables):
         if (time_after is not None) and (time_before != time):
             weight_after = ((time - time_before).total_seconds() /
                             (time_after - time_before).total_seconds())
-            self.logger.debug(('Interpolating before (%s, weight %.2f) and'
+            logger.debug(('Interpolating before (%s, weight %.2f) and'
                            '\n\t\t      after (%s, weight %.2f) in time') %
                           (block_before.time, 1 - weight_after,
                            block_after.time, weight_after))
@@ -171,7 +174,7 @@ class StructuredReader(Variables):
             # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
-                self.logger.debug('Interpolating profiles in time')
+                logger.debug('Interpolating profiles in time')
                 # Truncating layers not present both before and after
                 numlayers = np.minimum(len(env_profiles_before['z']),
                                        len(env_profiles_after['z']))
@@ -189,7 +192,7 @@ class StructuredReader(Variables):
                 env_profiles = None
 
         else:
-            self.logger.debug('No time interpolation needed - right on time.')
+            logger.debug('No time interpolation needed - right on time.')
             env = env_before
             if profiles is not None:
                 if 'env_profiles_before' in locals():
