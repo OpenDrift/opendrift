@@ -13,6 +13,9 @@ from .consts import standard_names, vector_pairs_xy
 
 
 class ReaderDomain(Timeable):
+    """
+    Projection, spatial and temporal domain of reader.
+    """
     simulation_SRS = False
     projected = None
     proj4 = None
@@ -617,15 +620,18 @@ class Variables(ReaderDomain):
                                    block=False,
                                    rotate_to_proj=None):
         """
-        `get_variables_interpolated` is the interface to the basemodel, and is
-        responsible for returning variables at the correct positions. This is done by:
+        `get_variables_interpolated` is the interface to
+        :class:`opendrift.basemodel.OpenDriftSimulation`, and is responsible
+        for returning variables at the correct positions. This is done by:
 
-            1. Calling `__get_variables__` which,
-            2. calls `get_variables_derived`, which, finally
-            3. calls `get_variables`.
+            1. Calling :meth:`_get_variables_interpolated_` which,
+            2. calls :meth:`get_variables_impl`, which
+            2. calls :meth:`get_variables_derived`, which
+            3. calls :meth:`get_variables`.
 
-        This function is responsible for setting up an interpolator,
-        `ReaderBlock` for regular gridded datasets.
+        `get_variables_impl`: Works on every variable. If profiles_depth, adds a point at start and end in order to get a full block. This seems specific to `StructuredReader`. Needs to work on both env and env_profiles, but also modifies the behavior to make env_profiles work in the first place.
+
+        `get_variables_derived`: Calculates derived variables from variables present in reader. Needs to work on both env and env_profiles.
 
         Arguments:
             variables: string, or list of strings (standard_name) of

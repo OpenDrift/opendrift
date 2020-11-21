@@ -140,8 +140,6 @@ class Reader(BaseReader, UnstructuredReader):
 
         self.variable_mapping = {}
         for var_name in self.dataset.variables:
-            logger.debug("Parsing variable: %s" % var_name)
-
             # skipping coordinate variables
             if var_name in [
                     'x', 'y', 'time', 'lon', 'lat', 'lonc', 'latc', 'siglay',

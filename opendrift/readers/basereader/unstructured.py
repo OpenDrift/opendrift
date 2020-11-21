@@ -17,6 +17,21 @@ class UnstructuredReader(Variables):
 
     The initial type of grid that this class supports are `triangular prisms <https://en.wikipedia.org/wiki/Types_of_mesh#Triangular_prism>`_. Unstructured in xy-coordinates, x and y is constant in z. z might be non-cartesian (e.g. sigma-levels).
 
+    Caching using UnstructuredBlock
+    -------------------------------
+
+    TODO:
+
+    The `StructuredReader`s return a 2D field for `meshgrid(x,y)`. This is not
+    so meaningful for `UnstructuredReader` since the variables are iregularily
+    placed. The `get_variables` method should therefore be a method required by
+    the `StructuredReader` and `ContinuousReader`, and maybe renamed to
+    `get_block` for `StructuredReader`.
+
+    For the `UnstructuredReader` we need the equivalent of `get_block`, maybe
+    `get_subset` which sets up an `UnstructuredBlock` for the given area or
+    volume. This probably requires `get_variables_impl`/`get_variables_derived`
+    to be moved to the outside of `_get_variables_interpolated_`.
 
     """
 
@@ -154,7 +169,7 @@ class UnstructuredReader(Variables):
     @staticmethod
     def __nearest_ckdtree__(idx, x, y):
         """
-        Return index of nearest points in cKDTree
+        Return index of nearest point in cKDTree
         """
         q = np.vstack((x, y)).T
         return idx.query(q, k = 1, n_jobs = -1)[1]
