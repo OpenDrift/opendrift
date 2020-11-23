@@ -640,6 +640,8 @@ class Variables(ReaderDomain):
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
 
+        numx = len(x)  # To check later if all points were covered
+
         ind_covered, x, y = self.covers_positions_xy(x, y, z)
         if len(ind_covered) == 0:
             raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
@@ -700,18 +702,18 @@ class Variables(ReaderDomain):
 
         # Masking non-covered pixels
         self.timer_start('masking')
-        if len(ind_covered) != len(x):
+        if len(ind_covered) != numx:
             logger.debug('Masking %i elements outside coverage' %
-                         (len(x) - len(ind_covered)))
+                         (numx - len(ind_covered)))
             for var in variables:
-                tmp = np.nan * np.ones(x.shape)
+                tmp = np.nan * np.ones(numx)
                 tmp[ind_covered] = env[var].copy()
                 env[var] = np.ma.masked_invalid(tmp)
-                # Filling also fin missing columns
+                # Filling also in missing columns
                 # for env_profiles outside coverage
                 if env_profiles is not None and var in env_profiles.keys():
                     tmp = np.nan * np.ones(
-                        (env_profiles[var].shape[0], len(x)))
+                        (env_profiles[var].shape[0], numx))
                     tmp[:, ind_covered] = env_profiles[var].copy()
                     env_profiles[var] = np.ma.masked_invalid(tmp)
 
