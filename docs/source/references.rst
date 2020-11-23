@@ -3,8 +3,9 @@ Publications
 
 Some papers using OpenDrift:
 
-El Rahi, J., Weeber M.P., El Serafya, G., Modelling the effect of behavior on the distribution of the jellyfish Mauve stinger (Pelagianoctiluca) in the Balearic Sea using an individual-based model, Ecological Modelling
-Volume 433, Oct. 2020, https://doi.org/10.1016/j.ecolmodel.2020.109230
+El Rahi, J., Weeber M.P., El Serafya, G., Modelling the effect of behavior on the distribution of the jellyfish Mauve stinger (Pelagianoctiluca) in the Balearic Sea using an individual-based model, Ecological Modelling, Volume 433, Oct. 2020, https://doi.org/10.1016/j.ecolmodel.2020.109230
+
+C. Laudy, L. Mészáros, S. Wanke and M. de Juan, "Mixing Social Media Analysis and Physical Models to Monitor Invasive Species," 2020 IEEE 23rd International Conference on Information Fusion (FUSION), Rustenburg, South Africa, 2020, pp. 1-8, doi: 10.23919/FUSION45008.2020.9190335.
 
 Androulidakis, Y., Kourafalou, V., Robert Hole, L., Le Hénaff, M., & Kang, H. (2020). Pathways of Oil Spills from Potential Cuban Offshore Exploration: Influence of Ocean Circulation. Journal of Marine Science and Engineering, 8(7), 535. https://doi.org/10.3390/jmse8070535
 
