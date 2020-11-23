@@ -1,13 +1,14 @@
 import numpy as np
 import pytest
 import matplotlib.pyplot as plt
-from . import *
+from tests import *
 from opendrift.readers import reader_netCDF_CF_unstructured
 
+akvaplan = "https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc"
+proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 def test_open():
-    proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-    r = reader_netCDF_CF_unstructured.Reader("niva/AkvaplanNiva_sample.nc",
+    r = reader_netCDF_CF_unstructured.Reader(akvaplan,
                                              proj4=proj)
     print(r)
     # r.plot_mesh()
@@ -15,8 +16,7 @@ def test_open():
 
 
 def test_contains():
-    proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-    r = reader_netCDF_CF_unstructured.Reader("niva/AkvaplanNiva_sample.nc",
+    r = reader_netCDF_CF_unstructured.Reader(akvaplan,
                                              proj4=proj)
 
     x = np.linspace(5.6e5, 6.0e5, 100)
@@ -44,8 +44,7 @@ def test_contains():
 
 
 def test_get_variables():
-    proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-    r = reader_netCDF_CF_unstructured.Reader("niva/AkvaplanNiva_sample.nc",
+    r = reader_netCDF_CF_unstructured.Reader(akvaplan,
                                              proj4=proj)
 
     x = np.array([5.6e5])
@@ -55,8 +54,7 @@ def test_get_variables():
     u = r.get_variables(['x_sea_water_velocity'], r.start_time, x, y, z)
 
 def test_nearest_node(benchmark):
-    proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-    r = reader_netCDF_CF_unstructured.Reader("niva/AkvaplanNiva_sample.nc",
+    r = reader_netCDF_CF_unstructured.Reader(akvaplan,
                                              proj4=proj)
     x = np.linspace(5.6e5, 6.0e5, 100)
     y = np.linspace(7.4e6, 7.6e6, 100)
