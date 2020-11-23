@@ -50,7 +50,7 @@ class Reader(BaseReader, ContinuousReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requestedVariables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None):
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)

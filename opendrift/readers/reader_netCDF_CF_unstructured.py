@@ -205,8 +205,7 @@ class Reader(BaseReader, UnstructuredReader):
                       time=None,
                       x=None,
                       y=None,
-                      z=None,
-                      block=False):
+                      z=None):
         """
         FVCOM
         ---------------

@@ -159,7 +159,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # Dict to store readers
         self.readers = OrderedDict()  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
-        self.use_block = True  # Set to False if interpolation left to reader
 
         # Make copies of dictionaries so that they are private to each instance
         self.status_categories = ['active']  # Particles are active by default
@@ -1048,7 +1047,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                             variable_group, profiles_from_reader,
                             self.required_profiles_z_range, time,
                             lon[missing_indices], lat[missing_indices],
-                            z[missing_indices], self.use_block, self.proj)
+                            z[missing_indices], self.proj)
 
                 except Exception as e:
                     self.logger.info('========================')
@@ -1120,8 +1119,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                             # TODO: mask mismatch due to 2 added points
                             raise ValueError('Mismatch of masks')
                         missing_indices = missing_indices[combined_mask]
-                    except:  # Not sure what is happening here
+                    except Exception as ex:  # Not sure what is happening here
                         self.logger.info('Problems setting mask on missing_indices!')
+                        self.logger.exception(ex)
                 else:
                     missing_indices = []  # temporary workaround
                 if (type(missing_indices) == np.int64) or (
@@ -3609,7 +3609,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
 
         data = reader.get_variables(
-            background, time, reader_x, reader_y, None, block=True)
+            background, time, reader_x, reader_y, None)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
         if type(background) is list:
             u_component = data[background[0]]

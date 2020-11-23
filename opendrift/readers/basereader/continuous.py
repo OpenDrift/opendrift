@@ -1,6 +1,8 @@
 import numpy as np
 from .variables import Variables
 from .consts import vector_pairs_xy
+import logging
+logger = logging.getLogger(__name__)
 
 class ContinuousReader(Variables):
     """
@@ -11,16 +13,12 @@ class ContinuousReader(Variables):
     """
     def _get_variables_interpolated_(self, variables, profiles,
                                    profiles_depth, time,
-                                   lon, lat, z,
-                                   block, rotate_to_proj,
-                                   ind_covered, reader_x, reader_y):
+                                   reader_x, reader_y, z):
 
         env = self.get_variables_impl(variables, profiles,
                                             profiles_depth,
                                             time,
-                                            #time_before,
-                                            reader_x, reader_y, z,
-                                            block=block)
+                                            reader_x, reader_y, z)
 
         self.logger.debug('Fetched env-before')
         env_profiles = None

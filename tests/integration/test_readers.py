@@ -376,7 +376,7 @@ class TestReaders(unittest.TestCase):
         x,y = norkyst3d.lonlat2xy(lon, lat)
         data = norkyst3d.get_variables(variables,
                                        time=norkyst3d.start_time,
-                                       x=x, y=y, z=[0, -100], block=True)
+                                       x=x, y=y, z=[0, -100])
         self.assertEqual(data['z'][4], -25)
         self.assertEqual(data['z'][4], -25)
         self.assertAlmostEqual(data['sea_water_temperature'][:,0,0][7],
@@ -396,7 +396,7 @@ class TestReaders(unittest.TestCase):
                 variables, profiles=['sea_water_temperature'],
                 profiles_depth = [-100, 0],
                 time = norkyst3d.start_time + timedelta(seconds=900),
-                lon=lon, lat=lat, z=z, block=True)
+                lon=lon, lat=lat, z=z)
         # Check surface value
         self.assertEqual(data['sea_water_temperature'][0],
                          profiles['sea_water_temperature'][0,0])
@@ -420,7 +420,7 @@ class TestReaders(unittest.TestCase):
         # Call get_variables_interpolated which interpolates both in
         data = nordic3d.get_variables(variables,
                 time = nordic3d.start_time + timedelta(seconds=900),
-                x=x, y=y, z=z, block=True)
+                x=x, y=y, z=z)
         self.assertAlmostEqual(data['sea_water_temperature'][0,60, 60],
                                3.447, 2)
                                #3.59, 2)
@@ -575,13 +575,13 @@ class TestReaders(unittest.TestCase):
         obslat = [61.1, 61.132198]
         obstime = [datetime(2015, 11, 16, 0), datetime(2015, 11, 16, 6)]
 
-        o = OceanDrift(loglevel=50)
+        o = OceanDrift()
         reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
         reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
                     wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
-        self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.22070706,8)
+        self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.22553520,8)
 
 
     def test_valid_minmax(self):

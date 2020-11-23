@@ -181,7 +181,7 @@ class Reader(BaseReader, StructuredReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None):
 
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)

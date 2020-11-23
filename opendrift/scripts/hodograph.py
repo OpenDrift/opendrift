@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     uv = r.get_variables(['x_sea_water_velocity', 'y_sea_water_velocity',
                          'sea_floor_depth_below_sea_level'],
-                         time, x, y, r.z, block=True)
+                         time, x, y, r.z)
                        
     u_comp = uv['x_sea_water_velocity'][:,i,j]
     v_comp = uv['y_sea_water_velocity'][:,i,j]

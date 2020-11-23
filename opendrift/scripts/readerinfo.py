@@ -95,7 +95,7 @@ if __name__ == '__main__':
         i=3; j=3  # center of block
         variables = [var for var in r.variables if
                      var not in ('time') and 'time' not in var]
-        data = r.get_variables(variables, time, x, y, z=0, block=True)
+        data = r.get_variables(variables, time, x, y, z=0)
         for var in variables:
             print('%s : %s' % (var, data[var][i,j]))
         if 'x_wind' in variables and 'y_wind' in variables:

@@ -223,12 +223,13 @@ class ReaderDomain(Timeable):
             pixelsize = dist / self.shape[0]
         return pixelsize
 
-    def covers_positions(self, lon, lat, z=0):
-        """Return indices of input points covered by reader."""
+    def covers_positions_xy(self, x, y, z=0):
+        """
+        Return indices of input points covered by reader.
 
+        Arguments in native projection of reader.
+        """
         z = np.atleast_1d(z)
-        # Calculate x,y coordinates from lon,lat
-        x, y = self.lonlat2xy(lon, lat)
 
         if self.global_coverage():
             # We need only check north-south and z coverage
@@ -241,8 +242,16 @@ class ReaderDomain(Timeable):
 
         try:
             return indices, x[indices], y[indices]
-        except:
+        except Exception as ex:
+            logger.exception(ex)
             return indices, x, y
+
+    def covers_positions(self, lon, lat, z=0):
+        """Return indices of input points covered by reader."""
+
+        x, y = self.lonlat2xy(lon, lat)
+
+        return self.covers_positions_xy(x, y, z)
 
     def global_coverage(self):
         """Return True if global coverage east-west"""
@@ -462,7 +471,7 @@ class Variables(ReaderDomain):
             self.wind_from_speed_and_direction(env)
 
     def get_variables_impl(self, variables, profiles, profiles_depth, time, x,
-                           y, z, block):
+                           y, z):
         """Wrapper around reader-specific function get_variables()
 
         Performs some common operations which should not be duplicated:
@@ -472,14 +481,15 @@ class Variables(ReaderDomain):
         logger.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
 
-        if profiles is not None and block is True:
+        if profiles is not None:
             # If profiles are requested for any parameters, we
             # add two fake points at the end of array to make sure that the
             # requested block has the depth range required for profiles
             x = np.append(x, [x[-1], x[-1]])
             y = np.append(y, [y[-1], y[-1]])
             z = np.append(z, [profiles_depth[0], profiles_depth[1]])
-        env = self.get_variables_derived(variables, time, x, y, z, block)
+
+        env = self.get_variables_derived(variables, time, x, y, z)
 
         # Make sure x and y are floats (and not e.g. int64)
         if 'x' in env.keys():
@@ -566,13 +576,7 @@ class Variables(ReaderDomain):
         return env
 
     @abstractmethod
-    def get_variables(self,
-                      variables,
-                      time=None,
-                      x=None,
-                      y=None,
-                      z=None,
-                      block=False):
+    def get_variables(self, variables, time=None, x=None, y=None, z=None):
         """Method which must be implemented by all reader-subclasses.
 
         Obtain and return values of the requested variables at all positions
@@ -605,9 +609,116 @@ class Variables(ReaderDomain):
 
     @abstractmethod
     def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
-                                     time, lon, lat, z, block, rotate_to_proj,
-                                     ind_covered, reader_x, reader_y):
+                                     time, reader_x, reader_y, z):
+        """
+        Implemented by different reader types (e.g. :class:`structured.StructuredReader`).
+
+        Arguments are in native projection of reader.
+        """
         pass
+
+    def get_variables_interpolated_xy(self,
+                                      variables,
+                                      profiles=None,
+                                      profiles_depth=None,
+                                      time=None,
+                                      x=None,
+                                      y=None,
+                                      z=None,
+                                      rotate_to_proj=None):
+        """
+        Get variables in native projection of reader.
+        """
+        self.timer_start('total')
+        # Raise error if time not not within coverage of reader
+        if not self.covers_time(time):
+            raise ValueError('%s is outside time coverage (%s - %s) of %s' %
+                             (time, self.start_time, self.end_time, self.name))
+
+        self.timer_start('preparing')
+
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
+
+        ind_covered, x, y = self.covers_positions_xy(x, y, z)
+        if len(ind_covered) == 0:
+            raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
+                              'are outside domain of %s (%s)') %
+                             (len(x), x.min(), x.max(), y.min(), y.max(),
+                              self.name, self.coverage_string()))
+
+        self.timer_end('preparing')
+
+        # Make copy of z to avoid modifying original array
+        if len(z) == 1 and len(x) > 1:
+            z = z.copy() * np.ones(x.shape)
+        z = z.copy()[ind_covered]
+
+        env, env_profiles = self._get_variables_interpolated_(
+            variables, profiles, profiles_depth, time, x, y, z)
+
+        # Rotating vectors fields
+        if rotate_to_proj is not None:
+            if self.simulation_SRS is True:
+                logger.debug('Reader SRS is the same as calculation SRS - '
+                             'rotation of vectors is not needed.')
+            else:
+                vector_pairs = []
+                for var in variables:
+                    for vector_pair in vector_pairs_xy:
+                        if var in vector_pair:
+                            counterpart = list(set(vector_pair) -
+                                               set([var]))[0]
+                            if counterpart in variables:
+                                vector_pairs.append(vector_pair)
+                            else:
+                                logger.warning(
+                                    'Missing component of vector pair, cannot rotate:'
+                                    + counterpart)
+                # Extract unique vector pairs
+                vector_pairs = [
+                    list(x) for x in set(tuple(x) for x in vector_pairs)
+                ]
+
+                if len(vector_pairs) > 0:
+                    self.timer_start('rotating vectors')
+                    for vector_pair in vector_pairs:
+                        env[vector_pair[0]], env[vector_pair[1]] = \
+                            self.rotate_vectors(x, y,
+                                                env[vector_pair[0]],
+                                                env[vector_pair[1]],
+                                                self.proj, rotate_to_proj)
+                        if profiles is not None and vector_pair[0] in profiles:
+                            env_profiles[vector_pair[0]], env_profiles[vector_pair[1]] = \
+                                    self.rotate_vectors (x, y,
+                                            env_profiles[vector_pair[0]],
+                                            env_profiles[vector_pair[1]],
+                                            self.proj,
+                                            rotate_to_proj)
+
+                    self.timer_end('rotating vectors')
+
+        # Masking non-covered pixels
+        self.timer_start('masking')
+        if len(ind_covered) != len(x):
+            logger.debug('Masking %i elements outside coverage' %
+                         (len(x) - len(ind_covered)))
+            for var in variables:
+                tmp = np.nan * np.ones(x.shape)
+                tmp[ind_covered] = env[var].copy()
+                env[var] = np.ma.masked_invalid(tmp)
+                # Filling also fin missing columns
+                # for env_profiles outside coverage
+                if env_profiles is not None and var in env_profiles.keys():
+                    tmp = np.nan * np.ones(
+                        (env_profiles[var].shape[0], len(x)))
+                    tmp[:, ind_covered] = env_profiles[var].copy()
+                    env_profiles[var] = np.ma.masked_invalid(tmp)
+
+        self.timer_end('masking')
+        self.timer_end('total')
+
+        return env, env_profiles
 
     def get_variables_interpolated(self,
                                    variables,
@@ -617,7 +728,6 @@ class Variables(ReaderDomain):
                                    lon=None,
                                    lat=None,
                                    z=None,
-                                   block=False,
                                    rotate_to_proj=None):
         """
         `get_variables_interpolated` is the interface to
@@ -665,92 +775,10 @@ class Variables(ReaderDomain):
             `env_profiles['z']`. Thus variables in `env_profiles` are not interpolated in z-direction.
 
         """
-        self.timer_start('total')
-        self.timer_start('preparing')
 
-        # Raise error if time not not within coverage of reader
-        if not self.covers_time(time):
-            raise ValueError('%s is outside time coverage (%s - %s) of %s' %
-                             (time, self.start_time, self.end_time, self.name))
+        x, y = self.lonlat2xy(lon, lat)
 
-        # Check which particles are covered (indep of time)
-        ind_covered, reader_x, reader_y = self.covers_positions(lon, lat, z)
-        if len(ind_covered) == 0:
-            raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
-                              'are outside domain of %s (%s)') %
-                             (len(lon), lon.min(), lon.max(), lat.min(),
-                              lat.max(), self.name, self.coverage_string()))
+        env, env_profiles = self.get_variables_interpolated_xy(
+            variables, profiles, profiles_depth, time, x, y, z, rotate_to_proj)
 
-        # Make copy of z to avoid modifying original array
-        if len(z) == 1 and len(lon) > 1:
-            z = z.copy() * np.ones(lon.shape)
-        z = z.copy()[ind_covered]
-
-        self.timer_end('preparing')
-
-        env, env_profiles = self._get_variables_interpolated_(
-            variables, profiles, profiles_depth, time, lon, lat, z, block,
-            rotate_to_proj, ind_covered, reader_x, reader_y)
-
-        # Rotating vectors fields
-        if rotate_to_proj is not None:
-            if self.simulation_SRS is True:
-                logger.debug('Reader SRS is the same as calculation SRS - '
-                             'rotation of vectors is not needed.')
-            else:
-                vector_pairs = []
-                for var in variables:
-                    for vector_pair in vector_pairs_xy:
-                        if var in vector_pair:
-                            counterpart = list(set(vector_pair) -
-                                               set([var]))[0]
-                            if counterpart in variables:
-                                vector_pairs.append(vector_pair)
-                            else:
-                                logger.warning(
-                                    'Missing component of vector pair, cannot rotate:'
-                                    + counterpart)
-                # Extract unique vector pairs
-                vector_pairs = [
-                    list(x) for x in set(tuple(x) for x in vector_pairs)
-                ]
-
-                if len(vector_pairs) > 0:
-                    self.timer_start('rotating vectors')
-                    for vector_pair in vector_pairs:
-                        env[vector_pair[0]], env[vector_pair[1]] = \
-                            self.rotate_vectors(reader_x, reader_y,
-                                                env[vector_pair[0]],
-                                                env[vector_pair[1]],
-                                                self.proj, rotate_to_proj)
-                        if profiles is not None and vector_pair[0] in profiles:
-                            env_profiles[vector_pair[0]], env_profiles[vector_pair[1]] = \
-                                    self.rotate_vectors (reader_x, reader_y,
-                                            env_profiles[vector_pair[0]],
-                                            env_profiles[vector_pair[1]],
-                                            self.proj,
-                                            rotate_to_proj)
-
-                    self.timer_end('rotating vectors')
-
-        # Masking non-covered pixels
-        self.timer_start('masking')
-        if len(ind_covered) != len(lon):
-            logger.debug('Masking %i elements outside coverage' %
-                         (len(lon) - len(ind_covered)))
-            for var in variables:
-                tmp = np.nan * np.ones(lon.shape)
-                tmp[ind_covered] = env[var].copy()
-                env[var] = np.ma.masked_invalid(tmp)
-                # Filling also fin missing columns
-                # for env_profiles outside coverage
-                if env_profiles is not None and var in env_profiles.keys():
-                    tmp = np.nan * np.ones(
-                        (env_profiles[var].shape[0], len(lon)))
-                    tmp[:, ind_covered] = env_profiles[var].copy()
-                    env_profiles[var] = np.ma.masked_invalid(tmp)
-
-        self.timer_end('masking')
-
-        self.timer_end('total')
         return env, env_profiles

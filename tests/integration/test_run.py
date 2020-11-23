@@ -71,7 +71,6 @@ class TestRun(unittest.TestCase):
     def make_OceanDrift_object(self):
         self.o = OceanDrift(loglevel=30)
         self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
-        self.o.use_block = False
         self.reader_landmask = reader_global_landmask.Reader(
             extent = [-1.5, 59, 7, 64])
         self.o.add_reader([self.fake_eddy, self.reader_landmask])
@@ -146,7 +145,7 @@ class TestRun(unittest.TestCase):
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         print(reader_norkyst, reader_arome)
         o.add_reader([reader_norkyst, reader_arome])
-        o.seed_elements(lon=4, lat=60, time=reader_arome.end_time - 
+        o.seed_elements(lon=4, lat=60, time=reader_arome.end_time -
                         timedelta(hours=3), number=1)
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_sea_water_velocity', 1)

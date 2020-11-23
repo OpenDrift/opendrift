@@ -191,7 +191,7 @@ class TestInterpolation(unittest.TestCase):
                      'sea_water_temperature']
         # Read a block of data covering the points
         data = reader.get_variables(variables, time=reader.start_time,
-                                    x=x, y=y, z=z, block=True)
+                                    x=x, y=y, z=z)
 
         b = ReaderBlock(data, interpolation_horizontal='nearest')
         env, prof = b.interpolate(x, y, z, variables,
@@ -232,7 +232,7 @@ class TestInterpolation(unittest.TestCase):
                      'sea_water_temperature']
         # Read a block of data covering the points
         data = reader.get_variables(variables, time=reader.start_time,
-                                    x=x, y=y, z=z, block=True)
+                                    x=x, y=y, z=z)
 
         b = ReaderBlock(data, interpolation_horizontal='nearest')
 
@@ -263,7 +263,7 @@ class TestInterpolation(unittest.TestCase):
                      'sea_water_temperature']
         # Read a block of data covering the points
         data = reader.get_variables(variables, time=reader.start_time,
-                                    x=x, y=y, z=z, block=True)
+                                    x=x, y=y, z=z)
 
         # Introduce missing values
         data['x_sea_water_velocity'] = np.ma.masked_where(
@@ -296,7 +296,7 @@ class TestInterpolation(unittest.TestCase):
         variables = ['x_sea_water_velocity']
         # Read a block of data covering the points
         data = reader.get_variables(variables, time=reader.start_time,
-                                    x=x, y=y, z=z, block=True)
+                                    x=x, y=y, z=z)
 
         b = ReaderBlock(data.copy(),
                         interpolation_horizontal='linearNDFast')
@@ -340,7 +340,7 @@ class TestInterpolation(unittest.TestCase):
         variables = ['x_sea_water_velocity']
         # Read a block of data covering the points
         data = reader.get_variables(variables, time=reader.start_time,
-                                    x=x, y=y, z=0, block=True)
+                                    x=x, y=y, z=0)
         data = np.ma.filled(data['x_sea_water_velocity'],
                             fill_value=np.nan)
         self.assertTrue(np.isnan(data.max()))

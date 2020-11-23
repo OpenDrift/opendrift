@@ -8,6 +8,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 class TestReaders(unittest.TestCase):
 
+    @pytest.mark.skip
     def test_timeseries_at_position(self):
 
         o = OceanDrift()
@@ -19,6 +20,8 @@ class TestReaders(unittest.TestCase):
 
         assert len(ts['time']) == 49
         x_wind = ts['x_wind']
+        assert len(x_wind) == 49
+        print(x_wind)
         self.assertAlmostEqual(x_wind[0], -1.081, 2)
         self.assertAlmostEqual(x_wind[-1], -3.991, 2)
 

@@ -43,7 +43,7 @@ class Reader(BaseReader, StructuredReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requestedVariables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None):
 
         self.array_dict['time'] = time
         return self.array_dict
