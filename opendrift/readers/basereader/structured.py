@@ -24,14 +24,11 @@ class StructuredReader(Variables):
 
     def _get_variables_interpolated_(self, variables, profiles,
                                    profiles_depth, time,
-                                   lon, lat, z,
-                                   block, rotate_to_proj,
-                                   ind_covered, reader_x, reader_y):
-
+                                   reader_x, reader_y, z):
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
             self.nearest_time(time)
-        self.logger.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
+        logger.debug('Reader time:\n\t\t%s (before)\n\t\t%s (after)' %
                       (time_before, time_after))
 
         # For variables which are not time dependent, we do not care about time
@@ -76,13 +73,10 @@ class StructuredReader(Variables):
         # Fetch data, if no buffer is available
         if block_before is None or \
                 block_before.time != time_before:
-            self.timer_end('preparing')
             reader_data_dict = \
                 self.get_variables_impl(blockvariables_before, profiles,
                                     profiles_depth, time_before,
-                                    reader_x, reader_y, z,
-                                    block=block)
-            self.timer_start('preparing')
+                                    reader_x, reader_y, z)
             self.var_block_before[blockvars_before] = \
                 ReaderBlock(reader_data_dict,
                             interpolation_horizontal=self.interpolation)
@@ -101,13 +95,10 @@ class StructuredReader(Variables):
                 self.var_block_after[blockvars_after] = \
                     block_before
             else:
-                self.timer_end('preparing')
                 reader_data_dict = \
                     self.get_variables_impl(blockvariables_after, profiles,
                                         profiles_depth, time_after,
-                                        reader_x, reader_y, z,
-                                        block=block)
-                self.timer_start('preparing')
+                                        reader_x, reader_y, z)
                 self.var_block_after[blockvars_after] = \
                     ReaderBlock(
                         reader_data_dict,
@@ -133,7 +124,6 @@ class StructuredReader(Variables):
                             'Buffer size (%s) must be increased.' %
                             (self.name, str(self.buffer)))
 
-        self.timer_end('preparing')
         ############################################################
         # Interpolate before/after blocks onto particles in space
         ############################################################

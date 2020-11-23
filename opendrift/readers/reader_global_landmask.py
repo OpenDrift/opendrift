@@ -92,7 +92,7 @@ class Reader(BaseReader, ContinuousReader):
         return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)
 
     def get_variables(self, requestedVariables, time = None,
-                      x = None, y = None, z = None, block = False):
+                      x = None, y = None, z = None):
         """
         Get binary mask of whether elements are on land or not.
 

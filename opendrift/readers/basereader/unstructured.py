@@ -58,9 +58,9 @@ class UnstructuredReader(Variables):
         self.var_block_before = {}  # Data for last timestep before present
         self.var_block_after = {}  # Data for first timestep after present
 
-    def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
-                                     time, lon, lat, z, block, rotate_to_proj,
-                                     ind_covered, reader_x, reader_y):
+    def _get_variables_interpolated_(self, variables, profiles,
+                                   profiles_depth, time,
+                                   reader_x, reader_y, z):
 
         env = self.get_variables_impl(variables,
                                       profiles,
@@ -68,8 +68,7 @@ class UnstructuredReader(Variables):
                                       time,
                                       reader_x,
                                       reader_y,
-                                      z,
-                                      block=block)
+                                      z)
 
         # We probably have to use an UnstructuredBlock to store closest time-steps, and thus avoid fetching
         # more data on every call.
