@@ -397,7 +397,7 @@ class BaseReader(Variables):
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables_derived(variable, self.start_time,
+            data = self.__get_variables_derived__(variable, self.start_time,
                                       rx, ry)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rx = np.float32(rx)

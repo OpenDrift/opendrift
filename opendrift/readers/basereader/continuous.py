@@ -15,7 +15,7 @@ class ContinuousReader(Variables):
                                    profiles_depth, time,
                                    reader_x, reader_y, z):
 
-        env = self.get_variables_impl(variables, profiles,
+        env = self._get_variables_impl_(variables, profiles,
                                             profiles_depth,
                                             time,
                                             reader_x, reader_y, z)

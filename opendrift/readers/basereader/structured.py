@@ -74,7 +74,7 @@ class StructuredReader(Variables):
         if block_before is None or \
                 block_before.time != time_before:
             reader_data_dict = \
-                self.get_variables_impl(blockvariables_before, profiles,
+                self._get_variables_impl_(blockvariables_before, profiles,
                                     profiles_depth, time_before,
                                     reader_x, reader_y, z)
             self.var_block_before[blockvars_before] = \
@@ -96,7 +96,7 @@ class StructuredReader(Variables):
                     block_before
             else:
                 reader_data_dict = \
-                    self.get_variables_impl(blockvariables_after, profiles,
+                    self._get_variables_impl_(blockvariables_after, profiles,
                                         profiles_depth, time_after,
                                         reader_x, reader_y, z)
                 self.var_block_after[blockvars_after] = \

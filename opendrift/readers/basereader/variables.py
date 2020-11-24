@@ -470,13 +470,19 @@ class Variables(ReaderDomain):
         if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
             self.wind_from_speed_and_direction(env)
 
-    def get_variables_impl(self, variables, profiles, profiles_depth, time, x,
+    def _get_variables_impl_(self, variables, profiles, profiles_depth, time, x,
                            y, z):
         """Wrapper around reader-specific function get_variables()
 
         Performs some common operations which should not be duplicated:
-        - monitor time spent by this reader
-        - convert any numpy arrays to masked arrays
+
+            - monitor time spent by this reader
+            - convert any numpy arrays to masked arrays
+            - add points to x, y and z to get profiles if necessary
+            - rotate vectors to target projection
+
+        This function calls :meth:`__get_variables_derived__` which eventually
+        calls :meth:`get_variables` on the implementing reader.
         """
         logger.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
@@ -489,7 +495,7 @@ class Variables(ReaderDomain):
             y = np.append(y, [y[-1], y[-1]])
             z = np.append(z, [profiles_depth[0], profiles_depth[1]])
 
-        env = self.get_variables_derived(variables, time, x, y, z)
+        env = self.__get_variables_derived__(variables, time, x, y, z)
 
         # Make sure x and y are floats (and not e.g. int64)
         if 'x' in env.keys():
@@ -552,7 +558,7 @@ class Variables(ReaderDomain):
 
         return env
 
-    def get_variables_derived(self, variables, *args, **kwargs):
+    def __get_variables_derived__(self, variables, *args, **kwargs):
         """Wrapper around get_variables, adding derived"""
         if isinstance(variables, str):
             variables = [variables]
@@ -712,8 +718,7 @@ class Variables(ReaderDomain):
                 # Filling also in missing columns
                 # for env_profiles outside coverage
                 if env_profiles is not None and var in env_profiles.keys():
-                    tmp = np.nan * np.ones(
-                        (env_profiles[var].shape[0], numx))
+                    tmp = np.nan * np.ones((env_profiles[var].shape[0], numx))
                     tmp[:, ind_covered] = env_profiles[var].copy()
                     env_profiles[var] = np.ma.masked_invalid(tmp)
 
@@ -737,13 +742,13 @@ class Variables(ReaderDomain):
         for returning variables at the correct positions. This is done by:
 
             1. Calling :meth:`_get_variables_interpolated_` which,
-            2. calls :meth:`get_variables_impl`, which
-            2. calls :meth:`get_variables_derived`, which
-            3. calls :meth:`get_variables`.
+            2. calls :meth:`_get_variables_impl_`, which
+            3. calls :meth:`__get_variables_derived__`, which
+            4. calls :meth:`get_variables`.
 
-        `get_variables_impl`: Works on every variable. If profiles_depth, adds a point at start and end in order to get a full block. This seems specific to `StructuredReader`. Needs to work on both env and env_profiles, but also modifies the behavior to make env_profiles work in the first place.
+        :meth:`_get_variables_impl_`: Works on every variable. If profiles_depth, adds a point at start and end in order to get a full block. This seems specific to `StructuredReader`. Needs to work on both env and env_profiles, but also modifies the behavior to make env_profiles work in the first place.
 
-        `get_variables_derived`: Calculates derived variables from variables present in reader. Needs to work on both env and env_profiles.
+        :meth:`__get_variables_derived__`: Calculates derived variables from variables present in reader. Needs to work on both env and env_profiles.
 
         Arguments:
             variables: string, or list of strings (standard_name) of
