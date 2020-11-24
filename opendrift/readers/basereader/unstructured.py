@@ -30,8 +30,8 @@ class UnstructuredReader(Variables):
 
     For the `UnstructuredReader` we need the equivalent of `get_block`, maybe
     `get_subset` which sets up an `UnstructuredBlock` for the given area or
-    volume. This probably requires `get_variables_impl`/`get_variables_derived`
-    to be moved to the outside of `_get_variables_interpolated_`.
+    volume. This probably requires :meth:`_get_variables_impl_`/ :meth:`__get_variables_derived__`
+    to be moved to the outside of :meth:`_get_variables_interpolated_`.
 
     """
 
@@ -62,7 +62,7 @@ class UnstructuredReader(Variables):
                                    profiles_depth, time,
                                    reader_x, reader_y, z):
 
-        env = self.get_variables_impl(variables,
+        env = self._get_variables_impl_(variables,
                                       profiles,
                                       profiles_depth,
                                       time,
