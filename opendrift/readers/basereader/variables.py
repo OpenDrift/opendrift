@@ -479,7 +479,7 @@ class Variables(ReaderDomain):
             - monitor time spent by this reader
             - convert any numpy arrays to masked arrays
             - add points to x, y and z to get profiles if necessary
-            - rotate vectors to target projection
+            - convolve vectors if `self.convolve` is specified
 
         This function calls :meth:`__get_variables_derived__` which eventually
         calls :meth:`get_variables` on the implementing reader.
@@ -648,12 +648,15 @@ class Variables(ReaderDomain):
 
         numx = len(x)  # To check later if all points were covered
 
-        ind_covered, x, y = self.covers_positions_xy(x, y, z)
+        ind_covered, xx, yy = self.covers_positions_xy(x, y, z)
         if len(ind_covered) == 0:
+            logger.error("All particles outside domain!")
             raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
                               'are outside domain of %s (%s)') %
                              (len(x), x.min(), x.max(), y.min(), y.max(),
                               self.name, self.coverage_string()))
+        x = xx
+        y = yy
 
         self.timer_end('preparing')
 

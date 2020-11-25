@@ -12,14 +12,15 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright 2015, Knut-Frode Dagestad, MET Norway
-# Copyright 2020, Simon Weppe, MetOcean Solution, MetService New Zealand
 # Copyright 2020, Gaute Hope, MET Norway
+# Copyright 2020, Simon Weppe, MetOcean Solution, MetService New Zealand
+# Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
 from datetime import datetime, timedelta, timezone
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
+import scipy, scipy.spatial
 import pyproj
 import logging
 logger = logging.getLogger(__name__)
@@ -55,13 +56,8 @@ class Reader(BaseReader, UnstructuredReader):
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'Northward_sea_water_velocity': 'y_sea_water_velocity',
         'eastward wind': 'x_wind',
-        'northward wind': 'y_wind'
-    }
-
-    # Mapping FVCOM variable names to CF standard_name
-    fvcom_mapping = {
-        'um': 'x_sea_water_velocity',
-        'vm': 'y_sea_water_velocity'
+        'northward wind': 'y_wind',
+        'ww': 'upward_sea_water_velocity',
     }
 
     node_variables = [
@@ -74,6 +70,7 @@ class Reader(BaseReader, UnstructuredReader):
     face_variables = [
         'x_sea_water_velocity',
         'y_sea_water_velocity',
+        'upward_sea_water_velocity',
     ]
 
     dataset = None
@@ -156,9 +153,6 @@ class Reader(BaseReader, UnstructuredReader):
                 std_name = var.getncattr('standard_name')
                 std_name = self.variable_aliases.get(std_name, std_name)
                 self.variable_mapping[std_name] = str(var_name)
-            elif var_name in self.fvcom_mapping:
-                std_name = self.fvcom_mapping[var_name]
-                self.variable_mapping[std_name] = str(var_name)
 
         self.variables = list(self.variable_mapping.keys())
 
@@ -230,7 +224,7 @@ class Reader(BaseReader, UnstructuredReader):
         Relevant lookup-tables
         =============
 
-        cbe:        [3 x E]  elements surround each element
+        nbe:        [3 x E]  elements surround each element
         nbve:       [9 x N]  elements surrounding each node, minimum 3
         nbsn:       [11 x N] nodes surrounding each node
 
@@ -246,7 +240,8 @@ class Reader(BaseReader, UnstructuredReader):
         * salinity
 
         """
-        logger.debug("Requested variabels: %s" % requested_variables)
+        logger.debug("Requested variabels: %s, lengths: %d, %d, %d" %
+                     (requested_variables, len(x), len(y), len(z)))
 
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
@@ -254,8 +249,10 @@ class Reader(BaseReader, UnstructuredReader):
         requested_variables, time, x, y, z, outside = \
             self.check_arguments(requested_variables, time, x, y, z)
 
-        nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
-            self.nearest_time(time)
+        nearest_time, time_before, time_after, indx_nearest, indx_before, indx_after = self.nearest_time(
+            time)
+
+        logger.debug("Nearest time: %s" % nearest_time)
 
         node_variables = [
             var for var in requested_variables if var in self.node_variables
@@ -264,4 +261,131 @@ class Reader(BaseReader, UnstructuredReader):
             var for var in requested_variables if var in self.face_variables
         ]
 
+        assert (len(node_variables) + len(face_variables)
+                ) == len(requested_variables), "missing variables requested"
+
         variables = {}
+
+        if node_variables:
+            logger.debug("Interpolating node-variables..")
+
+            nodes = self._nearest_node_(x, y)
+            assert len(nodes) == len(x)
+
+            for var in node_variables:
+                dvar = self.variable_mapping.get(var)
+                logger.debug("Interpolating: %s (%s)" % (var, dvar))
+                dvar = self.dataset[dvar]
+
+                sigmas = self.__nearest_node_sigma__(dvar, nodes, z)
+                assert len(sigmas) == len(z)
+
+                # for some unfathomable reason netCDF4 uses different fancy-indexing than numpy.
+                indx_t = np.repeat(indx_nearest, len(sigmas))
+                variables[var] = np.array([ dvar[ti, si, ni] for ti, si, ni in zip(indx_t, sigmas, nodes) ])
+
+        if face_variables:
+            logger.debug("Interpolating face-variables..")
+
+            fcs = self._nearest_face_(x, y)
+            assert len(fcs) == len(x)
+
+            for var in face_variables:
+                dvar = self.variable_mapping.get(var)
+                logger.debug("Interpolating: %s (%s)" % (var, dvar))
+                dvar = self.dataset[dvar]
+
+                sigmas = self.__nearest_face_sigma__(dvar, fcs, z)
+                assert len(sigmas) == len(z)
+
+                # for some unfathomable reason netCDF4 uses different fancy-indexing than numpy.
+                #
+                # This is faster for local files, but it will probably trigger an opendap-request for each index, making it pretty useless.
+                # Alternative is to slice, then take diagonal:
+                # variables[var] = dvar[indx_nearest, sigmas, fcs].diagonal()
+
+                indx_t = np.repeat(indx_nearest, len(sigmas))
+                variables[var] = np.array([ dvar[ti, si, fi] for ti, si, fi in zip(indx_t, sigmas, fcs) ])
+
+
+        return variables
+
+    @staticmethod
+    def _vector_nearest_(X, xp):
+        """
+        Find nearest element in vector of vectors `X` for each `xp`.
+
+        Args:
+
+            X   NxM matrix of levels
+            xp  M   vector of positions
+
+        Returns:
+            i   M   vector of indices [0..N] of closest element in
+                    X[0..N, i] to xp[i]
+        """
+        xp = np.atleast_2d(xp)
+        return np.argmin(np.abs(X - xp), axis=0)
+
+    def __nearest_node_sigma__(self, var, nodes, z):
+        """
+        Find nearest depth at node (sigma layer or sigma level depending on where the variable is defined).
+        """
+        shp = var.shape
+
+        siglay = self.dataset['siglay']
+        siglev = self.dataset['siglev']
+
+        if shp[1] == siglay.shape[0]:
+            depths = siglay[:, nodes]
+        else:
+            depths = siglev[:, nodes]
+
+        return self._vector_nearest_(depths, z)
+
+    def __nearest_face_sigma__(self, var, el, z):
+        """
+        Find nearest depth at element (sigma layer or sigma level depending on where the variable is defined).
+        """
+        shp = var.shape
+
+        siglay = self.dataset['siglay_center']
+        siglev = self.dataset['siglev_center']
+
+        if shp[1] == siglay.shape[0]:
+            depths = siglay[:, el]
+        else:
+            depths = siglev[:, el]
+
+        return self._vector_nearest_(depths, z)
+
+    @staticmethod
+    def z(sigma, depth, elevation=0):
+        """
+        Calculate z-depth from sigma constant.
+
+        https://rdrr.io/github/edwardlavender/fvcom.tbx/src/R/depth_from_known.R
+
+        Args:
+
+            sigma       Sigma coefficient(s)
+            depth       Depth below mean sea-surface
+            elevation   Elevation of sea-surface (e.g. tidal)
+
+        Returns: z, depth below sea-surface in meters.
+        """
+        return sigma * (depth + elevation)
+
+    @staticmethod
+    def __make_interpolator__(idx: scipy.spatial.cKDTree, x, y, z):
+        """
+        - Find index of nearest point
+        - Find indices of surrounding points using connectivity matrix
+        - Add indices for grid above and below
+        - Create weighting using distance from point
+        """
+        logger.debug(
+            "Making interpolator for mesh with %d points of dimension %d for %d target points."
+            % (idx.n, idx.m, len(x)))
+        nrst = self._nearest_node_(idx, x, y)
+        return nrst
