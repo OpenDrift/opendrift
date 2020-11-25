@@ -20,7 +20,7 @@ class ContinuousReader(Variables):
                                             time,
                                             reader_x, reader_y, z)
 
-        self.logger.debug('Fetched env-before')
+        logger.debug('Fetched env-before')
         env_profiles = None
         if profiles is not None:
             # Copying data from environment to vertical profiles

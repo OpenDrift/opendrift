@@ -190,5 +190,5 @@ class UnstructuredReader(Variables):
         """
         Return nearest element or face (id) for xc and yc
         """
-        return self.__nearest_ckdtree__(self.faces_idx, x, y)
+        return self.__nearest_ckdtree__(self.faces_idx, xc, yc)
 
