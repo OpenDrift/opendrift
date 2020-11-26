@@ -1259,6 +1259,8 @@ class BaseReader(object):
             data = self.get_variables_derived(variable, self.start_time,
                                       rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
+            rx = np.float32(rx)
+            ry = np.float32(ry)
             rlon, rlat = self.xy2lonlat(rx, ry)
             data[variable] = np.ma.masked_invalid(data[variable])
             if hasattr(self, 'convolve'):
@@ -1322,7 +1324,6 @@ class BaseReader(object):
 
         for i, time in enumerate(times):
             closest_time = min(self.times, key=lambda d: abs(d - time))
-            print(time, closest_time, 'Time, Closest time')
             d = self.get_variables_interpolated(
                 lon=np.atleast_1d(lon[i]), lat=np.atleast_1d(lat[i]), z=np.atleast_1d(0),
                 time=closest_time, variables=variables, rotate_to_proj='+proj=latlong')[0]

@@ -179,13 +179,15 @@ class Reader(BaseReader):
             # is there a better way??
             if standard_name == 'longitude' or \
                     CoordinateAxisType == 'Lon' or \
-                    long_name.lower() == 'longitude':
+                    long_name.lower() == 'longitude' or \
+                    var_name == 'longitude':
                 var_data = var.values
                 self.lon = var_data
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
                     CoordinateAxisType == 'Lat' or \
-                    long_name.lower() == 'latitude':
+                    long_name.lower() == 'latitude' or \
+                    var_name == 'latitude':
                 var_data = var.values
                 self.lat = var_data
                 lat_var_name = var_name
@@ -311,6 +313,10 @@ class Reader(BaseReader):
                 self.lon = self.lon[:]
                 self.lat = self.lat[:]
                 self.projected = False
+            elif self.lon.ndim == 3:
+                self.logger.debug('lon lat are 3D arrays, reading first time')
+                self.lon = self.lon[0,:,:]
+                self.lat = self.lat[0,:,:]
 
         if hasattr(self, 'proj4') and 'latlong' in self.proj4 and hasattr(self, 'xmax') and self.xmax > 360:
             self.logger.info('Longitudes > 360 degrees, subtracting 360')
