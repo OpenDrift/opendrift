@@ -55,49 +55,27 @@ class PelagicEggDrift(OceanDrift):
 
     ElementType = PelagicEgg
 
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_ice_area_fraction',
-                          'x_wind', 'y_wind', 'land_binary_mask',
-                          'sea_floor_depth_below_sea_level',
-                          'ocean_vertical_diffusivity',
-                          'sea_water_temperature',
-                          'sea_water_salinity',
-                          'surface_downward_x_stress',
-                          'surface_downward_y_stress',
-                          'turbulent_kinetic_energy',
-                          'turbulent_generic_length_scale',
-                          'upward_sea_water_velocity'
-                          ]
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'sea_ice_area_fraction': {'fallback': 0},
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        'sea_floor_depth_below_sea_level': {'fallback': 100},
+        'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True},
+        'sea_water_temperature': {'fallback': 10, 'profiles': True},
+        'sea_water_salinity': {'fallback': 34, 'profiles': True},
+        'surface_downward_x_stress': {'fallback': 0},
+        'surface_downward_y_stress': {'fallback': 0},
+        'turbulent_kinetic_energy': {'fallback': 0},
+        'turbulent_generic_length_scale': {'fallback': 0},
+        'upward_sea_water_velocity': {'fallback': 0},
+      }
 
-    # Vertical profiles of the following parameters will be available in
-    # dictionary self.environment.vertical_profiles
-    # E.g. self.environment_profiles['x_sea_water_velocity']
-    # will be an array of size [vertical_levels, num_elements]
-    # The vertical levels are available as
-    # self.environment_profiles['z'] or
-    # self.environment_profiles['sigma'] 
-    required_profiles = ['sea_water_temperature',
-                         'sea_water_salinity',
-                         'ocean_vertical_diffusivity']
     # The depth range (in m) which profiles shall cover
     required_profiles_z_range = [-120, 0]
-
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_ice_area_fraction': 0,
-                       'x_wind': 0, 'y_wind': 0,
-                       'sea_floor_depth_below_sea_level': 100,
-                       'ocean_vertical_diffusivity': 0.02,  # m2s-1
-                       'sea_water_temperature': 10.,
-                       'sea_water_salinity': 34.,
-                       'surface_downward_x_stress': 0,
-                       'surface_downward_y_stress': 0,
-                       'turbulent_kinetic_energy': 0,
-                       'turbulent_generic_length_scale': 0,
-                       'upward_sea_water_velocity': 0
-                       }
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',

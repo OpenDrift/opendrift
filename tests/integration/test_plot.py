@@ -54,8 +54,8 @@ def test_plot(tmpdir):
     # Second run for comparison
     o2 = OceanDrift(loglevel=30)
     o2.add_reader(rn)
-    o2.fallback_values['x_wind'] = 15 # Adding wind 
-    o2.fallback_values['y_wind'] = 0
+    o2.set_config('environment:fallback:x_wind', 15) # Adding wind 
+    o2.set_config('environment:fallback:y_wind', 0)
     o2.seed_elements(lon=4.8, lat=60.0, number=10, radius=1000,
                     time=rn.start_time)
     o2.run(steps=5)

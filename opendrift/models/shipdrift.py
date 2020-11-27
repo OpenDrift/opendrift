@@ -37,15 +37,31 @@ class ShipObject(LagrangianArray):
                          'default': 1}),
         ('length', {'dtype': np.float32,
                          'units': 'm',
+                         'min': 1,
+                         'max': 500,
+            'description': 'Length of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 80}),
         ('height', {'dtype': np.float32,
                          'units': 'm',
-                         'default': 9}),
+                         'min': 1,
+                         'max': 100,
+            'description': 'Total height of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
+                         'default': 8}),
         ('draft', {'dtype': np.float32,  # wet part of ship [m]
                          'units': 'm',
+                         'min': 1,
+                         'max': 20,
+            'description': 'Draft of ship (depth below water)',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 4.0}),
         ('beam', {'dtype': np.float32,  # width of ship
+                         'min': 1,
+                         'max': 50,
                          'units': 'm',
+            'description': 'Beam (width) of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 10}),
         ('wind_drag_coeff', {'dtype': np.float32,  # Cf
                              'units': '1',
@@ -68,38 +84,20 @@ class ShipDrift(OpenDriftSimulation):
 
     ElementType = ShipObject 
 
-    required_variables = ['x_wind', 'y_wind', 'land_binary_mask',
-                          'x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_stokes_drift_x_velocity',
-                          'sea_surface_wave_stokes_drift_y_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
-                         ]
-
-    fallback_values = {'x_wind': 0,
-                       'y_wind': 0,
-                       'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_stokes_drift_x_velocity': 0,
-                       'sea_surface_wave_stokes_drift_y_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-                       }
+    required_variables = {
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0}
+        }
 
     max_speed = 2  # m/s
     winwav_angle = 20  # Angular offset in degrees
-
-    configspec = '''
-        [seed]
-            length = float(min=1, max=500, default=80)
-            height = float(min=1, max=50, default=12)
-            draft = float(min=1, max=20, default=4)
-            beam = float(min=1, max=30, default=10)
-        [drift]
-            current_uncertainty = float(min=0, max=5, default=0.05)
-            wind_uncertainty = float(min=0, max=5, default=.5)
-        '''
-
 
     def __init__(self, *args, **kwargs):
 
@@ -143,15 +141,22 @@ class ShipDrift(OpenDriftSimulation):
 
         super(ShipDrift, self).__init__(*args, **kwargs)
 
-        self._add_configstring(self.configspec)
+        self._add_config({'seed:orientation': {'type': 'enum',
+            'enum':['left', 'right', 'random'], 'default': 'random',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
+            'description': 'If ships are oriented to the left or right of the downwind direction, or whether this is unknown.'}})
 
+        self._set_config_default('drift:current_uncertainty', .05)
+        self._set_config_default('drift:wind_uncertainty', .5)
 
     def seed_elements(self, *args, **kwargs):
         
-        num = kwargs['number']
+        if 'number' in kwargs:
+            num = kwargs['number']
+        else:
+            num = self.get_config('seed:number')
         for var in ['length', 'height', 'draft', 'beam']:
             if var not in kwargs:
-                #kwargs[var] = self.ElementType.variables[var]['default']
                 kwargs[var] = self.get_config('seed:' + var)
             kwargs[var] = np.atleast_1d(kwargs[var])
             if len(kwargs[var] == 1):
@@ -189,7 +194,13 @@ class ShipDrift(OpenDriftSimulation):
         kwargs['water_drag_coeff'] = Cd
 
         if 'orientation' not in kwargs:
-            kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
+            oc = self.get_config('seed:orientation')
+            if oc == 'left':
+                kwargs['orientation'] = np.ones(num)*0
+            elif oc == 'right':
+                kwargs['orientation'] = np.ones(num)*1
+            else:
+                kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
 
         # Calling general constructor with calculated values
         super(ShipDrift, self).seed_elements(*args, **kwargs)

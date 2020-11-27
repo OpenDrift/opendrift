@@ -98,7 +98,8 @@ class BaseReader(object):
         'y_sea_ice_velocity': 'sea_ice_y_velocity',
         'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
         'barotropic_sea_water_y_velocity': 'sea_ice_y_velocity',
-        'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity'
+        'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity',
+        'sea_floor_depth_below_geoid' : 'sea_floor_depth_below_sea_level'
         }
 
     xy2eastnorth_mapping = {
@@ -333,7 +334,7 @@ class BaseReader(object):
 
     def get_variables_derived(self, variables, *args, **kwargs):
         """Wrapper around get_variables, adding derived"""
-        if isinstance(variables, basestring):
+        if isinstance(variables, str):
             variables = [variables]
         if not isinstance(variables, list):
             variables = list(variables)
@@ -635,7 +636,7 @@ class BaseReader(object):
             # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
-                self.logger.info('Interpolating profiles in time')
+                self.logger.debug('Interpolating profiles in time')
                 # Truncating layers not present both before and after
                 numlayers = np.minimum(len(env_profiles_before['z']),
                                        len(env_profiles_after['z']))
@@ -978,7 +979,7 @@ class BaseReader(object):
             time = self.start_time  # Use first timestep, if not given
 
         # Convert variables to list and x,y to ndarrays
-        if isinstance(variables, basestring):
+        if isinstance(variables, str):
             variables = [variables]
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
@@ -1264,6 +1265,8 @@ class BaseReader(object):
             data = self.get_variables_derived(variable, self.start_time,
                                       rx, ry, block=True)
             rx, ry = np.meshgrid(data['x'], data['y'])
+            rx = np.float32(rx)
+            ry = np.float32(ry)
             rlon, rlat = self.xy2lonlat(rx, ry)
             data[variable] = np.ma.masked_invalid(data[variable])
             if hasattr(self, 'convolve'):
@@ -1327,7 +1330,6 @@ class BaseReader(object):
 
         for i, time in enumerate(times):
             closest_time = min(self.times, key=lambda d: abs(d - time))
-            print(time, closest_time, 'Time, Closest time')
             d = self.get_variables_interpolated(
                 lon=np.atleast_1d(lon[i]), lat=np.atleast_1d(lat[i]), z=np.atleast_1d(0),
                 time=closest_time, variables=variables, rotate_to_proj='+proj=latlong')[0]

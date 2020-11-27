@@ -115,7 +115,7 @@ workflows:
       # This first job is for opendrift, Python 3
       - docker-publish/publish:
           image: opendrift/opendrift
-          dockerfile: docker/Dockerfile
+          dockerfile: Dockerfile
           deploy: false
           tag: latest
           filters:
@@ -144,7 +144,7 @@ workflows:
 
       - docker-publish/publish:
           image: opendrift/opendrift
-          dockerfile: docker/Dockerfile
+          dockerfile: Dockerfile
           tag: latest
           filters:
             branches:

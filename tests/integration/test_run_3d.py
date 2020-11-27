@@ -46,8 +46,8 @@ class TestRun(unittest.TestCase):
         reader_nordic.zlevels = reader_arctic.z
         ######################################################
         o.add_reader([reader_nordic, reader_arctic])
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['x_wind'] = 10  # Some wind for mixing
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 10)  # Some wind for mixing
         # Seed close to Nordic boundary
         o.seed_elements(lon=14.9, lat=71.1, radius=2000, number=100,
                         time=reader_nordic.start_time, z=0)
@@ -72,7 +72,7 @@ class TestRun(unittest.TestCase):
     #    reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
     #    reader_nordic = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/nordic4km-1h/Nordic-4km_SURF_1h_avg_00.nc')
     #    o.add_reader([reader_norkyst, reader_nordic])
-    #    o.fallback_values['land_binary_mask'] = 0
+    #    o.set_config('environment:fallback:land_binary_mask', 0)
     #    lon = 0.2; lat = 61.0; # Close to NorKyst boundary
     #    time = reader_nordic.start_time
     #    o.seed_elements(lon, lat, radius=5000, number=100, time=time, z=0)

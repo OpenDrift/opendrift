@@ -5,7 +5,6 @@ python:
   - 3.8
 
 env:
-  - NUMPY=1.19 SCIPY=1.5 NETCDF=1.5 MATPLOTLIB=3.3 XARRAY=0.16
   - NUMPY=1.19 SCIPY=1.5 NETCDF=1.5 MATPLOTLIB=3.3
   - VANILLA=1
 
@@ -16,35 +15,29 @@ matrix:
   fast_finish: true
 
 before_install:
-  - export DOCKERFILE="Dockerfile" CACHE_FROM="opendrift/opendrift:latest"
+  - export CACHE_FROM="opendrift/opendrift:latest"
 
 install:
   - pip install pyyaml coveralls
-  - cd docker
-  - docker build --pull --cache-from ${CACHE_FROM} -t opendrift:${TRAVIS_COMMIT} --file ${DOCKERFILE} ..
-  - cd ..
+  - docker build --pull --cache-from ${CACHE_FROM} -t opendrift:${TRAVIS_COMMIT} .
 
 script:
   - docker run -itd --name="opendrift_${TRAVIS_COMMIT}" opendrift:${TRAVIS_COMMIT}
 
   - if [ -n "$VANILLA" ]; then
-      docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB}"; fi
-
-  - if [ -z "$VANILLA" ] && [ -n "$XARRAY" ]; then
-      docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge xarray=$XARRAY dask";
-    fi
+      docker exec "opendrift_${TRAVIS_COMMIT}" conda install -q --yes -c conda-forge numpy=${NUMPY} scipy=${SCIPY} netcdf4=${NETCDF} matplotlib=${MATPLOTLIB}; fi
 
   # Python 3 versions
   - if [ $TRAVIS_PYTHON_VERSION == 3.7 ]; then
-      docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge python=3.7";
+      docker exec "opendrift_${TRAVIS_COMMIT}" conda install -q --yes -c conda-forge python=3.7;
     fi
 
   - if [ $TRAVIS_PYTHON_VERSION == 3.8 ]; then
-      docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda install -q --yes -c conda-forge python=3.8";
+      docker exec "opendrift_${TRAVIS_COMMIT}" conda install -q --yes -c conda-forge python=3.8;
     fi
 
-  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && conda list"
-  - docker exec "opendrift_${TRAVIS_COMMIT}" bash -c ". ~/.bashrc && pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=10 --benchmark-disable -v -s --log-cli-level=info"
+  - docker exec "opendrift_${TRAVIS_COMMIT}" conda list
+  - docker exec "opendrift_${TRAVIS_COMMIT}" pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=10 --benchmark-disable -v -s --log-cli-level=info
 
 after_success:
   - docker cp "opendrift_${TRAVIS_COMMIT}":/code/.coverage .

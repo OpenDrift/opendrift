@@ -11,10 +11,10 @@ from opendrift.models.openoil import OpenOil
 o = OpenOil(loglevel=20, weathering_model='noaa')
 
 # Using constand wind and current
-#o.fallback_values['x_wind'] = 7
-#o.fallback_values['x_sea_water_velocity'] = .7
-#o.fallback_values['y_sea_water_velocity'] = .3
-#o.fallback_values['land_binary_mask'] = 0
+#o.set_config('environment:fallback:x_wind', 7)
+#o.set_config('environment:fallback:x_sea_water_velocity', .7)
+#o.set_config('environment:fallback:y_sea_water_velocity', .3)
+#o.set_config('environment:fallback:land_binary_mask', 0)
 
 # Arome atmospheric model
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
@@ -35,7 +35,6 @@ o.set_config('processes:dispersion', False)
 o.set_config('processes:evaporation', True)
 o.set_config('processes:emulsification', True)
 o.set_config('drift:vertical_mixing', True)
-o.set_config('vertical_mixing:timestep', 2)
 
 #%%
 # Running model

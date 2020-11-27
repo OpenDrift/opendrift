@@ -72,15 +72,35 @@ class TestModels(unittest.TestCase):
             'y_wind': -14.14213562,
             'x_sea_water_velocity': 0.05656854249,
             'y_sea_water_velocity': -0.05656854249})
-        s.fallback_values['land_binary_mask'] = 0
+        s.set_config('environment:fallback:land_binary_mask', 0)
         s.add_reader(c)
-        s.seed_elements(lon=2, lat=60, time=datetime.now(), number=1,
+        s.list_configspec('seed')
+        s.set_config('seed:orientation', 'left')
+        s.seed_elements(lon=2, lat=60, time=datetime.now(), number=3,
                         length=80, beam=14, height=25, draft=5)
         s.run(time_step=600, duration=timedelta(hours=4))
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            s.elements.lon, 2.252, 2))
+            s.elements.lon, 2.252, 3))
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            s.elements.lat, 59.876, 2))
+            s.elements.lat, 59.876, 3))
+
+    def test_shipdrift_defaults(self):
+        s = ShipDrift(loglevel=0)
+        #s.list_configspec()
+        s.set_config('environment:fallback:land_binary_mask', 0)
+        c = reader_constant.Reader({
+            'sea_surface_wave_significant_height': 5,
+            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 11,
+            'x_wind': 14.14213562,
+            'y_wind': -14.14213562,
+            'x_sea_water_velocity': 0.05656854249,
+            'y_sea_water_velocity': -0.05656854249})
+        s.add_reader(c)
+        s.set_config('seed:height', 14)
+        s.seed_elements(lon=2, lat=60, time=datetime.now(), number=1)
+        s.run(duration=timedelta(hours=4))
+        #self.assertAlmostEqual(s.elements.lon.max(), 2.1273, 3)  # Without setting config
+        self.assertAlmostEqual(s.elements.lon.max(), 2.1990, 3)
 
     def test_shipdrift_backwards(self):
         """Case above, reversed"""
@@ -92,7 +112,7 @@ class TestModels(unittest.TestCase):
             'y_wind': -14.14213562,
             'x_sea_water_velocity': 0.05656854249,
             'y_sea_water_velocity': -0.05656854249})
-        s.fallback_values['land_binary_mask'] = 0
+        s.set_config('environment:fallback:land_binary_mask', 0)
         s.add_reader(c)
         s.seed_elements(lon=2.25267706, lat=59.87694775,
                         time=datetime.now(), number=1,
@@ -106,17 +126,18 @@ class TestModels(unittest.TestCase):
     def test_wind_drift_shear(self):
         """Testing PlastDrift model, with wind-induced current shear"""
         o = PlastDrift(loglevel=30)
-        o.fallback_values['x_wind'] = 10
-        o.fallback_values['y_wind'] = 0
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:x_wind',  10)
+        o.set_config('environment:fallback:y_wind', 0)
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lat=60, lon=5, time=datetime.now(),
                         number=3,
                         z = np.array([0, -0.05, -.1]))
         o.run(duration=timedelta(hours=10))
         self.assertIsNone(np.testing.assert_array_almost_equal(
                             o.elements.lon,
-                          [5.013484,5.03395595,5.01149002]))
-        self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2])
+                          [5.011935,5.01738,5.011235]))
+                          #[5.013484,5.03395595,5.01149002]))  # With old seed_elements
+        self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2], 3)
 
     def test_openberg(self):
         """Check if weighting array is set correctly
@@ -147,38 +168,36 @@ class TestModels(unittest.TestCase):
         """ Testing ice-in-oil transport with 
         different values of sea ice concentration as defined by Nordam et al. 2019"""
         
+        c = [0.2, 0.5, 0.8]
+        lon = 24; lat = 81
+
         # Distances calculated with fallback_values and Nordam's equation
         distances = {'0.2':21.2914, '0.5':15.1405, '0.8':7.2}
 
         geod = pyproj.Geod(ellps='WGS84')
 
-        o = OpenOil(loglevel=50)
-
-        lon = 24; lat = 81
-
-        o.fallback_values['x_wind'] = 0  # zonal wind 
-        o.fallback_values['y_wind'] = 4  # meridional wind
-
-        o.fallback_values['x_sea_water_velocity'] = 0  # eastward current
-        o.fallback_values['y_sea_water_velocity'] = .4  # meridional current
-
-        o.fallback_values['sea_ice_x_velocity'] = 0  # zonal ice velocity
-        o.fallback_values['sea_ice_y_velocity'] = .2  # meridional ice velocity
-
-        o.fallback_values['sea_surface_wave_stokes_drift_y_velocity'] = 0.1 # meridional Stokes drif
-
-        o.set_config('processes:dispersion',  False)
-        o.set_config('processes:evaporation',  False)
-        o.set_config('processes:emulsification',  False)
-        o.set_config('drift:stokes_drift',  True)
-        o.set_config('processes:update_oilfilm_thickness',  False)
-        o.set_config('drift:current_uncertainty',  0)
-        o.set_config('drift:wind_uncertainty',  0)
-
-        c = [0.2, 0.5, 0.8]
-
         for i in c: 
-            o.fallback_values['sea_ice_area_fraction'] = i
+            o = OpenOil(loglevel=50)
+            o.set_config('environment:fallback:x_wind', 0)  # zonal wind 
+            o.set_config('environment:fallback:y_wind', 4)  # meridional wind
+
+            o.set_config('environment:fallback:x_sea_water_velocity', 0)  # eastward current
+            o.set_config('environment:fallback:y_sea_water_velocity', .4)  # meridional current
+
+            o.set_config('environment:fallback:sea_ice_x_velocity', 0)  # zonal ice velocity
+            o.set_config('environment:fallback:sea_ice_y_velocity', .2)  # meridional ice velocity
+
+            o.set_config('environment:fallback:sea_surface_wave_stokes_drift_y_velocity', 0.1) # meridional Stokes drif
+
+            o.set_config('processes:dispersion',  False)
+            o.set_config('processes:evaporation',  False)
+            o.set_config('processes:emulsification',  False)
+            o.set_config('drift:stokes_drift',  True)
+            o.set_config('processes:update_oilfilm_thickness',  False)
+            o.set_config('drift:current_uncertainty',  0)
+            o.set_config('drift:wind_uncertainty',  0)
+
+            o.set_config('environment:fallback:sea_ice_area_fraction', i)
 
             o.seed_elements(lon, lat, radius=1, number=10, time=datetime.now(), wind_drift_factor=0.03)
 

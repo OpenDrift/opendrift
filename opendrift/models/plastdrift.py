@@ -25,6 +25,8 @@ PassiveTracer.variables = PassiveTracer.add_variables([
                            'default': 0.02}),
     ('terminal_velocity', {'dtype': np.float32,
                            'units': 'm/s',
+                           'level': OceanDrift.CONFIG_LEVEL_ESSENTIAL,
+        'description': 'Positive value means rising particles (positive buoyancy)',
                            'default': 0.01})])
 
 
@@ -40,40 +42,19 @@ class PlastDrift(OceanDrift):
 
     ElementType = PassiveTracer
 
-    required_variables = [
-        'x_sea_water_velocity', 'y_sea_water_velocity',
-        'sea_surface_wave_stokes_drift_x_velocity',
-        'sea_surface_wave_stokes_drift_y_velocity',
-        'sea_surface_wave_significant_height',
-        'x_wind', 'y_wind',
-        'ocean_vertical_diffusivity',
-        'sea_floor_depth_below_sea_level']
-    required_variables.append('land_binary_mask')
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True},
+        'sea_floor_depth_below_sea_level': {'fallback': 10000},
+        'land_binary_mask': {'fallback': None},
+        }
 
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_stokes_drift_x_velocity': 0,
-                       'sea_surface_wave_stokes_drift_y_velocity': 0,
-                       'x_wind': 0,
-                       'y_wind': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'ocean_vertical_diffusivity': .02,
-                       'sea_floor_depth_below_sea_level': 10000}
-
-    required_profiles = ['ocean_vertical_diffusivity']
-
-
-    configspecPlastDrift = '''
-        [general]
-            coastline_action = option('none', 'stranding', 'previous', default='previous')
-        [drift]
-            vertical_advection = boolean(default=True)
-            use_tabularised_stokes_drift = boolean(default=True)
-            wind_drift_depth = float(min=0, max=10, default=0.1)
-        [vertical_mixing]
-            mixingmodel = option('randomwalk', 'analytical', default='analytical')
-            diffusivitymodel = option('environment', 'stepfunction', 'windspeed_Sundby1983', 'windspeed_Large1994', 'gls_tke', default='windspeed_Large1994')
-        '''
 
     def __init__(self, *args, **kwargs):
 
@@ -81,8 +62,18 @@ class PlastDrift(OceanDrift):
         super(PlastDrift, self).__init__(*args, **kwargs)
 
         # Add specific config settings
-        self._add_configstring(self.configspecPlastDrift)
-
+        self._add_config({
+            # TODO: this option should be moved to OceanDrift
+            'vertical_mixing:mixingmodel': {'type': 'enum',
+                'enum': ['randomwalk', 'analytical'], 'default': 'analytical',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                    'Scheme to be used for vertical turbulent mixing'},
+            })
+    
+        self._set_config_default('drift:vertical_advection', True)
+        self._set_config_default('drift:use_tabularised_stokes_drift', True)
+        self._set_config_default('general:coastline_action', 'previous')
+        self._set_config_default('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 
     def update(self):
         """Update positions and properties of elements."""

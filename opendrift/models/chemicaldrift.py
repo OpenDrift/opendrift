@@ -15,7 +15,7 @@
 # Copyright 2020, Knut-Frode Dagestad, MET Norway
 
 """
-SedimentDrift is an OpenDrift module for drift and settling of sediments.
+ChemicalDrift is an OpenDrift module for drift and settling of chemicals.
 Based on work by Simon Weppe, MetOcean Solutions Ltd.
 """
 
@@ -23,7 +23,7 @@ import numpy as np
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
 
-class SedimentElement(Lagrangian3DArray):
+class ChemicalElement(Lagrangian3DArray):
     variables = Lagrangian3DArray.add_variables([
         ('settled', {'dtype': np.int16,  # 0 is active, 1 is settled
                      'units': '1',
@@ -34,11 +34,11 @@ class SedimentElement(Lagrangian3DArray):
         ])
 
 
-class SedimentDrift(OceanDrift):
-    """Model for sediment drift, under development
+class ChemicalDrift(OceanDrift):
+    """Model for chemical drift, under development
     """
 
-    ElementType = SedimentElement
+    ElementType = ChemicalElement
 
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
@@ -52,24 +52,24 @@ class SedimentDrift(OceanDrift):
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
         'ocean_vertical_diffusivity': {'fallback': 0.02},
-        'sea_floor_depth_below_sea_level': {'fallback': 0},
+        'sea_floor_depth_below_sea_level': {'fallback': 10000},
         }
 
     def __init__(self, *args, **kwargs):
-        """ Constructor of SedimentDrift module
+        """ Constructor of ChemicalDrift module
         """
 
-        super(SedimentDrift, self).__init__(*args, **kwargs)
+        super(ChemicalDrift, self).__init__(*args, **kwargs)
 
-        # By default, sediments do not strand towards coastline
+        # By default, chemicals do not strand towards coastline
         # TODO: A more sophisticated stranding algorithm is needed
-        self._set_config_default('general:coastline_action', 'previous')
+        self.set_config('general:coastline_action', 'previous')
 
         # Vertical mixing is enabled as default
-        self._set_config_default('drift:vertical_mixing', True)
+        self.set_config('drift:vertical_mixing', True)
 
     def update(self):
-        """Update positions and properties of sediment particles.
+        """Update positions and properties of chemical particles.
         """
 
         # Advecting here all elements, but want to soon add 

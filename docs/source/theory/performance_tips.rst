@@ -12,15 +12,10 @@ We hope to parallelise OpenDrift in the near future, to improve performance on m
   * limit the number of variables saved to disk (and stored in memory) by providing a list of needed variables as the list ``export_variables`` when calling run()
 
 * Reading data from local files is faster than from remote servers, e.g. Thredds, although the latter is very convenient.
-* For the 3D models, vertical mixing takes considerable time. If not needed, this can be switched off by setting  ``o.config['processes']['turbulentmixing'] = False``
+* For the 3D models, vertical mixing takes considerable time. If not needed, this can be switched off by setting  ``o.set_config('processes:vertical_mixing', False)``
 
   * An upper limit may be given to the number of iterations per outer timestep, as illustrated in example_long_verticalmixing.py.
-  * The mixing can also be significantly speeded up by using constant TS-profiles during the iterations, by specifying ``o.config['turbulentmixing']['TSprofiles'] = False`` (which is default)
-  * The mixing may also be speeded up by setting a larger vertical resolution, which further allows for a larger time step (order dz^2).
-
-    * mixing vertical resolution can be adjusted by ``o.config['turbulentmixing']['verticalresolution'] = 2 # meters``
-    * mixing time step can be adjusted by ``o.config['turbulentmixing']['timestep'] = 4  # seconds``
-    * The time step should be small enough to avoid debug-warnings like ``WARNING! some elements have p+q>1`` A vertical resolution of 2 m seems to allow for a time step of ~4 seconds.
+  * The mixing can also be significantly speeded up by using constant TS-profiles during the iterations, by specifying ``o.set_config('vertical_mixing:TSprofiles', False)`` (which is default)
 * Quasi-parallelisation can be done by splitting the initial elements up in geographical sub-regions, and running simulations in parallel for each subset.
 
 

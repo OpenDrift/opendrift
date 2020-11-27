@@ -11,19 +11,23 @@ dependencies:
   - netcdf4
   - ffmpeg
   - pyproj>=2.3
-  - configobj
   - libgdal>=3.1
   - gdal>=3.1
+  - xarray
+  - dask
+  - xhistogram
   - requests
   - pytest
   - pytest-cov
   - pytest-benchmark
   - cartopy
   - nc-time-axis
+  - geojson
   - opendrift-landmask-data
   - oil_library-opendrift
   - pygrib
   - isodate
+  - coloredlogs
   - pip
   - xarray
   - dask
