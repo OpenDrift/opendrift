@@ -10,44 +10,33 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with OpenDrift.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+
+########################################################################
+# Specific reader_ROMS_native for Moana data
+# https://www.moanaproject.org/
+# http://thredds.moanaproject.org:8080/thredds/catalog/moana/ocean/NZB/v1.9/raw_3D/catalog.html
+# 
+# same as reader_ROMS_native.py but handles longitude >180, and has some sligtly different variables
+# name mapping
+# 
+# updated 27/11/2020 to reflect changes in "official reader_ROMS_native.py"
+# 
+# Developed by S.Weppe MetOcean Solutions / MetServices NZ
+########################################################################
 
 from bisect import bisect_left, bisect_right
 from datetime import datetime
 
 import numpy as np
-from netCDF4 import Dataset, MFDataset, num2date
-try:
-    import xarray as xr
-    has_xarray = True
-except:
-    has_xarray = False
-#has_xarray = False  # Temporary disabled
+from netCDF4 import num2date
+import xarray as xr
 
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers.roppy import depth
 
-from opendrift.readers.interpolation import ReaderBlock
-
-##########################################################################
-# Needed to be copied from basereader.py
-# Some valid (but extreme) ranges for checking that values are reasonable
-standard_names = {
-    'x_wind': {'valid_min': -50, 'valid_max': 50},
-    'y_wind': {'valid_min': -50, 'valid_max': 50},
-    'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10},
-    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10}}
-
-# Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
-vector_pairs_xy = [
-    ['x_wind', 'y_wind'],
-    ['x_sea_water_velocity', 'y_sea_water_velocity'],
-    ['sea_surface_wave_stokes_drift_x_velocity',
-     'sea_surface_wave_stokes_drift_y_velocity']
-    ]
-##########################################################################
 
 class Reader(BaseReader):
 
@@ -68,6 +57,8 @@ class Reader(BaseReader):
             'v_northward' : 'y_sea_water_velocity',
             'u': 'x_sea_water_velocity',
             'v': 'y_sea_water_velocity',
+            'u_eastward': 'x_sea_water_velocity',
+            'v_northward': 'y_sea_water_velocity',
             'w': 'upward_sea_water_velocity',
             'temp': 'sea_water_temperature',
             'salt': 'sea_water_salinity',
@@ -111,21 +102,26 @@ class Reader(BaseReader):
                     self.logger.debug('Dropping variables: %s' % dropvars)
                     ds = ds.drop(dropvars)
                     return ds
-                if has_xarray is True:
-                    self.Dataset = xr.open_mfdataset(filename,
-                        chunks={'ocean_time': 1}, concat_dim='ocean_time',
-                        preprocess=drop_non_essential_vars_pop,
-                        data_vars='minimal', coords='minimal')
-                else:
-                    self.Dataset = MFDataset(filename)
+                self.Dataset = xr.open_mfdataset(filename,
+                    chunks={'ocean_time': 1}, concat_dim='ocean_time',
+                    combine='by_coords',
+                    compat='override',
+                    decode_times=False,
+                    preprocess=drop_non_essential_vars_pop,
+                    data_vars='minimal', coords='minimal')
             else:
                 self.logger.info('Opening file with Dataset')
-                if has_xarray is True:
-                    self.Dataset = xr.open_dataset(filename)
-                else:
-                    self.Dataset = Dataset(filename, 'r')
+                self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)
+
+
+        if 'Vtransform' in self.Dataset.variables:
+            self.Vtransform = self.Dataset.variables['Vtransform'].data  # scalar
+        else:
+            self.logger.warning('Vtransform not found, using 1')
+            self.Vtransform = 1
+        self.Vtransform = np.asarray(self.Vtransform)
 
         if 's_rho' not in self.Dataset.variables:
             dimensions = 2
@@ -152,16 +148,17 @@ class Reader(BaseReader):
             try:
                 self.hc = self.Dataset.variables['hc'][:]
             except:
-                if has_xarray is True:
-                    self.hc = self.Dataset.variables['hc'].data  # scalar
-                else:
-                    self.hc = self.Dataset.variables['hc'][0]
+                self.hc = self.Dataset.variables['hc'].data  # scalar
 
             self.num_layers = len(self.sigma)
         else:
             self.num_layers = 1
             self.ROMS_variable_mapping['ubar'] = 'x_sea_water_velocity'
             self.ROMS_variable_mapping['vbar'] = 'y_sea_water_velocity'
+            del self.ROMS_variable_mapping['u']
+            del self.ROMS_variable_mapping['v']
+
+        if 'u_eastward' in self.Dataset.variables:
             del self.ROMS_variable_mapping['u']
             del self.ROMS_variable_mapping['v']
 
@@ -190,7 +187,7 @@ class Reader(BaseReader):
             self.has_lon_0_360 = True
         else:
             self.has_lon_0_360 = False
-        #####################################################   
+        ##########################################################################################################
 
         try:  # Check for GLS parameters (diffusivity)
             self.gls_parameters = {}
@@ -207,18 +204,12 @@ class Reader(BaseReader):
             ocean_time = self.Dataset.variables['ocean_time']
         except:
             ocean_time = self.Dataset.variables['time']
-        if has_xarray:
-            self.times = [datetime.utcfromtimestamp((OT -
-                          np.datetime64('1970-01-01T00:00:00Z')
-                            ) / np.timedelta64(1, 's'))
-                          for OT in ocean_time.data]
-        else:
-            time_units = ocean_time.__dict__['units']
-            if time_units == 'second':
-                self.logger.info('Ocean time given as seconds relative to start '
-                             'Setting artifical start time of 1 Jan 2000.')
-                time_units = 'seconds since 2000-01-01 00:00:00'
-            self.times = num2date(ocean_time[:], time_units)
+        time_units = ocean_time.attrs['units']
+        if time_units == 'second':
+            self.logger.info('Ocean time given as seconds relative to start '
+                         'Setting artifical start time of 1 Jan 2000.')
+            time_units = 'seconds since 2000-01-01 00:00:00'
+        self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
         if len(self.times) > 1:
@@ -231,15 +222,11 @@ class Reader(BaseReader):
         self.delta_x = 1.
         self.ymin = 0.
         self.delta_y = 1.
-        if has_xarray:
-            self.xmax = self.Dataset['xi_rho'].shape[0] - 1.
-            self.ymax = self.Dataset['eta_rho'].shape[0] - 1.
-            self.lon = self.lon.data  # Extract, could be avoided downstream
-            self.lat = self.lat.data
-            self.sigma = self.sigma.data
-        else:
-            self.xmax = np.float(len(self.Dataset.dimensions['xi_rho'])) - 1
-            self.ymax = np.float(len(self.Dataset.dimensions['eta_rho'])) - 1
+        self.xmax = self.Dataset['xi_rho'].shape[0] - 1.
+        self.ymax = self.Dataset['eta_rho'].shape[0] - 1.
+        self.lon = self.lon.data  # Extract, could be avoided downstream
+        self.lat = self.lat.data
+        self.sigma = self.sigma.data
 
         self.name = 'roms native'
 
@@ -254,7 +241,6 @@ class Reader(BaseReader):
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
-
 
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader.
@@ -297,6 +283,7 @@ class Reader(BaseReader):
         except:
             return indices, x, y
 
+
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False):
 
@@ -334,6 +321,7 @@ class Reader(BaseReader):
         else:
             indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped # original code
         ##########################################################################################################
+        # indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
         indx[outside] = 0  # To be masked later
         indy[outside] = 0
@@ -362,14 +350,12 @@ class Reader(BaseReader):
                     self.Dataset.variables['h'][:]
 
                 Htot = self.sea_floor_depth_below_sea_level
-                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,Vtransform = np.asarray(self.Dataset['Vtransform']) )
+                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,
+                                              Vtransform=self.Vtransform)
 
-            if has_xarray is False:
-                indxgrid, indygrid = np.meshgrid(indx, indy)
-                H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
-            else:
-                H = self.sea_floor_depth_below_sea_level[indy, indx]
-            z_rho = depth.sdepth(H, self.hc, self.Cs_r,Vtransform = np.asarray(self.Dataset['Vtransform']) )
+            H = self.sea_floor_depth_below_sea_level[indy, indx]
+            z_rho = depth.sdepth(H, self.hc, self.Cs_r,
+                                 Vtransform=self.Vtransform)
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
             indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
@@ -399,12 +385,6 @@ class Reader(BaseReader):
         for par in requested_variables:
             varname = [name for name, cf in
                        self.ROMS_variable_mapping.items() if cf == par]
-            # make sure the mapped variable names are actually in the dataset
-            # some variable may have different name in different file version
-            # e.g. u or u_eastward for 'x_sea_water_velocity'
-            if len(varname)>1:
-                varname = list(set(varname).intersection(self.Dataset.variables))
-            # load the variable    
             var = self.Dataset.variables[varname[0]]
 
             if par == 'land_binary_mask':
@@ -412,11 +392,7 @@ class Reader(BaseReader):
                     # Read landmask for whole domain, for later re-use
                     self.land_binary_mask = \
                         1 - self.Dataset.variables['mask_rho'][:]
-                if has_xarray is False:
-                    indxgrid, indygrid = np.meshgrid(indx, indy)
-                    variables[par] = self.land_binary_mask[indygrid, indxgrid]
-                else:
-                    variables[par] = self.land_binary_mask[indy, indx]
+                variables[par] = self.land_binary_mask[indy, indx]
             elif var.ndim == 2:
                 variables[par] = var[indy, indx]
             elif var.ndim == 3:
@@ -431,11 +407,8 @@ class Reader(BaseReader):
             start = datetime.now()
 
             if par not in mask_values:
-                if has_xarray is False:
-                    indxgrid, indygrid = np.meshgrid(indx, indy)
-                else:
-                    indxgrid = indx
-                    indygrid = indy
+                indxgrid = indx
+                indygrid = indy
                 if par == 'x_sea_water_velocity':
                     if not hasattr(self, 'mask_u'):
                         if 'mask_u' in self.Dataset.variables:
@@ -455,8 +428,7 @@ class Reader(BaseReader):
                         # For ROMS-Agrif this must perhaps be mask_psi?
                         self.mask_rho = self.Dataset.variables['mask_rho'][:]
                     mask = self.mask_rho[indygrid, indxgrid]
-                if has_xarray is True:
-                    mask = np.asarray(mask)
+                mask = np.asarray(mask)
                 if mask.min() == 0 and par != 'land_binary_mask':
                     first_mask_point = np.where(mask.ravel()==0)[0][0]
                     if variables[par].ndim == 3:
@@ -607,10 +579,8 @@ class Reader(BaseReader):
             if not hasattr(self, 'angle_xi_east'):
                 self.logger.debug('Reading angle between xi and east...')
                 self.angle_xi_east = self.Dataset.variables['angle'][:]
-            if has_xarray is False:
-                rad = self.angle_xi_east[tuple(np.meshgrid(indy, indx))].T
-            else:
-                rad = self.angle_xi_east[indy, indx].values # need to extract actual values for rotate_vectors_angle to work
+            rad = self.angle_xi_east[indy, indx]
+            rad = np.ma.asarray(rad)
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(
@@ -634,7 +604,6 @@ class Reader(BaseReader):
         self.logger.debug('Time for ROMS native reader: ' + str(datetime.now()-start_time))
 
         return variables
-
 
     def get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
@@ -947,5 +916,3 @@ def rotate_vectors_angle(u, v, radians):
     u2 = u*np.cos(radians) - v*np.sin(radians)
     v2 = u*np.sin(radians) + v*np.cos(radians)
     return u2, v2
-
-
