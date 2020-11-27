@@ -30,13 +30,13 @@ nordic_native = reader_ROMS_native.Reader(o.test_data_folder() +
 o.add_reader(nordic_native)
 
 # default values for forcing variables
-o.fallback_values['x_sea_water_velocity'] = 0 #m/s
-o.fallback_values['y_sea_water_velocity'] = 0 #m/s 
-o.fallback_values['x_wind'] = 0 #m/s
-o.fallback_values['y_wind'] = 0 #m/s
-o.fallback_values['sea_water_temperature'] = 12.0 # degrees Celsius
-o.fallback_values['sea_water_salinity'] = 35.0    # ppt
-o.fallback_values['ocean_vertical_diffusivity'] = 0.001 # m2/s
+o.set_config('environment:fallback:x_sea_water_velocity', 0) #m/s 
+o.set_config('environment:fallback:y_sea_water_velocity', 0) #m/s 
+o.set_config('environment:fallback:x_wind', 0 )#m/s
+o.set_config('environment:fallback:y_wind', 0) #m/s
+o.set_config('environment:fallback:sea_water_temperature', 12.0 )# degrees Celsius
+o.set_config('environment:fallback:sea_water_salinity', 35.0 )   # ppt
+o.set_config('environment:fallback:ocean_vertical_diffusivity', 0.001) # m2/s
 ####################################################################################################################
 
 ####################################################################################################################
@@ -68,7 +68,7 @@ if True:
     o.set_config('biology:min_settlement_age_seconds', 5*24*3600.0)  #'float(min=0.0, max=100.0, default=0.0)', comment='Minimum age before beaching can occur, in seconds')
     o.set_config('biology:vertical_position_daytime', -5.0)#'float(min=-1000.0, max=0.0, default=-5.0)',   comment='the depth a species is expected to inhabit during the day time, in meters, negative down') #
     o.set_config('biology:vertical_position_nighttime', -1.0) #'float(min=-1000.0, max=0.0, default=-1.0)', comment='the depth a species is expected to inhabit during the night time, in meters, negative down') #
-    o.set_config('biology:vertical_migration_speed_constant',1e-4) #'float(min=0.0, max=1e-3, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
+    o.set_config('biology:vertical_migration_speed_constant',1e-4) #'float(min=0.0, max=1e-3, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity_pelagicegg()') #
     o.set_config('biology:temperature_min', 5.0)#'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
     o.set_config('biology:temperature_max', 25.0)#'float(min=0.0, max=100.0, default=None)', comment=' upper threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
     o.set_config('biology:temperature_tolerance', 1.0)#'float(min=0.0, max=1.0, default=1.0)', comment=' temperature tolerance before dying in degrees Celsius') #
@@ -76,10 +76,11 @@ if True:
     o.set_config('biology:salinity_max', 39.0)#'float(min=0.0, max=100.0, default=None)', comment=' upper threshold salinity where a species population quickly declines to extinction in ppt') #
     o.set_config('biology:salinity_tolerance',1.0)#'float(min=0.0, max=1.0, default=1.0)', comment=' salinity tolerance before dying in ppt') #
 
-    # to switch off the constant migration rate towards day or night time position
+    # to switch off the constant migration rate towards day or night time position, and use update_terminal_velocity_pelagicegg() :
     # o.set_config('biology:vertical_migration_speed_constant',None) 
 ####################################################################################################################
 if False:
+    # in dev...
     # plankton-specific config for module in :
     # https://github.com/trondkr/KINO-ROMS/blob/master/Romagnoni-2019-OpenDrift/kino/pelagicplankton.py
     o.set_config('biology:constantIngestion', 0.5) #'float(min=0.0, max=1.0, default=0.5)', comment='Ingestion constant')

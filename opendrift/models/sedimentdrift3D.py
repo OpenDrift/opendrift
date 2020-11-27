@@ -29,7 +29,11 @@ class SedimentElement(Lagrangian3DArray):
                      'default': 0}),
         ('age_seconds', {'dtype': np.float32,
                  'units': 's',
-                 'default': 0})
+                 'default': 0}),
+        ('terminal_velocity', {'dtype': np.float32,
+                               'units': 'm/s',
+                               'default': -0.001})  # 1 mm/s negative buoyancy
+
         ])
 
 class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
@@ -43,40 +47,20 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
 
     """
     ElementType = SedimentElement 
-    required_variables = [
-        'x_sea_water_velocity',
-        'y_sea_water_velocity',
-        'x_wind', 'y_wind',
-        'upward_sea_water_velocity',
-        'ocean_vertical_diffusivity',
-        'ocean_horizontal_diffusivity',
-        'sea_surface_wave_significant_height',
-        'sea_surface_wave_stokes_drift_x_velocity',
-        'sea_surface_wave_stokes_drift_y_velocity',
-        'sea_surface_wave_period_at_variance_spectral_density_maximum',
-        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-        'sea_floor_depth_below_sea_level',
-        'land_binary_mask'
-        ]
 
-    required_profiles = ['ocean_vertical_diffusivity']
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-120, 0]
-
-    fallback_values = {
-        'x_sea_water_velocity': 0,
-        'y_sea_water_velocity': 0,
-        'sea_surface_wave_significant_height': 0,
-        'sea_surface_wave_stokes_drift_x_velocity': 0,
-        'sea_surface_wave_stokes_drift_y_velocity': 0,
-        'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
-        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-        'x_wind': 0,
-        'y_wind': 0,
-        'upward_sea_water_velocity': 0.0,
-        'ocean_vertical_diffusivity': 0.0, # in m2/s
-        'ocean_horizontal_diffusivity' : 0.0, # in m2/s2
-        'sea_floor_depth_below_sea_level': 10000
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'upward_sea_water_velocity': {'fallback': 0},
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_period_at_variance_spectral_density_maximum': {'fallback': 0},
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        'ocean_vertical_diffusivity': {'fallback': 0.02},
+        'sea_floor_depth_below_sea_level': {'fallback': 0},
         }
     
     # Adding some specs - inspired from basereader.py
@@ -88,27 +72,28 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
                              'missing_data': 'gray',
                              'settled': 'red'}
 
-    # adding processes to OceanDrift class to switch on/off resuspension
-    configspec_sedimentdrift3d = '''
-        [drift]
-            resuspension = boolean(default=False)
-    '''
-
     def __init__(self, *args, **kwargs):
-        # update configstring
-        self._add_configstring(self.configspec_sedimentdrift3d)
+
 
         # Calling general constructor of parent class
         super(SedimentDrift3D, self).__init__(*args, **kwargs)
 
+        self._add_config({
+            'drift:resuspension': {'type': 'boolean', 'default': False,
+                'min': 0, 'max': 1e10, 'units': '-',
+                'description': 'switch to include resuspension',
+                'level': self.CONFIG_LEVEL_ESSENTIAL}})
+
         # By default, sediments do strand at coastline
-        self.set_config('general:coastline_action', 'stranding') 
+        self._set_config_default('general:coastline_action', 'stranding')
         # Vertical mixing is enabled as default
-        self.set_config('drift:vertical_mixing', True)
-        # Vertical advection switched on by default (if w is available)
-        self.set_config('drift:vertical_advection', True)
+        self._set_config_default('drift:vertical_mixing', True)
+
+        # Vertical advection switched off by default (if w is available)
+        self._set_config_default('drift:vertical_advection', False)
+
         # resuspension switched off by default
-        self.set_config('drift:resuspension', False)
+        self._set_config_default('drift:resuspension', False)
 
         self.max_speed = 5.0
 
@@ -122,62 +107,6 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         """
         pass 
 
-    def horizontal_diffusion_depreciated(self, *args, **kwargs):
-        #  official code base now has the equivalent one, called horizontal_diffusion()
-        '''
-        Horizontal diffusion based on random walk technique
-        using diffusion coefficients K_xy (in m2/s - constant or interpolaote from field)
-        and uniformly distributed random numbers R(-1,1) with a zero mean.
-
-        
-        Constant coefficients 'ocean_horizontal_diffusivity' can be set using:
-        o.fallback_values['ocean_horizontal_diffusivity'] = 0.1 
-
-        Time-Space varying coefficients  'ocean_horizontal_diffusivity' 
-        can also be interpolated from an environment object (as in vertical_mixing() )
-        
-        * this should not be used in combination with drift:current_uncertainty > 0 
-        * as this model the same process, only with a different approach 
-
-        The random component added to the particle position to reproduce turbulent horizontal 
-        is computed using a approach similar to PyGnome, CMS :
-
-        -https://github.com/beatrixparis/connectivity-modeling-system/blob/master/cms-master/src/mod_turb.f90
-        -Garcia-Martinez and Tovar, 1999 - Computer Modeling of Oil Spill Trajectories With a High Accuracy Method
-        -Lonin, S.A., 1999. Lagrangian model for oil spill diffusion at sea. Spill Science and Technology Bulletin, 5(5): 331-336
-        -https://github.com/NOAA-ORR-ERD/PyGnome/blob/master/lib_gnome/Random_c.cpp#L50 
-
-        stored as an array in self.elements.horizontal_diffusion
- 
-        '''
-        if not self.environment.ocean_horizontal_diffusivity.any():
-            logging.debug('No horizontal diffusion applied - ocean_horizontal_diffusivity = 0.0')
-            pass
-
-        # check if some diffusion is not already accounted for using drift:current_uncertainty
-        if self.get_config('drift:current_uncertainty') != 0:
-            logging.debug('Warning = some horizontal diffusion already accounted for using drift:current_uncertainty')
-
-        diff_fac = 6 # 6 is used in PyGnome as well, but can be = 2 in other formulations, such as in the CMS model - hard coded for now
-        K_xy = self.environment.ocean_horizontal_diffusivity # horizontal diffusion coefficient in [m2/s]
-        # max diffusion distance in meters is : max_diff_distance = np.sqrt(diff_fac * K_xy * self.time_step.seconds)
-        # here we need velocity to fit with the update_position() subroutine
-        # max_diff_velocity = max_diff_distance / self.time_step.seconds = np.sqrt(diff_fac * K_xy / self.time_step.seconds) 
-        max_diff_velocity = np.sqrt(diff_fac * K_xy / self.time_step.seconds) # max diffusion velocity in [m/s]
-        # add randomness - random number in [-1,1] using uniform distribution i.e. same probabilty for each value (note some other formulations may use "normal" distribution)
-        diff_velocity = np.random.uniform(-1,1,size = len(max_diff_velocity)) * max_diff_velocity # in [m/s]
-        # random directions
-        theta_rand = np.random.uniform( 0, 2*np.pi, size = len(max_diff_velocity) )
-        # split diff_velocity into (u,v) velocities using random directions
-        x_vel = diff_velocity * np.cos(theta_rand)
-        y_vel = diff_velocity * np.sin(theta_rand)
-
-        logging.debug('Applying horizontal diffusion to particle positions')
-        logging.debug('\t\t%s   <- horizontal diffusion distance [m] ->   %s' % (np.min(diff_velocity*self.time_step.seconds), np.max(diff_velocity*self.time_step.seconds)))
-
-        # update positions with the diffusion velocities     
-        self.update_positions(x_vel, y_vel)
-
     def update(self):
         """Update positions and properties of elements."""
 
@@ -185,9 +114,6 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
 
         # Simply move particles with ambient current
         self.advect_ocean_current() # from physics_methods.py
-
-        # Horizontal diffusion (using diffusion coefficient approach )
-        self.horizontal_diffusion()
 
         # Advect particles due to wind drag
         # (according to specified wind_drift_factor)
@@ -355,3 +281,60 @@ def qkhfs( w, h ):
     y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
     kh = y
     return kh
+
+
+    # def horizontal_diffusion_depreciated(self, *args, **kwargs):
+    #     #  official code base now has the equivalent one, called horizontal_diffusion()
+    #     '''
+    #     Horizontal diffusion based on random walk technique
+    #     using diffusion coefficients K_xy (in m2/s - constant or interpolaote from field)
+    #     and uniformly distributed random numbers R(-1,1) with a zero mean.
+
+        
+    #     Constant coefficients 'ocean_horizontal_diffusivity' can be set using:
+    #     o.fallback_values['ocean_horizontal_diffusivity'] = 0.1 
+
+    #     Time-Space varying coefficients  'ocean_horizontal_diffusivity' 
+    #     can also be interpolated from an environment object (as in vertical_mixing() )
+        
+    #     * this should not be used in combination with drift:current_uncertainty > 0 
+    #     * as this model the same process, only with a different approach 
+
+    #     The random component added to the particle position to reproduce turbulent horizontal 
+    #     is computed using a approach similar to PyGnome, CMS :
+
+    #     -https://github.com/beatrixparis/connectivity-modeling-system/blob/master/cms-master/src/mod_turb.f90
+    #     -Garcia-Martinez and Tovar, 1999 - Computer Modeling of Oil Spill Trajectories With a High Accuracy Method
+    #     -Lonin, S.A., 1999. Lagrangian model for oil spill diffusion at sea. Spill Science and Technology Bulletin, 5(5): 331-336
+    #     -https://github.com/NOAA-ORR-ERD/PyGnome/blob/master/lib_gnome/Random_c.cpp#L50 
+
+    #     stored as an array in self.elements.horizontal_diffusion
+ 
+    #     '''
+    #     if not self.environment.ocean_horizontal_diffusivity.any():
+    #         logging.debug('No horizontal diffusion applied - ocean_horizontal_diffusivity = 0.0')
+    #         pass
+
+    #     # check if some diffusion is not already accounted for using drift:current_uncertainty
+    #     if self.get_config('drift:current_uncertainty') != 0:
+    #         logging.debug('Warning = some horizontal diffusion already accounted for using drift:current_uncertainty')
+
+    #     diff_fac = 6 # 6 is used in PyGnome as well, but can be = 2 in other formulations, such as in the CMS model - hard coded for now
+    #     K_xy = self.environment.ocean_horizontal_diffusivity # horizontal diffusion coefficient in [m2/s]
+    #     # max diffusion distance in meters is : max_diff_distance = np.sqrt(diff_fac * K_xy * self.time_step.seconds)
+    #     # here we need velocity to fit with the update_position() subroutine
+    #     # max_diff_velocity = max_diff_distance / self.time_step.seconds = np.sqrt(diff_fac * K_xy / self.time_step.seconds) 
+    #     max_diff_velocity = np.sqrt(diff_fac * K_xy / self.time_step.seconds) # max diffusion velocity in [m/s]
+    #     # add randomness - random number in [-1,1] using uniform distribution i.e. same probabilty for each value (note some other formulations may use "normal" distribution)
+    #     diff_velocity = np.random.uniform(-1,1,size = len(max_diff_velocity)) * max_diff_velocity # in [m/s]
+    #     # random directions
+    #     theta_rand = np.random.uniform( 0, 2*np.pi, size = len(max_diff_velocity) )
+    #     # split diff_velocity into (u,v) velocities using random directions
+    #     x_vel = diff_velocity * np.cos(theta_rand)
+    #     y_vel = diff_velocity * np.sin(theta_rand)
+
+    #     logging.debug('Applying horizontal diffusion to particle positions')
+    #     logging.debug('\t\t%s   <- horizontal diffusion distance [m] ->   %s' % (np.min(diff_velocity*self.time_step.seconds), np.max(diff_velocity*self.time_step.seconds)))
+
+    #     # update positions with the diffusion velocities     
+    #     self.update_positions(x_vel, y_vel)

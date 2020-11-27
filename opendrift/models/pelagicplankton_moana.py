@@ -121,21 +121,27 @@ class PelagicPlanktonDrift(OceanDrift):
 
     ElementType = PelagicPlankton
 
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_significant_height',
-                          #'sea_ice_area_fraction',
-                          'x_wind', 'y_wind', 'land_binary_mask',
-                          'sea_floor_depth_below_sea_level',
-                          'ocean_vertical_diffusivity',
-                          'sea_water_temperature',
-                          'sea_water_salinity',
-                          'surface_downward_x_stress',
-                          'surface_downward_y_stress',
-                          'turbulent_kinetic_energy',
-                          'turbulent_generic_length_scale',
-                          'upward_sea_water_velocity'
-                          # 'cloud_coverage' ?
-                          ]
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'sea_ice_area_fraction': {'fallback': 0},
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        'sea_floor_depth_below_sea_level': {'fallback': 100},
+        'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True},
+        'sea_water_temperature': {'fallback': 10, 'profiles': True},
+        'sea_water_salinity': {'fallback': 34, 'profiles': True},
+        'surface_downward_x_stress': {'fallback': 0},
+        'surface_downward_y_stress': {'fallback': 0},
+        'turbulent_kinetic_energy': {'fallback': 0},
+        'turbulent_generic_length_scale': {'fallback': 0},
+        'upward_sea_water_velocity': {'fallback': 0},
+      }
+
+    # The depth range (in m) which profiles shall cover
+    required_profiles_z_range = [-120, 0]  
 
     # Vertical profiles of the following parameters will be available in
     # dictionary self.environment.vertical_profiles
@@ -147,24 +153,8 @@ class PelagicPlanktonDrift(OceanDrift):
     required_profiles = ['sea_water_temperature',
                          'sea_water_salinity',
                          'ocean_vertical_diffusivity']
-    required_profiles_z_range = [-150, 0]  # The depth range (in m) which
+    required_profiles_z_range = [-150, 0] # The depth range (in m) which
                                           # profiles shall cover
-
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       #'sea_ice_area_fraction': 0,
-                       'x_wind': 0, 'y_wind': 0,
-                       'sea_floor_depth_below_sea_level': 1000,
-                       'ocean_vertical_diffusivity': 0.02,  # m2s-1
-                       'sea_water_temperature': 10.,
-                       'sea_water_salinity': 34.,
-                       'surface_downward_x_stress': 0,
-                       'surface_downward_y_stress': 0,
-                       'turbulent_kinetic_energy': 0,
-                       'turbulent_generic_length_scale': 0,
-                       'upward_sea_water_velocity': 0
-                       }
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
@@ -176,45 +166,92 @@ class PelagicPlanktonDrift(OceanDrift):
         super(PelagicPlanktonDrift, self).__init__(*args, **kwargs)
 
         # By default, eggs do not strand towards coastline
-        self.set_config('general:coastline_action', 'previous')
+        # self.set_config('general:coastline_action', 'previous')
+        self._set_config_default('general:coastline_action', 'previous')
 
         # Vertical mixing is enabled by default
-        self.set_config('drift:vertical_mixing', True)
+        # self.set_config('drift:vertical_mixing', True)
+        self._set_config_default('drift:vertical_mixing', True)
+        
+        #################################################################################################
+        # IBM specifications based on ERcore Plankton module:
+        # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L25
 
-        #IBM-specific configuration options
-        # specifications on pelagicplankton module by Trond Kristiansen
-        # https://github.com/trondkr/KINO-ROMS/blob/master/Romagnoni-2019-OpenDrift/kino/pelagicplankton.py
-        self._add_config('biology:constantIngestion', 'float(min=0.0, max=1.0, default=0.5)', comment='Ingestion constant')
-        self._add_config('biology:activemetabOn', 'float(min=0.0, max=1.0, default=1.0)', comment='Active metabolism')
-        self._add_config('biology:attenuationCoefficient', 'float(min=0.0, max=1.0, default=0.18)', comment='Attenuation coefficient')
-        self._add_config('biology:fractionOfTimestepSwimming', 'float(min=0.0, max=1.0, default=0.15)', comment='Fraction of timestep swimming')
-        self._add_config('biology:lowerStomachLim', 'float(min=0.0, max=1.0, default=0.3)', comment='Limit of stomach fullness for larvae to go down if light increases')
-        self._add_config('biology:haddock', 'boolean(default=False)', comment='Species=haddock')
-        self._add_config('biology:cod', 'boolean(default=True)', comment='Species=cod')
-
-         # ERcore specifications:
-         # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L25 
-        self._add_config('biology:mortality_daily_rate', 'float(min=0.0, max=100.0, default=0.05)', comment='Mortality rate (percentage of biomass dying per day)') 
-        self._add_config('biology:min_settlement_age_seconds', 'float(min=0.0, max=7.0e6, default=0.0)', comment='Minimum age before beaching can occur, in seconds')
-        self._add_config('biology:vertical_position_daytime', 'float(min=-1000.0, max=0.0, default=-5.0)',   comment='the depth a species is expected to inhabit during the day time, in meters, negative down') #
-        self._add_config('biology:vertical_position_nighttime', 'float(min=-1000.0, max=0.0, default=-1.0)', comment='the depth a species is expected to inhabit during the night time, in meters, negative down') #
+        self._add_config({ 'biology:mortality_daily_rate': {'type': 'float', 'default': 0.05,'min': 0.0, 'max': 100.0, 'units': 'percentage of biomass dying per day',
+                           'description': 'Mortality rate (percentage of biomass dying per day)',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:min_settlement_age_seconds': {'type': 'float', 'default': 0.00,'min': 0.0, 'max': 7.0e6, 'units': 'seconds',
+                           'description': 'Minimum age before beaching can occur, in seconds',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:vertical_position_daytime': {'type': 'float', 'default': -5.00,'min': -1000.0, 'max':0.0, 'units': 'meters negative down',
+                           'description': 'the depth a species is expected to inhabit during the day time, in meters, negative down',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:vertical_position_nighttime': {'type': 'float', 'default': -1.00,'min': -1000.0, 'max':0.0, 'units': 'meters negative down',
+                           'description': 'the depth a species is expected to inhabit during the night time, in meters, negative down',
+                           'level': self.CONFIG_LEVEL_BASIC}})
         # vertical_migration_speed_constant is the speed at which larvae will move to vertical_position_daytime or vertical_position_nighttime (depeding if it is day or nighttime)
         # if set to None the model will use the vertical velocity defined in update_terminal_velocity() (and so will not take into account vertical_position_daytime/vertical_position_nighttime)
-        self._add_config('biology:vertical_migration_speed_constant', 'float(min=0.0, max=1e-3, default=None)', comment=' Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()') #
-        self._add_config('biology:temperature_min', 'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
-        self._add_config('biology:temperature_max', 'float(min=0.0, max=100.0, default=None)', comment=' upper threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
-        self._add_config('biology:temperature_tolerance', 'float(min=0.0, max=1.0, default=1.0)', comment=' temperature tolerance before dying in degrees Celsius') #
-        self._add_config('biology:salinity_min', 'float(min=0.0, max=100.0, default=None)', comment=' lower threshold salinity where a species population quickly declines to extinction in ppt') #
-        self._add_config('biology:salinity_max', 'float(min=0.0, max=100.0, default=None)', comment=' upper threshold salinity where a species population quickly declines to extinction in ppt') #
-        self._add_config('biology:salinity_tolerance', 'float(min=0.0, max=1.0, default=1.0)', comment=' salinity tolerance before dying in ppt') #
+        self._add_config({ 'biology:vertical_migration_speed_constant': {'type': 'float', 'default': None,'min': 0.0, 'max': 1.0e-3, 'units': 'm/s',
+                           'description': 'Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:temperature_min': {'type': 'float', 'default': None,'min': 0.0, 'max': 100.0, 'units': 'degrees Celsius',
+                           'description': 'lower threshold temperature where a species population quickly declines to extinction in degrees Celsius',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:temperature_max': {'type': 'float', 'default': None,'min': 0.0, 'max': 100.0, 'units': 'degrees Celsius',
+                           'description': 'upper threshold temperature where a species population quickly declines to extinction in degrees Celsius',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:temperature_tolerance': {'type': 'float', 'default': 1.0,'min': 0.0, 'max': 1.0, 'units': 'degrees Celsius',
+                           'description': 'temperature tolerance before dying, in degrees Celsius',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:salinity_min': {'type': 'float', 'default': None,'min': 0.0, 'max': 100.0, 'units': 'ppt',
+                           'description': 'lower threshold salinity where a species population quickly declines to extinction in ppt',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:salinity_max': {'type': 'float', 'default': None,'min': 0.0, 'max': 100.0, 'units': 'ppt',
+                           'description': 'upper threshold salinity where a species population quickly declines to extinction in ppt',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:salinity_tolerance': {'type': 'float', 'default': 1.0,'min': 0.0, 'max': 1.0, 'units': 'ppt',
+                           'description': 'salinity tolerance before dying, in ppt',
+                           'level': self.CONFIG_LEVEL_BASIC}})
         # below not implemented yet
-        self._add_config('biology:thermotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of heat, in (m/s per C/m)') #
-        self._add_config('biology:halotaxis', 'float(min=0.0, max=1.0, default=None)', comment='movement of an organism towards or away from a source of salt, in (m/s per PSU/m)') #
+        self._add_config({ 'biology:thermotaxis': {'type': 'float', 'default': None,'min': 0.0, 'max': 1.0, 'units': '(m/s per C/m)',
+                           'description': 'movement of an organism towards or away from a source of heat, in (m/s per C/m)',
+                           'level': self.CONFIG_LEVEL_BASIC}})        
+        self._add_config({ 'biology:halotaxis': {'type': 'float', 'default': None,'min': 0.0, 'max': 1.0, 'units': '(m/s per PSU/m)',
+                           'description': 'movement of an organism towards or away from a source of salt, in (m/s per PSU/m)',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        #################################################################################################
+        # More IBM-specific configuration options
+        # specifications on pelagicplankton module by Trond Kristiansen
+        # https://github.com/trondkr/KINO-ROMS/blob/master/Romagnoni-2019-OpenDrift/kino/pelagicplankton.py
 
-    
-    def update_terminal_velocity(self): 
+        self._add_config({ 'biology:constantIngestion': {'type': 'float', 'default': 0.5,'min': 0.0, 'max': 1.0, 'units': '-',
+                           'description': 'Ingestion constant',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:activemetabOn': {'type': 'float', 'default': 1.0, 'min': 0.0, 'max': 1.0, 'units': '-',
+                           'description': 'Active metabolism',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:attenuationCoefficient': {'type': 'float', 'default': 0.18,'min': 0.0, 'max': 1.0, 'units': '-',
+                           'description': 'Attenuation coefficient',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:fractionOfTimestepSwimming': {'type': 'float', 'default': 0.15,'min': 0.0, 'max': 1.0, 'units': '-',
+                           'description': 'Fraction of timestep swimming',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:lowerStomachLim': {'type': 'float', 'default': 0.3,'min': 0.0, 'max': 1.0, 'units': '-',
+                           'description': 'Limit of stomach fullness for larvae to go down if light increases',
+                           'level': self.CONFIG_LEVEL_BASIC}})        
+        self._add_config({ 'biology:haddock': {'type': 'bool', 'default': False,
+                           'description': 'Species=haddock',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:cod': {'type': 'bool', 'default': True,
+                           'description': 'Species=cod',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        #################################################################################################
+
+    def update_terminal_velocity(self,Tprofiles=None, Sprofiles=None,
+                                 z_index=None): 
         # function to update vertical velocities (negative = settling down)
-        # called in update() method
+        # called in update() method 
+        # overloads update_terminal_velocity() from OceanDrift()
         if self.get_config('biology:vertical_migration_speed_constant') is None:
             self.update_terminal_velocity_pelagicegg() # same as pelagicegg.py
         else:
@@ -613,6 +650,7 @@ class PelagicPlanktonDrift(OceanDrift):
         if True:
           self.plankton_development()
         
+        # place holder for more sophisticated alogorithm if needed
         if False:
           # Plankton development
           self.updatePlanktonDevelopment()
