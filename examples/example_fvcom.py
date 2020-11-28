@@ -13,26 +13,29 @@ o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 
 # Reader
 proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-fvcom = reader_netCDF_CF_unstructured.Reader(filename = 'niva/AkvaplanNiva_sample.nc', proj4 = proj)
+fvcom = reader_netCDF_CF_unstructured.Reader(filename = 'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc', proj4 = proj)
 o.add_reader(fvcom)
 
 # Seed elements at defined positions, depth and time
-o.seed_elements(lon=17.0, lat=70.0, radius=0, number=10,
-                z=np.linspace(0,-10, 10), time=fvcom.start_time)
+N = 100
+z = -10*np.random.uniform(0, 1, N)
+o.seed_elements(lon=17.0, lat=70.0, radius=1000, number=N,
+                z=z, time=fvcom.start_time)
 
 #%%
 # Running model
-o.run(time_step=900)
+o.run(time_step=900, steps=10)
 
 #%%
 # Print and plot results
 print(o)
 
 #%%
-# Animation with current as background.
+# Animation (current as background not yet working).
 # Note that drift is also depending on wind, which is not shown.
-# o.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
-#              fast=True)
+o.animation()
+#o.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
+#            fast=True)
 
 #%%
 # Print and plot results
