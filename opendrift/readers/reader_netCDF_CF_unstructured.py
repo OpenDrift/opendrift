@@ -305,8 +305,9 @@ class Reader(BaseReader, UnstructuredReader):
                 # variables[var] = dvar[indx_nearest, sigmas, fcs].diagonal()
 
                 indx_t = np.repeat(indx_nearest, len(sigmas))
+                logger.info('Bottleneck: variables[var] = np.array([ dvar[ti, si, fi] for ti, si, fi in zip(indx_t, sigmas, fcs) ])')
                 variables[var] = np.array([ dvar[ti, si, fi] for ti, si, fi in zip(indx_t, sigmas, fcs) ])
-
+                logger.info('Passed bottleneck')
 
         return variables
 
@@ -349,13 +350,16 @@ class Reader(BaseReader, UnstructuredReader):
         """
         shp = var.shape
 
-        siglay = self.dataset['siglay_center']
-        siglev = self.dataset['siglev_center']
-
-        if shp[1] == siglay.shape[0]:
-            depths = siglay[:, el]
+        if shp[1] == self.dataset['siglay_center'].shape[0]:
+            if not hasattr(self, 'siglay'):
+                logger.debug('Reading and storing siglay array...')
+                self.siglay = self.dataset['siglay_center'][:]
+            depths = self.siglay[:, el]
         else:
-            depths = siglev[:, el]
+            if not hasattr(self, 'siglev'):
+                logger.debug('Reading and storing siglev array...')
+                self.siglev = self.dataset['siglev_center']
+            depths = self.siglev[:, el]
 
         return self._vector_nearest_(depths, z)
 
