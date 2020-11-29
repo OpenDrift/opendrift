@@ -20,8 +20,8 @@ print(fvcom)
 
 # Seed elements at defined positions, depth and time
 N = 1000
-z = -10*np.random.uniform(0, 1, N)
-o.seed_elements(lon=17.0, lat=70.0, radius=5000, number=N,
+z = -50*np.random.uniform(0, 1, N)
+o.seed_elements(lon=18.0, lat=69.8, radius=5000, number=N,
                 z=z, time=fvcom.start_time)
 
 #%%
@@ -43,3 +43,4 @@ o.animation(filename='fvcom.mp4', color='z')
 # Print and plot results
 print(o)
 o.plot(fast=True, buffer = 1.)
+# Two figure windows appear, this is probably a bug independent of FVCOM
