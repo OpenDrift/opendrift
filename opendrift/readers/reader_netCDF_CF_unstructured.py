@@ -299,6 +299,7 @@ class Reader(BaseReader, UnstructuredReader):
                 logger.debug("Interpolating: %s (%s)" % (var, dvar))
                 dvar = self.dataset[dvar]
 
+                # TODO: is this not the same for all variables, and can be move outside loop?
                 sigmas = self.__nearest_face_sigma__(dvar, fcs, z)
                 assert len(sigmas) == len(z)
 
@@ -308,10 +309,11 @@ class Reader(BaseReader, UnstructuredReader):
                 # Alternative is to slice, then take diagonal:
                 # variables[var] = dvar[indx_nearest, sigmas, fcs].diagonal()
 
-                indx_t = np.repeat(indx_nearest, len(sigmas))
-                logger.info('Bottleneck: variables[var] = np.array([ dvar[ti, si, fi] for ti, si, fi in zip(indx_t, sigmas, fcs) ])')
-                variables[var] = np.array([ dvar[ti, si, fi] for ti, si, fi in zip(indx_t, sigmas, fcs) ])
-                logger.info('Passed bottleneck')
+                # Reading the smallest block covering the actual data
+                block = dvar[indx_nearest,
+                             slice(sigmas.min(), sigmas.max()+1),
+                             slice(fcs.min(), fcs.max()+1)]
+                variables[var] = block[sigmas-sigmas.min(), fcs-fcs.min()]
 
         return variables
 

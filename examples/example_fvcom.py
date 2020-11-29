@@ -4,6 +4,7 @@ FVCOM: Using model input from unstructured grid
 ===============================================
 """
 
+from datetime import timedelta
 import numpy as np
 from opendrift.readers import reader_netCDF_CF_unstructured
 from opendrift.readers import reader_global_landmask
@@ -17,14 +18,14 @@ fvcom = reader_netCDF_CF_unstructured.Reader(filename = 'https://thredds.met.no/
 o.add_reader(fvcom)
 
 # Seed elements at defined positions, depth and time
-N = 100
+N = 1000
 z = -10*np.random.uniform(0, 1, N)
 o.seed_elements(lon=17.0, lat=70.0, radius=1000, number=N,
                 z=z, time=fvcom.start_time)
 
 #%%
 # Running model
-o.run(time_step=900, steps=10)
+o.run(time_step=900, duration=timedelta(hours=12))
 
 #%%
 # Print and plot results
