@@ -75,9 +75,11 @@ class Reader(BaseReader, UnstructuredReader):
 
     dataset = None
 
-    # For in-memory caching of Sigma-coordinates
+    # For in-memory caching of Sigma-coordinates and ocean depth
     siglay = None
     siglev = None
+    ocean_depth_nele = None
+    ocean_depth_node = None
 
     def __init__(self, filename=None, name=None, proj4=None):
         if filename is None:
@@ -343,12 +345,19 @@ class Reader(BaseReader, UnstructuredReader):
             if self.siglay is None:
                 logger.debug('Reading and storing siglay array...')
                 self.siglay = self.dataset['siglay_center'][:]
-            depths = self.siglay[:, nodes]
+            sigmas = self.siglay[:, nodes]
         else:
             if self.siglev is None:
                 logger.debug('Reading and storing siglev array...')
                 self.siglev = self.dataset['siglev_center'][:]
-            depths = self.siglev[:, nodes]
+            sigmas = self.siglev[:, nodes]
+
+        if self.ocean_depth_node is None:
+            logger.debug('Reading and storing ocean depth...')
+            self.ocean_depth_node = self.dataset['h'][:]
+
+        # Calculating depths from sigmas
+        depths = sigmas*self.ocean_depth_node[nodes]
 
         return self._vector_nearest_(depths, z)
 
@@ -362,12 +371,19 @@ class Reader(BaseReader, UnstructuredReader):
             if self.siglay is None:
                 logger.debug('Reading and storing siglay array...')
                 self.siglay = self.dataset['siglay_center'][:]
-            depths = self.siglay[:, el]
+            sigmas = self.siglay[:, el]
         else:
             if self.siglev is None:
                 logger.debug('Reading and storing siglev array...')
                 self.siglev = self.dataset['siglev_center'][:]
-            depths = self.siglev[:, el]
+            sigmas = self.siglev[:, el]
+
+        if self.ocean_depth_nele is None:
+            logger.debug('Reading and storing ocean depth...')
+            self.ocean_depth_nele = self.dataset['h_center'][:]
+
+        # Calculating depths from sigmas
+        depths = sigmas*self.ocean_depth_nele[el]
 
         return self._vector_nearest_(depths, z)
 
