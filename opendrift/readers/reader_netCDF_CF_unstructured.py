@@ -270,6 +270,7 @@ class Reader(BaseReader, UnstructuredReader):
 
         variables = {}
 
+        # TODO: the two loops below are nearly identical, and could be merged
         if node_variables:
             logger.debug("Interpolating node-variables..")
 
@@ -284,9 +285,12 @@ class Reader(BaseReader, UnstructuredReader):
                 sigmas = self.__nearest_node_sigma__(dvar, nodes, z)
                 assert len(sigmas) == len(z)
 
-                # for some unfathomable reason netCDF4 uses different fancy-indexing than numpy.
-                indx_t = np.repeat(indx_nearest, len(sigmas))
-                variables[var] = np.array([ dvar[ti, si, ni] for ti, si, ni in zip(indx_t, sigmas, nodes) ])
+                # Reading the smallest block covering the actual data
+                block = dvar[indx_nearest,
+                             slice(sigmas.min(), sigmas.max()+1),
+                             slice(fcs.min(), fcs.max()+1)]
+                # Picking the nearest value
+                variables[var] = block[sigmas-sigmas.min(), fcs-fcs.min()]
 
         if face_variables:
             logger.debug("Interpolating face-variables..")
@@ -303,16 +307,11 @@ class Reader(BaseReader, UnstructuredReader):
                 sigmas = self.__nearest_face_sigma__(dvar, fcs, z)
                 assert len(sigmas) == len(z)
 
-                # for some unfathomable reason netCDF4 uses different fancy-indexing than numpy.
-                #
-                # This is faster for local files, but it will probably trigger an opendap-request for each index, making it pretty useless.
-                # Alternative is to slice, then take diagonal:
-                # variables[var] = dvar[indx_nearest, sigmas, fcs].diagonal()
-
                 # Reading the smallest block covering the actual data
                 block = dvar[indx_nearest,
                              slice(sigmas.min(), sigmas.max()+1),
                              slice(fcs.min(), fcs.max()+1)]
+                # Picking the nearest value
                 variables[var] = block[sigmas-sigmas.min(), fcs-fcs.min()]
 
         return variables
@@ -348,7 +347,7 @@ class Reader(BaseReader, UnstructuredReader):
         else:
             if self.siglev is None:
                 logger.debug('Reading and storing siglev array...')
-                self.siglev = self.dataset['siglev_center']
+                self.siglev = self.dataset['siglev_center'][:]
             depths = self.siglev[:, nodes]
 
         return self._vector_nearest_(depths, z)
@@ -367,11 +366,13 @@ class Reader(BaseReader, UnstructuredReader):
         else:
             if self.siglev is None:
                 logger.debug('Reading and storing siglev array...')
-                self.siglev = self.dataset['siglev_center']
+                self.siglev = self.dataset['siglev_center'][:]
             depths = self.siglev[:, el]
 
         return self._vector_nearest_(depths, z)
 
+    # TODO: this method should probably be renamed, as z is expected
+    # to be an array e.g. by __repr__
     @staticmethod
     def z(sigma, depth, elevation=0):
         """
