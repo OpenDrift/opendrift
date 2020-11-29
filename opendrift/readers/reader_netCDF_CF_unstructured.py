@@ -75,6 +75,10 @@ class Reader(BaseReader, UnstructuredReader):
 
     dataset = None
 
+    # For in-memory caching of Sigma-coordinates
+    siglay = None
+    siglev = None
+
     def __init__(self, filename=None, name=None, proj4=None):
         if filename is None:
             raise ValueError('Filename is missing')
@@ -334,13 +338,16 @@ class Reader(BaseReader, UnstructuredReader):
         """
         shp = var.shape
 
-        siglay = self.dataset['siglay']
-        siglev = self.dataset['siglev']
-
         if shp[1] == siglay.shape[0]:
-            depths = siglay[:, nodes]
+            if self.siglay is None:
+                logger.debug('Reading and storing siglay array...')
+                self.siglay = self.dataset['siglay_center'][:]
+            depths = self.siglay[:, nodes]
         else:
-            depths = siglev[:, nodes]
+            if self.siglev is None:
+                logger.debug('Reading and storing siglev array...')
+                self.siglev = self.dataset['siglev_center']
+            depths = self.siglev[:, nodes]
 
         return self._vector_nearest_(depths, z)
 
@@ -351,12 +358,12 @@ class Reader(BaseReader, UnstructuredReader):
         shp = var.shape
 
         if shp[1] == self.dataset['siglay_center'].shape[0]:
-            if not hasattr(self, 'siglay'):
+            if self.siglay is None:
                 logger.debug('Reading and storing siglay array...')
                 self.siglay = self.dataset['siglay_center'][:]
             depths = self.siglay[:, el]
         else:
-            if not hasattr(self, 'siglev'):
+            if self.siglev is None:
                 logger.debug('Reading and storing siglev array...')
                 self.siglev = self.dataset['siglev_center']
             depths = self.siglev[:, el]
