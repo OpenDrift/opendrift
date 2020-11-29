@@ -3,6 +3,7 @@ import pytest
 import matplotlib.pyplot as plt
 from tests import *
 from opendrift.readers import reader_netCDF_CF_unstructured
+from opendrift.models.oceandrift import OceanDrift
 
 akvaplan = "https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc"
 akvaplan_local = "niva/AkvaplanNiva_sample.nc"
@@ -105,3 +106,21 @@ def test_vector_nearest(benchmark):
     ]
 
     np.testing.assert_array_equal(truth, nearest)
+
+def test_profile():
+    o = OceanDrift()
+    r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
+    o.add_reader(r)
+    o.seed_elements(lon=17, lat=70, z=np.atleast_1d([0, -10, -50]),
+                    number=3, time=r.start_time)
+    print(o)
+    o.run(steps=3)
+    #o.plot(linecolor='z')
+    print(o.elements.lon)
+
+    # Elements at 0 and 10m depth should not have same trajectory
+    # This is ok
+    assert o.elements.lon[0] != o.elements.lon[1]
+    # Elements at 10 and 50m depth should not have same trajectory
+    # This is presently failing
+    assert o.elements.lon[1] != o.elements.lon[2]
