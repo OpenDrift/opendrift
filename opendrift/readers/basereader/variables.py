@@ -585,6 +585,10 @@ class Variables(ReaderDomain):
     def get_variables(self, variables, time=None, x=None, y=None, z=None):
         """Method which must be implemented by all reader-subclasses.
 
+        > Warning: In the future this method is likely to be a requirement of
+        > each reader, and it will be up to the reader-type how values are
+        > retrieved.
+
         Obtain and return values of the requested variables at all positions
         (x, y, z) closest to given time.
 
@@ -605,10 +609,10 @@ class Variables(ReaderDomain):
             data: Dictionary
                 keywords: variables (string)
                 values:
-                    - 1D ndarray of len(x) if block=False. Nearest values
+                    - 1D ndarray of len(x) if StructuredReader. Nearest values
                         (neighbour) of requested position are returned.
                     - 3D ndarray encompassing all requested points in
-                        x,y,z domain if block=True. It is task of invoking
+                        x,y,z domain if UnstructuredReader. It is task of invoking
                         application (OpenDriftSimulation) to perform
                         interpolation in space and time.
         """
