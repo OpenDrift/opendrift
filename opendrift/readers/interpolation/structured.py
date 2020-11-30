@@ -6,7 +6,8 @@ from scipy.interpolate import interp1d, LinearNDInterpolator
 
 from .interpolators import Nearest2DInterpolator, fill_NaN_towards_seafloor, horizontal_interpolation_methods, vertical_interpolation_methods
 
-logger = logging.getLogger('opendrift')  # using common logger
+import logging
+logger = logging.getLogger(__name__)
 
 class ReaderBlock():
     """Class to store and interpolate the output from a reader with data on a regular (structured) grid."""
@@ -42,14 +43,14 @@ class ReaderBlock():
                                                    fill_value=np.nan)
             # Fill missing data towards seafloor if 3D
             if isinstance(self.data_dict[var], (list,)):
-                self.logger.warning('Ensemble data currently not extrapolated towards seafloor')
+                logger.warning('Ensemble data currently not extrapolated towards seafloor')
             elif self.data_dict[var].ndim == 3:
                 filled = fill_NaN_towards_seafloor(self.data_dict[var])
                 if filled is True:
                     filled_variables.add(var)
 
         if len(filled_variables) > 0:
-            self.logger.debug('Filled NaN-values toward seafloor for :'
+            logger.debug('Filled NaN-values toward seafloor for :'
                           + str(list(filled_variables)))
 
         # Set 1D (vertical) and 2D (horizontal) interpolators
@@ -71,12 +72,12 @@ class ReaderBlock():
 
         if 'land_binary_mask' in self.data_dict.keys() and \
                 interpolation_horizontal != 'nearest':
-            self.logger.debug('Nearest interpolation will be used '
+            logger.debug('Nearest interpolation will be used '
                           'for landmask, and %s for other variables'
                           % interpolation_horizontal)
 
     def _initialize_interpolator(self, x, y, z=None):
-        self.logger.debug('Initialising interpolator.')
+        logger.debug('Initialising interpolator.')
         self.interpolator2d = self.Interpolator2DClass(self.x, self.y, x, y)
         if self.z is not None and len(np.atleast_1d(self.z)) > 1:
             self.interpolator1d = self.Interpolator1DClass(self.z, z)
@@ -90,13 +91,14 @@ class ReaderBlock():
         if profiles is not []:
             profiles_dict = {'z': self.z}
         for varname, data in self.data_dict.items():
+            logger.debug("Interpolating %s.. (%s)" % (varname, data))
             nearest = False
             if varname == 'land_binary_mask':
                 nearest = True
                 self.interpolator2d_nearest = Nearest2DInterpolator(self.x, self.y, x, y)
             if type(data) is list:
                 num_ensembles = len(data)
-                self.logger.debug('Interpolating %i ensembles for %s' % (num_ensembles, varname))
+                logger.debug('Interpolating %i ensembles for %s' % (num_ensembles, varname))
                 if data[0].ndim == 2:
                     horizontal = np.zeros(x.shape)*np.nan
                 else:
