@@ -266,7 +266,6 @@ class TestRun(unittest.TestCase):
     #    o.run(steps=3)
     #    o.write_geotiff('geotiff.tif')
 
-    @pytest.mark.skip
     def test_seed_single_point_over_time(self):
         """Test a model run"""
         self.make_OceanDrift_object()
