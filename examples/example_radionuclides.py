@@ -133,7 +133,7 @@ o.conc_lat   = reader_norkyst.lat
 o.conc_lon   = reader_norkyst.lon
 o.conc_topo  = reader_norkyst.get_variables('sea_floor_depth_below_sea_level',
                                        x=[reader_norkyst.xmin,reader_norkyst.xmax],
-                                       y=[reader_norkyst.ymin,reader_norkyst.ymax], block=True)['sea_floor_depth_below_sea_level'][:]
+                                       y=[reader_norkyst.ymin,reader_norkyst.ymax])['sea_floor_depth_below_sea_level'][:]
 #o.conc_mask  = reader_norkyst.land_binary_mask
 
 #%%
