@@ -246,11 +246,16 @@ class Reader(BaseReader, UnstructuredReader):
         * salinity
 
         """
-        logger.debug("Requested variabels: %s, lengths: %d, %d, %d" %
-                     (requested_variables, len(x), len(y), len(z)))
 
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
+        z = np.atleast_1d(z)
+        if len(z) == 1:
+            z = z[0]*np.ones(x.shape)
+
+
+        logger.debug("Requested variabels: %s, lengths: %d, %d, %d" %
+                     (requested_variables, len(x), len(y), len(z)))
 
         requested_variables, time, x, y, z, outside = \
             self.check_arguments(requested_variables, time, x, y, z)
