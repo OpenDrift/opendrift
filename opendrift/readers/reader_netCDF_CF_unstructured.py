@@ -295,9 +295,9 @@ class Reader(BaseReader, UnstructuredReader):
                 # Reading the smallest block covering the actual data
                 block = dvar[indx_nearest,
                              slice(sigmas.min(), sigmas.max()+1),
-                             slice(fcs.min(), fcs.max()+1)]
+                             slice(nodes.min(), nodes.max()+1)]
                 # Picking the nearest value
-                variables[var] = block[sigmas-sigmas.min(), fcs-fcs.min()]
+                variables[var] = block[sigmas-sigmas.min(), nodes-nodes.min()]
 
         if face_variables:
             logger.debug("Interpolating face-variables..")
