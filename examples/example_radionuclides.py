@@ -24,7 +24,7 @@ o.add_reader([reader_norkyst])
 o.set_config('drift:vertical_mixing', True)
 #o.set_config('environment:fallback:ocean_vertical_diffusivity', 0)
 #o.set_config('vertical_mixing:diffusivitymodel','constant')  # include settling without vertical turbulent mixing
-#o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
+o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
 # Vertical mixing requires fast time step
 o.set_config('vertical_mixing:timestep', 600.) # seconds
 
@@ -57,7 +57,7 @@ o.set_config('radionuclide:sediment:resuspension_critvel',0.15)
 #
 #o.set_config('radionuclide:transfer_setup','custom')
 o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
-#o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
+#o.set_config('radionuclide:transfer_setup','137Cs_rev')
 #o.set_config('radionuclide:transfer_setup','Sandnesfj_Al')
 
 # By default, radionuclides do not strand towards coastline
