@@ -18,6 +18,8 @@ from datetime import datetime
 import pyproj
 import numpy as np
 from netCDF4 import num2date
+import logging
+logger = logging.getLogger(__name__)
 
 from opendrift.readers.basereader import BaseReader, StructuredReader
 import xarray as xr
@@ -121,23 +123,23 @@ class Reader(BaseReader, StructuredReader):
 
         try:
             # Open file, check that everything is ok
-            self.logger.info('Opening dataset: ' + filestr)
+            logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                self.logger.info('Opening files with MFDataset')
+                logger.info('Opening files with MFDataset')
                 self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
                                                  decode_times=False)
             else:
-                self.logger.info('Opening file with Dataset')
+                logger.info('Opening file with Dataset')
                 self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)
 
-        self.logger.debug('Finding coordinate variables.')
+        logger.debug('Finding coordinate variables.')
         if proj4 is not None:  # If user has provided a projection apriori
             self.proj4 = proj4
         # Find x, y and z coordinates
         for var_name in self.Dataset.variables:
-            self.logger.debug('Parsing variable: ' +  var_name)
+            logger.debug('Parsing variable: ' +  var_name)
             var = self.Dataset.variables[var_name]
             #if var.ndim > 1:
             #    continue  # Coordinates must be 1D-array
@@ -155,14 +157,14 @@ class Reader(BaseReader, StructuredReader):
                     else:
                         if 'grid_mapping_name' in att:
                             mapping_dict = att_dict
-                            self.logger.debug(
+                            logger.debug(
                                 ('Parsing CF grid mapping dictionary:'
                                 ' ' + str(mapping_dict)))
                             try:
                                 self.proj4, proj =\
                                     proj_from_CF_dict(mapping_dict)
                             except:
-                                self.logger.info('Could not parse CF grid_mapping')
+                                logger.info('Could not parse CF grid_mapping')
 
             if 'standard_name' in attributes:
                 standard_name = att_dict['standard_name']
@@ -255,7 +257,7 @@ class Reader(BaseReader, StructuredReader):
             if standard_name == 'realization':
                 var_data = var.values
                 self.realizations = var_data
-                self.logger.debug('%i ensemble members available'
+                logger.debug('%i ensemble members available'
                               % len(self.realizations))
 
         if 'x' not in locals():
@@ -298,7 +300,7 @@ class Reader(BaseReader, StructuredReader):
             self.y = y
         else:
             if self.lon is not None and self.lat is not None:
-                self.logger.info('No projection found, using lon/lat arrays')
+                logger.info('No projection found, using lon/lat arrays')
                 self.xname = lon_var_name
                 self.yname = lat_var_name
             else:
@@ -306,20 +308,20 @@ class Reader(BaseReader, StructuredReader):
 
         if self.proj4 is None:
             if self.lon.ndim == 1:
-                self.logger.debug('Lon and lat are 1D arrays, assuming latong projection')
+                logger.debug('Lon and lat are 1D arrays, assuming latong projection')
                 self.proj4 = '+proj=latlong'
             elif self.lon.ndim == 2:
-                self.logger.debug('Reading lon lat 2D arrays, since projection is not given')
+                logger.debug('Reading lon lat 2D arrays, since projection is not given')
                 self.lon = self.lon[:]
                 self.lat = self.lat[:]
                 self.projected = False
             elif self.lon.ndim == 3:
-                self.logger.debug('lon lat are 3D arrays, reading first time')
+                logger.debug('lon lat are 3D arrays, reading first time')
                 self.lon = self.lon[0,:,:]
                 self.lat = self.lat[0,:,:]
 
         if self.proj4 is not None and 'latlong' in self.proj4 and self.xmax is not None and self.xmax > 360:
-            self.logger.info('Longitudes > 360 degrees, subtracting 360')
+            logger.info('Longitudes > 360 degrees, subtracting 360')
             self.xmin -= 360
             self.xmax -= 360
             self.x -= 360
@@ -351,10 +353,6 @@ class Reader(BaseReader, StructuredReader):
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None,
                       indrealization=None):
-
-        ## TODO: Remove non-block
-        block = True
-
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
@@ -392,30 +390,26 @@ class Reader(BaseReader, StructuredReader):
                 indx = len(self.x) - indx
             if self.y[0] > self.y[-1]:
                 indy = len(self.y) - indy
-        if block is True:
-            # Adding buffer, to cover also future positions of elements
-            buffer = self.buffer
-            if self.global_coverage():
-                #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
-                if indx.min() < 0:  # Primitive fix for crossing 0-meridian
-                    indx = indx + self.numx
-                indx = np.arange(np.max([0, indx.min()-buffer]),
-                                 np.min([indx.max()+buffer, self.numx]))
-            else:
-                indx = np.arange(np.max([0, indx.min()-buffer]),
-                                 np.min([indx.max()+buffer, self.numx]))
-            indy = np.arange(np.max([0, indy.min()-buffer]),
-                             np.min([indy.max()+buffer, self.numy]))
+        # Adding buffer, to cover also future positions of elements
+        buffer = self.buffer
+        if self.global_coverage():
+            #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
+            if indx.min() < 0:  # Primitive fix for crossing 0-meridian
+                indx = indx + self.numx
+            indx = np.arange(np.max([0, indx.min()-buffer]),
+                                np.min([indx.max()+buffer, self.numx]))
         else:
-            indx[outside] = 0  # To be masked later
-            indy[outside] = 0
+            indx = np.arange(np.max([0, indx.min()-buffer]),
+                                np.min([indx.max()+buffer, self.numx]))
+        indy = np.arange(np.max([0, indy.min()-buffer]),
+                            np.min([indy.max()+buffer, self.numy]))
         if indx.min() <= 0 and indx.max() >= self.numx:
             indx = np.arange(0, self.numx)
 
         variables = {}
 
         if indx.min() < 0 and indx.max() > 0:
-            self.logger.debug('Requested data block is not continous in file'+
+            logger.debug('Requested data block is not continous in file'+
                           ', must read two blocks and concatenate.')
             indx_left = indx[indx<0] + self.numx  # Shift to positive indices
             indx_right = indx[indx>=0]
@@ -424,7 +418,7 @@ class Reader(BaseReader, StructuredReader):
             continous = True
         for par in requested_variables:
             if hasattr(self, 'rotate_mapping') and par in self.rotate_mapping:
-                self.logger.debug('Using %s to retrieve %s' %
+                logger.debug('Using %s to retrieve %s' %
                     (self.rotate_mapping[par], par))
                 if par not in self.variable_mapping:
                     self.variable_mapping[par] = \
@@ -468,17 +462,9 @@ class Reader(BaseReader, StructuredReader):
 
             variables[par] = np.asarray(variables[par])
 
-            # If 2D array is returned due to the fancy slicing
-            # methods of netcdf-python, we need to take the diagonal
-            if variables[par].ndim > 1 and block is False:
-                variables[par] = variables[par].diagonal()
-
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par],
                                          ndmin=2, mask=False)
-            if block is False:
-                variables[par].mask[outside] = True
-
             # Mask extreme values which might have slipped through
             with np.errstate(invalid='ignore'):
                 variables[par] = np.ma.masked_outside(
@@ -487,7 +473,7 @@ class Reader(BaseReader, StructuredReader):
             # Ensemble blocks are split into lists
             if ensemble_dim is not None:
                 num_ensembles = variables[par].shape[ensemble_dim]
-                self.logger.debug('Num ensembles: %i ' % num_ensembles)
+                logger.debug('Num ensembles: %i ' % num_ensembles)
                 newvar = [0]*num_ensembles
                 for ensemble_num in range(num_ensembles):
                     newvar[ensemble_num] = \
@@ -500,18 +486,14 @@ class Reader(BaseReader, StructuredReader):
             variables['z'] = self.z[indz]
         except:
             variables['z'] = None
-        if block is True:
-            if self.projected is True:
-                variables['x'] = \
-                    self.Dataset.variables[self.xname][indx]*self.unitfactor
-                variables['y'] = \
-                    self.Dataset.variables[self.yname][indy]*self.unitfactor
-            else:
-                variables['x'] = indx
-                variables['y'] = indy
+        if self.projected is True:
+            variables['x'] = \
+                self.Dataset.variables[self.xname][indx]*self.unitfactor
+            variables['y'] = \
+                self.Dataset.variables[self.yname][indy]*self.unitfactor
         else:
-            variables['x'] = self.xmin + (indx-1)*self.delta_x
-            variables['y'] = self.ymin + (indy-1)*self.delta_y
+            variables['x'] = indx
+            variables['y'] = indy
         variables['x'] = np.asarray(variables['x'])
         variables['y'] = np.asarray(variables['y'])
         if self.global_coverage():
@@ -524,7 +506,7 @@ class Reader(BaseReader, StructuredReader):
         # Rotate any east/north vectors if necessary
         if hasattr(self, 'rotate_mapping'):
             if self.y_is_north() is True:
-                self.logger.debug('North is up, no rotation necessary')
+                logger.debug('North is up, no rotation necessary')
             else:
                 self.rotate_variable_dict(variables)
 
