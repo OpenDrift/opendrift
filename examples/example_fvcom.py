@@ -20,8 +20,8 @@ print(fvcom)
 
 # Seed elements at defined positions, depth and time
 N = 1000
-z = -50*np.random.uniform(0, 1, N)
-o.seed_elements(lon=18.0, lat=69.8, radius=5000, number=N,
+z = -10*np.random.uniform(0, 1, N)
+o.seed_elements(lon=18.0, lat=69.8, radius=2000, number=N,
                 z=z, time=fvcom.start_time)
 
 #%%
@@ -34,7 +34,6 @@ print(o)
 
 #%%
 # Animation (current as background not yet working).
-# Note that drift is also depending on wind, which is not shown.
 o.animation(filename='fvcom.mp4', color='z')
 #o.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
 #            fast=True)
