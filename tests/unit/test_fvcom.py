@@ -72,7 +72,7 @@ def test_get_variables(benchmark):
     times = r.times[tidx]
     xc = r.xc[idx]
     yc = r.yc[idx]
-    z = r.siglay[zidx, idx] * r.dataset['h_center'][idx]
+    z = (r.dataset['siglay_center'][zidx, idx] * r.dataset['h_center'][idx]).diagonal()
     assert z.shape == xc.shape
 
     # u is a face / siglay variable
