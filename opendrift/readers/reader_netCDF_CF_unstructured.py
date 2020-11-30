@@ -78,6 +78,8 @@ class Reader(BaseReader, UnstructuredReader):
     # For in-memory caching of Sigma-coordinates and ocean depth
     siglay = None
     siglev = None
+    siglay_center = None
+    siglev_center = None
     ocean_depth_nele = None
     ocean_depth_node = None
 
@@ -251,16 +253,15 @@ class Reader(BaseReader, UnstructuredReader):
         y = np.atleast_1d(y)
         z = np.atleast_1d(z)
         if len(z) == 1:
-            z = z[0]*np.ones(x.shape)
-
+            z = z[0] * np.ones(x.shape)
 
         logger.debug("Requested variabels: %s, lengths: %d, %d, %d" %
                      (requested_variables, len(x), len(y), len(z)))
 
-        requested_variables, time, x, y, z, outside = \
+        requested_variables, time, x, y, z, _outside = \
             self.check_arguments(requested_variables, time, x, y, z)
 
-        nearest_time, time_before, time_after, indx_nearest, indx_before, indx_after = self.nearest_time(
+        nearest_time, _time_before, _time_after, indx_nearest, _indx_before, _indx_after = self.nearest_time(
             time)
 
         logger.debug("Nearest time: %s" % nearest_time)
@@ -277,7 +278,6 @@ class Reader(BaseReader, UnstructuredReader):
 
         variables = {}
 
-        # TODO: the two loops below are nearly identical, and could be merged
         if node_variables:
             logger.debug("Interpolating node-variables..")
 
@@ -289,15 +289,19 @@ class Reader(BaseReader, UnstructuredReader):
                 logger.debug("Interpolating: %s (%s)" % (var, dvar))
                 dvar = self.dataset[dvar]
 
+                # sigma ind depends on whether variable is defined on sigma layer og sigma level
                 sigma_ind = self.__nearest_node_sigma__(dvar, nodes, z)
                 assert len(sigma_ind) == len(z)
 
                 # Reading the smallest block covering the actual data
                 block = dvar[indx_nearest,
-                             slice(sigma_ind.min(), sigma_ind.max()+1),
-                             slice(nodes.min(), nodes.max()+1)]
+                             slice(sigma_ind.min(),
+                                   sigma_ind.max() + 1),
+                             slice(nodes.min(),
+                                   nodes.max() + 1)]
                 # Picking the nearest value
-                variables[var] = block[sigma_ind-sigma_ind.min(), nodes-nodes.min()]
+                variables[var] = block[sigma_ind - sigma_ind.min(),
+                                       nodes - nodes.min()]
 
         if face_variables:
             logger.debug("Interpolating face-variables..")
@@ -310,16 +314,19 @@ class Reader(BaseReader, UnstructuredReader):
                 logger.debug("Interpolating: %s (%s)" % (var, dvar))
                 dvar = self.dataset[dvar]
 
-                # TODO: is this not the same for all variables, and can be move outside loop?
+                # sigma ind depends on whether variable is defined on sigma layer og sigma level
                 sigma_ind = self.__nearest_face_sigma__(dvar, fcs, z)
                 assert len(sigma_ind) == len(z)
 
                 # Reading the smallest profile slice covering the actual data
                 block = dvar[indx_nearest,
-                             slice(sigma_ind.min(), sigma_ind.max()+1),
-                             slice(fcs.min(), fcs.max()+1)]
+                             slice(sigma_ind.min(),
+                                   sigma_ind.max() + 1),
+                             slice(fcs.min(),
+                                   fcs.max() + 1)]
                 # Picking the nearest value
-                variables[var] = block[sigma_ind-sigma_ind.min(), fcs-fcs.min()]
+                variables[var] = block[sigma_ind - sigma_ind.min(),
+                                       fcs - fcs.min()]
 
         return variables
 
@@ -346,19 +353,21 @@ class Reader(BaseReader, UnstructuredReader):
         """
         shp = var.shape
 
-        if shp[1] == siglay.shape[0]:
-            if self.siglay is None:
-                logger.debug('Reading and storing siglay array...')
-                self.siglay = self.dataset['siglay_center'][:]
+        if self.siglay is None:
+            logger.debug('Reading siglays into memory...')
+            self.siglay = self.dataset['siglay'][:]
+
+        if self.siglev is None:
+            logger.debug('Reading siglevs into memory...')
+            self.siglev = self.dataset['siglev'][:]
+
+        if shp[1] == self.siglay.shape[0]:
             sigmas = self.siglay[:, nodes]
         else:
-            if self.siglev is None:
-                logger.debug('Reading and storing siglev array...')
-                self.siglev = self.dataset['siglev_center'][:]
             sigmas = self.siglev[:, nodes]
 
         if self.ocean_depth_node is None:
-            logger.debug('Reading and storing ocean depth...')
+            logger.debug('Reading ocean depth into memory...')
             self.ocean_depth_node = self.dataset['h'][:]
 
         # Calculating depths from sigmas
@@ -372,19 +381,21 @@ class Reader(BaseReader, UnstructuredReader):
         """
         shp = var.shape
 
-        if shp[1] == self.dataset['siglay_center'].shape[0]:
-            if self.siglay is None:
-                logger.debug('Reading and storing siglay array...')
-                self.siglay = self.dataset['siglay_center'][:]
-            sigmas = self.siglay[:, el]
+        if self.siglay_center is None:
+            logger.debug('Reading siglay_centers into memory...')
+            self.siglay_center = self.dataset['siglay_center'][:]
+
+        if self.siglev_center is None:
+            logger.debug('Reading siglev_centers into memory...')
+            self.siglev_center = self.dataset['siglev_center'][:]
+
+        if shp[1] == self.siglay_center.shape[0]:
+            sigmas = self.siglay_center[:, el]
         else:
-            if self.siglev is None:
-                logger.debug('Reading and storing siglev array...')
-                self.siglev = self.dataset['siglev_center'][:]
-            sigmas = self.siglev[:, el]
+            sigmas = self.siglev_center[:, el]
 
         if self.ocean_depth_nele is None:
-            logger.debug('Reading and storing ocean depth...')
+            logger.debug('Reading ocean depth center into memory...')
             self.ocean_depth_nele = self.dataset['h_center'][:]
 
         # Calculating depths from sigmas
@@ -409,16 +420,3 @@ class Reader(BaseReader, UnstructuredReader):
         """
         return sigma * (depth + elevation)
 
-    @staticmethod
-    def __make_interpolator__(idx: scipy.spatial.cKDTree, x, y, z):
-        """
-        - Find index of nearest point
-        - Find indices of surrounding points using connectivity matrix
-        - Add indices for grid above and below
-        - Create weighting using distance from point
-        """
-        logger.debug(
-            "Making interpolator for mesh with %d points of dimension %d for %d target points."
-            % (idx.n, idx.m, len(x)))
-        nrst = self._nearest_node_(idx, x, y)
-        return nrst
