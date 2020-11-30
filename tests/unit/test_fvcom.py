@@ -137,7 +137,6 @@ def test_profile():
     print(o)
     o.run(steps=3)
     #o.plot(linecolor='z')
-    print(o.elements.lon)
 
     # Elements at 0 and 10m depth should not have same trajectory
     # This is ok

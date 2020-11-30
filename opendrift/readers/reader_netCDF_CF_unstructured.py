@@ -289,15 +289,15 @@ class Reader(BaseReader, UnstructuredReader):
                 logger.debug("Interpolating: %s (%s)" % (var, dvar))
                 dvar = self.dataset[dvar]
 
-                sigmas = self.__nearest_node_sigma__(dvar, nodes, z)
-                assert len(sigmas) == len(z)
+                sigma_ind = self.__nearest_node_sigma__(dvar, nodes, z)
+                assert len(sigma_ind) == len(z)
 
                 # Reading the smallest block covering the actual data
                 block = dvar[indx_nearest,
-                             slice(sigmas.min(), sigmas.max()+1),
+                             slice(sigma_ind.min(), sigma_ind.max()+1),
                              slice(nodes.min(), nodes.max()+1)]
                 # Picking the nearest value
-                variables[var] = block[sigmas-sigmas.min(), nodes-nodes.min()]
+                variables[var] = block[sigma_ind-sigma_ind.min(), nodes-nodes.min()]
 
         if face_variables:
             logger.debug("Interpolating face-variables..")
@@ -311,15 +311,15 @@ class Reader(BaseReader, UnstructuredReader):
                 dvar = self.dataset[dvar]
 
                 # TODO: is this not the same for all variables, and can be move outside loop?
-                sigmas = self.__nearest_face_sigma__(dvar, fcs, z)
-                assert len(sigmas) == len(z)
+                sigma_ind = self.__nearest_face_sigma__(dvar, fcs, z)
+                assert len(sigma_ind) == len(z)
 
-                # Reading the smallest block covering the actual data
+                # Reading the smallest profile slice covering the actual data
                 block = dvar[indx_nearest,
-                             slice(sigmas.min(), sigmas.max()+1),
+                             slice(sigma_ind.min(), sigma_ind.max()+1),
                              slice(fcs.min(), fcs.max()+1)]
                 # Picking the nearest value
-                variables[var] = block[sigmas-sigmas.min(), fcs-fcs.min()]
+                variables[var] = block[sigma_ind-sigma_ind.min(), fcs-fcs.min()]
 
         return variables
 
@@ -362,7 +362,7 @@ class Reader(BaseReader, UnstructuredReader):
             self.ocean_depth_node = self.dataset['h'][:]
 
         # Calculating depths from sigmas
-        depths = sigmas*self.ocean_depth_node[nodes]
+        depths = self.z_from_sigma(sigmas, self.ocean_depth_node[nodes])
 
         return self._vector_nearest_(depths, z)
 
@@ -388,14 +388,12 @@ class Reader(BaseReader, UnstructuredReader):
             self.ocean_depth_nele = self.dataset['h_center'][:]
 
         # Calculating depths from sigmas
-        depths = sigmas*self.ocean_depth_nele[el]
+        depths = self.z_from_sigma(sigmas, self.ocean_depth_nele[el])
 
         return self._vector_nearest_(depths, z)
 
-    # TODO: this method should probably be renamed, as z is expected
-    # to be an array e.g. by __repr__
     @staticmethod
-    def z(sigma, depth, elevation=0):
+    def z_from_sigma(sigma, depth, elevation=0):
         """
         Calculate z-depth from sigma constant.
 
