@@ -6,7 +6,7 @@ from opendrift.readers import reader_netCDF_CF_unstructured
 from opendrift.models.oceandrift import OceanDrift
 
 akvaplan = "https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc"
-akvaplan_local = "niva/AkvaplanNiva_sample.nc"
+akvaplan_local = "niva/AkvaplanNiva_sample.nc4"
 proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 
@@ -64,9 +64,30 @@ def test_get_variables(benchmark):
     assert u.shape == (len(x),)
     assert len(u) == len(x)
 
-@pytest.mark.skip
+    # test get_variables against manually retrieved value
+    tidx = [3,4]
+    idx = [150, 170, 171, 2000]
+    zidx = [0, 3, 4, 7]
+
+    times = r.times[tidx]
+    xc = r.xc[idx]
+    yc = r.yc[idx]
+    z = r.siglay[zidx, idx] * r.dataset['h_center'][idx]
+    assert z.shape == xc.shape
+
+    # u is a face / siglay variable
+    uu = r.dataset['u'][tidx[0], zidx, idx].diagonal()
+
+    u = r.get_variables(['x_sea_water_velocity'], times[0], xc, yc, z)['x_sea_water_velocity']
+    np.testing.assert_array_equal(uu, u)
+
+    uu = r.dataset['u'][tidx[1], zidx, idx].diagonal()
+
+    u = r.get_variables(['x_sea_water_velocity'], times[1], xc, yc, z)['x_sea_water_velocity']
+    np.testing.assert_array_equal(uu, u)
+
 def test_get_variables_many(benchmark):
-    r = reader_netCDF_CF_unstructured.Reader(akvaplan_local, proj4=proj)
+    r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
 
     x = np.linspace(5.6e5, 6.0e5, 1000)
     y = np.linspace(7.76e6, 7.8e6, 1000)
