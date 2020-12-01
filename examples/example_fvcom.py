@@ -26,7 +26,7 @@ o.seed_elements(lon=18.0, lat=69.8, radius=2000, number=N,
 
 #%%
 # Running model
-o.run(time_step=1800, duration=timedelta(hours=12), outfile='fvcom.nc')
+o.run(time_step=1800, duration=timedelta(hours=12))
 
 #%%
 # Print and plot results
@@ -34,12 +34,9 @@ print(o)
 
 #%%
 # Animation (current as background not yet working).
-o.animation(filename='fvcom.mp4', color='z')
-#o.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
-#            fast=True)
+o.animation(color='z')
 
 #%%
-# Print and plot results
-print(o)
+# .. image:: /gallery/animations/example_fvcom_0.gif
+
 o.plot(fast=True, buffer = 1.)
-# Two figure windows appear, this is probably a bug independent of FVCOM
