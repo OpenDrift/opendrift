@@ -641,17 +641,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             return self.proj(x, y, inverse=True)
 
-    def format_timedelta(self, timedelta):
-        '''Format timedelta nicely for display'''
-        timestr = str(timedelta)[0:str(timedelta).find('.') + 2]
-        for i, c in enumerate(timestr):
-            if c in '123456789.':
-                timestr = timestr[i:]  # Strip leading 0 and :
-                if c == '.':
-                    timestr = '0' + timestr
-                break
-        return timestr
-
     def performance(self):
         '''Report the time spent on various tasks'''
 
