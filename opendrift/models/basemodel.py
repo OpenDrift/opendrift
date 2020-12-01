@@ -641,20 +641,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             return self.proj(x, y, inverse=True)
 
-    def timer_start(self, category):
-        if not hasattr(self, 'timers'):
-            self.timers = OrderedDict()
-        if not hasattr(self, 'timing'):
-            self.timing = OrderedDict()
-        if category not in self.timing:
-            self.timing[category] = timedelta(0)
-        self.timers[category] = datetime.now()
-
-    def timer_end(self, category):
-        if self.timers[category] is not None:
-            self.timing[category] += datetime.now() - self.timers[category]
-        self.timers[category] = None
-
     def format_timedelta(self, timedelta):
         '''Format timedelta nicely for display'''
         timestr = str(timedelta)[0:str(timedelta).find('.') + 2]
