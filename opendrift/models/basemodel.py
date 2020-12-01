@@ -345,7 +345,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         self.add_metadata('opendrift_version', opendrift.__version__)
         self.logger.info('OpenDriftSimulation initialised (version %s)' %
-                     opendrift.__version__)
+                     opendrift.version.version_or_git())
 
     def list_config(self, prefix=''):
         """List all possible configuration settings with values"""
