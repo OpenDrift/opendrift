@@ -7,21 +7,36 @@ orbs:
 test-template: &test-template
   docker:
     - image: continuumio/miniconda3
-  resource_class: large
   steps:
     - checkout
+    - run:
+        name: Checksum environment
+        command: |
+          echo python=${PYTHON_VERSION} > envconfig
+          echo numpy=${NUMPY_VERSION} >> tee -a envconfig
+          cat envconfig
+
     - restore_cache:
-        key: v4-deps1-{{ checksum "environment.yml" }}
+        key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
     - run:
         name: Install requirements
         command: |
           if [ ! -e /opt/conda/envs/opendrift ]; then
             conda env create --file environment.yml
             source activate opendrift
-            pip install pyyaml coveralls pytest-parallel
+
+            if [ -v PYTHON_VERSION ]; then
+              conda install -q --yes -c conda-forge python=${PYTHON_VERSION}
+            fi
+
+            if [ -v NUMPY_VERSION ]; then
+              conda install -q --yes -c conda-forge numpy=${NUMPY_VERSION}
+            fi
+
+            pip install pyyaml coveralls
           fi
     - save_cache:
-        key: v4-deps1-{{ checksum "environment.yml" }}
+        key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
         paths:
           - "/opt/conda/envs"
 
@@ -58,14 +73,13 @@ test-template: &test-template
         path: test-results
 
     - persist_to_workspace:
-        root: coverage
-        paths: .coverage
+        root: /tmp/workspace
+        paths:
+          - .coverage
 
 jobs:
-  py_38:
+  py_latest:
     <<: *test-template
-    environment:
-      PYTHON_VERSION=3.8
 
   py_38_npy119:
     <<: *test-template
@@ -79,7 +93,12 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: coverage
+          at: /tmp/workspace
+
+      - run:
+          name: Get .coverage
+          command: |
+            cp cover/coverage/.coverage .
 
       - coveralls/upload
 
@@ -179,11 +198,11 @@ workflows:
 
   test:
     jobs:
-      - py_38
+      - py_latest
       - py_38_npy119
       - coveralls-upload:
           requires:
-            - py_38
+            - py_latest
           filters:
             branches:
               only: master
