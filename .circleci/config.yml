@@ -7,10 +7,11 @@ orbs:
 test-template: &test-template
   docker:
     - image: continuumio/miniconda3
+  resource_class: large
   steps:
     - checkout
     - restore_cache:
-        key: v3-deps1-{{ checksum "environment.yml" }}
+        key: v4-deps1-{{ checksum "environment.yml" }}
     - run:
         name: Install requirements
         command: |
@@ -20,7 +21,7 @@ test-template: &test-template
             pip install pyyaml coveralls pytest-parallel
           fi
     - save_cache:
-        key: v3-deps1-{{ checksum "environment.yml" }}
+        key: v4-deps1-{{ checksum "environment.yml" }}
         paths:
           - "/opt/conda/envs"
 
@@ -34,7 +35,7 @@ test-template: &test-template
         name: Run tests
         command: |
           source activate opendrift
-          pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v -s --log-cli-level=info
+          pytest --workers auto --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v --log-cli-level=debug
 
     - store_test_results:
         path: test-results
@@ -59,7 +60,7 @@ jobs:
       NUMPY_VERSION=1.19
 
   coveralls-upload:
-   docker:
+    docker:
       - image: 'circleci/node:10.0.0'
     steps:
       - checkout
