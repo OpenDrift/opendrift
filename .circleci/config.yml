@@ -4,7 +4,55 @@ orbs:
   # https://circleci.com/orbs/registry/orb/circleci/docker-publish
   docker-publish: circleci/docker-publish@0.1.3
 
+
+template: &test_template
+  docker:
+    - image: continuumio/miniconda3
+  steps:
+    - checkout
+    - restore_cache:
+        key: v3-deps1-{{ checksum "environment.yml" }}
+    - run:
+        name: Install requirements
+        command: |
+          if [ ! -e /opt/conda/envs/opendrift ]; then
+            conda env create --file environment.yml
+            source activate opendrift
+            pip install pyyaml coveralls pytest-parallel
+          fi
+    - save_cache:
+        key: v3-deps1-{{ checksum "environment.yml" }}
+        paths:
+          - "/opt/conda/envs"
+    - run:
+        name: Load conda environment
+        command: source activate opendrift
+
+    - run:
+        name: List environment
+        command: conda list
+
+    - run:
+        name: Run tests
+        command: pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v -s --log-cli-level=info
+
+    - store_test_results
+
+    - run:
+        name: Coveralls
+        command: coveralls
 jobs:
+  py3.8:
+    <<: *test_template
+    environment:
+      PYTHON_VERSION=3.8
+
+  py3.8-npy1.19:
+    <<: *test_template
+    environment:
+      PYTHON_VERSION=3.8
+      NUMPY_VERSION=1.19
+
   docs-build:
     docker:
       - image: continuumio/miniconda3
@@ -98,6 +146,10 @@ jobs:
 
 workflows:
   version: 2.1
+  test:
+    jobs:
+      - py3.8
+      - py3.8-npy1.19
   build:
     jobs:
       - docs-build
