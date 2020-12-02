@@ -97,11 +97,8 @@ jobs:
       - attach_workspace:
           at: cov
 
-      - run:
-          name: Get .coverage
-          command: cp cov/.coverage .
-
-      - coveralls/upload
+      - coveralls/upload:
+          path_to_lcov: cov/.coverage
 
   docs-build:
     docker:
