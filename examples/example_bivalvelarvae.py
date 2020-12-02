@@ -29,13 +29,7 @@ nordic_native = reader_ROMS_native.Reader(o.test_data_folder() +
 o.add_reader(nordic_native)
 
 # default values for forcing variables
-o.fallback_values['x_sea_water_velocity'] = 0 #m/s
-o.fallback_values['y_sea_water_velocity'] = 0 #m/s 
-o.fallback_values['x_wind'] = 0 #m/s
-o.fallback_values['y_wind'] = 0 #m/s
-o.fallback_values['sea_water_temperature'] = 12.0 # degrees Celsius
-o.fallback_values['sea_water_salinity'] = 35.0    # ppt
-o.fallback_values['ocean_vertical_diffusivity'] = 0.001 # m2/s
+o.set_config('environment:fallback:ocean_vertical_diffusivity',0.001) # m2/s
 ####################################################################################################################
 
 ####################################################################################################################
@@ -54,11 +48,11 @@ o.set_config('drift:vertical_mixing', True)
 o.set_config('drift:min_settlement_age_seconds', 3600) # minimum age before settling can occur
 
 o.set_config('vertical_mixing:diffusivitymodel', 'constant') # use eddy diffusivity from ocean model, or fallback value
-o.set_config('vertical_mixing:timestep', 3600.) # seconds - # Vertical mixing requires fast time step  (but for constant diffusivity, use same as model step)
+o.set_config('vertical_mixing:timestep', 900.) # seconds - # Vertical mixing requires fast time step  (but for constant diffusivity, use same as model step)
 ####################################################################################################################
 
 # Running model
-o.run(end_time=nordic_native.start_time + timedelta(days=4.0), time_step=3600)
+o.run(end_time=nordic_native.start_time + timedelta(days=4.0), time_step=900)
 
 # Print and plot results.
 # At the end the wind vanishes, and eggs come to surface

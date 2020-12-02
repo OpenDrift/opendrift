@@ -18,7 +18,6 @@
 
 import numpy as np
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
-from opendrift.elements import LagrangianArray
 import logging
 
 # Defining the  element properties from Pelagicegg model
@@ -26,7 +25,7 @@ class BivalveLarvaeObj(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for pelagic eggs/larvae
     """
 
-    variables = LagrangianArray.add_variables([
+    variables = Lagrangian3DArray.add_variables([
         ('diameter', {'dtype': np.float32,
                       'units': 'm',
                       'default': 0.0014}),  # for NEA Cod
@@ -60,21 +59,25 @@ class BivalveLarvae(OceanDrift):
     ElementType = BivalveLarvaeObj
     # ElementType = BuoyantTracer 
 
-    required_variables = ['x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_ice_area_fraction',
-                          'x_wind', 'y_wind', 'land_binary_mask',
-                          'sea_floor_depth_below_sea_level',
-                          'ocean_vertical_diffusivity',
-                          'sea_water_temperature',
-                          'sea_water_salinity',
-                          'sea_surface_height',
-                          'surface_downward_x_stress',
-                          'surface_downward_y_stress',
-                          'turbulent_kinetic_energy',
-                          'turbulent_generic_length_scale',
-                          'upward_sea_water_velocity'
-                          ]
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'sea_ice_area_fraction': {'fallback': 0},
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        'sea_floor_depth_below_sea_level': {'fallback': 100},
+        'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True},
+        'sea_water_temperature': {'fallback': 15, 'profiles': True},
+        'sea_water_salinity': {'fallback': 34, 'profiles': True},
+        'sea_surface_height': {'fallback': 0.0},
+        'surface_downward_x_stress': {'fallback': 0},
+        'surface_downward_y_stress': {'fallback': 0},
+        'turbulent_kinetic_energy': {'fallback': 0},
+        'turbulent_generic_length_scale': {'fallback': 0},
+        'upward_sea_water_velocity': {'fallback': 0},
+      }
 
     # Vertical profiles of the following parameters will be available in
     # dictionary self.environment.vertical_profiles
@@ -91,41 +94,17 @@ class BivalveLarvae(OceanDrift):
     # removing salt/water temp profile requirement for now
     # > need to get correct profiles from SCHISM reader
 
-    required_profiles = ['ocean_vertical_diffusivity']
+    # required_profiles = ['ocean_vertical_diffusivity']
+
     # The depth range (in m) which profiles shall cover
     required_profiles_z_range = [-120, 0]
-
-    fallback_values = {'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_ice_area_fraction': 0,
-                       'x_wind': 0, 'y_wind': 0,
-                       'sea_floor_depth_below_sea_level': 100,
-                       'ocean_vertical_diffusivity': 0.00,  # m2s-1
-                       'sea_water_temperature': 15.,
-                       'sea_water_salinity': 35.,
-                       'sea_surface_height': 0.0,
-                       'surface_downward_x_stress': 0,
-                       'surface_downward_y_stress': 0,
-                       'turbulent_kinetic_energy': 0,
-                       'turbulent_generic_length_scale': 0,
-                       'upward_sea_water_velocity': 0
-                       }
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
                      'settled_on_coast': 'red', 'died': 'yellow', 'settled_on_bottom': 'magenta'}
 
-    configspec_bivalvelarvae = ''' 
-        [drift]
-            min_settlement_age_seconds = float(default=0)
-            '''
-
     def __init__(self, *args, **kwargs):
         
-        ##add config spec
-        self._add_configstring(self.configspec_bivalvelarvae)
-
         # Calling general constructor of parent class
         super(BivalveLarvae, self).__init__(*args, **kwargs)
 
@@ -134,9 +113,16 @@ class BivalveLarvae(OceanDrift):
         self.set_config('general:coastline_action', 'previous')
 
         # resuspend larvae that reach seabed by default 
-        self.set_config('drift:lift_to_seafloor', 'True')
+        self.set_config('drift:lift_to_seafloor',True)
         # set the defasult min_settlement_age_seconds to 0.0
         # self.set_config('drift:min_settlement_age_seconds', '0.0')
+
+        ##add config spec
+        self._add_config({ 'drift:min_settlement_age_seconds': {'type': 'float', 'default': 0.0,'min': 0.0, 'max': 1.0e10, 'units': 'seconds',
+                           'description': 'minimum age in seconds at which larvae can start to settle on seabed or stick to shoreline)',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+
+
 
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
