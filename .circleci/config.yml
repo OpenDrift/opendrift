@@ -31,6 +31,20 @@ test-template: &test-template
           source activate opendrift
           conda list
 
+    - restore_cache:
+        key: v1-landmask
+
+    - run:
+        name: Generate landmask
+        command: |
+          source activate opendrift
+          echo -e \"import opendrift_landmask_data as old\nold.Landmask()\" | python
+
+    - save_cache:
+        key: v1-landmask
+        paths:
+          - "/tmp/landmask"
+
     - run:
         name: Run tests
         command: |
