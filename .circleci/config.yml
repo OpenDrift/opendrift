@@ -234,9 +234,10 @@ workflows:
                 name: Preview Containers that will be Deployed
                 command: |
                    # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
+                   pushd opendrift
+                   DOCKER_TAG=$(python -c 'import version; print(__version__)')
+                   popd
+
                    echo "Version for Docker tag is ${DOCKER_TAG}"
                    echo "This build will deploy the following containers:"
                    echo "opendrift/opendrift:latest"
@@ -261,9 +262,10 @@ workflows:
                 name: Publish Docker Containers with Python Version 3
                 command: |
                    # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
+                   pushd opendrift
+                   DOCKER_TAG=$(python -c 'import version; print(__version__)')
+                   popd
+
                    echo "Version for Docker tag is ${DOCKER_TAG}"
                    docker tag opendrift/opendrift:latest opendrift/opendrift:v${DOCKER_TAG}
                    docker tag opendrift/opendrift:latest opendrift/opendrift:py3-v${DOCKER_TAG}
