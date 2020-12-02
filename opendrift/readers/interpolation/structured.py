@@ -91,7 +91,6 @@ class ReaderBlock():
         if profiles is not []:
             profiles_dict = {'z': self.z}
         for varname, data in self.data_dict.items():
-            logger.debug("Interpolating %s.. (%s)" % (varname, data))
             nearest = False
             if varname == 'land_binary_mask':
                 nearest = True
