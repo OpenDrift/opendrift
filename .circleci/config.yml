@@ -36,13 +36,15 @@ test-template: &test-template
           source activate opendrift
           pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v -s --log-cli-level=info
 
-    - coveralls/upload
-
     - store_test_results:
         path: test-results
 
     - store_artifacts:
         path: test-results
+
+    - persist_to_workspace:
+        root: coverage
+        paths: .coverage
 
 jobs:
   py_38:
@@ -55,6 +57,16 @@ jobs:
     environment:
       PYTHON_VERSION=3.8
       NUMPY_VERSION=1.19
+
+  coveralls-upload:
+   docker:
+      - image: 'circleci/node:10.0.0'
+    steps:
+      - checkout
+      - attach_workspace:
+          at: coverage
+
+      - coveralls/upload
 
   docs-build:
     docker:
@@ -154,6 +166,12 @@ workflows:
     jobs:
       - py_38
       - py_38_npy119
+      - coveralls-upload:
+          requires:
+            - py_38
+          filters:
+            branches:
+              only: master
 
   build:
     jobs:
