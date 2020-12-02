@@ -238,23 +238,27 @@ def import_file_xarray(self, filename, chunks):
         self.latmax = self.af.latmax
 
 def import_file(self, filename, times=None, elements=None):
+    """Create OpenDrift object from imported file.
+     times: indices of time steps to be imported, must be contineous range.
+     elements: indices of elements to be imported
+    """
 
     self.logger.debug('Importing from ' + filename)
     infile = Dataset(filename, 'r')
     # 'times' can be used to import subset. Not yet implemented.
     if times is None and hasattr(infile, 'steps_exported'):
         self.steps_output = infile.steps_exported
+        times = np.arange(infile.steps_exported)
     else:
-        self.steps_output = len(infile.dimensions['time'])
+        #self.steps_output = len(infile.dimensions['time'])
+        self.steps_output = len(times)
     
-    self.start_time = num2date(infile.variables['time'][0],
-                               infile.variables['time'].units)
-    if len(infile.variables['time']) > 1:
-        self.end_time = num2date(
-            infile.variables['time'][self.steps_output-1],
-            infile.variables['time'].units)
-        self.time_step_output = num2date(infile.variables['time'][1],
-            infile.variables['time'].units) - self.start_time
+    filetime = infile.variables['time'][times]
+    units = infile.variables['time'].units
+    self.start_time = num2date(filetime[0], units)
+    if len(filetime) > 1:
+        self.end_time = num2date(filetime[self.steps_output-1], units)  # Why -1?
+        self.time_step_output = num2date(filetime[1], units) - self.start_time
     else:
         self.time_step_output = timedelta(hours=1)
         self.end_time = self.start_time
@@ -289,7 +293,7 @@ def import_file(self, filename, times=None, elements=None):
         if var in ['time', 'trajectory']:
             continue
         try:
-            self.history[var] = infile.variables[var][elements, 0:self.steps_output]
+            self.history[var] = infile.variables[var][elements, times]
         except Exception as e:
             self.logger.info(e)
             pass
