@@ -123,13 +123,13 @@ class OpenDriftGUI(tk.Tk):
                             relief=tk.FLAT, pady=25, padx=25)
         self.top.grid(row=0, column=1, rowspan=1)
         # Config
-        self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
+        self.con = tk.Frame(self.config, relief=tk.FLAT, pady=25, padx=25)
         self.con.grid(row=0, column=1, rowspan=1)
         # Constants
-        self.const = tk.Label(self.constants, text="\n\nConstant environment variables\n\n")
+        self.const = tk.Frame(self.constants, relief=tk.FLAT, pady=25, padx=25)
         self.const.grid(row=0, column=1, rowspan=1)
         # Fallback
-        self.fall = tk.Label(self.fallback, text="\n\nFallback environment variables\n\n")
+        self.fall = tk.Frame(self.fallback, relief=tk.FLAT, pady=25, padx=25)
         self.fall.grid(row=0, column=1, rowspan=1)
         # Time start and end
         self.start_t = tk.Frame(self.seed, relief=tk.FLAT)
@@ -421,6 +421,31 @@ class OpenDriftGUI(tk.Tk):
             print('='*30 + '\nPlot saved to file: '
                   + filename + '\n' + '='*30)
 
+    def validate_config(self, value_if_allowed, prior_value, key):
+        """From config menu selection."""
+        print('Input: %s -> %s', (key, value_if_allowed))
+        if value_if_allowed == 'None':
+            print('Setting None value')
+            return True
+        if value_if_allowed == '':
+            print('Allowing temporally empty')
+            return True
+        sc = self.o._config[key]
+        if sc['type'] in ['int', 'float']:
+            try:
+                value_if_allowed = float(value_if_allowed)
+            except:
+                print('Nonumber')
+                return False
+        try:
+            print('Setting: %s -> %s', (key, value_if_allowed))
+            self.o.set_config(key, value_if_allowed)
+            print('Success....')
+            return True
+        except:
+            print('No success....')
+            return False
+
     def set_model(self, model, rebuild_gui=True):
         
         # Creating simulation object (self.o) of chosen model class
@@ -435,7 +460,7 @@ class OpenDriftGUI(tk.Tk):
         # Setting GUI-specific default config values
         for k,v in self.GUI_config.items():
             try:
-                self.o.set_config(k, v)
+                self.o._set_config_default(k, v)
             except:
                 pass
 
@@ -445,27 +470,47 @@ class OpenDriftGUI(tk.Tk):
         # Remove current GUI components and rebuild with new
         for con in self.config.winfo_children():
             con.destroy()
-        self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
+        self.con = tk.Frame(self.config, relief=tk.FLAT, pady=25, padx=25)
         self.con.grid(row=0, column=1, rowspan=1)
         for con in self.constants.winfo_children():
             con.destroy()
-        self.const = tk.Label(self.constants, text="\n\nConstants\n\n")
+        self.const = tk.Frame(self.constants, relief=tk.FLAT, pady=25, padx=25)
         self.const.grid(row=0, column=1, rowspan=1)
         for con in self.fallback.winfo_children():
             con.destroy()
-        self.fall = tk.Label(self.fallback, text="\n\nFallback\n\n")
+        self.fall = tk.Frame(self.fallback, relief=tk.FLAT, pady=25, padx=25)
         self.fall.grid(row=0, column=1, rowspan=1)
 
         sc = self.o.get_configspec(level=[2, 3])
+        self.config_input = {}
+        self.config_input_var = {}
+        self.config_input_label = {}
         for i, key in enumerate(list(sc)):
             if key.startswith('environment:constant'):
                 tab = self.const
+                keystr = key.split(':')[-1]
             elif key.startswith('environment:fallback'):
                 tab = self.fall
+                keystr = key.split(':')[-1]
             else:
                 tab = self.con
-            lab = tk.Label(tab, text=key)
+                keystr = key
+
+            lab = tk.Label(tab, text=keystr)
             lab.grid(row=i, column=1, rowspan=1)
+            if sc[key]['type'] == 'float':
+                self.config_input_var[i] = tk.StringVar()
+                vcmd = (tab.register(self.validate_config),
+                    '%P', '%s', key)
+                self.config_input[i] = tk.Entry(
+                    tab, textvariable=self.config_input_var[i],
+                    validate='key', validatecommand=vcmd,
+                    width=6, justify=tk.RIGHT)
+                self.config_input[i].insert(0, str(sc[key]['default']))
+                self.config_input[i].grid(row=i, column=2, rowspan=1)
+                tk.Label(tab, text='[%s]  min: %s, max: %s' % (
+                    sc[key]['units'], sc[key]['min'], sc[key]['max'])
+                        ).grid(row=i, column=3, rowspan=1)
             CreateToolTip(lab, sc[key]['description'])
 
         try:
@@ -480,10 +525,8 @@ class OpenDriftGUI(tk.Tk):
         except:
             pass
 
-        print(self.o.list_configspec())
         # Only ESSENTIAL config items are shown on front page with seeding
         sc = self.o.get_configspec(level=self.o.CONFIG_LEVEL_ESSENTIAL)
-        print(sc)
         self.seed_input = {}
         self.seed_input_var = {}
         self.seed_input_label = {}
@@ -595,8 +638,10 @@ class OpenDriftGUI(tk.Tk):
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
 
-        # Creating fresh instance of the current model
+        # Creating fresh instance of the current model, but keeping config
+        adjusted_config = self.o._config
         self.set_model(self.modelname, rebuild_gui=False)
+        self.o._config = adjusted_config
     
         try:
             self.budgetbutton.destroy()
