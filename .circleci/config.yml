@@ -1,57 +1,107 @@
 version: 2.1
 
 orbs:
-  # https://circleci.com/orbs/registry/orb/circleci/docker-publish
   docker-publish: circleci/docker-publish@0.1.3
+  coveralls: coveralls/coveralls@1.0.6
 
-
-template: &test_template
+test-template: &test-template
   docker:
     - image: continuumio/miniconda3
   steps:
     - checkout
+    - run:
+        name: Checksum environment
+        command: |
+          echo "python=${PYTHON_VERSION}" > envconfig
+          echo "numpy=${NUMPY_VERSION}" >> envconfig
+          cat envconfig
+
     - restore_cache:
-        key: v3-deps1-{{ checksum "environment.yml" }}
+        key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
     - run:
         name: Install requirements
         command: |
           if [ ! -e /opt/conda/envs/opendrift ]; then
             conda env create --file environment.yml
             source activate opendrift
-            pip install pyyaml coveralls pytest-parallel
+
+            if [ -v PYTHON_VERSION ]; then
+              conda install -q --yes -c conda-forge "python=${PYTHON_VERSION}"
+            fi
+
+            if [ -v NUMPY_VERSION ]; then
+              conda install -q --yes -c conda-forge "numpy=${NUMPY_VERSION}"
+            fi
+
+            pip install pyyaml coveralls
           fi
     - save_cache:
-        key: v3-deps1-{{ checksum "environment.yml" }}
+        key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
         paths:
           - "/opt/conda/envs"
-    - run:
-        name: Load conda environment
-        command: source activate opendrift
 
     - run:
         name: List environment
-        command: conda list
+        command: |
+          source activate opendrift
+          conda list
+
+    - restore_cache:
+        key: v1-landmask
+
+    - run:
+        name: Generate landmask
+        command: |
+          source activate opendrift
+          python -c 'import opendrift_landmask_data as old; old.Landmask()'
+
+    - save_cache:
+        key: v1-landmask
+        paths:
+          - "/tmp/landmask"
 
     - run:
         name: Run tests
-        command: pytest --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v -s --log-cli-level=info
+        command: |
+          source activate opendrift
+          pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v --log-cli-level=debug
+          mkdir -p cov
+          cp .coverage cov/
 
-    - store_test_results
+    - store_test_results:
+        path: test-results
 
-    - run:
-        name: Coveralls
-        command: coveralls
+    - store_artifacts:
+        path: test-results
+
+    - persist_to_workspace:
+        root: cov
+        paths:
+          - .coverage
+
 jobs:
-  py3.8:
-    <<: *test_template
-    environment:
-      PYTHON_VERSION=3.8
+  py_latest:
+    <<: *test-template
 
-  py3.8-npy1.19:
-    <<: *test_template
+  py_38_npy119:
+    <<: *test-template
     environment:
-      PYTHON_VERSION=3.8
-      NUMPY_VERSION=1.19
+      - PYTHON_VERSION=3.8
+      - NUMPY_VERSION=1.19
+
+  coveralls-upload:
+    docker:
+      - image: 'circleci/node:10.0.0'
+    steps:
+      - checkout
+      - attach_workspace:
+          at: cov
+
+      - run:
+          name: Get .coverage
+          command: cp cov/.coverage .
+
+      - coveralls/upload
 
   docs-build:
     docker:
@@ -146,10 +196,15 @@ jobs:
 
 workflows:
   version: 2.1
+
   test:
     jobs:
-      - py3.8
-      - py3.8-npy1.19
+      - py_latest
+      - py_38_npy119
+      - coveralls-upload:
+          requires:
+            - py_latest
+
   build:
     jobs:
       - docs-build
