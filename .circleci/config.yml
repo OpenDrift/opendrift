@@ -2,7 +2,6 @@ version: 2.1
 
 orbs:
   docker-publish: circleci/docker-publish@0.1.3
-  coveralls: coveralls/coveralls@1.0.6
 
 test-template: &test-template
   docker:
@@ -65,8 +64,6 @@ test-template: &test-template
         command: |
           source activate opendrift
           pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v --log-cli-level=debug
-          mkdir -p cov
-          cp .coverage cov/
 
     - store_test_results:
         path: test-results
@@ -74,10 +71,13 @@ test-template: &test-template
     - store_artifacts:
         path: test-results
 
-    - persist_to_workspace:
-        root: cov
-        paths:
-          - .coverage
+    - run:
+        name: Upload to coveralls
+        command: |
+          source activate opendrift
+          if [ ! -v PYTHON_VERSION ]; then
+            coveralls
+          fi
 
 jobs:
   py_latest:
@@ -88,17 +88,6 @@ jobs:
     environment:
       - PYTHON_VERSION=3.8
       - NUMPY_VERSION=1.19
-
-  coveralls-upload:
-    docker:
-      - image: 'circleci/node:10.0.0'
-    steps:
-      - checkout
-      - attach_workspace:
-          at: cov
-
-      - coveralls/upload:
-          path_to_lcov: cov/.coverage
 
   docs-build:
     docker:
@@ -198,9 +187,6 @@ workflows:
     jobs:
       - py_latest
       - py_38_npy119
-      - coveralls-upload:
-          requires:
-            - py_latest
 
   build:
     jobs:
@@ -232,7 +218,7 @@ workflows:
                 command: |
                    # Here we preview the Docker Tag
                    pushd opendrift
-                   DOCKER_TAG=$(python -c 'import version; print(__version__)')
+                   DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
                    popd
 
                    echo "Version for Docker tag is ${DOCKER_TAG}"
@@ -260,7 +246,7 @@ workflows:
                 command: |
                    # Here we preview the Docker Tag
                    pushd opendrift
-                   DOCKER_TAG=$(python -c 'import version; print(__version__)')
+                   DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
                    popd
 
                    echo "Version for Docker tag is ${DOCKER_TAG}"
