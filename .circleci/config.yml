@@ -38,7 +38,7 @@ test-template: &test-template
         name: Generate landmask
         command: |
           source activate opendrift
-          echo -e \"import opendrift_landmask_data as old\nold.Landmask()\" | python
+          python -c 'import opendrift_landmask_data as old; old.Landmask()'
 
     - save_cache:
         key: v1-landmask
