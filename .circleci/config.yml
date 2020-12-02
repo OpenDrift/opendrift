@@ -12,8 +12,8 @@ test-template: &test-template
     - run:
         name: Checksum environment
         command: |
-          echo python=${PYTHON_VERSION} > envconfig
-          echo numpy=${NUMPY_VERSION} >> tee -a envconfig
+          echo "python=${PYTHON_VERSION}" > envconfig
+          echo "numpy=${NUMPY_VERSION}" >> envconfig
           cat envconfig
 
     - restore_cache:
@@ -26,11 +26,11 @@ test-template: &test-template
             source activate opendrift
 
             if [ -v PYTHON_VERSION ]; then
-              conda install -q --yes -c conda-forge python=${PYTHON_VERSION}
+              conda install -q --yes -c conda-forge "python=${PYTHON_VERSION}"
             fi
 
             if [ -v NUMPY_VERSION ]; then
-              conda install -q --yes -c conda-forge numpy=${NUMPY_VERSION}
+              conda install -q --yes -c conda-forge "numpy=${NUMPY_VERSION}"
             fi
 
             pip install pyyaml coveralls
@@ -65,6 +65,8 @@ test-template: &test-template
         command: |
           source activate opendrift
           pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v --log-cli-level=debug
+          mkdir -p cov
+          cp .coverage cov/
 
     - store_test_results:
         path: test-results
@@ -73,7 +75,7 @@ test-template: &test-template
         path: test-results
 
     - persist_to_workspace:
-        root: /tmp/workspace
+        root: cov
         paths:
           - .coverage
 
@@ -84,8 +86,8 @@ jobs:
   py_38_npy119:
     <<: *test-template
     environment:
-      PYTHON_VERSION=3.8
-      NUMPY_VERSION=1.19
+      - PYTHON_VERSION=3.8
+      - NUMPY_VERSION=1.19
 
   coveralls-upload:
     docker:
@@ -93,12 +95,11 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /tmp/workspace
+          at: cov
 
       - run:
           name: Get .coverage
-          command: |
-            cp cover/coverage/.coverage .
+          command: cp cov/.coverage .
 
       - coveralls/upload
 
