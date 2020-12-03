@@ -102,7 +102,7 @@ class OpenDriftGUI(tk.Tk):
 
         tk.Tk.__init__(self)
 
-        self.title('OpenDrift ' + opendrift.__version__)
+        self.title('OpenDrift ' + opendrift.__version__ + ' GTI Turbo Ultra')
 
         ##################
         # Layout frames
@@ -110,27 +110,18 @@ class OpenDriftGUI(tk.Tk):
         self.n = ttk.Notebook(self.master)
         self.n.grid()
         self.seed = ttk.Frame(self.n)
-        self.config = ttk.Frame(self.n)
-        self.constants = ttk.Frame(self.n)
-        self.fallback = ttk.Frame(self.n)
+        self.confignotebook = ttk.Notebook(self.n)
+        self.config = ttk.Frame(self.confignotebook)
+        self.forcing = ttk.Frame(self.n)
         self.n.add(self.seed, text='Seeding')
-        self.n.add(self.config, text='Config')
-        self.n.add(self.constants, text='Constants')
-        self.n.add(self.fallback, text='Fallback')
+        self.n.add(self.confignotebook, text='Config')
+        self.n.add(self.forcing, text='Forcing')
+        self.confignotebook.add(self.config, text='SubConfig')
 
         # Top
         self.top = tk.Frame(self.seed,
                             relief=tk.FLAT, pady=25, padx=25)
         self.top.grid(row=0, column=1, rowspan=1)
-        # Config
-        self.con = tk.Frame(self.config, relief=tk.FLAT, pady=25, padx=25)
-        self.con.grid(row=0, column=1, rowspan=1)
-        # Constants
-        self.const = tk.Frame(self.constants, relief=tk.FLAT, pady=25, padx=25)
-        self.const.grid(row=0, column=1, rowspan=1)
-        # Fallback
-        self.fall = tk.Frame(self.fallback, relief=tk.FLAT, pady=25, padx=25)
-        self.fall.grid(row=0, column=1, rowspan=1)
         # Time start and end
         self.start_t = tk.Frame(self.seed, relief=tk.FLAT)
         self.start_t.grid(row=20, column=0, rowspan=1)
@@ -368,6 +359,12 @@ class OpenDriftGUI(tk.Tk):
         ##############
         self.set_model(list(self.opendrift_models)[0])
 
+        forcingfiles = open(self.o.test_data_folder() + '../../opendrift/scripts/data_sources.txt').readlines()
+        print(forcingfiles)
+        for i, ff in enumerate(forcingfiles):
+            tk.Label(self.forcing, text=ff.strip()).grid(
+                        row=i, column=0, sticky=tk.W)
+
         ##########
         # RUN
         ##########
@@ -427,8 +424,8 @@ class OpenDriftGUI(tk.Tk):
         if value_if_allowed == 'None':
             print('Setting None value')
             return True
-        if value_if_allowed == '':
-            print('Allowing temporally empty')
+        if value_if_allowed in ' -':
+            print('Allowing temporally empty or minus sign')
             return True
         sc = self.o._config[key]
         if sc['type'] in ['int', 'float']:
@@ -440,10 +437,8 @@ class OpenDriftGUI(tk.Tk):
         try:
             print('Setting: %s -> %s', (key, value_if_allowed))
             self.o.set_config(key, value_if_allowed)
-            print('Success....')
             return True
         except:
-            print('No success....')
             return False
 
     def set_model(self, model, rebuild_gui=True):
@@ -468,33 +463,29 @@ class OpenDriftGUI(tk.Tk):
             return
 
         # Remove current GUI components and rebuild with new
-        for con in self.config.winfo_children():
+        for con in self.confignotebook.winfo_children():
             con.destroy()
-        self.con = tk.Frame(self.config, relief=tk.FLAT, pady=25, padx=25)
-        self.con.grid(row=0, column=1, rowspan=1)
-        for con in self.constants.winfo_children():
-            con.destroy()
-        self.const = tk.Frame(self.constants, relief=tk.FLAT, pady=25, padx=25)
-        self.const.grid(row=0, column=1, rowspan=1)
-        for con in self.fallback.winfo_children():
-            con.destroy()
-        self.fall = tk.Frame(self.fallback, relief=tk.FLAT, pady=25, padx=25)
-        self.fall.grid(row=0, column=1, rowspan=1)
+        self.subconfig = {}
+        confnames = list(set([cn.split(':')[0] for cn in self.o._config]))
+        confnames.extend(['environment:constant', 'environment:fallback'])
+        confnames.remove('environment')
+        for sub in confnames:
+            self.subconfig[sub] = tk.Frame(self.confignotebook, pady=25)
+            self.confignotebook.add(self.subconfig[sub], text=sub)
 
         sc = self.o.get_configspec(level=[2, 3])
         self.config_input = {}
         self.config_input_var = {}
-        self.config_input_label = {}
         for i, key in enumerate(list(sc)):
             if key.startswith('environment:constant'):
-                tab = self.const
+                tab = self.subconfig['environment:constant']
                 keystr = key.split(':')[-1]
             elif key.startswith('environment:fallback'):
-                tab = self.fall
+                tab = self.subconfig['environment:fallback']
                 keystr = key.split(':')[-1]
             else:
-                tab = self.con
-                keystr = key
+                tab = self.subconfig[key.split(':')[0]]
+                keystr = ''.join(key.split(':')[1:])
 
             lab = tk.Label(tab, text=keystr)
             lab.grid(row=i, column=1, rowspan=1)
@@ -511,6 +502,30 @@ class OpenDriftGUI(tk.Tk):
                 tk.Label(tab, text='[%s]  min: %s, max: %s' % (
                     sc[key]['units'], sc[key]['min'], sc[key]['max'])
                         ).grid(row=i, column=3, rowspan=1)
+            elif sc[key]['type'] == 'bool':
+                if self.o.get_config(key) is True:
+                    value = 1
+                else:
+                    value = 0
+                self.config_input_var[i] = tk.IntVar(value=value)
+                vcb = (tab.register(self.set_config_checkbox),
+                       key, i)
+                self.config_input[i] = tk.Checkbutton(
+                    tab, variable=self.config_input_var[i],
+                    command=vcb, text='')
+                self.config_input[i].grid(row=i, column=2, rowspan=1)
+            elif sc[key]['type'] == 'enum':
+                self.config_input_var[i] = tk.StringVar(value=self.o.get_config(key))
+                width = len(max(sc[key]['enum'], key=len))
+                self.config_input[i] = ttk.Combobox(
+                    tab, width=width,
+                    textvariable=self.config_input_var[i],
+                    values=sc[key]['enum'])
+                self.config_input[i].bind("<<ComboboxSelected>>",
+                        lambda event, keyx=key, ix=i:
+                            self.set_config_enum(event, keyx, ix))
+                self.config_input[i].grid(row=i, column=2, rowspan=1)
+
             CreateToolTip(lab, sc[key]['description'])
 
         try:
@@ -568,26 +583,20 @@ class OpenDriftGUI(tk.Tk):
                 self.seed_input[i].insert(0, actual_val)
             self.seed_input[i].grid(row=num, column=1)
 
-        ## User shall be able to chose release depth for 3D models
-        #if issubclass(type(self.o), OceanDrift):
-        #    self.depthlabel = tk.Label(self.duration, text='Release depth [m]')
-        #    self.depthlabel.grid(row=60, column=0)
-        #    self.depthvar = tk.StringVar()
-        #    self.depth = tk.Entry(self.duration, textvariable=self.depthvar,
-        #                          width=6, justify=tk.RIGHT)
-        #    self.depth.grid(row=60, column=2)
-        #    self.depth.insert(0, '0')
-        #    self.seafloorvar = tk.IntVar()
-        #    self.seafloor = tk.Checkbutton(self.duration, variable=self.seafloorvar,
-        #                                   text='seafloor',
-        #                                   command=self.seafloorbutton)
-        #    self.seafloor.grid(row=60, column=3)
+    def set_config_checkbox(self, key, i):
+        i = int(i)
+        newval = self.config_input_var[i].get()
+        if newval == 0:
+            print('Setting %s to False' % key)
+            self.o.set_config(key, False)
+        elif newval == 1:
+            print('Setting %s to True' % key)
+            self.o.set_config(key, True)
 
-    #def seafloorbutton(self):
-    #    if self.seafloorvar.get() == 1:
-    #        self.depth.config(state='disabled')
-    #    else:
-    #        self.depth.config(state='normal')
+    def set_config_enum(self, event, key, i):
+        newval = self.config_input_var[i].get()
+        print('Setting ' + key + newval)
+        self.o.set_config(key, newval)
 
     def show_help(self):
         help_url = 'https://opendrift.github.io/gui.html'
@@ -690,12 +699,6 @@ class OpenDriftGUI(tk.Tk):
         self.o.add_readers_from_file(self.o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
 
-        #if issubclass(type(self.o), OceanDrift):
-        #    if self.seafloorvar.get() == 1:
-        #        z = 'seafloor'
-        #    else:
-        #        z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
-        #    extra_seed_args['z'] = z
         self.o.seed_cone(lon=lon, lat=lat, radius=radius,
                          time=start_time)#, #cone=cone,
                          #**extra_seed_args)
