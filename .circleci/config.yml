@@ -6,6 +6,7 @@ orbs:
 test-template: &test-template
   docker:
     - image: continuumio/miniconda3
+  resource_class: large
   steps:
     - checkout
     - run:
@@ -34,6 +35,7 @@ test-template: &test-template
 
             pip install pyyaml coveralls
           fi
+
     - save_cache:
         key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
         paths:
@@ -80,10 +82,10 @@ test-template: &test-template
           fi
 
 jobs:
-  py_latest:
+  python_latest:
     <<: *test-template
 
-  py_38_npy119:
+  python_38_numpy_119:
     <<: *test-template
     environment:
       - PYTHON_VERSION=3.8
@@ -185,8 +187,8 @@ workflows:
 
   test:
     jobs:
-      - py_latest
-      - py_38_npy119
+      - python_latest
+      - python_38_numpy_119
 
   build:
     jobs:
