@@ -85,10 +85,10 @@ jobs:
   python_latest:
     <<: *test-template
 
-  python_38_numpy_119:
+  python_37_numpy_119:
     <<: *test-template
     environment:
-      - PYTHON_VERSION=3.8
+      - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.19
 
   docs-build:
@@ -188,7 +188,7 @@ workflows:
   test:
     jobs:
       - python_latest
-      - python_38_numpy_119
+      - python_37_numpy_119
 
   build:
     jobs:
