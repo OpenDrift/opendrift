@@ -1,6 +1,11 @@
 History
 =======
 
+Next release
+------------
+* Built in GUI is improved with posibillity to adjust all config settings.
+* Major restructuring of Basereader class. Readers now are sublasses of Structured, Unstructured or Continuous.
+
 2020-11-01 / Release v1.4.2
 ---------------------------
 
