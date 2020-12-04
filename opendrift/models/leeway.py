@@ -39,6 +39,8 @@ class LeewayObj(LagrangianArray):
                         'default': 0}),
         ('orientation', {'dtype': np.int16,
                          'units': '1',
+            'description': '0/1 is left/right of downwind. Randomly chosen at seed time',
+                         'seed': False,
                          'default': 1}),
         ('jibeProbability', {'dtype': np.float32,
                              'units': '1/h',

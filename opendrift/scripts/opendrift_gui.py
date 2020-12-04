@@ -92,10 +92,10 @@ class OpenDriftGUI(tk.Tk):
     # Overriding some default config settings, suitable for GUI
     # TODO: should be set as default-default
     GUI_config = {
-            'general:time_step_minutes': 15,
-            'general:time_step_output_minutes': 30,
-            'seed:number': 5000,
-            'seed:m3_per_hour': 100
+            'general:time_step_minutes': {'default': 15, 'min': 1},
+            'general:time_step_output_minutes': {'default': 30, 'min': 5},
+            'seed:number': {'default': 5000, 'max': 100000},
+            'seed:m3_per_hour': {'default': 100}
             }
 
     def __init__(self):
@@ -147,16 +147,6 @@ class OpenDriftGUI(tk.Tk):
                                relief=tk.FLAT, padx=5, pady=0)
         self.results.grid(row=60, column=7, columnspan=1, sticky='ew')
 
-        ##########################
-
-        try:
-            img = ImageTk.PhotoImage(Image.open(self.o.test_data_folder() +
-                                     '../../docs/opendrift_logo.png'))
-            panel = tk.Label(self.seed, image=img)
-            panel.image = img
-            panel.grid(row=0, column=0)
-        except:
-            pass # Could not display logo
         #######################################################
         tk.Label(self.top, text='Simulation type').grid(row=0, column=0)
         self.model = tk.StringVar()
@@ -168,6 +158,7 @@ class OpenDriftGUI(tk.Tk):
         help_button = tk.Button(self.top, text='Help',
                                 command=self.show_help)
         help_button.grid(row=0, column=2, padx=50)
+
 
         ##########
         # Release
@@ -365,6 +356,18 @@ class OpenDriftGUI(tk.Tk):
             tk.Label(self.forcing, text=ff.strip()).grid(
                         row=i, column=0, sticky=tk.W)
 
+        ##########################
+        try:
+            img = ImageTk.PhotoImage(Image.open(
+                self.o.test_data_folder() +
+                                     '../../docs/opendrift_logo.png'))
+            panel = tk.Label(self.seed, image=img)
+            panel.image = img
+            panel.grid(row=0, column=0)
+        except Exception as e:
+            print(e)
+            pass # Could not display logo
+ 
         ##########
         # RUN
         ##########
@@ -455,7 +458,12 @@ class OpenDriftGUI(tk.Tk):
         # Setting GUI-specific default config values
         for k,v in self.GUI_config.items():
             try:
-                self.o._set_config_default(k, v)
+                if 'default' in v:
+                    self.o._set_config_default(k, v['default'])
+                if 'min' in v:
+                    self.o._config[k]['min'] = v['min']
+                if 'max' in v:
+                    self.o._config[k]['max'] = v['max']
             except:
                 pass
 
@@ -489,7 +497,7 @@ class OpenDriftGUI(tk.Tk):
 
             lab = tk.Label(tab, text=keystr)
             lab.grid(row=i, column=1, rowspan=1)
-            if sc[key]['type'] == 'float':
+            if sc[key]['type'] in ['float', 'int']:
                 self.config_input_var[i] = tk.StringVar()
                 vcmd = (tab.register(self.validate_config),
                     '%P', '%s', key)
@@ -530,13 +538,6 @@ class OpenDriftGUI(tk.Tk):
 
         try:
             self.results.destroy()
-        except:
-            pass
-        try:
-            # Removing depth input boxes
-            self.depthlabel.destroy()
-            self.depth.destroy()
-            #self.seafloor.destroy()
         except:
             pass
 

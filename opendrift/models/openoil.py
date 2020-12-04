@@ -84,21 +84,18 @@ class Oil(LagrangianArray):
                       'default': 1}),
         ('viscosity', {'dtype': np.float32,
                        'units': 'N s/m2 (Pa s)',
+                       'seed': False, # Taken from NOAA database
                        'default': 0.005}),
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
+                     'seed': False, # Taken from NOAA database
                      'default': 880}),
         ('wind_drift_factor', {'dtype': np.float32,  # TODO: inherit from
                                'units': '%',         # OceanDrift
+            'description': 'Elements at the ocean surface are moved by '
+                'this fraction of the wind vector, in addition to '
+                'currents and Stokes drift',
                                'default': 0.03}),
-        ('age_exposure_seconds', {'dtype': np.float32,
-                                  'units': 's',
-                                  'seed': False,
-                                  'default': 0}),
-        ('age_emulsion_seconds', {'dtype': np.float32,
-                                  'units': 's',
-                                  'seed': False,
-                                  'default': 0}),
         ('bulltime', {'dtype': np.float32,
                       'units': 's',
                       'seed': False,
@@ -125,6 +122,7 @@ class Oil(LagrangianArray):
                                  'default': 0}),
         ('water_fraction', {'dtype': np.float32,
                             'units': '%',
+                            'seed': False,
                             'default': 0}),
         ('oil_film_thickness', {'dtype': np.float32,
                                 'units': 'm',
@@ -324,76 +322,6 @@ class OpenOil(OceanDrift):
         self.elements.oil_film_thickness[surface] = self.elements.oil_film_thickness[surface]*np.nan
         self.elements.oil_film_thickness[surface] = \
             film_thickness[bx, by]
-
-    def evaporate(self):
-        if self.get_config('processes:evaporation') is True:
-            self.logger.debug('   Calculating: evaporation')
-            windspeed = np.sqrt(self.environment.x_wind**2 +
-                                self.environment.y_wind**2)
-
-            # Store evaporation fraction at beginning of timestep
-            fraction_evaporated_previous = self.elements.fraction_evaporated
-
-            # Evaporate only elements at surface
-            at_surface = (self.elements.z == 0)
-            if np.isscalar(at_surface):
-                at_surface = at_surface*np.ones(self.num_elements_active(),
-                                                dtype=bool)
-            Urel = windspeed/self.oil_data['reference_wind']  # Relative wind
-            h = 2  # Film thickness in mm, harcoded for now
-
-            # Calculate exposure time
-            #   presently without compensation for sea temperature
-            delta_exposure_seconds = \
-                (self.oil_data['reference_thickness']/h)*Urel * \
-                self.time_step.total_seconds()
-            if np.isscalar(self.elements.age_exposure_seconds):
-                self.elements.age_exposure_seconds += delta_exposure_seconds
-            else:
-                self.elements.age_exposure_seconds[at_surface] += \
-                    delta_exposure_seconds[at_surface]
-
-            self.elements.fraction_evaporated = np.interp(
-                self.elements.age_exposure_seconds,
-                self.oil_data['tref'], self.oil_data['fref'])
-            self.mass_evaporated = \
-                self.elements.mass_oil*self.elements.fraction_evaporated
-            # Remove evaporated part from mass_oil
-            mass_evaporated_timestep = self.elements.mass_oil*(
-                self.elements.fraction_evaporated -
-                fraction_evaporated_previous)
-            self.elements.mass_oil -= mass_evaporated_timestep
-            self.elements.mass_evaporated += mass_evaporated_timestep
-
-            # Evaporation probability equals the difference in fraction
-            # evaporated at this timestep compared to previous timestep,
-            # divided by the remaining fraction of the particle at
-            # previous timestep
-            evaporation_probability = ((self.elements.fraction_evaporated -
-                                        fraction_evaporated_previous) /
-                                       (1 - fraction_evaporated_previous))
-            evaporation_probability[~at_surface] = 0
-            evaporated_indices = (evaporation_probability >
-                                  np.random.rand(self.num_elements_active(),))
-            self.deactivate_elements(evaporated_indices, reason='evaporated')
-
-    def emulsification(self):
-        if self.get_config('processes:emulsification') is True:
-            self.logger.debug('   Calculating: emulsification')
-            if 'reference_wind' not in self.oil_data.keys():
-                self.logger.debug('Emulsification is currently only possible when'
-                              'importing oil properties from file.')
-            else:
-                windspeed = np.sqrt(self.environment.x_wind**2 +
-                                    self.environment.y_wind**2)
-                # Apparent emulsion age of particles
-                Urel = windspeed/self.oil_data['reference_wind']  # Relative wind
-                self.elements.age_emulsion_seconds += \
-                    Urel*self.time_step.total_seconds()
-
-                self.elements.water_fraction = np.interp(
-                    self.elements.age_emulsion_seconds,
-                    self.oil_data['tref'], self.oil_data['wmax'])
 
     def biodegradation(self):
         if self.get_config('processes:biodegradation') is True:
@@ -669,7 +597,8 @@ class OpenOil(OceanDrift):
             start_time = self.oiltype.bulltime*np.ones(len(start_emulsion))
         else:
             start_time = self.elements.age_seconds[start_emulsion]
-            start_time[self.elements.age_emulsion_seconds[start_emulsion]
+            # TODO: it should be possible to specify oil age at seeding
+            start_time[self.elements.age_seconds[start_emulsion]
                        >= 0] = self.elements.bulltime[start_emulsion]
         # Update droplet interfacial area
         k_emul = noaa.water_uptake_coefficient(

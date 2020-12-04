@@ -55,7 +55,7 @@ except ImportError:
 
 import opendrift
 from opendrift.timer import Timeable
-from opendrift.readers.basereader import BaseReader, vector_pairs_xy
+from opendrift.readers.basereader import BaseReader, vector_pairs_xy, standard_names
 from opendrift.readers import reader_from_url
 from opendrift.models.physics_methods import PhysicsMethods
 
@@ -247,25 +247,25 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'the calculation time step, and be an integer multiple of this.'},
             'seed:ocean_only': {'type': 'bool', 'default': True,
                 'description': 'If True, elements seeded on land will be moved to the closest '
-                    'position in ocean.', 'level': self.CONFIG_LEVEL_ADVANCED},
+                    'position in ocean', 'level': self.CONFIG_LEVEL_ADVANCED},
             'seed:number': {'type': 'int', 'default': 1,
                 'min': 1, 'max': 100000000, 'units': 1,
                 'description': 'The number of elements for the simulation.',
                 'level': self.CONFIG_LEVEL_BASIC},
             'drift:max_age_seconds': {'type': 'float', 'default': None,
                 'min': 0, 'max': np.inf, 'units': 'seconds',
-                'description': 'Elements will be deactivated when this age is reached..',
+                'description': 'Elements will be deactivated when this age is reached',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:scheme': {'type': 'enum', 'enum': ['euler', 'runge-kutta', 'runge-kutta4'], 'default': 'euler',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description':
-                'Numerical advection scheme for ocean current advection.'},
+                'Numerical advection scheme for ocean current advection'},
             'drift:current_uncertainty': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 5, 'units': 'm/s',
-                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step.',
+                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:current_uncertainty_uniform': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 5, 'units': 'm/s',
-                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step.',
+                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:horizontal_diffusivity': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 100, 'units': 'm2/s',
@@ -318,16 +318,28 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # Add constant and fallback environment variables to config
         c = {}
         for v in self.required_variables:
+            minval = maxval = units = None
+            description_constant = 'Use constant value for %s' % v
+            description_fallback = 'Fallback value for %s if not available from any reader' % v
+            if v in standard_names:
+                if 'valid_min' in standard_names[v]:
+                    minval = standard_names[v]['valid_min']
+                if 'valid_max' in standard_names[v]:
+                    maxval = standard_names[v]['valid_max']
+                if 'long_name' in standard_names[v]:
+                    description_constant = description_fallback = standard_names[v]['long_name']
+                if 'units' in standard_names[v]:
+                    units = standard_names[v]['units']
             c['environment:constant:%s' % v] = {'type': 'float',
-                'min': None, 'max': None, 'units': None, 'default': None,
+                'min': minval, 'max': maxval, 'units': units, 'default': None,
                 'level': OpenDriftSimulation.CONFIG_LEVEL_BASIC,
-                'description': 'Use constant value for %s' %v}
+                'description': description_constant}
             c['environment:fallback:%s' % v] = {'type': 'float',
-                'min': None, 'max': None, 'units': None, 'default':
+                'min': minval, 'max': maxval, 'units': units, 'default':
                  self.required_variables[v]['fallback'] if
                     'fallback' in self.required_variables[v] else None,
                 'level': OpenDriftSimulation.CONFIG_LEVEL_BASIC,
-                'description': 'Fallback value for %s if not available from any reader' %v}
+                'description': description_fallback}
         self._add_config(c)
 
         # Find variables which require profiles
