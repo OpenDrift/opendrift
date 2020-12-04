@@ -147,16 +147,6 @@ class OpenDriftGUI(tk.Tk):
                                relief=tk.FLAT, padx=5, pady=0)
         self.results.grid(row=60, column=7, columnspan=1, sticky='ew')
 
-        ##########################
-
-        try:
-            img = ImageTk.PhotoImage(Image.open(self.o.test_data_folder() +
-                                     '../../docs/opendrift_logo.png'))
-            panel = tk.Label(self.seed, image=img)
-            panel.image = img
-            panel.grid(row=0, column=0)
-        except:
-            pass # Could not display logo
         #######################################################
         tk.Label(self.top, text='Simulation type').grid(row=0, column=0)
         self.model = tk.StringVar()
@@ -168,6 +158,7 @@ class OpenDriftGUI(tk.Tk):
         help_button = tk.Button(self.top, text='Help',
                                 command=self.show_help)
         help_button.grid(row=0, column=2, padx=50)
+
 
         ##########
         # Release
@@ -365,6 +356,18 @@ class OpenDriftGUI(tk.Tk):
             tk.Label(self.forcing, text=ff.strip()).grid(
                         row=i, column=0, sticky=tk.W)
 
+        ##########################
+        try:
+            img = ImageTk.PhotoImage(Image.open(
+                self.o.test_data_folder() +
+                                     '../../docs/opendrift_logo.png'))
+            panel = tk.Label(self.seed, image=img)
+            panel.image = img
+            panel.grid(row=0, column=0)
+        except Exception as e:
+            print(e)
+            pass # Could not display logo
+ 
         ##########
         # RUN
         ##########
