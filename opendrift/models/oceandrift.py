@@ -32,11 +32,14 @@ class Lagrangian3DArray(LagrangianArray):
     variables = LagrangianArray.add_variables([
         ('wind_drift_factor', {'dtype': np.float32,
                                'units': '1',
-            'description': 'Elements at surface are moved with this fraction of the vind vector.',
+            'description': 'Elements at surface are moved with this '
+                'fraction of the vind vector, in addition to currents '
+                'and Stokes drift',
                                'default': 0.02}),
         ('terminal_velocity', {'dtype': np.float32,
                                'units': 'm/s',
-            'description': 'Terminal rise/sinking velocity (buoyancy) in the ocean column',
+            'description': 'Terminal rise/sinking velocity (buoyancy) '
+                'in the ocean column',
                                'default': 0.})])
 
 
@@ -100,10 +103,10 @@ class OceanDrift(OpenDriftSimulation):
             'vertical_mixing:diffusivitymodel': {'type': 'enum', 'default': 'environment',
                 'enum': ['environment', 'stepfunction', 'windspeed_Sundby1983',
                  'windspeed_Large1994', 'gls_tke','constant'], 'level': self.CONFIG_LEVEL_ADVANCED,
-                 'units': 'seconds', 'description': 'Time step used for inner loop of vertical mixing.'},
+                 'units': 'seconds', 'description': 'Algorithm/source used for profile of vertical diffusivity. Environment means that diffusivity is aquired from readers or environment constants/fallback.'},
             'vertical_mixing:TSprofiles': {'type': 'bool', 'default': False, 'level':
                 self.CONFIG_LEVEL_ADVANCED,
-                'description': 'Update T and S profiles within inner loop of vertical mixing.'},
+                'description': 'Update T and S profiles within inner loop of vertical mixing. This takes more time, but may be slightly more accurate.'},
             'drift:wind_drift_depth': {'type': 'float', 'default': 0.1,
                 'min': 0, 'max': 10, 'units': 'meters',
                 'description': 'The direct wind drift (windage) is linearly decreasing from the surface value (wind_drift_factor) until 0 at this depth.',

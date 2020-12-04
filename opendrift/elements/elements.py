@@ -64,6 +64,7 @@ class LagrangianArray:
                          'default': 0}),
         ('origin_marker', {'dtype': np.int16,
                            'unit': '',
+            'description': 'An integer kept constant during the simulation. Different values may be used for different seedings, to separate elements during analysis. With GUI, only a single seeding is possible.',
                            'default': 0}),
         ('lon', {'dtype': np.float32,
                  'units': 'degrees_east',

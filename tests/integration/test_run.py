@@ -732,18 +732,18 @@ class TestRun(unittest.TestCase):
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
-        o = OceanDrift(loglevel=30, proj4='+proj=merc')
+        o = OceanDrift(loglevel=50, proj4='+proj=merc')
         o.max_speed = 100
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         reader_norkyst.buffer = 200
         o.add_reader([reader_norkyst],
                      variables='sea_floor_depth_below_sea_level')
-        o.set_config('environment:fallback:x_sea_water_velocity', 100) # Pure eastward motion
+        o.set_config('environment:fallback:x_sea_water_velocity', 10) # Pure eastward motion
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.set_config('environment:fallback:land_binary_mask', 0)
-        o.seed_elements(3.0, 62.0, z=-200, time=reader_norkyst.start_time)
+        o.seed_elements(3.9, 62.0, z=-200, time=reader_norkyst.start_time)
         o.set_config('drift:vertical_mixing', False)
-        o.run(steps=26, time_step=30)
+        o.run(steps=12, time_step=300)
         seafloor_depth, status = o.get_property('sea_floor_depth_below_sea_level')
         z, status = o.get_property('z')
 
@@ -758,7 +758,7 @@ class TestRun(unittest.TestCase):
         self.assertFalse(o.elements.z <
                          -o.environment.sea_floor_depth_below_sea_level)
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.z, -160.06, 1))
+            o.elements.z, -138.5, 1))
 
     def test_seed_on_land(self):
         o = OceanDrift(loglevel=50)
