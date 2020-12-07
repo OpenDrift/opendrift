@@ -37,6 +37,14 @@ from opendrift.readers.interpolation import ReaderBlock
 class BaseReader(Variables):
     """
     An abstract reader. Implementors provide a method to read data and specify how it is interpolated.
+
+    This class inherits :class:`.variables.Variables` which inherits :class:`.variables.ReaderDomain`. `ReaderDomain` is responsible for the extent and domain of the reader, including checking for out-of-bounds and projection conversion. `Variables` is responsible for returning interpolated data at the requests positions or profiles. Apart from coercing the returned data into the right type for :py:mod:`opendrift.models.basemodel`, it defines the abstract interface to :meth:`.variables.Variables._get_variables_interpolated_` which reader-implementations must provide (_usually_ through one of the main reader-types, see: :py:mod:`opendrift.readers`).
+
+    .. seealso::
+
+        :py:mod:`opendrift.readers`.
+
+        :py:mod:`.variables`.
     """
 
     __metaclass__ = ABCMeta

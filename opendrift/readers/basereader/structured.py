@@ -10,6 +10,10 @@ class StructuredReader(Variables):
     """
     A structured reader. Data is gridded on a regular grid. Used by e.g.:
     :class:`opendrift.readers.reader_netCDF_CF_generic.Reader`.
+
+    .. seealso::
+
+        :py:mod:`opendrift.readers`
     """
     var_block_before = None
     var_block_after  = None

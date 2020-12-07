@@ -10,33 +10,41 @@ class UnstructuredReader(Variables):
     An unstructured reader. Data is gridded irregularily.
 
     In order to support the heterogeneous types of unstructured grids, the
-    unstructured readers are built up slightly differently than the
+    unstructured readers are built up differently from the
     :class:`.structured.StructuredReader` readers. This class, which readers of
-    unstrctured grids subclass, provide several methods for aiding in
+    unstructured grids subclass, provide several methods for aiding in
     interpolation and caching.
 
     The initial type of grid that this class supports are `triangular prisms <https://en.wikipedia.org/wiki/Types_of_mesh#Triangular_prism>`_. Unstructured in xy-coordinates, x and y is constant in z. z might be non-cartesian (e.g. sigma-levels).
 
+    .. seealso::
+
+        :py:mod:`opendrift.readers`
+
+        :class:`.structured.StructuredReader`
+
+
     Caching using UnstructuredBlock
     -------------------------------
 
-    TODO:
+    .. note::
 
-    The `StructuredReader`s return a 2D field for `meshgrid(x,y)`. This is not
-    so meaningful for `UnstructuredReader` since the variables are iregularily
-    placed. The `get_variables` method should therefore be a method required by
-    the `StructuredReader` and `ContinuousReader`, and maybe renamed to
-    `get_block` for `StructuredReader`.
+        TODO:
+        =====
 
-    For the `UnstructuredReader` we need the equivalent of `get_block`, maybe
-    `get_subset` which sets up an `UnstructuredBlock` for the given area or
-    volume. This probably requires :meth:`_get_variables_impl_`/ :meth:`__get_variables_derived__`
-    to be moved to the outside of :meth:`_get_variables_interpolated_`.
+        The `StructuredReader`s return a 2D field for `meshgrid(x,y)`. This is not
+        so meaningful for `UnstructuredReader` since the variables are iregularily
+        placed. The `get_variables` method should therefore be a method required by
+        the `StructuredReader` and `ContinuousReader`, and maybe renamed to
+        `get_block` for `StructuredReader`.
+
+        For the `UnstructuredReader` we need the equivalent of `get_block`, maybe
+        `get_subset` which sets up an `UnstructuredBlock` for the given area or
+        volume. This probably requires :meth:`_get_variables_impl_`/ :meth:`__get_variables_derived__`
+        to be moved to the outside of :meth:`_get_variables_interpolated_`.
 
     """
 
-    var_block_before = None
-    var_block_after = None
     boundary = None
 
     # nodes
@@ -53,10 +61,6 @@ class UnstructuredReader(Variables):
 
     def __init__(self):
         super().__init__()
-
-        # Dictionaries to store blocks of data for reuse (buffering)
-        self.var_block_before = {}  # Data for last timestep before present
-        self.var_block_after = {}  # Data for first timestep after present
 
     def _get_variables_interpolated_(self, variables, profiles,
                                    profiles_depth, time,
@@ -99,24 +103,30 @@ class UnstructuredReader(Variables):
         Algorithms:
         -----------
 
-        Try this alogrithm: https://stackoverflow.com/a/14109211/377927
+        .. note::
 
-        Boundary edges (line between two nodes) are only referenced by a single
-        triangle.
+            TODO:
+            =====
 
-        1. Find a starting edge segment: [v_start, v_next] (v is vertex or node)
-        2. Find another _unvisited_ edge segment [v_i, v_j] that has
-        either v_i = v_next or v_j = v_next and add the one not equal to v_next to the polygon.
-        3. Reset v_next to the newly added point. Mark edge as visited.
-        4. Continue untill we reach v_start.
+            Try this alogrithm: https://stackoverflow.com/a/14109211/377927
 
-        The polygon has a rotation, but this should not matter for our purpose
-        of checking the bounds.
+            Boundary edges (line between two nodes) are only referenced by a single
+            triangle.
 
-        Note: In order to find holes in the polygon all points must be scanned.
+            1. Find a starting edge segment: [v_start, v_next] (v is vertex or node)
+            2. Find another _unvisited_ edge segment [v_i, v_j] that has
+            either v_i = v_next or v_j = v_next and add the one not equal to v_next to the polygon.
+            3. Reset v_next to the newly added point. Mark edge as visited.
+            4. Continue untill we reach v_start.
+
+            The polygon has a rotation, but this should not matter for our purpose
+            of checking the bounds.
+
+            Note: In order to find holes in the polygon all points must be scanned.
 
         Approximate using the convex hull:
-        ----------------------
+        ----------------------------------
+
         An alternative simple approximation is to use the convex hull of the
         points, but this will miss points along the boundary which form a
         wedge in the boundary (as well as holes in the mesh).

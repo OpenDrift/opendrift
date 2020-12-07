@@ -33,6 +33,8 @@ master_doc = 'index'
 autoapi_type = 'python'
 autoapi_dirs = [ '../../opendrift' ]
 autoapi_keep_files = True  # set to True when debugging autoapi generated files
+autoapi_python_class_content = 'both'
+autodoc_typehints = 'description'
 
 sphinx_gallery_conf = {
      'examples_dirs': '../../examples/',   # path to your example scripts

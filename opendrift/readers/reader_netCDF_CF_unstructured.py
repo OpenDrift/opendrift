@@ -33,8 +33,6 @@ class Reader(BaseReader, UnstructuredReader):
     A reader for unsjructured (irregularily gridded) `CF-compliant
     <https://cfconventions.org/>`_ netCDF files.
 
-    The reader interpolates on the projected grid (meters).
-
     See also:
 
         :mod:`opendrift.readers.basereader.unstructured`.
@@ -222,6 +220,10 @@ class Reader(BaseReader, UnstructuredReader):
         the positions on the centroids/faces. The centroids/faces are also
         known as 'zonal', or elements (presumably as in finite element).
 
+        .. note::
+
+            Currently this reader does not really interpolate. It looks up the
+            closest point in time and space.
 
         Each element has a lookup-table of its surrounding elements, this list can be
         used when looking up elements for the interpolator of an arbitrary
@@ -230,7 +232,7 @@ class Reader(BaseReader, UnstructuredReader):
         Let E be number of elements and N be number of nodes.
 
         Relevant lookup-tables
-        =============
+        ======================
 
         nbe:        [3 x E]  elements surround each element
         nbve:       [9 x N]  elements surrounding each node, minimum 3

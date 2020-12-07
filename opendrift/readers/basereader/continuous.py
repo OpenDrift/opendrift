@@ -10,6 +10,10 @@ class ContinuousReader(Variables):
     exact values at any desired point (within bounds). This reader type is
     suitable for constant readers, analytical readers, or readers that are
     static and continuous within the valid domain (e.g. the landmask reader).
+
+    .. seealso::
+
+        :py:mod:`opendrift.readers`
     """
     def _get_variables_interpolated_(self, variables, profiles,
                                    profiles_depth, time,
