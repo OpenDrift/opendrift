@@ -17,9 +17,7 @@
 import numpy as np
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
-#from opendrift.elements import LagrangianArray
-
-from opendrift.readers.basereader import pyproj
+import pyproj
 
 # Defining the radionuclide element properties
 class Radionuclide(Lagrangian3DArray):
@@ -234,7 +232,7 @@ class RadionuclideDrift(OceanDrift):
 
     def prepare_run(self):
 
-        pass 
+        pass
 
 
 
@@ -305,7 +303,7 @@ class RadionuclideDrift(OceanDrift):
         # Make sure vertical mixing is active when particles are simulated
         if self.get_config('radionuclide:species:Particle_reversible'):
             self.set_config('drift:vertical_mixing', True)
-            
+
 
 
 
@@ -322,13 +320,13 @@ class RadionuclideDrift(OceanDrift):
         else:
             num_elements = self.get_config('seed:number')
 
-        
+
         # Set initial speciation
         if 'particle_fraction' in kwargs:
             particle_frac = kwargs['particle_fraction']
         else:
             particle_frac = self.get_config('seed:particle_fraction')
-        
+
         if 'LMM_fraction' in kwargs:
             lmm_frac = kwargs['LMM_fraction']
         else:
@@ -343,15 +341,15 @@ class RadionuclideDrift(OceanDrift):
 
         init_specie = np.ones(num_elements, int)
         init_specie[:shift] = self.num_lmm
-        init_specie[shift:] = self.num_prev 
-        
+        init_specie[shift:] = self.num_prev
+
         kwargs['specie'] = init_specie
-  
-  
+
+
         self.logger.info('Initial speciation:')
         for i,sp in enumerate(self.name_species):
             self.logger.info( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
-  
+
         # Set initial particle size according to speciation
         if 'diameter' in kwargs:
             diameter = kwargs['diameter']
@@ -362,7 +360,7 @@ class RadionuclideDrift(OceanDrift):
         init_diam[init_specie==self.num_prev] = diameter
         kwargs['diameter'] = init_diam
 
-      
+
 
         super(RadionuclideDrift, self).seed_elements(*args, **kwargs)
 
@@ -437,7 +435,7 @@ class RadionuclideDrift(OceanDrift):
             if self.get_config('radionuclide:species:Sediment_reversible'):
                 self.transfer_rates[self.num_lmm,self.num_srev] = 1.e-5 #*0.
                 self.transfer_rates[self.num_srev,self.num_lmm] = \
-                    self.get_config('radionuclide:transformations:Dc') * self.get_config('radionuclide:sediment:corr_factor') 
+                    self.get_config('radionuclide:transformations:Dc') * self.get_config('radionuclide:sediment:corr_factor')
 #                self.transfer_rates[self.num_srev,self.num_lmm] = 5.e-6
 
             if self.get_config('radionuclide:slowly_fraction'):
@@ -1092,13 +1090,13 @@ class RadionuclideDrift(OceanDrift):
         nc.variables['concfactor'][:] = activity_per_element
         nc.variables['concfactor'].long_name = 'Activity per unit element'
         nc.variables['concfactor'].unit = activity_unit
-        
+
         # Cell size
         nc.createVariable('cell_size','f8')
         nc.variables['cell_size'][:] = pixelsize_m
         nc.variables['cell_size'].long_name = 'Length of cell'
         nc.variables['cell_size'].unit = 'm'
-        
+
         nc.createVariable('smoothing_cells','i8')
         nc.variables['smoothing_cells'][:] = smoothing_cells
         nc.variables['smoothing_cells'].long_name = 'Number of cells in each direction for horizontal smoothing'
