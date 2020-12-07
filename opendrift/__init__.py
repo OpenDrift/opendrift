@@ -210,14 +210,3 @@ def import_from_ladim(ladimfile, romsfile):
 
     return o
 
-# Add timer for unittest
-def setUp(self):
-    self._started_at = time.time()
-    logging.info('STARTING TEST: {}'.format(self.id()))
-
-def tearDown(self):
-    elapsed = time.time() - self._started_at
-    logging.info('TIMING: ({}s) {}'.format(round(elapsed, 2), self.id()))
-
-unittest.TestCase.setUp = setUp
-unittest.TestCase.tearDown = tearDown
