@@ -30,12 +30,8 @@ from opendrift.readers.basereader import BaseReader, UnstructuredReader
 
 class Reader(BaseReader, UnstructuredReader):
     """
-    A reader for unsjructured (irregularily gridded) `CF-compliant
+    A reader for unstructured (irregularily gridded) `CF compliant
     <https://cfconventions.org/>`_ netCDF files.
-
-    See also:
-
-        :mod:`opendrift.readers.basereader.unstructured`.
 
     Args:
         :param filename: A single netCDF file, or a pattern of files. The
@@ -47,6 +43,10 @@ class Reader(BaseReader, UnstructuredReader):
 
         :param proj4: PROJ.4 string describing projection of data.
         :type proj4: string, optional
+
+    .. seealso::
+
+        py:mod:`opendrift.readers.basereader.unstructured`.
     """
 
     # Misspelled standard names in some (Akvaplan-NIVA) FVCOM files
@@ -207,11 +207,7 @@ class Reader(BaseReader, UnstructuredReader):
                       y=None,
                       z=None):
         """
-        FVCOM
-        ---------------
-
-        Grid
-        ====
+        FVCOM Grid:
 
         FVCOM uses 'triangular prisms' for gridding. Some variables are defined
         on the faces of the triangles, while others at the node.
@@ -231,15 +227,13 @@ class Reader(BaseReader, UnstructuredReader):
 
         Let E be number of elements and N be number of nodes.
 
-        Relevant lookup-tables
-        ======================
+        Relevant lookup-tables:
 
         nbe:        [3 x E]  elements surround each element
         nbve:       [9 x N]  elements surrounding each node, minimum 3
         nbsn:       [11 x N] nodes surrounding each node
 
-        Variables
-        =========
+        Variables:
 
         Face:
         * u

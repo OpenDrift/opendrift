@@ -296,16 +296,22 @@ class ReaderDomain(Timeable):
 
         Returns:
             variables: same as input, but converted to list if given as string.
+
             time: same as input, or start_time of reader if given as None.
+
             x, y, z: same as input, but converted to ndarrays
-                if given as scalars.
+            if given as scalars.
+
             outside: boolean array which is True for any particles outside
                 the spatial domain covered by this reader.
 
         Raises:
+
             ValueError:
-                - if requested time is outside coverage of reader.
-                - if all requested positions are outside coverage of reader.
+
+            - if requested time is outside coverage of reader.
+
+            - if all requested positions are outside coverage of reader.
         """
 
         # Check time
@@ -583,38 +589,48 @@ class Variables(ReaderDomain):
 
     @abstractmethod
     def get_variables(self, variables, time=None, x=None, y=None, z=None):
-        """Method which must be implemented by all reader-subclasses.
+        """
+        Method which must be implemented by all reader-subclasses.
 
-        > Warning: In the future this method is likely to be a requirement of
-        > each reader, and it will be up to the reader-type how values are
-        > retrieved.
+        .. warning::
+
+            Warning: In the future this method is likely to be a requirement of
+            each reader, and it will be up to the reader-type how values are
+            retrieved.
 
         Obtain and return values of the requested variables at all positions
         (x, y, z) closest to given time.
 
         Arguments:
             variables: string, or list of strings (standard_name) of
-                requested variables. These must be provided by reader.
+            requested variables. These must be provided by reader.
+
             time: datetime or None, time at which data are requested.
-                Can be None (default) if reader/variable has no time
-                dimension (e.g. climatology or landmask).
+            Can be None (default) if reader/variable has no time
+            dimension (e.g. climatology or landmask).
+
             x, y: float or ndarrays; coordinates of requested points in the
-                Spatial Reference System (SRS) _of the reader (NB!!)_.
+            Spatial Reference System (SRS) _of the reader (NB!!)_.
+
             z: float or ndarray; vertical position (in meters, positive up)
-                of requested points.
-                default: 0 m (unless otherwise documented by reader)
+            of requested points. default: 0 m (unless otherwise documented by reader)
+
             block: bool, see return below
 
           Returns:
             data: Dictionary
-                keywords: variables (string)
-                values:
-                    - 1D ndarray of len(x) if StructuredReader. Nearest values
-                        (neighbour) of requested position are returned.
-                    - 3D ndarray encompassing all requested points in
-                        x,y,z domain if UnstructuredReader. It is task of invoking
-                        application (OpenDriftSimulation) to perform
-                        interpolation in space and time.
+
+            keywords: variables (string)
+
+            values:
+
+            - 1D ndarray of len(x) if StructuredReader. Nearest values
+                (neighbour) of requested position are returned.
+
+            - 3D ndarray encompassing all requested points in
+                x,y,z domain if UnstructuredReader. It is task of invoking
+                application (OpenDriftSimulation) to perform
+                interpolation in space and time.
         """
 
     @abstractmethod

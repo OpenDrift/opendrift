@@ -17,34 +17,45 @@
 """
 OpenOil is a 3D oil drift module bundled within the OpenDrift framework.
 
-The oil weathering calculations is based on the NOAA-ERR-ERD OilLibrary package, which is installed as a dependency. The code for evaporation and emulsification in OpenOil is borrowed from the NOAA PyGnome code, and adapted to the OpenDrift architecture.
+The oil weathering calculations is based on the NOAA-ERR-ERD OilLibrary
+package, which is installed as a dependency. The code for evaporation and
+emulsification in OpenOil is borrowed from the NOAA PyGnome code, and adapted
+to the OpenDrift architecture.
 
 Example of ship leaking oil along the coast of Northern Norway
 ##############################################################
+
 .. image:: https://dl.dropboxusercontent.com/s/ty6dmqf0oohewky/oilspill_tromsoe.gif?dl=0
 
 Simulation of Deepwater Horizon (Macondo) accident, initiated from satellite images
 ###################################################################################
+
 .. image:: https://dl.dropboxusercontent.com/s/ghi7crtmwpyjgto/macondo_simulation.gif?dl=0
+
 Satellite images provided by Prof. Chuanmin Hu, and ocean model output provided by Prof. Vassiliki Kourafalou
 
 Example oil budget for a simulation
 ###################################
+
 .. image:: https://dl.dropboxusercontent.com/s/pb0h6tlev9pnoh3/oil_budget_draugen.png?dl=0
 
 Oil properties affecting the drift
 ***********************************
-The vertical (and thus indirectly also the horisontal) motion of oil (droplets) is affected by oil density and droplet diameters.
+The vertical (and thus indirectly also the horizontal) motion of oil (droplets) is affected by oil density and droplet diameters.
 
 When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')``), which is the default, the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification).
 
 The droplet diameter may be given explicitly when seeding, e.g.::
+
+.. code::
 
     o.seed_elements(4, 60, number=100, time=datetime.now(), diameter=1e-5)
 
 In this case, the diameter will not change during the simulation, which is useful e.g. for sensitivity tests. The same diameter will be used for all elements for this example, but an array of the same length as the number of elements may also be provided.
 
 If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
+
+.. code::
 
     o.set_config('seed:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
     o.set_config('seed:droplet_diameter_max_subsea', 0.005)   # 5 mm
@@ -623,10 +634,11 @@ class OpenOil(OceanDrift):
                                  Sprofiles=None, z_index=None):
         """Calculate terminal velocity for oil droplets
 
-        according to
-        Tkalich et al. (2002): Vertical mixing of oil droplets
-                               by breaking waves
-        Marine Pollution Bulletin 44, 1219-1229
+        according to:
+
+        * Tkalich et al. (2002): Vertical mixing of oil droplets by breaking waves
+
+        * Marine Pollution Bulletin 44, 1219-1229
 
         If profiles of temperature and salt are passed into this function,
         they will be interpolated from the profiles.
@@ -921,7 +933,11 @@ class OpenOil(OceanDrift):
 
         Note that mass_oil is the mass of pure oil. The mass of oil emulsion
         (oil containing entrained water droplets) can be calculated as:
+
+        .. code::
+
             mass_emulsion = mass_oil / (1 - water_fraction)
+
         I.e. water_fraction = 0 means pure oil, water_fraction = 0.5 means mixture of
         50% oil and 50% water, and water_fraction = 0.9 (which is maximum)
         means 10% oil and 90% water.

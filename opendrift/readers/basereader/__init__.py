@@ -25,11 +25,11 @@ from scipy.interpolate import LinearNDInterpolator
 import numpy as np
 import pyproj
 
+from . import fakeproj
 from .structured import StructuredReader
 from .unstructured import UnstructuredReader
 from .continuous import ContinuousReader
 from .variables import Variables
-from .fakeproj import fakeproj
 from .consts import *
 
 from opendrift.readers.interpolation import ReaderBlock
@@ -115,7 +115,7 @@ class BaseReader(Variables):
                     self.proj = pyproj.Proj(self.proj4)
             else:
                 self.proj4 = 'None'
-                self.proj = fakeproj()
+                self.proj = fakeproj.fakeproj()
                 self.projected = False
                 self.logger.info('Making Splines for lon,lat to x,y conversion...')
                 self.xmin = self.ymin = 0.

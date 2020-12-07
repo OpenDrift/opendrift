@@ -24,13 +24,9 @@ class UnstructuredReader(Variables):
         :class:`.structured.StructuredReader`
 
 
-    Caching using UnstructuredBlock
-    -------------------------------
+    Caching using UnstructuredBlock:
 
     .. note::
-
-        TODO:
-        =====
 
         The `StructuredReader`s return a 2D field for `meshgrid(x,y)`. This is not
         so meaningful for `UnstructuredReader` since the variables are iregularily
@@ -101,12 +97,8 @@ class UnstructuredReader(Variables):
             The boundary of the mesh, ideally including holes in the mesh.
 
         Algorithms:
-        -----------
 
         .. note::
-
-            TODO:
-            =====
 
             Try this alogrithm: https://stackoverflow.com/a/14109211/377927
 
@@ -114,9 +106,12 @@ class UnstructuredReader(Variables):
             triangle.
 
             1. Find a starting edge segment: [v_start, v_next] (v is vertex or node)
+
             2. Find another _unvisited_ edge segment [v_i, v_j] that has
-            either v_i = v_next or v_j = v_next and add the one not equal to v_next to the polygon.
+               either v_i = v_next or v_j = v_next and add the one not equal to v_next to the polygon.
+
             3. Reset v_next to the newly added point. Mark edge as visited.
+
             4. Continue untill we reach v_start.
 
             The polygon has a rotation, but this should not matter for our purpose
@@ -125,7 +120,6 @@ class UnstructuredReader(Variables):
             Note: In order to find holes in the polygon all points must be scanned.
 
         Approximate using the convex hull:
-        ----------------------------------
 
         An alternative simple approximation is to use the convex hull of the
         points, but this will miss points along the boundary which form a

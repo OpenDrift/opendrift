@@ -144,8 +144,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 tests. With seed = None, different random numbers will be drawn
                 for subsequent runs, even with identical configuration/input.
             iomodule: name of module used to export data
-                default: netcdf, see folder 'io' for more alternatives.
-                'iomodule' is module/filename without preceeding 'io_'
+                default: netcdf, see :py:mod:`opendrift.io` for more alternatives.
+                `iomodule` is module/filename without preceeding `io_`
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
                 Use the string 'custom' to configure logging from outside.
@@ -693,8 +693,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         Args:
             readers: one or more (list) Reader objects.
-            variables: optional, list of strings of standard_name of
-                variables to be provided by this/these reader(s).
+
+            variables (optional): list of strings of standard_name of variables to be provided by this/these reader(s).
             first: Set to True if this reader should be set as first option
         """
 
@@ -1574,12 +1574,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         Arguments:
             lon: scalar or list with 2 elements [lon0, lon1]
+
             lat: scalar or list with 2 elements [lat0, lat]
+
             time: datetime or list with 2 elements [t0, t1]
+
             radius: scalar or list with 2 elements [r0, r1] Unit: meters
-            number: int
-                The number of elements. If this is None, the number of
-                elements is taken from configuration.
+
+            number (int): The number of elements. If this is None, the number of
+            elements is taken from configuration.
 
         Elements are seeded along a transect from
             (lon0, lat0) with uncertainty radius r0 at time t0, towards
@@ -1667,11 +1670,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         """Seed elements repeatedly in time along a segment.
 
         The segment goes from lon[0],lat[0] to lon[1],lat[1].
+
         The number of elements should be proved as either:
-        1) number_per_segment, in which case total number of elements
-           is number_per_segment * len(times), or
-        2) total_number, in which case the number of elements
-           per segment is: total_number / len(times).
+
+        1) number_per_segment, in which case total number of elements is number_per_segment * len(times), or
+
+        2) total_number, in which case the number of elements per segment is: total_number / len(times).
            Any extra elements are duplicated along at the first segment.
 
         """
@@ -3277,7 +3281,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             fast (bool): use some optimizations to speed up plotting at the cost of accuracy
 
-            :param hide_landmask: do not plot landmask (default False). See :ref:`model_landmask_only_model` for example usage.
+            :param hide_landmask: do not plot landmask (default False).
             :type hide_landmask: bool
         """
 
