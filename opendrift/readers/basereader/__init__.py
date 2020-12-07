@@ -17,6 +17,7 @@
 
 import sys
 import logging
+logger = logging.getLogger(__name__)
 import copy
 from abc import abstractmethod, ABCMeta
 from datetime import datetime, timedelta
@@ -82,8 +83,6 @@ class BaseReader(Variables):
                                  'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
         'x_wind': 'eastward_wind', 'y_wind': 'northward_wind'}
 
-    logger = logging.getLogger('opendrift')  # using common logger
-
     def __init__(self):
         """Common constructor for all readers"""
         super().__init__()
@@ -111,13 +110,13 @@ class BaseReader(Variables):
                     self.proj4 = self.proj4.replace('+f=0.0', '')
                     self.proj4 = self.proj4.replace('+f=0', '')
                     if origproj4 != self.proj4:
-                        self.logger.info('Removing flattening parameter from proj4; %s -> %s' % (origproj4, self.proj4))
+                        logger.info('Removing flattening parameter from proj4; %s -> %s' % (origproj4, self.proj4))
                     self.proj = pyproj.Proj(self.proj4)
             else:
                 self.proj4 = 'None'
                 self.proj = fakeproj.fakeproj()
                 self.projected = False
-                self.logger.info('Making Splines for lon,lat to x,y conversion...')
+                logger.info('Making Splines for lon,lat to x,y conversion...')
                 self.xmin = self.ymin = 0.
                 self.delta_x = self.delta_y = 1.
                 self.xmax = self.lon.shape[1] - 1
@@ -175,7 +174,7 @@ class BaseReader(Variables):
                 if xvar in self.variables:
                     continue  # We have both x/y and east/north components
                 if var in eastnorthvar:
-                    self.logger.info('Variable %s will be rotated from %s' % (xvar, var))
+                    logger.info('Variable %s will be rotated from %s' % (xvar, var))
                     self.variables.append(xvar)
                     if not hasattr(self, 'rotate_mapping'):
                         self.rotate_mapping = {}
@@ -185,7 +184,7 @@ class BaseReader(Variables):
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
             if em['output'][0] not in self.variables and em['input'][0] in self.variables:
-                self.logger.debug('Adding variable mapping: %s -> %s' % (em['input'][0], em['output'][0]))
+                logger.debug('Adding variable mapping: %s -> %s' % (em['input'][0], em['output'][0]))
                 for v in em['output']:
                     self.variables.append(v)
                     self.derived_variables[v] = em['input']
@@ -206,7 +205,7 @@ class BaseReader(Variables):
             if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
                 if proj_to is None:
                     proj_to = self.proj
-                self.logger.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
+                logger.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
                 variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
                     variables['x'], variables['y'],
                     variables[vectorpair[0]], variables[vectorpair[1]],
@@ -311,7 +310,7 @@ class BaseReader(Variables):
 
     def clip_boundary_pixels(self, numpix):
         '''Trim some (potentially bad) pixels along boundary'''
-        self.logger.info('Trimming %i pixels from boundary' % numpix)
+        logger.info('Trimming %i pixels from boundary' % numpix)
         self.xmin = self.xmin+numpix*self.delta_x
         self.xmax = self.xmax-numpix*self.delta_x
         self.ymin = self.ymin+numpix*self.delta_y
@@ -420,11 +419,11 @@ class BaseReader(Variables):
                     kernel = kernel/kernel.sum()
                 else:
                     kernel = N
-                self.logger.debug('Convolving variables with kernel: %s' % kernel)
+                logger.debug('Convolving variables with kernel: %s' % kernel)
                 data[variable] = ndimage.convolve(
                             data[variable], kernel, mode='nearest')
             if data[variable].ndim > 2:
-                self.logger.warning('Ensemble data, plotting only first member')
+                logger.warning('Ensemble data, plotting only first member')
                 data[variable] = data[variable][0,:,:]
             mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
                                      transform=ccrs.PlateCarree())
