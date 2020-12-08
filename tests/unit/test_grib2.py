@@ -8,6 +8,8 @@ from opendrift.models.oceandrift import OceanDrift
 caps_u10 = 'grb/u_vel.grb2'
 caps_v10 = 'grb/v_vel.grb2'
 proj4 = 'EPSG:3995'
+proj4 = '+proj=stere +lat_0=90 +lat_ts=45 +lon_0=-170 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs'
+proj4 = 'fakeproj'
 
 def test_open():
     r = Grib(caps_u10, proj4 = proj4)

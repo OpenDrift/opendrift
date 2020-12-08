@@ -80,6 +80,8 @@ class Reader(BaseReader, StructuredReader):
                         assert self.proj4 == v.attrs['GRIB_gridType'], "all variables must have the same projection"
         else:
             logger.info("Using supplied projection: %s" % self.proj4)
+            if self.proj4 == 'fakeproj':
+                self.proj4 = None
 
         # parsing variables
         self.variable_mapping = {}
@@ -109,36 +111,21 @@ class Reader(BaseReader, StructuredReader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        assert np.all(z == self.dataset.heightAboveGround.item()), "height does not match layer"
+        if z is not None:
+            assert np.all(z == self.dataset.heightAboveGround.item()), "height does not match layer"
 
         logger.debug("Request variables: %s" % requested_variables)
+        print("x=", x)
+        print("y=", y)
 
         variables = {}
 
-        delta = 1.
-        lonmin = np.maximum(x.min() - delta, self.xmin)
-        lonmax = np.minimum(x.max() + delta, self.xmax)
-        latmin = np.maximum(y.min() - delta, self.ymin)
-        latmax = np.minimum(y.max() + delta, self.ymax)
+        ix0, ix1, iy0, iy1 = self._bbox_contains_(self.lon, self.lat, x, y, 1.)
 
-        W = np.argwhere(
-                np.logical_and(
-                    np.logical_and(self.lat>=latmin, self.lat<=latmax),
-                    np.logical_and(self.lon>=lonmin, self.lon<=lonmax)))
-
-        assert len(W) > 0, "no matching values"
-
-        ix0 = np.min(W[:,0])
-        ix1 = np.max(W[:,0])
-        iy0 = np.min(W[:,1])
-        iy1 = np.max(W[:,1])
-
-        print(ix0, ix1)
-        print(iy0, iy1)
-
-        print(lonmin, lonmax, latmin, latmax, W)
         variables['y'] = self.lat[ix0:ix1, iy0:iy1]
         variables['x'] = self.lon[ix0:ix1, iy0:iy1]
+        variables['time'] = nearestTime
+        variables['z'] = z
 
         print(variables)
 
@@ -149,10 +136,55 @@ class Reader(BaseReader, StructuredReader):
             logger.debug("Fetching %s [%d:%d, %d:%d]" % (v, ix0, ix1, iy0, iy1))
             variables[v] = var[indxTime, 0, ix0:ix1, iy0:iy1].values
 
-        variables['time'] = nearestTime
-        variables['z'] = z
 
         return variables
+
+    def _bbox_contains_(self, X, Y, x, y, margin = 0):
+        """
+        Find a bounding box in 2D arrays `X` (e.g. `longitudes`) and `Y` (e.g.
+        `latitudes`) where all of `x` and `y` are contained.
+
+        The 2D arrays of `X` and `Y` tend to be ireguarily distanced in
+        lon-lat space, but approximately so in the (unknown) projection on a
+        surface.
+
+        Args:
+            X: 2D array of x-coordinate at grid points
+
+            Y: 2D array of y-coordinate at grid points
+
+            x: 1D array of x-coordinate that must be contained in bbox.
+
+            y: 1D array of y-coordinate that must be contained in bbox.
+
+            margin: extend bbox with margin.
+
+        Returns:
+            (x0, x1, y0, y1)
+
+            Start and end indices in 2D arrays `X` and `Y` of rectangular
+            bounding box.
+
+        If no box is found, an assertion error is raised.
+        """
+        xmin = x.min() - margin
+        xmax = x.max() + margin
+        ymin = y.min() - margin
+        ymax = y.max() + margin
+
+        W = np.argwhere(
+                np.logical_and(
+                    np.logical_and(Y>=ymin, Y<=ymax),
+                    np.logical_and(X>=xmin, X<=xmax)))
+
+        assert len(W) > 0, "all points are outside X and Y"
+
+        ix0 = np.min(W[:,0])
+        ix1 = np.max(W[:,0])
+        iy0 = np.min(W[:,1])
+        iy1 = np.max(W[:,1])
+
+        return (ix0, ix1, iy0, iy1)
 
 
 

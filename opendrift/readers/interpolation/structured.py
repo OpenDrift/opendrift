@@ -1,4 +1,3 @@
-import logging
 import numpy as np
 from scipy.ndimage import map_coordinates
 import scipy.ndimage as ndimage
@@ -12,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 class ReaderBlock():
     """Class to store and interpolate the output from a reader with data on a regular (structured) grid."""
-
-    logger = logging.getLogger('opendrift')  # using common logger
 
     def __init__(self, data_dict,
                  interpolation_horizontal='linearNDFast',
