@@ -36,6 +36,7 @@ import xarray as xr
 
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy
 from opendrift.readers.roppy import depth
+from opendrift.readers.interpolation import ReaderBlock
 
 
 class Reader(BaseReader):
@@ -793,17 +794,18 @@ class Reader(BaseReader):
                                                 (1 - weight_after) +
                                                 env_after[var] * weight_after))
 
-                if var in standard_names.keys():
-                    invalid = np.where((env[var] < standard_names[var]['valid_min'])
-                               | (env[var] > standard_names[var]['valid_max']))[0]
-                    if len(invalid) > 0:
-                        self.logger.warning('Invalid values found for ' + var)
-                        self.logger.warning(env[var][invalid])
-                        self.logger.warning('(allowed range: [%s, %s])' %
-                                        (standard_names[var]['valid_min'],
-                                         standard_names[var]['valid_max']))
-                        self.logger.warning('Replacing with NaN')
-                        env[var][invalid] = np.nan
+                # if var in standard_names.keys():
+                #     invalid = np.where((env[var] < standard_names[var]['valid_min'])
+                #                | (env[var] > standard_names[var]['valid_max']))[0]
+                #     if len(invalid) > 0:
+                #         self.logger.warning('Invalid values found for ' + var)
+                #         self.logger.warning(env[var][invalid])
+                #         self.logger.warning('(allowed range: [%s, %s])' %
+                #                         (standard_names[var]['valid_min'],
+                #                          standard_names[var]['valid_max']))
+                #         self.logger.warning('Replacing with NaN')
+                #         env[var][invalid] = np.nan
+                
             # Interpolating vertical profiles in time
             if profiles is not None:
                 env_profiles = {}
