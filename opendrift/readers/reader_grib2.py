@@ -46,15 +46,6 @@ class Reader(BaseReader, StructuredReader):
         self.dataset = xr.open_dataset(filename, engine = engine)
         self.name = filename
 
-        self.lat = self.dataset.latitude.values
-        self.lon = self.dataset.longitude.values
-        self.delta_x = np.abs(self.lon[0,1] - self.lon[0,0]).item()
-        print(self.delta_x)
-
-        self.xmin = self.dataset.longitude.min().item()
-        self.xmax = self.dataset.longitude.max().item()
-        self.ymin = self.dataset.latitude.min().item()
-        self.ymax = self.dataset.latitude.max().item()
 
         self.times = self.dataset.time.values
 
@@ -100,6 +91,27 @@ class Reader(BaseReader, StructuredReader):
 
         super().__init__()
 
+        logger.debug("Finding bounds of reader")
+        self.X, self.Y = self.lonlat2xy(self.dataset.longitude.values, self.dataset.latitude.values)
+        self.xmin, self.xmax = np.min(self.X[:]), np.max(self.X[:])
+        self.ymin, self.ymax = np.min(self.Y[:]), np.max(self.Y[:])
+
+        self.delta_x = np.diff(self.X).flat[0]
+        self.delta_y = np.diff(self.Y, axis = 0).flat[0]
+
+        eq_eps = 1.e-1
+
+        assert np.all(np.abs(self.delta_x - np.diff(self.X)) < eq_eps), "Grid is not equidistant in X direction"
+        assert np.all(np.abs(self.delta_y - np.diff(self.Y, axis = 0)) < eq_eps), "Grid is not equidistant in Y direction"
+
+        self.x = self.X[0,:]
+        self.y = self.Y[:,0]
+
+        assert np.all(np.abs(np.tile(self.x, (self.X.shape[0], 1)) - self.X) < eq_eps), "X coordinates are not aligned along Y direction"
+        assert np.all(np.abs(np.tile(np.atleast_2d(self.y).T, (1, self.Y.shape[1])) - self.Y) < eq_eps), "Y coordinates are not aligned along X direction"
+
+        self.set_buffer_size(5.)
+
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None):
 
@@ -113,19 +125,19 @@ class Reader(BaseReader, StructuredReader):
             assert np.all(z == self.dataset.heightAboveGround.item()), "height does not match layer"
 
         logger.debug("Request variables: %s" % requested_variables)
-        print("x=", x)
-        print("y=", y)
+
+        ix0, ix1, iy0, iy1 = self._bbox_contains_(x, y, self.buffer)
+        print(ix0, ix1, iy0, iy1)
 
         variables = {}
 
-        ix0, ix1, iy0, iy1 = self._bbox_contains_(self.lon, self.lat, x, y, 1.)
+        # This works because we have already asserted that delta_x and delta_y
+        # are approx. constant.
+        variables['y'] = self.x[ix0:ix1]
+        variables['x'] = self.y[iy0:iy1]
 
-        variables['y'] = self.lat[ix0:ix1, iy0:iy1]
-        variables['x'] = self.lon[ix0:ix1, iy0:iy1]
         variables['time'] = nearestTime
         variables['z'] = z
-
-        print(variables)
 
         for v in requested_variables:
             var = self.variable_aliases.get(v, v)
@@ -137,52 +149,26 @@ class Reader(BaseReader, StructuredReader):
 
         return variables
 
-    def _bbox_contains_(self, X, Y, x, y, margin = 0):
+    def _bbox_contains_(self, x, y, buffer = 0):
         """
-        Find a bounding box in 2D arrays `X` (e.g. `longitudes`) and `Y` (e.g.
-        `latitudes`) where all of `x` and `y` are contained.
-
-        The 2D arrays of `X` and `Y` tend to be ireguarily distanced in
-        lon-lat space, but approximately so in the (unknown) projection on a
-        surface.
+        Find bounding box on grid containing points (x, y)
 
         Args:
-            X: 2D array of x-coordinate at grid points
 
-            Y: 2D array of y-coordinate at grid points
-
-            x: 1D array of x-coordinate that must be contained in bbox.
-
-            y: 1D array of y-coordinate that must be contained in bbox.
-
-            margin: extend bbox with margin.
-
-        Returns:
-            (x0, x1, y0, y1)
-
-            Start and end indices in 2D arrays `X` and `Y` of rectangular
-            bounding box.
-
-        If no box is found, an assertion error is raised.
+            buffer: number of indices to add as buffer
         """
-        xmin = x.min() - margin
-        xmax = x.max() + margin
-        ymin = y.min() - margin
-        ymax = y.max() + margin
+        ix = (x - self.xmin) / self.delta_x
+        ix0, ix1 = np.min(ix), np.max(ix)
 
-        W = np.argwhere(
-                np.logical_and(
-                    np.logical_and(Y>=ymin, Y<=ymax),
-                    np.logical_and(X>=xmin, X<=xmax)))
+        iy = (y - self.ymin) / self.delta_y
+        iy0, iy1 = np.min(iy), np.max(iy)
 
-        assert len(W) > 0, "all points are outside X and Y"
+        ix0 = np.max((0, ix0 - buffer)).astype(int)
+        iy0 = np.max((0, iy0 - buffer)).astype(int)
 
-        ix0 = np.min(W[:,0])
-        ix1 = np.max(W[:,0])
-        iy0 = np.min(W[:,1])
-        iy1 = np.max(W[:,1])
+        ix1 = np.min((len(self.x), ix1 + buffer)).astype(int)
+        iy1 = np.min((len(self.y), iy1 + buffer)).astype(int)
 
         return (ix0, ix1, iy0, iy1)
-
 
 
