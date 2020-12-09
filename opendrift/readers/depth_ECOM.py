@@ -1,28 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Side reader for sigma to z at reader ecom interpolation
+Side reader to convert sigma to z at reader ecom
 
 Created by: Arian Dialectaquiz at LHiCo IO-USP Brazil
 
 """
 
-
-
 from __future__ import (absolute_import, division)
-
 import numpy as np
-
 
 def sdepth(depth, sigma, stagger="rho", Vtransform=1):
     """Depth of s-levels
 
-    *H* : arraylike
+    *H* : depth
       Bottom depths [meter, positive]
 
-    *Hc* : scalar
-       Critical depth
 
-    *cs_r* : 1D array
+    *sigma* : 1D array
        s-level stretching curve
 
     *stagger* : [ 'rho' | 'w' ]
@@ -31,16 +25,8 @@ def sdepth(depth, sigma, stagger="rho", Vtransform=1):
        defines the transform used, defaults 1 = Song-Haidvogel
 
     Returns an array with ndim = H.ndim + 1 and
-    shape = cs_r.shape + H.shape with the depths of the
+    shape = sigma.shape + H.shape with the depths of the
     mid-points in the s-levels.
-
-    Typical usage::
-
-    >>> fid = Dataset(roms_file)
-    >>> H = fid.variables['h'][:, :]
-    >>> C = fid.variables['Cs_r'][:]
-    >>> Hc = fid.variables['hc'].getValue()
-    >>> z_rho = sdepth(H, Hc, C)
 
     """
     H = np.asarray(depth)
@@ -70,13 +56,6 @@ def sdepth(depth, sigma, stagger="rho", Vtransform=1):
         raise ValueError("Unknown Vtransform")
 
 
-# ------------------------------------------
-# Vertical slicing e.t.c.
-# ------------------------------------------
-
-# -----------------------------------------------
-
-
 def multi_zslice(F, S, Z):
 
     """Slice a 3D ECOM field to fixed depth
@@ -94,10 +73,6 @@ def multi_zslice(F, S, Z):
     Returns : array, ``shape = F.shape[1:]`` the vertical slice
 
     """
-
-    # TODO:
-    # Option to Save A, D, Dm
-    #   => faster interpolate more fields to same depth
 
     F = np.asarray(F)
     S = np.asarray(S)
