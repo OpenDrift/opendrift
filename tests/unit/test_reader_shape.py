@@ -8,8 +8,6 @@ import cartopy
 import cartopy.io.shapereader as shpreader
 import logging
 
-reader_shape.Reader.logger.setLevel(logging.DEBUG)
-
 def test_on_land():
     shpfilename = shpreader.natural_earth(resolution='110m',
                                         category='cultural',

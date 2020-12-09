@@ -13,6 +13,7 @@ proj4 = 'fakeproj'
 
 def test_open():
     r = Grib(caps_u10, proj4 = proj4)
+    assert r.projected is False
     print(r)
 
 def test_get_variables():

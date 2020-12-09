@@ -1,8 +1,6 @@
 import numpy as np
 import pyproj
-from scipy.ndimage import map_coordinates
 from bisect import bisect_left
-from multiprocessing import Process, Manager, cpu_count
 import copy
 from abc import abstractmethod
 import logging
@@ -16,8 +14,9 @@ class ReaderDomain(Timeable):
     """
     Projection, spatial and temporal domain of reader.
     """
+    name = None
     simulation_SRS = False
-    projected = None
+
     proj4 = None
     proj = None
 
@@ -31,6 +30,7 @@ class ReaderDomain(Timeable):
     zmax = np.inf
     delta_x = None
     delta_y = None
+    shape = None
 
     ## Temporal
     start_time = None
@@ -80,116 +80,30 @@ class ReaderDomain(Timeable):
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
-        if self.projected is True:
-            if self.proj.crs.is_geographic:
-                if 'ob_tran' in self.proj4:
-                    logger.debug('NB: Converting degrees to radians ' +
-                                 'due to ob_tran srs')
-                    x = np.radians(np.array(x))
-                    y = np.radians(np.array(y))
-                    return self.proj(x, y, inverse=True)
-                else:
-                    return x, y
-            else:
-                return self.proj(x, y, inverse=True)
-        else:
-            np.seterr(invalid='ignore')  # Disable warnings for nan-values
-            y = np.atleast_1d(np.array(y))
-            x = np.atleast_1d(np.array(x))
-
-            # NB: mask coordinates outside domain
-            x[x < self.xmin] = np.nan
-            x[x > self.xmax] = np.nan
-            y[y < self.ymin] = np.nan
-            y[y < self.ymin] = np.nan
-
-            lon = map_coordinates(self.lon, [y, x],
-                                  order=1,
-                                  cval=np.nan,
-                                  mode='nearest')
-            lat = map_coordinates(self.lat, [y, x],
-                                  order=1,
-                                  cval=np.nan,
-                                  mode='nearest')
-            return (lon, lat)
-
-    def lonlat2xy(self, lon, lat):
-        """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
-        """
-
-        # Two methods needed for parallelisation
-        def get_x(lon_part, lat_part, num):
-            out_x[num] = self.spl_x(lon_part, lat_part)
-
-        def get_y(lon_part, lat_part, num):
-            out_y[num] = self.spl_y(lon_part, lat_part)
-
-        if self.projected is True:
+        if self.proj.crs.is_geographic:
             if 'ob_tran' in self.proj4:
-                x, y = self.proj(lon, lat, inverse=False)
-                return np.degrees(x), np.degrees(y)
-            elif self.proj.crs.is_geographic:
-                return lon, lat
+                logger.debug('NB: Converting degrees to radians ' +
+                             'due to ob_tran srs')
+                x = np.radians(np.array(x))
+                y = np.radians(np.array(y))
+                return self.proj(x, y, inverse=True)
             else:
-                x, y = self.proj(lon, lat, inverse=False)
                 return x, y
         else:
-            # TODO: Use ThreadPool, maximum number of threads should not exceed
-            # available cpus.
+            return self.proj(x, y, inverse=True)
 
-            # For larger arrays, we split and calculate in parallel
-            # The number of CPUs to use can be improved/optimised
-            num_elements = len(np.atleast_1d(lon))
-            if num_elements > 100 and not hasattr(self,
-                                                  'multiprocessing_fail'):
-                try:
-                    nproc = 2
-                    if num_elements > 1000:
-                        nproc = 16
-                    if num_elements > 100000:
-                        nproc = 32
-                    if num_elements > 1000000:
-                        nproc = 64
-                    cpus = cpu_count()
-                    nproc = np.minimum(nproc, cpus - 1)
-                    nproc = np.maximum(2, nproc)
-                    logger.debug(
-                        'Running lonlat2xy in parallel, using %i of %i CPUs' %
-                        (nproc, cpus))
-                    split_lon = np.array_split(lon, nproc)
-                    split_lat = np.array_split(lat, nproc)
-                    out_x = Manager().dict()
-                    out_y = Manager().dict()
-                    processes = []
-                    for i in range(nproc):
-                        processes.append(
-                            Process(target=get_x,
-                                    args=(split_lon[i], split_lat[i], i)))
-                        processes.append(
-                            Process(target=get_y,
-                                    args=(split_lon[i], split_lat[i], i)))
-                    [p.start() for p in processes]
-                    [p.join() for p in processes]
-                    x = np.concatenate(out_x)
-                    y = np.concatenate(out_y)
-                    logger.debug('Completed lonlat2xy in parallel')
-                    return (x, y)
-                except Exception as e:
-                    logger.warning('Parallelprocessing failed:')
-                    logger.warning(e)
-                    self.multiprocessing_fail = True
-            else:
-                if hasattr(self, 'multiprocessing_fail'):
-                    logger.warning(
-                        'Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy'
-                    )
-                else:
-                    # For smaller arrays, we run sequentially
-                    pass
-            logger.debug('Calculating lonlat->xy sequentially')
-            x = self.spl_x(lon, lat)
-            y = self.spl_y(lon, lat)
-            return (x, y)
+    def lonlat2xy(self, lon, lat):
+        """
+        Calculate lon,lat from given x,y (scalars/arrays) in own projection.
+        """
+        if 'ob_tran' in self.proj4:
+            x, y = self.proj(lon, lat, inverse=False)
+            return np.degrees(x), np.degrees(y)
+        elif self.proj.crs.is_geographic:
+            return lon, lat
+        else:
+            x, y = self.proj(lon, lat, inverse=False)
+            return x, y
 
     def y_azimuth(self, lon, lat):
         """Calculate azimuth orientation of the y-axis of the reader SRS."""
@@ -198,30 +112,80 @@ class ReaderDomain(Timeable):
         lon_2, lat_2 = self.xy2lonlat(x0, y0 + distance)
         geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
         y_az = geod.inv(lon_2, lat_2, lon, lat, radians=False)
-        dist = y_az[2]
         return y_az[0]
 
     def pixel_size(self):
         # Find typical pixel size (e.g. for calculating size of buffer)
-        if self.projected is True:
-            if self.delta_x is not None:
-                pixelsize = self.delta_x
-                if self.proj.crs.is_geographic is True or \
-                        ('ob_tran' in self.proj4) or \
-                        ('longlat' in self.proj4) or \
-                        ('latlon' in self.proj4):
-                    pixelsize = pixelsize * 111000  # deg to meters
-            else:
-                pixelsize = None  # Pixel size not defined
+        if self.delta_x is not None:
+            pixelsize = self.delta_x
+            if self.proj.crs.is_geographic is True or \
+                    ('ob_tran' in self.proj4) or \
+                    ('longlat' in self.proj4) or \
+                    ('latlon' in self.proj4):
+                pixelsize = pixelsize * 111000  # deg to meters
         else:
-            lons, lats = self.xy2lonlat([self.xmin, self.xmax],
-                                        [self.ymin, self.ymin])
-            typicalsize = lons
-            geod = pyproj.Geod(ellps='WGS84')  # Define an ellipsoid
-            dist = geod.inv(lons[0], lats[0], lons[1], lats[1],
-                            radians=False)[2]
-            pixelsize = dist / self.shape[0]
+            pixelsize = None  # Pixel size not defined
         return pixelsize
+
+    def _coverage_unit_(self):
+        return "degrees"
+
+    def __repr__(self):
+        """String representation of the current reader."""
+        outStr = '===========================\n'
+        outStr += 'Reader: ' + self.name + '\n'
+        outStr += 'Projection: \n  ' + self.proj4 + '\n'
+        outStr += 'Coverage: [%s]\n' % self._coverage_unit_()
+        shape = self.shape
+        if shape is None:
+            outStr += '  xmin: %f   xmax: %f\n' % (self.xmin, self.xmax)
+            outStr += '  ymin: %f   ymax: %f\n' % (self.ymin, self.ymax)
+        else:
+            outStr += '  xmin: %f   xmax: %f   step: %g   numx: %i\n' % \
+                (self.xmin, self.xmax, self.delta_x or 0, shape[0])
+            outStr += '  ymin: %f   ymax: %f   step: %g   numy: %i\n' % \
+                (self.ymin, self.ymax, self.delta_y or 0, shape[1])
+        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                 [self.ymax, self.ymin, self.ymax, self.ymin])
+        outStr += '  Corners (lon, lat):\n'
+        outStr += '    (%6.2f, %6.2f)  (%6.2f, %6.2f)\n' % \
+            (corners[0][0],
+             corners[1][0],
+             corners[0][2],
+             corners[1][2])
+        outStr += '    (%6.2f, %6.2f)  (%6.2f, %6.2f)\n' % \
+            (corners[0][1],
+             corners[1][1],
+             corners[0][3],
+             corners[1][3])
+        if hasattr(self, 'z'):
+            np.set_printoptions(suppress=True)
+            outStr += 'Vertical levels [m]: \n  ' + str(self.z) + '\n'
+        elif hasattr(self, 'sigma'):
+            outStr += 'Vertical levels [sigma]: \n  ' + str(self.sigma) + '\n'
+        else:
+            outStr += 'Vertical levels [m]: \n  Not specified\n'
+        outStr += 'Available time range:\n'
+        outStr += '  start: ' + str(self.start_time) + \
+                  '   end: ' + str(self.end_time) + \
+                  '   step: ' + str(self.time_step) + '\n'
+        if self.start_time is not None and self.time_step is not None:
+            outStr += '    %i times (%i missing)\n' % (
+                      self.expected_time_steps, self.missing_time_steps)
+        if hasattr(self, 'realizations'):
+            outStr += 'Variables (%i ensemble members):\n' % len(self.realizations)
+        else:
+            outStr += 'Variables:\n'
+        for variable in self.variables:
+            if variable in self.derived_variables:
+                outStr += '  ' + variable + ' - derived from ' + \
+                    str(self.derived_variables[variable]) + '\n'
+            else:
+                outStr += '  ' + variable + '\n'
+        outStr += '===========================\n'
+        outStr += self.performance()
+
+        return outStr
 
     def covers_positions_xy(self, x, y, z=0):
         """

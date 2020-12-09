@@ -22,6 +22,8 @@ import shapely
 import shapely.ops
 import cartopy
 import itertools
+import logging
+logger = logging.getLogger(__name__)
 
 class Reader(BaseReader, ContinuousReader):
     """
@@ -64,7 +66,7 @@ class Reader(BaseReader, ContinuousReader):
         # reading shapefiles
         shp_iters = []
         for shp in shpfiles:
-            Reader.logger.debug("Reading shapefile: %s" % shp)
+            logger.debug("Reading shapefile: %s" % shp)
             from cartopy import io
             reader = io.shapereader.Reader(shp)
             shp_iters.append(reader.geometries())
@@ -86,7 +88,7 @@ class Reader(BaseReader, ContinuousReader):
         self.polys = list(shapes) # reads geometries if Shape Readers
         assert len(self.polys) > 0, "no geometries loaded"
 
-        self.logger.info("Pre-processing %d geometries" % len(self.polys))
+        logger.info("Pre-processing %d geometries" % len(self.polys))
         self.land = shapely.ops.unary_union(self.polys)
 
         self.xmin, self.ymin, self.xmax, self.ymax = self.land.bounds

@@ -80,8 +80,6 @@ class Reader(BaseReader, StructuredReader):
                         assert self.proj4 == v.attrs['GRIB_gridType'], "all variables must have the same projection"
         else:
             logger.info("Using supplied projection: %s" % self.proj4)
-            if self.proj4 == 'fakeproj':
-                self.proj4 = None
 
         # parsing variables
         self.variable_mapping = {}

@@ -348,7 +348,7 @@ class Reader(BaseReader, StructuredReader):
         self.variables = list(self.variable_mapping.keys())
 
         # Run constructor of parent Reader class
-        super(Reader, self).__init__()
+        super().__init__()
 
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None,

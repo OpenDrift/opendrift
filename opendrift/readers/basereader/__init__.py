@@ -18,15 +18,12 @@
 import sys
 import logging
 logger = logging.getLogger(__name__)
-import copy
 from abc import abstractmethod, ABCMeta
 from datetime import datetime, timedelta
 
-from scipy.interpolate import LinearNDInterpolator
 import numpy as np
 import pyproj
 
-from . import fakeproj
 from .structured import StructuredReader
 from .unstructured import UnstructuredReader
 from .continuous import ContinuousReader
@@ -94,14 +91,12 @@ class BaseReader(Variables):
 
         # Set projection for coordinate transformations
         self.simulation_SRS = False  # Avoid unnecessary vector rotation
-        if self.proj is not None:
-            self.projected = True
-        else:
+        if self.proj is None:
             if self.proj4 is not None:
-                self.projected = True
                 try:
                     self.proj = pyproj.Proj(self.proj4)
-                except:
+                except Exception as ex:
+                    logger.exception(ex)
                     # Workaround for proj-issue with zero flattening:
                     # https://github.com/OSGeo/proj.4/issues/1191
                     origproj4 = self.proj4
@@ -110,34 +105,10 @@ class BaseReader(Variables):
                     self.proj4 = self.proj4.replace('+f=0.0', '')
                     self.proj4 = self.proj4.replace('+f=0', '')
                     if origproj4 != self.proj4:
-                        logger.info('Removing flattening parameter from proj4; %s -> %s' % (origproj4, self.proj4))
+                        logger.warning('Removing flattening parameter from proj4; %s -> %s' % (origproj4, self.proj4))
                     self.proj = pyproj.Proj(self.proj4)
             else:
-                self.proj4 = 'None'
-                self.proj = fakeproj.fakeproj()
-                self.projected = False
-                logger.info('Making Splines for lon,lat to x,y conversion...')
-                self.xmin = self.ymin = 0.
-                self.delta_x = self.delta_y = 1.
-                self.xmax = self.lon.shape[1] - 1
-                self.ymax = self.lon.shape[0] - 1
-                self.numx = self.xmax
-                self.numy = self.ymax
-                block_x, block_y = np.meshgrid(
-                    np.arange(self.xmin, self.xmax + 1, 1),
-                    np.arange(self.ymin, self.ymax + 1, 1))
-
-                # Making interpolator (lon, lat) -> x
-                self.spl_x = LinearNDInterpolator((self.lon.ravel(),
-                                                   self.lat.ravel()),
-                                                  block_x.ravel(),
-                                                  fill_value=np.nan)
-                # Reusing x-interpolator (deepcopy) with data for y
-                self.spl_y = copy.deepcopy(self.spl_x)
-                self.spl_y.values[:, 0] = block_y.ravel()
-                # Call interpolator to avoid threading-problem:
-                # https://github.com/scipy/scipy/issues/8856
-                self.spl_x((0,0)), self.spl_y((0,0))
+                raise Exception("No projection or CRS information available")
 
         # Check if there are holes in time domain
         if self.start_time is not None and self.time_step is not None:# and len(self.times) > 1:
@@ -232,72 +203,6 @@ class BaseReader(Variables):
         minIndex = (self.z <= z.min()).argmin() - 1
         maxIndex = (self.z >= z.max()).argmax()
         return minIndex, maxIndex
-
-    def __repr__(self):
-        """String representation of the current reader."""
-        outStr = '===========================\n'
-        outStr += 'Reader: ' + self.name + '\n'
-        outStr += 'Projection: \n  ' + self.proj4 + '\n'
-        if self.proj.crs.is_geographic:
-            if self.projected is False:
-                outStr += 'Coverage: [pixels]\n'
-            else:
-                outStr += 'Coverage: [degrees]\n'
-        else:
-            if self.projected is False:
-                outStr += 'Coverage: [pixels]\n'
-            else:
-                outStr += 'Coverage: [m]\n'
-        shape = self.shape
-        if shape is None:
-            outStr += '  xmin: %f   xmax: %f\n' % (self.xmin, self.xmax)
-            outStr += '  ymin: %f   ymax: %f\n' % (self.ymin, self.ymax)
-        else:
-            outStr += '  xmin: %f   xmax: %f   step: %g   numx: %i\n' % \
-                (self.xmin, self.xmax, self.delta_x or 0, shape[0])
-            outStr += '  ymin: %f   ymax: %f   step: %g   numy: %i\n' % \
-                (self.ymin, self.ymax, self.delta_y or 0, shape[1])
-        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
-                                 [self.ymax, self.ymin, self.ymax, self.ymin])
-        outStr += '  Corners (lon, lat):\n'
-        outStr += '    (%6.2f, %6.2f)  (%6.2f, %6.2f)\n' % \
-            (corners[0][0],
-             corners[1][0],
-             corners[0][2],
-             corners[1][2])
-        outStr += '    (%6.2f, %6.2f)  (%6.2f, %6.2f)\n' % \
-            (corners[0][1],
-             corners[1][1],
-             corners[0][3],
-             corners[1][3])
-        if hasattr(self, 'z'):
-            np.set_printoptions(suppress=True)
-            outStr += 'Vertical levels [m]: \n  ' + str(self.z) + '\n'
-        elif hasattr(self, 'sigma'):
-            outStr += 'Vertical levels [sigma]: \n  ' + str(self.sigma) + '\n'
-        else:
-            outStr += 'Vertical levels [m]: \n  Not specified\n'
-        outStr += 'Available time range:\n'
-        outStr += '  start: ' + str(self.start_time) + \
-                  '   end: ' + str(self.end_time) + \
-                  '   step: ' + str(self.time_step) + '\n'
-        if self.start_time is not None and self.time_step is not None:
-            outStr += '    %i times (%i missing)\n' % (
-                      self.expected_time_steps, self.missing_time_steps)
-        if hasattr(self, 'realizations'):
-            outStr += 'Variables (%i ensemble members):\n' % len(self.realizations)
-        else:
-            outStr += 'Variables:\n'
-        for variable in self.variables:
-            if variable in self.derived_variables:
-                outStr += '  ' + variable + ' - derived from ' + \
-                    str(self.derived_variables[variable]) + '\n'
-            else:
-                outStr += '  ' + variable + '\n'
-        outStr += '===========================\n'
-        outStr += self.performance()
-
-        return outStr
 
     def performance(self):
         '''Report the time spent on various tasks'''
