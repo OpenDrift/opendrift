@@ -44,6 +44,8 @@ class Reader(BaseReader, StructuredReader):
         Returns: Grib-file reader.
 
         """
+        logger.warning("This reader is experimental and may change in breaking ways without a major version change")
+
         self.dataset = xr.open_dataset(filename, engine=engine)
         self.name = filename
 
