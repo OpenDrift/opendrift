@@ -117,10 +117,6 @@ class Reader(BaseReader, StructuredReader):
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
             self.nearest_time(time)
 
-        if z is not None:
-            assert np.all(z == self.dataset.heightAboveGround.item()
-                          ), "height does not match layer"
-
         logger.debug("Request variables: %s" % requested_variables)
 
         ix0, ix1, iy0, iy1 = self._bbox_(x, y)
@@ -141,6 +137,7 @@ class Reader(BaseReader, StructuredReader):
             var = self.dataset[var]
             logger.debug("Fetching %s [%d:%d, %d:%d]" %
                          (v, ix0, ix1, iy0, iy1))
-            variables[v] = var[indxTime, 0, ix0:ix1, iy0:iy1].values
+            variables[v] = self._slice_variable_(var, indxTime, slice(iy0, iy1), slice(ix0, ix1), 0, 0).values
 
         return variables
+

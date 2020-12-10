@@ -488,3 +488,41 @@ class StructuredReader(Variables):
             np.abs(
                 np.tile(np.atleast_2d(self.y).T, (1, self.Y.shape[1])) - self.Y
             ) < eq_eps), "Y coordinates are not aligned along X direction"
+
+    def _slice_variable_(self,
+                         var,
+                         indxTime = None,
+                         indy = None,
+                         indx = None,
+                         indz = None,
+                         indrealization = None):
+        """
+        Slice variable depending on number of dimensions available.
+
+        Args:
+
+            All arguments can be `slice` objects or index.
+
+        Returns:
+
+            `var` sliced using the slices or indexes necessary to use depending
+            on number of dimensions available.
+
+        Raises:
+
+            Unsupported number of dimensions (outside 2..5) raises an exception.
+
+        """
+        # NOTE: use match expressions when PEP-634 (Py 3.10) is (widely)
+        #       available.
+        if var.ndim == 2:
+            return var[indy, indx]
+        elif var.ndim == 3:
+            return var[indxTime, indy, indx]
+        elif var.ndim == 4:
+            return var[indxTime, indz, indy, indx]
+        elif var.ndim == 5:  # Ensemble data
+            return var[indxTime, indz, indrealization, indy, indx]
+        else:
+            raise Exception('Wrong dimension of variable: %s: %d' %
+                            (var, var.ndim))
