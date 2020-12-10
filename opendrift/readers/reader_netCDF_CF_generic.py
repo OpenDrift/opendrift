@@ -353,7 +353,7 @@ class Reader(BaseReader, StructuredReader):
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None,
                       indrealization=None):
-        requested_variables, time, x, y, z, outside = self.check_arguments(
+        requested_variables, time, x, y, z, _outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
         nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \

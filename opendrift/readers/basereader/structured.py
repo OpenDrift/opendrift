@@ -17,6 +17,8 @@ class StructuredReader(Variables):
 
         projected: is `True` if :class:`.fakeproj.fakeproj` is used because of missing projection information. The data points are assumed to be approximately equidistant on the surface (i.e. in meters).
 
+        clipped: pixels to to remove along boundary (e.g. in case of bad data).
+
     .. seealso::
 
         :py:mod:`opendrift.readers`
@@ -24,6 +26,9 @@ class StructuredReader(Variables):
     # `projected` is set to True if `fakeproj` is used
     projected = None
     shape = None
+    clipped = 0
+    x = None
+    y = None
 
     var_block_before = None
     var_block_after = None
@@ -52,7 +57,8 @@ class StructuredReader(Variables):
             self.numx = self.xmax
             self.numy = self.ymax
 
-            block_x, block_y = np.mgrid[self.xmin:self.xmax + 1, self.ymin:self.ymax + 1]
+            block_x, block_y = np.mgrid[self.xmin:self.xmax + 1,
+                                        self.ymin:self.ymax + 1]
             block_x, block_y = block_x.T, block_y.T
 
             # Making interpolator (lon, lat) -> x
@@ -407,3 +413,78 @@ class StructuredReader(Variables):
         else:
             return "pixels"
 
+    def _bbox_(self, x, y):
+        """
+        Find bounding box on grid containing points (x, y)
+        """
+        ix = (x - self.xmin) / self.delta_x
+        ix0, ix1 = np.min(ix), np.max(ix)
+
+        iy = (y - self.ymin) / self.delta_y
+        iy0, iy1 = np.min(iy), np.max(iy)
+
+        ix0 = np.max((self.clipped, ix0 - self.buffer)).astype(int)
+        iy0 = np.max((self.clipped, iy0 - self.buffer)).astype(int)
+
+        ix1 = np.min((self.numx - self.clipped, ix1 + self.buffer)).astype(int)
+        iy1 = np.min((self.numy - self.clipped, iy1 + self.buffer)).astype(int)
+
+        return (ix0, ix1, iy0, iy1)
+
+    def _make_projected_grid_(self, lon, lat, eq_eps=1.e-1):
+        """
+        Make the projected grid in cases where `lon` and `lat` are present as
+        2D variables, but not `x` and `y` and assert that it is approximately
+        equidistant.
+
+        Args:
+
+            eq_eps: tolerance for equidistance checks.
+        """
+
+        if self.x is not None or self.y is not None:
+            logger.error("x and y variables already exist!")
+
+        logger.debug("Finding bounds of reader")
+        assert len(lon.shape) == 2
+        assert len(lat.shape) == 2
+
+        self.X, self.Y = self.lonlat2xy(lon, lat)
+        self.xmin, self.xmax = np.min(self.X[:]), np.max(self.X[:])
+        self.ymin, self.ymax = np.min(self.Y[:]), np.max(self.Y[:])
+
+        self.delta_x = np.diff(self.X).flat[0]
+        self.delta_y = np.diff(self.Y, axis=0).flat[0]
+
+        self.x = self.X[0, :]
+        self.y = self.Y[:, 0]
+        self.numx = len(self.x)
+        self.numy = len(self.y)
+
+        self.__validate_projected_grid__(eq_eps)
+
+    def __validate_projected_grid__(self, eq_eps=1.e-1):
+        """
+        Validate that the projected grid is approximately equidistant.
+
+        Args:
+
+            eq_eps: tolerance for equidistance checks.
+
+        Raises:
+
+            AssertionError if not equidistant within `eq_eps`.
+        """
+
+        assert np.all(np.abs(self.delta_x - np.diff(self.X)) < eq_eps
+                      ), "Grid is not equidistant in X direction"
+        assert np.all(np.abs(self.delta_y - np.diff(self.Y, axis=0)) < eq_eps
+                      ), "Grid is not equidistant in Y direction"
+
+        assert np.all(
+            np.abs(np.tile(self.x, (self.X.shape[0], 1)) - self.X) < eq_eps
+        ), "X coordinates are not aligned along Y direction"
+        assert np.all(
+            np.abs(
+                np.tile(np.atleast_2d(self.y).T, (1, self.Y.shape[1])) - self.Y
+            ) < eq_eps), "Y coordinates are not aligned along X direction"
