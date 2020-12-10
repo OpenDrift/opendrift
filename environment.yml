@@ -15,6 +15,8 @@ dependencies:
   - gdal>=3.1
   - xarray
   - dask
+  - cfgrib
+  - pygrib
   - xhistogram
   - requests
   - pytest
@@ -25,7 +27,6 @@ dependencies:
   - geojson
   - opendrift-landmask-data
   - oil_library-opendrift
-  - pygrib
   - isodate
   - coloredlogs
   - pip
