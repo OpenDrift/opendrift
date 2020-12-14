@@ -131,6 +131,15 @@ class Reader(BaseReader, StructuredReader):
         variables['z'] = z
 
         for v in requested_variables:
+            par = v
+            if hasattr(self, 'rotate_mapping') and par in self.rotate_mapping:
+                logger.debug('Using %s to retrieve %s' %
+                    (self.rotate_mapping[par], par))
+                if par not in self.variable_mapping:
+                    self.variable_mapping[par] = \
+                        self.variable_mapping[
+                            self.rotate_mapping[par]]
+
             var = self.variable_mapping[v]
             var = self.dataset[var]
             logger.debug("Fetching %s [%d:%d, %d:%d]" %

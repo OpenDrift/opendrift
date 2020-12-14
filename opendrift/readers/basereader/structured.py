@@ -1,4 +1,6 @@
 import numpy as np
+import pyproj
+from scipy.ndimage import map_coordinates
 from abc import abstractmethod
 
 from opendrift.readers.interpolation.structured import ReaderBlock
