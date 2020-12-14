@@ -88,7 +88,7 @@ class Reader(BaseReader, StructuredReader):
 
         for v in self.dataset.variables:
             var = self.dataset[v]
-            std_name = var.attrs.get('GRIB_cfName', None)
+            std_name = var.standard_name
 
             if std_name is not None:
                 std_name = self.variable_aliases.get(std_name, std_name)
