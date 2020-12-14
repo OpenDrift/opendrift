@@ -90,11 +90,8 @@ class Reader(BaseReader, StructuredReader):
             var = self.dataset[v]
             std_name = var.attrs.get('GRIB_cfName', None)
 
-            # TODO
-            if std_name == 'eastward_wind':
-                std_name = 'x_wind'
-
             if std_name is not None:
+                std_name = self.variable_aliases.get(std_name, std_name)
                 self.variable_mapping[std_name] = v
                 logger.debug("Found standard variable: %s" % v)
 
@@ -134,7 +131,6 @@ class Reader(BaseReader, StructuredReader):
         variables['z'] = z
 
         for v in requested_variables:
-            var = self.variable_aliases.get(v, v)
             var = self.variable_mapping[v]
             var = self.dataset[var]
             logger.debug("Fetching %s [%d:%d, %d:%d]" %
