@@ -191,13 +191,6 @@ class Reader(BaseReader, StructuredReader):
         else:
             self.time_step = None
 
-        # x and y are rows and columns for unprojected datasets
-        self.xmin = 0.
-        self.delta_x = 1.
-        self.ymin = 0.
-        self.delta_y = 1.
-        self.xmax = self.Dataset['xi_rho'].shape[0] - 1.
-        self.ymax = self.Dataset['eta_rho'].shape[0] - 1.
         self.lon = self.lon.data  # Extract, could be avoided downstream
         self.lat = self.lat.data
         self.sigma = self.sigma.data
