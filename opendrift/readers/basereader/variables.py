@@ -471,73 +471,77 @@ class Variables(ReaderDomain):
         #    east_wind, north_wind,
         #    None, self.proj)
 
-    def calculate_derived_environment_variables(self, env):
-
+    def __calculate_derived_environment_variables__(self, env):
         if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
             self.wind_from_speed_and_direction(env)
 
-    def _get_variables_impl_(self, variables, profiles, profiles_depth, time, x,
-                           y, z):
-        """Wrapper around reader-specific function get_variables()
-
-        Performs some common operations which should not be duplicated:
-
-            - monitor time spent by this reader
-            - convert any numpy arrays to masked arrays
-            - add points to x, y and z to get profiles if necessary
-            - convolve vectors if `self.convolve` is specified
-
-        This function calls :meth:`__get_variables_derived__` which eventually
-        calls :meth:`get_variables` on the implementing reader.
+    def __check_env_coordinates__(self, env):
         """
-        logger.debug('Fetching variables from ' + self.name)
-        self.timer_start('reading')
-
-        if profiles is not None:
-            # If profiles are requested for any parameters, we
-            # add two fake points at the end of array to make sure that the
-            # requested block has the depth range required for profiles
-            x = np.append(x, [x[-1], x[-1]])
-            y = np.append(y, [y[-1], y[-1]])
-            z = np.append(z, [profiles_depth[0], profiles_depth[1]])
-
-        env = self.__get_variables_derived__(variables, time, x, y, z)
-
-        # Make sure x and y are floats (and not e.g. int64)
+        Make sure x and y are floats (and not e.g. int64)
+        """
         if 'x' in env.keys():
             env['x'] = np.array(env['x'], dtype=np.float)
             env['y'] = np.array(env['y'], dtype=np.float)
 
-        for variable in variables:
-            # Convert any masked arrays to NumPy arrays
-            if isinstance(env[variable], np.ma.MaskedArray):
-                env[variable] = env[variable].filled(np.nan)
-            # Mask values outside valid_min, valid_max (self.standard_names)
-            if variable in standard_names.keys():
-                if isinstance(env[variable], list):
-                    logger.warning(
-                        'Skipping min-max checking for ensemble data')
-                    continue
-                with np.errstate(invalid='ignore'):
-                    invalid_indices = np.logical_and(
-                        np.isfinite(env[variable]),
-                        np.logical_or(
-                            env[variable] <
-                            standard_names[variable]['valid_min'],
-                            env[variable] >
-                            standard_names[variable]['valid_max']))
-                if np.sum(invalid_indices) > 0:
-                    invalid_values = env[variable][invalid_indices]
-                    logger.warning(
-                        'Invalid values (%s to %s) found for %s, replacing with NaN'
-                        %
-                        (invalid_values.min(), invalid_values.max(), variable))
-                    logger.warning('(allowed range: [%s, %s])' %
-                                   (standard_names[variable]['valid_min'],
-                                    standard_names[variable]['valid_max']))
-                    env[variable][invalid_indices] = np.nan
+    @staticmethod
+    def __check_variable_array__(name, variable):
+        """
+        Ensure arrays are not masked arrays and that values are within valid ranges.
+        """
 
-        # Convolve arrays with a kernel, if reader.convolve is set
+        # Convert any masked arrays to NumPy arrays
+        if isinstance(variable, np.ma.MaskedArray):
+            variable = variable.filled(np.nan)
+
+        # Mask values outside valid_min, valid_max (self.standard_names)
+        if name in standard_names.keys():
+            logger.debug("checking %s for invalid values" % name)
+            if isinstance(variable, list):
+                logger.warning(
+                    'Skipping min-max checking for ensemble data')
+                return variable
+            # with np.errstate(invalid='ignore'):
+            invalid_indices = np.logical_and(
+                np.isfinite(variable),
+                np.logical_or(
+                    variable < standard_names[name]['valid_min'],
+                    variable > standard_names[name]['valid_max']))
+            if np.sum(invalid_indices) > 0:
+                invalid_values = variable[invalid_indices]
+                logger.warning(
+                    'Invalid values (%s to %s) found for %s, replacing with NaN'
+                    %
+                    (invalid_values.min(), invalid_values.max(), variable))
+                logger.warning('(allowed range: [%s, %s])' %
+                                (standard_names[name]['valid_min'],
+                                standard_names[name]['valid_max']))
+                variable[invalid_indices] = np.nan
+
+        return variable
+
+    def __check_env_arrays__(self, env):
+        """
+        Ensure arrays are not masked arrays and that values are within valid
+        ranges.
+
+        .. seealso::
+
+            Disabled in `StructuredReader` because variables are valided before
+            entered into interpolator:
+
+            :meth:`.structured.StructuredReader.__check_env_arrays__`
+        """
+        variables = [var for var in env.keys() if var not in ['x', 'y', 'time']]
+
+        for variable in variables:
+            env[variable] = self.__check_variable_array__(variable, env[variable])
+
+        return env
+
+    def __convolve_env__(self, env):
+        """
+        Convolve arrays with a kernel, if reader.convolve is set
+        """
         if self.convolve is not None:
             from scipy import ndimage
             N = self.convolve
@@ -560,86 +564,21 @@ class Variables(ReaderDomain):
                                                          kernel[:, :, None],
                                                          mode='nearest')
 
-        self.timer_end('reading')
-
-        return env
-
-    def __get_variables_derived__(self, variables, *args, **kwargs):
-        """Wrapper around get_variables, adding derived"""
-        if isinstance(variables, str):
-            variables = [variables]
-        if not isinstance(variables, list):
-            variables = list(variables)
-        derive_variables = False
-        for var in variables:
-            if var in self.derived_variables:
-                fromvars = self.derived_variables[var]
-                for v in fromvars:
-                    variables.append(v)
-                # Removing the derived variable name
-                variables = [v for v in variables if v != var]
-                derive_variables = True
-
-        env = self.get_variables(variables, *args, **kwargs)
-
-        if derive_variables is True:
-            self.calculate_derived_environment_variables(env)
-
-        return env
-
-    @abstractmethod
-    def get_variables(self, variables, time=None, x=None, y=None, z=None):
-        """
-        Method which must be implemented by all reader-subclasses.
-
-        .. warning::
-
-            Warning: In the future this method is likely to be a requirement of
-            each reader, and it will be up to the reader-type how values are
-            retrieved.
-
-        Obtain and return values of the requested variables at all positions
-        (x, y, z) closest to given time.
-
-        Arguments:
-            variables: string, or list of strings (standard_name) of
-            requested variables. These must be provided by reader.
-
-            time: datetime or None, time at which data are requested.
-            Can be None (default) if reader/variable has no time
-            dimension (e.g. climatology or landmask).
-
-            x, y: float or ndarrays; coordinates of requested points in the
-            Spatial Reference System (SRS) _of the reader (NB!!)_.
-
-            z: float or ndarray; vertical position (in meters, positive up)
-            of requested points. default: 0 m (unless otherwise documented by reader)
-
-            block: bool, see return below
-
-          Returns:
-            data: Dictionary
-
-            keywords: variables (string)
-
-            values:
-
-            - 1D ndarray of len(x) if StructuredReader. Nearest values
-                (neighbour) of requested position are returned.
-
-            - 3D ndarray encompassing all requested points in
-                x,y,z domain if UnstructuredReader. It is task of invoking
-                application (OpenDriftSimulation) to perform
-                interpolation in space and time.
-        """
 
     @abstractmethod
     def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
                                      time, reader_x, reader_y, z):
         """
-        Implemented by different reader types (e.g. :class:`structured.StructuredReader`).
+        This method _must_ be implemented by every reader. Usually by
+        subclassing one of the reader types (e.g.
+        :class:`structured.StructuredReader`).
 
-        Arguments are in native projection of reader.
+        Arguments are in _native projection_ of reader.
+
+        .. seealso:
+
+            * :meth:`get_variables_interpolated_xy`.
+            * :meth:`get_variables_interpolated`.
         """
         pass
 
@@ -654,6 +593,11 @@ class Variables(ReaderDomain):
                                       rotate_to_proj=None):
         """
         Get variables in native projection of reader.
+
+        .. seealso::
+
+            * :meth:`get_variables_interpolated`.
+            * :meth:`_get_variables_interpolated_`.
         """
         self.timer_start('total')
         # Raise error if time not not within coverage of reader
@@ -685,8 +629,34 @@ class Variables(ReaderDomain):
             z = z.copy() * np.ones(x.shape)
         z = z.copy()[ind_covered]
 
+        logger.debug('Fetching variables from ' + self.name)
+        self.timer_start('reading')
+
+        # Filter derived variables
+        derived = []
+
+        for var in variables:
+            if var in self.derived_variables:
+                logger.debug("Scheduling %s to be derived from %s" % (var, self.derived_variables[var]))
+                variables.extend(self.derived_variables[var])
+                variables.remove(var)
+                derived.append(var)
+
+
         env, env_profiles = self._get_variables_interpolated_(
             variables, profiles, profiles_depth, time, x, y, z)
+
+        # Calculate derived variables
+        if len(derived) > 0:
+            self.__calculate_derived_environment_variables__(env)
+
+        for e in [ env, env_profiles ]:
+            if e is not None:
+                self.__check_env_coordinates__(e)
+                self.__check_env_arrays__(e)
+                self.__convolve_env__(e)
+
+        self.timer_end('reading')
 
         # Rotating vectors fields
         if rotate_to_proj is not None:
@@ -760,18 +730,11 @@ class Variables(ReaderDomain):
                                    z=None,
                                    rotate_to_proj=None):
         """
-        `get_variables_interpolated` is the interface to
+        `get_variables_interpolated` is the main interface to
         :class:`opendrift.basemodel.OpenDriftSimulation`, and is responsible
-        for returning variables at the correct positions. This is done by:
+        for returning variables at the correct positions.
 
-            1. Calling :meth:`_get_variables_interpolated_` which,
-            2. calls :meth:`_get_variables_impl_`, which
-            3. calls :meth:`__get_variables_derived__`, which
-            4. calls :meth:`get_variables`.
-
-        :meth:`_get_variables_impl_`: Works on every variable. If profiles_depth, adds a point at start and end in order to get a full block. This seems specific to `StructuredReader`. Needs to work on both env and env_profiles, but also modifies the behavior to make env_profiles work in the first place.
-
-        :meth:`__get_variables_derived__`: Calculates derived variables from variables present in reader. Needs to work on both env and env_profiles.
+        Readers should implement :meth:`_get_variables_interpolated_`.
 
         Arguments:
             variables: string, or list of strings (standard_name) of
@@ -803,6 +766,10 @@ class Variables(ReaderDomain):
 
             Interpolated variables at x, y and z. `env` contains values at a fixed depth (`z`), while `env_profiles` contains depth-profiles in the range `profile_depth` for the variables listed in `profiles` for each element (in `x`, `y`). The exact depth is determined by the reader and specified in
             `env_profiles['z']`. Thus variables in `env_profiles` are not interpolated in z-direction.
+
+        .. seealso::
+
+            :meth:`get_variables_interpolated_xy`.
 
         """
 

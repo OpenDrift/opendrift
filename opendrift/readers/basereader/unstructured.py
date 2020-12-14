@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)
@@ -9,35 +10,16 @@ class UnstructuredReader(Variables):
     """
     An unstructured reader. Data is gridded irregularily.
 
-    In order to support the heterogeneous types of unstructured grids, the
-    unstructured readers are built up differently from the
-    :class:`.structured.StructuredReader` readers. This class, which readers of
-    unstructured grids subclass, provide several methods for aiding in
-    interpolation and caching.
-
-    The initial type of grid that this class supports are `triangular prisms <https://en.wikipedia.org/wiki/Types_of_mesh#Triangular_prism>`_. Unstructured in xy-coordinates, x and y is constant in z. z might be non-cartesian (e.g. sigma-levels).
+    The initial type of grid that this class supports are `triangular prisms
+    <https://en.wikipedia.org/wiki/Types_of_mesh#Triangular_prism>`_.
+    Unstructured in xy-coordinates, x and y is constant in z. z might be
+    non-cartesian (e.g. sigma-levels).
 
     .. seealso::
 
         :py:mod:`opendrift.readers`
 
         :class:`.structured.StructuredReader`
-
-
-    Caching using UnstructuredBlock:
-
-    .. note::
-
-        The `StructuredReader`s return a 2D field for `meshgrid(x,y)`. This is not
-        so meaningful for `UnstructuredReader` since the variables are iregularily
-        placed. The `get_variables` method should therefore be a method required by
-        the `StructuredReader` and `ContinuousReader`, and maybe renamed to
-        `get_block` for `StructuredReader`.
-
-        For the `UnstructuredReader` we need the equivalent of `get_block`, maybe
-        `get_subset` which sets up an `UnstructuredBlock` for the given area or
-        volume. This probably requires :meth:`_get_variables_impl_`/ :meth:`__get_variables_derived__`
-        to be moved to the outside of :meth:`_get_variables_interpolated_`.
 
     """
 
@@ -58,17 +40,22 @@ class UnstructuredReader(Variables):
     def __init__(self):
         super().__init__()
 
+    @abstractmethod
+    def get_variables(self, variables, time=None, x=None, y=None, z=None):
+        """
+        Obtain and return values of the requested variables at all positions
+        (x, y, z) closest to given time.
+
+        Returns:
+
+            Dictionary with arrays of length len(x) with values at exact positions x, y and z.
+        """
+
     def _get_variables_interpolated_(self, variables, profiles,
                                    profiles_depth, time,
                                    reader_x, reader_y, z):
 
-        env = self._get_variables_impl_(variables,
-                                      profiles,
-                                      profiles_depth,
-                                      time,
-                                      reader_x,
-                                      reader_y,
-                                      z)
+        env = self.get_variables(variables, time, reader_x, reader_y, z)
 
         # We probably have to use an UnstructuredBlock to store closest time-steps, and thus avoid fetching
         # more data on every call.

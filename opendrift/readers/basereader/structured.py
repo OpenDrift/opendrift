@@ -26,6 +26,30 @@ class StructuredReader(Variables):
         self.var_block_before = {}  # Data for last timestep before present
         self.var_block_after = {}   # Data for first timestep after present
 
+    @abstractmethod
+    def get_variables(self, variables, time=None, x=None, y=None, z=None):
+        """
+        Obtain a _block_ of values of the requested variables at all positions
+        (x, y, z) closest to given time. These will be stored in
+        :class:`opendrift.readers.interpolation.structured.ReaderBlock` and
+        accessed from there.
+
+        Arguments:
+            variables: list of variables.
+
+            time: datetime or None, time at which data are requested.
+
+            x, y: float or ndarrays; coordinates of requested points.
+
+            z: float or ndarray; vertical position (in meters, positive up)
+
+          Returns:
+            Dictionary
+
+            keywords: variables (string)
+            values: 2D ndarray bounding x and y.
+        """
+
     def _get_variables_interpolated_(self, variables, profiles,
                                    profiles_depth, time,
                                    reader_x, reader_y, z):
@@ -42,6 +66,19 @@ class StructuredReader(Variables):
                 ]
         if time == time_before or all(v in static_variables for v in variables):
             time_after = None
+
+
+        if profiles is not None:
+            # If profiles are requested for any parameters, we
+            # add two fake points at the end of array to make sure that the
+            # requested block has the depth range required for profiles
+            mx = np.append(reader_x, [reader_x[-1], reader_x[-1]])
+            my = np.append(reader_y, [reader_y[-1], reader_y[-1]])
+            mz = np.append(z, [profiles_depth[0], profiles_depth[1]])
+        else:
+            mx = reader_x
+            my = reader_y
+            mz = z
 
         block_before = block_after = None
         blockvariables_before = variables
@@ -78,9 +115,8 @@ class StructuredReader(Variables):
         if block_before is None or \
                 block_before.time != time_before:
             reader_data_dict = \
-                self._get_variables_impl_(blockvariables_before, profiles,
-                                    profiles_depth, time_before,
-                                    reader_x, reader_y, z)
+                self.get_variables(blockvariables_before, time_before,
+                                    mx, my, mz)
             self.var_block_before[blockvars_before] = \
                 ReaderBlock(reader_data_dict,
                             interpolation_horizontal=self.interpolation)
@@ -100,9 +136,8 @@ class StructuredReader(Variables):
                     block_before
             else:
                 reader_data_dict = \
-                    self._get_variables_impl_(blockvariables_after, profiles,
-                                        profiles_depth, time_after,
-                                        reader_x, reader_y, z)
+                    self.get_variables(blockvariables_after, time_after,
+                                        mx, my, mz)
                 self.var_block_after[blockvars_after] = \
                     ReaderBlock(
                         reader_data_dict,
@@ -199,4 +234,16 @@ class StructuredReader(Variables):
         self.timer_end('interpolation_time')
 
         return env, env_profiles
+
+    def __check_env_arrays__(self, env):
+        """
+        For the StructuredReader the variables are checked before entered into
+        the ReaderBlock interpolator. This methods makes the second check a
+        no-op.
+
+        .. seealso::
+
+            :meth:`.variables.Variables.__check_env_arrays__`.
+        """
+        return env
 

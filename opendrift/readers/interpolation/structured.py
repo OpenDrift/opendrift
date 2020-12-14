@@ -5,6 +5,7 @@ import scipy.ndimage as ndimage
 from scipy.interpolate import interp1d, LinearNDInterpolator
 
 from .interpolators import Nearest2DInterpolator, fill_NaN_towards_seafloor, horizontal_interpolation_methods, vertical_interpolation_methods
+from opendrift.readers.basereader import variables
 
 import logging
 logger = logging.getLogger(__name__)
@@ -35,6 +36,8 @@ class ReaderBlock():
         # Mask any extremely large values, e.g. if missing netCDF _Fill_value
         filled_variables = set()
         for var in self.data_dict:
+            self.data_dict[var] = variables.Variables.__check_variable_array__(var, self.data_dict[var])
+
             if isinstance(self.data_dict[var], np.ma.core.MaskedArray):
                 self.data_dict[var] = np.ma.masked_outside(
                     np.ma.masked_invalid(self.data_dict[var]), -1E+9, 1E+9)
