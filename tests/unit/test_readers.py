@@ -1,3 +1,4 @@
+import os
 import unittest
 from datetime import datetime, timedelta
 import numpy as np
@@ -7,6 +8,16 @@ from opendrift.readers import reader_timeseries
 from opendrift.models.oceandrift import OceanDrift
 
 class TestReaders(unittest.TestCase):
+
+    def test_map_background(self):
+        """Plotting map of reader coverage with background field"""
+        o = OceanDrift(loglevel=50)
+        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        fname = 'opendrift_test_reader_map_background.png'
+        r.plot(variable='x_sea_water_velocity', filename=fname)
+        assert os.path.exists(fname)
+        os.remove(fname)
+
     def test_timeseries_at_position(self):
 
         o = OceanDrift()
