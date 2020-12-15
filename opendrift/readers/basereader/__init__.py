@@ -309,14 +309,13 @@ class BaseReader(Variables):
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.__get_variables_derived__(variable, self.start_time,
-                                      rx, ry)
+            data = self.get_variables(variable, self.start_time, rx, ry)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rx = np.float32(rx)
             ry = np.float32(ry)
             rlon, rlat = self.xy2lonlat(rx, ry)
             data[variable] = np.ma.masked_invalid(data[variable])
-            if self.convole is not None:
+            if self.convolve is not None:
                 from scipy import ndimage
                 N = self.convolve
                 if isinstance(N, (int, np.integer)):
