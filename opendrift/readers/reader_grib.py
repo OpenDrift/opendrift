@@ -15,6 +15,8 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 import numpy as np
 try:
@@ -72,7 +74,7 @@ class Reader(BaseReader, StructuredReader):
 
         try:
             # Open file, check that everything is ok
-            self.logger.info('Opening dataset: ' + filename)
+            logger.info('Opening dataset: ' + filename)
             self.grib = pygrib.open(filename)
         except:
             raise ValueError('Could not open ' + filename +
@@ -128,7 +130,7 @@ class Reader(BaseReader, StructuredReader):
             centre = centre[0]
         if centre in grib_variable_mapping:
             self.grib_mapping = grib_variable_mapping[centre]
-            self.logger.info('Parameter codes not defined in mapper: ' +
+            logger.info('Parameter codes not defined in mapper: ' +
                          str(set(marsParams) - set(self.grib_mapping)))
         else:
             raise ValueError(
@@ -150,7 +152,7 @@ class Reader(BaseReader, StructuredReader):
         if len(self.variables) > 0:
             self.times = [times[k] for k in self.indices[var]]
             if len(self.times) > 1 and self.times[0] == self.times[1]:  # Duplicate times
-                self.logger.info('Duplicate times for variables, using '
+                logger.info('Duplicate times for variables, using '
                              'only first occurance.')
                 lasttime = None
                 for i, tim in enumerate(self.times):
