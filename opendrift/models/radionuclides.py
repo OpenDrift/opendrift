@@ -321,7 +321,10 @@ class RadionuclideDrift(OceanDrift):
             raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
 
         init_specie = np.ones(num_elements, int)
-        init_specie[:shift] = self.num_lmm
+        if self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
+            init_specie[:shift] = self.num_lmmcation
+        else:
+            init_specie[:shift] = self.num_lmm
         init_specie[shift:] = self.num_prev
 
         kwargs['specie'] = init_specie
