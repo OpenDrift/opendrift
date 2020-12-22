@@ -243,8 +243,8 @@ def cg_eigenvectors(X, Y, delta, duration):
             # Green-Cauchy tensor
             D = np.dot(np.transpose(J[i,j]), J[i,j])
             # its largest eigenvalue
-            lamba[i,j], xi[i,j] = np.linalg.eigh(D)
-
+            lamba[i,j], xi[i,j] = np.linalg.eig(D)
+            lamba[lamba>1000]=np.nan # mask out land artifacts
     return lamba, xi
 
 

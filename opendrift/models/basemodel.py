@@ -1638,7 +1638,7 @@ class OpenDriftSimulation(PhysicsMethods):
         2) total_number, in which case the number of elements
            per segment is: total_number / len(times).
            Any extra elements are duplicated along at the first segment.
-       
+
         """
 
         numtimes = int((end_time-start_time).total_seconds()/
@@ -1711,11 +1711,11 @@ class OpenDriftSimulation(PhysicsMethods):
         area = 0.0
         for i in range(-1, len(x)-1):
             area += x[i] * (y[i+1] - y[i-1])
-        area = abs(area) / 2
 
         # Make points, evenly distributed
         deltax = np.sqrt(area/number)
         lonpoints = np.array([])
+        area = abs(area) / 2
         latpoints = np.array([])
         lonlat = poly.get_xy()
         lon = lonlat[:, 0]
@@ -1990,7 +1990,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
     def run(self, time_step=None, steps=None, time_step_output=None,
             duration=None, end_time=None, outfile=None, export_variables=None,
-            export_buffer_length=100, stop_on_error=False):
+            export_buffer_length=100, stop_on_error=False, move_from_land=True):
         """Start a trajectory simulation, after initial configuration.
 
         Performs the main loop:
@@ -2233,14 +2233,15 @@ class OpenDriftSimulation(PhysicsMethods):
             self.timer_end('preparing main loop:making dynamical landmask')
 
         # Move point seed on land to ocean
-        if self.get_config('seed:ocean_only') is True and \
-            ('land_binary_mask' not in self.fallback_values) and \
-            ('land_binary_mask' in self.required_variables):
-            self.timer_start('preparing main loop:moving elements to ocean')
-            self.elements_scheduled.lon, self.elements_scheduled.lat = \
+        if move_from_land==True:
+            if self.get_config('seed:ocean_only') is True and \
+                ('land_binary_mask' not in self.fallback_values) and \
+                ('land_binary_mask' in self.required_variables):
+                self.timer_start('preparing main loop:moving elements to ocean')
+                self.elements_scheduled.lon, self.elements_scheduled.lat = \
                 self.closest_ocean_points(self.elements_scheduled.lon,
                                           self.elements_scheduled.lat)
-            self.timer_end('preparing main loop:moving elements to ocean')
+                self.timer_end('preparing main loop:moving elements to ocean')
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file
@@ -2840,7 +2841,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     self.get_density_array(pixelsize_m=density_pixelsize_m,
                                            weight=density_weight)
                 H = H + H_submerged + H_stranded
-         
+
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree()
 
@@ -4211,8 +4212,7 @@ class OpenDriftSimulation(PhysicsMethods):
         return lcs
 
     def calculate_lcs(self, reader=None, delta=None, domain=None,
-                       time=None, time_step=None, duration=None, z=0,
-                       forward=False):
+                       time=None, time_step=None, duration=None, z=0):
 
         if reader is None:
             self.logger.info('No reader provided, using first available:')
@@ -4256,13 +4256,10 @@ class OpenDriftSimulation(PhysicsMethods):
         for i, t in enumerate(time):
             self.logger.info('Calculating LCS for ' + str(t))
             # Forward or bachward flow map
-            dir = -1
-            if forward==True:
-                dir = 1.
             self.reset()
             self.seed_elements(lons.ravel(), lats.ravel(),
                                time=t, z=z)
-            self.run(duration=duration, time_step=time_step)
+            self.run(duration=duration, time_step=time_step, move_from_land=False)
             x1, y1 = proj(
                 self.history['lon'].T[-1].reshape(X.shape),
                 self.history['lat'].T[-1].reshape(X.shape))
@@ -4270,12 +4267,12 @@ class OpenDriftSimulation(PhysicsMethods):
             lcs['eigval'][i,:,:,:] = lamba
             lcs['eigvec'][i,:,:,:,:] = xi
 
-        #lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
-        #lcs['ALCS'] = np.ma.masked_invalid(lcs['ALCS'])
-        # Flipping ALCS left-right. Not sure why this is needed
-        #lcs['ALCS'] = lcs['ALCS'][:,::-1,::-1]
-        lcs['eigval'] = lcs['eigval'][:,::-1,::-1]
-        lcs['eigvec'] = lcs['eigvec'][:,::-1,::-1]
+        lcs['eigvec'] = np.ma.masked_invalid(lcs['eigvec'])
+        lcs['eigval'] = np.ma.masked_invalid(lcs['eigval'])
+        # Flipping ALCS left-right if using backward time flow map; Not sure why this is needed
+        if time_step.total_seconds() < 0:
+            lcs['eigval'] = lcs['eigval'][:,::-1,::-1]
+            lcs['eigvec'] = lcs['eigvec'][:,::-1,::-1]
         return lcs
 
 
