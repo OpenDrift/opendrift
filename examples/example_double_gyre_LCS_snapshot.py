@@ -47,13 +47,13 @@ lcs = o.calculate_lcs(time=double_gyre.initial_time + plot_time, time_step=-time
 #%%
 # Make run with particles for the same period
 o.reset()
-x = np.linspace(0.1,1.9,100)
-y = np.linspace(0.1,0.9,100)
-X,Y = np.meshgrid(x.ravel(),y.ravel())
-lon, lat = double_gyre.xy2lonlat(X,Y)
+x = [.9]
+y = [.5]
+lon, lat = double_gyre.xy2lonlat(x, y)
 
-o.seed_elements(lon, lat,
+o.seed_elements(lon, lat, radius=.15, number=2000,
                 time=double_gyre.initial_time)
+
 o.disable_vertical_motion()
 o.run(duration=plot_time, time_step=time_step,
       time_step_output=time_step_output)
@@ -68,7 +68,7 @@ plt.quiver(lcs['eigvec'][0,:,:,0,0], lcs['eigvec'][0,:,:,0,1])
 fig.add_subplot(212)
 plt.pcolormesh(np.log(np.sqrt(lcs['eigval'][0,:,:,1])), cmap='cividis'),plt.colorbar()
 plt.quiver(lcs['eigvec'][0,:,:,0,0], lcs['eigvec'][0,:,:,0,1])
-
+plt.title('Eigenvalues and Eigenvectors of Cauchy-Green Strain tensor')
 #o.animation(buffer=0, lcs=ftle, hide_landmask=True)
 
 #%%
