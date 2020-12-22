@@ -3,7 +3,7 @@
 Convolve input
 ==============
 
-Decreasing the spatial resolution of fields from a reader by convolution. 
+Decreasing the spatial resolution of fields from a reader by convolution.
 This may improve accuracy, see: https://doi.org/10.1016/j.rse.2019.01.001
 """
 
@@ -32,7 +32,7 @@ original_current = reader_norkyst.var_block_after[list(reader_norkyst.var_block_
 # effectively lowering the spatial resolution.
 # <reader>.convolve may also be given as an array (kernel) directly
 N = 10  # Convolusion kernel size
-reader_norkyst.convolve = N  # Using convolution kernel for second run
+reader_norkyst.set_convolution_kernel(N)  # Using convolution kernel for second run
 o2 = OceanDrift(loglevel=20)
 o2.add_reader([reader_norkyst])
 o2.seed_elements(lon, lat, radius=1000, number=1000, time=time)

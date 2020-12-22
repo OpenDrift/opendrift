@@ -12,16 +12,16 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright 2019, Gaute Hope, MET Norway
+# Copyright 2020, Gaute Hope, MET Norway
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 from opendrift_landmask_data import Landmask
 
 import warnings
 import pyproj
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     """
     The global landmask reader is based on the coastline data from
     GSHHG (https://www.ngdc.noaa.gov/mgg/shorelines/) optimized for
@@ -48,7 +48,6 @@ class Reader(BaseReader):
         :type skippoly: bool, optional, default False.
     """
     name = 'global_landmask'
-    return_block = False
     variables = ['land_binary_mask']
     proj4 = None
     crs   = None
@@ -93,7 +92,7 @@ class Reader(BaseReader):
         return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)
 
     def get_variables(self, requestedVariables, time = None,
-                      x = None, y = None, z = None, block = False):
+                      x = None, y = None, z = None):
         """
         Get binary mask of whether elements are on land or not.
 

@@ -25,9 +25,9 @@ o.seed_elements(lon=4.65, lat=60, number=10000,
 
 if True:
     o.add_reader([reader_oscx, reader_oscy])
-    o.fallback_values['y_wind'] = -6
-    o.fallback_values['x_wind'] = -3
-    o.fallback_values['sea_floor_depth_below_sea_level'] = 30  # 100m depth
+    o.set_config('environment:fallback:y_wind', -6)
+    o.set_config('environment:fallback:x_wind', -3)
+    o.set_config('environment:fallback:sea_floor_depth_below_sea_level', 30)  # 100m depth
 else:  # Using live data from Thredds instead of oscillating currents
     o.add_readers_from_list([
         'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])

@@ -31,8 +31,8 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_oscillating
 from opendrift.models.oceandrift import OceanDrift
-from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
+from opendrift.models.leeway import Leeway
 from opendrift.models.pelagicegg import PelagicEggDrift
 from opendrift.models.plastdrift import PlastDrift
 
@@ -52,9 +52,7 @@ def gdal_error_handler(err_class, err_num, err_msg):
     print('Error Message: %s' % (err_msg))
 
 try:
-    import ogr
-    import osr
-    import gdal
+    from osgeo import ogr, osr, gdal
     version_num = int(gdal.VersionInfo('VERSION_NUM'))
     if version_num >= 2000000:
         has_ogr = True
@@ -73,7 +71,6 @@ class TestRun(unittest.TestCase):
     def make_OceanDrift_object(self):
         self.o = OceanDrift(loglevel=30)
         self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
-        self.o.use_block = False
         self.reader_landmask = reader_global_landmask.Reader(
             extent = [-1.5, 59, 7, 64])
         self.o.add_reader([self.fake_eddy, self.reader_landmask])
@@ -110,8 +107,8 @@ class TestRun(unittest.TestCase):
         landmask = reader_global_landmask.Reader(
             extent=[4, 6, 60, 64])
         o.add_reader([landmask, norkyst])
-        o.fallback_values['x_wind'] = 0
-        o.fallback_values['y_wind'] = 0
+        o.set_config('environment:fallback:x_wind', 0)
+        o.set_config('environment:fallback:y_wind', 0)
         o.set_config('seed:oil_type', 'SNORRE B 2004')
         o.seed_elements(5, 63, number=5,
                         time=norkyst.start_time - 24*timedelta(hours=24))
@@ -123,17 +120,54 @@ class TestRun(unittest.TestCase):
 
     def test_invalid_config(self):
         o = OceanDrift(loglevel=20)
-        with self.assertRaises(ValueError):
-            o.set_config('seed:number_of_elements', 0)
-        o.set_config('seed:number_of_elements', 100)
-        self.assertEqual(o.get_config('seed:number_of_elements'), 100)
+        with self.assertRaises(ValueError):  # outside min-max
+            o.set_config('seed:number', 0)
+        with self.assertRaises(ValueError):  # not in list/enum
+            o.set_config('vertical_mixing:diffusivitymodel', 'not_in_list')
+        o.set_config('seed:number', 100)
+        self.assertEqual(o.get_config('seed:number'), 100)
+
+    def test_config_suggestion(self):
+        o = Leeway(loglevel=20)
+        try:
+            o.set_config('seed:object_type', 'person')
+        except Exception as e:
+            self.assertTrue('Did you mean' in str(e))
+
+    def test_config_seed(self):
+        #o = Leeway(loglevel=20)
+        o = OceanDrift(loglevel=20)
+        o.list_configspec()
+
+    def test_config_constant_fallback(self):
+        o = OceanDrift(loglevel=0)
+        reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        print(reader_norkyst, reader_arome)
+        o.add_reader([reader_norkyst, reader_arome])
+        o.seed_elements(lon=4, lat=60, time=reader_arome.end_time -
+                        timedelta(hours=3), number=1)
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_sea_water_velocity', 1)
+        o.set_config('environment:fallback:y_sea_water_velocity', 0)
+        o.set_config('environment:constant:x_wind', 0)
+        o.set_config('environment:constant:y_wind', 5)
+        o.run(duration=timedelta(hours=6))
+        y_wind = np.array(o.get_property('y_wind')[0][:,0])
+        x_current = np.array(o.get_property('x_sea_water_velocity')[0][:,0])
+        # Check that constant wind is used for whole simulation
+        self.assertAlmostEqual(y_wind[0], 5, 2)
+        self.assertAlmostEqual(y_wind[-1], 5, 2)
+        # Check that fallback current is used only after end of reader
+        self.assertAlmostEqual(x_current[0], 0.166, 2)
+        self.assertAlmostEqual(x_current[-1], 1, 2)
 
     def test_runge_kutta(self):
         number = 50
         # With Euler
         o = OceanDrift(loglevel=30, seed=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.add_reader([norkyst])
         z=-40*np.random.rand(number)
         o.seed_elements(5, 62.5, number=number, radius=5000, z=z,
@@ -142,7 +176,7 @@ class TestRun(unittest.TestCase):
         # With Runge-Kutta
         o2 = OceanDrift(loglevel=30, seed=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        o2.fallback_values['land_binary_mask'] = 0
+        o2.set_config('environment:fallback:land_binary_mask', 0)
         o2.add_reader([norkyst])
         z=-40*np.random.rand(number)
         o2.seed_elements(5, 62.5, number=number, radius=5000, z=z,
@@ -152,7 +186,7 @@ class TestRun(unittest.TestCase):
         # And finally repeating the initial run to check that indetical
         o3 = OceanDrift(loglevel=30, seed=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        o3.fallback_values['land_binary_mask'] = 0
+        o3.set_config('environment:fallback:land_binary_mask', 0)
         o3.add_reader([norkyst])
         z=-40*np.random.rand(number)
         o3.seed_elements(5, 62.5, number=number, radius=5000, z=z,
@@ -198,7 +232,8 @@ class TestRun(unittest.TestCase):
     def test_seed_wkt(self):
         wkt = 'MULTIPOLYGON(((7.784889 64.353442,7.777561 64.353842,7.774236 64.354707,7.770215 64.355829,7.774269 64.356015,7.776829 64.356863,7.779107 64.3578,7.782827 64.358355,7.786346 64.359615,7.787109 64.361975,7.790125 64.361132,7.794584 64.359908,7.798455 64.359624,7.797258 64.358193,7.79978 64.356904,7.795957 64.356494,7.792955 64.355335,7.789134 64.355339,7.784889 64.353442)))'
         o = OceanDrift(loglevel=20)
-        o.seed_from_wkt(wkt, time=datetime.now(), number=100)
+        o.set_config('seed:number', 100)
+        o.seed_from_wkt(wkt, time=datetime.now())
         wkt_multi = 'MULTIPOLYGON(((2.458058 59.178919,2.456276 59.179283,2.454867 59.180692,2.45277 59.182852,2.452521 59.183759,2.452675 59.184726,2.451365 59.18534,2.451436 59.186609,2.450835 59.188138,2.449576 59.189435,2.447393 59.190818,2.447211 59.191915,2.446273 59.193573,2.445551 59.19423,2.446597 59.195015,2.44838 59.194651,2.450277 59.193,2.452377 59.191919,2.453315 59.19026,2.45457 59.187885,2.455473 59.186131,2.457033 59.18461,2.458774 59.181992,2.458971 59.180403,2.459775 59.179444,2.459606 59.178969,2.458058 59.178919)),((2.442682 59.197444,2.440531 59.198922,2.439575 59.199994,2.440874 59.200951,2.439596 59.20166,2.436232 59.202958,2.433255 59.203728,2.42982 59.203756,2.428 59.202946,2.425857 59.200693,2.42454 59.199149,2.422418 59.198563,2.419404 59.198158,2.417332 59.197175,2.41514 59.19532,2.412395 59.194596,2.410072 59.194519,2.409481 59.193397,2.408199 59.191947,2.405959 59.190489,2.403129 59.188988,2.401292 59.18759,2.398331 59.187867,2.395639 59.187825,2.393585 59.187428,2.389665 59.187697,2.38736 59.188208,2.386923 59.189132,2.390625 59.188785,2.392191 59.189424,2.395825 59.188887,2.398602 59.188627,2.402104 59.189869,2.403773 59.191871,2.407276 59.193113,2.407648 59.194158,2.407751 59.195522,2.410008 59.196488,2.411979 59.197187,2.41439 59.19912,2.415839 59.199965,2.417946 59.201043,2.417796 59.202235,2.414886 59.203195,2.411923 59.203473,2.40923 59.203431,2.409753 59.204363,2.412549 59.20469,2.415342 59.203937,2.41891 59.20321,2.420325 59.203961,2.420463 59.20542,2.419357 59.207683,2.4218 59.208631,2.420303 59.209262,2.418925 59.210766,2.421401 59.21073,2.424984 59.20951,2.425201 59.208508,2.425939 59.207359,2.428832 59.205812,2.431004 59.206001,2.433124 59.205507,2.436926 59.204365,2.439568 59.203724,2.441518 59.202755,2.442879 59.201744,2.443246 59.20063,2.443311 59.199741,2.444589 59.199032,2.445428 59.198168,2.445088 59.197218,2.442682 59.197444)))'
         o.seed_from_wkt(wkt_multi, time=datetime.now(), number=200)
         self.assertEqual(len(o.elements_scheduled), 300)
@@ -244,7 +279,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self.o.num_elements_deactivated(), 0)
         self.assertEqual(self.o.num_elements_total(), 9)
         # Run simulation
-        self.o.run(steps=30, outfile='unittest.nc')
+        self.o.run(steps=30)
         # Check that 1 element is deactivated (stranded),
         # 1 yet not seeded and 4 active
         self.assertEqual(self.o.num_elements_scheduled(), 4)
@@ -255,8 +290,8 @@ class TestRun(unittest.TestCase):
 
     def test_temporal_seed(self):
         self.o = OceanDrift(loglevel=20)
-        self.o.fallback_values['x_sea_water_velocity'] = 1
-        self.o.fallback_values['land_binary_mask'] = 0
+        self.o.set_config('environment:fallback:x_sea_water_velocity', 1)
+        self.o.set_config('environment:fallback:land_binary_mask', 0)
         # Seed elements on a grid at regular time interval
         start_time = datetime(2016,9,16)
         time_step = timedelta(hours=6)
@@ -283,8 +318,8 @@ class TestRun(unittest.TestCase):
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
           '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o1.add_reader([norkyst])
-        o1.fallback_values['x_wind'] = 8
-        o1.fallback_values['land_binary_mask'] = 0
+        o1.set_config('environment:fallback:x_wind', 8)
+        o1.set_config('environment:fallback:land_binary_mask', 0)
         o1.seed_elements(4.1, 63.3, radius=1000, number=100,
                          time=norkyst.start_time)
         o1.set_config('vertical_mixing:timestep', 20.) # seconds
@@ -302,15 +337,20 @@ class TestRun(unittest.TestCase):
                 {'vt': 0, 'K': 0, 'K_below': .01, 'T': 60, # No mixing
                     'zmin': -10, 'zmax': -10, 'zmean': -10},
                 {'vt': -.005, 'K': 0, 'K_below': .01, 'T': 60, # Sinking
-                    'zmin': -74.0, 'zmax': -21.4, 'zmean': -50.2},
+                    #'zmin': -74.0, 'zmax': -21.4, 'zmean': -50.2},  # With old seed_elements
+                    'zmin': -74.79, 'zmax': -21.6, 'zmean': -49.97},
                 {'vt': 0, 'K': .01, 'K_below': .01, 'T': 60, # Mixing
-                    'zmin': -39.8, 'zmax': -0.1, 'zmean': -14.5},
+                    #'zmin': -39.8, 'zmax': -0.1, 'zmean': -14.5},
+                    'zmin': -42.76, 'zmax': -0.02, 'zmean': -14.38},
                 {'vt': .005, 'K': .01, 'K_below': .01, 'T': 60, # Mixing and rising
-                    'zmin': -8.1, 'zmax': -0.01, 'zmean': -2.1},
+                    #'zmin': -8.1, 'zmax': -0.01, 'zmean': -2.1},
+                    'zmin': -7.86, 'zmax': -0.01, 'zmean': -2.1},
                 {'vt': -0.005, 'K': .01, 'K_below': .01, 'T': 60, # Mixing and sinking
-                    'zmin': -75.8, 'zmax': -20.7, 'zmean': -48.1},
+                    #'zmin': -75.8, 'zmax': -20.7, 'zmean': -48.1},
+                    'zmin': -78.76, 'zmax': -19.74, 'zmean': -48.0},
                 {'vt': 0, 'K': .02, 'K_below': .001, 'T': 60,  # Mixing in mixed layer
-                    'zmin': -22.8, 'zmax': -0.1, 'zmean': -9.8},
+                    #'zmin': -22.8, 'zmax': -0.1, 'zmean': -9.8},
+                    'zmin': -21.3, 'zmax': -0.1, 'zmean': -9.55},
                 ]
 
         N=100
@@ -328,12 +368,13 @@ class TestRun(unittest.TestCase):
             o.time = time
             o.time_step = timedelta(hours=2)
             o.release_elements()
-            o.fallback_values['land_binary_mask'] = 0
+            o.set_config('environment:fallback:land_binary_mask', 0)
             o.environment = np.array(np.ones(N)*100,
                             dtype=[('sea_floor_depth_below_sea_level',
                                     np.float32)]).view(np.recarray)
             o.environment_profiles = { 'z': z, 'ocean_vertical_diffusivity':
                                       np.tile(diffusivity, (N, 1)).T}
+            o.set_fallback_values()
             o.vertical_mixing()
             self.assertAlmostEqual(o.elements.z.min(), case['zmin'], 1)
             self.assertAlmostEqual(o.elements.z.max(), case['zmax'], 1)
@@ -345,14 +386,14 @@ class TestRun(unittest.TestCase):
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         o1.add_reader(norkyst)
-        o1.fallback_values['land_binary_mask'] = 0
+        o1.set_config('environment:fallback:land_binary_mask', 0)
         o1.seed_elements(4.25, 60.2, radius=1000, number=10,
                         time=norkyst.start_time)
         o1.run(steps=40)
         # Export to file during simulation
         o2 = OceanDrift(loglevel=20)
         o2.add_reader(norkyst)
-        o2.fallback_values['land_binary_mask'] = 0
+        o2.set_config('environment:fallback:land_binary_mask', 0)
         o2.seed_elements(4.25, 60.2, radius=1000, number=10,
                         time=norkyst.start_time)
         o2.run(steps=40, export_buffer_length=6,
@@ -363,14 +404,14 @@ class TestRun(unittest.TestCase):
         # Finally check when steps is multiple of export_buffer_length
         o3 = OceanDrift(loglevel=20)
         o3.add_reader(norkyst)
-        o3.fallback_values['land_binary_mask'] = 0
+        o3.set_config('environment:fallback:land_binary_mask', 0)
         o3.seed_elements(4.25, 60.2, radius=1000, number=10,
                         time=norkyst.start_time)
         o3.run(steps=42)
         # Export to file during simulation
         o4 = OceanDrift(loglevel=20)
         o4.add_reader(norkyst)
-        o4.fallback_values['land_binary_mask'] = 0
+        o4.set_config('environment:fallback:land_binary_mask', 0)
         o4.seed_elements(4.25, 60.2, radius=1000, number=10,
                         time=norkyst.start_time)
         o4.run(steps=42, export_buffer_length=6,
@@ -387,7 +428,7 @@ class TestRun(unittest.TestCase):
         landmask = reader_global_landmask.Reader(
             extent=[4.5, 6.0, 60.1, 60.4])
         o1.add_reader([landmask])
-        o1.fallback_values['x_sea_water_velocity'] = 0.8  # onshore drift
+        o1.set_config('environment:fallback:x_sea_water_velocity', 0.8)  # onshore drift
         o1.seed_elements(4.8, 60.2, radius=5000, number=100,
                         time=norkyst.start_time)
         o1.run(steps=100,
@@ -397,7 +438,7 @@ class TestRun(unittest.TestCase):
         # Without buffer
         o2 = OceanDrift(loglevel=30)
         o2.add_reader([landmask])
-        o2.fallback_values['x_sea_water_velocity'] = 0.8  # onshore drift
+        o2.set_config('environment:fallback:x_sea_water_velocity', 0.8)  # onshore drift
         o2.seed_elements(4.8, 60.2, radius=5000, number=100,
                         time=norkyst.start_time)
         o2.run(steps=100,
@@ -473,27 +514,27 @@ class TestRun(unittest.TestCase):
     def test_time_step_config(self):
         # Default
         o = OceanDrift(loglevel=50)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=4, lat=60, time=datetime.now())
         o.run(steps=2)
         self.assertEqual(o.time_step.total_seconds(), 3600)
         self.assertEqual(o.time_step_output.total_seconds(), 3600)
         # Setting time_step
         o = OceanDrift(loglevel=50)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=4, lat=60, time=datetime.now())
         o.run(steps=2, time_step=1800)
         self.assertEqual(o.time_step.total_seconds(), 1800)
         # Setting time_step and time_step_output
         o = OceanDrift(loglevel=50)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=4, lat=60, time=datetime.now())
         o.run(steps=2, time_step=1800, time_step_output=3600)
         self.assertEqual(o.time_step.total_seconds(), 1800)
         self.assertEqual(o.time_step_output.total_seconds(), 3600)
         # time_step from config
         o = OceanDrift(loglevel=50)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=4, lat=60, time=datetime.now())
         o.set_config('general:time_step_minutes', 15)
         o.run(steps=2)
@@ -501,7 +542,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.time_step_output.total_seconds(), 900)
         # time_step and time_step_output from config
         o = OceanDrift(loglevel=50)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=4, lat=60, time=datetime.now())
         o.set_config('general:time_step_minutes', 15)
         o.set_config('general:time_step_output_minutes', 120)
@@ -519,7 +560,7 @@ class TestRun(unittest.TestCase):
         lon = [12.0, 12.0]
         lat = [70.0, 70.5]
         o.add_reader(nordic3d)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon, lat, number=2, radius=0,
                         time=nordic3d.start_time)
         o.run(steps=2, time_step=3600)
@@ -528,9 +569,9 @@ class TestRun(unittest.TestCase):
         # Check that the outside element is deactivated,
         # if no fallback value exists
         o = OceanDrift()
-        del o.fallback_values['x_sea_water_velocity']
+        o.set_config('environment:fallback:x_sea_water_velocity', None)
         o.add_reader(nordic3d)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon, lat, number=2, radius=0,
                         time=nordic3d.start_time)
         o.run(steps=2, time_step=3600)
@@ -577,11 +618,11 @@ class TestRun(unittest.TestCase):
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         # Adding reader as lazy, to test seafloor seeding
         o.add_readers_from_list([o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc'])
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['x_wind'] = 0
-        o.fallback_values['y_wind'] = 0
-        #o.fallback_values['x_sea_water_velocity'] = 0
-        #o.fallback_values['y_sea_water_velocity'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 0)
+        o.set_config('environment:fallback:y_wind', 0)
+        #o.set_config('environment:fallback:x_sea_water_velocity', 0)
+        #o.set_config('environment:fallback:y_sea_water_velocity', 0)
         lon = 4.5; lat = 62.0
         o.set_config('seed:droplet_diameter_min_subsea', 0.0010)  # s
         o.set_config('seed:droplet_diameter_max_subsea', 0.0010)  # s
@@ -599,11 +640,11 @@ class TestRun(unittest.TestCase):
     def test_seed_above_seafloor(self):
         o = OpenOil(loglevel=30)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['x_wind'] = 0
-        o.fallback_values['y_wind'] = 0
-        o.fallback_values['x_sea_water_velocity'] = 0
-        o.fallback_values['y_sea_water_velocity'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 0)
+        o.set_config('environment:fallback:y_wind', 0)
+        o.set_config('environment:fallback:x_sea_water_velocity', 0)
+        o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.add_reader([reader_norkyst])
         lon = 4.5; lat = 62.0
         o.set_config('seed:droplet_diameter_min_subsea', 0.0010)  # s
@@ -623,9 +664,9 @@ class TestRun(unittest.TestCase):
     def test_seed_below_reader_coverage(self):
         o = OpenOil(loglevel=20)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['x_wind'] = 0
-        o.fallback_values['y_wind'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 0)
+        o.set_config('environment:fallback:y_wind', 0)
         o.add_reader([reader_norkyst])
         lon = 5.0; lat = 64.0
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
@@ -644,11 +685,11 @@ class TestRun(unittest.TestCase):
         o = OpenOil(loglevel=20)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader([reader_norkyst])
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['x_wind'] = 0
-        o.fallback_values['y_wind'] = 0
-        o.fallback_values['x_sea_water_velocity'] = 0
-        o.fallback_values['y_sea_water_velocity'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 0)
+        o.set_config('environment:fallback:y_wind', 0)
+        o.set_config('environment:fallback:x_sea_water_velocity', 0)
+        o.set_config('environment:fallback:y_sea_water_velocity', 0)
         lon = 4.5; lat = 62.0
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.001)
@@ -666,11 +707,11 @@ class TestRun(unittest.TestCase):
         o = OpenOil(loglevel=50)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader([reader_norkyst])
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['x_wind'] = 0
-        o.fallback_values['y_wind'] = 0
-        o.fallback_values['x_sea_water_velocity'] = 0
-        o.fallback_values['y_sea_water_velocity'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 0)
+        o.set_config('environment:fallback:y_wind', 0)
+        o.set_config('environment:fallback:x_sea_water_velocity', 0)
+        o.set_config('environment:fallback:y_sea_water_velocity', 0)
         lon = 4.5; lat = 62.0
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.001)
@@ -691,18 +732,18 @@ class TestRun(unittest.TestCase):
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
-        o = OceanDrift(loglevel=30, proj4='+proj=merc')
+        o = OceanDrift(loglevel=50, proj4='+proj=merc')
         o.max_speed = 100
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         reader_norkyst.buffer = 200
         o.add_reader([reader_norkyst],
                      variables='sea_floor_depth_below_sea_level')
-        o.fallback_values['x_sea_water_velocity'] = 100 # Pure eastward motion
-        o.fallback_values['y_sea_water_velocity'] = 0
-        o.fallback_values['land_binary_mask'] = 0
-        o.seed_elements(3.0, 62.0, z=-200, time=reader_norkyst.start_time)
+        o.set_config('environment:fallback:x_sea_water_velocity', 10) # Pure eastward motion
+        o.set_config('environment:fallback:y_sea_water_velocity', 0)
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.seed_elements(3.9, 62.0, z=-200, time=reader_norkyst.start_time)
         o.set_config('drift:vertical_mixing', False)
-        o.run(steps=26, time_step=30)
+        o.run(steps=12, time_step=300)
         seafloor_depth, status = o.get_property('sea_floor_depth_below_sea_level')
         z, status = o.get_property('z')
 
@@ -717,10 +758,10 @@ class TestRun(unittest.TestCase):
         self.assertFalse(o.elements.z <
                          -o.environment.sea_floor_depth_below_sea_level)
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.z, -160.06, 1))
+            o.elements.z, -138.5, 1))
 
     def test_seed_on_land(self):
-        o = OceanDrift(loglevel=0)
+        o = OceanDrift(loglevel=50)
         o.seed_elements(lon=9, lat=60, time=datetime.now(), number=100)
         outfile='out.nc'
         with self.assertRaises(ValueError):
@@ -733,9 +774,9 @@ class TestRun(unittest.TestCase):
     def test_retirement(self):
         o = OceanDrift(loglevel=0)
         o.set_config('drift:max_age_seconds', 5000)
-        o.fallback_values['x_sea_water_velocity'] = .5
-        o.fallback_values['y_sea_water_velocity'] = .3
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:x_sea_water_velocity', .5)
+        o.set_config('environment:fallback:y_sea_water_velocity', .3)
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=0, lat=60, number=10,
                         time=[datetime.now(),
                               datetime.now() + timedelta(seconds=6000)])
@@ -756,7 +797,7 @@ class TestRun(unittest.TestCase):
         o.set_config('drift:deactivate_west_of', 1.9)
         o.set_config('drift:deactivate_south_of', 59.9)
         o.set_config('drift:deactivate_north_of', 60.1)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=2, lat=60, number=1000,
                         time=datetime.now(), radius=10000)
         o.run(duration=timedelta(hours=5))
@@ -766,9 +807,9 @@ class TestRun(unittest.TestCase):
     def test_seed_time_backwards_run(self):
         o = OceanDrift(loglevel=20)
         o.set_config('drift:max_age_seconds', 2000)
-        o.fallback_values['x_sea_water_velocity'] = .5
-        o.fallback_values['y_sea_water_velocity'] = .3
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:x_sea_water_velocity', .5)
+        o.set_config('environment:fallback:y_sea_water_velocity', .3)
+        o.set_config('environment:fallback:land_binary_mask', 0)
         time = [datetime(2018,1,1,i) for i in range(10)]
         o.seed_elements(lon=0, lat=60, time=time)
         o.seed_elements(lon=1, lat=60, time=datetime(2018,1,1,7))
@@ -782,10 +823,10 @@ class TestRun(unittest.TestCase):
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader(norkyst)
         o.set_config('processes:evaporation', False)
-        o.fallback_values['x_wind'] = 25
-        o.fallback_values['y_wind'] = 0
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['ocean_vertical_diffusivity'] = 0.9
+        o.set_config('environment:fallback:x_wind', 25)
+        o.set_config('environment:fallback:y_wind', 0)
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:ocean_vertical_diffusivity', 0.9)
         o.seed_elements(lon=5.38, lat=62.77, time=norkyst.start_time,
                         number=100, radius=5000)
         o.run(end_time=norkyst.end_time)
@@ -801,8 +842,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon=4.75, lat=60, number=10,
                         time=[time, time + timedelta(hours=6)],
                         origin_marker=8)
-        o.fallback_values['land_binary_mask'] = 0
-        o.fallback_values['y_sea_water_velocity'] = 1
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:y_sea_water_velocity', 1)
         o.run(duration=timedelta(hours=3))
         self.assertEqual(o.history.shape[0], 10)
         self.assertEqual(o.history.shape[1], 4)
@@ -818,7 +859,7 @@ class TestRun(unittest.TestCase):
         # seed two elements at 6 hour interval
         o.seed_elements(number=2, lon=4, lat=62,
             time=[norkyst.start_time, norkyst.start_time+timedelta(hours=6)])
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         o.run(duration=timedelta(hours=8), outfile='test.nc')
         os.remove('test.nc')
         # Check that simulations has run until scheduled end
@@ -827,8 +868,8 @@ class TestRun(unittest.TestCase):
 @pytest.mark.slow
 def test_plot_animation(tmpdir):
     o = OceanDrift(loglevel=0)
-    o.fallback_values['x_sea_water_velocity'] = .5
-    o.fallback_values['y_sea_water_velocity'] = .3
+    o.set_config('environment:fallback:x_sea_water_velocity', .5)
+    o.set_config('environment:fallback:y_sea_water_velocity', .3)
     o.seed_elements(lon=3, lat=60, radius=1000,
                     time=datetime.now(), number=100)
     o.run(steps=5)

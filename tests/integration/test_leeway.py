@@ -45,21 +45,21 @@ def test_leeway_config_object():
 
 def test_leewayrun(tmpdir):
     """Test the expected Leeway left/right split."""
-    lee = Leeway(loglevel=30)
+    lee = Leeway()
     objectType = 50  # FISHING-VESSEL-1
     reader_landmask = reader_global_landmask.Reader(extent=[ 3, 59.8, 6, 60.5 ])
     lee.add_reader([reader_landmask])
     lee.seed_elements(lon=4.5, lat=60, number=100,
                             objectType=objectType,
                             time=datetime(2015, 1, 1))
-    lee.fallback_values['x_wind'] = 0
-    lee.fallback_values['y_wind'] = 10
-    lee.fallback_values['x_sea_water_velocity'] = 0
-    lee.fallback_values['y_sea_water_velocity'] = 0
+    lee.set_config('environment:fallback:x_wind', 0)
+    lee.set_config('environment:fallback:y_wind', 10)
+    lee.set_config('environment:fallback:x_sea_water_velocity', 0)
+    lee.set_config('environment:fallback:y_sea_water_velocity', 0)
     # Check that 7 out of 100 elements strand towards coast
     lee.run(steps=24, time_step=3600)
     assert lee.num_elements_scheduled() == 0
-    assert lee.num_elements_active() == 96
-    assert lee.num_elements_deactivated() == 4  # stranded
+    assert lee.num_elements_active() == 92
+    assert lee.num_elements_deactivated() == 8  # stranded
     lee.export_ascii(tmpdir + '/leeway_ascii.txt')
 

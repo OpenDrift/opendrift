@@ -248,8 +248,7 @@ def cg_eigenvectors(X, Y, delta, duration):
     return lamba, xi
 
 
-
-class PhysicsMethods(object):
+class PhysicsMethods:
     """Physics methods to be inherited by OpenDriftSimulation class"""
 
     @staticmethod

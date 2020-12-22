@@ -17,7 +17,7 @@
 from collections import OrderedDict
 import numpy as np
 
-class LagrangianArray(object):
+class LagrangianArray:
     """A generic array-like class for Lagrangian particle tracking.
 
     A LagrangianArray is a generic class keeping the values of given
@@ -50,26 +50,33 @@ class LagrangianArray(object):
 
     variables = OrderedDict([
         ('ID', {'dtype': np.int32,  # Unique numerical identifier
+                'seed': False,
                 'default': -1}),  # ID to be assigned by application
         ('status', {'dtype': np.int32,  # Status categories
+                    'seed': False,
                     'default': 0}),
         ('moving', {'dtype': np.int32,  # Set to 0 for elements which are frosen
+                    'seed': False,
                     'default': 1}),
         ('age_seconds', {'dtype': np.float32,
                          'units': 's',
+                         'seed': False,
                          'default': 0}),
         ('origin_marker', {'dtype': np.int16,
                            'unit': '',
+            'description': 'An integer kept constant during the simulation. Different values may be used for different seedings, to separate elements during analysis. With GUI, only a single seeding is possible.',
                            'default': 0}),
         ('lon', {'dtype': np.float32,
                  'units': 'degrees_east',
                  'standard_name': 'longitude',
                  'long_name': 'longitude',
+                 'seed': False,
                  'axis': 'X'}),
         ('lat', {'dtype': np.float32,
                  'units': 'degrees_north',
                  'standard_name': 'latitude',
                  'long_name': 'latitude',
+                 'seed': False,
                  'axis': 'Y'}),
         ('z', {'dtype': np.float32,
                    'units': 'm',

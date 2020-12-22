@@ -11,9 +11,9 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
 # Adding no input models, but instead constant northwards current of 1 m/s
-o.fallback_values['x_sea_water_velocity'] = 0
-o.fallback_values['y_sea_water_velocity'] = 1
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:x_sea_water_velocity', 0)
+o.set_config('environment:fallback:y_sea_water_velocity', 1)
+o.set_config('environment:fallback:land_binary_mask', 0)
 
 #%%
 # Seed elements at defined position and time

@@ -149,10 +149,10 @@ def versions():
 def import_from_ladim(ladimfile, romsfile):
     """Import Ladim output file as OpenDrift simulation obejct"""
 
-    from models.oceandrift3D import OceanDrift3D
-    o = OceanDrift3D()
+    from models.oceandrift import OceanDrift
+    o = OceanDrift()
     from netCDF4 import Dataset, date2num, num2date
-    if isinstance(romsfile, basestring):
+    if isinstance(romsfile, str):
         from opendrift.readers import reader_ROMS_native
         romsfile = reader_ROMS_native.Reader(romsfile)
     l = Dataset(ladimfile, 'r')
@@ -210,14 +210,3 @@ def import_from_ladim(ladimfile, romsfile):
 
     return o
 
-# Add timer for unittest
-def setUp(self):
-    self._started_at = time.time()
-    logging.info('STARTING TEST: {}'.format(self.id()))
-
-def tearDown(self):
-    elapsed = time.time() - self._started_at
-    logging.info('TIMING: ({}s) {}'.format(round(elapsed, 2), self.id()))
-
-unittest.TestCase.setUp = setUp
-unittest.TestCase.tearDown = tearDown

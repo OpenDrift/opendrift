@@ -26,8 +26,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
 lw.add_reader(reader_norkyst,
               variables=['x_sea_water_velocity', 'y_sea_water_velocity'])
 lw.add_reader(reader_arome, variables=['x_wind', 'y_wind'])
-lw.fallback_values['x_sea_water_velocity'] = 0
-lw.fallback_values['y_sea_water_velocity'] = 0
+lw.set_config('environment:fallback:x_sea_water_velocity', 0)
+lw.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 #%%
 # Seed leeway elements at defined position and time

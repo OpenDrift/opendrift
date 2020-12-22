@@ -34,11 +34,17 @@ o.seed_elements(lon=5.05, lat=59.95, radius=1500, number=100,
 
 #%%
 # Running model
-o.run(steps=4*8, time_step=900, time_step_output=3600, outfile= 'openoil_sample_output.nc')
+ncfile = 'openoil_sample_output.nc'
+o.run(steps=4*8, time_step=900, time_step_output=3600, outfile=ncfile)
 
 #%%
 # Print and plot results
 o.plot_oil_budget()
 o.plot()
 
-os.system('ncdump -h openoil_sample_output.nc')
+#%%
+# ncdump of the output file
+from subprocess import check_output
+args = [ "ncdump", "-h", ncfile ]
+ncdump = check_output(args).decode().strip()
+print(ncdump)

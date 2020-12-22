@@ -35,7 +35,7 @@ class TestXarray(unittest.TestCase):
         outfile = 'test_xarray.nc'
         analysis_file = 'test_xarray_analysis.nc'
         o = OceanDrift(loglevel=20)
-        o.fallback_values['land_binary_mask'] = 0
+        o.set_config('environment:fallback:land_binary_mask', 0)
         t1 = datetime.now()
         t2 = t1 + timedelta(hours=6)
         o.seed_elements(time=t1, lon=4, lat=60, number=100,
@@ -60,7 +60,7 @@ class TestXarray(unittest.TestCase):
         Hx = Hx[0]  # Presently only for origin_marker = 0
         self.assertAlmostEqual(lon_array[0], 3.94, 1)
         self.assertAlmostEqual(lon_array[-1], 4.76, 1)
-        self.assertAlmostEqual(lon_arrayx[0], 3.95, 1)
+        self.assertAlmostEqual(lon_arrayx[0], 3.90, 1)
         self.assertAlmostEqual(lon_arrayx[-1], 4.67, 1)
         self.assertEqual(Hx.shape, H.shape)
         Hsum = H.sum(axis=1).sum(axis=1)
