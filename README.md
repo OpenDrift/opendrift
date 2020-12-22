@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/OpenDrift/opendrift.svg?branch=master)](https://travis-ci.org/OpenDrift/opendrift)
+[![Build Status](https://circleci.com/gh/OpenDrift/opendrift.svg?style=svg)](https://app.circleci.com/pipelines/github/OpenDrift/opendrift)
 [![Coverage Status](https://coveralls.io/repos/github/OpenDrift/opendrift/badge.svg?branch=master)](https://coveralls.io/github/OpenDrift/opendrift?branch=master)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.582321.svg)](https://doi.org/10.5281/zenodo.582321)
 

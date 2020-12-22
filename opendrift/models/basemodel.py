@@ -20,6 +20,7 @@ import os
 import glob
 import types
 import traceback
+import inspect
 import logging; logging.captureWarnings(True)
 import warnings
 from datetime import datetime, timedelta
@@ -33,7 +34,6 @@ from netCDF4 import Dataset, date2num
 import numpy as np
 import scipy
 import pyproj
-import configobj, validate
 try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
@@ -54,17 +54,12 @@ except ImportError:
     print('matplotlib and/or cartopy is not available, can not make plots')
 
 import opendrift
-from opendrift.readers.basereader import BaseReader, vector_pairs_xy
+from opendrift.timer import Timeable
+from opendrift.readers.basereader import BaseReader, vector_pairs_xy, standard_names
 from opendrift.readers import reader_from_url
 from opendrift.models.physics_methods import PhysicsMethods
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
-
-class OpenDriftSimulation(PhysicsMethods):
+class OpenDriftSimulation(PhysicsMethods, Timeable):
     """Generic trajectory model class, to be extended (subclassed).
 
     This as an Abstract Base Class, meaning that only subclasses can
@@ -124,35 +119,11 @@ class OpenDriftSimulation(PhysicsMethods):
                              'active': 'blue',
                              'missing_data': 'gray'}
 
-    configspec_basemodel = '''
-            [general]
-                use_auto_landmask = boolean(default=True)
-                coastline_action = option('none', 'stranding', 'previous', default='stranding')
-                time_step_minutes = integer(min=1, max=1440, default=60)
-                time_step_output_minutes = integer(min=1, max=1440, default=None)
-            [seed]
-                ocean_only = boolean(default=True)
-                number_of_elements = integer(min=1, max=100000000, default=1)
-            [drift]
-                max_age_seconds = float(min=0, default=None)
-                scheme = option('euler', 'runge-kutta', 'runge-kutta4', default='euler')
-                stokes_drift = boolean(default=True)
-                current_uncertainty = float(min=0, max=5, default=0)
-                current_uncertainty_uniform = float(min=0, max=5, default=0)
-                horizontal_diffusivity = float(min=0, max=100, default=0)
-                wind_uncertainty = float(min=0, max=5, default=0)
-                relative_wind = boolean(default=False)
-                lift_to_seafloor = boolean(default=True)
-                truncate_ocean_model_below_m = float(min=0, max=10000, default=None)
-                deactivate_north_of = float(min=-90, max=90, default=None)
-                deactivate_south_of = float(min=-90, max=90, default=None)
-                deactivate_east_of = float(min=-360, max=360, default=None)
-                deactivate_west_of = float(min=-360, max=360, default=None)
-                use_tabularised_stokes_drift = boolean(default=False)
-                tabularised_stokes_drift_fetch = option(5000, 25000, 50000, default=25000)'''
+    CONFIG_LEVEL_ESSENTIAL=1
+    CONFIG_LEVEL_BASIC=2
+    CONFIG_LEVEL_ADVANCED=3
 
     max_speed = 1  # Assumed max average speed of any element
-    required_profiles = None  # Optional possibility to get vertical profiles
     required_profiles_z_range = None  # [min_depth, max_depth]
     plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
@@ -173,8 +144,8 @@ class OpenDriftSimulation(PhysicsMethods):
                 tests. With seed = None, different random numbers will be drawn
                 for subsequent runs, even with identical configuration/input.
             iomodule: name of module used to export data
-                default: netcdf, see folder 'io' for more alternatives.
-                'iomodule' is module/filename without preceeding 'io_'
+                default: netcdf, see :py:mod:`opendrift.io` for more alternatives.
+                `iomodule` is module/filename without preceeding `io_`
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
                 Use the string 'custom' to configure logging from outside.
@@ -183,21 +154,14 @@ class OpenDriftSimulation(PhysicsMethods):
                      (e.g. '%H:%M:%S')
         """
 
-        # Set default configuration
-        self._add_configstring(self.configspec_basemodel)
         self.show_continuous_performance = False
 
         # Dict to store readers
         self.readers = OrderedDict()  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
-        self.use_block = True  # Set to False if interpolation left to reader
-
-        if not hasattr(self, 'fallback_values'):
-            self.fallback_values = {}
 
         # Make copies of dictionaries so that they are private to each instance
         self.status_categories = ['active']  # Particles are active by default
-        self.fallback_values = self.fallback_values.copy()
         self.status_colors_default = self.status_colors_default.copy()
 
         if hasattr(self, 'status_colors'):
@@ -221,23 +185,30 @@ class OpenDriftSimulation(PhysicsMethods):
         self.elements = self.ElementType()  # Empty array
 
         if loglevel != 'custom':
-            if logfile is not None:
-                handler = logging.FileHandler(logfile, mode='w')
-            else:
-                handler = logging.StreamHandler()
-            format = '%(levelname)s: %(message)s'
+            format = '%(levelname)-7s %(name)s: %(message)s'
             datefmt = None
             if logtime is not False:
                 format = '%(asctime)s ' + format
                 if logtime is not True:
                     datefmt = logtime
             formatter = logging.Formatter(format, datefmt=datefmt)
-            handler.setFormatter(formatter)
+
             if loglevel < 10:  # 0 is NOTSET, giving no output
                 loglevel=10
-            self.logger.setLevel(loglevel)
-            self.logger.handlers = []
-            self.logger.addHandler(handler)
+
+            if logfile is not None:
+                handler = logging.FileHandler(logfile, mode='w')
+                handler.setFormatter(formatter)
+                self.logger.setLevel(loglevel)
+                self.logger.handlers = []
+                self.logger.addHandler(handler)
+            else:
+                import coloredlogs
+                fields = coloredlogs.DEFAULT_FIELD_STYLES
+                fields['levelname']['color'] = 'magenta'
+                coloredlogs.install(level = loglevel, logger = self.logger, fmt = format, datefmt = datefmt, field_styles = fields)
+                # handler = logging.StreamHandler()
+
             self.logger.propagate = False
 
         # Prepare outfile
@@ -253,188 +224,282 @@ class OpenDriftSimulation(PhysicsMethods):
         self.io_import_file = types.MethodType(io_module.import_file, self)
         self.io_import_file_xarray = types.MethodType(io_module.import_file_xarray, self)
 
+        # Set configuration options
+        self._add_config({
+            # type, default, min, max, enum, important, value, units, description
+            'general:use_auto_landmask': {'type': 'bool', 'default': True,
+                'description': 'A built-in GSHHG global landmask is used if True, '
+                 'otherwise landmask is taken from reader or fallback value.',
+                 'level': self.CONFIG_LEVEL_ADVANCED},
+            'general:coastline_action': {'type': 'enum', 'enum': ['none', 'stranding', 'previous'],
+                'default': 'stranding', 'level': self.CONFIG_LEVEL_BASIC,
+                 'description': 'None means that objects may also move over land. '
+                    'stranding means that objects are deactivated if they hit land. '
+                    'previous means that objects will move back to the previous location '
+                    'if they hit land'},
+            'general:time_step_minutes': {'type': 'float', 'min': .01, 'max': 1440, 'default': 60,
+                'units': 'minutes', 'level': self.CONFIG_LEVEL_BASIC, 'description':
+                'Calculation time step used for the simulation. The output time step may '
+                'be equal or larger than this.'},
+            'general:time_step_output_minutes': {'type': 'float', 'min': 1, 'max': 1440, 'default': None,
+                'units': 'minutes', 'level': self.CONFIG_LEVEL_BASIC, 'description':
+                'Output time step, i.e. the interval at which output is saved. This must be larger than '
+                'the calculation time step, and be an integer multiple of this.'},
+            'seed:ocean_only': {'type': 'bool', 'default': True,
+                'description': 'If True, elements seeded on land will be moved to the closest '
+                    'position in ocean', 'level': self.CONFIG_LEVEL_ADVANCED},
+            'seed:number': {'type': 'int', 'default': 1,
+                'min': 1, 'max': 100000000, 'units': 1,
+                'description': 'The number of elements for the simulation.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'drift:max_age_seconds': {'type': 'float', 'default': None,
+                'min': 0, 'max': np.inf, 'units': 'seconds',
+                'description': 'Elements will be deactivated when this age is reached',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:scheme': {'type': 'enum', 'enum': ['euler', 'runge-kutta', 'runge-kutta4'], 'default': 'euler',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                'Numerical advection scheme for ocean current advection'},
+            'drift:current_uncertainty': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 5, 'units': 'm/s',
+                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:current_uncertainty_uniform': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 5, 'units': 'm/s',
+                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:horizontal_diffusivity': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 100, 'units': 'm2/s',
+                'description': 'Add horizontal diffusivity (random walk)',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:wind_uncertainty': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 5, 'units': 'm/s',
+                'description': 'Add gaussian perturbation with this standard deviation to wind components at each time step.',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:relative_wind': {'type': 'bool', 'default': False,
+                'description': 'If True, wind drift is calculated for absolute wind (wind vector minus ocean surface current vector).',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:deactivate_north_of': {'type': 'float', 'default': None,
+                'min': -90, 'max': 90, 'units': 'degrees',
+                'description': 'Elements are deactivated if the move further north than this limit',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:deactivate_south_of': {'type': 'float', 'default': None,
+                'min': -90, 'max': 90, 'units': 'degrees',
+                'description': 'Elements are deactivated if the move further south than this limit',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:deactivate_east_of': {'type': 'float', 'default': None,
+                'min': -360, 'max': 360, 'units': 'degrees',
+                'description': 'Elements are deactivated if the move further east than this limit',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+            'drift:deactivate_west_of': {'type': 'float', 'default': None,
+                'min': -360, 'max': 360, 'units': 'degrees',
+                'description': 'Elements are deactivated if the move further west than this limit',
+                'level': self.CONFIG_LEVEL_ADVANCED},
+        })
+
+        # Add default element properties to config
+        c = {}
+        for p in self.ElementType.variables:
+            v = self.ElementType.variables[p]
+            if 'seed' in v and v['seed'] is False:
+                continue  # Properties which may not be provided by user
+            minval = v['min'] if 'min' in v else None
+            maxval = v['max'] if 'max' in v else None
+            units = v['units'] if 'units' in v else None
+            c['seed:%s' % p] = {
+                'type': v['type'] if 'type' in v else 'float',
+                'min': v['min'] if 'min' in v else None,
+                'max': v['max'] if 'max' in v else None,
+                'units': v['units'] if 'units' in v else None,
+                'default': v['default'] if 'default' in v else None,
+                'description': v['description'] if 'description' in v else 'Seeding value of %s' % p,
+                'level': v['level'] if 'level' in v else self.CONFIG_LEVEL_ADVANCED}
+        self._add_config(c)
+
+        # Add constant and fallback environment variables to config
+        c = {}
+        for v in self.required_variables:
+            minval = maxval = units = None
+            description_constant = 'Use constant value for %s' % v
+            description_fallback = 'Fallback value for %s if not available from any reader' % v
+            if v in standard_names:
+                if 'valid_min' in standard_names[v]:
+                    minval = standard_names[v]['valid_min']
+                if 'valid_max' in standard_names[v]:
+                    maxval = standard_names[v]['valid_max']
+                if 'long_name' in standard_names[v]:
+                    description_constant = description_fallback = standard_names[v]['long_name']
+                if 'units' in standard_names[v]:
+                    units = standard_names[v]['units']
+            c['environment:constant:%s' % v] = {'type': 'float',
+                'min': minval, 'max': maxval, 'units': units, 'default': None,
+                'level': OpenDriftSimulation.CONFIG_LEVEL_BASIC,
+                'description': description_constant}
+            c['environment:fallback:%s' % v] = {'type': 'float',
+                'min': minval, 'max': maxval, 'units': units, 'default':
+                 self.required_variables[v]['fallback'] if
+                    'fallback' in self.required_variables[v] else None,
+                'level': OpenDriftSimulation.CONFIG_LEVEL_BASIC,
+                'description': description_fallback}
+        self._add_config(c)
+
+        # Find variables which require profiles
+        self.required_profiles = [var for var in self.required_variables
+            if 'profiles' in self.required_variables[var] and
+            self.required_variables[var]['profiles'] is True]
+
+        # Find variables which are desired, but not required
+        self.desired_variables = [var for var in self.required_variables
+            if 'important' in self.required_variables[var] and
+            self.required_variables[var]['important'] is False]
+
         self.timer_start('total time')
         self.timer_start('configuration')
 
         self.add_metadata('opendrift_version', opendrift.__version__)
         self.logger.info('OpenDriftSimulation initialised (version %s)' %
-                     opendrift.__version__)
+                     opendrift.version.version_or_git())
 
-    def _add_config(self, key, value, comment, overwrite=False):
-        """Add a configuration item to the current model."""
-        if isinstance(value, list):
-            value = 'option(%s, default=\'%s\')' % (
-                     str(value)[1:-1], value[0])
-        cs = ''  # configstring
-        for i, s in enumerate(key.split(':')):
-            if i < len(key.split(':')) - 1:
-                cs += '\n' + '['*(i+1) + s + ']'*(i+1)
-            else:
-                cs += '\n\t' + s + ' = ' + value
-        newconf = configobj.ConfigObj(configspec=cs.split('\n'),
-                    encoding='utf8')
-        newconf.validate(validate.Validator())
-        if not hasattr(self, 'configobj'):
-            self.configobj = newconf
-        else:
-            self._merge_config(newconf, overwrite=True)
-
-    def _merge_config(self, newconf, overwrite=False):
-        if overwrite is True:
-            self.configobj.merge(newconf)
-            self.configobj.configspec.merge(newconf.configspec)
-        else:
-            newconf.configspec.merge(self.configobj.configspec)
-            self.configobj.configspec = newconf.configspec
-            newconf.merge(self.configobj)
-            self.configobj = newconf
-
-    def _add_configstring(self, configstring):
-        """Add several configuration items from string (INI-format)."""
-        newconf = configobj.ConfigObj(configspec=configstring.split('\n'),                      encoding='utf8')
-        newconf.validate(validate.Validator())
-        if not hasattr(self, 'configobj'):
-            self.configobj = newconf
-        else:
-            self.configobj.merge(newconf)
-            self.configobj.configspec.merge(newconf.configspec)
-
-    def set_config(self, key, value):
-        """Provide a value for a configuration setting"""
-        if key == 'general:use_basemap_landmask':
-            warnings.warn("use_basemap_landmask is deprecated in favor of use_auto_landmask", DeprecationWarning)
-            key = 'general:use_auto_landmask'
-
-        d = self.configobj
-        ds = self.configobj.configspec
-        try:
-            default, minval, maxval, opt = self.get_configspec_default_min_max(key)
-        except:
-            self.logger.warning(self.list_configspec())
-            raise ValueError('Config item %s is not available, se above for valid items' % key)
-        for i, s in enumerate(key.split(':')):
-            if s not in d:
-                self.list_configspec()
-                raise ValueError('Wrong configuration')
-            if not isinstance(d[s], dict):
-                if ds[s][0:5] == 'float' and value is not None:
-                    value = float(value)
-                if ds[s][0:5] == 'integ' and value is not None:
-                    value = int(value)
-                if isinstance(value, float) or isinstance(value, int):
-                    if (minval is not None and value<minval) or (maxval is not None and value>maxval):
-                        raise ValueError('Value of %s (%s) is outside allowed interval: (%s - %s)' %
-                                         (key, value, minval, maxval))
-                d[s] = value
-            else:
-                d = d[s]
-                ds = ds[s]
-        valid = self.configobj.validate(validate.Validator())
-        if self.configobj.validate(validate.Validator()) is not True:
-            if hasattr(self, 'oiltypes') or hasattr(self, 'leewayprop'):
-                # Provide some suggestion if config is very long list (e.g. oiltype/leewaycategory)
-                if hasattr(self, 'oiltypes'):
-                    elements = self.oiltypes
-                elif hasattr(self, 'leewayprop'):
-                    elements = [self.leewayprop[la]['OBJKEY'] for la in self.leewayprop]
-                import difflib
-                matches = difflib.get_close_matches(value, elements, n=20, cutoff=.3)
-                containing = [el for el in elements if value in el]
-                matches = list(set(matches) | set(containing))
-                if len(matches) > 0:
-                    matches.sort()
-                    suggestion = '\nDid you mean any of these?\n%s' % str(matches)
-                else:
-                    suggestion = ''
-                raise ValueError('Wrong configuration:\n\t%s = %s%s' % (s, ds[s], suggestion))
-
-    def _config_hash_to_dict(self, hashstring):
-        """Return configobj-dict from section:section:key format"""
-        c = self.configobj
-        cs = self.configobj.configspec
-        for i, s in enumerate(hashstring.split(':')):
-            if isinstance(c[s], dict):
-                c = c[s]
-                cs = cs[s]
-        return c, cs, s
-
-    def get_config(self, key):
-        """Get value of a configuration setting"""
-        c, cs, s = self._config_hash_to_dict(key)
-        return c[s]
-
-    def get_configspec(self, key):
-        """Get configuration specification of a configuration setting"""
-        c, cs, s = self._config_hash_to_dict(key)
-        return cs[s]
-
-    def get_configspec_default_min_max(self, key):
-        """Get default, min and max config values for configuration setting"""
-        c, cs, s = self._config_hash_to_dict(key)
-        v = validate.Validator()
-        default = v.get_default_value(cs[s])
-        datatype = cs[s].split('(')[0]
-        if datatype in ['float', 'integer'] and 'min' in cs[s] and 'max' in cs[s]:
-            minimum = cs[s].split('min=')[-1].split(',')[0]
-            maximum = cs[s].split('max=')[-1].split(',')[0]
-            if datatype == 'float':
-                minimum = float(minimum)
-                maximum = float(maximum)
-            elif datatype == 'integer':
-                minimum = int(minimum)
-                maximum = int(maximum)
-        else:
-            minimum = maximum = None
-        if datatype == 'option':
-            # Parsing options list
-            options = cs[s][len('options'):-1]
-            options = options.split('default=')[0][:-2]
-            import ast
-            options = ast.literal_eval('[' + options + ']')
-        else:
-            options = None
-        return default, minimum, maximum, options
-
-    def get_seed_config(self):
-        """Get dictionary with all config options under category seed"""
-        sc = {}
-        for c in self._config_hashstrings():
-            if c[0:5] == 'seed:':
-                name = c[5:]
-                sc[name] = {}
-                sn = sc[name]
-                sn['default'], sn['min'], sn['max'], sn['options'] = \
-                    self.get_configspec_default_min_max(c)
-        return sc
-
-    def _config_hashstrings(self):
-        """Get list of strings section:section:key for all config items"""
-        def fun(k, d, pre):
-            path = '%s:%s' % (pre, k) if pre else k
-            return path if type(d[k]) is not configobj.Section else \
-                ",".join([fun(i,d[k], path) for i in d[k]])
-        return ",".join([fun(k,self.configobj, '') for
-                         k in self.configobj]).split(',')
-
-    def list_configspec(self):
-        """List all possible configuration settings with specifications"""
-        keys = self._config_hashstrings()
-        str = '\n==============================================\n'
-        for key in keys:
-            str += '%s [%s] %s\n' % (key, self.get_config(key),
-                                   self.get_configspec(key))
-        str += '==============================================\n'
-        self.logger.info(str)
-        return str
-
-    def list_config(self):
+    def list_config(self, prefix=''):
         """List all possible configuration settings with values"""
-        keys = self._config_hashstrings()
         str = '\n=============================================\n'
-        for key in keys:
-            str += '%s [%s]\n' % (key, self.get_config(key))
+        for key in self._config:
+            if key.startswith(prefix):
+                str += '%s [%s]\n' % (key, self.get_config(key))
         str += '=============================================\n'
         self.logger.info(str)
+
+    def list_configspec(self, prefix=''):
+        """Readable formatting of config specification"""
+        for c, i in self._config.items():
+            if c.startswith(prefix):
+                val = i['value'] if 'value' in i else None
+                if i['type'] == 'bool':
+                    rang=''
+                elif i['type'] in ['float', 'int']:
+                    rang = 'min: %s, max: %s [%s]' % (i['min'], i['max'], i['units'])
+                elif i['type'] == 'enum':
+                    rang = i['enum']
+                print('%-35s [%s] %-5s %s %s...' % (c, val, i['type'], rang, i['description'][0:20]))
+
+    def get_configspec(self, prefix='', level=[1,2,3]):
+        if not isinstance(level, list):
+            level = [level]
+        configspec = {k:v for (k,v) in self._config.items() if k.startswith(prefix)
+                        and self._config[k]['level'] in level}
+        return configspec
+
+    def _add_config(self, config, overwrite=True):
+        """Add configuration settings
+
+        config is a dictionary where keys are configuration keywords,
+        and values are dictionaries with the following contents:
+
+        type (string): 'float', 'int', 'bool' or 'enum'
+
+        min, max (float/int/None): (only when type is 'float' or 'int')
+            The minimum and maximum allowed values for this setting.
+            May also be None if there are no upper/lowe limits.
+
+        units (string): (only when type is 'float' or 'int')
+            The units of this config setting.
+
+        enum (list): (only when type is 'enum')
+            A list of possible values for this setting.
+
+        default (number/bool/string/None):
+            The default value for this setting.
+
+        value (number/bool/string/None): The actual value for this setting.
+            This is updated with self.set_config(key, value) and retrieved
+            with self.get_config(key)
+
+        description (string):
+            A description of this config setting, for users/documentation/GUIs.
+
+        level (int): A parameter to determine the level of exposure in GUIs
+            1 self.CONFIG_LEVEL_ESSENTIAL: important setting which user has to consider
+            2 self.CONFIG_LEVEL_BASIC: setting which many users may consider
+            3 self.CONFIG_LEVEL_ADVANCED: setting relevant only to advanced users
+
+        """
+
+        caller = inspect.stack()[1]
+        caller = os.path.splitext(os.path.basename(caller.filename))[0]
+        self.logger.debug('Adding %i config items from %s' % (len(config), caller))
+        if not hasattr(self, '_config'):
+            self._config = {}
+        remove = []
+        for c, i in config.items():  # Check that provided config is conistent
+            if c in self._config:
+                if overwrite is False:
+                    self.logger.debug('  Config item %s is already specified, not overwriting' % c)
+                    remove.append(c)
+                else:
+                    self.logger.debug('  Overwriting config item %s' % c)
+            for p in ['type', 'description', 'level']:
+                if p not in i:
+                    raise ValueError('"%s" must be specified for config item %s' % (p, c))
+            if i['level'] != self.CONFIG_LEVEL_ESSENTIAL and 'default' not in i:#or i['default'] is None:
+                raise ValueError('A default value must be provided for config item %s' % c)
+            if i['type'] == 'enum':
+                if 'enum' not in i or not isinstance(i['enum'], list):
+                    raise ValueError('"enum" of type list must be provided for config item %s' % (c))
+            elif i['type'] in ['float', 'int']:
+                for p in ['min', 'max', 'units']:
+                    if p not in i:
+                        raise ValueError('"%s" not provided for config item %s' % (p, c))
+            elif i['type'] == 'bool':
+                pass  # no check for bool
+            else:
+                raise ValueError('Config type "%s" (%s) is not defined. Valid options are: '
+                                 'float, int, enum, bool' % (i['type'], c))
+            if 'default' in i:
+                i['value'] = i['default']
+        for r in remove:
+            del config[r]
+        self._config.update(config)
+
+    def set_config(self, key, value):
+        if not key in self._config:
+            self.list_config()
+            raise ValueError('No config setting named %s' % key)
+        i = self._config[key]
+        if i['type'] == 'bool':
+            if value not in [True, False]:
+                raise ValueError('Config value %s must be True or False' % key)
+        elif i['type'] in ['float', 'int'] and value is not None:
+            if (i['min'] is not None and value < i['min']) or (i['max'] is not None and value > i['max']):
+                raise ValueError('Config value %s must be between %s and %s' % (key, i['min'], i['max']))
+            if i['type'] == 'float' and value is not None:
+                value = np.float(value)
+            elif i['type'] == 'int' and value is not None:
+                value = np.int(value)
+        elif i['type'] == 'enum':
+            if value not in i['enum']:
+                if len(i['enum']) > 5:
+                    import difflib
+                    matches = difflib.get_close_matches(value, i['enum'], n=20, cutoff=.3)
+                    containing = [e for e in i['enum'] if value in e]
+                    matches = list(set(matches) | set(containing))
+                    if len(matches) > 0:
+                        matches.sort()
+                        suggestion = '\nDid you mean any of these?\n%s' % str(matches)
+                else:
+                    suggestion = ''
+                raise ValueError('Wrong configuration, possible values are:\n\t%s\n%s' %
+                                 (i['enum'], suggestion))
+
+        self._config[key]['value'] = value
+
+    def _set_config_default(self, key, value):
+        """Update both default and actual value of a config setting"""
+        self.set_config(key, value)
+        self._config[key]['default'] = self.get_config(key)
+
+    def get_config(self, key):
+        if not key in self._config:
+            raise ValueError('No config setting named %s' % key)
+        return(self._config[key]['value'])
 
     def add_metadata(self, key, value):
         """Add item to metadata dictionary, for export as netCDF global attributes"""
@@ -588,31 +653,6 @@ class OpenDriftSimulation(PhysicsMethods):
         else:
             return self.proj(x, y, inverse=True)
 
-    def timer_start(self, category):
-        if not hasattr(self, 'timers'):
-            self.timers = OrderedDict()
-        if not hasattr(self, 'timing'):
-            self.timing = OrderedDict()
-        if category not in self.timing:
-            self.timing[category] = timedelta(0)
-        self.timers[category] = datetime.now()
-
-    def timer_end(self, category):
-        if self.timers[category] is not None:
-            self.timing[category] += datetime.now() - self.timers[category]
-        self.timers[category] = None
-
-    def format_timedelta(self, timedelta):
-        '''Format timedelta nicely for display'''
-        timestr = str(timedelta)[0:str(timedelta).find('.') + 2]
-        for i, c in enumerate(timestr):
-            if c in '123456789.':
-                timestr = timestr[i:]  # Strip leading 0 and :
-                if c == '.':
-                    timestr = '0' + timestr
-                break
-        return timestr
-
     def performance(self):
         '''Report the time spent on various tasks'''
 
@@ -645,7 +685,7 @@ class OpenDriftSimulation(PhysicsMethods):
         outStr += '--------------------\n'
         return outStr
 
-    def add_reader(self, readers, variables=None):
+    def add_reader(self, readers, variables=None, first=False):
         """Add one or more readers providing variables used by this model.
 
         Method may be called subsequently to add more readers
@@ -653,12 +693,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
         Args:
             readers: one or more (list) Reader objects.
-            variables: optional, list of strings of standard_name of
-            variables to be provided by this/these reader(s).
+
+            variables (optional): list of strings of standard_name of variables to be provided by this/these reader(s).
+            first: Set to True if this reader should be set as first option
         """
 
         # Convert any strings to lists, for looping
-        if isinstance(variables, basestring):
+        if isinstance(variables, str):
             variables = [variables]
         if isinstance(readers, BaseReader):
             readers = [readers]
@@ -706,7 +747,10 @@ class OpenDriftSimulation(PhysicsMethods):
                 for variable in variables if variables else reader.variables:
                     if variable in list(self.priority_list):
                         if reader.name not in self.priority_list[variable]:
-                            self.priority_list[variable].append(reader.name)
+                            if first is True:
+                                self.priority_list[variable].insert(0, reader.name)
+                            else:
+                                self.priority_list[variable].append(reader.name)
                     else:
                         self.priority_list[variable] = [reader.name]
 
@@ -723,7 +767,7 @@ class OpenDriftSimulation(PhysicsMethods):
     def add_readers_from_list(self, urls, timeout=10, lazy=True):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
-        if isinstance(urls, basestring):
+        if isinstance(urls, str):
             urls = [urls]
         if lazy is True:
             from opendrift.readers.reader_lazy import Reader
@@ -766,7 +810,7 @@ class OpenDriftSimulation(PhysicsMethods):
             each of the variable_groups.
         """
         if variables is None:
-            variables = self.required_variables
+            variables = list(self.required_variables)
         reader_groups = []
         # Find all unique reader groups
         for variable, readers in self.priority_list.items():
@@ -896,18 +940,22 @@ class OpenDriftSimulation(PhysicsMethods):
         dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon))*np.nan, dtype=dtype)
 
+        if not hasattr(self, 'fallback_values'):
+            self.set_fallback_values(refresh=False)
+
         # Discard any existing readers which are not relevant
         self.discard_irrelevant_readers()
 
-        truncate_depth = self.get_config('drift:truncate_ocean_model_below_m')
-        if truncate_depth is not None:
-            self.logger.debug('Truncating ocean models below %s m' % truncate_depth)
-            z = z.copy()
-            z[z<-truncate_depth] = -truncate_depth
-            if self.required_profiles_z_range is not None:
-                self.required_profiles_z_range = np.array(
-                    self.required_profiles_z_range)
-                self.required_profiles_z_range[self.required_profiles_z_range<-truncate_depth] = -truncate_depth
+        if 'drift:truncate_ocean_model_below_m' in self._config:
+            truncate_depth = self.get_config('drift:truncate_ocean_model_below_m')
+            if truncate_depth is not None:
+                self.logger.debug('Truncating ocean models below %s m' % truncate_depth)
+                z = z.copy()
+                z[z<-truncate_depth] = -truncate_depth
+                if self.required_profiles_z_range is not None:
+                    self.required_profiles_z_range = np.array(
+                        self.required_profiles_z_range)
+                    self.required_profiles_z_range[self.required_profiles_z_range<-truncate_depth] = -truncate_depth
 
         # Initialise more lazy readers if necessary
         missing_variables = ['missingvar']
@@ -941,10 +989,9 @@ class OpenDriftSimulation(PhysicsMethods):
         variable_groups, reader_groups, missing_variables = \
             self.get_reader_groups(variables)
         for variable in variables:  # Fill with fallback value if no reader
-            if (self.fallback_values is not None
-                    and variable in self.fallback_values):
-                env[variable] = np.ma.ones(env[variable].shape)\
-                    * self.fallback_values[variable]
+            co = self.get_config('environment:fallback:%s' % variable)
+            if co is not None:
+                env[variable] = np.ma.ones(env[variable].shape) * co
 
         for i, variable_group in enumerate(variable_groups):
             self.logger.debug('----------------------------------------')
@@ -987,7 +1034,7 @@ class OpenDriftSimulation(PhysicsMethods):
                             variable_group, profiles_from_reader,
                             self.required_profiles_z_range, time,
                             lon[missing_indices], lat[missing_indices],
-                            z[missing_indices], self.use_block, self.proj)
+                            z[missing_indices], self.proj)
 
                 except Exception as e:
                     self.logger.info('========================')
@@ -1059,8 +1106,9 @@ class OpenDriftSimulation(PhysicsMethods):
                             # TODO: mask mismatch due to 2 added points
                             raise ValueError('Mismatch of masks')
                         missing_indices = missing_indices[combined_mask]
-                    except:  # Not sure what is happening here
+                    except Exception as ex:  # Not sure what is happening here
                         self.logger.info('Problems setting mask on missing_indices!')
+                        self.logger.exception(ex)
                 else:
                     missing_indices = []  # temporary workaround
                 if (type(missing_indices) == np.int64) or (
@@ -1132,7 +1180,7 @@ class OpenDriftSimulation(PhysicsMethods):
         #######################################################
         # Parameterisation of unavailable variables
         #######################################################
-        if self.get_config('drift:use_tabularised_stokes_drift') is True:
+        if 'drift:use_tabularised_stokes_drift' in self._config and self.get_config('drift:use_tabularised_stokes_drift') is True:
             if 'x_wind' not in variables:
                 self.logger.debug('No wind available to calculate Stokes drift')
             else:
@@ -1398,219 +1446,114 @@ class OpenDriftSimulation(PhysicsMethods):
 
         return lon, lat
 
-    def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                      cone=False, radius_type='gaussian', **kwargs):
-        """Seed a given number of particles around given position(s).
+    def seed_elements(self, lon, lat, time, radius=0, number=None,
+                      radius_type='gaussian', **kwargs):
+        """Seed elements with given position(s), time and properties.
 
         Arguments:
-            lon: scalar or array, central longitude(s).
-            lat: scalar or array, central latitude(s).
-            radius: scalar or array, radius in meters around each lon-lat
-            pair, within which particles will be randomly seeded.
-
+            lon: scalar or array
+                central longitude(s).
+            lat: scalar or array
+                central latitude(s).
+            radius: scalar or array
+                radius in meters around each lon-lat pair,
+                within which particles will be randomly seeded.
             number: integer, total number of particles to be seeded
-            Elements are spread equally among the given lon/lat points.
-            Default is one particle for each lon-lat pair.
-
-            time: datenum, the time at which particles are seeded/released.
-            If time is an array with two elements, elements are seeded
-            continously from start/first to end/last time.
-
-            cone: boolean or integer. If True, lon and lat must be two element
-            arrays, interpreted as the start and end position of a cone
-            within which elements will be seeded. Radius may also be a
-            two element array specifying the radius around the points.
-
+                If number is None, the number of elements is the
+                length of lon/lat or time if these are arrays. Otherwise
+                the number of elements are obtained from the config-default.
+            time: datenum or list
+                The time at which particles are seeded/released.
+                If time is a list with two elements, elements are seeded
+                continously from start/first to end/last time.
+                If time is a list with more than two elements, the number of elements
+                is equal to len(time) and are seeded as a time series.
             radius_type: string
-            If 'gaussian' (default), the radius is the standard deviation in
-            x-y-directions. If 'uniform', elements are spread evenly and
-            always inside a circle with the given radius.
-
-            kwargs: keyword arguments containing properties/attributes and
-            values corresponding to the actual particle type (ElementType).
-            These are forwarded to the ElementType class. All properties
-            for which there are no default value must be specified.
+                If 'gaussian' (default), the radius is the standard deviation in
+                x-y-directions. If 'uniform', elements are spread evenly and
+                always inside a circle with the given radius.
+            kwargs:
+                keyword arguments containing properties/attributes and
+                values corresponding to the actual particle type (ElementType).
+                These are forwarded to the ElementType class. All properties
+                for which there are no default value must be specified.
         """
 
-        if time is None:
-            raise ValueError('Time of seeding must be specified')
-
-        #################################################################
-        # Make arrays of all input parameters, with one element per
-        # lon/lat pair, for sequential seeding
-        #################################################################
-        lon = np.atleast_1d(lon).ravel()
-        lat = np.atleast_1d(lat).ravel()
-        if number is None:
-            number = self.get_config('seed:number_of_elements')
-            if len(lon) > 1:
-                number = len(lon)
-            elif isinstance(time, list) and len(time) > 2:
-                number = len(time)
-        number = np.atleast_1d(number).ravel()
-        if len(lon) == 1 and len(number) > 1:
-            ones = np.ones(len(number))
-            lon = lon*ones
-            lat = lat*ones
-        num_points = len(lon)  # Number of lon/lat pairs
-        if len(number) == 1:
-            number = number[0]
-            if number is not None and number < num_points:
-                raise ValueError('Number of elements must be greater or equal '
-                                 'to number of points.')
-        else:
-            number_array = number
-
-        if num_points == 1 and number is None:
-            try:
-                number = len(time)
-            except:
-                number = 1
-
-        if num_points > 1:
-            ###############################
-            # lon and lat are arrays
-            ###############################
-            radius_array = np.atleast_1d(radius).ravel()
-            if len(radius_array) == 1:
-                # If scalar radius is given, apply to all points
-                radius_array = radius_array*np.ones(num_points)
-            if number is None:
-                # Default is one element per given position
-                #number = 1*np.ones(num_points)
-                number = num_points  # temporarily scalar, should be array
-            number = np.atleast_1d(number)
-            if len(number) == 1 and num_points > 1:
-                number_array = np.floor(number/num_points)*np.ones(num_points)
-                # Add remaining elements to first point
-                remainder = number - np.floor(number/num_points)*num_points
-                number_array[0] = number_array[0] + remainder
-
-            if isinstance(time, datetime):
-                time = [time, time]
-
-            if type(time) == list and len(time) == 2:
-                td = (time[1]-time[0])/(number-1)  # timestep between points
-                if len(td) == 1:
-                    td = td[0]
-                time_array = [time[0] + i*td for i in range(number[0])]
-                indx_time_end = np.cumsum(number_array, dtype=int)
-                indx_time_start = np.append([0], indx_time_end[0:-1])
-                time_array2 = [time_array[int(indx_time_start[i]):
-                                          int(indx_time_end[i])]
-                               for i in range(num_points)]
-                time_array = time_array2  # Subset of times for this point
-            if type(time) == list and len(time) > 2:
-                time_array = time
-
-            if cone is True:
-                ###################################################
-                # lon and lat are start and end points of a cone
-                ###################################################
-                if len(lon) != 2 or len(lat) != 2:
-                    raise ValueError('When cone is True, lon and lat must '
-                                     'be 2-element arrays.')
-
-                geod = pyproj.Geod(ellps='WGS84')
-                conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
-                                        number, radians=False)
-                # Seed cone recursively
-                lon, lat = list(zip(*conelonlats))
-                lon = np.atleast_1d(lon)
-                lat = np.atleast_1d(lat)
-                number = int(number)
-                if len(radius_array) == 1:
-                    radius_array = [radius, radius]
-                radius_array = np.linspace(radius_array[0], radius_array[1],
-                                           number)
-                number_array = np.ones(number)
-                time_array = [time[0] + i*td for i in np.arange(number)]
-
-            if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
-                    and kwargs['z'][0:8] == 'seafloor':
-                # We need to fetch seafloor depth from reader
-                if ('sea_floor_depth_below_sea_level' not in self.priority_list
-                    ) and len(self._lazy_readers()) == 0:
-                    raise ValueError('A reader providing the variable '
-                                     'sea_floor_depth_below_sea_level must be '
-                                     'added before seeding elements at seafloor.')
-                if type(time) is list:
-                    t = time[0]
-                else:
-                    t = time
-                if not hasattr(self, 'time'):
-                    self.time = t
-                env, env_profiles, missing = \
-                    self.get_environment(['sea_floor_depth_below_sea_level'],
-                                         time=t, lon=lon, lat=lat,
-                                         z=0*lon, profiles=None)
-                # Add M meters if given as 'seafloor+M'
-                if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
-                    meters_above_seafloor = np.float(kwargs['z'][9::])
-                    self.logger.info('Seeding elements %f meters above seafloor'
-                                 % meters_above_seafloor)
-                else:
-                    meters_above_seafloor = 0
-                kwargs['z'] = \
-                    -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
-
-            # Seeding array and returning
-            if 'time_array' not in locals():
-                time_array = time
-            if isinstance(time_array[0], list):
-                time_array = [t[0] for t in time_array]
-
-            elements = self.ElementType(lon=lon, lat=lat, **kwargs)
-            time_array = np.array(time_array)
-            self.schedule_elements(elements, time_array)
+        if 'cone' in kwargs and kwargs['cone'] is True:
+            self.logger.warning('Keyword *cone* for seed_elements is deprecated, use seed_cone() instead.')
+            del kwargs['cone']
+            self.seed_cone(lon, lat, time, radius, number, **kwargs)
             return
 
-        # Below we have only for single points
-        if isinstance(time, datetime) and number > 1:
-            time = [time, time]
+        lon = np.atleast_1d(lon).ravel()
+        lat = np.atleast_1d(lat).ravel()
+        radius = np.atleast_1d(radius).ravel()
+        time = np.atleast_1d(time)
 
-        if type(time) == list and len(time) == 2 and number > 1:
-            td = (time[1]-time[0])/(number-1)  # timestep between points
-            # Spread seeding times equally between start/first and end/last
-            time_array = [time[0] + i*td for i in range(number)]
+        if len(lon) != len(lat):
+            raise ValueError('Lon and lat must have same lengths')
+
+        if len(lon) > 1:
+            if number is not None and number != len(lon):
+                raise ValueError('Lon and lat have length %s, but number is %s' % (len(lon), number))
+            number = len(lon)
         else:
-            time_array = time
+            if number is None:
+                if len(time) > 2:
+                    number = len(time)  # Interpreting as time series
+                else:
+                    number = self.get_config('seed:number')
+            lon = lon*np.ones(number)
+            lat = lat*np.ones(number)
 
-        geod = pyproj.Geod(ellps='WGS84')
-        ones = np.ones(np.sum(number))
-        if radius_type == 'gaussian':
-            x = np.random.randn(np.sum(number))*radius
-            y = np.random.randn(np.sum(number))*radius
-            az = np.degrees(np.arctan2(x, y))
-            dist = np.sqrt(x*x+y*y)
-        elif radius_type == 'uniform':
-            az = np.random.randn(np.sum(number))*360
-            dist = np.sqrt(np.random.uniform(0, 1, np.sum(number)))*radius
-        if len(lat) == 1 and len(ones) > 1:
-            lat = lat*ones
-            lon = lon*ones
-        kwargs['lon'], kwargs['lat'], az = \
-            geod.fwd(lon, lat, az, dist, radians=False)
+        if len(time) != number and len(time) > 1:
+            if len(time) == 2:  # start -> end
+                td = (time[1]-time[0])/(number-1)  # timestep between points
+                time = [time[0] + i*td for i in range(number)]
+            else:
+                raise ValueError('Time array has length %s, must be 1, 2 or %s' % (len(time), number))
 
-        if 'z' in kwargs and isinstance(kwargs['z'], basestring) \
+        # Add radius / perturbation
+        if radius.max() > 0:
+            geod = pyproj.Geod(ellps='WGS84')
+            ones = np.ones(np.sum(number))
+            if radius_type == 'gaussian':
+                x = np.random.randn(np.sum(number))*radius
+                y = np.random.randn(np.sum(number))*radius
+                az = np.degrees(np.arctan2(x, y))
+                dist = np.sqrt(x*x+y*y)
+            elif radius_type == 'uniform':
+                az = np.random.randn(np.sum(number))*360
+                dist = np.sqrt(np.random.uniform(0, 1, np.sum(number)))*radius
+            lon, lat, az = geod.fwd(lon, lat, az, dist, radians=False)
+
+        # If z is 'seafloor'
+        if not 'z' in kwargs or kwargs['z'] is None:
+            if 'seed:seafloor' in self._config:
+                if self.get_config('seed:seafloor') is True:
+                    kwargs['z'] = 'seafloor'
+                    self.logger.debug('Seafloor is selected, neglecting z')
+        if 'z' in kwargs and isinstance(kwargs['z'], str) \
                 and kwargs['z'][0:8] == 'seafloor':
             # We need to fetch seafloor depth from reader
-            # Unfortunately, this is duplication of code above
-            if ('sea_floor_depth_below_sea_level' not in self.priority_list
-                    ) and len(self._lazy_readers()) == 0:
+            seafloor_constant = self.get_config('environment:constant:sea_floor_depth_below_sea_level')
+            seafloor_fallback = self.get_config('environment:fallback:sea_floor_depth_below_sea_level')
+            if seafloor_constant is not None:
+                env = {'sea_floor_depth_below_sea_level': np.array(seafloor_constant)}
+            elif ('sea_floor_depth_below_sea_level' in self.priority_list
+                        ) or len(self._lazy_readers()):
+                if not hasattr(self, 'time'):
+                    self.time = time[0]
+                env, env_profiles, missing = \
+                    self.get_environment(['sea_floor_depth_below_sea_level'],
+                                         time=time[0], lon=lon, lat=lat,
+                                         z=0*lon, profiles=None)
+            elif seafloor_fallback is not None:
+                env = {'sea_floor_depth_below_sea_level': np.array(seafloor_fallback)}
+            else:
                 raise ValueError('A reader providing the variable '
                                  'sea_floor_depth_below_sea_level must be '
                                  'added before seeding elements at seafloor.')
-            if type(time) is list:
-                t = time[0]
-            else:
-                t = time
-            if not hasattr(self, 'time'):
-                self.time = t
-            env, env_profiles, missing = \
-                self.get_environment(['sea_floor_depth_below_sea_level'],
-                                     t, kwargs['lon'], kwargs['lat'],
-                                     0.*ones, None)
             # Add M meters if given as 'seafloor+M'
             if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
                 meters_above_seafloor = np.float(kwargs['z'][9::])
@@ -1621,9 +1564,104 @@ class OpenDriftSimulation(PhysicsMethods):
             kwargs['z'] = \
                 -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
 
-        elements = self.ElementType(**kwargs)
+        # Creating and scheduling elements
+        elements = self.ElementType(lon=lon, lat=lat, **kwargs)
+        time_array = np.array(time)
+        self.schedule_elements(elements, time)
 
-        self.schedule_elements(elements, time_array)
+    def seed_cone(self, lon, lat, time, radius=0, number=None, **kwargs):
+        """Seed elements along a transect/cone between two points/times
+
+        Arguments:
+            lon: scalar or list with 2 elements [lon0, lon1]
+
+            lat: scalar or list with 2 elements [lat0, lat]
+
+            time: datetime or list with 2 elements [t0, t1]
+
+            radius: scalar or list with 2 elements [r0, r1] Unit: meters
+
+            number (int): The number of elements. If this is None, the number of
+            elements is taken from configuration.
+
+        Elements are seeded along a transect from
+            (lon0, lat0) with uncertainty radius r0 at time t0, towards
+            (lon1, lat1) with uncertainty radius r1 at time t1.
+            If r0 != r1, the unceetainty radius is linearly changed along
+            the transect, thus outlining a "cone".
+        """
+
+        if number is None:
+            number = self.get_config('seed:number')
+        if number == 1:
+            raise ValueError('For a cone, the number of elements must be at least 2 or more, given is 1')
+
+        lon = np.atleast_1d(lon).ravel()
+        lat = np.atleast_1d(lat).ravel()
+        radius = np.atleast_1d(radius).ravel()
+        if len(lon) != len(lat):
+            raise ValueError('Lon and lat must have same length (1 or 2)')
+        elif len(lon) > 2:
+            raise ValueError('Lon and lat must have length 1 or 2, given length is %s' % (len(lon)))
+        elif len(lon) == 1:
+            lon = lon*np.ones(number)
+            lat = lat*np.ones(number)
+        elif len(lon) == 2:  # Segment from lon0,lat1 to lon1,lat2
+            geod = pyproj.Geod(ellps='WGS84')
+            # Note that npts places points in-between start and end, and does not include these
+            conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
+                                    number, radians=False)
+            lon, lat = zip(*conelonlats)
+
+        if len(radius) > 2:
+            raise ValueError('Seed radius must have length 1 or 2')
+        elif len(radius) == 2:  # Linear increase from r0 to r1
+            radius = np.linspace(radius[0], radius[1], number)
+
+        # Forwarding calculated cone points/radii to seed_elements
+        self.seed_elements(lon=lon, lat=lat, time=time, radius=radius, number=number, **kwargs)
+
+    def seed_from_geojson(self, gjson):
+        """Under development"""
+        import geojson
+        try:
+            gj = geojson.loads(gjson)
+        except:
+            raise ValueError('Could not load GeoJSON string: %s' % gjson)
+        if not gj.is_valid:
+            raise ValueError('GeoJSON string is not valid: %s' % gj.errors())
+        # Assuming temporally that g is a Feature, and not a FeatureCollection
+        properties = gj['properties']
+        if 'time' not in properties:
+            raise ValueError('Property "time" is not available')
+        kwargs = {}
+        for prop in properties:
+            if prop == 'time':
+                t = properties['time']
+                if isinstance(t, list):
+                    time = [datetime.fromisoformat(t[0].replace("Z", "+00:00")),
+                            datetime.fromisoformat(t[1].replace("Z", "+00:00"))]
+                else:
+                    time = datetime.fromisoformat(t.replace("Z", "+00:00"))
+            else:
+                kwargs[prop] = properties[prop]
+
+        geometry = gj['geometry']
+
+        if geometry['type'] == 'Polygon':
+            coords = list(geojson.utils.coords(gj))
+            lon, lat = zip(*[(c[0], c[1]) for c in coords])
+            self.seed_within_polygon(lons=lon, lats=lat, time=time, **kwargs)
+        elif geometry['type'] == 'LineString':
+            coords = list(geojson.utils.coords(gj))
+            lon, lat = zip(*[(c[0], c[1]) for c in coords])
+            self.seed_cone(lon=lon, lat=lat, time=time, **kwargs)
+        elif geometry['type'] == 'Point':
+            coords = list(geojson.utils.coords(gj))
+            lon, lat = zip(*[(c[0], c[1]) for c in coords])
+            self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
+        else:
+            raise ValueError('Not yet implemented')
 
     def seed_repeated_segment(self, lons, lats,
                               start_time, end_time, time_interval=None,
@@ -1632,11 +1670,12 @@ class OpenDriftSimulation(PhysicsMethods):
         """Seed elements repeatedly in time along a segment.
 
         The segment goes from lon[0],lat[0] to lon[1],lat[1].
+
         The number of elements should be proved as either:
-        1) number_per_segment, in which case total number of elements
-           is number_per_segment * len(times), or
-        2) total_number, in which case the number of elements
-           per segment is: total_number / len(times).
+
+        1) number_per_segment, in which case total number of elements is number_per_segment * len(times), or
+
+        2) total_number, in which case the number of elements per segment is: total_number / len(times).
            Any extra elements are duplicated along at the first segment.
 
         """
@@ -1671,7 +1710,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
 
-    def seed_within_polygon(self, lons, lats, number, **kwargs):
+    def seed_within_polygon(self, lons, lats, number=None, **kwargs):
         """Seed a number of elements within given polygon.
 
         Arguments:
@@ -1689,6 +1728,9 @@ class OpenDriftSimulation(PhysicsMethods):
         """
         if number == 0:
             return
+
+        if number is None:
+            number = self.get_config('seed:number')
 
         lons = np.asarray(lons)
         lats = np.asarray(lats)
@@ -1756,15 +1798,17 @@ class OpenDriftSimulation(PhysicsMethods):
         self.seed_elements(lonpoints, latpoints, number=number,
                            **kwargs)
 
-    def seed_from_wkt(self, wkt, number, **kwargs):
+    def seed_from_wkt(self, wkt, number=None, **kwargs):
         """Seeds elements within (multi)polygons from WKT"""
 
         try:
-            import ogr
-            import osr
+            from osgeo import ogr, osr
         except Exception as e:
             self.logger.warning(e)
             raise ValueError('OGR library is needed to parse WKT')
+
+        if number is None:
+            number = self.get_config('seed:number')
 
         geom = ogr.CreateGeometryFromWkt(wkt)
         total_area = 0
@@ -1807,8 +1851,7 @@ class OpenDriftSimulation(PhysicsMethods):
         """Seeds elements within contours read from a shapefile"""
 
         try:
-            import ogr
-            import osr
+            from osgeo import ogr, osr
         except Exception as e:
             self.logger.warning(e)
             raise ValueError('OGR library is needed to read shapefiles.')
@@ -1897,7 +1940,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.seed_within_polygon(lons, lats, num_elements, **kwargs)
 
     def seed_from_ladim(self, ladimfile, roms):
-        """Seed elements from ladim \*.rls text file: [time, x, y, z, name]"""
+        """Seed elements from ladim \\*.rls text file: [time, x, y, z, name]"""
 
         data = np.loadtxt(ladimfile,
             dtype={'names': ('time', 'x', 'y', 'z'),
@@ -1988,6 +2031,16 @@ class OpenDriftSimulation(PhysicsMethods):
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
+    def set_fallback_values(self, refresh=False):
+        if hasattr(self, 'fallback_values') and refresh is False:
+            raise ValueError('Manually editing fallback_values dict is deprecated, please use set_config()')
+        else:
+            c = self.get_configspec('environment:fallback:')
+            self.fallback_values = {}
+            for var in list(c):
+                if c[var]['value'] is not None:
+                    self.fallback_values[var.split(':')[-1]] = c[var]['value']
+
     def run(self, time_step=None, steps=None, time_step_output=None,
             duration=None, end_time=None, outfile=None, export_variables=None,
             export_buffer_length=100, stop_on_error=False, move_from_land=True):
@@ -2031,16 +2084,13 @@ class OpenDriftSimulation(PhysicsMethods):
 
         self.timer_end('configuration')
         self.timer_start('preparing main loop')
-        # Check that configuration is proper
-        validation = self.configobj.validate(validate.Validator())
-        if validation is True:
-            self.logger.info('Config validation OK')
-        else:
-            raise ValueError('Configuration error: ' + str(validation))
 
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
         self.elements = self.ElementType()
+
+        # Collect fallback values from config into dict
+        self.set_fallback_values(refresh=True)
 
         if outfile is None and export_buffer_length is not None:
             self.logger.debug('No output file is specified, '
@@ -2072,6 +2122,17 @@ class OpenDriftSimulation(PhysicsMethods):
                 reader.simulation_SRS = True
             else:
                 reader.simulation_SRS = False
+
+        # Make constant readers if config environment:constant:<var> is
+        c = self.get_configspec('environment:constant:')
+        mr = {}
+        for var in list(c):
+            if c[var]['value'] is not None:
+                mr[var.split(':')[-1]] = c[var]['value']
+        if len(mr) > 0:
+            from opendrift.readers import reader_constant
+            rc = reader_constant.Reader(mr)
+            self.add_reader(rc, first=True)
 
         missing_variables = self.missing_variables()
         missing_variables = [m for m in missing_variables if
@@ -2356,7 +2417,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 self.logger.debug('==================================='*2)
 
                 self.environment, self.environment_profiles, missing = \
-                    self.get_environment(self.required_variables,
+                    self.get_environment(list(self.required_variables),
                                          self.time,
                                          self.elements.lon,
                                          self.elements.lat,
@@ -2810,7 +2871,7 @@ class OpenDriftSimulation(PhysicsMethods):
         start_time = datetime.now()
         if cmap is None:
             cmap = 'jet'
-        if isinstance(cmap, basestring):
+        if isinstance(cmap, str):
             cmap = matplotlib.cm.get_cmap(cmap)
 
         if color is False and background is None and lcs is None and density is False:
@@ -2818,7 +2879,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
         markercolor = self.plot_comparison_colors[0]
 
-        if isinstance(density, basestring):
+        if isinstance(density, str):
             # Density field is weighted by this variable
             # TODO: not yet implemented!
             density_weight = density
@@ -2875,7 +2936,7 @@ class OpenDriftSimulation(PhysicsMethods):
                     y_deactive[index_of_last_deactivated < i]])
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
-                    if isinstance(color, basestring):
+                    if isinstance(color, str):
                         points_deactivated.set_array(
                             colorarray_deactivated[
                                 index_of_last_deactivated < i])
@@ -2922,7 +2983,7 @@ class OpenDriftSimulation(PhysicsMethods):
             ax.plot(x, y, color='gray', alpha=.1, transform = gcrs)
 
         if color is not False and show_elements is True:
-            if isinstance(color, basestring):
+            if isinstance(color, str):
                 colorarray = self.get_property(color)[0].T
                 colorarray = colorarray*unitfactor
                 colorarray_deactivated = \
@@ -3015,7 +3076,7 @@ class OpenDriftSimulation(PhysicsMethods):
         fig.set_tight_layout(True)
         if colorbar is True:
             if color is not False:
-                if isinstance(color, basestring) or clabel is not None:
+                if isinstance(color, str) or clabel is not None:
                     if clabel is None:
                         clabel = color
                 item = points
@@ -3221,7 +3282,7 @@ class OpenDriftSimulation(PhysicsMethods):
 
             fast (bool): use some optimizations to speed up plotting at the cost of accuracy
 
-            :param hide_landmask: do not plot landmask (default False). See :ref:`model_landmask_only_model` for example usage.
+            :param hide_landmask: do not plot landmask (default False).
             :type hide_landmask: bool
         """
 
@@ -3271,7 +3332,7 @@ class OpenDriftSimulation(PhysicsMethods):
                 colorbar = True
                 # Color lines according to given parameter
                 try:
-                    if isinstance(linecolor, basestring):
+                    if isinstance(linecolor, str):
                         param = self.history[linecolor]
                     else:
                         param = linecolor
@@ -3540,7 +3601,7 @@ class OpenDriftSimulation(PhysicsMethods):
             reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
 
         data = reader.get_variables(
-            background, time, reader_x, reader_y, None, block=True)
+            background, time, reader_x, reader_y, None)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
         if type(background) is list:
             u_component = data[background[0]]
@@ -3570,7 +3631,7 @@ class OpenDriftSimulation(PhysicsMethods):
         map_x, map_y = (rlons, rlats)
 
         scalar = np.ma.masked_invalid(scalar)
-        if hasattr(reader, 'convolve'):
+        if reader.convolve is not None:
             from scipy import ndimage
             N = reader.convolve
             if isinstance(N, (int, np.integer)):
@@ -3813,8 +3874,7 @@ class OpenDriftSimulation(PhysicsMethods):
         '''
 
         try:
-            import gdal
-            import osr
+            from osgeo import gdal, osr
         except:
             raise ValueError('GDAL is needed to write geotiff images.')
         import matplotlib.pyplot as plt
@@ -4080,7 +4140,6 @@ class OpenDriftSimulation(PhysicsMethods):
             # This assumes that the calling script is two frames up in the stack. If
             # _save_animation is called through a more deeply nested method, it will
             # not give the correct result.
-            import inspect
             caller = inspect.stack()[2]
             caller = os.path.splitext(os.path.basename(caller.filename))[0]
 
@@ -4091,16 +4150,16 @@ class OpenDriftSimulation(PhysicsMethods):
             else:
                 adir = os.path.realpath('../docs/source/gallery/animations')
 
-            if not hasattr(self, '__anim_no__'):
-                self.__anim_no__ = { }
+            if not hasattr(OpenDriftSimulation, '__anim_no__'):
+                OpenDriftSimulation.__anim_no__ = { }
 
-            if caller not in  self.__anim_no__:
-                self.__anim_no__[caller] = 0
+            if caller not in  OpenDriftSimulation.__anim_no__:
+                OpenDriftSimulation.__anim_no__[caller] = 0
 
             os.makedirs(adir, exist_ok=True)
 
-            filename = '%s_%d.gif' % (caller, self.__anim_no__[caller])
-            self.__anim_no__[caller] += 1
+            filename = '%s_%d.gif' % (caller, OpenDriftSimulation.__anim_no__[caller])
+            OpenDriftSimulation.__anim_no__[caller] += 1
 
             filename = os.path.join(adir, filename)
 

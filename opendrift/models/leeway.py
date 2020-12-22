@@ -35,30 +35,40 @@ class LeewayObj(LagrangianArray):
     variables = LagrangianArray.add_variables([
         ('objectType', {'dtype': np.int16,
                         'units': '1',
+                        'seed': False,
                         'default': 0}),
         ('orientation', {'dtype': np.int16,
                          'units': '1',
+            'description': '0/1 is left/right of downwind. Randomly chosen at seed time',
+                         'seed': False,
                          'default': 1}),
         ('jibeProbability', {'dtype': np.float32,
                              'units': '1/h',
+            'description': 'Probability per hour that an object may change orientation (jibing)',
                              'default': 0.04}),
         ('downwindSlope', {'dtype': np.float32,
                            'units': '%',
+                           'seed': False,
                            'default': 1}),
         ('crosswindSlope', {'dtype': np.float32,
                             'units': '1',
+                           'seed': False,
                             'default': 1}),
         ('downwindOffset', {'dtype': np.float32,
                             'units': 'cm/s',
+                           'seed': False,
                             'default': 0}),
         ('crosswindOffset', {'dtype': np.float32,
                              'units': 'cm/s',
+                           'seed': False,
                              'default': 0}),
         ('downwindEps', {'dtype': np.float32,
                          'units': 'cm/s',
+                           'seed': False,
                          'default': 0}),
         ('crosswindEps', {'dtype': np.float32,
                           'units': 'cm/s',
+                           'seed': False,
                           'default': 0})
         ])
 
@@ -73,14 +83,14 @@ class Leeway(OpenDriftSimulation):
 
     ElementType = LeewayObj
 
-    required_variables = ['x_wind', 'y_wind',
-                          'x_sea_water_velocity', 'y_sea_water_velocity',
-                          'land_binary_mask']
+    required_variables = {
+        'x_wind': {'fallback': None},
+        'y_wind': {'fallback': None},
+        'x_sea_water_velocity': {'fallback': None},
+        'y_sea_water_velocity': {'fallback': None},
+        'land_binary_mask': {'fallback': None},
+        } 
 
-    #fallback_values = {'x_wind': 0.0,
-    #                   'y_wind': 0.0,
-    #                   'x_sea_water_velocity': 0.0,
-    #                   'y_sea_water_velocity': 0.0}
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
@@ -127,36 +137,33 @@ class Leeway(OpenDriftSimulation):
         # Config
         descriptions = [self.leewayprop[p]['Description'] for
                         p in self.leewayprop]
-        self._add_config('seed:object_type', descriptions, 'Object type',
-                         overwrite=True)
-        # Default jibe probability is 4% per hour
-        self._add_config('seed:jibeProbability',
-                         'float(min=0, max=1, default=0.04)',
-                         'Jibe probability', overwrite=True)
 
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
 
-        self._add_config('general:time_step_minutes',
-                         'integer(min=1, max=1440, default=10)',
-                         'Time step in minutes',
-                         overwrite=True)
-        self._add_config('general:time_step_output_minutes',
-                         'integer(min=1, max=1440, default=60)',
-                         'Output time step in minutes',
-                         overwrite=True)
+        self._add_config({
+            'seed:object_type': {'type': 'enum', 'enum': descriptions,
+                'default': descriptions[0],
+                'description': 'Leeway object category for this simulation',
+                'level': self.CONFIG_LEVEL_ESSENTIAL},
+            'seed:jibeProbability': {'type': 'float',
+                'default': 0.04, 'min': 0, 'max': 1,
+                'description': 'Probability per hour for jibing (objects changing orientation)',
+                'units': 'probability', 'level': self.CONFIG_LEVEL_BASIC},
+            })
+
+        self._set_config_default('general:time_step_minutes', 10)
+        self._set_config_default('general:time_step_output_minutes', 60)
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                      objectType=None, cone=None, jibeProbability=None,
-                      **kwargs):
+                      objectType=None, jibeProbability=None, **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own objectType (number),
         # but so far we only use one for each sim
         # objtype = np.ones(number)*objectType
-        # Note: cone is not used, simply to provide same interface as others
 
         if number is None:
-            number = self.get_config('seed:number_of_elements')
+            number = self.get_config('seed:number')
 
         if objectType is None:
             object_name = self.get_config('seed:object_type')
@@ -239,7 +246,7 @@ class Leeway(OpenDriftSimulation):
         # with the specific values calculated
         super(Leeway, self).seed_elements(
             lon=lon, lat=lat, radius=radius,
-            number=number, time=time, cone=cone,
+            number=number, time=time,
             orientation=orientation, objectType=objectType,
             downwindSlope=downwindSlope,
             crosswindSlope=crosswindSlope,

@@ -14,11 +14,11 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 import numpy as np
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     '''A very simple reader that always give the same value for its variables'''
 
     def __init__(self, parameter_value_map):
@@ -37,13 +37,12 @@ class Reader(BaseReader):
         self.end_time = None
         self.time_step = None
         self.name = 'constant_reader'
-        self.return_block = False
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
     def get_variables(self, requestedVariables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None):
 
         variables = {'time': time, 'x': x, 'y': y, 'z': z}
         #variables.update(self._parameter_value_map)

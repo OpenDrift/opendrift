@@ -1,10 +1,10 @@
 How to write a new module
 ==========================
 
-The best way to get started in developing a new model, is to copy and modify an existing working model/module (e.g. `oceandrift <https://github.com/opendrift/opendrift/blob/master/opendrift/models/oceandrift.py>`_) or look at the `model_template <https://github.com/opendrift/opendrift/blob/master/opendrift/models/model_template.py>`_ which contains instructions/comments. A general explanation is given below.
+The best way to get started in developing a new model, is to copy and modify an existing working model/module (e.g. `oceandrift <https://opendrift.github.io/_modules/opendrift/models/oceandrift.html>`_) or look at the `model_template <https://opendrift.github.io/_modules/opendrift/models/model_template.html>`_ which contains instructions/comments. A general explanation is given below.
 
 
-The main class of the OpenDrift framework is the **OpenDriftSimulation** class in the module `basemodel.py <https://github.com/opendrift/opendrift/blob/master/opendrift/models/basemodel.py>`_, stored in the folder `models <https://github.com/opendrift/opendrift/blob/master/opendrift/models/>`_.
+The main class of the OpenDrift framework is the **OpenDriftSimulation** class in the module `basemodel.py <https://opendrift.github.io/_modules/opendrift/models/basemodel.html>`_, stored in the folder `models <https://github.com/opendrift/opendrift/blob/master/opendrift/models/>`_.
 
 A purpose specific trajectory model is made by subclassing **OpenDriftSimulation** (or any of its subclasses/models), mainly by:
 
@@ -14,7 +14,7 @@ A purpose specific trajectory model is made by subclassing **OpenDriftSimulation
     * these environment variables are obtained by :doc:`Readers <data_model>`, however, when writing a model/module one do not need to worry about how environment variables are obtained.
   * defining a class method **update()** to be called at each model time step.
 
-The method **update()** will in principle do three different things, regardless of the specific application:
+The method **update()** will in principle do two different things, regardless of the specific application:
 
 1. Moving elements
 ##################
@@ -23,10 +23,10 @@ The positions of elements are stored as the element properties ``longitude`` and
 
     self.update_positions(x_velocity, y_velocity)
 
-This method takes care of e.g. rotation of vectors from the specific x-y coordinate system of the simulation (Pyproj projection) to determine the correct update of the position (longitude and latitude), also taking the simulation time_step into account.
+This method takes care of e.g. rotation of vectors from the specific x-y coordinate system of the simulation (Pyproj projection) to determine the correct update of the position (longitude and latitude), also taking the simulation time_step into account, including reversing advection direction if time step is negative (backtracking).
 The ``x_velocity`` and ``y_velocity`` might be any velocity provided by the readers (currents, wind, stokes drift...) possibly scaled by the model application (e.g. 0.02 times the wind, which is often used for wind drift at ocean surface).
 
-By inheritance, models may also reuse higher level advection methods inherited from their superclasses. E.g. the model `OceanDrift <https://github.com/opendrift/opendrift/blob/master/opendrift/models/oceandrift.py>`_) uses very simple methods which takes care of everything needed for a correct and efficient advection::
+By inheritance, models may also reuse higher level advection methods inherited from their superclasses. E.g. the model `OceanDrift <https://opendrift.github.io/_modules/opendrift/models/oceandrift.html>`_) uses very simple methods which takes care of everything needed for a correct and efficient advection::
 
     # Simply move particles with ambient current
     self.advect_ocean_current()
@@ -34,9 +34,9 @@ By inheritance, models may also reuse higher level advection methods inherited f
     # Advect particles due to wind drag (according to specified wind_drift_factor)
     self.advect_wind()
 
-Notice that these (convenience) methods are inherited in the specific model `OceanDrift <https://github.com/opendrift/opendrift/blob/master/opendrift/models/oceandrift.py>`_ from the generic model `OpenDrift <https://github.com/opendrift/opendrift/blob/master/opendrift/models/opendrift.py>`_, which again inherits them from the helper class `PhysicsMethods <https://github.com/opendrift/opendrift/blob/master/opendrift/models/physics_methods.py>`_).
+Notice that these (convenience) methods are inherited in the specific model `OceanDrift <https://opendrift.github.io/_modules/opendrift/models/oceandrift.html>`_ from the generic model `OpenDriftSimulation <https://opendrift.github.io/_modules/opendrift/models/basemodel.html>`_, which again inherits them from the helper class `PhysicsMethods <https://opendrift.github.io/_modules/opendrift/models/physics_methods.html>`_).
 Reusing functionality by inheritance makes it simpler and faster to develop and maintain new models and functionality.
-The vertical coordinate (z) is modified e.g. by common turbulence schemes.
+The vertical coordinate (z) is modified e.g. by `vertical turbulence and buoyancy <https://opendrift.github.io/gallery/example_vertical_mixing.html>`_, or by swimming in biological modules.
 
 2. Modifying element properties
 ###############################

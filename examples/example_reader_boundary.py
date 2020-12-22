@@ -21,7 +21,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds
 reader_nordic4 = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
 
 o.add_reader([reader_norkyst, reader_nordic4])
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
 
 #%%
 # Seeding some particles

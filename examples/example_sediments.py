@@ -18,11 +18,11 @@ o.seed_elements(lon=lon, lat=lat, number=10000,
                 terminal_velocity=-.001)  # 1 mm/s settling speed
 
 if False:  # Using constant south-westwards current and wind
-    o.fallback_values['x_sea_water_velocity'] = -.05
-    o.fallback_values['y_sea_water_velocity'] = -.1
-    o.fallback_values['y_wind'] = -6
-    o.fallback_values['x_wind'] = -2
-    o.fallback_values['sea_floor_depth_below_sea_level'] = 100  # 100m depth
+    o.set_config('environment:fallback:x_sea_water_velocity', -.05)
+    o.set_config('environment:fallback:y_sea_water_velocity', -.1)
+    o.set_config('environment:fallback:y_wind', -6)
+    o.set_config('environment:fallback:x_wind', -2)
+    o.set_config('environment:fallback:sea_floor_depth_below_sea_level', 100)  # 100m depth
 else:  # Using live data from Thredds
     o.add_readers_from_list([
         'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])

@@ -19,12 +19,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import pyproj
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, StructuredReader
 
 
-class Reader(BaseReader):
-
-    return_block = False
+class Reader(BaseReader, StructuredReader):
     variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
 
     def __init__(self, lons, lats, times, wind=None, waves=None, z=0,
@@ -70,7 +68,7 @@ class Reader(BaseReader):
                               (times[i+1] - times[i]).total_seconds())
         self.speed = np.array(self.speed)
         self.x_sea_water_velocity = self.speed*np.sin(np.radians(self.azimuth))
-        self.y_sea_water_velocity = self.speed*np.cos(np.radians(self.azimuth)) 
+        self.y_sea_water_velocity = self.speed*np.cos(np.radians(self.azimuth))
 
         # Subtract wind/stokes contribution
         if waves is not None:
@@ -110,8 +108,8 @@ class Reader(BaseReader):
 
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
-        
+                      x=None, y=None, z=None):
+
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
 

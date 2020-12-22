@@ -1,10 +1,95 @@
 version: 2.1
 
 orbs:
-  # https://circleci.com/orbs/registry/orb/circleci/docker-publish
   docker-publish: circleci/docker-publish@0.1.3
 
+test-template: &test-template
+  docker:
+    - image: continuumio/miniconda3
+  steps:
+    - checkout
+    - run:
+        name: Checksum environment
+        command: |
+          echo "python=${PYTHON_VERSION}" > envconfig
+          echo "numpy=${NUMPY_VERSION}" >> envconfig
+          cat envconfig
+
+    - restore_cache:
+        key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+    - run:
+        name: Install requirements
+        command: |
+          if [ ! -e /opt/conda/envs/opendrift ]; then
+            conda env create --file environment.yml
+            source activate opendrift
+
+            if [ -v PYTHON_VERSION ]; then
+              conda install -q --yes -c conda-forge "python=${PYTHON_VERSION}"
+            fi
+
+            if [ -v NUMPY_VERSION ]; then
+              conda install -q --yes -c conda-forge "numpy=${NUMPY_VERSION}"
+            fi
+
+            pip install pyyaml coveralls
+          fi
+
+    - save_cache:
+        key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        paths:
+          - "/opt/conda/envs"
+
+    - run:
+        name: List environment
+        command: |
+          source activate opendrift
+          conda list
+
+    - restore_cache:
+        key: v1-landmask
+
+    - run:
+        name: Generate landmask
+        command: |
+          source activate opendrift
+          python -c 'import opendrift_landmask_data as old; old.Landmask()'
+
+    - save_cache:
+        key: v1-landmask
+        paths:
+          - "/tmp/landmask"
+
+    - run:
+        name: Run tests
+        command: |
+          source activate opendrift
+          pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v --log-cli-level=debug
+
+    - store_test_results:
+        path: test-results
+
+    - store_artifacts:
+        path: test-results
+
+    - run:
+        name: Upload to coveralls
+        command: |
+          source activate opendrift
+          if [ ! -v PYTHON_VERSION ]; then
+            COVERALLS_REPO_TOKEN=nEzcGcepz6KeM8OpvG2WoxbGjMGwivyAQ coveralls
+          fi
+
 jobs:
+  python_latest:
+    <<: *test-template
+
+  python_37_numpy_119:
+    <<: *test-template
+    environment:
+      - PYTHON_VERSION=3.7
+      - NUMPY_VERSION=1.19
+
   docs-build:
     docker:
       - image: continuumio/miniconda3
@@ -17,7 +102,7 @@ jobs:
           name: Install packages
           command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick
       - restore_cache:
-          key: v3-deps1-{{ checksum "environment.yml" }}
+          key: v4-docs-deps1-{{ checksum "environment.yml" }}
       - run:
           name: Install requirements
           command: |
@@ -28,7 +113,7 @@ jobs:
               pip install sphinx-rtd-theme
             fi
       - save_cache:
-          key: v3-deps1-{{ checksum "environment.yml" }}
+          key: v4-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
@@ -98,6 +183,12 @@ jobs:
 
 workflows:
   version: 2.1
+
+  test:
+    jobs:
+      - python_latest
+      - python_37_numpy_119
+
   build:
     jobs:
       - docs-build
@@ -115,7 +206,7 @@ workflows:
       # This first job is for opendrift, Python 3
       - docker-publish/publish:
           image: opendrift/opendrift
-          dockerfile: docker/Dockerfile
+          dockerfile: Dockerfile
           deploy: false
           tag: latest
           filters:
@@ -127,9 +218,10 @@ workflows:
                 name: Preview Containers that will be Deployed
                 command: |
                    # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
+                   pushd opendrift
+                   DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
+                   popd
+
                    echo "Version for Docker tag is ${DOCKER_TAG}"
                    echo "This build will deploy the following containers:"
                    echo "opendrift/opendrift:latest"
@@ -144,7 +236,7 @@ workflows:
 
       - docker-publish/publish:
           image: opendrift/opendrift
-          dockerfile: docker/Dockerfile
+          dockerfile: Dockerfile
           tag: latest
           filters:
             branches:
@@ -154,9 +246,10 @@ workflows:
                 name: Publish Docker Containers with Python Version 3
                 command: |
                    # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
+                   pushd opendrift
+                   DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
+                   popd
+
                    echo "Version for Docker tag is ${DOCKER_TAG}"
                    docker tag opendrift/opendrift:latest opendrift/opendrift:v${DOCKER_TAG}
                    docker tag opendrift/opendrift:latest opendrift/opendrift:py3-v${DOCKER_TAG}

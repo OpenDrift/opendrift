@@ -24,11 +24,12 @@ r = Reader(x=lon, y=lat, proj4='+proj=latlong',
            array_dict = {'x_sea_water_velocity': u, 'y_sea_water_velocity': v})
 
 o = OceanDrift(loglevel=20)
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
 o.add_reader(r)
 o.seed_elements(lon=3, lat=60.5, number=1000, radius=30000, time=datetime.now())
-o.run(duration=timedelta(hours=200))
+o.run(duration=timedelta(hours=72))
 o.animation(fast=True)
 
 #%%
-# .. image:: /gallery/animations/example_static_2d_current.gif
+# .. image:: /gallery/animations/example_static_2d_current_0.gif
+

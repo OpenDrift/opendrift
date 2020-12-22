@@ -18,7 +18,7 @@ reader_osc = reader_oscillating.Reader('x_sea_water_velocity', amplitude=1,
                                        zero_time=datetime.utcnow())
 o.add_reader([reader_osc])  # Oscillating east-west current component
 
-o.fallback_values['y_sea_water_velocity'] = .2  # Adding northwards drift
+o.set_config('environment:fallback:y_sea_water_velocity', .2)  # Adding northwards drift
 
 #%%
 # Try different options: 'previous', 'stranding', 'none'
