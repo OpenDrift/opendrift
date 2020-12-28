@@ -115,7 +115,7 @@ class BaseReader(Variables):
             self.expected_time_steps = (
                 self.end_time - self.start_time).total_seconds() / (
                 self.time_step.total_seconds()) + 1
-            if hasattr(self, 'times'):
+            if self.times is not None:
                 self.missing_time_steps = self.expected_time_steps - \
                     len(self.times)
             else:
