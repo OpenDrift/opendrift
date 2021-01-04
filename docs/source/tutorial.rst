@@ -250,7 +250,7 @@ OpenDrift allows for configuration of the model using the package `ConfigObj <ht
 
 Parameters may be set with commands like::
 
-    o.set_config('drift:scheme', 'runge-kutta')
+    o.set_config('drift:advection_scheme', 'runge-kutta')
 
 This example specifies that the Runge-Kutta propagation scheme shall be used for the run, instead of the default Euler-scheme.
 

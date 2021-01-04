@@ -181,7 +181,7 @@ class TestRun(unittest.TestCase):
         z=-40*np.random.rand(number)
         o2.seed_elements(5, 62.5, number=number, radius=5000, z=z,
                         time=norkyst.start_time)
-        o2.set_config('drift:scheme', 'runge-kutta')
+        o2.set_config('drift:advection_scheme', 'runge-kutta')
         o2.run(steps=4*3, time_step=timedelta(minutes=15))
         # And finally repeating the initial run to check that indetical
         o3 = OceanDrift(loglevel=30, seed=0)

@@ -256,7 +256,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'min': 0, 'max': np.inf, 'units': 'seconds',
                 'description': 'Elements will be deactivated when this age is reached',
                 'level': self.CONFIG_LEVEL_ADVANCED},
-            'drift:scheme': {'type': 'enum', 'enum': ['euler', 'runge-kutta', 'runge-kutta4'], 'default': 'euler',
+            'drift:advection_scheme': {'type': 'enum', 'enum': ['euler', 'runge-kutta', 'runge-kutta4'], 'default': 'euler',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description':
                 'Numerical advection scheme for ocean current advection'},
             'drift:current_uncertainty': {'type': 'float', 'default': 0,
