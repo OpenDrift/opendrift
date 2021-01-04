@@ -33,7 +33,7 @@ class LeewayObj(LagrangianArray):
 
     """
     variables = LagrangianArray.add_variables([
-        ('objectType', {'dtype': np.int16,
+        ('object_type', {'dtype': np.int16,
                         'units': '1',
                         'seed': False,
                         'default': 0}),
@@ -42,31 +42,31 @@ class LeewayObj(LagrangianArray):
             'description': '0/1 is left/right of downwind. Randomly chosen at seed time',
                          'seed': False,
                          'default': 1}),
-        ('jibeProbability', {'dtype': np.float32,
+        ('jibe_probability', {'dtype': np.float32,
                              'units': '1/h',
             'description': 'Probability per hour that an object may change orientation (jibing)',
                              'default': 0.04}),
-        ('downwindSlope', {'dtype': np.float32,
+        ('downwind_slope', {'dtype': np.float32,
                            'units': '%',
                            'seed': False,
                            'default': 1}),
-        ('crosswindSlope', {'dtype': np.float32,
+        ('crosswind_slope', {'dtype': np.float32,
                             'units': '1',
                            'seed': False,
                             'default': 1}),
-        ('downwindOffset', {'dtype': np.float32,
+        ('downwind_offset', {'dtype': np.float32,
                             'units': 'cm/s',
                            'seed': False,
                             'default': 0}),
-        ('crosswindOffset', {'dtype': np.float32,
+        ('crosswind_offset', {'dtype': np.float32,
                              'units': 'cm/s',
                            'seed': False,
                              'default': 0}),
-        ('downwindEps', {'dtype': np.float32,
+        ('downwind_eps', {'dtype': np.float32,
                          'units': 'cm/s',
                            'seed': False,
                          'default': 0}),
-        ('crosswindEps', {'dtype': np.float32,
+        ('crosswind_eps', {'dtype': np.float32,
                           'units': 'cm/s',
                            'seed': False,
                           'default': 0})
@@ -146,7 +146,7 @@ class Leeway(OpenDriftSimulation):
                 'default': descriptions[0],
                 'description': 'Leeway object category for this simulation',
                 'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'seed:jibeProbability': {'type': 'float',
+            'seed:jibe_probability': {'type': 'float',
                 'default': 0.04, 'min': 0, 'max': 1,
                 'description': 'Probability per hour for jibing (objects changing orientation)',
                 'units': 'probability', 'level': self.CONFIG_LEVEL_BASIC},
@@ -156,31 +156,31 @@ class Leeway(OpenDriftSimulation):
         self._set_config_default('general:time_step_output_minutes', 60)
 
     def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                      objectType=None, jibeProbability=None, **kwargs):
+                      object_type=None, jibe_probability=None, **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
-        # All particles carry their own objectType (number),
+        # All particles carry their own object_type (number),
         # but so far we only use one for each sim
-        # objtype = np.ones(number)*objectType
+        # objtype = np.ones(number)*object_type
 
         if number is None:
             number = self.get_config('seed:number')
 
-        if objectType is None:
+        if object_type is None:
             object_name = self.get_config('seed:object_type')
             # Get number from name
             found = False
-            for objectType in range(1, len(self.leewayprop)+1):
-                if self.leewayprop[objectType]['OBJKEY'] == object_name or(
-                    self.leewayprop[objectType]['Description'] == object_name):
+            for object_type in range(1, len(self.leewayprop)+1):
+                if self.leewayprop[object_type]['OBJKEY'] == object_name or(
+                    self.leewayprop[object_type]['Description'] == object_name):
                     found = True
                     break
             if found is False:
                 self.logger.info(self.list_configspec())
-                raise ValueError('Object %s not available' % objectType)
+                raise ValueError('Object %s not available' % object_type)
 
         self.logger.info('Seeding elements of object type %i: %s (%s)' %
-                     (objectType, self.leewayprop[objectType]['OBJKEY'],
-                      self.leewayprop[objectType]['Description']))
+                     (object_type, self.leewayprop[object_type]['OBJKEY'],
+                      self.leewayprop[object_type]['Description']))
 
         # Drift orientation of particles.  0 is right of downwind,
         # 1 is left of downwind
@@ -194,48 +194,48 @@ class Leeway(OpenDriftSimulation):
         # Negative downwind slope must be avoided as
         # particles should drift downwind.
         # The problem arises because of high error variances (see e.g. PIW-1).
-        downwindSlope = ones*self.leewayprop[objectType]['DWSLOPE']
-        downwindOffset = ones*self.leewayprop[objectType]['DWOFFSET']
-        dwstd = self.leewayprop[objectType]['DWSTD']
+        downwind_slope = ones*self.leewayprop[object_type]['DWSLOPE']
+        downwind_offset = ones*self.leewayprop[object_type]['DWOFFSET']
+        dwstd = self.leewayprop[object_type]['DWSTD']
         rdw = np.zeros(number)
         epsdw = np.zeros(number)
         for i in range(number):
             rdw[i] = np.random.randn(1)
             epsdw[i] = rdw[i]*dwstd
             # Avoid negative downwind slopes
-            while downwindSlope[i] + epsdw[i]/20.0 < 0.0:
+            while downwind_slope[i] + epsdw[i]/20.0 < 0.0:
                 rdw[i] = np.random.randn(1)
                 epsdw[i] = rdw[i]*dwstd
-        downwindEps = epsdw
+        downwind_eps = epsdw
         # NB
-        # downwindEps = np.zeros(number)
+        # downwind_eps = np.zeros(number)
 
         # Crosswind leeway properties
         rcw = np.random.randn(number)
-        crosswindSlope = np.zeros(number)
-        crosswindOffset = np.zeros(number)
-        crosswindEps = np.zeros(number)
-        crosswindSlope[orientation == RIGHT] = \
-            self.leewayprop[objectType]['CWRSLOPE']
-        crosswindSlope[orientation == LEFT] = \
-            self.leewayprop[objectType]['CWLSLOPE']
-        crosswindOffset[orientation == RIGHT] = \
-            self.leewayprop[objectType]['CWROFFSET']
-        crosswindOffset[orientation == LEFT] = \
-            self.leewayprop[objectType]['CWLOFFSET']
-        crosswindEps[orientation == RIGHT] = \
+        crosswind_slope = np.zeros(number)
+        crosswind_offset = np.zeros(number)
+        crosswind_eps = np.zeros(number)
+        crosswind_slope[orientation == RIGHT] = \
+            self.leewayprop[object_type]['CWRSLOPE']
+        crosswind_slope[orientation == LEFT] = \
+            self.leewayprop[object_type]['CWLSLOPE']
+        crosswind_offset[orientation == RIGHT] = \
+            self.leewayprop[object_type]['CWROFFSET']
+        crosswind_offset[orientation == LEFT] = \
+            self.leewayprop[object_type]['CWLOFFSET']
+        crosswind_eps[orientation == RIGHT] = \
             rcw[orientation == RIGHT] * \
-            self.leewayprop[objectType]['CWRSTD']
-        crosswindEps[orientation == LEFT] = \
+            self.leewayprop[object_type]['CWRSTD']
+        crosswind_eps[orientation == LEFT] = \
             rcw[orientation == LEFT] * \
-            self.leewayprop[objectType]['CWLSTD']
+            self.leewayprop[object_type]['CWLSTD']
 
         # NB
-        # crosswindEps = np.zeros(number)
+        # crosswind_eps = np.zeros(number)
 
         # Jibe probability
-        if jibeProbability is None:
-            jibeProbability = self.get_config('seed:jibeProbability')
+        if jibe_probability is None:
+            jibe_probability = self.get_config('seed:jibe_probability')
 
         # Store seed data for ASCII format output
         self.ascii = {
@@ -247,13 +247,13 @@ class Leeway(OpenDriftSimulation):
         super(Leeway, self).seed_elements(
             lon=lon, lat=lat, radius=radius,
             number=number, time=time,
-            orientation=orientation, objectType=objectType,
-            downwindSlope=downwindSlope,
-            crosswindSlope=crosswindSlope,
-            downwindOffset=downwindOffset,
-            crosswindOffset=crosswindOffset,
-            downwindEps=downwindEps, crosswindEps=crosswindEps,
-            jibeProbability=jibeProbability, **kwargs)
+            orientation=orientation, object_type=object_type,
+            downwind_slope=downwind_slope,
+            crosswind_slope=crosswind_slope,
+            downwind_offset=downwind_offset,
+            crosswind_offset=crosswind_offset,
+            downwind_eps=downwind_eps, crosswind_eps=crosswind_eps,
+            jibe_probability=jibe_probability, **kwargs)
 
     def list_object_categories(self, substr=None):
         '''Display leeway categories to screen
@@ -277,14 +277,14 @@ class Leeway(OpenDriftSimulation):
         winddir = np.arctan2(self.environment.x_wind, self.environment.y_wind)
 
         # Move particles with the leeway CCC TODO
-        downwind_leeway = ((self.elements.downwindSlope +
-                            self.elements.downwindEps/20.0)*windspeed +
-                           self.elements.downwindOffset +
-                           self.elements.downwindEps/2.0)*.01  # In m/s
-        crosswind_leeway = ((self.elements.crosswindSlope +
-                            self.elements.crosswindEps/20.0)*windspeed +
-                            self.elements.crosswindOffset +
-                            self.elements.crosswindEps/2.0)*.01  # In m/s
+        downwind_leeway = ((self.elements.downwind_slope +
+                            self.elements.downwind_eps/20.0)*windspeed +
+                           self.elements.downwind_offset +
+                           self.elements.downwind_eps/2.0)*.01  # In m/s
+        crosswind_leeway = ((self.elements.crosswind_slope +
+                            self.elements.crosswind_eps/20.0)*windspeed +
+                            self.elements.crosswind_offset +
+                            self.elements.crosswind_eps/2.0)*.01  # In m/s
         sinth = np.sin(winddir)
         costh = np.cos(winddir)
         y_leeway = downwind_leeway*costh+crosswind_leeway*sinth
@@ -296,10 +296,10 @@ class Leeway(OpenDriftSimulation):
                               self.environment.y_sea_water_velocity)
 
         # Jibe elements randomly according to given probability
-        jp_per_timestep = self.elements.jibeProbability * \
+        jp_per_timestep = self.elements.jibe_probability * \
             np.abs(self.time_step.total_seconds()) / 3600.0
         jib = jp_per_timestep > np.random.random(self.num_elements_active())
-        self.elements.crosswindSlope[jib] = - self.elements.crosswindSlope[jib]
+        self.elements.crosswind_slope[jib] = - self.elements.crosswind_slope[jib]
         self.elements.orientation[jib] = 1 - self.elements.orientation[jib]
         self.logger.debug('Jibing %i out of %i elements.' %
                       (np.sum(jib), self.num_elements_active()))
@@ -327,9 +327,9 @@ class Leeway(OpenDriftSimulation):
             '# Object class id & name:\n'
             'objectClassId  objectClassName\n')
         try:
-            objtype = self.elements.objectType[0]
+            objtype = self.elements.object_type[0]
         except:
-            objtype = self.elements_deactivated.objectType[0]
+            objtype = self.elements_deactivated.object_type[0]
         f.write(' %i\t%s\n' % (objtype,
                 self.leewayprop[objtype]['OBJKEY']))
         f.write(
@@ -412,7 +412,7 @@ class Leeway(OpenDriftSimulation):
 
     def _substance_name(self):
         if hasattr(self, 'history'):
-            objectType = self.history['objectType'][0,0]
+            object_type = self.history['object_type'][0,0]
         else:
-            objectType = np.atleast_1d(self.elements_scheduled.objectType)[0]
-        return self.leewayprop[objectType]['OBJKEY']
+            object_type = np.atleast_1d(self.elements_scheduled.object_type)[0]
+        return self.leewayprop[object_type]['OBJKEY']

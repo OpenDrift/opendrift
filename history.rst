@@ -3,8 +3,9 @@ History
 
 Next release
 ------------
-* Built in GUI is improved with posibillity to adjust all config settings.
 * Major restructuring of Basereader class. Readers now are sublasses of Structured, Unstructured or Continuous.
+* Built in GUI is improved with posibillity to adjust all config settings.
+* Some Leeway parameters are renamed from camelCase to camel_case, including: ``jibeProbability`` -> ``jibe_probability`` and ``objectType`` -> ``object_type``
 
 2020-11-01 / Release v1.4.2
 ---------------------------
