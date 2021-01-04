@@ -256,7 +256,7 @@ class PhysicsMethods:
 
     def advect_ocean_current(self, factor=1):
         # Runge-Kutta scheme
-        if self.get_config('drift:scheme')[0:11] == 'runge-kutta':
+        if self.get_config('drift:advection_scheme')[0:11] == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity
             y_vel = self.environment.y_sea_water_velocity
 
@@ -274,7 +274,7 @@ class PhysicsMethods:
                 ['x_sea_water_velocity', 'y_sea_water_velocity'],
                 self.time + self.time_step/2,
                 mid_lon, mid_lat, self.elements.z, profiles=None)
-            if self.get_config('drift:scheme') == 'runge-kutta4':
+            if self.get_config('drift:advection_scheme') == 'runge-kutta4':
                 self.logger.debug('Runge-kutta 4th order...')
                 x_vel2 = mid_env['x_sea_water_velocity']
                 y_vel2 = mid_env['y_sea_water_velocity']
@@ -316,14 +316,14 @@ class PhysicsMethods:
                 self.update_positions(
                         factor*mid_env['x_sea_water_velocity'],
                         factor*mid_env['y_sea_water_velocity'])
-        elif self.get_config('drift:scheme') == 'euler':
+        elif self.get_config('drift:advection_scheme') == 'euler':
             # Euler scheme
             self.update_positions(
                     factor*self.environment.x_sea_water_velocity,
                     factor*self.environment.y_sea_water_velocity)
         else:
             raise ValueError('Drift scheme not recognised: ' +
-                             self.get_config('drift:scheme'))
+                             self.get_config('drift:advection_scheme'))
 
     def advect_with_sea_ice(self, factor=1):
         if hasattr(self.environment, 'sea_ice_x_velocity'):

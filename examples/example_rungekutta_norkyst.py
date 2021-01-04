@@ -25,7 +25,7 @@ lon = 4.5; lat = 60.0;
 
 #%%
 # First run, with Euler scheme:
-o.set_config('drift:scheme', 'euler')
+o.set_config('drift:advection_scheme', 'euler')
 o.seed_elements(lon, lat, radius=0, number=1, time=time)
 o.run(steps=66*2, time_step=1800)
 
@@ -33,7 +33,7 @@ o.run(steps=66*2, time_step=1800)
 # Second run, with Runge-Kutta scheme:
 o2 = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_norkyst, reader_landmask])
-o2.set_config('drift:scheme', 'runge-kutta')
+o2.set_config('drift:advection_scheme', 'runge-kutta')
 o2.seed_elements(lon, lat, radius=0, number=1, time=time)
 o2.run(steps=66*2, time_step=1800)
 

@@ -53,7 +53,7 @@ class TestRun(unittest.TestCase):
                         time=reader_nordic.start_time, z=0)
         o.set_config('vertical_mixing:timestep', 20)
 
-        o.set_config('drift:scheme', 'runge-kutta')
+        o.set_config('drift:advection_scheme', 'runge-kutta')
         o.run(steps=5, time_step=3600, time_step_output=3600)
         self.assertEqual(o.num_elements_active(), 100)
         self.assertEqual(o.num_elements_deactivated(), 0)

@@ -14,7 +14,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o.set_config('environment:fallback:land_binary_mask', 0)
-o.set_config('drift:scheme', 'runge-kutta4')
+o.set_config('drift:advection_scheme', 'runge-kutta4')
 
 double_gyre = reader_double_gyre.Reader(epsilon=.25, omega=0.628, A=0.1)
 print (double_gyre)
