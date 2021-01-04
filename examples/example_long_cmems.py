@@ -8,6 +8,13 @@ with current data downloaded from CMEMS
 To run this example, you need a CMEMS account created at
 https://marine.copernicus.eu, and you need to install the motuclient:
 python -m pip install motuclient
+
+CMEMS username and password should be stored in a .netrc file with contents:
+```
+machine cmems
+    login <your username>
+    password <your password>
+```
 """
 
 import os
@@ -17,17 +24,6 @@ import numpy as np
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers import reader_cmems
 from opendrift.readers import reader_netCDF_CF_generic
-
-try:
-    f = open('cmems_account.txt')
-except:
-    print('Please store your CMEMS username and password '
-          'in local file "cmems_account.txt"')
-    quit()
-
-cmems_user = f.readline().strip()
-cmems_password = f.readline().strip()
-f.close()
 
 #%%
 # Seed information
@@ -46,14 +42,14 @@ bufferlon = bufferlat*np.cos(lat*np.pi/180)
 # By intialisation, only an XML-file with the contents is downloaded.
 # The netCDF file with data is downloaded later, after the simulation is started,
 # when necessary coverage (time/space) is known ( <reader>.prepare() ) 
+
 cmems = reader_cmems.Reader(
     dataset='global-analysis-forecast-phy-001-024-hourly-merged-uv',
     variable_mapping={  # Overriding the mapping in reader_cmems.py
         'utotal': 'x_sea_water_velocity',
         'vtotal': 'y_sea_water_velocity',
         'utide': 'sea_ice_x_velocity',   # Fake mapping, as standard_name
-        'vtide': 'sea_ice_y_velocity'},  # must be unique for a reader
-    cmems_user=cmems_user, cmems_password=cmems_password)
+        'vtide': 'sea_ice_y_velocity'})  # must be unique for a reader
 
 o = OceanDrift()
 
