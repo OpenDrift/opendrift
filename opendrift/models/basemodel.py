@@ -359,6 +359,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         self.logger.info('OpenDriftSimulation initialised (version %s)' %
                      opendrift.version.version_or_git())
 
+        # Check if dependencies are outdated
+        from oil_library import __version__ as ov
+        if ov<"1.1.3":
+            self.logger.warning('#'*82)
+            self.logger.warning('Dependencies are outdated, please update with: conda env update -f environment.yml')
+            self.logger.warning('#'*82)
+
     def list_config(self, prefix=''):
         """List all possible configuration settings with values"""
         str = '\n=============================================\n'
