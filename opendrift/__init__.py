@@ -124,6 +124,8 @@ def versions():
     import scipy
     import matplotlib
     import netCDF4
+    import oil_library
+    import xarray
     import sys
     s = '\n------------------------------------------------------\n'
     s += 'Software and hardware:\n'
@@ -141,6 +143,8 @@ def versions():
     s += '  SciPy version %s\n' % scipy.__version__
     s += '  Matplotlib version %s\n' % matplotlib.__version__
     s += '  NetCDF4 version %s\n' % netCDF4.__version__
+    s += '  Xarray version %s\n' % xarray.__version__
+    s += '  OilLibrary version %s\n' % oil_library.__version__
     s += '  Python version %s\n' % sys.version.replace('\n', '')
     s += '------------------------------------------------------\n'
     return s
