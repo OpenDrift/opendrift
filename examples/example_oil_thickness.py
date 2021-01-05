@@ -15,8 +15,8 @@ timestep = timedelta(minutes=10)
 timestep_output = timedelta(minutes=60)
 duration = timedelta(hours=20)
 mass_oil = 2000  # mass oil per particle
-oiltype = '*GENERIC DIESEL'
-#oiltype = '*GENERIC BUNKER C'
+oiltype = 'GENERIC DIESEL'
+#oiltype = 'GENERIC BUNKER C'
 
 #%%
 # First run, where surface oil thickness is updated

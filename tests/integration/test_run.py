@@ -627,7 +627,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0010)  # s
         o.set_config('seed:droplet_diameter_max_subsea', 0.0010)  # s
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
-                        density=1000, oiltype='*GENERIC BUNKER C')
+                        density=1000, oiltype='GENERIC BUNKER C')
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
@@ -659,7 +659,7 @@ class TestRun(unittest.TestCase):
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -101.7, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -76.9, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -76.4, 1)  # After some rising
 
     def test_seed_below_reader_coverage(self):
         o = OpenOil(loglevel=20)
@@ -679,7 +679,7 @@ class TestRun(unittest.TestCase):
         o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0], -139.3, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -134.3, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
@@ -694,7 +694,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.001)
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
-                        density=1000, oiltype='*GENERIC BUNKER C')
+                        density=1000, oiltype='GENERIC BUNKER C')
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
@@ -727,7 +727,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
         self.assertAlmostEqual(z[0,1], -100, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,1], -81.8, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,1], -81.4, 1)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast

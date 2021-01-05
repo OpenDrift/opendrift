@@ -27,7 +27,7 @@ o.seed_from_geojson("""{
       "properties": {
         "time": "2020-11-06T12:30:00Z",
         "number": 1000,
-        "oiltype": "*GENERIC DIESEL",
+        "oiltype": "GENERIC DIESEL",
         "m3_per_hour": 50
       }
     }""")
