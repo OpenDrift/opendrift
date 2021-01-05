@@ -16,27 +16,27 @@ test-template: &test-template
           cat envconfig
 
     - restore_cache:
-        key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v7-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
     - run:
         name: Install requirements
         command: |
           if [ ! -e /opt/conda/envs/opendrift ]; then
-            conda env create --file environment.yml
-            source activate opendrift
-
             if [ -v PYTHON_VERSION ]; then
-              conda install -q --yes -c conda-forge "python=${PYTHON_VERSION}"
+              # pin python and numpy
+              conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
+
+              conda env update -n opendrift -q -f environment.yml
+            else
+              conda env create -q --file environment.yml
             fi
 
-            if [ -v NUMPY_VERSION ]; then
-              conda install -q --yes -c conda-forge "numpy=${NUMPY_VERSION}"
-            fi
+            source activate opendrift
 
             pip install pyyaml coveralls
           fi
 
     - save_cache:
-        key: v4-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v7-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
         paths:
           - "/opt/conda/envs"
 
