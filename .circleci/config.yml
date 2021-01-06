@@ -16,7 +16,7 @@ test-template: &test-template
           cat envconfig
 
     - restore_cache:
-        key: v7-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v8-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
     - run:
         name: Install requirements
         command: |
@@ -24,6 +24,9 @@ test-template: &test-template
             if [ -v PYTHON_VERSION ]; then
               # pin python and numpy
               conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
+
+              echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
+              echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
 
               conda env update -n opendrift -q -f environment.yml
             else
@@ -36,7 +39,7 @@ test-template: &test-template
           fi
 
     - save_cache:
-        key: v7-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v8-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
         paths:
           - "/opt/conda/envs"
 
@@ -84,11 +87,17 @@ jobs:
   python_latest:
     <<: *test-template
 
-  python_37_numpy_119:
+  python_38_numpy_119:
+    <<: *test-template
+    environment:
+      - PYTHON_VERSION=3.8
+      - NUMPY_VERSION=1.19
+
+  python_37_numpy_116:
     <<: *test-template
     environment:
       - PYTHON_VERSION=3.7
-      - NUMPY_VERSION=1.19
+      - NUMPY_VERSION=1.16
 
   docs-build:
     docker:
@@ -187,7 +196,8 @@ workflows:
   test:
     jobs:
       - python_latest
-      - python_37_numpy_119
+      - python_38_numpy_119
+      - python_37_numpy_116
 
   build:
     jobs:
