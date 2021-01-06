@@ -43,11 +43,11 @@ class Radionuclide(Lagrangian3DArray):
         ('LMM_fraction', {'dtype':np.float32,
                           'units':'',
                           'default':0,
-                          'seeed':False}),
+                          'seed':False}),
         ('particle_fraction', {'dtype':np.float32,
                           'units':'',
                           'default':0,
-                          'seeed':False})
+                          'seed':False})
         ])
 
 
@@ -209,7 +209,16 @@ class RadionuclideDrift(OceanDrift):
 
     def prepare_run(self):
 
-        pass
+        self.logger.info( 'Number of species: {}'.format(self.nspecies) )
+        for i,sp in enumerate(self.name_species):
+            self.logger.info( '{:>3} {}'.format( i, sp ) )
+
+
+        self.logger.info( 'transfer setup: %s' % self.get_config('radionuclide:transfer_setup'))
+       
+        self.logger.info('nspecies: %s' % self.nspecies)
+        self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
+
 
 
 
@@ -226,6 +235,7 @@ class RadionuclideDrift(OceanDrift):
             self.set_config('radionuclide:species:Particle_reversible', True)
             self.set_config('radionuclide:species:Sediment_reversible', True)
         elif self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
+            self.set_config('radionuclide:species:LMM', False)
             self.set_config('radionuclide:species:LMMcation', True)
             self.set_config('radionuclide:species:LMManion', True)
             self.set_config('radionuclide:species:Humic_colloid', True)
@@ -275,9 +285,9 @@ class RadionuclideDrift(OceanDrift):
 
 
         self.nspecies      = len(self.name_species)
-        self.logger.info( 'Number of species: {}'.format(self.nspecies) )
-        for i,sp in enumerate(self.name_species):
-            self.logger.info( '{:>3} {}'.format( i, sp ) )
+#         self.logger.info( 'Number of species: {}'.format(self.nspecies) )
+#         for i,sp in enumerate(self.name_species):
+#             self.logger.info( '{:>3} {}'.format( i, sp ) )
 
 
 
@@ -302,32 +312,46 @@ class RadionuclideDrift(OceanDrift):
             num_elements = self.get_config('seed:number')
 
 
-        # Set initial speciation
-        if 'particle_fraction' in kwargs:
-            particle_frac = kwargs['particle_fraction']
+
+        if 'specie' in kwargs:
+            print('num_elements', num_elements)
+            try:
+                print('len specie:',len(kwargs['specie']))
+            except:
+                print('specie:',kwargs['specie'])
+
+            init_specie = np.ones(num_elements,dtype=int)
+            init_specie[:] = kwargs['specie']
+
+
         else:
-            particle_frac = self.get_config('seed:particle_fraction')
 
-        if 'LMM_fraction' in kwargs:
-            lmm_frac = kwargs['LMM_fraction']
-        else:
-            lmm_frac = self.get_config('seed:LMM_fraction')
-
-        shift = int(num_elements * (1-particle_frac))
-        if not lmm_frac + particle_frac == 1.:
-            self.logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
-            self.logger.error('LMM fraction: %s ' % str(lmm_frac))
-            self.logger.error( 'Particle fraction %s '% str(particle_frac) )
-            raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
-
-        init_specie = np.ones(num_elements, int)
-        if self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
-            init_specie[:shift] = self.num_lmmcation
-        else:
-            init_specie[:shift] = self.num_lmm
-        init_specie[shift:] = self.num_prev
-
-        kwargs['specie'] = init_specie
+            # Set initial speciation
+            if 'particle_fraction' in kwargs:
+                particle_frac = kwargs['particle_fraction']
+            else:
+                particle_frac = self.get_config('seed:particle_fraction')
+    
+            if 'LMM_fraction' in kwargs:
+                lmm_frac = kwargs['LMM_fraction']
+            else:
+                lmm_frac = self.get_config('seed:LMM_fraction')
+    
+            shift = int(num_elements * (1-particle_frac))
+            if not lmm_frac + particle_frac == 1.:
+                self.logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
+                self.logger.error('LMM fraction: %s ' % str(lmm_frac))
+                self.logger.error( 'Particle fraction %s '% str(particle_frac) )
+                raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
+    
+            init_specie = np.ones(num_elements, int)
+            if self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
+                init_specie[:shift] = self.num_lmmcation
+            else:
+                init_specie[:shift] = self.num_lmm
+            init_specie[shift:] = self.num_prev
+    
+            kwargs['specie'] = init_specie
 
 
         self.logger.info('Initial speciation:')
@@ -357,7 +381,7 @@ class RadionuclideDrift(OceanDrift):
 
         transfer_setup=self.get_config('radionuclide:transfer_setup')
 
-        self.logger.info( 'transfer setup: %s' % transfer_setup)
+#        self.logger.info( 'transfer setup: %s' % transfer_setup)
 
 
         self.transfer_rates = np.zeros([self.nspecies,self.nspecies])
@@ -532,8 +556,8 @@ class RadionuclideDrift(OceanDrift):
 #         self.transfer_rates[:] = 0.
 #         print ('\n ###### \n IMPORTANT:: \n transfer rates have been hacked! \n#### \n ')
 
-        self.logger.info('nspecies: %s' % self.nspecies)
-        self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
+#         self.logger.info('nspecies: %s' % self.nspecies)
+#         self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
