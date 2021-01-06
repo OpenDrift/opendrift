@@ -93,11 +93,11 @@ jobs:
       - PYTHON_VERSION=3.8
       - NUMPY_VERSION=1.19
 
-  python_37_numpy_116:
+  python_37_numpy_117:
     <<: *test-template
     environment:
       - PYTHON_VERSION=3.7
-      - NUMPY_VERSION=1.16
+      - NUMPY_VERSION=1.17
 
   docs-build:
     docker:
@@ -197,7 +197,7 @@ workflows:
     jobs:
       - python_latest
       - python_38_numpy_119
-      - python_37_numpy_116
+      - python_37_numpy_117
 
   build:
     jobs:
