@@ -12,21 +12,12 @@ from opendrift.models.leeway import Leeway
 o = Leeway(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
-# Arome
+# Add readers for wind and current
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-
-#%%
-# Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-
-#%%
-# Making customised, full resolution landmask
-reader_landmask = reader_global_landmask.Reader(
-                    extent=[5.5, 6.65, 61.05, 61.21])
-
-o.add_reader([reader_landmask, reader_norkyst, reader_arome])
+o.add_reader([reader_norkyst, reader_arome])
 
 #%%
 # Seed elements
@@ -38,7 +29,7 @@ object_type = 1  # 1: Person-in-water (PIW), unknown state (mean values)
 o.seed_elements(lon, lat, radius=50, number=5000, time=time, object_type=object_type)
 
 #%%
-# Running model for 66 hours, using small time step due to high resolution coastline
+# Running model for 12 hours, using small time step due to high resolution coastline
 o.run(duration=timedelta(hours=12), time_step=300, time_step_output=3600)
 
 #%%

@@ -510,6 +510,9 @@ class OpenOil(OceanDrift):
             self.biodegradation()
             self.timer_end('main loop:updating elements:oil weathering:biodegradation')
 
+        if self.elements.mass_oil.min() < 0:  # Should not happen
+            self.logger.warning('NEGATIVE OIL MASS!')
+
     def disperse_noaa(self):
         self.logger.debug('    Calculating: dispersion - NOAA')
         # From NOAA PyGnome model:
@@ -523,6 +526,9 @@ class OpenOil(OceanDrift):
         q_disp = C_Roy * c_disp * v_entrain / self.elements.density
         fraction_dispersed = (q_disp * self.time_step.total_seconds() *
                          self.elements.density)
+        if fraction_dispersed.max() >= 1:
+            self.logger.warning('Dispersion fraction larger than 1 -> setting to 0.99')
+            fraction_dispersed[fraction_dispersed>=1] = .99
         oil_mass_loss = fraction_dispersed*self.elements.mass_oil
 
         self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
