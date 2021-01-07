@@ -43,11 +43,11 @@ class Radionuclide(Lagrangian3DArray):
         ('LMM_fraction', {'dtype':np.float32,
                           'units':'',
                           'default':0,
-                          'seeed':False}),
+                          'seed':False}),
         ('particle_fraction', {'dtype':np.float32,
                           'units':'',
                           'default':0,
-                          'seeed':False})
+                          'seed':False})
         ])
 
 
@@ -91,29 +91,6 @@ class RadionuclideDrift(OceanDrift):
     # The depth range (in m) which profiles shall cover
     required_profiles_z_range = [-20, 0]
 
-    # Default colors for plotting
-#    status_colors = {'initial': 'green', 'active': 'blue',
-#                     'hatched': 'red', 'eaten': 'yellow', 'died': 'magenta', 'sedimented':'sandybrown'}
-
-#    specie_colors = {'LMM':'blue',
-#                      'Colloid':'Sandybrown',
-#                      'Particle reversible': 'grey',
-#                      'Particle irreversible':'darkgrey',
-#                      'Sediment reversible':'red',
-#                      'Sediment irreversible':'darkred'
-#                      }
-
-
-#     species_all = {
-#                     0:{'name':'LMM','color':'blue'},
-#                     1:{'name':'Colloid','color':'Sandybrown'},
-#                     2:{'name':'Particle reversible','color':'grey'},
-#                     3:{'name':'Particle slowly reversible','color':'darkgrey'},
-#                     4:{'name':'Particle irreversible','color':'black'},
-#                     5:{'name':'Sediment reversible','color':'red'},
-#                     6:{'name':'Sediment slowly reversible','color':'lightred'},
-#                     7:{'name':'Sediment irreversible','color':'darkred'}
-#                     }
 
     def specie_num2name(self,num):
         return self.name_species[num]
@@ -130,7 +107,7 @@ class RadionuclideDrift(OceanDrift):
         # TODO: descriptions and units must be added in config setting below
         self._add_config({
             'radionuclide:transfer_setup': {'type': 'enum',
-                'enum': ['Sandnesfj_Al','Bokna_137Cs', 'custom'], 'default': 'custom',
+                'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom'], 'default': 'custom',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:slowly_fraction': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
@@ -156,27 +133,27 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             # Species
             'radionuclide:species:LMM': {'type': 'bool', 'default': True,
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Toggle LMM species'},
+                'level': self.CONFIG_LEVEL_BASIC, 'description': 'Toggle LMM species'},
             'radionuclide:species:LMMcation': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:LMManion': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Colloid': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Humic_colloid': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:species:Polymer': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:species:Particle_reversible': {'type': 'bool', 'default': True,
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Particle_slowly_reversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Particle_irreversible': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:species:Sediment_reversible': {'type': 'bool', 'default': True,
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Sediment_slowly_reversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Sediment_irreversible': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Transformations
@@ -232,7 +209,16 @@ class RadionuclideDrift(OceanDrift):
 
     def prepare_run(self):
 
-        pass
+        self.logger.info( 'Number of species: {}'.format(self.nspecies) )
+        for i,sp in enumerate(self.name_species):
+            self.logger.info( '{:>3} {}'.format( i, sp ) )
+
+
+        self.logger.info( 'transfer setup: %s' % self.get_config('radionuclide:transfer_setup'))
+       
+        self.logger.info('nspecies: %s' % self.nspecies)
+        self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
+
 
 
 
@@ -244,7 +230,12 @@ class RadionuclideDrift(OceanDrift):
             self.set_config('radionuclide:species:Particle_slowly_reversible', True)
             self.set_config('radionuclide:species:Sediment_reversible', True)
             self.set_config('radionuclide:species:Sediment_slowly_reversible', True)
+        elif self.get_config('radionuclide:transfer_setup')=='137Cs_rev':
+            self.set_config('radionuclide:species:LMM',True)
+            self.set_config('radionuclide:species:Particle_reversible', True)
+            self.set_config('radionuclide:species:Sediment_reversible', True)
         elif self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
+            self.set_config('radionuclide:species:LMM', False)
             self.set_config('radionuclide:species:LMMcation', True)
             self.set_config('radionuclide:species:LMManion', True)
             self.set_config('radionuclide:species:Humic_colloid', True)
@@ -294,9 +285,9 @@ class RadionuclideDrift(OceanDrift):
 
 
         self.nspecies      = len(self.name_species)
-        self.logger.info( 'Number of species: {}'.format(self.nspecies) )
-        for i,sp in enumerate(self.name_species):
-            self.logger.info( '{:>3} {}'.format( i, sp ) )
+#         self.logger.info( 'Number of species: {}'.format(self.nspecies) )
+#         for i,sp in enumerate(self.name_species):
+#             self.logger.info( '{:>3} {}'.format( i, sp ) )
 
 
 
@@ -321,29 +312,46 @@ class RadionuclideDrift(OceanDrift):
             num_elements = self.get_config('seed:number')
 
 
-        # Set initial speciation
-        if 'particle_fraction' in kwargs:
-            particle_frac = kwargs['particle_fraction']
+
+        if 'specie' in kwargs:
+            print('num_elements', num_elements)
+            try:
+                print('len specie:',len(kwargs['specie']))
+            except:
+                print('specie:',kwargs['specie'])
+
+            init_specie = np.ones(num_elements,dtype=int)
+            init_specie[:] = kwargs['specie']
+
+
         else:
-            particle_frac = self.get_config('seed:particle_fraction')
 
-        if 'LMM_fraction' in kwargs:
-            lmm_frac = kwargs['LMM_fraction']
-        else:
-            lmm_frac = self.get_config('seed:LMM_fraction')
-
-        shift = int(num_elements * (1-particle_frac))
-        if not lmm_frac + particle_frac == 1.:
-            self.logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
-            self.logger.error('LMM fraction: %s ' % str(lmm_frac))
-            self.logger.error( 'Particle fraction %s '% str(particle_frac) )
-            raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
-
-        init_specie = np.ones(num_elements, int)
-        init_specie[:shift] = self.num_lmm
-        init_specie[shift:] = self.num_prev
-
-        kwargs['specie'] = init_specie
+            # Set initial speciation
+            if 'particle_fraction' in kwargs:
+                particle_frac = kwargs['particle_fraction']
+            else:
+                particle_frac = self.get_config('seed:particle_fraction')
+    
+            if 'LMM_fraction' in kwargs:
+                lmm_frac = kwargs['LMM_fraction']
+            else:
+                lmm_frac = self.get_config('seed:LMM_fraction')
+    
+            shift = int(num_elements * (1-particle_frac))
+            if not lmm_frac + particle_frac == 1.:
+                self.logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
+                self.logger.error('LMM fraction: %s ' % str(lmm_frac))
+                self.logger.error( 'Particle fraction %s '% str(particle_frac) )
+                raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
+    
+            init_specie = np.ones(num_elements, int)
+            if self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
+                init_specie[:shift] = self.num_lmmcation
+            else:
+                init_specie[:shift] = self.num_lmm
+            init_specie[shift:] = self.num_prev
+    
+            kwargs['specie'] = init_specie
 
 
         self.logger.info('Initial speciation:')
@@ -373,7 +381,7 @@ class RadionuclideDrift(OceanDrift):
 
         transfer_setup=self.get_config('radionuclide:transfer_setup')
 
-        self.logger.info( 'transfer setup: %s' % transfer_setup)
+#        self.logger.info( 'transfer setup: %s' % transfer_setup)
 
 
         self.transfer_rates = np.zeros([self.nspecies,self.nspecies])
@@ -409,6 +417,32 @@ class RadionuclideDrift(OceanDrift):
             self.transfer_rates[self.num_prev,self.num_psrev] = slow_coeff
             self.transfer_rates[self.num_ssrev,self.num_srev] = slow_coeff*.1
             self.transfer_rates[self.num_psrev,self.num_prev] = slow_coeff*.1
+
+
+        elif transfer_setup == '137Cs_rev':
+
+            self.num_lmm    = self.specie_name2num('LMM')
+            self.num_prev   = self.specie_name2num('Particle reversible')
+            self.num_srev   = self.specie_name2num('Sediment reversible')
+
+
+            # Simpler version of Values from Simonsen et al (2019a)
+            # Only consider the reversible fraction
+            Kd         = self.get_config('radionuclide:transformations:Kd')
+            Dc         = self.get_config('radionuclide:transformations:Dc')
+            susp_mat    = 1.e-3   # concentration of available suspended particulate matter (kg/m3)
+            sedmixdepth = self.get_config('radionuclide:sediment:sedmixdepth')     # sediment mixing depth (m)
+            default_density =  self.get_config('radionuclide:sediment:sediment_density') # default particle density (kg/m3)
+            f           =  self.get_config('radionuclide:sediment:effective_fraction')      # fraction of effective sorbents
+            phi         =  self.get_config('radionuclide:sediment:corr_factor')      # sediment correction factor
+            poro        =  self.get_config('radionuclide:sediment:porosity')      # sediment porosity
+            layer_thick =  self.get_config('radionuclide:sediment:layer_thick')      # thickness of seabed interaction layer (m)
+
+            self.transfer_rates[self.num_lmm,self.num_prev] = Dc * Kd * susp_mat
+            self.transfer_rates[self.num_prev,self.num_lmm] = Dc
+            self.transfer_rates[self.num_lmm,self.num_srev] = \
+                Dc * Kd * sedmixdepth * default_density * (1.-poro) * f * phi / layer_thick
+            self.transfer_rates[self.num_srev,self.num_lmm] = Dc * phi
 
         elif transfer_setup=='custom':
         # Set of custom values for testing/development
@@ -522,8 +556,8 @@ class RadionuclideDrift(OceanDrift):
 #         self.transfer_rates[:] = 0.
 #         print ('\n ###### \n IMPORTANT:: \n transfer rates have been hacked! \n#### \n ')
 
-        self.logger.info('nspecies: %s' % self.nspecies)
-        self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
+#         self.logger.info('nspecies: %s' % self.nspecies)
+#         self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -611,7 +645,9 @@ class RadionuclideDrift(OceanDrift):
         transfer rates according to local environmental conditions '''
 
         transfer_setup=self.get_config('radionuclide:transfer_setup')
-        if transfer_setup == 'Bokna_137Cs' or transfer_setup=='custom':
+        if transfer_setup == 'Bokna_137Cs' or \
+         transfer_setup=='custom' or \
+         transfer_setup=='137Cs_rev':
             self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
 
             if self.get_config('radionuclide:species:Sediment_reversible'):
