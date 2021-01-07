@@ -325,6 +325,12 @@ class RadionuclideDrift(OceanDrift):
 
 
         else:
+        init_specie = np.ones(num_elements, int)
+        if self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
+            init_specie[:shift] = self.num_lmmcation
+        else:
+            init_specie[:shift] = self.num_lmm
+        init_specie[shift:] = self.num_prev
 
             # Set initial speciation
             if 'particle_fraction' in kwargs:
