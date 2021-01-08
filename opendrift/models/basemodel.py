@@ -1486,11 +1486,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 for which there are no default value must be specified.
         """
 
-        if 'cone' in kwargs and kwargs['cone'] is True:
-            self.logger.warning('Keyword *cone* for seed_elements is deprecated, use seed_cone() instead.')
-            del kwargs['cone']
-            self.seed_cone(lon, lat, time, radius, number, **kwargs)
-            return
+        if 'cone' in kwargs:
+            raise ValueError('Keyword *cone* for seed_elements is deprecated, use seed_cone() instead.')
 
         lon = np.atleast_1d(lon).ravel()
         lat = np.atleast_1d(lat).ravel()
