@@ -6,7 +6,7 @@ def git_describe():
     Return git version if available.
     """
     import os.path
-    from subprocess import check_output
+    from subprocess import check_output, DEVNULL
 
     path = os.path.dirname(__file__)
     args = [
@@ -15,7 +15,7 @@ def git_describe():
     ]
 
     try:
-        version = check_output(args, cwd=path).decode().strip()
+        version = check_output(args, cwd=path, stderr=DEVNULL).decode().strip()
         return version
     except:
         return None
