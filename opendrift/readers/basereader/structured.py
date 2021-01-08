@@ -356,7 +356,7 @@ class StructuredReader(Variables):
                         nproc = 32
                     if num_elements > 1000000:
                         nproc = 64
-                    cpus = cpu_count()
+                    cpus = multiprocessing.cpu_count()
                     nproc = np.minimum(nproc, cpus - 1)
                     nproc = np.maximum(2, nproc)
                     logger.debug(
