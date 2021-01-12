@@ -15,6 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
+import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 #from opendrift.elements import LagrangianArray

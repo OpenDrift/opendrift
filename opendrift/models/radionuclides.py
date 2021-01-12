@@ -15,6 +15,7 @@
 # Copyright 2015, Magne Simonsen, MET Norway
 
 import numpy as np
+import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 import pyproj
@@ -209,15 +210,15 @@ class RadionuclideDrift(OceanDrift):
 
     def prepare_run(self):
 
-        self.logger.info( 'Number of species: {}'.format(self.nspecies) )
+        logger.info( 'Number of species: {}'.format(self.nspecies) )
         for i,sp in enumerate(self.name_species):
-            self.logger.info( '{:>3} {}'.format( i, sp ) )
+            logger.info( '{:>3} {}'.format( i, sp ) )
 
 
-        self.logger.info( 'transfer setup: %s' % self.get_config('radionuclide:transfer_setup'))
-       
-        self.logger.info('nspecies: %s' % self.nspecies)
-        self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
+        logger.info( 'transfer setup: %s' % self.get_config('radionuclide:transfer_setup'))
+
+        logger.info('nspecies: %s' % self.nspecies)
+        logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -246,7 +247,7 @@ class RadionuclideDrift(OceanDrift):
             # Do nothing, species must be set manually
             pass
         else:
-            self.logger.error('No valid transfer_setup {}'.format(self.get_config('radionuclide:transfer_setup')))
+            logger.error('No valid transfer_setup {}'.format(self.get_config('radionuclide:transfer_setup')))
 
 
         self.name_species=[]
@@ -285,9 +286,9 @@ class RadionuclideDrift(OceanDrift):
 
 
         self.nspecies      = len(self.name_species)
-#         self.logger.info( 'Number of species: {}'.format(self.nspecies) )
+#         logger.info( 'Number of species: {}'.format(self.nspecies) )
 #         for i,sp in enumerate(self.name_species):
-#             self.logger.info( '{:>3} {}'.format( i, sp ) )
+#             logger.info( '{:>3} {}'.format( i, sp ) )
 
 
 
@@ -331,32 +332,32 @@ class RadionuclideDrift(OceanDrift):
                 particle_frac = kwargs['particle_fraction']
             else:
                 particle_frac = self.get_config('seed:particle_fraction')
-    
+
             if 'LMM_fraction' in kwargs:
                 lmm_frac = kwargs['LMM_fraction']
             else:
                 lmm_frac = self.get_config('seed:LMM_fraction')
-    
+
             shift = int(num_elements * (1-particle_frac))
             if not lmm_frac + particle_frac == 1.:
-                self.logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
-                self.logger.error('LMM fraction: %s ' % str(lmm_frac))
-                self.logger.error( 'Particle fraction %s '% str(particle_frac) )
+                logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
+                logger.error('LMM fraction: %s ' % str(lmm_frac))
+                logger.error( 'Particle fraction %s '% str(particle_frac) )
                 raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
-    
+
             init_specie = np.ones(num_elements, int)
             if self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
                 init_specie[:shift] = self.num_lmmcation
             else:
                 init_specie[:shift] = self.num_lmm
             init_specie[shift:] = self.num_prev
-    
+
             kwargs['specie'] = init_specie
 
 
-        self.logger.info('Initial speciation:')
+        logger.info('Initial speciation:')
         for i,sp in enumerate(self.name_species):
-            self.logger.info( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
+            logger.info( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
 
         # Set initial particle size according to speciation
         if 'diameter' in kwargs:
@@ -381,7 +382,7 @@ class RadionuclideDrift(OceanDrift):
 
         transfer_setup=self.get_config('radionuclide:transfer_setup')
 
-#        self.logger.info( 'transfer setup: %s' % transfer_setup)
+#        logger.info( 'transfer setup: %s' % transfer_setup)
 
 
         self.transfer_rates = np.zeros([self.nspecies,self.nspecies])
@@ -542,7 +543,7 @@ class RadionuclideDrift(OceanDrift):
 
 
         else:
-            self.logger.ERROR('No transfer setup available')
+            logger.ERROR('No transfer setup available')
 
 
         # Set diagonal to 0. (not possible to transform to present specie)
@@ -556,8 +557,8 @@ class RadionuclideDrift(OceanDrift):
 #         self.transfer_rates[:] = 0.
 #         print ('\n ###### \n IMPORTANT:: \n transfer rates have been hacked! \n#### \n ')
 
-#         self.logger.info('nspecies: %s' % self.nspecies)
-#         self.logger.info('Transfer rates:\n %s' % self.transfer_rates)
+#         logger.info('nspecies: %s' % self.nspecies)
+#         logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -695,7 +696,7 @@ class RadionuclideDrift(OceanDrift):
         # Transformation where ran1 < total probability for transformation
         phaseshift[ ran1 < psum ] = True
 
-        self.logger.info('Number of transformations: %s' % sum(phaseshift))
+        logger.info('Number of transformations: %s' % sum(phaseshift))
         if sum(phaseshift) == 0:
             return
 
@@ -712,15 +713,15 @@ class RadionuclideDrift(OceanDrift):
         # Set the new speciation
         self.elements.specie=specie_out
 
-        self.logger.debug('old species: %s' % specie_in[phaseshift])
-        self.logger.debug('new species: %s' % specie_out[phaseshift])
+        logger.debug('old species: %s' % specie_in[phaseshift])
+        logger.debug('new species: %s' % specie_out[phaseshift])
 
 
         for iin in range(self.nspecies):
             for iout in range(self.nspecies):
                 self.ntransformations[iin,iout]+=sum((specie_in[phaseshift]==iin) & (specie_out[phaseshift]==iout))
 
-        self.logger.debug('Number of transformations total:\n %s' % self.ntransformations )
+        logger.debug('Number of transformations total:\n %s' % self.ntransformations )
 
 
         # Update radionuclide properties after transformations
@@ -757,14 +758,14 @@ class RadionuclideDrift(OceanDrift):
             self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = \
                 self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
             if std > 0:
-                self.logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
+                logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmm) & (sp_in==self.num_srev)))
         if self.get_config('radionuclide:species:LMMcation'):
             self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = \
                 self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
             if std > 0:
-                self.logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
+                logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmmcation) & (sp_in==self.num_srev)))
 
@@ -784,7 +785,7 @@ class RadionuclideDrift(OceanDrift):
         self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)] = dia_part
         std = self.get_config('radionuclide:particle_diameter_uncertainty')
         if std > 0:
-            self.logger.debug('Adding uncertainty for particle diameter: %s m' % std)
+            logger.debug('Adding uncertainty for particle diameter: %s m' % std)
             self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)] += np.random.normal(
                     0, std, sum((sp_out==self.num_prev) & (sp_in!=self.num_prev)))
 
@@ -792,7 +793,7 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:slowly_fraction'):
             self.elements.diameter[(sp_out==self.num_psrev) & (sp_in!=self.num_psrev)] = dia_part
             if std > 0:
-                self.logger.debug('Adding uncertainty for slowly rev particle diameter: %s m' % std)
+                logger.debug('Adding uncertainty for slowly rev particle diameter: %s m' % std)
                 self.elements.diameter[(sp_out==self.num_psrev) & (sp_in!=self.num_psrev)] += np.random.normal(
                     0, std, sum((sp_out==self.num_psrev) & (sp_in!=self.num_psrev)))
 
@@ -800,7 +801,7 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:irreversible_fraction'):
             self.elements.diameter[(sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)] = dia_part
             if std > 0:
-                self.logger.debug('Adding uncertainty for irrev particle diameter: %s m' % std)
+                logger.debug('Adding uncertainty for irrev particle diameter: %s m' % std)
                 self.elements.diameter[(sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)] += np.random.normal(
                     0, std, sum((sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)))
 
@@ -868,11 +869,11 @@ class RadionuclideDrift(OceanDrift):
         bottom = (self.elements.z <= Zmin)
 
         resusp = ( (bottom) & (speed >= critvel) )
-        self.logger.info('Number of resuspended particles: {}'.format(np.sum(resusp)))
+        logger.info('Number of resuspended particles: {}'.format(np.sum(resusp)))
 
         self.elements.z[resusp] = Zmin[resusp] + resusp_depth
         if std > 0:
-            self.logger.debug('Adding uncertainty for resuspension from sediments: %s m' % std)
+            logger.debug('Adding uncertainty for resuspension from sediments: %s m' % std)
             self.elements.z[resusp] += np.random.normal(
                         0, std, sum(resusp))
         self.elements.z[resusp] = [min(0,zz) for zz in self.elements.z[resusp]]
@@ -909,7 +910,7 @@ class RadionuclideDrift(OceanDrift):
 
         # Resuspension
         self.resuspension()
-        self.logger.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
+        logger.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
 
 
 
@@ -967,7 +968,7 @@ class RadionuclideDrift(OceanDrift):
 
         from netCDF4 import Dataset, date2num #, stringtochar
 
-        self.logger.info('Postprocessing: Write density and concentration to netcdf file')
+        logger.info('Postprocessing: Write density and concentration to netcdf file')
 
         if pixelsize_m == 'auto':
             lon, lat = self.get_lonlats()
@@ -1004,7 +1005,7 @@ class RadionuclideDrift(OceanDrift):
             z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
         else:
             z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
-        self.logger.info('z_array: {}'.format(  [str(item) for item in z_array] ) )
+        logger.info('z_array: {}'.format(  [str(item) for item in z_array] ) )
 
 
 
@@ -1026,7 +1027,7 @@ class RadionuclideDrift(OceanDrift):
 
         if horizontal_smoothing:
             # Compute horizontally smoother field
-            self.logger.info('H.shape: ' + str(H.shape))
+            logger.info('H.shape: ' + str(H.shape))
             Hsm = np.zeros_like(H)
             for zi in range(len(z_array)-1):
                 for sp in range(self.nspecies):
@@ -1036,7 +1037,7 @@ class RadionuclideDrift(OceanDrift):
 
 
         # Convert from density to concentration
-        self.logger.info('Activity: '+str(activity_per_element)+' '+ activity_unit+ ' per unit')
+        logger.info('Activity: '+str(activity_per_element)+' '+ activity_unit+ ' per unit')
 
         # Compute mean depth and volume in each pixel grid cell
         pixel_mean_depth  =  self.get_pixel_mean_depth(lon_array, lat_array)
@@ -1082,8 +1083,8 @@ class RadionuclideDrift(OceanDrift):
             times2 = times[::ndt]
             times2 = times2[1:]
             odt = int(cshape[0]/ndt)
-            self.logger.info ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
-            self.logger.info ('odt '+ str(odt))   # number of average slices
+            logger.info ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
+            logger.info ('odt '+ str(odt))   # number of average slices
 
 
             # This may probably be written more efficiently!
@@ -1238,7 +1239,7 @@ class RadionuclideDrift(OceanDrift):
 
 
         nc.close()
-        self.logger.info('Wrote to '+filename)
+        logger.info('Wrote to '+filename)
 
 
 

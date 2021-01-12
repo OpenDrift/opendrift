@@ -17,6 +17,7 @@
 from builtins import range
 import os
 from collections import OrderedDict
+import logging; logger = logging.getLogger(__name__)
 
 import numpy as np
 
@@ -89,7 +90,7 @@ class Leeway(OpenDriftSimulation):
         'x_sea_water_velocity': {'fallback': None},
         'y_sea_water_velocity': {'fallback': None},
         'land_binary_mask': {'fallback': None},
-        } 
+        }
 
 
     # Default colors for plotting
@@ -175,10 +176,10 @@ class Leeway(OpenDriftSimulation):
                     found = True
                     break
             if found is False:
-                self.logger.info(self.list_configspec())
+                logger.info(self.list_configspec())
                 raise ValueError('Object %s not available' % object_type)
 
-        self.logger.info('Seeding elements of object type %i: %s (%s)' %
+        logger.info('Seeding elements of object type %i: %s (%s)' %
                      (object_type, self.leewayprop[object_type]['OBJKEY'],
                       self.leewayprop[object_type]['Description']))
 
@@ -301,7 +302,7 @@ class Leeway(OpenDriftSimulation):
         jib = jp_per_timestep > np.random.random(self.num_elements_active())
         self.elements.crosswind_slope[jib] = - self.elements.crosswind_slope[jib]
         self.elements.orientation[jib] = 1 - self.elements.orientation[jib]
-        self.logger.debug('Jibing %i out of %i elements.' %
+        logger.debug('Jibing %i out of %i elements.' %
                       (np.sum(jib), self.num_elements_active()))
 
     def export_ascii(self, filename):
@@ -347,7 +348,7 @@ class Leeway(OpenDriftSimulation):
         seedDuration = (self.ascii['time'][1]-self.ascii['time'][0]).total_seconds()/60.
         seedSteps=seedDuration/(self.time_step_output.total_seconds()/60.)
         seedSteps = np.maximum(1, seedSteps)
-        f.write( 
+        f.write(
             '# Duration of seeding [min] & [timesteps]:\n'
             'seedDuration   seedSteps\n'
             '    %i      %i\n'

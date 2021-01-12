@@ -14,6 +14,7 @@
 #
 # Copyright 2016, Knut-Frode Dagestad, MET Norway
 
+import logging; logger = logging.getLogger(__name__)
 import numpy as np
 from math import sqrt
 import pyproj
@@ -269,13 +270,13 @@ class PhysicsMethods:
                                                self.elements.lat,
                                                az, dist, radians=False)
             # Find current at midpoint, a half timestep later
-            self.logger.debug('Runge-kutta, fetching half time-step later...')
+            logger.debug('Runge-kutta, fetching half time-step later...')
             mid_env, profiles, missing = self.get_environment(
                 ['x_sea_water_velocity', 'y_sea_water_velocity'],
                 self.time + self.time_step/2,
                 mid_lon, mid_lat, self.elements.z, profiles=None)
             if self.get_config('drift:advection_scheme') == 'runge-kutta4':
-                self.logger.debug('Runge-kutta 4th order...')
+                logger.debug('Runge-kutta 4th order...')
                 x_vel2 = mid_env['x_sea_water_velocity']
                 y_vel2 = mid_env['y_sea_water_velocity']
                 az2 = np.degrees(np.arctan2(x_vel2, y_vel2))
@@ -332,7 +333,7 @@ class PhysicsMethods:
                     factor*self.environment.sea_ice_y_velocity)
         else:
             if not hasattr(self.environment, 'x_sea_water_velocity'):
-                self.logger.info('No sea ice velocity available')
+                logger.info('No sea ice velocity available')
                 return
             # Sea ice velocity, rule-of-thumb from Nordam,
             # doi:10.1016/j.marpolbul.2019.01.019
@@ -375,9 +376,9 @@ class PhysicsMethods:
         surface = self.elements.z >= -wind_drift_depth
         if surface.sum() == 0:
             if surface_only is True:
-                self.logger.debug('All elements are below surface, no wind-induced shear drift')
+                logger.debug('All elements are below surface, no wind-induced shear drift')
             else:
-                self.logger.debug('All elements are below %fm, no wind-induced shear drift' % wind_drift_depth[0])
+                logger.debug('All elements are below %fm, no wind-induced shear drift' % wind_drift_depth[0])
             return
 
         wdf = wind_drift_factor.copy()
@@ -401,20 +402,20 @@ class PhysicsMethods:
 
         speed = np.sqrt(x_wind[surface]*x_wind[surface] + y_wind[surface]*y_wind[surface])
         if wdf[surface].max() == 0:
-            self.logger.debug('Wind drift factor is 0')
+            logger.debug('Wind drift factor is 0')
             return
         if speed.max() == 0:
-            self.logger.debug('No wind for wind-sheared ocean drift')
+            logger.debug('No wind for wind-sheared ocean drift')
             return
 
         speed = speed*wdf[surface]
         if surface_only is True:
-            self.logger.debug('Advecting %s of %i elements at surface with '
+            logger.debug('Advecting %s of %i elements at surface with '
                           'wind-sheared ocean current (%f m/s - %f m/s)'
                           % (np.sum(surface), self.num_elements_active(),
                              speed.min(), speed.max()))
         else:
-            self.logger.debug('Advecting %s of %i elements above %.3fm with '
+            logger.debug('Advecting %s of %i elements above %.3fm with '
                           'wind-sheared ocean current (%f m/s - %f m/s)'
                           % (np.sum(surface), self.num_elements_active(),
                              wind_drift_depth[0],
@@ -425,23 +426,23 @@ class PhysicsMethods:
     def stokes_drift(self, factor=1):
 
         if self.get_config('drift:stokes_drift') is False:
-            self.logger.debug('Stokes drift not activated')
+            logger.debug('Stokes drift not activated')
             return
 
         if np.max(np.array(
             self.environment.sea_surface_wave_stokes_drift_x_velocity+
             self.environment.sea_surface_wave_stokes_drift_y_velocity)) \
                 == 0:
-            self.logger.debug('No Stokes drift velocity available')
+            logger.debug('No Stokes drift velocity available')
             return
 
         wave_height = self.significant_wave_height()
         wave_period = self.wave_period()
         if np.max(np.array(wave_height)) == 0:
-            self.logger.debug('Stokes drift is available, but not Hs: using Hs=1 for Stokes profile')
+            logger.debug('Stokes drift is available, but not Hs: using Hs=1 for Stokes profile')
             wave_height = 1
         if np.max(np.array(wave_period)) == 0:
-            self.logger.debug('Stokes drift is available, but not Tp: using Tp=8 for Stokes profile')
+            logger.debug('Stokes drift is available, but not Tp: using Tp=8 for Stokes profile')
             wave_period = 8
 
         stokes_u, stokes_v, s = stokes_drift_profile_breivik(
@@ -451,9 +452,9 @@ class PhysicsMethods:
 
         self.update_positions(stokes_u*factor, stokes_v*factor)
         if s.min() == s.max():
-            self.logger.debug('Advecting with Stokes drift (%s m/s)' % s.min())
+            logger.debug('Advecting with Stokes drift (%s m/s)' % s.min())
         else:
-            self.logger.debug('Advecting with Stokes drift (%s to %s m/s)' %
+            logger.debug('Advecting with Stokes drift (%s to %s m/s)' %
                       (s.min(), s.max()))
 
     def wave_stokes_drift_parameterised(self, wind, fetch):
@@ -545,7 +546,7 @@ class PhysicsMethods:
                    'sea_surface_wave_significant_height') and \
                 self.environment.sea_surface_wave_significant_height.max() == 0:
             Hs = self.significant_wave_height()
-            self.logger.debug('Calculating Hs from wind, min: %f, mean: %f, max: %f' %
+            logger.debug('Calculating Hs from wind, min: %f, mean: %f, max: %f' %
                           (Hs.min(), Hs.mean(), Hs.max()))
 
         # Missing wave periode
@@ -553,7 +554,7 @@ class PhysicsMethods:
                    'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment') and \
                 self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() == 0:
             wave_period = self.wave_period()
-            self.logger.debug('Calculating wave period from wind, min: %f, mean: %f, max: %f' %
+            logger.debug('Calculating wave period from wind, min: %f, mean: %f, max: %f' %
                           (wave_period.min(), wave_period.mean(), wave_period.max()))
 
 
@@ -595,25 +596,25 @@ class PhysicsMethods:
                 ) and self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
             # prefer using Tm02:
             T = self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.copy()
-            self.logger.debug('Using mean period Tm02 as wave period')
+            logger.debug('Using mean period Tm02 as wave period')
         elif hasattr(self.environment, 'sea_surface_wave_period_at_variance_spectral_density_maximum'
                 ) and self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
             # alternatively use Tp
             T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
-            self.logger.debug('Using peak period Tp as wave period')
+            logger.debug('Using peak period Tp as wave period')
         else:
             # calculate Tp from wind speed:
-            self.logger.debug('Calculating wave period Tm02 from wind')
+            logger.debug('Calculating wave period Tm02 from wind')
             T = (2*np.pi)/self._wave_frequency()
             self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment = T
 
         #print '\n T %s \n' % str(T.mean())
         if T.min() == 0:
-            self.logger.warning('Zero wave period found - '
+            logger.warning('Zero wave period found - '
                             'replacing with mean')
             T[T==0] = np.mean(T[T>0])
 
-        self.logger.debug('   min: %f, mean: %f, max: %f' % (T.min(), T.mean(), T.max()))
+        logger.debug('   min: %f, mean: %f, max: %f' % (T.min(), T.mean(), T.max()))
 
         return T
 

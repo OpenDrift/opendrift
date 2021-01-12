@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 from scipy.ndimage import map_coordinates
+import logging; logging.captureWarnings(True); logger = logging.getLogger(__name__)
 import scipy.ndimage as ndimage
 from scipy.interpolate import interp1d, LinearNDInterpolator
 
@@ -82,7 +83,7 @@ class LinearND2DInterpolator():
 
         if hasattr(self, 'interpolator'):
             if not np.array_equal(valid, self.interpolator.valid):
-                self.logger.debug('Cannot reuse interpolator - validity of '
+                logger.debug('Cannot reuse interpolator - validity of '
                               'array is different from original.')
         if hasattr(self, 'interpolator') and (np.array_equal(
                  valid, self.interpolator.valid)):
@@ -117,10 +118,10 @@ class Linear2DInterpolator():
 
     def __call__(self, array2d):
         if isinstance(array2d,np.ma.MaskedArray):
-            self.logger.debug('Converting masked array to numpy array for interpolation')
+            logger.debug('Converting masked array to numpy array for interpolation')
             array2d = np.ma.filled(array2d, fill_value=np.nan)
         if not np.isfinite(array2d).any():
-            self.logger.warning('Only NaNs input to linearNDFast - returning')
+            logger.warning('Only NaNs input to linearNDFast - returning')
             return np.nan*np.ones(len(self.xi))
 
         # Fill NaN-values with nearby real values
@@ -131,9 +132,9 @@ class Linear2DInterpolator():
         while len(missing) > 0:
             i += 1
             if i > 10:
-                self.logger.warning('Still NaN-values after 10 iterations, exiting!')
+                logger.warning('Still NaN-values after 10 iterations, exiting!')
                 return interp
-            self.logger.debug('NaN values for %i elements, expanding data %i' %
+            logger.debug('NaN values for %i elements, expanding data %i' %
                           (len(missing), i))
             expand_numpy_array(array2d)
             interp[missing] = map_coordinates(

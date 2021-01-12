@@ -22,6 +22,7 @@
 import os
 import numpy as np
 import scipy
+import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
@@ -82,7 +83,7 @@ class ShipDrift(OpenDriftSimulation):
     no properties except for position) with the ambient wind.
     """
 
-    ElementType = ShipObject 
+    ElementType = ShipObject
 
     required_variables = {
         'x_wind': {'fallback': 0},
@@ -127,7 +128,7 @@ class ShipDrift(OpenDriftSimulation):
             for i in range(ndraft):
                 l = w.readline()
                 self.wforce['D'][o, i, :] = l.split()[0:nbeam]
-                
+
         w.close()
         wi_omega, wi_BL, wi_DL = \
             np.meshgrid(self.wforce['omega'],
@@ -150,7 +151,7 @@ class ShipDrift(OpenDriftSimulation):
         self._set_config_default('drift:wind_uncertainty', .5)
 
     def seed_elements(self, *args, **kwargs):
-        
+
         if 'number' in kwargs:
             num = kwargs['number']
         else:
@@ -293,13 +294,13 @@ class ShipDrift(OpenDriftSimulation):
 
         # Wave direction is taken as wind direction plus offset +/- 20 degrees
         offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
-        if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and 
+        if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and
             self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0):
-                self.logger.info('Using wind direction as wave direction')
+                logger.info('Using wind direction as wave direction')
                 wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
                                                            self.environment.x_wind)
         else:
-            self.logger.info('Using Stokes drift direction as wave direction')
+            logger.info('Using Stokes drift direction as wave direction')
             wave_dir = np.radians(offset) + np.arctan2(
                 self.environment.sea_surface_wave_stokes_drift_x_velocity,
                 self.environment.sea_surface_wave_stokes_drift_y_velocity)
@@ -309,7 +310,7 @@ class ShipDrift(OpenDriftSimulation):
                           np.power(F_wind_y + F_wave_y, 2))
 
         # Iterate 4 times in order to estimate the effect of
-        # wave damping and form drag 
+        # wave damping and form drag
         uw_tot = 0
         uw_dir = 0
         for i in range(4):
@@ -319,7 +320,7 @@ class ShipDrift(OpenDriftSimulation):
             # Calc new drift direction, including effect of
             # wave damping (Ref (1), eq. 6.6.1)
             uw_dir = np.arctan2(F_wind_y+F_wave_y-f2y, F_wind_x+F_wave_x-f2x)
-            # Ref (1), eq. 6.6.3 
+            # Ref (1), eq. 6.6.3
             bet2c = beta2*np.cos((wave_dir-uw_dir))
             # Ref (1), eq. 6.4.3
             uw_tot = -bet2c/(2.*beta1) + np.sqrt(bet2c*bet2c +
@@ -345,7 +346,7 @@ class ShipDrift(OpenDriftSimulation):
         num_timesteps = (len(lines)-30.)/14.
         num_timesteps = int(num_timesteps)
 
-        # Initialise history array 
+        # Initialise history array
         from datetime import datetime, timedelta
         history_dtype_fields = [
             (name, self.ElementType.variables[name]['dtype'])
