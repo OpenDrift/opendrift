@@ -1,4 +1,4 @@
-__version__ = "1.5.2-rc1"
+__version__ = "1.5.2rc1"
 
 
 def git_describe():
