@@ -353,8 +353,8 @@ class OpenDriftGUI(tk.Tk):
         forcingfiles = open(self.o.test_data_folder() + '../../opendrift/scripts/data_sources.txt').readlines()
         print(forcingfiles)
         for i, ff in enumerate(forcingfiles):
-            tk.Label(self.forcing, text=ff.strip()).grid(
-                        row=i, column=0, sticky=tk.W)
+            tk.Label(self.forcing, text=ff.strip(), wraplength=650, font=('Courier', 8)).grid(
+                     row=i, column=0, sticky=tk.W)
 
         ##########################
         try:
