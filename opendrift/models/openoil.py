@@ -226,11 +226,13 @@ class OpenOil(OceanDrift):
                                 location==kwargs['location']).all()
                 del kwargs['location']
                 all_oiltypes = session.query(Oil.name).all()
-                generic_oiltypes = [o for o in all_oiltypes if o[0][0:2] == '*G']
-                self.oiltypes.extend(generic_oiltypes)
+                generic_oiltypes = [o for o in all_oiltypes if o[0][0:7] == 'GENERIC']
+                generic_oiltypes = sorted([o[0] for o in generic_oiltypes])
             else:
                 self.oiltypes = session.query(Oil.name).all()
             self.oiltypes = sorted([o[0] for o in self.oiltypes])
+            if 'generic_oiltypes' in locals():  # We put generic oils first
+                self.oiltypes = generic_oiltypes + self.oiltypes
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
         else:
             raise ValueError('Weathering model unknown: ' + weathering_model)
