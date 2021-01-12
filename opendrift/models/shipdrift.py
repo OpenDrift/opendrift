@@ -52,13 +52,13 @@ class ShipObject(LagrangianArray):
         ('draft', {'dtype': np.float32,  # wet part of ship [m]
                          'units': 'm',
                          'min': 1,
-                         'max': 20,
+                         'max': 30,
             'description': 'Draft of ship (depth below water)',
             'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 4.0}),
         ('beam', {'dtype': np.float32,  # width of ship
                          'min': 1,
-                         'max': 50,
+                         'max': 70,
                          'units': 'm',
             'description': 'Beam (width) of ship',
             'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
@@ -165,14 +165,17 @@ class ShipDrift(OpenDriftSimulation):
         # Check that beam and height vs length are within expected range
         dl = kwargs['draft']/kwargs['length']
         if dl.min() < 0.025 or dl.max() > 0.07:
-            raise ValueError('Ratio of draft to length should be in range '
-                             '0.025 to 0.07, given range is %s-%s' %
-                             (dl.min(), dl.max()))
+            self.logger.warning('Ratio of draft to length should be in range '
+                                '0.025 to 0.07, given range is %s-%s. '
+                                'Using border value.' %
+                                (dl.min(), dl.max()))
+            dl = np.clip(dl, 0.025, 0.07)
         bl = kwargs['beam']/kwargs['length']
         if bl.min() < 0.12 or bl.max() > 0.18:
-            raise ValueError('Ratio of beam to length should be in range '
-                             '0.12 to 0.18, given range is %s-%s' %
-                             (bl.min(), bl.max()))
+            self.logger.warning('Ratio of beam to length should be in range '
+                                '0.12 to 0.18, given range is %s-%s. ' 
+                                'Using border value.' %
+                                (bl.min(), bl.max()))
 
         # Calculate drag coefficients based on given ship dimensions
         # Wind drag coefficient
@@ -184,7 +187,7 @@ class ShipDrift(OpenDriftSimulation):
         kwargs['wind_drag_coeff'] = Cf
 
         # Water drag coefficient
-        beta = 2.0*kwargs['draft']/kwargs['length']
+        beta = 2.0*dl
         Cd = np.zeros(num)
         Cd[beta>.12] = 1.27
         Cd[beta<=.12] =  1.32 + (1.27-1.32)/0.02 * (beta[beta<=.12]-0.10)
@@ -211,6 +214,12 @@ class ShipDrift(OpenDriftSimulation):
         Hs = self.significant_wave_height()
         dl = self.elements.draft/self.elements.length
         bl = self.elements.beam/self.elements.length
+        # Clip to allowed range
+        bl = np.clip(bl, 0.12, 0.18)
+        dl = np.clip(dl, 0.025, 0.07)
+        # Additional clipping to avoid NaN from interpolator
+        bl = np.clip(bl, 0.121, 0.179)
+        dl = np.clip(dl, 0.0251, 0.069)
 
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
