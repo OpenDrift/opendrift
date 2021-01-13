@@ -4,7 +4,7 @@ Opendrift module
 .. currentmodule:: opendrift
 
 """
-import logging
+import logging; logger = logging.getLogger(__name__)
 import unittest
 import importlib
 import platform
@@ -43,7 +43,7 @@ def open(filename, times=None, elements=None):
     import pydoc
     from netCDF4 import Dataset
     if not os.path.exists(filename):
-        logging.info('File does not exist, trying to retrieve from URL')
+        logger.info('File does not exist, trying to retrieve from URL')
         import urllib
         try:
             urllib.urlretrieve(filename, 'opendrift_tmp.nc')
@@ -72,7 +72,7 @@ def open(filename, times=None, elements=None):
         cls = oceandrift.OceanDrift
     o = cls()
     o.io_import_file(filename, times=times, elements=elements)
-    logging.info('Returning ' + str(type(o)) + ' object')
+    logger.info('Returning ' + str(type(o)) + ' object')
     return o
 
 def open_xarray(filename, analysis_file=None, chunks={'trajectory': 50000, 'time': 1000}):
@@ -82,7 +82,7 @@ def open_xarray(filename, analysis_file=None, chunks={'trajectory': 50000, 'time
     import pydoc
     import xarray as xr
     if not os.path.exists(filename):
-        logging.info('File does not exist, trying to retrieve from URL')
+        logger.info('File does not exist, trying to retrieve from URL')
         import urllib
         try:
             urllib.urlretrieve(filename, 'opendrift_tmp.nc')
@@ -114,7 +114,7 @@ def open_xarray(filename, analysis_file=None, chunks={'trajectory': 50000, 'time
     o.io_import_file_xarray(filename, chunks=chunks)
 
 
-    logging.info('Returning ' + str(type(o)) + ' object')
+    logger.info('Returning ' + str(type(o)) + ' object')
     return o
 
 

@@ -166,15 +166,15 @@ class ShipDrift(OpenDriftSimulation):
         # Check that beam and height vs length are within expected range
         dl = kwargs['draft']/kwargs['length']
         if dl.min() < 0.025 or dl.max() > 0.07:
-            self.logger.warning('Ratio of draft to length should be in range '
+            logger.warning('Ratio of draft to length should be in range '
                                 '0.025 to 0.07, given range is %s-%s. '
                                 'Using border value.' %
                                 (dl.min(), dl.max()))
             dl = np.clip(dl, 0.025, 0.07)
         bl = kwargs['beam']/kwargs['length']
         if bl.min() < 0.12 or bl.max() > 0.18:
-            self.logger.warning('Ratio of beam to length should be in range '
-                                '0.12 to 0.18, given range is %s-%s. ' 
+            logger.warning('Ratio of beam to length should be in range '
+                                '0.12 to 0.18, given range is %s-%s. '
                                 'Using border value.' %
                                 (bl.min(), bl.max()))
 

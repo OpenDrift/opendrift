@@ -41,7 +41,7 @@ try:
     if ('DISPLAY' not in os.environ and
             'PYCHARM_HOSTED' not in os.environ and
             os.name != 'nt'):
-        logging.info('No display found. Using non-interactive Agg backend')
+        logger.info('No display found. Using non-interactive Agg backend')
         matplotlib.use('agg')
     import matplotlib.pyplot as plt
     from matplotlib import animation
@@ -209,6 +209,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
                 # coloredlogs does not create duplicate handlers
                 coloredlogs.install(level = loglevel, logger = od_logger, fmt = format, datefmt = datefmt, field_styles = fields)
+            od_logger.info("Installed logger with level: %s" % loglevel)
 
         # Prepare outfile
         try:
@@ -1401,17 +1402,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         ])
             reader_landmask.name = 'tempreader'
             o = OceanDrift(
-                loglevel=logger.getEffectiveLevel())
+                loglevel='custom')
             o.add_reader(reader_landmask)
             land_reader = reader_landmask
 
-            tmp_reader = True
         else:
             logger.info('Using existing reader for land_binary_mask')
             land_reader_name = self.priority_list['land_binary_mask'][0]
             land_reader = self.readers[land_reader_name]
             o = self
-            tmp_reader = False
+
         land = o.get_environment(['land_binary_mask'],
             lon=lon, lat=lat, z=0*lon, time=land_reader.start_time,
             profiles=None)[0]['land_binary_mask']
@@ -1926,8 +1926,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 try:
                     geom.Transform(coordTrans)
                 except Exception as e:
-                    logging.warning('Could not transform coordinates:')
-                    logging.warning(e)
+                    logger.warning('Could not transform coordinates:')
+                    logger.warning(e)
                     pass
                 #b = geom.GetBoundary()
                 #if b is not None:
@@ -2268,6 +2268,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 extent=simulation_extent,
                 start_time=self.start_time, end_time = self.expected_end_time)
 
+        logger.info("test 2x")
         ##############################################################
         # If no landmask has been added, we determine it dynamically
         ##############################################################
@@ -2296,6 +2297,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             self.timer_end('preparing main loop:making dynamical landmask')
 
+        logger.info("2 test 2x")
         # Move point seed on land to ocean
         if self.get_config('seed:ocean_only') is True and \
             ('land_binary_mask' not in self.fallback_values) and \
