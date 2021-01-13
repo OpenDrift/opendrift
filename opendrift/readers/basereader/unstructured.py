@@ -162,7 +162,7 @@ class UnstructuredReader(Variables):
         Return index of nearest point in cKDTree
         """
         q = np.vstack((x, y)).T
-        return idx.query(q, k = 1, n_jobs = -1)[1]
+        return idx.query(q, k = 1, workers = -1)[1]
 
     @staticmethod
     def __nearest_rtree__(idx, x, y):
