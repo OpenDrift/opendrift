@@ -18,10 +18,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import pyproj
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     """Analytical current field with double gyre"""
 
     def __init__(self, initial_time=datetime(2000,1,1,0,0),
@@ -35,7 +35,6 @@ class Reader(BaseReader):
         self.proj4 = proj4
         self.proj = pyproj.Proj(proj4)
 
-        self.return_block = False
         self.xmin = 0.
         self.xmax = 2.
         self.ymin = 0.
@@ -54,7 +53,7 @@ class Reader(BaseReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requestedVariables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None):
 
         requestedVariables, time, x, y, z, outside = self.check_arguments(
             requestedVariables, time, x, y, z)

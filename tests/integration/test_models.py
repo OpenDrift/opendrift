@@ -142,15 +142,14 @@ class TestModels(unittest.TestCase):
     def test_openberg(self):
         """Check if weighting array is set correctly
         and if model returns expected positions"""
-        o = OpenBerg(loglevel=50)
+        o = OpenBerg()
         o.set_config('drift:current_uncertainty', 0)
         o.set_config('drift:wind_uncertainty', 0)
 
         reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                 '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
 
-        reader_landmask = reader_global_landmask.Reader(
-                extent=[3., 5., 60., 63.5])
+        reader_landmask = reader_global_landmask.Reader()
 
         o.add_reader([reader_current,reader_landmask])
         o.seed_elements(4.,62.,time=reader_current.start_time)
@@ -163,11 +162,11 @@ class TestModels(unittest.TestCase):
 
         self.assertAlmostEqual(o.history['lon'].data[0][1],3.9921231,3)
         self.assertAlmostEqual(o.history['lat'].data[0][1],62.0108299,3)
-    
+
     def test_oil_in_ice(self):
-        """ Testing ice-in-oil transport with 
+        """ Testing ice-in-oil transport with
         different values of sea ice concentration as defined by Nordam et al. 2019"""
-        
+
         c = [0.2, 0.5, 0.8]
         lon = 24; lat = 81
 
@@ -176,9 +175,9 @@ class TestModels(unittest.TestCase):
 
         geod = pyproj.Geod(ellps='WGS84')
 
-        for i in c: 
+        for i in c:
             o = OpenOil(loglevel=50)
-            o.set_config('environment:fallback:x_wind', 0)  # zonal wind 
+            o.set_config('environment:fallback:x_wind', 0)  # zonal wind
             o.set_config('environment:fallback:y_wind', 4)  # meridional wind
 
             o.set_config('environment:fallback:x_sea_water_velocity', 0)  # eastward current

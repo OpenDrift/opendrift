@@ -71,7 +71,6 @@ class TestRun(unittest.TestCase):
     def make_OceanDrift_object(self):
         self.o = OceanDrift(loglevel=30)
         self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
-        self.o.use_block = False
         self.reader_landmask = reader_global_landmask.Reader(
             extent = [-1.5, 59, 7, 64])
         self.o.add_reader([self.fake_eddy, self.reader_landmask])
@@ -95,10 +94,9 @@ class TestRun(unittest.TestCase):
 
     def test_seed_cone(self):
         o = OceanDrift(loglevel=20)
-        o.seed_elements(time=[datetime.now(),
+        o.seed_cone(time=[datetime.now(),
                 datetime.now() + timedelta(hours=3)],
-                number=100, cone=True,
-                lat=[60.5, 60.6], lon=[4.4, 4.5])
+                number=100, lat=[60.5, 60.6], lon=[4.4, 4.5])
         self.assertAlmostEqual(o.elements_scheduled.lon[50], 4.450, 2)
 
     def test_seed_outside_coverage(self):
@@ -146,7 +144,7 @@ class TestRun(unittest.TestCase):
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         print(reader_norkyst, reader_arome)
         o.add_reader([reader_norkyst, reader_arome])
-        o.seed_elements(lon=4, lat=60, time=reader_arome.end_time - 
+        o.seed_elements(lon=4, lat=60, time=reader_arome.end_time -
                         timedelta(hours=3), number=1)
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_sea_water_velocity', 1)
@@ -182,7 +180,7 @@ class TestRun(unittest.TestCase):
         z=-40*np.random.rand(number)
         o2.seed_elements(5, 62.5, number=number, radius=5000, z=z,
                         time=norkyst.start_time)
-        o2.set_config('drift:scheme', 'runge-kutta')
+        o2.set_config('drift:advection_scheme', 'runge-kutta')
         o2.run(steps=4*3, time_step=timedelta(minutes=15))
         # And finally repeating the initial run to check that indetical
         o3 = OceanDrift(loglevel=30, seed=0)
@@ -628,7 +626,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0010)  # s
         o.set_config('seed:droplet_diameter_max_subsea', 0.0010)  # s
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
-                        density=1000, oiltype='*GENERIC BUNKER C')
+                        density=1000, oiltype='GENERIC BUNKER C')
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
@@ -660,7 +658,7 @@ class TestRun(unittest.TestCase):
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -101.7, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -76.9, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -76.4, 1)  # After some rising
 
     def test_seed_below_reader_coverage(self):
         o = OpenOil(loglevel=20)
@@ -680,7 +678,7 @@ class TestRun(unittest.TestCase):
         o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0], -139.3, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -134.3, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
@@ -695,7 +693,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.001)
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
-                        density=1000, oiltype='*GENERIC BUNKER C')
+                        density=1000, oiltype='GENERIC BUNKER C')
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
@@ -728,23 +726,23 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
         self.assertAlmostEqual(z[0,1], -100, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,1], -81.8, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,1], -81.4, 1)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
-        o = OceanDrift(loglevel=30, proj4='+proj=merc')
+        o = OceanDrift(loglevel=50, proj4='+proj=merc')
         o.max_speed = 100
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         reader_norkyst.buffer = 200
         o.add_reader([reader_norkyst],
                      variables='sea_floor_depth_below_sea_level')
-        o.set_config('environment:fallback:x_sea_water_velocity', 100) # Pure eastward motion
+        o.set_config('environment:fallback:x_sea_water_velocity', 10) # Pure eastward motion
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.set_config('environment:fallback:land_binary_mask', 0)
-        o.seed_elements(3.0, 62.0, z=-200, time=reader_norkyst.start_time)
+        o.seed_elements(3.9, 62.0, z=-200, time=reader_norkyst.start_time)
         o.set_config('drift:vertical_mixing', False)
-        o.run(steps=26, time_step=30)
+        o.run(steps=12, time_step=300)
         seafloor_depth, status = o.get_property('sea_floor_depth_below_sea_level')
         z, status = o.get_property('z')
 
@@ -759,7 +757,7 @@ class TestRun(unittest.TestCase):
         self.assertFalse(o.elements.z <
                          -o.environment.sea_floor_depth_below_sea_level)
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            o.elements.z, -160.06, 1))
+            o.elements.z, -138.5, 1))
 
     def test_seed_on_land(self):
         o = OceanDrift(loglevel=50)

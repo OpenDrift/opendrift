@@ -12,9 +12,6 @@ o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
 # Using live data from Thredds
-#reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
-#reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-
 o.add_readers_from_list([
     'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
 
@@ -27,9 +24,8 @@ latend = 69.991446
 lonend = 17.760061
 time = [datetime.utcnow(), datetime.utcnow() + timedelta(hours=12)]
 
-o.seed_elements(lon=[lonstart, lonend], lat=[latstart, latend],
-                oiltype='EKOFISK',
-                radius=[100, 800], number=10000, time=time, cone=True)
+o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
+            oiltype='EKOFISK', radius=[100, 800], number=10000, time=time)
 
 print(o)
 

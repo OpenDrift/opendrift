@@ -1,6 +1,17 @@
 History
 =======
 
+2021-01-05 / Release v1.5.1
+---------------------------
+* OilLibrary updated to version 1.1.3. Slightly different weathering results, and * is removed from oil names starting with *GENERIC
+
+2021-01-04 / Release v1.5.0
+---------------------------
+* Major restructuring of Basereader class. Readers now are sublasses of Structured, Unstructured or Continuous.
+* Built in GUI is improved with posibillity to adjust all config settings.
+* Some Leeway parameters are renamed from camelCase to camel_case, including: ``jibeProbability`` -> ``jibe_probability`` and ``objectType`` -> ``object_type``
+* Renamed config setting ``drift:scheme`` -> ``drift:advection_scheme``
+
 2020-11-01 / Release v1.4.2
 ---------------------------
 

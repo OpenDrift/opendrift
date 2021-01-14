@@ -57,4 +57,4 @@ Surface Stokes Drift must be obtained from a wave model, whereas the depth depen
 
 Vertical entrainment, mixing and refloating is largely following `Röhrs et al. (2018) <https://doi.org/10.5194/os-14-1581-2018>`_
 
-All models are subclasses of `OpenDrift <opendrift.models.basemodel>`_, or `OpenDrift <opendrift.models.oceandrift>`_ and inherits all core functionality from there. The OpenDrift class itself has no specification of advection or other processes, and can thus not be used directly.
+All models are subclasses of :py:mod:`OpenDrift <opendrift.models.basemodel>`, or :py:mod:`OceanDrift <opendrift.models.oceandrift>` and inherits all core functionality from there. The OpenDrift class itself has no specification of advection or other processes, and can thus not be used directly.

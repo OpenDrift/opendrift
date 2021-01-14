@@ -60,6 +60,7 @@ import numpy as np
 import sys
 from scipy.interpolate import interp1d
 import pyproj
+import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.elements import LagrangianArray
@@ -195,14 +196,9 @@ class OpenBerg(OpenDriftSimulation):
         else:  # ROMS sigma levels
             profile = np.abs(np.ma.filled(self.readers[reader_name].zlevels))
 
-       # Make sure that interpolation is left to reader if no blocks are used .
-       # NB! This is a workaround, two additional points should be removed in basereader!
-        if self.readers[reader_name].return_block == False:
-        	self.use_block = False
-
         # If current data is missing in at least one dimension, no weighting is performed:
         if len(missing_variables) > 0:
-        	self.logger.warning('Missing current data, weigthing array set to [1]')
+        	logger.warning('Missing current data, weigthing array set to [1]')
         	self.uw_weighting = np.array([1])
         	return
 
@@ -232,7 +228,7 @@ class OpenBerg(OpenDriftSimulation):
         self.reader_z_profile = profile[(profile >= 0) & (profile <= x.max())]
 
         if len(profile[profile < 0]) > 0:
-        	self.logger.warning('Current reader containing currents above water!'
+        	logger.warning('Current reader containing currents above water!'
         						'Weighting of current profile may not work!')
 
         # Interpolate and normalize weights:

@@ -8,9 +8,9 @@ def test_simulation_back_extent():
     # backward
     leeb = Leeway()
 
-    objectType = 50  # FISHING-VESSEL-1
+    object_type = 50  # FISHING-VESSEL-1
     leeb.seed_elements(lon=4, lat=60, number=100,
-                            objectType=objectType,
+                            object_type=object_type,
                             time=datetime(2015, 1, 1))
 
     leeb.set_config('environment:fallback:x_wind', 1.5)
@@ -27,9 +27,9 @@ def test_simulation_matches_forw_backward():
     # forward
     leef = Leeway()
 
-    objectType = 50  # FISHING-VESSEL-1
+    object_type = 50  # FISHING-VESSEL-1
     leef.seed_elements(lon=4.5, lat=60, number=100,
-                            objectType=objectType,
+                            object_type=object_type,
                             time=datetime(2015, 1, 1))
 
     leef.set_config('environment:fallback:x_wind', -1.5)
@@ -42,9 +42,9 @@ def test_simulation_matches_forw_backward():
     # backward
     leeb = Leeway()
 
-    objectType = 50  # FISHING-VESSEL-1
+    object_type = 50  # FISHING-VESSEL-1
     leeb.seed_elements(lon=4.5, lat=60, number=100,
-                            objectType=objectType,
+                            object_type=object_type,
                             time=datetime(2015, 1, 1))
 
     leeb.set_config('environment:fallback:x_wind', 1.5)

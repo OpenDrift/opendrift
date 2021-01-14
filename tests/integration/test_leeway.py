@@ -27,11 +27,11 @@ from opendrift.models.leeway import Leeway
 """Tests for Leeway module."""
 def test_leewayprop():
     """Check that Leeway properties are properly read."""
-    objectType = 85  # MED-WASTE-7
+    object_type = 85  # MED-WASTE-7
     lee = Leeway(loglevel=20)
-    objectType = objectType
-    assert lee.leewayprop[objectType]['Description'] == '>>Medical waste, syringes, small'
-    assert lee.leewayprop[objectType]['DWSLOPE'] == 1.79
+    object_type = object_type
+    assert lee.leewayprop[object_type]['Description'] == '>>Medical waste, syringes, small'
+    assert lee.leewayprop[object_type]['DWSLOPE'] == 1.79
 
 def test_leeway_config_object():
     """Check that correct object type is fetched from config"""
@@ -39,18 +39,18 @@ def test_leeway_config_object():
     l.set_config('seed:object_type', 'Surf board with person')
     l.seed_elements(lon=4.5, lat=60, number=100,
                     time=datetime(2015, 1, 1))
-    objType = l.elements_scheduled.objectType
+    objType = l.elements_scheduled.object_type
     assert l.leewayprop[objType]['Description'] == 'Surf board with person'
     assert l.leewayprop[objType]['OBJKEY'] == 'PERSON-POWERED-VESSEL-2'
 
 def test_leewayrun(tmpdir):
     """Test the expected Leeway left/right split."""
-    lee = Leeway(loglevel=30)
-    objectType = 50  # FISHING-VESSEL-1
+    lee = Leeway()
+    object_type = 50  # FISHING-VESSEL-1
     reader_landmask = reader_global_landmask.Reader(extent=[ 3, 59.8, 6, 60.5 ])
     lee.add_reader([reader_landmask])
     lee.seed_elements(lon=4.5, lat=60, number=100,
-                            objectType=objectType,
+                            object_type=object_type,
                             time=datetime(2015, 1, 1))
     lee.set_config('environment:fallback:x_wind', 0)
     lee.set_config('environment:fallback:y_wind', 10)

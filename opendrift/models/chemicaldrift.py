@@ -20,6 +20,7 @@ Based on work by Simon Weppe, MetOcean Solutions Ltd.
 """
 
 import numpy as np
+import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
 
@@ -95,7 +96,7 @@ class ChemicalDrift(OceanDrift):
         # These elements will not move until eventual later resuspension.
         settling = np.logical_and(self.elements.z <= seafloor_depth, self.elements.moving==1)
         if np.sum(settling) > 0:
-            self.logger.debug('Settling %s elements at seafloor' % np.sum(settling))
+            logger.debug('Settling %s elements at seafloor' % np.sum(settling))
             self.elements.moving[settling] = 0
 
     def resuspension(self):

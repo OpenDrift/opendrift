@@ -376,7 +376,7 @@ class TestReaders(unittest.TestCase):
         x,y = norkyst3d.lonlat2xy(lon, lat)
         data = norkyst3d.get_variables(variables,
                                        time=norkyst3d.start_time,
-                                       x=x, y=y, z=[0, -100], block=True)
+                                       x=x, y=y, z=[0, -100])
         self.assertEqual(data['z'][4], -25)
         self.assertEqual(data['z'][4], -25)
         self.assertAlmostEqual(data['sea_water_temperature'][:,0,0][7],
@@ -396,7 +396,7 @@ class TestReaders(unittest.TestCase):
                 variables, profiles=['sea_water_temperature'],
                 profiles_depth = [-100, 0],
                 time = norkyst3d.start_time + timedelta(seconds=900),
-                lon=lon, lat=lat, z=z, block=True)
+                lon=lon, lat=lat, z=z)
         # Check surface value
         self.assertEqual(data['sea_water_temperature'][0],
                          profiles['sea_water_temperature'][0,0])
@@ -420,7 +420,7 @@ class TestReaders(unittest.TestCase):
         # Call get_variables_interpolated which interpolates both in
         data = nordic3d.get_variables(variables,
                 time = nordic3d.start_time + timedelta(seconds=900),
-                x=x, y=y, z=z, block=True)
+                x=x, y=y, z=z)
         self.assertAlmostEqual(data['sea_water_temperature'][0,60, 60],
                                3.447, 2)
                                #3.59, 2)
@@ -575,22 +575,22 @@ class TestReaders(unittest.TestCase):
         obslat = [61.1, 61.132198]
         obstime = [datetime(2015, 11, 16, 0), datetime(2015, 11, 16, 6)]
 
-        o = OceanDrift(loglevel=50)
+        o = OceanDrift()
         reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
         reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
                     wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
-        self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.22070706,8)
+        self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.22553520,8)
 
 
     def test_valid_minmax(self):
         """Check that invalid values are replaced with fallback."""
-        o = OceanDrift(loglevel=50)
-        from opendrift.readers import basereader
-        minval = basereader.standard_names['x_wind']['valid_min']
+        o = OceanDrift()
+        from opendrift.readers.basereader import variables
+        minval = variables.standard_names['x_wind']['valid_min']
         # Setting valid_min to -5, to check that replacement works
-        basereader.standard_names['x_wind']['valid_min'] = -5
+        variables.standard_names['x_wind']['valid_min'] = -5
         reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
         o.add_reader(reader_wind)
@@ -600,23 +600,23 @@ class TestReaders(unittest.TestCase):
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(lon=4, lat=60, time=reader_wind.start_time)
         o.run(steps=1)
-        basereader.standard_names['x_wind']['valid_min'] = minval  # reset
+        variables.standard_names['x_wind']['valid_min'] = minval  # reset
         w = o.get_property('x_wind')[0][0]
         self.assertAlmostEqual(w, 2.0, 1)
 
     def test_valid_minmax_nanvalues(self):
-        from opendrift.readers import basereader
+        from opendrift.readers.basereader import variables
         # Reducing max current speed to test masking
-        maxval = basereader.standard_names['x_sea_water_velocity']['valid_max']
-        basereader.standard_names['x_sea_water_velocity']['valid_max'] = .1
-        o = OceanDrift(loglevel=50)
+        maxval = variables.standard_names['x_sea_water_velocity']['valid_max']
+        variables.standard_names['x_sea_water_velocity']['valid_max'] = .1
+        o = OceanDrift()
         o.set_config('environment:fallback:land_binary_mask', 0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader(norkyst)
 
         o.seed_elements(lon=4.95, lat=62, number=100, time=norkyst.start_time)
         o.run(steps=2)
-        basereader.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
+        variables.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
         u = o.get_property('x_sea_water_velocity')[0]
         self.assertAlmostEqual(u.max(), .1, 2)  # Some numerical error allowed
 
