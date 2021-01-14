@@ -2268,7 +2268,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 extent=simulation_extent,
                 start_time=self.start_time, end_time = self.expected_end_time)
 
-        logger.info("test 2x")
         ##############################################################
         # If no landmask has been added, we determine it dynamically
         ##############################################################
@@ -2297,7 +2296,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             self.timer_end('preparing main loop:making dynamical landmask')
 
-        logger.info("2 test 2x")
         # Move point seed on land to ocean
         if self.get_config('seed:ocean_only') is True and \
             ('land_binary_mask' not in self.fallback_values) and \
