@@ -577,8 +577,8 @@ class Variables(ReaderDomain):
         numx = len(x)  # To check later if all points were covered
 
         ind_covered, xx, yy = self.covers_positions_xy(x, y, z)
-        lon, lat = self.xy2lonlat(x, y)
         if len(ind_covered) == 0:
+            lon, lat = self.xy2lonlat(x, y)
             logger.error("All particles outside domain!")
             raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
                               'are outside domain of %s (%s)') %
