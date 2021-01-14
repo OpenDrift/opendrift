@@ -18,7 +18,7 @@ o.add_readers_from_list([
 #%%
 # Seed ship elements at defined position and time
 # Note: beam/length ratio is larger than allowed, but is then clipped internally
-o.seed_elements(lon=5.0, lat=63.0, radius=1000, number=1000,
+o.seed_elements(lon=5.0, lat=63.0, radius=1000, number=2000,
                 time=datetime.utcnow(),
                 length=80.0, beam=20.0, height=9.0, draft=4.0)
 
