@@ -27,6 +27,18 @@
 # Author: Simon Weppe. MetOcean Solution, MetService New Zealand
 #####################################
 
+#####################################
+# 
+# This version v2 re-use existing code with some small tweaks to make it work with the 
+# new basereader code (split in structured.py, unstructured.py etc..)
+# 
+# There will evntually be a version v3 more consistent with the new code 
+# that re-uses the methods in unstructured.py, and better follow the new logical
+# 
+#####################################
+
+
+
 import logging
 logger = logging.getLogger(__name__)
 
