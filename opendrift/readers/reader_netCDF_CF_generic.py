@@ -180,16 +180,16 @@ class Reader(BaseReader, StructuredReader):
             # data if it isn't a coord
             # is there a better way??
             if standard_name == 'longitude' or \
-                    CoordinateAxisType == 'Lon' or \
+                    CoordinateAxisType.lower() == 'lon' or \
                     long_name.lower() == 'longitude' or \
-                    var_name == 'longitude':
+                    var_name.lower() in ['longitude', 'lon']:
                 var_data = var.values
                 self.lon = var_data
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
-                    CoordinateAxisType == 'Lat' or \
+                    CoordinateAxisType.lower() == 'lat' or \
                     long_name.lower() == 'latitude' or \
-                    var_name == 'latitude':
+                    var_name.lower() in ['latitude', 'lat']:
                 var_data = var.values
                 self.lat = var_data
                 lat_var_name = var_name
