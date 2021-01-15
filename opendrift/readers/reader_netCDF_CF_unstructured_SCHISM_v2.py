@@ -87,6 +87,9 @@ class Reader(BaseReader):
         else:
             self.name = name
 
+        # Default interpolation method, see function interpolate_block()
+        self.interpolation = 'linearNDFast'
+
         # Due to misspelled standard_name in
         # some (Akvaplan-NIVA) FVCOM files
         variable_aliases = {
@@ -365,6 +368,31 @@ class Reader(BaseReader):
         self.var_block_before = {}  # Data for last timestep before present
         self.var_block_after = {}   # Data for first timestep after present
 
+    ##############################################################################################################
+    # Legacy code from previous basereader.py code  
+    ##############################################################################################################
+
+    def get_variables_derived(self, variables, *args, **kwargs):
+        """Wrapper around get_variables, adding derived"""
+        if isinstance(variables, str):
+            variables = [variables]
+        if not isinstance(variables, list):
+            variables = list(variables)
+        derive_variables = False
+        for var in variables:
+            if var in self.derived_variables:
+                fromvars = self.derived_variables[var]
+                for v in fromvars:
+                    variables.append(v)
+                # Removing the derived variable name
+                variables = [v for v in variables if v != var]
+                derive_variables = True
+
+        env = self.get_variables(variables, *args, **kwargs)
+        if derive_variables is True:
+            self.calculate_derived_environment_variables(env)
+
+        return env
 
     def _get_variables(self, variables, profiles, profiles_depth,
                        time, x, y, z, block):
@@ -373,8 +401,10 @@ class Reader(BaseReader):
         Performs some common operations which should not be duplicated:
         - monitor time spent by this reader
         - convert any numpy arrays to masked arrays
+        
         """
-        self.logger.debug('Fetching variables from ' + self.name)
+        
+        logger.debug('Fetching variables from ' + self.name)
         self.timer_start('reading')
 
         if profiles is not None and block is True:
@@ -398,7 +428,7 @@ class Reader(BaseReader):
             # Mask values outside valid_min, valid_max (self.standard_names)
             if variable in standard_names.keys():
                 if isinstance(env[variable], list):
-                    self.logger.warning('Skipping min-max checking for ensemble data')
+                    logger.debug.warning('Skipping min-max checking for ensemble data')
                     continue
                 with np.errstate(invalid='ignore'):
                     invalid_indices = np.logical_and(
@@ -407,8 +437,8 @@ class Reader(BaseReader):
                         env[variable]>standard_names[variable]['valid_max']))
                 if np.sum(invalid_indices) > 0:
                     invalid_values = env[variable][invalid_indices]
-                    self.logger.warning('Invalid values (%s to %s) found for %s, replacing with NaN' % (invalid_values.min(), invalid_values.max(), variable))
-                    self.logger.warning('(allowed range: [%s, %s])' %
+                    logger.debug.warning('Invalid values (%s to %s) found for %s, replacing with NaN' % (invalid_values.min(), invalid_values.max(), variable))
+                    logger.debug.warning('(allowed range: [%s, %s])' %
                                     (standard_names[variable]['valid_min'],
                                      standard_names[variable]['valid_max']))
                     env[variable][invalid_indices] = np.nan
@@ -422,7 +452,7 @@ class Reader(BaseReader):
                 kernel = kernel/kernel.sum()
             else:
                 kernel = N
-            self.logger.debug('Convolving variables with kernel: %s' % kernel)
+            logger.debug('Convolving variables with kernel: %s' % kernel)
             for variable in env.keys():
                 if variable in ['x', 'y', 'z', 'time']:
                     pass
@@ -441,9 +471,14 @@ class Reader(BaseReader):
 
         environment_mappers = []
 
+    ##############################################################################################################
+    # 
+    ##############################################################################################################
+
   
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, block=False):
+
         """ The function extracts 'requested_variables' from the native SCHISM files
             which will then be used in _get_variables() inside get_variables_interpolated() 
             to initialise the ReaderBlockUnstruct objects used to interpolate data in space and time
@@ -1010,8 +1045,6 @@ class Reader(BaseReader):
 
         self.timer_end('masking')
         self.timer_end('total')
-
-        import pdb;pdb.set_trace()
 
         return env, env_profiles
 
