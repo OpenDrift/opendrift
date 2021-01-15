@@ -379,6 +379,7 @@ class Variables(ReaderDomain):
     """
     Handles reading and interpolation of variables.
     """
+    variables = None
     derived_variables = None
     name = None
 
@@ -400,7 +401,10 @@ class Variables(ReaderDomain):
     }
 
     def __init__(self):
-        self.derived_variables = {}
+        if self.derived_variables is None:
+            self.derived_variables = {}
+        if self.variables is None:
+            self.variables = []
 
     def set_convolution_kernel(self, convolve):
         """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
@@ -428,6 +432,7 @@ class Variables(ReaderDomain):
             np.radians(env['wind_to_direction']))
         env['x_wind'] = east_wind
         env['y_wind'] = north_wind
+        print("x_wind", east_wind)
         # Rotating might be necessary generally
         #x,y = np.meshgrid(env['x'], env['y'])
         #env['x_wind'], env['y_wind'] = self.rotate_vectors(
@@ -436,7 +441,7 @@ class Variables(ReaderDomain):
         #    None, self.proj)
 
     def __calculate_derived_environment_variables__(self, env):
-        if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
+        if 'x_wind' in self.derived_variables and 'wind_speed' in env:
             self.wind_from_speed_and_direction(env)
 
     def __check_env_coordinates__(self, env):
@@ -599,21 +604,32 @@ class Variables(ReaderDomain):
 
         # Filter derived variables
         derived = []
+        derived_input = []
 
+        logger.warning("variables: %s" % variables)
+        logger.warning("derived: %s" % self.derived_variables)
         for var in variables:
             if var in self.derived_variables:
                 logger.debug("Scheduling %s to be derived from %s" % (var, self.derived_variables[var]))
-                variables.extend(self.derived_variables[var])
-                variables.remove(var)
+                derived_input.extend(self.derived_variables[var])
                 derived.append(var)
 
+        for v in derived:
+            variables.remove(v)
+        variables.extend(list(set(derived_input)))
+
+        print("variables=", variables)
 
         env, env_profiles = self._get_variables_interpolated_(
             variables, profiles, profiles_depth, time, x, y, z)
 
+        print("env=", list(env.keys()))
+
         # Calculate derived variables
         if len(derived) > 0:
             self.__calculate_derived_environment_variables__(env)
+
+        print("env derived=", list(env.keys()))
 
         for e in [ env, env_profiles ]:
             if e is not None:
