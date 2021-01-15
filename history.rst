@@ -1,6 +1,10 @@
 History
 =======
 
+2021-01-15 / Release v1.5.3
+---------------------------
+* Fixed bug related to derived_variables (e.g. calculating x_wind, y_wind from windspeed, winddirection)
+
 2021-01-14 / Release v1.5.2
 ---------------------------
 
