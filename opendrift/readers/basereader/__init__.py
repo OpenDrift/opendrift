@@ -155,8 +155,8 @@ class BaseReader(Variables):
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
             if em['output'][0] not in self.variables and em['input'][0] in self.variables:
-                logger.debug('Adding variable mapping: %s -> %s' % (em['input'][0], em['output'][0]))
                 for v in em['output']:
+                    logger.debug('Adding variable mapping: %s -> %s' % (em['input'], v))
                     self.variables.append(v)
                     self.derived_variables[v] = em['input']
 
