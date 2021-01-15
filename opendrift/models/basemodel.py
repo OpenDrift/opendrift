@@ -209,7 +209,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
                 # coloredlogs does not create duplicate handlers
                 coloredlogs.install(level = loglevel, logger = od_logger, fmt = format, datefmt = datefmt, field_styles = fields)
-            od_logger.info("Installed logger with level: %s" % loglevel)
 
         # Prepare outfile
         try:
