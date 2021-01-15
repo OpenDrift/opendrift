@@ -432,7 +432,6 @@ class Variables(ReaderDomain):
             np.radians(env['wind_to_direction']))
         env['x_wind'] = east_wind
         env['y_wind'] = north_wind
-        print("x_wind", east_wind)
         # Rotating might be necessary generally
         #x,y = np.meshgrid(env['x'], env['y'])
         #env['x_wind'], env['y_wind'] = self.rotate_vectors(
@@ -606,8 +605,6 @@ class Variables(ReaderDomain):
         derived = []
         derived_input = []
 
-        logger.warning("variables: %s" % variables)
-        logger.warning("derived: %s" % self.derived_variables)
         for var in variables:
             if var in self.derived_variables:
                 logger.debug("Scheduling %s to be derived from %s" % (var, self.derived_variables[var]))
@@ -618,18 +615,13 @@ class Variables(ReaderDomain):
             variables.remove(v)
         variables.extend(list(set(derived_input)))
 
-        print("variables=", variables)
-
         env, env_profiles = self._get_variables_interpolated_(
             variables, profiles, profiles_depth, time, x, y, z)
-
-        print("env=", list(env.keys()))
 
         # Calculate derived variables
         if len(derived) > 0:
             self.__calculate_derived_environment_variables__(env)
-
-        print("env derived=", list(env.keys()))
+            variables.extend(derived)
 
         for e in [ env, env_profiles ]:
             if e is not None:
