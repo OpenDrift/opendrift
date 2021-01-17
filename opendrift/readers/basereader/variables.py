@@ -463,11 +463,12 @@ class Variables(ReaderDomain):
 
         # Mask values outside valid_min, valid_max (self.standard_names)
         if name in standard_names.keys():
-            logger.debug("checking %s for invalid values" % name)
+            logger.debug("Checking %s for invalid values" % name)
             if isinstance(variable, list):
                 logger.warning(
-                    'Skipping min-max checking for ensemble data')
-                return variable
+                    'Min-max checking for ensemble data (%i members)' % (len(variable)))
+                # Recursive
+                return [Variables.__check_variable_array__(name, v) for v in variable]
             # with np.errstate(invalid='ignore'):
             invalid_indices = np.logical_and(
                 np.isfinite(variable),
@@ -479,7 +480,7 @@ class Variables(ReaderDomain):
                 logger.warning(
                     'Invalid values (%s to %s) found for %s, replacing with NaN'
                     %
-                    (invalid_values.min(), invalid_values.max(), variable))
+                    (invalid_values.min(), invalid_values.max(), name))
                 logger.warning('(allowed range: [%s, %s])' %
                                 (standard_names[name]['valid_min'],
                                 standard_names[name]['valid_max']))
