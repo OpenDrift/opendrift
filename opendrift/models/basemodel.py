@@ -1620,6 +1620,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         elif len(radius) == 2:  # Linear increase from r0 to r1
             radius = np.linspace(radius[0], radius[1], number)
 
+        if isinstance(time, list) and len(time)==1:
+            time = time[0]
+
         # Forwarding calculated cone points/radii to seed_elements
         self.seed_elements(lon=lon, lat=lat, time=time, radius=radius, number=number, **kwargs)
 
