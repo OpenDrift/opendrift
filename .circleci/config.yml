@@ -109,9 +109,20 @@ jobs:
           command: apt-get update
       - run:
           name: Install packages
-          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick
+          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick jq curl
+
+      - run:
+          name: Get PR title
+          command: |
+            PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
+            GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq -e '.title')
+            echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
+            echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
+            echo "PR: ${GITHUB_PR_TITLE}"
+
       - restore_cache:
           key: v4-docs-deps1-{{ checksum "environment.yml" }}
+
       - run:
           name: Install requirements
           command: |
@@ -121,6 +132,7 @@ jobs:
               conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
               pip install sphinx-rtd-theme
             fi
+
       - save_cache:
           key: v4-docs-deps1-{{ checksum "environment.yml" }}
           paths:
@@ -146,6 +158,16 @@ jobs:
 
       - restore_cache:
           key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
+
+      - run:
+          name: Check if docs should be re-built
+          command: |
+            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${CIRCLE_BRANCH}" == "master" ]]; then
+              echo "Clearing out examples.."
+              source activate opendrift
+              cd docs/
+              make clean
+            fi
 
       - run:
           name: Build docs
@@ -202,6 +224,7 @@ workflows:
   build:
     jobs:
       - docs-build
+
       - docs-deploy:
           requires:
             - docs-build
