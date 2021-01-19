@@ -114,11 +114,13 @@ jobs:
       - run:
           name: Get PR title
           command: |
-            PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
-            GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq -e '.title')
-            echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
-            echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
-            echo "PR: ${GITHUB_PR_TITLE}"
+            if [[ -v CIRCLE_PULL_REQUEST ]]; then
+              PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
+              GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq -e '.title')
+              echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
+              echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
+              echo "PR: ${GITHUB_PR_TITLE}"
+            fi
 
       - restore_cache:
           key: v4-docs-deps1-{{ checksum "environment.yml" }}
