@@ -1610,6 +1610,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             lat = lat*np.ones(number)
         elif len(lon) == 2:  # Segment from lon0,lat1 to lon1,lat2
             geod = pyproj.Geod(ellps='WGS84')
+            lonin = lon
+            latin = lat
             # Note that npts places points in-between start and end, and does not include these
             conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
                                     number, radians=False)
@@ -1622,6 +1624,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         if isinstance(time, list) and len(time)==1:
             time = time[0]
+
+        if hasattr(time, '__len__'):
+            timespan = [time[0], time[-1]]
+        else:
+            timespan = [time, time]
+
+        self.seed_cone_arguments = {
+                'lon': lonin if 'lonin' in locals() else [lon.min(), lon.max()],
+                'lat': latin if 'latin' in locals() else [lat.min(), lat.max()],
+                'radius': [radius[0], radius[-1]], 'time': timespan, 'number': number}
 
         # Forwarding calculated cone points/radii to seed_elements
         self.seed_elements(lon=lon, lat=lat, time=time, radius=radius, number=number, **kwargs)
