@@ -315,17 +315,7 @@ class BaseReader(Variables):
             ry = np.float32(ry)
             rlon, rlat = self.xy2lonlat(rx, ry)
             data[variable] = np.ma.masked_invalid(data[variable])
-            if self.convolve is not None:
-                from scipy import ndimage
-                N = self.convolve
-                if isinstance(N, (int, np.integer)):
-                    kernel = np.ones((N, N))
-                    kernel = kernel/kernel.sum()
-                else:
-                    kernel = N
-                logger.debug('Convolving variables with kernel: %s' % kernel)
-                data[variable] = ndimage.convolve(
-                            data[variable], kernel, mode='nearest')
+
             if data[variable].ndim > 2:
                 logger.warning('Ensemble data, plotting only first member')
                 data[variable] = data[variable][0,:,:]

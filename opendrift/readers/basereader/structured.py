@@ -35,6 +35,7 @@ class StructuredReader(Variables):
     var_block_before = None
     var_block_after = None
     interpolation = 'linearNDFast'
+    convolve = None  # Convolution kernel or kernel size
 
     def __init__(self):
         if self.proj is None and (self.proj4 is None
@@ -81,7 +82,7 @@ class StructuredReader(Variables):
 
         # Dictionaries to store blocks of data for reuse (buffering)
         self.var_block_before = {}  # Data for last timestep before present
-        self.var_block_after = {}   # Data for first timestep after present
+        self.var_block_after = {}  # Data for first timestep after present
 
     @abstractmethod
     def get_variables(self, variables, time=None, x=None, y=None, z=None):
@@ -107,9 +108,39 @@ class StructuredReader(Variables):
             values: 2D ndarray bounding x and y.
         """
 
-    def _get_variables_interpolated_(self, variables, profiles,
-                                   profiles_depth, time,
-                                   reader_x, reader_y, z):
+    def set_convolution_kernel(self, convolve):
+        """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
+        self.convolve = convolve
+
+    def __convolve_block__(self, env):
+        """
+        Convolve arrays with a kernel, if reader.convolve is set
+        """
+        if self.convolve is not None:
+            from scipy import ndimage
+            N = self.convolve
+            if isinstance(N, (int, np.integer)):
+                kernel = np.ones((N, N))
+                kernel = kernel / kernel.sum()
+            else:
+                kernel = N
+            logger.debug('Convolving variables with kernel: %s' % kernel)
+            for variable in env:
+                if variable in ['x', 'y', 'z', 'time']:
+                    pass
+                else:
+                    if env[variable].ndim == 2:
+                        env[variable] = ndimage.convolve(env[variable],
+                                                         kernel,
+                                                         mode='nearest')
+                    elif env[variable].ndim == 3:
+                        env[variable] = ndimage.convolve(env[variable],
+                                                         kernel[:, :, None],
+                                                         mode='nearest')
+        return env
+
+    def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
+                                     time, reader_x, reader_y, z):
 
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
@@ -124,7 +155,6 @@ class StructuredReader(Variables):
         if time == time_before or all(v in static_variables
                                       for v in variables):
             time_after = None
-
 
         if profiles is not None:
             # If profiles are requested for any parameters, we
@@ -173,8 +203,10 @@ class StructuredReader(Variables):
         if block_before is None or \
                 block_before.time != time_before:
             reader_data_dict = \
+                    self.__convolve_block__(
                 self.get_variables(blockvariables_before, time_before,
                                     mx, my, mz)
+                )
             self.var_block_before[blockvars_before] = \
                 ReaderBlock(reader_data_dict,
                             interpolation_horizontal=self.interpolation)
@@ -190,12 +222,11 @@ class StructuredReader(Variables):
             block_before = self.var_block_before[blockvars_before]
         if block_after is None or block_after.time != time_after:
             if time_after is None:
-                self.var_block_after[blockvars_after] = \
-                    block_before
+                self.var_block_after[blockvars_after] = block_before
             else:
-                reader_data_dict = \
-                    self.get_variables(blockvariables_after, time_after,
-                                        mx, my, mz)
+                reader_data_dict = self.__convolve_block__(
+                    self.get_variables(blockvariables_after, time_after, mx,
+                                       my, mz))
                 self.var_block_after[blockvars_after] = \
                     ReaderBlock(
                         reader_data_dict,
@@ -494,11 +525,11 @@ class StructuredReader(Variables):
 
     def _slice_variable_(self,
                          var,
-                         indxTime = None,
-                         indy = None,
-                         indx = None,
-                         indz = None,
-                         indrealization = None):
+                         indxTime=None,
+                         indy=None,
+                         indx=None,
+                         indz=None,
+                         indrealization=None):
         """
         Slice variable depending on number of dimensions available.
 

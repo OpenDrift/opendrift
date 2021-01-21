@@ -3647,17 +3647,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         map_x, map_y = (rlons, rlats)
 
         scalar = np.ma.masked_invalid(scalar)
-        if reader.convolve is not None:
-            from scipy import ndimage
-            N = reader.convolve
-            if isinstance(N, (int, np.integer)):
-                kernel = np.ones((N, N))
-                kernel = kernel/kernel.sum()
-            else:
-                kernel = N
-            logger.debug('Convolving variables with kernel: %s' % kernel)
-            scalar = ndimage.convolve(
-                scalar, kernel, mode='nearest')
 
         return map_x, map_y, scalar, u_component, v_component
 

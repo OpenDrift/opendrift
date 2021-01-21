@@ -384,7 +384,6 @@ class Variables(ReaderDomain):
     name = None
 
     buffer = 0
-    convolve = None  # Convolution kernel or kernel size
 
     environment_mappers = []
     environment_mappings = {
@@ -405,10 +404,6 @@ class Variables(ReaderDomain):
             self.derived_variables = {}
         if self.variables is None:
             self.variables = []
-
-    def set_convolution_kernel(self, convolve):
-        """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
-        self.convolve = convolve
 
     def set_buffer_size(self, max_speed, max_vertical_speed=None):
         '''Adjust buffer to minimise data block size needed to cover elements'''
@@ -507,33 +502,6 @@ class Variables(ReaderDomain):
 
         return env
 
-    def __convolve_env__(self, env):
-        """
-        Convolve arrays with a kernel, if reader.convolve is set
-        """
-        if self.convolve is not None:
-            from scipy import ndimage
-            N = self.convolve
-            if isinstance(N, (int, np.integer)):
-                kernel = np.ones((N, N))
-                kernel = kernel / kernel.sum()
-            else:
-                kernel = N
-            logger.debug('Convolving variables with kernel: %s' % kernel)
-            for variable in env.keys():
-                if variable in ['x', 'y', 'z', 'time']:
-                    pass
-                else:
-                    if env[variable].ndim == 2:
-                        env[variable] = ndimage.convolve(env[variable],
-                                                         kernel,
-                                                         mode='nearest')
-                    elif env[variable].ndim == 3:
-                        env[variable] = ndimage.convolve(env[variable],
-                                                         kernel[:, :, None],
-                                                         mode='nearest')
-
-
     @abstractmethod
     def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
                                      time, reader_x, reader_y, z):
@@ -628,7 +596,6 @@ class Variables(ReaderDomain):
             if e is not None:
                 self.__check_env_coordinates__(e)
                 self.__check_env_arrays__(e)
-                self.__convolve_env__(e)
 
         self.timer_end('reading')
 
