@@ -15,7 +15,7 @@ SCHISM native reader
 
 import numpy as np
 from datetime import timedelta, datetime
-from opendrift.readers import reader_netCDF_CF_unstructured_SCHISM_v2
+from opendrift.readers import reader_netCDF_CF_unstructured_SCHISM
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_landmask_custom
 from opendrift.models.oceandrift import OceanDrift
@@ -47,9 +47,6 @@ schism_native = reader_netCDF_CF_unstructured_SCHISM_v2.Reader(filename = '/medi
 o.add_reader([reader_custom,schism_native])
 o.set_config('general:use_auto_landmask', False) # prevent opendrift from making a new dynamical landmask with global_landmask
 
-if False:
-    o.add_reader([schism_native])
-    o.set_config('general:use_auto_landmask', True) # prevent opendrift from making a new dynamical landmask with global_landmask
 
 # Seed elements at defined positions, depth and time
 o.seed_elements(lon=174.046669, lat=-40.928116, radius=20, number=100,
@@ -68,8 +65,9 @@ o.run(time_step=900,
 	  end_time = schism_native.start_time+timedelta(days=1.0))
 	  # outfile='schism_native_output.nc')
 
-#%%
+#
 # import pdb;pdb.set_trace()
+
 # Print and plot results
 print(o)
 o.plot(fast=True)

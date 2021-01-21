@@ -6,7 +6,6 @@ import numpy as np
 from datetime import datetime, timedelta
 # from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ROMS_native_MOANA
-from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 # from opendrift.models.bivalvelarvae import BivalveLarvae
 
