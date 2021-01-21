@@ -545,9 +545,13 @@ class Variables(ReaderDomain):
         self.timer_start('preparing')
 
         x = np.atleast_1d(x)
-        y = np.atleast_1d(y)
-
         numx = len(x)  # To check later if all points were covered
+
+        y = np.atleast_1d(y)
+        z = np.atleast_1d(z) if z is not None else np.zeros((1,))
+
+        assert numx == len(y), "x, y, and z must have the same length"
+        assert len(z) == 1 or numx == len(z), "x, y, and z must have the same length"
 
         ind_covered, xx, yy = self.covers_positions_xy(x, y, z)
         if len(ind_covered) == 0:
@@ -689,12 +693,12 @@ class Variables(ReaderDomain):
                 Can be None (default) if reader/variable has no time
                 dimension (e.g. climatology or landmask).
 
-            lon: N/A
+            lon: longitude, 1d array.
 
-            lat: N/A
+            lat: latitude, 1d array, same length as lon.
 
             z: float or ndarray; vertical position (in meters, positive up)
-                of requested points.
+                of requested points. either scalar or same length as lon, lat.
                 default: 0 m (unless otherwise documented by reader)
 
             block: bool, see return below
