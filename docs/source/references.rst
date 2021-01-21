@@ -3,6 +3,8 @@ Publications
 
 Some papers using OpenDrift:
 
+Devis-Morales, A., Rodríguez-Rubio, E. & Montoya-Sánchez, R.A. Modelling the transport of sediment discharged by Colombian rivers to the southern Caribbean Sea. Ocean Dynamics (2021). https://doi.org/10.1007/s10236-020-01431-y
+
 El Rahi, J., Weeber M.P., El Serafya, G., Modelling the effect of behavior on the distribution of the jellyfish Mauve stinger (Pelagianoctiluca) in the Balearic Sea using an individual-based model, Ecological Modelling, Volume 433, Oct. 2020, https://doi.org/10.1016/j.ecolmodel.2020.109230
 
 Laudy C., L. Mészáros, S. Wanke and M. de Juan, "Mixing Social Media Analysis and Physical Models to Monitor Invasive Species," 2020 IEEE 23rd International Conference on Information Fusion (FUSION), Rustenburg, South Africa, 2020, pp. 1-8, doi: 10.23919/FUSION45008.2020.9190335.

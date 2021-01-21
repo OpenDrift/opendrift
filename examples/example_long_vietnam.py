@@ -17,9 +17,9 @@ o.add_readers_from_list([
     'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
 
 # Seed some particles
-objType = 26  # 26 = Life-raft, no ballast
+object_type = 26  # 26 = Life-raft, no ballast
 o.seed_elements(lon=107.8, lat=10.0, radius=1000, number=1000,
-                objectType=objType, time=datetime.utcnow())
+                object_type=object_type, time=datetime.utcnow())
 
 # Run model
 o.run(duration=timedelta(days=3),

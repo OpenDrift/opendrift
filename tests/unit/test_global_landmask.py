@@ -5,7 +5,7 @@ from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
-@pytest.mark.slow
+@pytest.mark.veryslow
 def test_landmask_generate():
     import os, tempfile
 
@@ -19,7 +19,7 @@ def test_landmask_generate():
 
     assert os.path.exists(mmapf)
 
-@pytest.mark.slow
+@pytest.mark.veryslow
 def test_reader_landmask_generate():
     import os, tempfile
 
@@ -32,7 +32,7 @@ def test_reader_landmask_generate():
 
     assert os.path.exists(mmapf)
 
-@pytest.mark.slow
+@pytest.mark.veryslow
 def test_reader_landmask_generate_extent():
     import os, tempfile
 

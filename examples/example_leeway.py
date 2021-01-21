@@ -31,9 +31,9 @@ lw.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 #%%
 # Seed leeway elements at defined position and time
-objType = 26  # 26 = Life-raft, no ballast
+object_type = 26  # 26 = Life-raft, no ballast
 lw.seed_elements(lon=4.5, lat=59.6, radius=100, number=1000,
-                 time=reader_arome.start_time, objectType=objType)
+                 time=reader_arome.start_time, object_type=object_type)
 
 #%%
 # Running model

@@ -26,7 +26,7 @@ o = OceanDrift(loglevel=20)
 
 #%%
 # Note that Runge-Kutta here makes a difference to Euler scheme
-o.set_config('drift:scheme', 'runge-kutta4')
+o.set_config('drift:advection_scheme', 'runge-kutta4')
 o.disable_vertical_motion()
 o.set_config('environment:fallback:land_binary_mask', 0)
 

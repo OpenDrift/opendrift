@@ -1,10 +1,104 @@
 version: 2.1
 
 orbs:
-  # https://circleci.com/orbs/registry/orb/circleci/docker-publish
   docker-publish: circleci/docker-publish@0.1.3
 
+test-template: &test-template
+  docker:
+    - image: continuumio/miniconda3
+  steps:
+    - checkout
+    - run:
+        name: Checksum environment
+        command: |
+          echo "python=${PYTHON_VERSION}" > envconfig
+          echo "numpy=${NUMPY_VERSION}" >> envconfig
+          cat envconfig
+
+    - restore_cache:
+        key: v8-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+    - run:
+        name: Install requirements
+        command: |
+          if [ ! -e /opt/conda/envs/opendrift ]; then
+            if [ -v PYTHON_VERSION ]; then
+              # pin python and numpy
+              conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
+
+              echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
+              echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
+
+              conda env update -n opendrift -q -f environment.yml
+            else
+              conda env create -q --file environment.yml
+            fi
+
+            source activate opendrift
+
+            pip install pyyaml coveralls
+          fi
+
+    - save_cache:
+        key: v8-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        paths:
+          - "/opt/conda/envs"
+
+    - run:
+        name: List environment
+        command: |
+          source activate opendrift
+          conda list
+
+    - restore_cache:
+        key: v1-landmask
+
+    - run:
+        name: Generate landmask
+        command: |
+          source activate opendrift
+          python -c 'import opendrift_landmask_data as old; old.Landmask()'
+
+    - save_cache:
+        key: v1-landmask
+        paths:
+          - "/tmp/landmask"
+
+    - run:
+        name: Run tests
+        command: |
+          source activate opendrift
+          pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v --log-cli-level=debug
+
+    - store_test_results:
+        path: test-results
+
+    - store_artifacts:
+        path: test-results
+
+    - run:
+        name: Upload to coveralls
+        command: |
+          source activate opendrift
+          if [ ! -v PYTHON_VERSION ]; then
+            COVERALLS_REPO_TOKEN=nEzcGcepz6KeM8OpvG2WoxbGjMGwivyAQ coveralls
+          fi
+
 jobs:
+  python_latest:
+    <<: *test-template
+
+  python_38_numpy_119:
+    <<: *test-template
+    environment:
+      - PYTHON_VERSION=3.8
+      - NUMPY_VERSION=1.19
+
+  python_37_numpy_117:
+    <<: *test-template
+    environment:
+      - PYTHON_VERSION=3.7
+      - NUMPY_VERSION=1.17
+
   docs-build:
     docker:
       - image: continuumio/miniconda3
@@ -15,9 +109,22 @@ jobs:
           command: apt-get update
       - run:
           name: Install packages
-          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick
+          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick jq curl
+
+      - run:
+          name: Get PR title
+          command: |
+            if [[ -v CIRCLE_PULL_REQUEST ]]; then
+              PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
+              GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq -e '.title')
+              echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
+              echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
+              echo "PR: ${GITHUB_PR_TITLE}"
+            fi
+
       - restore_cache:
-          key: v3-deps1-{{ checksum "environment.yml" }}
+          key: v4-docs-deps1-{{ checksum "environment.yml" }}
+
       - run:
           name: Install requirements
           command: |
@@ -27,8 +134,9 @@ jobs:
               conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
               pip install sphinx-rtd-theme
             fi
+
       - save_cache:
-          key: v3-deps1-{{ checksum "environment.yml" }}
+          key: v4-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
@@ -52,6 +160,16 @@ jobs:
 
       - restore_cache:
           key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
+
+      - run:
+          name: Check if docs should be re-built
+          command: |
+            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${CIRCLE_BRANCH}" == "master" ]]; then
+              echo "Clearing out examples.."
+              source activate opendrift
+              cd docs/
+              make clean
+            fi
 
       - run:
           name: Build docs
@@ -98,9 +216,17 @@ jobs:
 
 workflows:
   version: 2.1
+
+  test:
+    jobs:
+      - python_latest
+      - python_38_numpy_119
+      - python_37_numpy_117
+
   build:
     jobs:
       - docs-build
+
       - docs-deploy:
           requires:
             - docs-build
@@ -127,9 +253,10 @@ workflows:
                 name: Preview Containers that will be Deployed
                 command: |
                    # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
+                   pushd opendrift
+                   DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
+                   popd
+
                    echo "Version for Docker tag is ${DOCKER_TAG}"
                    echo "This build will deploy the following containers:"
                    echo "opendrift/opendrift:latest"
@@ -154,9 +281,10 @@ workflows:
                 name: Publish Docker Containers with Python Version 3
                 command: |
                    # Here we preview the Docker Tag
-                   for string in $(cat opendrift/version.py | grep __version__); do
-                          DOCKER_TAG="${string//\"}"
-                   done
+                   pushd opendrift
+                   DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
+                   popd
+
                    echo "Version for Docker tag is ${DOCKER_TAG}"
                    docker tag opendrift/opendrift:latest opendrift/opendrift:v${DOCKER_TAG}
                    docker tag opendrift/opendrift:latest opendrift/opendrift:py3-v${DOCKER_TAG}

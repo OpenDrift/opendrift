@@ -32,8 +32,8 @@ o.add_reader([reader_norkyst, reader_arome])
 oiltype = 'IFO-380LS 2014'
 oiltype = 'IFO 300'
 oiltype = 'IFO-180NS 2014'
-oiltype = '*GENERIC LIGHT CRUDE'
-oiltype = '*GENERIC HEAVY CRUDE'
+oiltype = 'GENERIC LIGHT CRUDE'
+oiltype = 'GENERIC HEAVY CRUDE'
 o.seed_elements(lon=4.8, lat=60.0, z=0, radius=3000, number=1000,
                 time=reader_arome.start_time, oiltype=oiltype)
 

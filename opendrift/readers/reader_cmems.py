@@ -112,14 +112,14 @@ class Reader(NCReader):
         cmd = 'motuclient -D -m %s -s %s -d %s -u %s -p %s -f %s' % (
             motu_URL, self.product, self.dataset,
             self.cmems_user, self.cmems_password, content_file)
-        print(cmd.replace(self.cmems_password, '****'))
+        logger.debug(cmd.replace(self.cmems_password, '****'))
 
-        print('Downloading contents file')
+        logger.debug('Downloading contents file')
         p = subprocess.Popen(cmd.split(' '))
         try:
             p.wait(120)  # timeout in seconds
         except subprocess.TimeoutExpired:
-            print('TIEMOUT!')
+            logger.warning('TIEMOUT!')
             p.kill()
 
         xml = open(content_file, 'rt').read()
@@ -182,7 +182,7 @@ class Reader(NCReader):
         super(NCReader, self).__init__()
 
     def prepare(self, extent, start_time, end_time):
-        print('Preparing reader ' + self.name)
+        logger.debug('Preparing reader ' + self.name)
 
         lon_min, lat_min, lon_max, lat_max = extent
         time_start = start_time - timedelta(hours=1)  # Some extra coverage
@@ -201,15 +201,14 @@ class Reader(NCReader):
             time_end.strftime('"%Y-%m-%d %H:%M:%S"'),
             varstring,
             self.nc_file, self.cmems_user, self.cmems_password)
-        print(cmd.replace(self.cmems_password, '*****'), 'CMD')
-        self.logger.info('Downloading file from CMEMS server, using motu-client:')
-        self.logger.info(cmd)
+        logger.debug('Downloading file from CMEMS server, using motu-client:')
+        logger.debug(cmd.replace(self.cmems_password, '*****'))
         os.system(cmd)
 
         # Update standard_name attribute with provided variable mapping
         d = Dataset(self.nc_file, 'a')
         for var, val in self.variable_mapping.items():
-            print('Setting standard_name of %s to %s' % (var, val))
+            logger.debug('Setting standard_name of %s to %s' % (var, val))
             d.variables[var].standard_name = val
 
         super(Reader, self).__init__(filename=self.nc_file)

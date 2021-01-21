@@ -32,7 +32,7 @@ for case in ['oil', 'leeway']:  # test two models
                 if z < 0:
                     continue  # Only surface seeding for Leeway
                 o = Leeway()
-                args = {'objectType': 32}
+                args = {'object_type': 32}
 
             o.add_readers_from_list(readers, timeout=5)
             print(o)

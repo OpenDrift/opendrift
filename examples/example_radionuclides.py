@@ -24,7 +24,7 @@ o.add_reader([reader_norkyst])
 o.set_config('drift:vertical_mixing', True)
 #o.set_config('environment:fallback:ocean_vertical_diffusivity', 0)
 #o.set_config('vertical_mixing:diffusivitymodel','constant')  # include settling without vertical turbulent mixing
-#o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
+o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
 # Vertical mixing requires fast time step
 o.set_config('vertical_mixing:timestep', 600.) # seconds
 
@@ -57,7 +57,7 @@ o.set_config('radionuclide:sediment:resuspension_critvel',0.15)
 #
 #o.set_config('radionuclide:transfer_setup','custom')
 o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
-#o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
+#o.set_config('radionuclide:transfer_setup','137Cs_rev')
 #o.set_config('radionuclide:transfer_setup','Sandnesfj_Al')
 
 # By default, radionuclides do not strand towards coastline
@@ -133,7 +133,7 @@ o.conc_lat   = reader_norkyst.lat
 o.conc_lon   = reader_norkyst.lon
 o.conc_topo  = reader_norkyst.get_variables('sea_floor_depth_below_sea_level',
                                        x=[reader_norkyst.xmin,reader_norkyst.xmax],
-                                       y=[reader_norkyst.ymin,reader_norkyst.ymax], block=True)['sea_floor_depth_below_sea_level'][:]
+                                       y=[reader_norkyst.ymin,reader_norkyst.ymax])['sea_floor_depth_below_sea_level'][:]
 #o.conc_mask  = reader_norkyst.land_binary_mask
 
 #%%

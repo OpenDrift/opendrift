@@ -1,6 +1,33 @@
 History
 =======
 
+2021-01-18 / Release v1.5.4
+---------------------------
+* seed_cone also accepts time as list with single element
+* Min/max values are checked/masked also for ensemble data
+* reader_netCDF_CF_generic now detects lon/lat arrays also if their variable name equals lon/lat or longitude/latitude
+
+2021-01-15 / Release v1.5.3
+---------------------------
+* Fixed bug related to derived_variables (e.g. calculating x_wind, y_wind from windspeed, winddirection)
+
+2021-01-14 / Release v1.5.2
+---------------------------
+* Fixed problem with double or missing logging output
+* ShipDrift model now gives warning and not error if input parameter are outside bounds, and parameters are clipped to boundary values
+* Fixed problem with multiprocessing/parallelization of lonlat2xy for unprojected readers
+
+2021-01-05 / Release v1.5.1
+---------------------------
+* OilLibrary updated to version 1.1.3. Slightly different weathering results, and * is removed from oil names starting with GENERIC
+
+2021-01-04 / Release v1.5.0
+---------------------------
+* Major restructuring of Basereader class. Readers now are sublasses of Structured, Unstructured or Continuous.
+* Built in GUI is improved with posibillity to adjust all config settings.
+* Some Leeway parameters are renamed from camelCase to camel_case, including: ``jibeProbability`` -> ``jibe_probability`` and ``objectType`` -> ``object_type``
+* Renamed config setting ``drift:scheme`` -> ``drift:advection_scheme``
+
 2020-11-01 / Release v1.4.2
 ---------------------------
 

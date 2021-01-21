@@ -20,13 +20,9 @@ import numpy as np
 from datetime import timedelta, datetime
 import pyproj
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 
-
-
-class Reader(BaseReader):
-
-	return_block = False
+class Reader(BaseReader, ContinuousReader):
 	variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
 
 	def __init__ (self, obslon, obslat, obstime, obsfile=None,
@@ -64,11 +60,10 @@ class Reader(BaseReader):
 			x1,y1 = windreader.lonlat2xy(obslon[1], obslat[1])
 
 			#NB! Use wind speeds at observed positions
-			wind0 = windreader.get_variables(['x_wind', 'y_wind'], x=x0, y=y0, time=obstime[0])
-			wind1 = windreader.get_variables(['x_wind', 'y_wind'], x=x1, y=y1, time=obstime[1])
+			wind0 = windreader.get_variables_interpolated_xy(['x_wind', 'y_wind'], x=x0, y=y0, z = self.z, time=obstime[0])[0]
+			wind1 = windreader.get_variables_interpolated_xy(['x_wind', 'y_wind'], x=x1, y=y1, z = self.z, time=obstime[1])[0]
 			meanwind_x = (wind0['x_wind'][0]+ wind1['x_wind'][0])/2
 			meanwind_y = (wind0['y_wind'][0]+ wind1['y_wind'][0])/2
-
 		else:
 			meanwind_x = wind_east
 			meanwind_y = wind_north # wind_east/north should be given in m/s
@@ -81,17 +76,16 @@ class Reader(BaseReader):
 		self.speed = self.dist/(time_delta_seconds)
 
 		#Calculate the average speed in x/y-direction of the residual
-		self.x_sea_water_velocity = self.speed*np.sin(np.radians(self.azimuth)) - meanwind_x*wind_factor
-		self.y_sea_water_velocity = self.speed*np.cos(np.radians(self.azimuth)) - meanwind_y*wind_factor
+		self.x_sea_water_velocity = np.atleast_1d(self.speed*np.sin(np.radians(self.azimuth)) - meanwind_x*wind_factor)
+		self.y_sea_water_velocity = np.atleast_1d(self.speed*np.cos(np.radians(self.azimuth)) - meanwind_y*wind_factor)
 
 
 		super(Reader, self).__init__()
 
 	def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None):
 
-		requested_variables, time, x, y, z, outside = self.check_arguments(
-            requested_variables, time, x, y, z)
+		requested_variables, time, x, y, z, outside = self.check_arguments(requested_variables, time, x, y, z)
 		nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
 			self.nearest_time(time)
 

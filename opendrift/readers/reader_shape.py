@@ -14,7 +14,7 @@
 #
 # Copyright 2020, Gaute Hope, MET Norway
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 from opendrift_landmask_data import Landmask
 
 import pyproj
@@ -22,8 +22,10 @@ import shapely
 import shapely.ops
 import cartopy
 import itertools
+import logging
+logger = logging.getLogger(__name__)
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     """
     The shape reader can be used to load generic shapes as the 'landmask' variable.
 
@@ -36,7 +38,6 @@ class Reader(BaseReader):
         :type proj4_str: string.
     """
     name = 'shape'
-    return_block = False
     variables = ['land_binary_mask']
     proj4 = None
     crs   = None
@@ -65,7 +66,7 @@ class Reader(BaseReader):
         # reading shapefiles
         shp_iters = []
         for shp in shpfiles:
-            Reader.logger.debug("Reading shapefile: %s" % shp)
+            logger.debug("Reading shapefile: %s" % shp)
             from cartopy import io
             reader = io.shapereader.Reader(shp)
             shp_iters.append(reader.geometries())
@@ -87,7 +88,7 @@ class Reader(BaseReader):
         self.polys = list(shapes) # reads geometries if Shape Readers
         assert len(self.polys) > 0, "no geometries loaded"
 
-        self.logger.info("Pre-processing %d geometries" % len(self.polys))
+        logger.info("Pre-processing %d geometries" % len(self.polys))
         self.land = shapely.ops.unary_union(self.polys)
 
         self.xmin, self.ymin, self.xmax, self.ymax = self.land.bounds
@@ -101,7 +102,7 @@ class Reader(BaseReader):
             return 1 - shapely.vectorized.contains(self.land, x, y)
 
     def get_variables(self, requestedVariables, time = None,
-                      x = None, y = None, z = None, block = False):
+                      x = None, y = None, z = None):
         """
         Get binary mask of whether elements are on land or not.
 

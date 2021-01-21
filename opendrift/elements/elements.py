@@ -17,7 +17,7 @@
 from collections import OrderedDict
 import numpy as np
 
-class LagrangianArray(object):
+class LagrangianArray:
     """A generic array-like class for Lagrangian particle tracking.
 
     A LagrangianArray is a generic class keeping the values of given
@@ -64,6 +64,7 @@ class LagrangianArray(object):
                          'default': 0}),
         ('origin_marker', {'dtype': np.int16,
                            'unit': '',
+            'description': 'An integer kept constant during the simulation. Different values may be used for different seedings, to separate elements during analysis. With GUI, only a single seeding is possible.',
                            'default': 0}),
         ('lon', {'dtype': np.float32,
                  'units': 'degrees_east',

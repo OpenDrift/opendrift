@@ -60,9 +60,7 @@ Some key features of OpenDrift are:
 
 Running a simulation can be as simple as:
 
-.. plot::
-   :include-source: true
-   :format: doctest
+.. code::
 
    >>> from datetime import datetime, timedelta
    >>> from opendrift.models.oceandrift import OceanDrift
@@ -76,7 +74,7 @@ Running a simulation can be as simple as:
    >>> o.run(duration=timedelta(hours=24))
    >>> o.animation(filename='animation.mp4')
 
-.. image:: /gallery/animations/plot_directive_0.gif
+.. image:: /gallery/animations/example_plot_0.gif
 
 Once you have OpenDrift :doc:`installed <install>`, take a look at the
 :doc:`tutorial` on how to get started, or check out the :doc:`gallery
