@@ -20,6 +20,7 @@
 import os
 import time
 from datetime import datetime
+from . import *
 
 from opendrift.readers import reader_global_landmask
 from opendrift.models.leeway import Leeway
@@ -43,7 +44,7 @@ def test_leeway_config_object():
     assert l.leewayprop[objType]['Description'] == 'Surf board with person'
     assert l.leewayprop[objType]['OBJKEY'] == 'PERSON-POWERED-VESSEL-2'
 
-def test_leewayrun(tmpdir):
+def test_leewayrun(tmpdir, test_data):
     """Test the expected Leeway left/right split."""
     lee = Leeway()
     object_type = 50  # FISHING-VESSEL-1
@@ -61,5 +62,11 @@ def test_leewayrun(tmpdir):
     assert lee.num_elements_scheduled() == 0
     assert lee.num_elements_active() == 92
     assert lee.num_elements_deactivated() == 8  # stranded
-    lee.export_ascii(tmpdir + '/leeway_ascii.txt')
+
+    asciif = tmpdir + '/leeway_ascii.txt'
+    lee.export_ascii(asciif)
+
+    asciitarget = test_data + "/generated/test_leewayrun_export_ascii.txt"
+    import filecmp
+    assert filecmp.cmp(asciif, asciitarget)
 
