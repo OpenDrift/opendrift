@@ -37,11 +37,10 @@ o.set_config('general:use_auto_landmask', False) # prevent opendrift from making
 # PARTICLE SEEDING
 ###############################
 # generic point release location for test
-lon0 = 177.269014281  
-lon0 = 181.0  
+lon0 = 177.269014281   
 lat0 = -37.8719 
-radius_in_m = 5000
-nb_parts = 500
+radius_in_m = 1000
+nb_parts = 1000
 z = np.random.uniform(-50,0,size=nb_parts) # generate random depth
 # continuous release from tstart_release to tend_release within a 1000m radius
 o.seed_elements(lon0, lat0, 
