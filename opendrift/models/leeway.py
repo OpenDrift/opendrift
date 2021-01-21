@@ -239,9 +239,11 @@ class Leeway(OpenDriftSimulation):
             jibe_probability = self.get_config('seed:jibe_probability')
 
         # Store seed data for ASCII format output
-        self.ascii = {
-             'lon': lon, 'lat': lat, 'radius': radius,
-             'number': number, 'time': time}
+        if hasattr(self, 'seed_cone_arguments'):
+            self.ascii = self.seed_cone_arguments
+        else:
+            self.ascii = {'lon': lon, 'lat': lat, 'radius': radius,
+                          'number': number, 'time': time}
 
         # Call general seed_elements function of OpenDriftSimulation class
         # with the specific values calculated
