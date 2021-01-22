@@ -1213,12 +1213,12 @@ class OpenOil(OceanDrift):
 
     def seed_elements(self, *args, **kwargs):
 
-        # Old OpenOil3D seeding code
         if len(args) == 2:
             kwargs['lon'] = args[0]
             kwargs['lat'] = args[1]
             args = {}
 
+        # To be removed, and replaced by GeoJSON seed strings
         seed_json = {'start':{}, 'end':{}}
         for kw in kwargs:
             data = kwargs[kw]
@@ -1281,13 +1281,13 @@ class OpenOil(OceanDrift):
                          (sub_dmin, sub_dmax))
             kwargs['diameter'] = np.random.uniform(sub_dmin, sub_dmax, number)
 
-
-        ##########################
-        # Old OpenOil seeding
-
         if 'oiltype' in kwargs:
-            self.set_config('seed:oil_type', kwargs['oiltype'])
+            logger.warning('Seed argument *oiltype* is deprecated, use *oil_type* instead')
+            kwargs['oil_type'] = kwargs['oiltype']
             del kwargs['oiltype']
+        if 'oil_type' in kwargs:
+            self.set_config('seed:oil_type', kwargs['oil_type'])
+            del kwargs['oil_type']
         else:
             logger.info('Oil type not specified, using default: ' +
                          self.get_config('seed:oil_type'))
@@ -1353,6 +1353,13 @@ class OpenOil(OceanDrift):
         self.add_metadata('seed_json', json.dumps(self.seed_json,
                                             cls=MyEncoder))
 
+    def seed_cone(self, *args, **kwargs):
+        if 'oiltype' in kwargs:
+            logger.warning('Seed argument *oiltype* is deprecated, use *oil_type* instead')
+            kwargs['oil_type'] = kwargs['oiltype']
+            del kwargs['oiltype']
+
+        super(OpenOil, self).seed_cone(*args, **kwargs)
 
     def seed_from_gml(self, gmlfile, num_elements=1000, *args, **kwargs):
         """Read oil slick contours from GML file, and seed particles within."""
