@@ -1,6 +1,13 @@
 History
 =======
 
+Next release
+------------
+* Deprecating seed argument `oiltype` in favor of `oil_type` in OpenOil. Warning is issued, but later this will become an error
+* Fixed problem with convolution of reader fields
+* Fixed newly introduced bug with Leeway ascii output file
+* Cleaned up some metadata output, and seeding arguments are written as list of GeoJSON strings to attribute `seed_geojson`
+
 2021-01-18 / Release v1.5.4
 ---------------------------
 * seed_cone also accepts time as list with single element
