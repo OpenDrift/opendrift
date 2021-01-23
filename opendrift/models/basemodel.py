@@ -154,6 +154,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         self.show_continuous_performance = False
 
+        # List to store GeoJSON dicts of seeding commands
+        self.seed_geojson = []
+
         # Dict to store readers
         self.readers = OrderedDict()  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
@@ -1630,10 +1633,26 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             timespan = [time, time]
 
-        self.seed_cone_arguments = {
-                'lon': lonin if 'lonin' in locals() else [lon.min(), lon.max()],
-                'lat': latin if 'latin' in locals() else [lat.min(), lat.max()],
+        radius = radius.astype(np.float)
+        lonin = lonin if 'lonin' in locals() else [lon.min(), lon.max()]
+        latin = latin if 'latin' in locals() else [lat.min(), lat.max()]
+
+        self.seed_cone_arguments = {'lon': lonin, 'lat': latin,
                 'radius': [radius[0], radius[-1]], 'time': timespan, 'number': number}
+
+        # Make GeoJson seeding dict to be saved in netCDF metadata
+        from geojson import Feature, LineString
+        geo = LineString([(np.float(lonin[0]), np.float(latin[0])),
+                          (np.float(lonin[1]), np.float(latin[1]))])
+        seed_defaults = self.get_configspec('seed')
+        default_seed = {k.split(':')[-1]:seed_defaults[k]['default'] for k in seed_defaults}
+        default_seed = {**default_seed, **kwargs}  # Overwrite with explicitly provided values
+        properties = {**default_seed,
+                      'time': [str(timespan[0]), str(timespan[1])],
+                      'radius': [radius[0], radius[-1]],
+                      'number': number}
+        f = Feature(geometry=geo, properties=properties)
+        self.seed_geojson.append(f)
 
         # Forwarding calculated cone points/radii to seed_elements
         self.seed_elements(lon=lon, lat=lat, time=time, radius=radius, number=number, **kwargs)
@@ -2105,6 +2124,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
         self.elements = self.ElementType()
+
+        # Export seed_geojson to metadata_dict
+        self.add_metadata('seed_geojson', self.seed_geojson)
 
         # Collect fallback values from config into dict
         self.set_fallback_values(refresh=True)

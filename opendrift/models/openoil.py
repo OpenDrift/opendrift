@@ -1211,43 +1211,42 @@ class OpenOil(OceanDrift):
         self.oil_data['wmax'] = np.array(wmax, dtype='float')
         self.oil_data['oiltype'] = oiltype  # Store name of oil type
 
+    def store_oil_seed_metadata(self, **kwargs):
+        for s in ['lon', 'lat', 'radius', 'time', 'number', 'z', 'm3_per_hour']:
+            if not 'seed_' + s in self.metadata_dict:
+                if s in kwargs:
+                    val = kwargs[s]
+                else:
+                    if s == 'radius':
+                        val = 0  # There is no default radius
+                    else:
+                        val = self.get_config('seed:' + s)
+                if s == 'time':
+                    if hasattr(kwargs[s], '__len__'):
+                        self.add_metadata('seed_time', val[0])
+                    else:
+                        self.add_metadata('seed_time', val)
+                elif isinstance(val, str):
+                    self.add_metadata('seed_' + s, val)
+                else:
+                    self.add_metadata('seed_' + s, np.atleast_1d(val).mean())
+        if not 'seed_oiltype' in self.metadata_dict:
+            if 'oiltype' in kwargs:
+                oiltype = kwargs['oiltype']
+            elif 'oil_type' in kwargs:
+                oiltype = kwargs['oil_type']
+            else:
+                oiltype = self.get_config('seed:oil_type')
+            self.add_metadata('seed_oiltype', oiltype)
+
     def seed_elements(self, *args, **kwargs):
 
-        # Old OpenOil3D seeding code
         if len(args) == 2:
             kwargs['lon'] = args[0]
             kwargs['lat'] = args[1]
             args = {}
 
-        seed_json = {'start':{}, 'end':{}}
-        for kw in kwargs:
-            data = kwargs[kw]
-            if not isinstance(data, str):
-                data = np.atleast_1d(data)
-            if isinstance(data[0], datetime):
-                data[0] = str(data[0])
-                if len(data) == 2:
-                    data[1] = str(data[1])
-            if not isinstance(kwargs[kw], str):
-                if kw in ['lon', 'lat', 'z', 'radius', 'time']:
-                    pointer = seed_json['start']
-                    pointer2 = seed_json['end']
-                else:
-                    pointer = seed_json
-                if len(data) == 1:
-                    self.add_metadata('seed_' + kw, data[0])
-                    pointer[kw] = data[0]
-                elif len(kwargs[kw]) == 2:
-                    self.add_metadata('seed_' + kw + '_start', str(kwargs[kw][0]))
-                    self.add_metadata('seed_' + kw + '_end', str(kwargs[kw][1]))
-                    pointer[kw] = data[0]
-                    pointer2[kw] = data[1]
-                else:
-                    pass
-                    #logger.info('Not adding array %s to metadata' % kw)
-            else:
-                self.add_metadata('seed_' + kw, str(data))
-                seed_json[kw] = data
+        self.store_oil_seed_metadata(**kwargs)
 
         if 'number' not in kwargs:
             number = self.get_config('seed:number')
@@ -1281,13 +1280,13 @@ class OpenOil(OceanDrift):
                          (sub_dmin, sub_dmax))
             kwargs['diameter'] = np.random.uniform(sub_dmin, sub_dmax, number)
 
-
-        ##########################
-        # Old OpenOil seeding
-
         if 'oiltype' in kwargs:
-            self.set_config('seed:oil_type', kwargs['oiltype'])
+            logger.warning('Seed argument *oiltype* is deprecated, use *oil_type* instead')
+            kwargs['oil_type'] = kwargs['oiltype']
             del kwargs['oiltype']
+        if 'oil_type' in kwargs:
+            self.set_config('seed:oil_type', kwargs['oil_type'])
+            del kwargs['oil_type']
         else:
             logger.info('Oil type not specified, using default: ' +
                          self.get_config('seed:oil_type'))
@@ -1323,36 +1322,15 @@ class OpenOil(OceanDrift):
 
         super(OpenOil, self).seed_elements(*args, **kwargs)
 
-        # Add oil metadata
-        self.add_metadata('seed_oil_density',
-                          self.oiltype.density_at_temp(283))
-        seed_json['oil_density'] = self.oiltype.density_at_temp(283)
-        self.add_metadata('seed_oil_viscosity',
-                          self.oiltype.kvis_at_temp(283))
-        seed_json['oil_viscosity'] = self.oiltype.kvis_at_temp(283)
+    def seed_cone(self, *args, **kwargs):
+        if 'oiltype' in kwargs:
+            logger.warning('Seed argument *oiltype* is deprecated, use *oil_type* instead')
+            kwargs['oil_type'] = kwargs['oiltype']
+            del kwargs['oiltype']
 
-        if not hasattr(self, 'seed_json'):
-            self.seed_json = []
-        self.seed_json.append(seed_json)
+        self.store_oil_seed_metadata(**kwargs)
 
-        class MyEncoder(json.JSONEncoder):  # Serialisation of json
-            def default(self, obj):
-                if isinstance(obj, np.bool_) :
-                    return str(obj)
-                elif isinstance(obj, bool) :
-                    return str(obj)
-                elif isinstance(obj, np.integer):
-                    return int(obj)
-                elif isinstance(obj, np.floating):
-                    return float(obj)
-                elif isinstance(obj, np.ndarray):
-                    return obj.tolist()
-                else:
-                    return super(MyEncoder, self).default(obj)
-
-        self.add_metadata('seed_json', json.dumps(self.seed_json,
-                                            cls=MyEncoder))
-
+        super(OpenOil, self).seed_cone(*args, **kwargs)
 
     def seed_from_gml(self, gmlfile, num_elements=1000, *args, **kwargs):
         """Read oil slick contours from GML file, and seed particles within."""

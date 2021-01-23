@@ -22,6 +22,7 @@ import unittest
 import logging
 from datetime import datetime, timedelta
 
+import xarray as xr
 import numpy as np
 
 from opendrift.models.openoil import OpenOil
@@ -245,6 +246,60 @@ class TestOil(unittest.TestCase):
                 #self.assertAlmostEqual(d.mean(), 0.000072158)
                 self.assertAlmostEqual(d.mean(), 0.000653, 2)
 
+    def test_seed_metadata_output(self):
+        import warnings
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        outfile = 'openoil.nc'
+        a = {'lon': 4.8, 'lat': 60, 'z': -10, 'number': 10, 'radius': 100, 'time': datetime(2021, 1, 22)}
+        o = OpenOil(loglevel=50)
+        o.seed_elements(lon=a['lon'], lat=a['lat'], z=a['z'], radius=a['radius'],
+                        number=a['number'], time=a['time'])
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 1)
+        o.set_config('environment:fallback:y_wind', 0)
+        o.set_config('environment:fallback:x_sea_water_velocity', 0)
+        o.set_config('environment:fallback:y_sea_water_velocity', .3)
+        o.run(duration=timedelta(hours=1), time_step=1800, outfile=outfile)
+        f = xr.open_dataset(outfile)
+        for var in ['lon', 'lat', 'number', 'radius', 'z', 'm3_per_hour']:
+            s = 'seed_' + var
+            if var not in a:
+                a[var] = o.get_config('seed:' + var)
+            self.assertAlmostEqual(np.float(a[var]), np.float(f.attrs[s]), 3)
+        self.assertEqual(str(a['time']), f.attrs['seed_time'])
+        for var in ['seed_m3_per_hour', 'time_coverage_start', 'time_coverage_end',
+                    'seed_oiltype', 'simulation_time']:
+            assert var in f.attrs
+        f.close()
+        os.remove(outfile)
+        # Same for cone-seeding
+        a = {'lon': [4.7, 4.8], 'lat': [60, 60.1], 'z': 'seafloor', 'number': 10,
+             'radius': [0, 100], 'time': [datetime(2021, 1, 22, 0), datetime(2021, 1, 22, 6)]}
+        o = OpenOil(loglevel=50)
+        o.seed_cone(lon=a['lon'], lat=a['lat'], z=a['z'], radius=a['radius'],
+                    number=a['number'], time=a['time'])
+        o.seed_cone(lon=a['lon'], lat=a['lat'], z=a['z'], radius=a['radius'],
+                    number=a['number']+4, time=a['time'])
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('environment:fallback:x_wind', 1)
+        o.set_config('environment:fallback:y_wind', 0)
+        o.set_config('environment:fallback:x_sea_water_velocity', 0)
+        o.set_config('environment:fallback:y_sea_water_velocity', .3)
+        o.run(duration=timedelta(hours=1), time_step=1800, outfile=outfile)
+        f = xr.open_dataset(outfile)
+        for var in ['lon', 'lat', 'number', 'radius', 'z', 'm3_per_hour']:
+            s = 'seed_' + var
+            if var not in a:
+                a[var] = o.get_config('seed:' + var)
+            if isinstance(a[var], str):  # z=seafloor
+                self.assertAlmostEqual(a[var], f.attrs[s])
+            else:
+                self.assertAlmostEqual(np.atleast_1d(a[var]).mean(), np.float(f.attrs[s]), 3)
+        self.assertEqual(str(a['time'][0]), f.attrs['seed_time'])
+        for var in ['seed_m3_per_hour', 'time_coverage_start', 'time_coverage_end',
+                    'seed_oiltype', 'simulation_time']:
+            assert var in f.attrs
+        os.remove(outfile)
 
 if __name__ == '__main__':
     unittest.main()
