@@ -132,6 +132,11 @@ def close(self):
     # Write performance data
     self.outfile.performance = self.performance()
 
+    # Write metadata items anew, if any are added during simulation
+    if hasattr(self, 'metadata_dict'):
+        for key, value in self.metadata_dict.items():
+            self.outfile.setncattr(key, str(value))
+
     # Write bounds metadata
     self.outfile.geospatial_lat_min = self.history['lat'].min()
     self.outfile.geospatial_lat_max = self.history['lat'].max()
