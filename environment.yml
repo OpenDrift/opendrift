@@ -24,6 +24,7 @@ dependencies:
   - pytest-benchmark
   - cartopy
   - nc-time-axis
+  - pvlib-python
   - geojson
   - opendrift-landmask-data
   - oil_library-opendrift>=2+noaa1.1.3
