@@ -173,7 +173,6 @@ class LarvalFish(OceanDrift):
         W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W
 
-
     def fish_growth(self, weight, temperature):
         # Weight in milligrams, temperature in celcius
         # Daily growth rate in percent according to
@@ -188,23 +187,6 @@ class LarvalFish(OceanDrift):
         # Growth rate(g) converted to milligram weight (gr_mg) per timestep:
         g = (np.log(GR / 100. + 1)) * self.time_step.total_seconds()/86400  
         return weight * (np.exp(g) - 1.)
-
-    def update_vertial_position_dynamic_range(self, length,
-                                              old_light,
-                                              current_light,
-                                              current_depth):
-        # Update the vertical position of the current larva using length (in mm) to calculate
-        # ma hourly move in meters
-        mm2m = 1. / 1000.
-        # Swim function from Peck et al. 2006
-        swim_speed = 0.5 * length * mm2m * self.time_step.total_seconds()
-        max_hourly_move = swim_speed * (self.time_step.total_seconds() / 3600.)
-
-        if old_light <= current_light:  # If light increases and stomach is sufficiently full, go down
-            depth = min(0.0, current_depth - max_hourly_move)
-        else:  # If light decreases or stomach is not sufficiently full, go up
-            depth = min(0, current_depth + max_hourly_move)
-        return depth
 
     def update_fish_larvae(self):
 
