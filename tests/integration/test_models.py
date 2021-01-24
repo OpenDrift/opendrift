@@ -31,7 +31,7 @@ from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
 from opendrift.models.openberg import OpenBerg
-from opendrift.models.larvalfish import PelagicPlanktonDrift
+from opendrift.models.larvalfish import LarvalFish
 
 import opendrift
 print(opendrift.versions())
@@ -212,7 +212,7 @@ class TestModels(unittest.TestCase):
 
 
     def test_larvalfish(self):
-        o = PelagicPlanktonDrift()
+        o = LarvalFish()
         # Tests to be added
 
 if __name__ == '__main__':
