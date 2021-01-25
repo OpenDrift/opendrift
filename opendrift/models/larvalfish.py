@@ -31,8 +31,11 @@ class LarvalFishElement(Lagrangian3DArray):
                       'units': 'm',
                       'default': 0.0014}),  # for NEA Cod
         ('neutral_buoyancy_salinity', {'dtype': np.float32,
-                                       'units': '[]',
+                                       'units': 'PSU',
                                        'default': 31.25}),  # for NEA Cod
+        ('stage_fraction', {'dtype': np.float32,  # to track percentage of development time completed
+                            'units': '',
+                            'default': 0.}),
         ('hatched', {'dtype': np.int64,  # 0 for eggs, 1 for larvae
                      'units': '',
                      'default': 0}),
@@ -176,8 +179,8 @@ class LarvalFish(OceanDrift):
     def fish_growth(self, weight, temperature):
         # Weight in milligrams, temperature in celcius
         # Daily growth rate in percent according to
-        # Folkvord, A. 2005. "Comparison of Size - at - Age of Larval Atlantic Cod(Gadus Morhua )
-        # from Different Populations Based on Size - and Temperature - Dependent Growth
+        # Folkvord, A. 2005. "Comparison of Size-at-Age of Larval Atlantic Cod (Gadus Morhua)
+        # from Different Populations Based on Size- and Temperature-Dependent Growth
         # Models." Canadian Journal of Fisheries and Aquatic Sciences.
         # Journal Canadien Des Sciences Halieutiques # et Aquatiques 62(5): 1037-52.
         GR = 1.08 + 1.79 * temperature - 0.074 * temperature * np.log(weight) \
@@ -190,13 +193,17 @@ class LarvalFish(OceanDrift):
 
     def update_fish_larvae(self):
 
-        # Hatching after given number of days - to be improved
-        days_to_hatching = 20
-        hatching = np.where((self.elements.hatched==0) &
-                            (self.elements.age_seconds>3600*24*days_to_hatching))[0]
-        if len(hatching) > 0:
-            logger.debug('Hatching %s eggs' % len(hatching))
-            self.elements.hatched[hatching] = 1
+        # Hatching of eggs
+        eggs = np.where(self.elements.hatched==0)[0]
+        if len(eggs) > 0:
+            amb_duration = np.exp(3.65 - 0.145*self.environment.sea_water_temperature[eggs]) # Total egg development time (days) according to ambient temperature (Ellertsen et al. 1988)
+            days_in_timestep = self.time_step.total_seconds()/(60*60*24)  # The fraction of a day completed in one time step
+            amb_fraction = days_in_timestep/amb_duration # Fraction of development time completed during present time step
+            self.elements.stage_fraction[eggs] += amb_fraction # Add fraction completed during present timestep to cumulative fraction completed
+            hatching = np.where(self.elements.stage_fraction[eggs]>=1)[0]
+            if len(hatching) > 0:
+                logger.debug('Hatching %s eggs' % len(hatching))
+                self.elements.hatched[eggs[hatching]] = 1 # Eggs with total development time completed are hatched (1)
 
         larvae = np.where(self.elements.hatched==1)[0]
         if len(larvae) == 0:
@@ -211,9 +218,9 @@ class LarvalFish(OceanDrift):
         logger.debug('Growing %s larve from average size %s to %s' %
               (len(larvae), avg_weight_before, avg_weight_after))
     
-        # Increasing length of larvae
+        # Increasing length of larvae, according to Folkvord (2005)
         w = self.elements.weight[larvae]
-        self.elements.length[larvae] = np.exp(2.296 + 0.277 * np.log(w) - 0.005128 * np.log(w) ** 2)  # TODO: Check last ** 2
+        self.elements.length[larvae] = np.exp(2.296 + 0.277 * np.log(w) - 0.005128 *np.log10(w)**2)
 
     def larvae_vertical_migration(self):
 
