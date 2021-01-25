@@ -197,21 +197,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if loglevel < 10:  # 0 is NOTSET, giving no output
                 loglevel=10
 
-            od_logger = logging.getLogger('opendrift')
+            od_loggers = [ logging.getLogger('opendrift'), logging.getLogger('opendrift_landmask_data') ]
 
             if logfile is not None:
                 handler = logging.FileHandler(logfile, mode='w')
                 handler.setFormatter(formatter)
-                od_logger.setLevel(loglevel)
-                od_logger.handlers = []
-                od_logger.addHandler(handler)
+                for l in od_loggers:
+                    l.setLevel(loglevel)
+                    l.handlers = []
+                    l.addHandler(handler)
             else:
                 import coloredlogs
                 fields = coloredlogs.DEFAULT_FIELD_STYLES
                 fields['levelname']['color'] = 'magenta'
 
                 # coloredlogs does not create duplicate handlers
-                coloredlogs.install(level = loglevel, logger = od_logger, fmt = format, datefmt = datefmt, field_styles = fields)
+                for l in od_loggers:
+                    coloredlogs.install(level = loglevel, logger = l, fmt = format, datefmt = datefmt, field_styles = fields)
 
         # Prepare outfile
         try:
