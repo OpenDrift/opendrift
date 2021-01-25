@@ -38,11 +38,11 @@ class TestPhysics(unittest.TestCase):
         depths = np.arange(0, 80, 5)
         wind, depth = np.meshgrid(windspeeds, depths)
         KLarge = verticaldiffusivity_Large1994(wind, depth)
-        KSundby = verticaldiffusivity_Sundby1983(wind)
+        KSundby = verticaldiffusivity_Sundby1983(wind, depth)
 
         self.assertAlmostEqual(KLarge.min(), 0, 3)
         self.assertAlmostEqual(KLarge.max(), 0.2017, 3)
-        self.assertAlmostEqual(KSundby.min(), .0076, 3)
+        self.assertAlmostEqual(KSundby.min(), 0, 3)
         self.assertAlmostEqual(KSundby.max(), 0.0585, 3)
 
     def test_droplet_diameters(self):

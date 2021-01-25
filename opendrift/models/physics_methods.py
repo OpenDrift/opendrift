@@ -67,7 +67,7 @@ def wave_period_from_wind(wind_speed):
     omega[wind_speed>0] = 0.877*9.81/(1.17*wind_speed[wind_speed>0])
     return 2*np.pi/omega
 
-def verticaldiffusivity_Sundby1983(windspeed):
+def verticaldiffusivity_Sundby1983(windspeed, depth, mixedlayerdepth=50):
     ''' Vertical diffusivity from Sundby (1983)
 
     S. Sundby (1983): A one-dimensional model for the vertical
@@ -75,7 +75,8 @@ def verticaldiffusivity_Sundby1983(windspeed):
         Deep Sea Research (30) pp. 645-661
     '''
 
-    K = 76.1e-4 + 2.26e-4 * windspeed*windspeed
+    K = 76.1e-4 + 2.26e-4 * windspeed*windspeed * np.ones(np.atleast_1d(depth.shape))
+    K[depth>mixedlayerdepth] = 0  # Cutoff below mixed layer
     # valid = windspeed_squared < 13**2
     return K
 

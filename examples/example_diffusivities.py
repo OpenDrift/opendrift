@@ -16,8 +16,8 @@ windspeed = np.arange(0, 20, 5)
 colors = ['r', 'g', 'b', 'k']
 
 for w, c in zip(windspeed, colors):
-    plt.plot(np.ones(depth.shape)*verticaldiffusivity_Sundby1983(w),
-             depth, c + '-', label='Sundby, wind = %s' % w)
+    plt.plot(np.ones(depth.shape)*verticaldiffusivity_Sundby1983(w, depth, 50),
+             depth, c + '-', label='Sundby, wind = %sm MLD=50' % w)
     plt.plot(verticaldiffusivity_Large1994(w, depth, 50), depth,
              c + '--', label='Large, wind = %s, MLD=50' % w)
     plt.plot(verticaldiffusivity_Large1994(w, depth, 20), depth,
