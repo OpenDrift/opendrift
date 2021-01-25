@@ -460,7 +460,7 @@ class Variables(ReaderDomain):
         if name in standard_names.keys():
             logger.debug("Checking %s for invalid values" % name)
             if isinstance(variable, list):
-                logger.warning(
+                logger.debug(
                     'Min-max checking for ensemble data (%i members)' % (len(variable)))
                 # Recursive
                 return [Variables.__check_variable_array__(name, v) for v in variable]

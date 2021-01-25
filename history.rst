@@ -3,7 +3,8 @@ History
 
 Next release
 ------------
-* New module LarvalFish, with new dependency pvlib
+* New module LarvalFish, for fish eggs hatching into larvae with swimming behaviour
+* Sundby83 parameterisation of vertical diffusivity is now set to 0 below mixed layer depth (default 50m)
 * Deprecating seed argument `oiltype` in favor of `oil_type` in OpenOil. Warning is issued, but later this will become an error
 * Fixed problem with convolution of reader fields
 * Fixed newly introduced bug with Leeway ascii output file

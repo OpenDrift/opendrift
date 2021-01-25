@@ -239,7 +239,7 @@ class OceanDrift(OpenDriftSimulation):
         if model == 'windspeed_Large1994':
             return verticaldiffusivity_Large1994(wind, depth)
         elif model == 'windspeed_Sundby1983':
-            return verticaldiffusivity_Sundby1983(wind)
+            return verticaldiffusivity_Sundby1983(wind, depth)
         elif model == 'gls_tke':
             if not hasattr(self, 'gls_parameters'):
                 logger.info('Searching readers for GLS parameters...')
