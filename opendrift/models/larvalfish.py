@@ -207,6 +207,8 @@ class LarvalFish(OceanDrift):
 
         larvae = np.where(self.elements.hatched==1)[0]
         if len(larvae) == 0:
+            logger.debug('%s eggs, with maximum stage_fraction of %s (1 gives hatching)'
+                         % (len(eggs), self.elements.stage_fraction[eggs].max()))
             return
 
         # Increasing weight of larvae
