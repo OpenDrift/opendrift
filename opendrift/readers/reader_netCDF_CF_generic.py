@@ -127,10 +127,12 @@ class Reader(BaseReader, StructuredReader):
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logger.info('Opening files with MFDataset')
                 self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
-                                                 decode_times=False)
+                                                 chunks={'time': 1}, decode_times=False)
             else:
                 logger.info('Opening file with Dataset')
-                self.Dataset = xr.open_dataset(filename, decode_times=False)
+                # Chunk time:1 may have large effect for open_mfdataset (above)
+                # but possibly no effect for open_dataset (below)
+                self.Dataset = xr.open_dataset(filename, chunks={'time': 1}, decode_times=False)
         except Exception as e:
             raise ValueError(e)
 
