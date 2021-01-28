@@ -81,10 +81,10 @@ class RadionuclideDrift(OceanDrift):
         'ocean_vertical_diffusivity': {'fallback': 0.0001, 'profiles': True},
         'sea_water_temperature': {'fallback': 10, 'profiles': True},
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
-        'surface_downward_x_stress': {'fallback': 0},
-        'surface_downward_y_stress': {'fallback': 0},
-        'turbulent_kinetic_energy': {'fallback': 0},
-        'turbulent_generic_length_scale': {'fallback': 0},
+#        'surface_downward_x_stress': {'fallback': 0},
+#        'surface_downward_y_stress': {'fallback': 0},
+#        'turbulent_kinetic_energy': {'fallback': 0},
+#        'turbulent_generic_length_scale': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0},
         'conc3': {'fallback': 1.e-3},
         }
@@ -203,7 +203,6 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             })
 
-        self._set_config_default('drift:vertical_mixing', True)
 
 
 
@@ -292,9 +291,6 @@ class RadionuclideDrift(OceanDrift):
 
 
 
-        # Make sure vertical mixing is active when particles are simulated
-        if self.get_config('radionuclide:species:Particle_reversible'):
-            self.set_config('drift:vertical_mixing', True)
 
 
 
@@ -904,8 +900,12 @@ class RadionuclideDrift(OceanDrift):
 
         # Turbulent Mixing
         z_before = self.elements.z.copy()
-        self.update_terminal_velocity()
-        self.vertical_mixing()
+        if self.get_config('drift:vertical_mixing') is True:
+            self.update_terminal_velocity()
+            self.vertical_mixing()
+        else:
+            self.update_terminal_velocity()
+            self.vertical_buoyancy()
 
 
         # Resuspension
