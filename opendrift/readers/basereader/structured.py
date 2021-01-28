@@ -39,7 +39,7 @@ class StructuredReader(Variables):
 
     # Used to enable and track status of parallel coordinate transformations.
     __lonlat2xy_parallel__ = None
-    __parallel_fail__ = False
+    __disable_parallel__ = False
 
     def __init__(self):
         if self.proj is None and (self.proj4 is None
@@ -369,43 +369,36 @@ class StructuredReader(Variables):
             self.__lonlat2xy_parallel__ = False
             return super().lonlat2xy(lon, lat)
         else:
-            self.__lonlat2xy_parallel__ = True
-
             # For larger arrays, we split and calculate in parallel
             num_elements = len(np.atleast_1d(lon))
-            if num_elements > 10000 and not self.__parallel_fail__:
-                try:
-                    from multiprocessing import cpu_count
-                    from concurrent.futures import ThreadPoolExecutor
+            if num_elements > 10000 and not self.__disable_parallel__:
+                from multiprocessing import cpu_count
+                from concurrent.futures import ThreadPoolExecutor
 
-                    nproc = cpu_count()
-                    logger.debug('Running lonlat2xy in parallel using %d threads' %
-                                nproc)
+                self.__lonlat2xy_parallel__ = True
 
-                    # Chunk arrays
-                    split_lon = np.array_split(lon, nproc)
-                    split_lat = np.array_split(lat, nproc)
+                nproc = cpu_count()
+                logger.debug('Running lonlat2xy in parallel using %d threads' %
+                             nproc)
 
-                    with ThreadPoolExecutor() as x:
-                        out_x = np.concatenate(
-                            list(x.map(self.spl_x, zip(split_lon, split_lat))))
-                        out_y = np.concatenate(
-                            list(x.map(self.spl_y, zip(split_lon, split_lat))))
+                # Chunk arrays
+                split_lon = np.array_split(lon, nproc)
+                split_lat = np.array_split(lat, nproc)
 
-                    return (out_x, out_y)
+                with ThreadPoolExecutor() as x:
+                    out_x = np.concatenate(
+                        list(x.map(self.spl_x, zip(split_lon, split_lat))))
+                    out_y = np.concatenate(
+                        list(x.map(self.spl_y, zip(split_lon, split_lat))))
 
-                except Exception as e:
-                    logger.warning('Parallelprocessing failed, disabling:')
-                    logger.exception(e)
-                    self.__parallel_fail__ = True
-                    return self.lonlat2xy(lon, lat)
+                return (out_x, out_y)
+
             else:
-                logger.debug('Calculating lonlat2>xy sequentially')
+                logger.debug('Calculating lonlat2xy sequentially')
                 self.__lonlat2xy_parallel__ = False
                 x = self.spl_x(lon, lat)
                 y = self.spl_y(lon, lat)
                 return (x, y)
-
 
     def pixel_size(self):
         if self.projected:

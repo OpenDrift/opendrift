@@ -22,7 +22,7 @@ def test_set_convolve(test_data):
 def test_lonlat2xy_sequential(test_data, benchmark):
     reader = reader_ROMS_native.Reader(test_data + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
     assert not reader.projected
-    reader.__parallel_fail__ = True
+    reader.__disable_parallel__ = True
 
     lon = np.arange(10., 15., .01)
     lat = np.arange(67.8, 69.8, .01)
@@ -44,14 +44,13 @@ def test_lonlat2xy_parallel(test_data, benchmark):
     lon, lat = np.meshgrid(lon, lat)
     lon, lat = lon.ravel(), lat.ravel()
 
-    reader.__parallel_fail__ = True
+    reader.__disable_parallel__ = True
     xs, ys = reader.lonlat2xy(lon, lat)
     assert reader.__lonlat2xy_parallel__ == False
 
-    reader.__parallel_fail__ = False
+    reader.__disable_parallel__ = False
     x, y = benchmark(reader.lonlat2xy, lon, lat)
     assert reader.__lonlat2xy_parallel__ == True
-    assert reader.__parallel_fail__ == False
 
     np.testing.assert_equal(x, xs)
     np.testing.assert_equal(y, ys)
@@ -60,7 +59,7 @@ def test_lonlat2xy_parallel(test_data, benchmark):
 def test_lonlat2xy_sequential_big(test_data, benchmark):
     reader = reader_ROMS_native.Reader('https://thredds.met.no/thredds/dodsC/nansen-legacy-ocean/SVIM/2020/ocean_avg_20200601.nc4')
     assert not reader.projected
-    reader.__parallel_fail__ = True
+    reader.__disable_parallel__ = True
 
     lon = np.arange(-10., 15., .01)
     lat = np.arange(56., 69.8, .01)
@@ -83,15 +82,14 @@ def test_lonlat2xy_parallel_big(test_data, benchmark):
     lon, lat = np.meshgrid(lon, lat)
     lon, lat = lon.ravel(), lat.ravel()
 
-    reader.__parallel_fail__ = True
+    reader.__disable_parallel__ = True
     xs, ys = reader.lonlat2xy(lon, lat)
     assert reader.__lonlat2xy_parallel__ == False
 
     print(xs, ys)
-    reader.__parallel_fail__ = False
+    reader.__disable_parallel__ = False
     x, y = benchmark(reader.lonlat2xy, lon, lat)
     assert reader.__lonlat2xy_parallel__ == True
-    assert reader.__parallel_fail__ == False
 
     np.testing.assert_equal(x, xs)
     np.testing.assert_equal(y, ys)
