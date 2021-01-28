@@ -56,3 +56,42 @@ def test_lonlat2xy_parallel(test_data, benchmark):
     np.testing.assert_equal(x, xs)
     np.testing.assert_equal(y, ys)
 
+@pytest.mark.slow
+def test_lonlat2xy_sequential_big(test_data, benchmark):
+    reader = reader_ROMS_native.Reader('https://thredds.met.no/thredds/dodsC/nansen-legacy-ocean/SVIM/2020/ocean_avg_20200601.nc4')
+    assert not reader.projected
+    reader.__parallel_fail__ = True
+
+    lon = np.arange(-10., 15., .01)
+    lat = np.arange(56., 69.8, .01)
+
+    lon, lat = np.meshgrid(lon, lat)
+    lon, lat = lon.ravel(), lat.ravel()
+    print("coords: %d" % len(lon))
+
+    _, _ = benchmark(reader.lonlat2xy, lon, lat)
+    assert reader.__lonlat2xy_parallel__ == False
+
+@pytest.mark.slow
+def test_lonlat2xy_parallel_big(test_data, benchmark):
+    reader = reader_ROMS_native.Reader('https://thredds.met.no/thredds/dodsC/nansen-legacy-ocean/SVIM/2020/ocean_avg_20200601.nc4')
+    assert not reader.projected
+
+    lon = np.arange(-10., 15., .01)
+    lat = np.arange(56., 69.8, .01)
+
+    lon, lat = np.meshgrid(lon, lat)
+    lon, lat = lon.ravel(), lat.ravel()
+
+    reader.__parallel_fail__ = True
+    xs, ys = reader.lonlat2xy(lon, lat)
+    assert reader.__lonlat2xy_parallel__ == False
+
+    print(xs, ys)
+    reader.__parallel_fail__ = False
+    x, y = benchmark(reader.lonlat2xy, lon, lat)
+    assert reader.__lonlat2xy_parallel__ == True
+    assert reader.__parallel_fail__ == False
+
+    np.testing.assert_equal(x, xs)
+    np.testing.assert_equal(y, ys)
