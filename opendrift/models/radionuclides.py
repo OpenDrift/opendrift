@@ -904,8 +904,12 @@ class RadionuclideDrift(OceanDrift):
 
         # Turbulent Mixing
         z_before = self.elements.z.copy()
-        self.update_terminal_velocity()
-        self.vertical_mixing()
+        if self.get_config('drift:vertical_mixing') is True:
+            self.update_terminal_velocity()
+            self.vertical_mixing()
+        else:
+            self.update_terminal_velocity()
+            self.vertical_buoyancy()
 
 
         # Resuspension
