@@ -203,7 +203,6 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             })
 
-        self._set_config_default('drift:vertical_mixing', True)
 
 
 
@@ -292,9 +291,6 @@ class RadionuclideDrift(OceanDrift):
 
 
 
-        # Make sure vertical mixing is active when particles are simulated
-        if self.get_config('radionuclide:species:Particle_reversible'):
-            self.set_config('drift:vertical_mixing', True)
 
 
 
