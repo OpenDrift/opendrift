@@ -364,8 +364,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                      opendrift.version.version_or_git())
 
         # Check if dependencies are outdated
-        from oil_library import __version__ as ov
-        if ov<"1.1.3":
+        try:
+            import cfgrib
+        except:
             logger.warning('#'*82)
             logger.warning('Dependencies are outdated, please update with: conda env update -f environment.yml')
             logger.warning('#'*82)

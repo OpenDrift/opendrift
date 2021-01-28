@@ -130,9 +130,7 @@ class Reader(BaseReader, StructuredReader):
                                                  chunks={'time': 1}, decode_times=False)
             else:
                 logger.info('Opening file with Dataset')
-                # Chunk time:1 may have large effect for open_mfdataset (above)
-                # but possibly no effect for open_dataset (below)
-                self.Dataset = xr.open_dataset(filename, chunks={'time': 1}, decode_times=False)
+                self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)
 

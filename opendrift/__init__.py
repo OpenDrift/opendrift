@@ -18,6 +18,8 @@ from .version import __version__
 _available_models = \
     ['leeway.Leeway',
      'openoil.OpenOil',
+     'larvalfish.LarvalFish',
+     'plastdrift.PlastDrift',
      'shipdrift.ShipDrift',
      'openberg.OpenBerg']
 
