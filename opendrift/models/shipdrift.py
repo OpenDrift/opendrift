@@ -86,11 +86,11 @@ class ShipDrift(OpenDriftSimulation):
     ElementType = ShipObject
 
     required_variables = {
-        'x_wind': {'fallback': 0},
-        'y_wind': {'fallback': 0},
+        'x_wind': {'fallback': None},
+        'y_wind': {'fallback': None},
         'land_binary_mask': {'fallback': None},
-        'x_sea_water_velocity': {'fallback': 0},
-        'y_sea_water_velocity': {'fallback': 0},
+        'x_sea_water_velocity': {'fallback': None},
+        'y_sea_water_velocity': {'fallback': None},
         'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
         'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
         'sea_surface_wave_significant_height': {'fallback': 0},

@@ -10,9 +10,9 @@ from opendrift.models.shipdrift import ShipDrift
 o = ShipDrift(loglevel=20)
 
 o.add_readers_from_list([
-    'https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be',
+    'https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml',
     'https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc',
-    'https://thredds.met.no/thredds/dodsC/sea/mywavewam4/mywavewam4_be'
+    'https://thredds.met.no/thredds/dodsC/cmems/mywavewam3km/dataset-wam-arctic-1hr3km-be.ncml'
     ])
 
 #%%
