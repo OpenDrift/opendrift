@@ -6,6 +6,7 @@ orbs:
 test-template: &test-template
   docker:
     - image: continuumio/miniconda3
+  resource_class: medium+
   steps:
     - checkout
     - run:
