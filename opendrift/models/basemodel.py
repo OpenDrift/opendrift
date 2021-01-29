@@ -4192,7 +4192,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             plt.savefig(filename)
 
-    def plot_property(self, prop, mean=False):
+    def plot_property(self, prop, filename=None, mean=False):
         """Basic function to plot time series of any element properties."""
         import matplotlib.pyplot as plt
         from matplotlib import dates
@@ -4221,7 +4221,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             plt.ylabel(prop)
         plt.subplots_adjust(bottom=.3)
         plt.grid()
-        plt.show()
+        if filename is None:
+            plt.show()
+        else:
+            plt.savefig(filename)
 
     def get_property(self, propname):
         """Get property from history, sorted by status."""
