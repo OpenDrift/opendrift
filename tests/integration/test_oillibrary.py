@@ -273,28 +273,39 @@ class TestOil(unittest.TestCase):
         f.close()
         os.remove(outfile)
         # Same for cone-seeding
-        a = {'lon': [4.7, 4.8], 'lat': [60, 60.1], 'z': 'seafloor', 'number': 10,
+        a = {'lon': [4.7, 4.8], 'lat': [60, 60.1], 'number': 10,
              'radius': [0, 100], 'time': [datetime(2021, 1, 22, 0), datetime(2021, 1, 22, 6)]}
-        o = OpenOil(loglevel=50)
-        o.seed_cone(lon=a['lon'], lat=a['lat'], z=a['z'], radius=a['radius'],
-                    number=a['number'], time=a['time'])
-        o.seed_cone(lon=a['lon'], lat=a['lat'], z=a['z'], radius=a['radius'],
-                    number=a['number']+4, time=a['time'])
+        a_config = {'seafloor': True, 'm3_per_hour': 55}
+        o = OpenOil(loglevel=0)
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 1)
         o.set_config('environment:fallback:y_wind', 0)
         o.set_config('environment:fallback:x_sea_water_velocity', 0)
         o.set_config('environment:fallback:y_sea_water_velocity', .3)
+        o.set_config('environment:fallback:y_sea_water_velocity', .3)
+        for ac in a_config:
+            o.set_config('seed:' + ac, a_config[ac])
+        o.seed_cone(lon=a['lon'], lat=a['lat'], radius=a['radius'],
+                    number=a['number'], time=a['time'])
+        o.seed_cone(lon=a['lon'], lat=a['lat'], radius=a['radius'],
+                    number=a['number']+4, time=a['time'])
         o.run(duration=timedelta(hours=1), time_step=1800, outfile=outfile)
         f = xr.open_dataset(outfile)
-        for var in ['lon', 'lat', 'number', 'radius', 'z', 'm3_per_hour']:
+        import geojson
+        gj = geojson.loads(f.attrs['seed_geojson'])
+        print(gj)
+        fe = gj['features']
+        for var in ['lon', 'lat', 'number', 'radius', 'm3_per_hour']:
             s = 'seed_' + var
             if var not in a:
                 a[var] = o.get_config('seed:' + var)
-            if isinstance(a[var], str):  # z=seafloor
-                self.assertAlmostEqual(a[var], f.attrs[s])
-            else:
-                self.assertAlmostEqual(np.atleast_1d(a[var]).mean(), np.float(f.attrs[s]), 3)
+            self.assertAlmostEqual(np.atleast_1d(a[var]).mean(), np.float(f.attrs[s]), 3)
+            if var not in ['lon', 'lat']:  # Check also versus GeoJSON attribute
+                geojsonvar = np.atleast_1d(fe[0]['properties'][var]).mean()
+                avar = np.atleast_1d(a[var]).mean()
+                self.assertEqual(avar, geojsonvar)
+
+        self.assertEqual(fe[0]['properties']['z'], 'seafloor')
         self.assertEqual(str(a['time'][0]), f.attrs['seed_time'])
         for var in ['seed_m3_per_hour', 'time_coverage_start', 'time_coverage_end',
                     'seed_oiltype', 'simulation_time']:
