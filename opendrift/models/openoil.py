@@ -1219,6 +1219,8 @@ class OpenOil(OceanDrift):
                 else:
                     if s == 'radius':
                         val = 0  # There is no default radius
+                    elif s == 'z' and 'z' not in kwargs and self.get_config('seed:seafloor') is True:
+                        val = 'seafloor'
                     else:
                         val = self.get_config('seed:' + s)
                 if s == 'time':

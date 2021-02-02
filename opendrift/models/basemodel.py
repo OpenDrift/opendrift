@@ -26,6 +26,7 @@ import warnings
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
+import geojson
 import netCDF4
 import nc_time_axis
 import xarray as xr
@@ -1644,17 +1645,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'radius': [radius[0], radius[-1]], 'time': timespan, 'number': number}
 
         # Make GeoJson seeding dict to be saved in netCDF metadata
-        from geojson import Feature, LineString
-        geo = LineString([(np.float(lonin[0]), np.float(latin[0])),
-                          (np.float(lonin[1]), np.float(latin[1]))])
+        geo = geojson.LineString([(np.float(lonin[0]), np.float(latin[0])),
+                                  (np.float(lonin[1]), np.float(latin[1]))])
         seed_defaults = self.get_configspec('seed')
-        default_seed = {k.split(':')[-1]:seed_defaults[k]['default'] for k in seed_defaults}
+        default_seed = {k.split(':')[-1]:seed_defaults[k]['value'] for k in seed_defaults}
+        if 'seafloor' in default_seed and default_seed['seafloor'] is True:
+            default_seed['z'] = 'seafloor'
         default_seed = {**default_seed, **kwargs}  # Overwrite with explicitly provided values
         properties = {**default_seed,
                       'time': [str(timespan[0]), str(timespan[1])],
                       'radius': [radius[0], radius[-1]],
                       'number': number}
-        f = Feature(geometry=geo, properties=properties)
+        f = geojson.Feature(geometry=geo, properties=properties)
         self.seed_geojson.append(f)
 
         # Forwarding calculated cone points/radii to seed_elements
@@ -1662,7 +1664,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def seed_from_geojson(self, gjson):
         """Under development"""
-        import geojson
         try:
             gj = geojson.loads(gjson)
         except:
@@ -2128,8 +2129,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             raise ValueError('Please seed elements before starting a run.')
         self.elements = self.ElementType()
 
-        # Export seed_geojson to metadata_dict
-        self.add_metadata('seed_geojson', self.seed_geojson)
+        # Export seed_geojson as FeatureCollection string
+        self.add_metadata('seed_geojson', geojson.FeatureCollection(self.seed_geojson))
 
         # Collect fallback values from config into dict
         self.set_fallback_values(refresh=True)
