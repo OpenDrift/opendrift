@@ -34,11 +34,11 @@ class LeewayObj(LagrangianArray):
 
     """
     variables = LagrangianArray.add_variables([
-        ('object_type', {'dtype': np.int16,
+        ('object_type', {'dtype': np.uint16,
                         'units': '1',
                         'seed': False,
                         'default': 0}),
-        ('orientation', {'dtype': np.int16,
+        ('orientation', {'dtype': np.uint8,
                          'units': '1',
             'description': '0/1 is left/right of downwind. Randomly chosen at seed time',
                          'seed': False,

@@ -484,9 +484,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if (i['min'] is not None and value < i['min']) or (i['max'] is not None and value > i['max']):
                 raise ValueError('Config value %s must be between %s and %s' % (key, i['min'], i['max']))
             if i['type'] == 'float' and value is not None:
-                value = np.float(value)
+                value = float(value)
             elif i['type'] == 'int' and value is not None:
-                value = np.int(value)
+                value = int(value)
         elif i['type'] == 'enum':
             if value not in i['enum']:
                 if len(i['enum']) > 5:
@@ -1565,7 +1565,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                  'added before seeding elements at seafloor.')
             # Add M meters if given as 'seafloor+M'
             if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
-                meters_above_seafloor = np.float(kwargs['z'][9::])
+                meters_above_seafloor = float(kwargs['z'][9::])
                 logger.info('Seeding elements %f meters above seafloor'
                              % meters_above_seafloor)
             else:
@@ -1637,16 +1637,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             timespan = [time, time]
 
-        radius = radius.astype(np.float)
+        radius = radius.astype(np.float32)
         lonin = lonin if 'lonin' in locals() else [lon.min(), lon.max()]
         latin = latin if 'latin' in locals() else [lat.min(), lat.max()]
 
         self.seed_cone_arguments = {'lon': lonin, 'lat': latin,
-                'radius': [radius[0], radius[-1]], 'time': timespan, 'number': number}
+                'radius': [float(radius[0]), float(radius[-1])], 'time': timespan, 'number': number}
 
         # Make GeoJson seeding dict to be saved in netCDF metadata
-        geo = geojson.LineString([(np.float(lonin[0]), np.float(latin[0])),
-                                  (np.float(lonin[1]), np.float(latin[1]))])
+        geo = geojson.LineString([(float(lonin[0]), float(latin[0])),
+                                  (float(lonin[1]), float(latin[1]))])
         seed_defaults = self.get_configspec('seed')
         default_seed = {k.split(':')[-1]:seed_defaults[k]['value'] for k in seed_defaults}
         if 'seafloor' in default_seed and default_seed['seafloor'] is True:
@@ -1654,7 +1654,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         default_seed = {**default_seed, **kwargs}  # Overwrite with explicitly provided values
         properties = {**default_seed,
                       'time': [str(timespan[0]), str(timespan[1])],
-                      'radius': [radius[0], radius[-1]],
+                      'radius': [float(radius[0]), float(radius[-1])],
                       'number': number}
         f = geojson.Feature(geometry=geo, properties=properties)
         self.seed_geojson.append(f)
@@ -1726,7 +1726,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         geod = pyproj.Geod(ellps='WGS84')
         if number_per_segment is None:
-            number_per_segment = np.int(np.floor(total_number/numtimes))
+            number_per_segment = int(np.floor(total_number/numtimes))
 
         s_lonlats= geod.npts(lons[0], lats[0], lons[1], lats[1],
                              number_per_segment, radians=False)
@@ -1860,7 +1860,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         num_seeded = 0
         for i in range(0, geom.GetGeometryCount()):
             g = geom.GetGeometryRef(i)
-            num_elements = np.int(number*g.GetArea()/total_area)
+            num_elements = int(number*g.GetArea()/total_area)
             if i == geom.GetGeometryCount()-1:
                 # For the last feature we seed the remaining number,
                 # avoiding difference due to rounding:
@@ -1950,7 +1950,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info('Total area of all polygons: %s m2' % total_area)
             # Find number of points per polygon
             numbers = np.round(number*areas/total_area).astype(int)
-            numbers[numbers.argmax()] += np.int(number-sum(numbers))
+            numbers[numbers.argmax()] += int(number-sum(numbers))
 
             for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)
@@ -2770,7 +2770,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lscale = 'auto'
 
         meanlat = (latmin + latmax)/2
-        aspect_ratio = np.float(latmax-latmin) / (np.float(lonmax-lonmin))
+        aspect_ratio = float(latmax-latmin) / (float(lonmax-lonmin))
         aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
         if aspect_ratio > 1:
             fig = plt.figure(figsize=(11./aspect_ratio, 11.))

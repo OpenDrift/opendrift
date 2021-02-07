@@ -378,11 +378,11 @@ class Reader(BaseReader, UnstructuredReader):
         shp = var.shape
 
         if self.siglay_center is None:
-            logger.debug('Reading siglay_centers into memory...')
+            logger.info('Reading siglay_centers into memory...')
             self.siglay_center = self.dataset['siglay_center'][:]
 
         if self.siglev_center is None:
-            logger.debug('Reading siglev_centers into memory...')
+            logger.info('Reading siglev_centers into memory...')
             self.siglev_center = self.dataset['siglev_center'][:]
 
         if shp[1] == self.siglay_center.shape[0]:
@@ -391,7 +391,7 @@ class Reader(BaseReader, UnstructuredReader):
             sigmas = self.siglev_center[:, el]
 
         if self.ocean_depth_nele is None:
-            logger.debug('Reading ocean depth center into memory...')
+            logger.info('Reading ocean depth center into memory...')
             self.ocean_depth_nele = self.dataset['h_center'][:]
 
         # Calculating depths from sigmas

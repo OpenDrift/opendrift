@@ -26,7 +26,7 @@ from opendrift.models.oceandrift import Lagrangian3DArray
 
 class SedimentElement(Lagrangian3DArray):
     variables = Lagrangian3DArray.add_variables([
-        ('settled', {'dtype': np.int16,  # 0 is active, 1 is settled
+        ('settled', {'dtype': np.unit8,  # 0 is active, 1 is settled
                      'units': '1',
                      'default': 0}),
         ('terminal_velocity', {'dtype': np.float32,

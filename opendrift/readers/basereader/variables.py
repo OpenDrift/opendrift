@@ -422,7 +422,7 @@ class Variables(ReaderDomain):
                 time_step_seconds = self.time_step.total_seconds()
             else:
                 time_step_seconds = 3600  # 1 hour if not given
-            self.buffer = np.int(
+            self.buffer = int(
                 np.ceil(max_speed * time_step_seconds / pixelsize)) + 2
             logger.debug('Setting buffer size %i for reader %s, assuming '
                          'a maximum average speed of %g m/s.' %
@@ -451,8 +451,8 @@ class Variables(ReaderDomain):
         Make sure x and y are floats (and not e.g. int64)
         """
         if 'x' in env.keys():
-            env['x'] = np.array(env['x'], dtype=np.float)
-            env['y'] = np.array(env['y'], dtype=np.float)
+            env['x'] = np.array(env['x'], dtype=np.float32)
+            env['y'] = np.array(env['y'], dtype=np.float32)
 
     @staticmethod
     def __check_variable_array__(name, variable):

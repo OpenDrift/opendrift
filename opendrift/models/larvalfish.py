@@ -36,7 +36,7 @@ class LarvalFishElement(Lagrangian3DArray):
         ('stage_fraction', {'dtype': np.float32,  # to track percentage of development time completed
                             'units': '',
                             'default': 0.}),
-        ('hatched', {'dtype': np.int64,  # 0 for eggs, 1 for larvae
+        ('hatched', {'dtype': np.uint8,  # 0 for eggs, 1 for larvae
                      'units': '',
                      'default': 0}),
         ('length', {'dtype': np.float32,
@@ -123,7 +123,7 @@ class LarvalFish(OceanDrift):
                 z_index = interp1d(-self.environment_profiles['z'],
                                    z_i, bounds_error=False)
             zi = z_index(-self.elements.z)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            upper = np.maximum(np.floor(zi).astype(np.uint8), 0)
             lower = np.minimum(upper + 1, Tprofiles.shape[0] - 1)
             weight_upper = 1 - (zi - upper)
 

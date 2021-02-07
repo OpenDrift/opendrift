@@ -588,7 +588,7 @@ class RadionuclideDrift(OceanDrift):
                 z_index = interp1d(-self.environment_profiles['z'],
                                    z_i, bounds_error=False)
             zi = z_index(-self.elements.z)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            upper = np.maximum(np.floor(zi).astype(np.uint8), 0)
             lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
 

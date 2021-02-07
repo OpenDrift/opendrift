@@ -473,8 +473,8 @@ class Reader(BaseReader, StructuredReader):
         variables['x'] = indx
         variables['y'] = indy
 
-        variables['x'] = variables['x'].astype(np.float)
-        variables['y'] = variables['y'].astype(np.float)
+        variables['x'] = variables['x'].astype(np.float32)
+        variables['y'] = variables['y'].astype(np.float32)
         variables['time'] = nearestTime
 
         if 'x_sea_water_velocity' or 'sea_ice_x_velocity' \

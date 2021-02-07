@@ -33,7 +33,7 @@ class ShipObject(LagrangianArray):
 
     """
     variables = LagrangianArray.add_variables([
-        ('orientation', {'dtype': np.int16,
+        ('orientation', {'dtype': np.uint8,
                          'units': '1',
                          'default': 1}),
         ('length', {'dtype': np.float32,
@@ -107,21 +107,21 @@ class ShipDrift(OpenDriftSimulation):
         w = open(d + '/wforce.dat', 'r')
         self.wforce = {}
         w.readline()
-        nbeam = np.int(w.readline().split()[0])
+        nbeam = int(w.readline().split()[0])
         self.wforce['nbeam'] = nbeam
         self.wforce['BL'] = np.array(w.readline().split()[0:nbeam],
-                                     dtype=np.float)
-        ndraft = np.int(w.readline().split()[0])
+                                     dtype=float)
+        ndraft = int(w.readline().split()[0])
         self.wforce['ndraft'] = ndraft
         self.wforce['DL'] = np.array(w.readline().split()[0:ndraft],
-                                     dtype=np.float)
-        nomega = np.int(w.readline().split()[0])
+                                     dtype=float)
+        nomega = int(w.readline().split()[0])
         self.wforce['nomega'] = nomega
         self.wforce['omega'] = np.zeros((nomega))
         self.wforce['F'] = np.zeros((nomega, nbeam, ndraft))
         self.wforce['D'] = np.zeros((nomega, nbeam, ndraft))
         for o in range(nomega):
-            self.wforce['omega'][o] = np.float(w.readline().split()[0])
+            self.wforce['omega'][o] = float(w.readline().split()[0])
             for i in range(ndraft):
                 l = w.readline()
                 self.wforce['F'][o, i, :] = l.split()[0:nbeam]
@@ -340,7 +340,7 @@ class ShipDrift(OpenDriftSimulation):
         with open(filename) as f:
             lines = f.readlines()
         self.time_step_output, self.time_step = lines[16].split()
-        num_elements = np.int(lines[25].split()[0])
+        num_elements = int(lines[25].split()[0])
         if num_elements != 1:
             raise ValueError('Import presently only supports single ship')
         num_timesteps = (len(lines)-30.)/14.
@@ -372,7 +372,7 @@ class ShipDrift(OpenDriftSimulation):
         for i in range(num_timesteps):
             line = lines[30 + 14*i + 13]
             l = line.split()
-            lon = np.float(l[2])
-            lat = np.float(l[3])
+            lon = float(l[2])
+            lat = float(l[3])
             self.history['lon'][0, i] = lon
             self.history['lat'][0, i] = lat

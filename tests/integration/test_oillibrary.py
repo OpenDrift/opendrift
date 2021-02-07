@@ -265,7 +265,7 @@ class TestOil(unittest.TestCase):
             s = 'seed_' + var
             if var not in a:
                 a[var] = o.get_config('seed:' + var)
-            self.assertAlmostEqual(np.float(a[var]), np.float(f.attrs[s]), 3)
+            self.assertAlmostEqual(float(a[var]), float(f.attrs[s]), 3)
         self.assertEqual(str(a['time']), f.attrs['seed_time'])
         for var in ['seed_m3_per_hour', 'time_coverage_start', 'time_coverage_end',
                     'seed_oiltype', 'simulation_time']:
@@ -299,7 +299,7 @@ class TestOil(unittest.TestCase):
             s = 'seed_' + var
             if var not in a:
                 a[var] = o.get_config('seed:' + var)
-            self.assertAlmostEqual(np.atleast_1d(a[var]).mean(), np.float(f.attrs[s]), 3)
+            self.assertAlmostEqual(np.atleast_1d(a[var]).mean(), float(f.attrs[s]), 3)
             if var not in ['lon', 'lat']:  # Check also versus GeoJSON attribute
                 geojsonvar = np.atleast_1d(fe[0]['properties'][var]).mean()
                 avar = np.atleast_1d(a[var]).mean()

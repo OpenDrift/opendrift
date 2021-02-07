@@ -195,8 +195,8 @@ def ftle(X, Y, delta, duration):
     # From Johannes Rohrs
     nx = X.shape[0]
     ny = X.shape[1]
-    J = np.empty([nx,ny,2,2],np.float)
-    FTLE = np.empty([nx,ny],np.float)
+    J = np.empty([nx,ny,2,2], np.float32)
+    FTLE = np.empty([nx,ny], np.float32)
 
     # gradient
     dx = np.gradient(X)

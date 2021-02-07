@@ -31,8 +31,8 @@ class Nearest2DInterpolator():
         self.y = y
         self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
         self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
-        self.xi = np.round(self.xi).astype(np.int)
-        self.yi = np.round(self.yi).astype(np.int)
+        self.xi = np.round(self.xi).astype(np.uint32)
+        self.yi = np.round(self.yi).astype(np.uint32)
         self.xi[self.xi >= len(xgrid)] = len(xgrid)-1
         self.yi[self.yi >= len(ygrid)] = len(ygrid)-1
 
@@ -169,7 +169,7 @@ class Nearest1DInterpolator():
         else:  # decreasing values, must flip for interpolator
             z_interpolator = interp1d(zgrid[::-1], range(len(zgrid))[::-1])
         # Indices corresponding to nearest value in zgrid
-        self.zi = np.round(z_interpolator(z)).astype(np.int)
+        self.zi = np.round(z_interpolator(z)).astype(np.uint8)
         self.zi[self.zi < 0] = 0
         self.zi[self.zi >= len(zgrid)] = len(zgrid) - 1
 
@@ -192,7 +192,7 @@ class Linear1DInterpolator():
         z_interpolator(z[0])  # to prevent threading issues
         # Indices corresponding to layers above and below
         interp_zi = z_interpolator(z)
-        self.index_above = np.floor(interp_zi).astype(np.int)
+        self.index_above = np.floor(interp_zi).astype(np.uint8)
         self.index_above[self.index_above < 0] = 0
         self.index_below = np.minimum(self.index_above + 1, len(zgrid) - 1)
         self.weight_above = 1 - (interp_zi - self.index_above)

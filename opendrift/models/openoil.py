@@ -666,7 +666,7 @@ class OpenOil(OceanDrift):
                 z_index = interp1d(-self.environment_profiles['z'],
                                    z_i, bounds_error=False)
             zi = z_index(-self.elements.z)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            upper = np.maximum(np.floor(zi).astype(np.uint8), 0)
             lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
 
@@ -1192,8 +1192,8 @@ class OpenOil(OceanDrift):
             oilfile.readline()
         ref = oilfile.readline().split()
         self.oil_data = {}
-        self.oil_data['reference_thickness'] = np.float(ref[0])
-        self.oil_data['reference_wind'] = np.float(ref[1])
+        self.oil_data['reference_thickness'] = float(ref[0])
+        self.oil_data['reference_wind'] = float(ref[1])
         tref = []
         fref = []
         wmax = []
@@ -1367,7 +1367,7 @@ class OpenOil(OceanDrift):
 
         for patch in tree.findall(pos1, namespaces):
             pos = patch.find(pos2, namespaces).text
-            c = np.array(pos.split()).astype(np.float)
+            c = np.array(pos.split()).astype(float)
             lon = c[0::2]
             lat = c[1::2]
             slicks.append(Polygon(list(zip(lon, lat))))
