@@ -138,93 +138,67 @@ class Reader(BaseReader, StructuredReader):
         if proj4 is not None:  # If user has provided a projection apriori
             self.proj4 = proj4
         # Find x, y and z coordinates
+        lon_var_name = None
+        lat_var_name = None
+        self.unitfactor = 1
         for var_name in self.Dataset.variables:
-            logger.debug('Parsing variable: ' +  var_name)
             var = self.Dataset.variables[var_name]
-            #if var.ndim > 1:
-            #    continue  # Coordinates must be 1D-array
-            attributes = var.attrs
-            att_dict = var.attrs
-            standard_name = ''
-            long_name = ''
-            axis = ''
-            units = ''
-            CoordinateAxisType = ''
-            if self.proj4 is None:
-                for att in attributes:
-                    if 'proj4' in att:
-                        self.proj4 = str(att_dict[att])
-                    else:
-                        if 'grid_mapping_name' in att:
-                            mapping_dict = att_dict
-                            logger.debug(
-                                ('Parsing CF grid mapping dictionary:'
-                                ' ' + str(mapping_dict)))
-                            try:
-                                self.proj4, proj =\
-                                    proj_from_CF_dict(mapping_dict)
-                            except:
-                                logger.info('Could not parse CF grid_mapping')
 
-            if 'standard_name' in attributes:
-                standard_name = att_dict['standard_name']
-            if 'long_name' in attributes:
-                long_name = att_dict['long_name']
-            if 'axis' in attributes:
-                axis = att_dict['axis']
-            if 'units' in attributes:
-                units = att_dict['units']
-            if '_CoordinateAxisType' in attributes:
-                CoordinateAxisType = att_dict['_CoordinateAxisType']
-            # has_xarray checks in each case below to avoid loading
-            # data if it isn't a coord
-            # is there a better way??
+            if self.proj4 is None:
+                if 'proj4' in var.attrs:
+                    self.proj4 = str(var.attrs['proj4'])
+                elif 'proj4_string' in var.attrs:
+                    self.proj4 = str(var.attrs['proj4_string'])
+                elif 'grid_mapping_name' in var.attrs:
+                    logger.debug(
+                        ('Parsing CF grid mapping dictionary:'
+                        ' ' + str(var.attrs)))
+                    try:
+                        self.proj4, proj =\
+                            proj_from_CF_dict(var.attrs)
+                    except:
+                        logger.info('Could not parse CF grid_mapping')
+
+            standard_name = var.attrs['standard_name'] if 'standard_name' in var.attrs else ''
+            long_name = var.attrs['long_name'] if 'long_name' in var.attrs else ''
+            axis = var.attrs['axis'] if 'axis' in var.attrs else ''
+            units = var.attrs['units'] if 'units' in var.attrs else ''
+            CoordinateAxisType = var.attrs['CoordinateAxisType'] if 'CoordinateAxisType' in var.attrs else ''
             if standard_name == 'longitude' or \
                     CoordinateAxisType.lower() == 'lon' or \
                     long_name.lower() == 'longitude' or \
                     var_name.lower() in ['longitude', 'lon']:
-                var_data = var.values
-                self.lon = var_data
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
                     CoordinateAxisType.lower() == 'lat' or \
                     long_name.lower() == 'latitude' or \
                     var_name.lower() in ['latitude', 'lat']:
-                var_data = var.values
-                self.lat = var_data
                 lat_var_name = var_name
             if axis == 'X' or \
                     standard_name == 'projection_x_coordinate':
                 self.xname = var_name
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
-                    unitfactor = 1000
+                    self.unitfactor = 1000
                 elif units == '100  km':
-                    unitfactor = 100000
-                else:
-                    unitfactor = 1
+                    self.unitfactor = 100000
                 var_data = var.values
-                x = var_data*unitfactor
-                self.numx = var_data.shape[0]
+                x = var_data*self.unitfactor
             if axis == 'Y' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
-                    unitfactor = 1000
+                    self.unitfactor = 1000
                 elif units == '100  km':
-                    unitfactor = 100000
-                else:
-                    unitfactor = 1
-                self.unitfactor = unitfactor
+                    self.unitfactor = 100000
                 var_data = var.values
-                y = var_data*unitfactor
-                self.numy = var_data.shape[0]
+                y = var_data*self.unitfactor
             if standard_name == 'depth' or axis == 'Z':
                 var_data = var.values
                 if var_data.ndim == 1:
-                    if 'positive' not in attributes or \
-                            att_dict['positive'] == 'up':
+                    if 'positive' not in var.attrs or \
+                            var.attrs['positive'] == 'up':
                         self.z = var_data
                     else:
                         self.z = -var_data
@@ -242,12 +216,6 @@ class Reader(BaseReader, StructuredReader):
                     self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
                 else:
                     self.times = num2date(time, time_units)
-                #if has_xarray:
-                #    self.times = [datetime.utcfromtimestamp((OT -
-                #        np.datetime64('1970-01-01T00:00:00Z')
-                #            ) / np.timedelta64(1, 's')) for OT in time]
-                #else:
-                #    self.times = num2date(time, time_units)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
@@ -260,24 +228,41 @@ class Reader(BaseReader, StructuredReader):
                 logger.debug('%i ensemble members available'
                               % len(self.realizations))
 
-        if 'x' not in locals():
-            if self.lon.ndim == 1:
-                x = self.lon[:]
+        #########################
+        # Summary of geolocation
+        #########################
+        if 'x' not in locals():  # No x/y-coordinates were detected
+            if lon_var_name is None:
+                raise ValueError('No geospatial coordinates were detected, cannot geolocate dataset')
+            # We load lon and lat arrays into memory
+            lon_var = self.Dataset.variables[lon_var_name]
+            lat_var = self.Dataset.variables[lat_var_name]
+            if lon_var.ndim == 1:
+                logger.debug('Lon and lat are 1D arrays - using as projection coordinates')
+                x = lon_var.data
+                y = lat_var.data
                 self.xname = lon_var_name
-                self.numx = len(x)
-            #else:
-            #    raise ValueError('Did not find x-coordinate variable')
-        if 'y' not in locals():
-            if self.lat.ndim == 1:
-                y = self.lat[:]
                 self.yname = lat_var_name
-                self.numy = len(y)
-            #else:
-            #    raise ValueError('Did not find y-coordinate variable')
+                if self.proj4 is None:
+                    self.proj4 = '+proj=latlong'
+            elif lon_var.ndim == 2:
+                logger.debug('Lon and lat are 2D arrays - dataset is unprojected')
+                self.lon = lon_var.data
+                self.lat = lat_var.data
+                self.projected = False
+            elif lon_var.ndim == 3:
+                logger.debug('Lon lat are 3D arrays, reading first time')
+                self.lon = lon_var[0,:,:].data
+                self.lat = lat_var[0,:,:].data
+                self.projected = False
+        else:
+            if self.proj4 is None:
+                logger.info('Grid coordinates are detected, but proj4 string not given: assuming latlong')
+                self.proj4 = '+proj=latlong'
 
-        if not hasattr(self, 'unitfactor'):
-            self.unitfactor = 1
         if 'x' in locals() and 'y' in locals():
+            self.numx = len(x)
+            self.numy = len(y)
             self.xmin, self.xmax = x.min(), x.max()
             self.ymin, self.ymax = y.min(), y.max()
             self.delta_x = np.abs(x[1] - x[0])
@@ -298,27 +283,6 @@ class Reader(BaseReader, StructuredReader):
                 raise ValueError('delta_y is not constant!')
             self.x = x  # Store coordinate vectors
             self.y = y
-        else:
-            if self.lon is not None and self.lat is not None:
-                logger.info('No projection found, using lon/lat arrays')
-                self.xname = lon_var_name
-                self.yname = lat_var_name
-            else:
-                raise ValueError('Neither x/y-coordinates or lon/lat arrays found')
-
-        if self.proj4 is None:
-            if self.lon.ndim == 1:
-                logger.debug('Lon and lat are 1D arrays, assuming latong projection')
-                self.proj4 = '+proj=latlong'
-            elif self.lon.ndim == 2:
-                logger.debug('Reading lon lat 2D arrays, since projection is not given')
-                self.lon = self.lon[:]
-                self.lat = self.lat[:]
-                self.projected = False
-            elif self.lon.ndim == 3:
-                logger.debug('lon lat are 3D arrays, reading first time')
-                self.lon = self.lon[0,:,:]
-                self.lat = self.lat[0,:,:]
 
         if self.proj4 is not None and 'latlong' in self.proj4 and self.xmax is not None and self.xmax > 360:
             logger.info('Longitudes > 360 degrees, subtracting 360')
@@ -327,16 +291,17 @@ class Reader(BaseReader, StructuredReader):
             self.x -= 360
             self.x -= 360
 
+        ##########################################
         # Find all variables having standard_name
+        ##########################################
         self.variable_mapping = {}
+        skipvars = []
         for var_name in self.Dataset.variables:
-            if var_name in [self.xname, self.yname, 'depth']:
-                continue  # Skip coordinate variables
             var = self.Dataset.variables[var_name]
-            attributes = var.attrs
-            att_dict = var.attrs
-            if 'standard_name' in attributes:
-                standard_name = str(att_dict['standard_name'])
+            if var.ndim < 2:
+                continue
+            if 'standard_name' in var.attrs:
+                standard_name = str(var.attrs['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
@@ -344,6 +309,11 @@ class Reader(BaseReader, StructuredReader):
                 # User may specify mapping if standard_name is missing
                 standard_name = standard_name_mapping[var_name]
                 self.variable_mapping[standard_name] = str(var_name)
+            else:
+                skipvars.append(var_name)
+
+        if len(skipvars) > 0:
+            logger.debug('Skipped variables without standard_name: %s' % skipvars)
 
         self.variables = list(self.variable_mapping.keys())
 
