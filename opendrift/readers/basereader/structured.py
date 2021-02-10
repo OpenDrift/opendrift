@@ -298,7 +298,7 @@ class StructuredReader(Variables):
                 # Truncating layers not present both before and after
                 numlayers = np.minimum(len(env_profiles_before['z']),
                                        len(env_profiles_after['z']))
-                env_profiles['z'] = env_profiles_before['z'][0:numlayers + 1]
+                env_profiles['z'] = env_profiles_before['z'][0:numlayers]
                 for var in env_profiles_before.keys():
                     if var == 'z':
                         continue
