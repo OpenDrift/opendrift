@@ -740,6 +740,10 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:species:LMMcation'):
             self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)]
+        # avoid setting positive z values
+        if np.nansum(self.elements.z>0):
+            logger.debug('Number of elements lowered down to sea surface: %s' % np.nansum(self.elements.z>0))
+        self.elements.z[self.elements.z > 0] = 0
 
 
 
@@ -752,18 +756,22 @@ class RadionuclideDrift(OceanDrift):
 
         if self.get_config('radionuclide:species:LMM'):
             self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = \
-                self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
+                -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
             if std > 0:
                 logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmm) & (sp_in==self.num_srev)))
         if self.get_config('radionuclide:species:LMMcation'):
             self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = \
-                self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
+                -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
             if std > 0:
                 logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmmcation) & (sp_in==self.num_srev)))
+        # avoid setting positive z values
+        if np.nansum(self.elements.z>0):
+            logger.debug('Number of elements lowered down to sea surface: %s' % np.nansum(self.elements.z>0))
+        self.elements.z[self.elements.z > 0] = 0
 
 
 
@@ -872,7 +880,11 @@ class RadionuclideDrift(OceanDrift):
             logger.debug('Adding uncertainty for resuspension from sediments: %s m' % std)
             self.elements.z[resusp] += np.random.normal(
                         0, std, sum(resusp))
-        self.elements.z[resusp] = [min(0,zz) for zz in self.elements.z[resusp]]
+        # avoid setting positive z values
+        if np.nansum(self.elements.z>0):
+            logger.debug('Number of elements lowered down to sea surface: %s' % np.nansum(self.elements.z>0))
+        self.elements.z[self.elements.z > 0] = 0
+
         self.ntransformations[self.num_srev,self.num_prev]+=sum((resusp) & (self.elements.specie==self.num_srev))
         self.elements.specie[(resusp) & (self.elements.specie==self.num_srev)] = self.num_prev
         if self.get_config('radionuclide:slowly_fraction'):
