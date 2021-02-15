@@ -1,7 +1,7 @@
 History
 =======
 
-2021-02-11 / Release v1.5.6rc
+2021-02-15 / Release v1.5.6
 -----------------------------
 * New parallelisation of lonlat2xy for unprojected readers. The flag ``<reader>.multiprocessing_fail`` is replaced with ``<reader>.__parallel_fail__``
 * plot_property() can now save figure to file if filename is provided
