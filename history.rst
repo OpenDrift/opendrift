@@ -1,6 +1,24 @@
 History
 =======
 
+2021-02-15 / Release v1.5.6
+-----------------------------
+* New parallelisation of lonlat2xy for unprojected readers. The flag ``<reader>.multiprocessing_fail`` is replaced with ``<reader>.__parallel_fail__``
+* plot_property() can now save figure to file if filename is provided
+* netCDF attribute seed_geojson is now a GeoJSON FeatureCollection.
+* reader_netCDF_CF_generic does not anymore read 2D lon/lat variables if 1D x/y variables are detected, giving much faster initialisation.
+* General replacement of ``np.float`` and ``np.int`` with either ``float``, ``int`` or ``np.float32/64`` and ``np.int32/64``. np.float and np.int are deprecated in numpy 1.20.
+* Fixed bug occuring when interpolating environment_profiles in time, and the number of vertical layers in the ocean-model-block is larger at time1 than at time2
+
+2021-01-26 / Release v1.5.5
+---------------------------
+* New module LarvalFish, for fish eggs hatching into larvae with swimming behaviour
+* Sundby83 parameterisation of vertical diffusivity is now set to 0 below mixed layer depth (default 50m)
+* Deprecating seed argument `oiltype` in favor of `oil_type` in OpenOil. Warning is issued, but later this will become an error
+* Fixed problem with convolution of reader fields
+* Fixed newly introduced bug with Leeway ascii output file
+* Cleaned up some metadata output, and seeding arguments are written as list of GeoJSON strings to attribute `seed_geojson`
+
 2021-01-18 / Release v1.5.4
 ---------------------------
 * seed_cone also accepts time as list with single element

@@ -10,7 +10,7 @@ from opendrift.readers import reader_netCDF_CF_unstructured
 from opendrift.readers import reader_global_landmask
 from opendrift.models.oceandrift import OceanDrift
 
-o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Reader
 proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"

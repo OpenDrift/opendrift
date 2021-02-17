@@ -239,7 +239,7 @@ class OceanDrift(OpenDriftSimulation):
         if model == 'windspeed_Large1994':
             return verticaldiffusivity_Large1994(wind, depth)
         elif model == 'windspeed_Sundby1983':
-            return verticaldiffusivity_Sundby1983(wind)
+            return verticaldiffusivity_Sundby1983(wind, depth)
         elif model == 'gls_tke':
             if not hasattr(self, 'gls_parameters'):
                 logger.info('Searching readers for GLS parameters...')
@@ -373,7 +373,7 @@ class OceanDrift(OpenDriftSimulation):
             w = self.elements.terminal_velocity
 
             # Diffusivity and its gradient at z
-            zi = np.round(z_index(-self.elements.z)).astype(np.int)
+            zi = np.round(z_index(-self.elements.z)).astype(np.uint8)
             Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
             dKdz = gradK[zi, range(Kprofiles.shape[1])]
 
@@ -499,7 +499,7 @@ class OceanDrift(OpenDriftSimulation):
         maxrange = -100
 
         def update(val):
-            tindex = np.int(tslider.val)
+            tindex = int(tslider.val)
             mainplot.cla()
             mainplot.grid()
             mainplot.hist(self.history['z'].T[tindex, :], bins=int(-maxrange/dz),

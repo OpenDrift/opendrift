@@ -26,6 +26,7 @@ import warnings
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
+import geojson
 import netCDF4
 import nc_time_axis
 import xarray as xr
@@ -155,6 +156,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         self.show_continuous_performance = False
 
+        # List to store GeoJSON dicts of seeding commands
+        self.seed_geojson = []
+
         # Dict to store readers
         self.readers = OrderedDict()  # Dictionary, key=name, value=reader object
         self.priority_list = OrderedDict()
@@ -195,21 +199,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if loglevel < 10:  # 0 is NOTSET, giving no output
                 loglevel=10
 
-            od_logger = logging.getLogger('opendrift')
+            od_loggers = [ logging.getLogger('opendrift'), logging.getLogger('opendrift_landmask_data') ]
 
             if logfile is not None:
                 handler = logging.FileHandler(logfile, mode='w')
                 handler.setFormatter(formatter)
-                od_logger.setLevel(loglevel)
-                od_logger.handlers = []
-                od_logger.addHandler(handler)
+                for l in od_loggers:
+                    l.setLevel(loglevel)
+                    l.handlers = []
+                    l.addHandler(handler)
             else:
                 import coloredlogs
                 fields = coloredlogs.DEFAULT_FIELD_STYLES
                 fields['levelname']['color'] = 'magenta'
 
                 # coloredlogs does not create duplicate handlers
-                coloredlogs.install(level = loglevel, logger = od_logger, fmt = format, datefmt = datefmt, field_styles = fields)
+                for l in od_loggers:
+                    coloredlogs.install(level = loglevel, logger = l, fmt = format, datefmt = datefmt, field_styles = fields)
 
         # Prepare outfile
         try:
@@ -360,8 +366,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                      opendrift.version.version_or_git())
 
         # Check if dependencies are outdated
-        from oil_library import __version__ as ov
-        if ov<"1.1.3":
+        try:
+            import cfgrib
+        except:
             logger.warning('#'*82)
             logger.warning('Dependencies are outdated, please update with: conda env update -f environment.yml')
             logger.warning('#'*82)
@@ -478,9 +485,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if (i['min'] is not None and value < i['min']) or (i['max'] is not None and value > i['max']):
                 raise ValueError('Config value %s must be between %s and %s' % (key, i['min'], i['max']))
             if i['type'] == 'float' and value is not None:
-                value = np.float(value)
+                value = float(value)
             elif i['type'] == 'int' and value is not None:
-                value = np.int(value)
+                value = int(value)
         elif i['type'] == 'enum':
             if value not in i['enum']:
                 if len(i['enum']) > 5:
@@ -1559,7 +1566,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                  'added before seeding elements at seafloor.')
             # Add M meters if given as 'seafloor+M'
             if len(kwargs['z']) > 8 and kwargs['z'][8] == '+':
-                meters_above_seafloor = np.float(kwargs['z'][9::])
+                meters_above_seafloor = float(kwargs['z'][9::])
                 logger.info('Seeding elements %f meters above seafloor'
                              % meters_above_seafloor)
             else:
@@ -1611,6 +1618,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             lat = lat*np.ones(number)
         elif len(lon) == 2:  # Segment from lon0,lat1 to lon1,lat2
             geod = pyproj.Geod(ellps='WGS84')
+            lonin = lon
+            latin = lat
             # Note that npts places points in-between start and end, and does not include these
             conelonlats = geod.npts(lon[0], lat[0], lon[1], lat[1],
                                     number, radians=False)
@@ -1624,12 +1633,38 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if isinstance(time, list) and len(time)==1:
             time = time[0]
 
+        if hasattr(time, '__len__'):
+            timespan = [time[0], time[-1]]
+        else:
+            timespan = [time, time]
+
+        radius = radius.astype(np.float32)
+        lonin = lonin if 'lonin' in locals() else [lon.min(), lon.max()]
+        latin = latin if 'latin' in locals() else [lat.min(), lat.max()]
+
+        self.seed_cone_arguments = {'lon': lonin, 'lat': latin,
+                'radius': [float(radius[0]), float(radius[-1])], 'time': timespan, 'number': number}
+
+        # Make GeoJson seeding dict to be saved in netCDF metadata
+        geo = geojson.LineString([(float(lonin[0]), float(latin[0])),
+                                  (float(lonin[1]), float(latin[1]))])
+        seed_defaults = self.get_configspec('seed')
+        default_seed = {k.split(':')[-1]:seed_defaults[k]['value'] for k in seed_defaults}
+        if 'seafloor' in default_seed and default_seed['seafloor'] is True:
+            default_seed['z'] = 'seafloor'
+        default_seed = {**default_seed, **kwargs}  # Overwrite with explicitly provided values
+        properties = {**default_seed,
+                      'time': [str(timespan[0]), str(timespan[1])],
+                      'radius': [float(radius[0]), float(radius[-1])],
+                      'number': number}
+        f = geojson.Feature(geometry=geo, properties=properties)
+        self.seed_geojson.append(f)
+
         # Forwarding calculated cone points/radii to seed_elements
         self.seed_elements(lon=lon, lat=lat, time=time, radius=radius, number=number, **kwargs)
 
     def seed_from_geojson(self, gjson):
         """Under development"""
-        import geojson
         try:
             gj = geojson.loads(gjson)
         except:
@@ -1692,7 +1727,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         geod = pyproj.Geod(ellps='WGS84')
         if number_per_segment is None:
-            number_per_segment = np.int(np.floor(total_number/numtimes))
+            number_per_segment = int(np.floor(total_number/numtimes))
 
         s_lonlats= geod.npts(lons[0], lats[0], lons[1], lats[1],
                              number_per_segment, radians=False)
@@ -1826,7 +1861,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         num_seeded = 0
         for i in range(0, geom.GetGeometryCount()):
             g = geom.GetGeometryRef(i)
-            num_elements = np.int(number*g.GetArea()/total_area)
+            num_elements = int(number*g.GetArea()/total_area)
             if i == geom.GetGeometryCount()-1:
                 # For the last feature we seed the remaining number,
                 # avoiding difference due to rounding:
@@ -1916,7 +1951,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info('Total area of all polygons: %s m2' % total_area)
             # Find number of points per polygon
             numbers = np.round(number*areas/total_area).astype(int)
-            numbers[numbers.argmax()] += np.int(number-sum(numbers))
+            numbers[numbers.argmax()] += int(number-sum(numbers))
 
             for i, f in enumerate(featurenum):
                 feature = layer.GetFeature(f - 1)
@@ -2094,6 +2129,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
         self.elements = self.ElementType()
+
+        # Export seed_geojson as FeatureCollection string
+        self.add_metadata('seed_geojson', geojson.FeatureCollection(self.seed_geojson))
 
         # Collect fallback values from config into dict
         self.set_fallback_values(refresh=True)
@@ -2733,7 +2771,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lscale = 'auto'
 
         meanlat = (latmin + latmax)/2
-        aspect_ratio = np.float(latmax-latmin) / (np.float(lonmax-lonmin))
+        aspect_ratio = float(latmax-latmin) / (float(lonmax-lonmin))
         aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
         if aspect_ratio > 1:
             fig = plt.figure(figsize=(11./aspect_ratio, 11.))
@@ -3636,17 +3674,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         map_x, map_y = (rlons, rlats)
 
         scalar = np.ma.masked_invalid(scalar)
-        if reader.convolve is not None:
-            from scipy import ndimage
-            N = reader.convolve
-            if isinstance(N, (int, np.integer)):
-                kernel = np.ones((N, N))
-                kernel = kernel/kernel.sum()
-            else:
-                kernel = N
-            logger.debug('Convolving variables with kernel: %s' % kernel)
-            scalar = ndimage.convolve(
-                scalar, kernel, mode='nearest')
 
         return map_x, map_y, scalar, u_component, v_component
 
@@ -3782,6 +3809,100 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return H, H_submerged, H_stranded, lon_array, lat_array
 
+    
+    def get_density_array_proj(self, pixelsize_m, density_proj=None, llcrnrlon=None,llcrnrlat=None,urcrnrlon=None,urcrnrlat=None, weight=None):
+        #
+        # TODO: should be merged with get_density_array
+        # KFD Jan 2021
+        #
+        lon = self.get_property('lon')[0]
+        lat = self.get_property('lat')[0]
+        times = self.get_time_array()[0]
+        #deltalat = pixelsize_m/111000.0  # m to degrees
+        #deltalon = deltalat/np.cos(np.radians((np.nanmin(lat) +
+        #                                       np.nanmax(lat))/2))
+        #lat_array = np.arange(np.nanmin(lat)-deltalat,
+        #                      np.nanmax(lat)+deltalat, deltalat)
+        #lon_array = np.arange(np.nanmin(lon)-deltalat,
+        #                      np.nanmax(lon)+deltalon, deltalon)
+        #bins=(lon_array, lat_array)
+        if density_proj is None: # add default projection with equal-area property
+            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
+            density_proj = pyproj.Proj('+proj=longlat +a=6371229 +no_defs')
+
+        # create a grid in the specified projection
+        x,y = density_proj(lon, lat)
+        if llcrnrlon is not None:
+            llcrnrx,llcrnry = density_proj(llcrnrlon,llcrnrlat)
+            urcrnrx,urcrnry = density_proj(urcrnrlon,urcrnrlat)
+        else:
+            llcrnrx,llcrnry = x.min()-pixelsize_m, y.min()-pixelsize_m
+            urcrnrx,urcrnry = x.max()+pixelsize_m, y.max()+pixelsize_m
+
+        x_array = np.arange(llcrnrx,urcrnrx, pixelsize_m)
+        y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
+        bins=(x_array, y_array)
+        outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
+
+        z = self.get_property('z')[0]
+        if weight is not None:
+            weight_array = self.get_property(weight)[0]
+
+        status = self.get_property('status')[0]
+        #lon_submerged = lon.copy()
+        #lat_submerged = lat.copy()
+        #lon_stranded = lon.copy()
+        #lat_stranded = lat.copy()
+        #lon_submerged[z>=0] = 1000
+        #lat_submerged[z>=0] = 1000
+        #lon[z<0] = 1000
+        #lat[z<0] = 1000
+        #H = np.zeros((len(times), len(lon_array) - 1,
+        #              len(lat_array) - 1))#.astype(int)
+        x_submerged = x.copy()
+        y_submerged = y.copy()
+        x_stranded = x.copy()
+        y_stranded = y.copy()
+        x_submerged[z>=0] = outsidex
+        y_submerged[z>=0] = outsidey
+        x[z<0] = outsidex
+        y[z<0] = outsidey
+        H = np.zeros((len(times), len(x_array) - 1,
+                      len(y_array) - 1))#.astype(int)
+        H_submerged = H.copy()
+        H_stranded = H.copy()
+        try:
+            strandnum = self.status_categories.index('stranded')
+            #lon_stranded[status!=strandnum] = 1000
+            #lat_stranded[status!=strandnum] = 1000
+            x_stranded[status!=strandnum] = outsidex
+            y_stranded[status!=strandnum] = outsidey
+            contains_stranded = True
+        except ValueError:
+            contains_stranded = False
+
+        for i in range(len(times)):
+            if weight is not None:
+                weights = weight_array[i,:]
+            else:
+                weights = None
+            H[i,:,:], dummy, dummy = \
+                np.histogram2d(x[i,:], y[i,:],
+                               weights=weights, bins=bins)
+            H_submerged[i,:,:], dummy, dummy = \
+                np.histogram2d(x_submerged[i,:], y_submerged[i,:],
+                               weights=weights, bins=bins)
+            if contains_stranded is True:
+                H_stranded[i,:,:], dummy, dummy = \
+                np.histogram2d(x_stranded[i,:], y_stranded[i,:],
+                               weights=weights, bins=bins)
+
+        if density_proj is not None:
+            Y,X = np.meshgrid(y_array, x_array)
+            lon_array, lat_array = density_proj(X,Y,inverse=True)
+
+        return H, H_submerged, H_stranded, lon_array, lat_array
+
     def get_residence_time(self, pixelsize_m):
         H,H_sub, H_str,lon_array,lat_array = \
             self.get_density_array(pixelsize_m)
@@ -3867,6 +3988,102 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         nc.variables['density_stranded'][:] = H_stranded
         nc.variables['density_stranded'].long_name = 'Detection probability stranded'
         nc.variables['density_stranded'].grid_mapping = 'projection_lonlat'
+        nc.variables['density_stranded'].units = '1'
+
+        nc.close()
+
+    def write_netcdf_density_map_proj(self, filename, pixelsize_m='auto', density_proj=None, 
+                            llcrnrlon=None, llcrnrlat=None, urcrnrlon=None, urcrnrlat=None):
+        '''Write netCDF file with map of particles densities for a given projection or area'''
+        #
+        # TODO: should be merged with write_netcdf_density_map_proj
+        # KFD Jan 2021
+        #
+
+        if pixelsize_m == 'auto':
+            lon, lat = self.get_lonlats()
+            latspan = lat.max()-lat.min()
+            pixelsize_m=30
+            if latspan > .05:
+                pixelsize_m = 50
+            if latspan > .1:
+                pixelsize_m = 300
+            if latspan > .3:
+                pixelsize_m = 500
+            if latspan > .7:
+                pixelsize_m = 1000
+            if latspan > 2:
+                pixelsize_m = 2000
+            if latspan > 5:
+                pixelsize_m = 4000
+
+        if density_proj is None: # add default projection with equal-area property 
+            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
+
+
+        H, H_submerged, H_stranded, lon_array, lat_array = \
+                self.get_density_array_proj(pixelsize_m=pixelsize_m,
+                                       density_proj=density_proj,
+                                       llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat,
+                                       urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat)
+        # calculate center coordinates
+        print(lon_array.shape, lat_array.shape)
+        lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2.
+        lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2.
+
+        from netCDF4 import Dataset, date2num
+        nc = Dataset(filename, 'w')
+        nc.createDimension('x', lon_array.shape[0])
+        nc.createDimension('y', lon_array.shape[1])
+        nc.createDimension('time', H.shape[0])
+        times = self.get_time_array()[0]
+        timestr = 'seconds since 1970-01-01 00:00:00'
+        nc.createVariable('time', 'f8', ('time',))
+        nc.variables['time'][:] = date2num(times, timestr)
+        nc.variables['time'].units = timestr
+        nc.variables['time'].standard_name = 'time'
+        # Projection
+
+        nc.createVariable('projection', 'i8')
+        nc.variables['projection'].proj4 = density_proj.definition_string()
+        # Coordinates
+        nc.createVariable('lon', 'f8', ('y','x'))
+        nc.createVariable('lat', 'f8', ('y','x'))
+        nc.variables['lon'][:] = lon_array.T
+        nc.variables['lon'].long_name = 'longitude'
+        nc.variables['lon'].short_name = 'longitude'
+        nc.variables['lon'].units = 'degrees_east'
+        nc.variables['lat'][:] = lat_array.T
+        nc.variables['lat'].long_name = 'latitude'
+        nc.variables['lat'].short_name = 'latitude'
+        nc.variables['lat'].units = 'degrees_north'
+
+        # Density
+        nc.createVariable('density_surface', 'u1',
+                          ('time','y', 'x'))
+        H = np.swapaxes(H, 1, 2).astype('uint8')
+        H = np.ma.masked_where(H==0, H)
+        nc.variables['density_surface'][:] = H
+        nc.variables['density_surface'].long_name = 'Detection probability'
+        nc.variables['density_surface'].grid_mapping = 'projection'
+        nc.variables['density_surface'].units = '1'
+        # Density submerged
+        nc.createVariable('density_submerged', 'u1',
+                          ('time','y', 'x'))
+        H_sub = np.swapaxes(H_submerged, 1, 2).astype('uint8')
+        H_sub = np.ma.masked_where(H_sub==0, H_sub)
+        nc.variables['density_submerged'][:] = H_sub
+        nc.variables['density_submerged'].long_name = 'Detection probability submerged'
+        nc.variables['density_submerged'].grid_mapping = 'projection'
+        nc.variables['density_submerged'].units = '1'
+        # Density stranded
+        nc.createVariable('density_stranded', 'u1',
+                          ('time','y', 'x'))
+        H_stranded = np.swapaxes(H_stranded, 1, 2).astype('uint8')
+        H_stranded = np.ma.masked_where(H_stranded==0, H_stranded)
+        nc.variables['density_stranded'][:] = H_stranded
+        nc.variables['density_stranded'].long_name = 'Detection probability stranded'
+        nc.variables['density_stranded'].grid_mapping = 'projection'
         nc.variables['density_stranded'].units = '1'
 
         nc.close()
@@ -3977,7 +4194,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             plt.savefig(filename)
 
-    def plot_property(self, prop, mean=False):
+    def plot_property(self, prop, filename=None, mean=False):
         """Basic function to plot time series of any element properties."""
         import matplotlib.pyplot as plt
         from matplotlib import dates
@@ -4006,7 +4223,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             plt.ylabel(prop)
         plt.subplots_adjust(bottom=.3)
         plt.grid()
-        plt.show()
+        if filename is None:
+            plt.show()
+        else:
+            plt.savefig(filename)
 
     def get_property(self, propname):
         """Get property from history, sorted by status."""

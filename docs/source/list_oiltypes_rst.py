@@ -16,12 +16,12 @@ for line in f.readlines()[2::]:
     if el[23] == '':
         den = np.nan
     else:
-        den = np.float(el[23])
+        den = float(el[23])
     name = el[0]
     if el[53] == '':
         vis = np.nan
     else:
-        vis = np.float(el[53])
+        vis = float(el[53])
     asp = el[11]
     wax = el[12]
     ref = el[5]

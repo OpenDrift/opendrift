@@ -34,11 +34,11 @@ class LeewayObj(LagrangianArray):
 
     """
     variables = LagrangianArray.add_variables([
-        ('object_type', {'dtype': np.int16,
+        ('object_type', {'dtype': np.uint16,
                         'units': '1',
                         'seed': False,
                         'default': 0}),
-        ('orientation', {'dtype': np.int16,
+        ('orientation', {'dtype': np.uint8,
                          'units': '1',
             'description': '0/1 is left/right of downwind. Randomly chosen at seed time',
                          'seed': False,
@@ -239,9 +239,11 @@ class Leeway(OpenDriftSimulation):
             jibe_probability = self.get_config('seed:jibe_probability')
 
         # Store seed data for ASCII format output
-        self.ascii = {
-             'lon': lon, 'lat': lat, 'radius': radius,
-             'number': number, 'time': time}
+        if hasattr(self, 'seed_cone_arguments'):
+            self.ascii = self.seed_cone_arguments
+        else:
+            self.ascii = {'lon': lon, 'lat': lat, 'radius': radius,
+                          'number': number, 'time': time}
 
         # Call general seed_elements function of OpenDriftSimulation class
         # with the specific values calculated
