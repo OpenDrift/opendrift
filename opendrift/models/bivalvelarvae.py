@@ -18,7 +18,8 @@
 
 import numpy as np
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
-import logging
+import logging; logger = logger.getLogger(__name__)
+
 
 # Defining the  element properties from Pelagicegg model
 class BivalveLarvaeObj(Lagrangian3DArray):
@@ -273,11 +274,11 @@ class BivalveLarvae(OceanDrift):
             #     on_land = np.where((self.environment.land_binary_mask == 1) |
             #                        (previous_position_if == 1))[0]
             if len(on_land) == 0:
-                logging.debug('No elements hit coastline.')
+                logger.debug('No elements hit coastline.')
             else:                
                 if self.get_config('drift:min_settlement_age_seconds') == 0.0 :
                     # No minimum age input, set back to previous position (same as in interact_with_coastline() from basemodel.py)
-                    logging.debug('%s elements hit coastline, '
+                    logger.debug('%s elements hit coastline, '
                               'moving back to water' % len(on_land))
                     on_land_ID = self.elements.ID[on_land]
                     self.elements.lon[on_land] = \
@@ -297,9 +298,9 @@ class BivalveLarvae(OceanDrift):
                     on_land_and_younger_ID = self.elements.ID[on_land_and_younger] 
                     on_land_and_older_ID = self.elements.ID[on_land_and_older]
 
-                    logging.debug('%s elements hit coastline' % len(on_land))
-                    logging.debug('moving %s elements younger than min_settlement_age_seconds back to previous water position' % len(on_land_and_younger))
-                    logging.debug('%s elements older than min_settlement_age_seconds remain stranded on coast' % len(on_land_and_younger))
+                    logger.debug('%s elements hit coastline' % len(on_land))
+                    logger.debug('moving %s elements younger than min_settlement_age_seconds back to previous water position' % len(on_land_and_younger))
+                    logger.debug('%s elements older than min_settlement_age_seconds remain stranded on coast' % len(on_land_and_younger))
                     
                     # refloat elements younger than min_settlement_age back to previous position(s)
                     if len(on_land_and_younger) > 0 :

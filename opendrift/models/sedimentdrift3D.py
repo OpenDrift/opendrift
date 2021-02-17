@@ -16,7 +16,7 @@
 # Copyright 2018, Simon, MetOcean Solutions Ltd.
 
 import numpy as np
-import logging
+import logging; logger = logger.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
 
@@ -312,12 +312,12 @@ def qkhfs( w, h ):
  
     #     '''
     #     if not self.environment.ocean_horizontal_diffusivity.any():
-    #         logging.debug('No horizontal diffusion applied - ocean_horizontal_diffusivity = 0.0')
+    #         logger.debug('No horizontal diffusion applied - ocean_horizontal_diffusivity = 0.0')
     #         pass
 
     #     # check if some diffusion is not already accounted for using drift:current_uncertainty
     #     if self.get_config('drift:current_uncertainty') != 0:
-    #         logging.debug('Warning = some horizontal diffusion already accounted for using drift:current_uncertainty')
+    #         logger.debug('Warning = some horizontal diffusion already accounted for using drift:current_uncertainty')
 
     #     diff_fac = 6 # 6 is used in PyGnome as well, but can be = 2 in other formulations, such as in the CMS model - hard coded for now
     #     K_xy = self.environment.ocean_horizontal_diffusivity # horizontal diffusion coefficient in [m2/s]
@@ -333,8 +333,8 @@ def qkhfs( w, h ):
     #     x_vel = diff_velocity * np.cos(theta_rand)
     #     y_vel = diff_velocity * np.sin(theta_rand)
 
-    #     logging.debug('Applying horizontal diffusion to particle positions')
-    #     logging.debug('\t\t%s   <- horizontal diffusion distance [m] ->   %s' % (np.min(diff_velocity*self.time_step.seconds), np.max(diff_velocity*self.time_step.seconds)))
+    #     logger.debug('Applying horizontal diffusion to particle positions')
+    #     logger.debug('\t\t%s   <- horizontal diffusion distance [m] ->   %s' % (np.min(diff_velocity*self.time_step.seconds), np.max(diff_velocity*self.time_step.seconds)))
 
     #     # update positions with the diffusion velocities     
     #     self.update_positions(x_vel, y_vel)

@@ -47,6 +47,7 @@ from datetime import datetime, timedelta,timezone
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 from opendrift.elements import LagrangianArray
+import logging; logger = logging.getLogger(__name__)
 
 # Necessary to import the Fortran module that calculates light
 if False: # disabling for now
@@ -366,7 +367,7 @@ class PelagicPlanktonDrift(OceanDrift):
         from pysolar import solar
         date = self.time
         date = date.replace(tzinfo=timezone.utc) # make the datetime object aware of timezone, set to UTC
-        self.logger.debug('Assuming UTC time for solar calculations')
+        logger.debug('Assuming UTC time for solar calculations')
         # longitude convention in pysolar, consistent with Opendrift : negative reckoning west from prime meridian in Greenwich, England
         # the particle longitude should be converted to the convention [-180,180] if that is not the case
         sun_altitude = solar.get_altitude(self.elements.lon, self.elements.lat, date) # get sun altitude in degrees
@@ -376,7 +377,7 @@ class PelagicPlanktonDrift(OceanDrift):
         for elem_i,alt in enumerate(sun_altitude):
             sun_radiation[elem_i] = solar.radiation.get_radiation_direct(date, alt)  # watts per square meter [W/m2] for that time of day
         self.elements.light = sun_radiation * 4.6 #Converted from W/m2 to umol/m2/s-1"" - 1 W/m2 ≈ 4.6 μmole.m2/s
-        self.logger.debug('Solar radiation from %s to %s [W/m2]' % (sun_radiation.min(), sun_radiation.max() ) )
+        logger.debug('Solar radiation from %s to %s [W/m2]' % (sun_radiation.min(), sun_radiation.max() ) )
         # print(np.min(sun_radiation))
         # print(date)
 
@@ -426,12 +427,12 @@ class PelagicPlanktonDrift(OceanDrift):
             if temp_max is not None :
                 m=(temp_xy-temp_max+temp_tol)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L60
                 if (m>0).any():
-                  self.logger.debug('Maximum temperature reached for %s particles' % np.sum(m>0))
+                  logger.debug('Maximum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L62
             if temp_min is not None :
                 m=(temp_min+temp_tol-temp_xy)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L64
                 if (m>0).any():
-                  self.logger.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
+                  logger.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L65
         # print('TEMP')
         # print(self.elements.survival)
@@ -448,12 +449,12 @@ class PelagicPlanktonDrift(OceanDrift):
             if salt_max is not None :
                 m=(salt_xy-salt_max+salt_tol)/salt_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L60
                 if (m>0).any():
-                  self.logger.debug('Maximum salinity reached for %s particles' % np.sum(m>0))
+                  logger.debug('Maximum salinity reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L73
             if salt_min is not None :
                 m=(salt_min+salt_tol-salt_xy)/salt_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L64
                 if (m>0).any():
-                  self.logger.debug('Minimum salinity reached for %s particles' % np.sum(m>0))
+                  logger.debug('Minimum salinity reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L77
         # print('SALT')
         # print(self.elements.survival)
@@ -473,9 +474,9 @@ class PelagicPlanktonDrift(OceanDrift):
         z_night =self.get_config('biology:vertical_position_nighttime') # 'the depth a species is expected to inhabit during the night time, in meters, negative down') #
         ind_day = np.where(self.elements.light>0)
         ind_night = np.where(self.elements.light==0)
-        self.logger.debug('Using constant migration rate (%s m/s) towards day and night time positions' % (vertical_velocity) )
-        self.logger.debug('%s particles in day time' % (len(ind_day[0])))
-        self.logger.debug('%s particles in night time' % (len(ind_night[0])))
+        logger.debug('Using constant migration rate (%s m/s) towards day and night time positions' % (vertical_velocity) )
+        logger.debug('%s particles in day time' % (len(ind_day[0])))
+        logger.debug('%s particles in night time' % (len(ind_night[0])))
         # for particles in daytime : particles below the daytime position need to go up while particles above the daytime position need to go down
         # (same for for particles in nightime)
         # Note : depth convention is neagtive down in Opendrift
