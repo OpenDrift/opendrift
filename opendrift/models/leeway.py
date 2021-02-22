@@ -14,6 +14,22 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+"""
+Leeway is the search and rescue (SAR) model developed by the US Coast Guard, as originally described in
+
+    Allen, Art, 1999: Leeway Divergence, US Coast Guard tech report CG-D-XX-99
+
+    Allen AA and JV Plourde (1999) Review of Leeway; Field Experiments and Implementation, USCG R&D Center Technical Report CG-D-08-99. Available through http://www.ntis.gov, reference ADA366414
+
+and later extended and modified by e.g.
+
+    Breivik, O., A. Allen, C. Maisondieu, J.-C. Roth, and B. Forest, 2012: The leeway of shipping containers at different immersion levels. Ocean Dyn., 62, 741–752, doi:10.1007/s10236-012-0522-z
+
+The Leeway model is based on empirically determined coefficients as tabulated in https://github.com/OpenDrift/opendrift/blob/master/opendrift/models/OBJECTPROP.DAT
+
+The Leeway model is been reprogrammed in Python for OpenDrift by Knut-Frode Dagestad of the Norwegian Meteorological Institute.
+"""
+
 from builtins import range
 import os
 from collections import OrderedDict

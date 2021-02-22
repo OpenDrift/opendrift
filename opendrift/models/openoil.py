@@ -47,15 +47,11 @@ When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')
 
 The droplet diameter may be given explicitly when seeding, e.g.::
 
-.. code::
-
     o.seed_elements(4, 60, number=100, time=datetime.now(), diameter=1e-5)
 
 In this case, the diameter will not change during the simulation, which is useful e.g. for sensitivity tests. The same diameter will be used for all elements for this example, but an array of the same length as the number of elements may also be provided.
 
 If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
-
-.. code::
 
     o.set_config('seed:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
     o.set_config('seed:droplet_diameter_max_subsea', 0.005)   # 5 mm
