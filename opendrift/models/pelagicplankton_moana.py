@@ -414,7 +414,6 @@ class PelagicPlanktonDrift(OceanDrift):
         # update survival fraction, accounting for mortality rate over that timestep
         fraction_died = self.elements.survival * mortality_daily_rate * (self.time_step.total_seconds()/(3600*24))
         self.elements.survival -=  fraction_died
-        # import pdb;pdb.set_trace()
 
     def update_weight_temperature(self):
         #update particle survival fraction based on temperature, if a temperature range was input
@@ -427,11 +426,18 @@ class PelagicPlanktonDrift(OceanDrift):
             if temp_max is not None :
                 m=(temp_xy-temp_max+temp_tol)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L60
                 if (m>0).any():
+                  import pdb;pdb.set_trace()
                   logger.debug('Maximum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L62
             if temp_min is not None :
                 m=(temp_min+temp_tol-temp_xy)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L64
+                # 
+                # ** there might be a bug here, I think it should be :  
+                # m=(temp_min-temp_xy)/temp_tol instead of m=(temp_min+temp_tol-temp_xy)/temp_tol
+                # e.g. if there is a tolerance of 1.0 degrees, and temp_xy is 1 deg below temp_min, then we should have m=1 and all particle would die
+                # 
                 if (m>0).any():
+                  import pdb;pdb.set_trace()
                   logger.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L65
         # print('TEMP')

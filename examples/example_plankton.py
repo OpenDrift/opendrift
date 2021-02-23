@@ -94,7 +94,7 @@ if False:
 
 
 # Running model
-o.run(end_time=nordic_native.start_time + timedelta(days=4.0), time_step=3600)
+o.run(end_time=nordic_native.start_time + timedelta(hours=4.0), time_step=3600)
 
 # Print and plot results.
 # At the end the wind vanishes, and eggs come to surface
