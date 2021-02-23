@@ -80,7 +80,8 @@ class TestStranding(unittest.TestCase):
     @pytest.mark.slow
     def test_stranding_options(self):
         reader_osc = reader_oscillating.Reader(
-                'x_sea_water_velocity', amplitude=1,
+                'x_sea_water_velocity', amplitude=.5,
+                period_seconds=3600*6,
                 zero_time=datetime.now())
 
         reader_global = reader_global_landmask.Reader()
@@ -89,27 +90,37 @@ class TestStranding(unittest.TestCase):
         # expected final status and position
         options = ['stranding', 'previous', 'none']
         status = ['stranded', 'active', 'active']
-        lons = [12.930, 13.348, 12.444]
+        lons_backward = [16.157, 16.087, 16.167]
+        lons_forward = [16.198, 16.115, 16.167]
 
         for i, option in enumerate(options):
-            o = OceanDrift(loglevel=20)
-            o.set_config('general:coastline_action', option)
-            o.add_reader([reader_osc, reader_global])
-            # Adding northwards drift
-            o.set_config('environment:fallback:y_sea_water_velocity', .2)
-            o.seed_elements(lon=12.2, lat=67.7, radius=0,
-                            time=reader_osc.zero_time)
-            o.run(steps=28, time_step=3600*2)
-            #o.plot()
-            print('Testing stranding: %s' % option)
-            if len(o.elements) == 1:
-                el = o.elements
-            else:
-                el = o.elements_deactivated
-            # o.plot ()
-            self.assertEqual(o.status_categories[int(el.status)], status[i])
-            self.assertIsNone(np.testing.assert_array_almost_equal(
-                el.lon, lons[i], 2))
+            for direction in ['forward', 'backward']:
+                if direction == 'forward':
+                    lons = lons_forward
+                    time_step = 900
+                else:
+                    lons = lons_backward
+                    time_step = -900
+                o = OceanDrift(loglevel=50)
+                o.set_config('general:coastline_action', option)
+                o.add_reader([reader_osc, reader_global])
+                # Adding northwards drift
+                o.set_config('environment:constant:y_sea_water_velocity', .1)
+                #o.seed_elements(lon=13.35, lat=68.0, radius=0,
+                o.seed_elements(lon=16.12, lat=68.5, radius=0,
+                                time=reader_osc.zero_time)
+                o.run(duration=timedelta(hours=22), time_step=time_step)
+                #o.animation()
+                #o.plot ()
+                print('Testing stranding: %s, %s' % (option, direction))
+                if len(o.elements) == 1:
+                    el = o.elements
+                else:
+                    el = o.elements_deactivated
+                self.assertEqual(o.status_categories[int(el.status)], status[i])
+                self.assertIsNone(np.testing.assert_array_almost_equal(
+                    el.lon, lons[i], 3))
+
 
     def test_interact_coastline_global(self):
         reader_global = reader_global_landmask.Reader()
