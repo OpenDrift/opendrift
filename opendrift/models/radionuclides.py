@@ -620,20 +620,6 @@ class RadionuclideDrift(OceanDrift):
         # terminal velocity for low Reynolds numbers
         W = (1.0/my_w)*(1.0/18.0)*g*partsize**2 * dr
 
-        # check if we are in a Reynolds regime where Re > 0.5
-        highRe = np.where(W*1000*partsize/my_w > 0.5)
-
-        # Use empirical equations for terminal velocity in
-        # high Reynolds numbers.
-        # Empirical equations have length units in cm!
-        my_w = 0.01854 * np.exp(-0.02783 * T0)  # in cm2/s
-        d0 = (partsize * 100) - 0.4 * \
-            (9.0 * my_w**2 / (100 * g) * DENSw / dr)**(1.0 / 3.0)  # cm
-        W2 = 19.0*d0*(0.001*dr)**(2.0/3.0)*(my_w*0.001*DENSw)**(-1.0/3.0)
-        # cm/s
-        W2 = W2/100.  # back to m/s
-
-        W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W
 
 
