@@ -426,7 +426,6 @@ class PelagicPlanktonDrift(OceanDrift):
             if temp_max is not None :
                 m=(temp_xy-temp_max+temp_tol)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L60
                 if (m>0).any():
-                  import pdb;pdb.set_trace()
                   logger.debug('Maximum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L62
             if temp_min is not None :
@@ -437,7 +436,6 @@ class PelagicPlanktonDrift(OceanDrift):
                 # e.g. if there is a tolerance of 1.0 degrees, and temp_xy is 1 deg below temp_min, then we should have m=1 and all particle would die
                 # 
                 if (m>0).any():
-                  import pdb;pdb.set_trace()
                   logger.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L65
         # print('TEMP')
