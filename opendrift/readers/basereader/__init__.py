@@ -55,6 +55,8 @@ class BaseReader(Variables):
         'sea_water_potential_temperature': 'sea_water_temperature',
         'x_wind_10m': 'x_wind',
         'y_wind_10m': 'y_wind',
+        'surface_wind_speed': 'wind_speed',
+        'surface_wind_direction': 'wind_direction',
         'sea_water_x_velocity': 'x_sea_water_velocity',
         'sea_water_y_velocity': 'y_sea_water_velocity',
         'x_sea_ice_velocity': 'sea_ice_x_velocity',

@@ -300,14 +300,14 @@ class Reader(BaseReader, StructuredReader):
             var = self.Dataset.variables[var_name]
             if var.ndim < 2:
                 continue
-            if 'standard_name' in var.attrs:
+            if var_name in standard_name_mapping:
+                # User may specify mapping if standard_name is missing, or to override existing
+                standard_name = standard_name_mapping[var_name]
+                self.variable_mapping[standard_name] = str(var_name)
+            elif 'standard_name' in var.attrs:
                 standard_name = str(var.attrs['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
-                self.variable_mapping[standard_name] = str(var_name)
-            elif var_name in standard_name_mapping:
-                # User may specify mapping if standard_name is missing
-                standard_name = standard_name_mapping[var_name]
                 self.variable_mapping[standard_name] = str(var_name)
             else:
                 skipvars.append(var_name)

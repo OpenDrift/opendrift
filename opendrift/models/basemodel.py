@@ -2780,6 +2780,27 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         ax = fig.add_subplot(111, projection=crs)  # need '111' for Python 2
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree())
 
+        if 'ocean_color' in kwargs:
+            ax.patch.set_facecolor(kwargs['ocean_color'])
+            ocean_color = kwargs['ocean_color']
+        else:
+            ocean_color = 'white'
+        if 'land_color' in kwargs:
+            land_color = kwargs['land_color']
+        else:
+            if fast is True:
+                land_color = 'gray'
+            else:
+                land_color = cfeature.COLORS['land']
+
+        if 'text' in kwargs:
+            if not isinstance(kwargs['text'], list):
+                text = list(kwargs['text'])
+            else:
+                text = kwargs['text']
+            for te in text:
+                plt.text(transform=ccrs.Geodetic(), **te)
+
         def show_landmask(landmask):
             maxn = 512.
             dx = (lonmax - lonmin) / maxn
@@ -2799,7 +2820,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             img = landmask.mask[ym[0]:ym[1]:ndy, xm[0]:xm[1]:ndx]
 
             from matplotlib import colors
-            cmap = colors.ListedColormap(['white', 'gray'])
+            cmap = colors.ListedColormap([ocean_color, land_color])
             ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
                       transform=ccrs.PlateCarree(), cmap=cmap)
 
@@ -2827,10 +2848,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
                         ax.add_geometries(polys,
                                 ccrs.PlateCarree(),
-                                facecolor=cfeature.COLORS['land'],
+                                facecolor=land_color,
                                 edgecolor='black')
                 else:  # Using custom shape reader
-                    ax.add_geometries(self.readers['shape'].polys, ccrs.PlateCarree(), facecolor=cfeature.COLORS['land'], edgecolor='black')
+                    ax.add_geometries(self.readers['shape'].polys, ccrs.PlateCarree(), facecolor=land_color, edgecolor='black')
 
             else:
                 if fast:
@@ -2840,11 +2861,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 else:
                     logger.debug ("Adding GSHHS shapes..")
                     f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
-                            facecolor=cfeature.COLORS['land'])
+                            facecolor=land_color)
                     ax.add_geometries(
                             f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
                             ccrs.PlateCarree(),
-                            facecolor=cfeature.COLORS['land'],
+                            facecolor=land_color,
                             edgecolor='black')
 
 
@@ -2903,7 +2924,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   show_trajectories=False, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20, origin_marker=None,
-                  legend=None, legend_loc='best', fps=10, lscale=None, fast=False):
+                  legend=None, legend_loc='best', fps=10, lscale=None, fast=False, **kwargs):
         """Animate last run."""
 
 
@@ -3014,7 +3035,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
-                            fast=fast, hide_landmask=hide_landmask)
+                            fast=fast, hide_landmask=hide_landmask, **kwargs)
 
         if surface_only is True:
             z = self.get_property('z')[0]
