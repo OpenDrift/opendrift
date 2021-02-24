@@ -128,13 +128,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     required_profiles_z_range = None  # [min_depth, max_depth]
     plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
-    def __init__(self, proj4=None, seed=0, iomodule='netcdf',
+    proj_latlon = pyproj.Proj('+proj=latlong')
+
+    def __init__(self, seed=0, iomodule='netcdf',
                  loglevel=logging.DEBUG, logtime='%H:%M:%S', logfile=None):
         """Initialise OpenDriftSimulation
 
         Args:
-            proj4: proj4 string defining spatial reference system.
-                If not specified, SRS is taken from the first added reader.
             seed: integer or None. A given integer will yield identical
                 random numbers drawn each simulation. Random numbers are
                 e.g. used to distribute particles spatially when seeding,
@@ -172,9 +172,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.status_colors = self.status_colors_default
         else:
             self.status_colors = self.status_colors_default
-
-        # Set projection, if given
-        self.set_projection(proj4)
 
         # Using a fixed seed will generate the same random numbers
         # each run, useful for sensitivity tests
@@ -630,42 +627,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             os.path.join(os.path.dirname(opendrift.__file__),
                          '..', 'tests', 'test_data')) + os.path.sep
 
-    def set_projection(self, proj4):
-        """Set the projection onto which data from readers is reprojected."""
-        self.proj4 = proj4
-        if proj4 is not None:
-            self.proj = pyproj.Proj(self.proj4 + ' +ellps=WGS84')
-            logger.debug('Calculation SRS set to: ' + self.proj.srs)
-        else:
-            self.proj = None
-            logger.debug('Calculation SRS set to: ' + str(self.proj))
-
-    def lonlat2xy(self, lon, lat):
-        """Calculate x,y in own projection from given lon,lat (scalars/arrays).
-        """
-        if 'ob_tran' in self.proj4:
-            x, y = self.proj(lon, lat, inverse=False)
-            return np.degrees(x), np.degrees(y)
-        elif self.proj.crs.is_geographic:
-            return lon, lat
-        else:
-            x, y = self.proj(lon, lat, inverse=False)
-            return x, y
-
-    def xy2lonlat(self, x, y):
-        """Calculate lon,lat from given x,y (scalars/arrays) in own projection.
-        """
-        if self.proj.crs.is_geographic:
-            if 'ob_tran' in self.proj4:
-                logger.info('NB: Converting deg to rad due to ob_tran srs')
-                x = np.radians(np.array(x))
-                y = np.radians(np.array(y))
-                return self.proj(x, y, inverse=True)
-            else:
-                return x, y
-        else:
-            return self.proj(x, y, inverse=True)
-
     def performance(self):
         '''Report the time spent on various tasks'''
 
@@ -745,14 +706,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 reader.set_buffer_size(max_speed=self.max_speed)
 
             self.readers[reader.name] = reader
-            if self.proj is None and not reader.is_lazy:
-                if reader.proj4 is not None and reader.proj4 != 'None':
-                    self.set_projection(reader.proj4)
-                    logger.debug('Using srs for common grid: %s' %
-                                  self.proj4)
-                else:
-                    logger.debug('%s is unprojected, cannot use '
-                                  'for common grid' % reader.name)
             logger.debug('Added reader ' + reader.name)
 
             # Add this reader for each of the given variables
@@ -771,11 +724,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         for variable in list(self.priority_list):
             if variable not in self.required_variables:
                 del self.priority_list[variable]
-
-        # Set projection to latlong if not taken from any of the readers
-        if self.proj is None:
-            logger.info('Setting SRS to latlong, since not defined before.')
-            self.set_projection('+proj=latlong')
 
     def add_readers_from_list(self, urls, timeout=10, lazy=True):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
@@ -1047,7 +995,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                             variable_group, profiles_from_reader,
                             self.required_profiles_z_range, time,
                             lon[missing_indices], lat[missing_indices],
-                            z[missing_indices], self.proj)
+                            z[missing_indices], self.proj_latlon)
 
                 except Exception as e:
                     logger.info('========================')
@@ -2139,32 +2087,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.debug('No output file is specified, '
                           'neglecting export_buffer_length')
             export_buffer_length = None
-
-        # Set projection to latlong if not taken from any of the readers
-        if self.proj is not None and not (self.proj.crs.is_geographic or
-            'proj=merc' in self.proj.srs):
-            for vector_component in vector_pairs_xy:
-                for component in vector_component:
-                    if component in self.fallback_values and \
-                            self.fallback_values[component] != 0:
-                        logger.info('Setting SRS to latlong, since non-zero '
-                                     'value used for fallback vectors (%s)' %
-                                     component)
-                        self.set_projection('+proj=latlong')
-        if self.proj is None:
-            logger.info('Setting SRS to latlong, since not defined before.')
-            self.set_projection('+proj=latlong')
-
-        # Check if any readers have same SRS as simulation
-        for reader in self.readers.values():
-            if reader.is_lazy:
-                continue
-            readerSRS = reader.proj.srs.replace(' +ellps=WGS84', '').strip()
-            simulationSRS = self.proj.srs.replace(' +ellps=WGS84', '').strip()
-            if readerSRS == simulationSRS:
-                reader.simulation_SRS = True
-            else:
-                reader.simulation_SRS = False
 
         # Make constant readers if config environment:constant:<var> is
         c = self.get_configspec('environment:constant:')
@@ -4280,18 +4202,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         velocity = np.sqrt(x_vel**2 + y_vel**2)  # Velocity in m/s
         velocity = velocity * self.elements.moving  # Do not move frosen elements
 
-        if not self.proj.crs.is_geographic:  # Need to rotate SRS
-            # Calculate x,y from lon,lat
-            self.elements.x, self.elements.y = self.lonlat2xy(
-                self.elements.lon, self.elements.lat)
-            # Calculate azimuth orientation of y-axis at particle locations
-            delta_y = 1000  # Using delta of 1000 m to calculate azimuth
-            lon2, lat2 = self.xy2lonlat(self.elements.x,
-                                        self.elements.y + delta_y)
-            azimuth_srs = geod.inv(self.elements.lon, self.elements.lat,
-                                   lon2, lat2)[0]
-            azimuth = azimuth + azimuth_srs
-
         # Calculate new positions
         self.elements.lon, self.elements.lat, back_az = geod.fwd(
             self.elements.lon, self.elements.lat,
@@ -4317,7 +4227,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         outStr += '\t%s active %s particles  (%s deactivated, %s scheduled)\n'\
             % (self.num_elements_active(), self.ElementType.__name__,
                self.num_elements_deactivated(), self.num_elements_scheduled())
-        outStr += 'Projection: %s\n' % self.proj4
         variable_groups, reader_groups, missing = self.get_reader_groups()
         outStr += '-------------------\n'
         outStr += 'Environment variables:\n'
@@ -4521,7 +4430,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         function of time"""
         #lon,lat = self.get_property('lon')[0], self.get_property('lat')[0]
         lon,lat = self.history['lon'], self.history['lat']
-        x,y = self.proj(lon, lat)
+        x,y = self.proj_latlon(lon, lat)
         if onlysurface==True:
             z = self.history['z']
             submerged = z < 0
@@ -4529,13 +4438,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             y = np.ma.array(y, mask=submerged)
         # center of gravity:
         x_m, y_m = np.ma.mean(x, axis=0), np.ma.mean(y, axis=0)
-        center =  self.proj(x_m, y_m, inverse=True)
+        center =  self.proj_latlon(x_m, y_m, inverse=True)
         one = np.ones_like(x)
         # variance:
         variance = np.ma.mean((x-x_m*one)**2 + (y-y_m*one)**2, axis=0)
 
         return center,variance
-
 
     def reset(self):
         """Preparing OpenDrift object for new run"""
