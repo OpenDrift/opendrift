@@ -15,7 +15,6 @@ class ReaderDomain(Timeable):
     Projection, spatial and temporal domain of reader.
     """
     name = None
-    simulation_SRS = False
 
     proj4 = None
     proj = None
@@ -620,8 +619,8 @@ class Variables(ReaderDomain):
 
         # Rotating vectors fields
         if rotate_to_proj is not None:
-            if self.simulation_SRS is True:
-                logger.debug('Reader SRS is the same as calculation SRS - '
+            if self.proj.crs.is_geographic:
+                logger.debug('Reader projection is latlon - '
                              'rotation of vectors is not needed.')
             else:
                 vector_pairs = []
