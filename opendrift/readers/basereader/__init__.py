@@ -92,7 +92,6 @@ class BaseReader(Variables):
         self.is_lazy = False  # Generally False
 
         # Set projection for coordinate transformations
-        self.simulation_SRS = False  # Avoid unnecessary vector rotation
         if self.proj is None:
             if self.proj4 is not None:
                 try:
