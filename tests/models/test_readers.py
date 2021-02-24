@@ -575,7 +575,7 @@ class TestReaders(unittest.TestCase):
         obslat = [61.1, 61.132198]
         obstime = [datetime(2015, 11, 16, 0), datetime(2015, 11, 16, 6)]
 
-        o = OceanDrift()
+        o = OceanDrift(loglevel=20)
         reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
                     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
@@ -586,7 +586,7 @@ class TestReaders(unittest.TestCase):
 
     def test_valid_minmax(self):
         """Check that invalid values are replaced with fallback."""
-        o = OceanDrift()
+        o = OceanDrift(loglevel=20)
         from opendrift.readers.basereader import variables
         minval = variables.standard_names['x_wind']['valid_min']
         # Setting valid_min to -5, to check that replacement works
@@ -609,16 +609,16 @@ class TestReaders(unittest.TestCase):
         # Reducing max current speed to test masking
         maxval = variables.standard_names['x_sea_water_velocity']['valid_max']
         variables.standard_names['x_sea_water_velocity']['valid_max'] = .1
-        o = OceanDrift()
+        o = OceanDrift(loglevel=20)
         o.set_config('environment:fallback:land_binary_mask', 0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader(norkyst)
 
-        o.seed_elements(lon=4.95, lat=62, number=100, time=norkyst.start_time)
+        o.seed_elements(lon=4.95, lat=62, number=10, time=norkyst.start_time)
         o.run(steps=2)
         variables.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
         u = o.get_property('x_sea_water_velocity')[0]
-        self.assertAlmostEqual(u.max(), .1, 2)  # Some numerical error allowed
+        self.assertAlmostEqual(u.max(), -.137, 3)  # Some numerical error allowed
 
 
 if __name__ == '__main__':
