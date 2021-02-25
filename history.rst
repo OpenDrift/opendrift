@@ -1,6 +1,12 @@
 History
 =======
 
+Next release
+-----------------------------
+* opendrift-landmask-data only loads mask once for each python process,
+  reducing memory usage and improves performance where you run opendrift
+  multiple times in the same script and process.
+
 2021-02-15 / Release v1.5.6
 -----------------------------
 * New parallelisation of lonlat2xy for unprojected readers. The flag ``<reader>.multiprocessing_fail`` is replaced with ``<reader>.__parallel_fail__``
