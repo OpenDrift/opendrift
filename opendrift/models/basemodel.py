@@ -2843,7 +2843,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   background=None, bgalpha=.5, vmin=None, vmax=None, drifter=None,
                   skip=5, scale=10, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
-                  show_trajectories=False, hide_landmask=False,
+                  show_trajectories=False, trajectory_alpha=.1, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20, origin_marker=None,
                   legend=None, legend_loc='best', fps=10, lscale=None, fast=False, **kwargs):
@@ -2965,7 +2965,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             y[z<0] = np.nan
 
         if show_trajectories is True:
-            ax.plot(x, y, color='gray', alpha=.1, transform = gcrs)
+            ax.plot(x, y, color='gray', alpha=trajectory_alpha, transform = gcrs)
 
         if color is not False and show_elements is True:
             if isinstance(color, str):
