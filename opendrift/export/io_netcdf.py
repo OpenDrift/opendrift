@@ -312,7 +312,7 @@ def import_file(self, filename, times=None, elements=None):
         if var in self.ElementType.variables:
             kwargs[var] = self.history[var][
                 np.arange(len(index_of_last)), index_of_last]
-    kwargs['ID'] = elements + 1
+    kwargs['ID'] = np.arange(len(elements)) + 1
     self.elements = self.ElementType(**kwargs)
     self.elements_deactivated = self.ElementType()
 
