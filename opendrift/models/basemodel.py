@@ -4184,6 +4184,20 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return prop.T, status.T
 
+    def get_trajectory_lengths(self):
+        """Calculate lengths and speeds along trajectories."""
+        lons = self.get_property('lon')[0]
+        lats = self.get_property('lat')[0]
+        geod = pyproj.Geod(ellps='WGS84')
+        a1, a2, distances = geod.inv(lons[0:-1,:], lats[0:-1,:], lons[1::,:], lats[1::,:])
+        distances[np.isnan(distances)] = 0
+        speeds = distances / self.time_step_output.total_seconds()
+        distances[speeds>100] = 0  # TODO: need better way to mask invalid distances
+        speeds[speeds>100] = 0     #       due to masked lons/lats arrays
+        total_length = np.cumsum(distances, 0)[-1,:]
+
+        return total_length, distances, speeds
+
     def update_positions(self, x_vel, y_vel):
         """Move particles according to given velocity components.
 
