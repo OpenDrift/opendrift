@@ -523,7 +523,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def store_present_positions(self, IDs=None, lons=None, lats=None):
         """Store present element positions, in case they shall be moved back"""
-        if self.get_config('general:coastline_action') == 'previous':
+        if self.get_config('general:coastline_action') == 'previous' or ('general:seafloor_action' in self._config and self.get_config('general:seafloor_action') == 'previous'):
             if not hasattr(self, 'previous_lon'):
                 self.previous_lon = np.ma.masked_all(self.num_elements_total())
                 self.previous_lat = np.ma.masked_all(self.num_elements_total())
@@ -566,9 +566,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.variables_previous[var][self.elements.ID-1] = getattr(self.environment, var)
 
     def interact_with_coastline(self, final=False):
+        """Coastline interaction according to configuration setting"""
         if self.num_elements_active() == 0:
             return
-        """Coastline interaction according to configuration setting"""
         i = self.get_config('general:coastline_action')
         if not hasattr(self, 'environment') or not hasattr(self.environment, 'land_binary_mask'):
             return
@@ -605,6 +605,33 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.elements.lat[on_land] = \
                     np.copy(self.previous_lat[on_land_ID - 1])
                 self.environment.land_binary_mask[on_land] = 0
+
+    def interact_with_seafloor(self):
+        """Seafloor interaction according to configuration setting"""
+        if self.num_elements_active() == 0:
+            return
+        if 'sea_floor_depth_below_sea_level' not in self.priority_list:
+            return
+        sea_floor_depth = self.sea_floor_depth()
+        below = np.where(self.elements.z < -sea_floor_depth)[0]
+        if len(below) == 0:
+                logger.debug('No elements hit seafloor.')
+                return
+
+        i = self.get_config('general:seafloor_action')
+        if i == 'lift_to_seafloor':
+            self.elements.z[below] = -sea_floor_depth[below]
+        elif i == 'deactivate':
+            self.deactivate_elements(self.elements.z < -sea_floor_depth, reason='seafloor')
+        elif i == 'previous':  # Go back to previous position (in water)
+            logger.warning('%s elements hit seafloor, '
+                           'moving back ' % len(below))
+            below_ID = self.elements.ID[below]
+            self.elements.lon[below] = \
+                np.copy(self.previous_lon[below_ID - 1])
+            self.elements.lat[below] = \
+                np.copy(self.previous_lat[below_ID - 1])
+            self.environment.land_binary_mask[below] = 0
 
     @abstractmethod
     def update(self):
@@ -2364,7 +2391,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
                 self.increase_age_and_retire()
 
-                self.lift_elements_to_seafloor()  # If seafloor is penetrated
+                self.interact_with_seafloor()
 
                 if self.show_continuous_performance is True:
                     logger.info(self.performance())
@@ -2397,7 +2424,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
                 self.interact_with_coastline()
 
-                self.lift_elements_to_seafloor()  # If seafloor is penetrated
+                self.interact_with_seafloor()
 
                 self.deactivate_elements(missing, reason='missing_data')
 
