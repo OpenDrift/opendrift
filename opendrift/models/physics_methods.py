@@ -683,8 +683,27 @@ class PhysicsMethods:
         below = self.elements.z < -sea_floor_depth
         if self.get_config('drift:lift_to_seafloor') is True:
             self.elements.z[below] = -sea_floor_depth[below]
-        else:
-            self.deactivate_elements(below, reason='seafloor')
+        else:  # self.get_config('drift:lift_to_seafloor') is False
+            if self.get_config('drift:subsurface_stranding') is 'previous':
+                logger.debug('Reset to previous location')
+                if sum(below) == 0:
+                    logger.debug('No elements hit seafloor.')
+                else:
+                    logger.debug('%s elements hit seafloor, '
+                                  'moving back to prev pos' % sum(below))
+                    below_ID = self.elements.ID[below]
+                    self.elements.lon[below] = \
+                        np.copy(self.previous_lon[below_ID - 1])
+                    self.elements.lat[below] = \
+                        np.copy(self.previous_lat[below_ID - 1])
+            elif self.get_config('drift:subsurface_stranding') is 'stranding':
+                self.deactivate_elements(below, reason='seafloor')
+            elif self.get_config('drift:subsurface_stranding') is 'none':
+                if sum(below) == 0:
+                    logger.debug('No elements hit seafloor.')
+                else:
+                    logger.debug('%s elements hit seafloor, '
+                                  'no action taken' % sum(below))
 
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''

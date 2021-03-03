@@ -93,6 +93,13 @@ class OceanDrift(OpenDriftSimulation):
         super(OceanDrift, self).__init__(*args, **kwargs)
 
         self._add_config({
+            'drift:subsurface_stranding': {'type': 'enum', 'enum': ['none', 'stranding', 'previous'],
+                'default': 'stranding', 'level': self.CONFIG_LEVEL_BASIC,
+                 'description':'Describes the action when elements hit seafloor below surface at wet points' 
+                    'None means that objects may also move into seafloor. '
+                    'stranding means that objects are deactivated if they hit seafloor. '
+                    'previous means that objects will move back to the previous location '
+                    'if they hit seafloor'},
             'drift:vertical_advection': {'type': 'bool', 'default': True, 'description':
                 'Advect elements with vertical component of ocean current.',
                 'level': self.CONFIG_LEVEL_BASIC},
@@ -211,8 +218,9 @@ class OceanDrift(OpenDriftSimulation):
         # Let particles stick to bottom
         bottom = np.where(self.elements.z < Zmin)
         if len(bottom[0]) > 0:
-            logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
-            self.elements.z[bottom] = Zmin[bottom]
+#            logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+#            self.elements.z[bottom] = Zmin[bottom]
+            self.lift_elements_to_seafloor()
             self.bottom_interaction(Zmin)
 
     def surface_stick(self):
