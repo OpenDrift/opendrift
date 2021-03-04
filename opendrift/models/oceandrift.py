@@ -213,7 +213,7 @@ class OceanDrift(OpenDriftSimulation):
         bottom = np.where(self.elements.z < Zmin)
         if len(bottom[0]) > 0:
             logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
-            self.elements.z[bottom] = Zmin[bottom]
+            self.interact_with_seafloor()
             self.bottom_interaction(Zmin)
 
     def surface_stick(self):
@@ -414,7 +414,7 @@ class OceanDrift(OpenDriftSimulation):
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
                 logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
-                self.elements.z[bottom] = Zmin[bottom]
+                self.interact_with_seafloor()
                 self.bottom_interaction(Zmin)
 
             if store_depths is not False:
