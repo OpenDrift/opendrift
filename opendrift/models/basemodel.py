@@ -631,7 +631,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 np.copy(self.previous_lon[below_ID - 1])
             self.elements.lat[below] = \
                 np.copy(self.previous_lat[below_ID - 1])
-            self.environment.land_binary_mask[below] = 0
+
 
     @abstractmethod
     def update(self):
