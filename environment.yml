@@ -30,5 +30,6 @@ dependencies:
   - isodate
   - coloredlogs
   - pip
+  - pykdtree
   - pip:
     - motuclient
