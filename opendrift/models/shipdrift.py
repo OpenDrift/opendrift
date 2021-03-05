@@ -22,6 +22,7 @@
 import os
 import numpy as np
 import scipy
+import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
@@ -32,20 +33,36 @@ class ShipObject(LagrangianArray):
 
     """
     variables = LagrangianArray.add_variables([
-        ('orientation', {'dtype': np.int16,
+        ('orientation', {'dtype': np.uint8,
                          'units': '1',
                          'default': 1}),
         ('length', {'dtype': np.float32,
                          'units': 'm',
+                         'min': 1,
+                         'max': 500,
+            'description': 'Length of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 80}),
         ('height', {'dtype': np.float32,
                          'units': 'm',
-                         'default': 9}),
+                         'min': 1,
+                         'max': 100,
+            'description': 'Total height of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
+                         'default': 8}),
         ('draft', {'dtype': np.float32,  # wet part of ship [m]
                          'units': 'm',
+                         'min': 1,
+                         'max': 30,
+            'description': 'Draft of ship (depth below water)',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 4.0}),
         ('beam', {'dtype': np.float32,  # width of ship
+                         'min': 1,
+                         'max': 70,
                          'units': 'm',
+            'description': 'Beam (width) of ship',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 10}),
         ('wind_drag_coeff', {'dtype': np.float32,  # Cf
                              'units': '1',
@@ -66,40 +83,22 @@ class ShipDrift(OpenDriftSimulation):
     no properties except for position) with the ambient wind.
     """
 
-    ElementType = ShipObject 
+    ElementType = ShipObject
 
-    required_variables = ['x_wind', 'y_wind', 'land_binary_mask',
-                          'x_sea_water_velocity', 'y_sea_water_velocity',
-                          'sea_surface_wave_stokes_drift_x_velocity',
-                          'sea_surface_wave_stokes_drift_y_velocity',
-                          'sea_surface_wave_significant_height',
-                          'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
-                         ]
-
-    fallback_values = {'x_wind': 0,
-                       'y_wind': 0,
-                       'x_sea_water_velocity': 0,
-                       'y_sea_water_velocity': 0,
-                       'sea_surface_wave_stokes_drift_x_velocity': 0,
-                       'sea_surface_wave_stokes_drift_y_velocity': 0,
-                       'sea_surface_wave_significant_height': 0,
-                       'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-                       }
+    required_variables = {
+        'x_wind': {'fallback': None},
+        'y_wind': {'fallback': None},
+        'land_binary_mask': {'fallback': None},
+        'x_sea_water_velocity': {'fallback': None},
+        'y_sea_water_velocity': {'fallback': None},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height': {'fallback': 0},
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0}
+        }
 
     max_speed = 2  # m/s
     winwav_angle = 20  # Angular offset in degrees
-
-    configspec = '''
-        [seed]
-            length = float(min=1, max=500, default=80)
-            height = float(min=1, max=50, default=12)
-            draft = float(min=1, max=20, default=4)
-            beam = float(min=1, max=30, default=10)
-        [drift]
-            current_uncertainty = float(min=0, max=5, default=0.05)
-            wind_uncertainty = float(min=0, max=5, default=.5)
-        '''
-
 
     def __init__(self, *args, **kwargs):
 
@@ -108,28 +107,28 @@ class ShipDrift(OpenDriftSimulation):
         w = open(d + '/wforce.dat', 'r')
         self.wforce = {}
         w.readline()
-        nbeam = np.int(w.readline().split()[0])
+        nbeam = int(w.readline().split()[0])
         self.wforce['nbeam'] = nbeam
         self.wforce['BL'] = np.array(w.readline().split()[0:nbeam],
-                                     dtype=np.float)
-        ndraft = np.int(w.readline().split()[0])
+                                     dtype=float)
+        ndraft = int(w.readline().split()[0])
         self.wforce['ndraft'] = ndraft
         self.wforce['DL'] = np.array(w.readline().split()[0:ndraft],
-                                     dtype=np.float)
-        nomega = np.int(w.readline().split()[0])
+                                     dtype=float)
+        nomega = int(w.readline().split()[0])
         self.wforce['nomega'] = nomega
         self.wforce['omega'] = np.zeros((nomega))
         self.wforce['F'] = np.zeros((nomega, nbeam, ndraft))
         self.wforce['D'] = np.zeros((nomega, nbeam, ndraft))
         for o in range(nomega):
-            self.wforce['omega'][o] = np.float(w.readline().split()[0])
+            self.wforce['omega'][o] = float(w.readline().split()[0])
             for i in range(ndraft):
                 l = w.readline()
                 self.wforce['F'][o, i, :] = l.split()[0:nbeam]
             for i in range(ndraft):
                 l = w.readline()
                 self.wforce['D'][o, i, :] = l.split()[0:nbeam]
-                
+
         w.close()
         wi_omega, wi_BL, wi_DL = \
             np.meshgrid(self.wforce['omega'],
@@ -143,15 +142,22 @@ class ShipDrift(OpenDriftSimulation):
 
         super(ShipDrift, self).__init__(*args, **kwargs)
 
-        self._add_configstring(self.configspec)
+        self._add_config({'seed:orientation': {'type': 'enum',
+            'enum':['left', 'right', 'random'], 'default': 'random',
+            'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
+            'description': 'If ships are oriented to the left or right of the downwind direction, or whether this is unknown.'}})
 
+        self._set_config_default('drift:current_uncertainty', .05)
+        self._set_config_default('drift:wind_uncertainty', .5)
 
     def seed_elements(self, *args, **kwargs):
-        
-        num = kwargs['number']
+
+        if 'number' in kwargs:
+            num = kwargs['number']
+        else:
+            num = self.get_config('seed:number')
         for var in ['length', 'height', 'draft', 'beam']:
             if var not in kwargs:
-                #kwargs[var] = self.ElementType.variables[var]['default']
                 kwargs[var] = self.get_config('seed:' + var)
             kwargs[var] = np.atleast_1d(kwargs[var])
             if len(kwargs[var] == 1):
@@ -160,14 +166,17 @@ class ShipDrift(OpenDriftSimulation):
         # Check that beam and height vs length are within expected range
         dl = kwargs['draft']/kwargs['length']
         if dl.min() < 0.025 or dl.max() > 0.07:
-            raise ValueError('Ratio of draft to length should be in range '
-                             '0.025 to 0.07, given range is %s-%s' %
-                             (dl.min(), dl.max()))
+            logger.warning('Ratio of draft to length should be in range '
+                                '0.025 to 0.07, given range is %s-%s. '
+                                'Using border value.' %
+                                (dl.min(), dl.max()))
+            dl = np.clip(dl, 0.025, 0.07)
         bl = kwargs['beam']/kwargs['length']
         if bl.min() < 0.12 or bl.max() > 0.18:
-            raise ValueError('Ratio of beam to length should be in range '
-                             '0.12 to 0.18, given range is %s-%s' %
-                             (bl.min(), bl.max()))
+            logger.warning('Ratio of beam to length should be in range '
+                                '0.12 to 0.18, given range is %s-%s. '
+                                'Using border value.' %
+                                (bl.min(), bl.max()))
 
         # Calculate drag coefficients based on given ship dimensions
         # Wind drag coefficient
@@ -179,7 +188,7 @@ class ShipDrift(OpenDriftSimulation):
         kwargs['wind_drag_coeff'] = Cf
 
         # Water drag coefficient
-        beta = 2.0*kwargs['draft']/kwargs['length']
+        beta = 2.0*dl
         Cd = np.zeros(num)
         Cd[beta>.12] = 1.27
         Cd[beta<=.12] =  1.32 + (1.27-1.32)/0.02 * (beta[beta<=.12]-0.10)
@@ -189,7 +198,13 @@ class ShipDrift(OpenDriftSimulation):
         kwargs['water_drag_coeff'] = Cd
 
         if 'orientation' not in kwargs:
-            kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
+            oc = self.get_config('seed:orientation')
+            if oc == 'left':
+                kwargs['orientation'] = np.ones(num)*0
+            elif oc == 'right':
+                kwargs['orientation'] = np.ones(num)*1
+            else:
+                kwargs['orientation'] = np.r_[:num] % 2  # Random 0 or 1
 
         # Calling general constructor with calculated values
         super(ShipDrift, self).seed_elements(*args, **kwargs)
@@ -200,6 +215,12 @@ class ShipDrift(OpenDriftSimulation):
         Hs = self.significant_wave_height()
         dl = self.elements.draft/self.elements.length
         bl = self.elements.beam/self.elements.length
+        # Clip to allowed range
+        bl = np.clip(bl, 0.12, 0.18)
+        dl = np.clip(dl, 0.025, 0.07)
+        # Additional clipping to avoid NaN from interpolator
+        bl = np.clip(bl, 0.121, 0.179)
+        dl = np.clip(dl, 0.0251, 0.069)
 
         # Simply move particles with ambient current
         self.update_positions(self.environment.x_sea_water_velocity,
@@ -273,13 +294,13 @@ class ShipDrift(OpenDriftSimulation):
 
         # Wave direction is taken as wind direction plus offset +/- 20 degrees
         offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
-        if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and 
+        if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and
             self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0):
-                self.logger.info('Using wind direction as wave direction')
+                logger.info('Using wind direction as wave direction')
                 wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
                                                            self.environment.x_wind)
         else:
-            self.logger.info('Using Stokes drift direction as wave direction')
+            logger.info('Using Stokes drift direction as wave direction')
             wave_dir = np.radians(offset) + np.arctan2(
                 self.environment.sea_surface_wave_stokes_drift_x_velocity,
                 self.environment.sea_surface_wave_stokes_drift_y_velocity)
@@ -289,7 +310,7 @@ class ShipDrift(OpenDriftSimulation):
                           np.power(F_wind_y + F_wave_y, 2))
 
         # Iterate 4 times in order to estimate the effect of
-        # wave damping and form drag 
+        # wave damping and form drag
         uw_tot = 0
         uw_dir = 0
         for i in range(4):
@@ -299,7 +320,7 @@ class ShipDrift(OpenDriftSimulation):
             # Calc new drift direction, including effect of
             # wave damping (Ref (1), eq. 6.6.1)
             uw_dir = np.arctan2(F_wind_y+F_wave_y-f2y, F_wind_x+F_wave_x-f2x)
-            # Ref (1), eq. 6.6.3 
+            # Ref (1), eq. 6.6.3
             bet2c = beta2*np.cos((wave_dir-uw_dir))
             # Ref (1), eq. 6.4.3
             uw_tot = -bet2c/(2.*beta1) + np.sqrt(bet2c*bet2c +
@@ -319,13 +340,13 @@ class ShipDrift(OpenDriftSimulation):
         with open(filename) as f:
             lines = f.readlines()
         self.time_step_output, self.time_step = lines[16].split()
-        num_elements = np.int(lines[25].split()[0])
+        num_elements = int(lines[25].split()[0])
         if num_elements != 1:
             raise ValueError('Import presently only supports single ship')
         num_timesteps = (len(lines)-30.)/14.
         num_timesteps = int(num_timesteps)
 
-        # Initialise history array 
+        # Initialise history array
         from datetime import datetime, timedelta
         history_dtype_fields = [
             (name, self.ElementType.variables[name]['dtype'])
@@ -351,7 +372,7 @@ class ShipDrift(OpenDriftSimulation):
         for i in range(num_timesteps):
             line = lines[30 + 14*i + 13]
             l = line.split()
-            lon = np.float(l[2])
-            lat = np.float(l[3])
+            lon = float(l[2])
+            lat = float(l[3])
             self.history['lon'][0, i] = lon
             self.history['lat'][0, i] = lat

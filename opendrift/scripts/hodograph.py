@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     uv = r.get_variables(['x_sea_water_velocity', 'y_sea_water_velocity',
                          'sea_floor_depth_below_sea_level'],
-                         time, x, y, r.z, block=True)
+                         time, x, y, r.z)
                        
     u_comp = uv['x_sea_water_velocity'][:,i,j]
     v_comp = uv['y_sea_water_velocity'][:,i,j]
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     plt.ylabel('North component [m/s]')
     plt.xlabel('East component [m/s]')
     textstr = u'%s UTC\n%.3fN\N{DEGREE SIGN}, %.3fE\N{DEGREE SIGN}' % \
-             (time, np.float(args.lat), np.float(args.lon))
+             (time, float(args.lat), float(args.lon))
     ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
             verticalalignment='top',
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))

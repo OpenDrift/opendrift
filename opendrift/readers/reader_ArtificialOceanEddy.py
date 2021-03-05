@@ -17,10 +17,10 @@
 import numpy as np
 import pyproj
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, ContinuousReader):
     """Artificial reader, with cyclonic surface current around selected centre.
 
     Purpose is demonstration and testing (unittest).
@@ -57,21 +57,16 @@ class Reader(BaseReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requestedVariables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None):
 
         requestedVariables, time, x, y, z, outside = self.check_arguments(
             requestedVariables, time, x, y, z)
 
         variables = {}
         # Construct cyclonic current field
-        size = np.int(np.int(self.xmax-self.xmin) / self.pixelsize + 1)
-        if block is True:
-            x = np.linspace(self.xmin, self.xmax, size)
-            y = np.linspace(self.ymin, self.ymax, size)
-            X, Y = np.meshgrid(x-self.x0, y-self.y0)
-        else:
-            X = x - self.x0
-            Y = y - self.y0
+        size = int(int(self.xmax-self.xmin) / self.pixelsize + 1)
+        X = x - self.x0
+        Y = y - self.y0
         radius = np.sqrt(X*X + Y*Y)
         radius[radius == 0] = 1
 

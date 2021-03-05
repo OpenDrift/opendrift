@@ -8,7 +8,6 @@ from opendrift.readers import reader_netCDF_CF_generic, reader_ROMS_native
 from opendrift.models.radionuclides import RadionuclideDrift
 from datetime import timedelta, datetime
 import numpy as np
-from numpy import dtype
 
 
 o = RadionuclideDrift(loglevel=20, seed=0)  # Set loglevel to 0 for debug information
@@ -19,53 +18,32 @@ reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds
 
 o.add_reader([reader_norkyst])
 
-td=datetime.today()
-time = datetime(td.year, td.month, td.day, 0)
 
-#latseed= 61.2; lonseed= 4.3    # Sognesjen
-latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
-
-ntraj=1000
-iniz=np.random.rand(ntraj) * -10. # seeding the radionuclides in the upper 10m
-init_speciation = np.ones(ntraj)*0
-diam=np.zeros_like(init_speciation,dtype=np.float32)
-o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
-                time=time, diameter=diam, specie=init_speciation)
-
-init_speciation = np.ones(ntraj)*1
-diam=np.zeros_like(init_speciation,dtype=np.float32) * 5.e-6
-o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
-                time=time,
-                diameter=diam, specie=init_speciation)
-
-# init_speciation = np.ones(ntraj)*2
-# o.seed_elements(lonseed, latseed, z=iniz, radius=100,number=ntraj,
-#                 time=time,
-#                 diameter=diam, specie=init_speciation)
 
 # Adjusting some configuration
-o.set_config('drift:vertical_mixing', False)
-#o.fallback_values['ocean_vertical_diffusivity'] = 0
+o.set_config('drift:vertical_mixing', True)
+#o.set_config('environment:constant:ocean_vertical_diffusivity', 0)
 #o.set_config('vertical_mixing:diffusivitymodel','constant')  # include settling without vertical turbulent mixing
-#o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
+o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
 # Vertical mixing requires fast time step
 o.set_config('vertical_mixing:timestep', 600.) # seconds
+o.set_config('drift:horizontal_diffusivity', 10)
 
 #%%
 # Activate the desired species
-o.set_config('radionuclide:species:LMM', True)
+#o.set_config('radionuclide:species:LMM', True)
 #o.set_config('radionuclide:species:LMMcation', True)
 #o.set_config('radionuclide:species:LMManion', True)
 #o.set_config('radionuclide:species:Colloid', True)
 #o.set_config('radionuclide:species:Humic_colloid', True)
 #o.set_config('radionuclide:species:Polymer', True)
-o.set_config('radionuclide:species:Particle_reversible', True)
+#o.set_config('radionuclide:species:Particle_reversible', True)
 #o.set_config('radionuclide:species:Particle_irreversible', True)
-o.set_config('radionuclide:species:Particle_slowly_reversible', True)
+#o.set_config('radionuclide:species:Particle_slowly_reversible', True)
 
-o.set_config('radionuclide:species:Sediment_reversible', True)
+#o.set_config('radionuclide:species:Sediment_reversible', True)
 #o.set_config('radionuclide:species:Sediment_irreversible', True)
-o.set_config('radionuclide:species:Sediment_slowly_reversible', True)
+#o.set_config('radionuclide:species:Sediment_slowly_reversible', True)
 
 o.set_config('radionuclide:particle_diameter',5.e-6)  # m
 #o.set_config('radionuclide:particle_diameter_uncertainty',1.e-7) # m
@@ -78,8 +56,9 @@ o.set_config('radionuclide:sediment:resuspension_critvel',0.15)
 
 
 #
-#o.set_config('radionuclide:transfer_setup','dummy')
+#o.set_config('radionuclide:transfer_setup','custom')
 o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
+#o.set_config('radionuclide:transfer_setup','137Cs_rev')
 #o.set_config('radionuclide:transfer_setup','Sandnesfj_Al')
 
 # By default, radionuclides do not strand towards coastline
@@ -87,11 +66,38 @@ o.set_config('general:coastline_action', 'previous')
 
 #o.set_config('general:use_auto_landmask',False)
 
+
+o.set_config('seed:LMM_fraction',.45)
+o.set_config('seed:particle_fraction',.55)
+
 o.list_configspec()
+
+
+
+# SEEDING
+
+td=datetime.today()
+time = datetime(td.year, td.month, td.day, 0)
+
+#latseed= 61.2; lonseed= 4.3    # Sognesjen
+#latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
+latseed= 60.0;   lonseed= 4.5 # Bergen (?)
+
+ntraj=5000
+iniz=np.random.rand(ntraj) * -10. # seeding the radionuclides in the upper 10m
+
+o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
+                time=time, 
+#                LMM_fraction=0.25,
+#                particle_fraction=0.75
+#                diameter=99.e-6#diam, 
+                #specie=init_speciation
+                )
+
 
 #%%
 # Running model
-o.run(steps=48*2, time_step=1800, time_step_output=3600)
+o.run(steps=12*2, time_step=1800, time_step_output=3600)
 
 
 #%%
@@ -128,7 +134,7 @@ o.conc_lat   = reader_norkyst.lat
 o.conc_lon   = reader_norkyst.lon
 o.conc_topo  = reader_norkyst.get_variables('sea_floor_depth_below_sea_level',
                                        x=[reader_norkyst.xmin,reader_norkyst.xmax],
-                                       y=[reader_norkyst.ymin,reader_norkyst.ymax], block=True)['sea_floor_depth_below_sea_level'][:]
+                                       y=[reader_norkyst.ymin,reader_norkyst.ymax])['sea_floor_depth_below_sea_level'][:]
 #o.conc_mask  = reader_norkyst.land_binary_mask
 
 #%%
@@ -140,6 +146,26 @@ o.conc_topo  = reader_norkyst.get_variables('sea_floor_depth_below_sea_level',
 #                                        activity_unit='Bq',
 #                                        horizontal_smoothing=True,
 #                                        smoothing_cells=1,
+#                                        time_avg_conc=True,
+#                                        deltat=2., # hours
+#                                        llcrnrlon=8.9681, llcrnrlat=58.6627,
+#                                        urcrnrlon=9.2772, urcrnrlat=58.7219,
+#                                        )
+
+
+# Postprocessing: write to concentration netcdf file 
+# o.conc_lat   = reader_norkyst.lat
+# o.conc_lon   = reader_norkyst.lon
+# o.conc_topo  = reader_norkyst.get_variables('sea_floor_depth_below_sea_level',
+#                                        x=[reader_norkyst.xmin,reader_norkyst.xmax], 
+#                                        y=[reader_norkyst.ymin,reader_norkyst.ymax], block=True)['sea_floor_depth_below_sea_level'][:]
+#o.conc_mask  = reader_norkyst.land_binary_mask
+
+# o.write_netcdf_radionuclide_density_map('radio_conc.nc', pixelsize_m=200., 
+#                                         zlevels=[-2.],
+#                                         activity_unit='Bq',
+#                                         horizontal_smoothing=True,
+#                                         smoothing_cells=1,
 #                                        time_avg_conc=True,
 #                                        deltat=2., # hours
 #                                        llcrnrlon=8.9681, llcrnrlat=58.6627,

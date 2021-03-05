@@ -16,21 +16,18 @@
 
 from bisect import bisect_left, bisect_right
 from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 import numpy as np
-from netCDF4 import Dataset, MFDataset, num2date
-try:
-    import xarray as xr
-    has_xarray = True
-except:
-    has_xarray = False
-#has_xarray = False  # Temporary disabled
+from netCDF4 import num2date
+import xarray as xr
 
-from opendrift.readers.basereader import BaseReader, vector_pairs_xy
+from opendrift.readers.basereader import BaseReader, vector_pairs_xy, StructuredReader
 from opendrift.readers.roppy import depth
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, StructuredReader):
 
     def __init__(self, filename=None, name=None, gridfile=None):
 
@@ -81,43 +78,35 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            self.logger.info('Opening dataset: ' + filestr)
+            logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                self.logger.info('Opening files with MFDataset')
+                logger.info('Opening files with MFDataset')
                 def drop_non_essential_vars_pop(ds):
                     dropvars = [v for v in ds.variables if v not in
                                 list(self.ROMS_variable_mapping.keys()) + gls_param +
                                 ['ocean_time', 's_rho', 'Cs_r', 'hc', 'angle']
                                 and v[0:3] not in ['lon', 'lat', 'mas']]
-                    self.logger.debug('Dropping variables: %s' % dropvars)
+                    logger.debug('Dropping variables: %s' % dropvars)
                     ds = ds.drop(dropvars)
                     return ds
-                if has_xarray is True:
-                    self.Dataset = xr.open_mfdataset(filename,
-                        chunks={'ocean_time': 1}, concat_dim='ocean_time',
-                        combine='by_coords',
-                        compat='override',
-                        preprocess=drop_non_essential_vars_pop,
-                        data_vars='minimal', coords='minimal')
-                else:
-                    self.Dataset = MFDataset(filename)
+                self.Dataset = xr.open_mfdataset(filename,
+                    chunks={'ocean_time': 1}, concat_dim='ocean_time',
+                    combine='by_coords',
+                    compat='override',
+                    decode_times=False,
+                    preprocess=drop_non_essential_vars_pop,
+                    data_vars='minimal', coords='minimal')
             else:
-                self.logger.info('Opening file with Dataset')
-                if has_xarray is True:
-                    self.Dataset = xr.open_dataset(filename)
-                else:
-                    self.Dataset = Dataset(filename, 'r')
+                logger.info('Opening file with Dataset')
+                self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)
 
 
         if 'Vtransform' in self.Dataset.variables:
-            if has_xarray is True:
-                self.Vtransform = self.Dataset.variables['Vtransform'].data  # scalar
-            else:
-                self.Vtransform = self.Dataset.variables['Vtransform'][:]
+            self.Vtransform = self.Dataset.variables['Vtransform'].data  # scalar
         else:
-            self.logger.warning('Vtransform not found, using 1')
+            logger.warning('Vtransform not found, using 1')
             self.Vtransform = 1
         self.Vtransform = np.asarray(self.Vtransform)
 
@@ -132,7 +121,7 @@ class Reader(BaseReader):
                 self.sigma = self.Dataset.variables['s_rho'][:]
             except:
                 num_sigma = len(self.Dataset.dimensions['s_rho'])
-                self.logger.warning(
+                logger.warning(
                     's_rho not available in dataset, constructing from'
                     ' number of layers (%s).' % num_sigma)
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
@@ -146,10 +135,7 @@ class Reader(BaseReader):
             try:
                 self.hc = self.Dataset.variables['hc'][:]
             except:
-                if has_xarray is True:
-                    self.hc = self.Dataset.variables['hc'].data  # scalar
-                else:
-                    self.hc = self.Dataset.variables['hc'][0]
+                self.hc = self.Dataset.variables['hc'].data  # scalar
 
             self.num_layers = len(self.sigma)
         else:
@@ -182,28 +168,22 @@ class Reader(BaseReader):
             for gls_par in gls_param:
                 self.gls_parameters[gls_par] = \
                     self.Dataset.variables[gls_par][()]
-            self.logger.info('Read GLS parameters from file.')
+            logger.info('Read GLS parameters from file.')
         except Exception as e:
-            self.logger.info(e)
-            self.logger.info('Did not find complete set of GLS parameters')
+            logger.info(e)
+            logger.info('Did not find complete set of GLS parameters')
 
         # Get time coverage
         try:
             ocean_time = self.Dataset.variables['ocean_time']
         except:
             ocean_time = self.Dataset.variables['time']
-        if has_xarray:
-            self.times = [datetime.utcfromtimestamp((OT -
-                          np.datetime64('1970-01-01T00:00:00Z')
-                            ) / np.timedelta64(1, 's'))
-                          for OT in ocean_time.data]
-        else:
-            time_units = ocean_time.__dict__['units']
-            if time_units == 'second':
-                self.logger.info('Ocean time given as seconds relative to start '
-                             'Setting artifical start time of 1 Jan 2000.')
-                time_units = 'seconds since 2000-01-01 00:00:00'
-            self.times = num2date(ocean_time[:], time_units)
+        time_units = ocean_time.attrs['units']
+        if time_units == 'second':
+            logger.info('Ocean time given as seconds relative to start '
+                         'Setting artifical start time of 1 Jan 2000.')
+            time_units = 'seconds since 2000-01-01 00:00:00'
+        self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
         if len(self.times) > 1:
@@ -211,20 +191,9 @@ class Reader(BaseReader):
         else:
             self.time_step = None
 
-        # x and y are rows and columns for unprojected datasets
-        self.xmin = 0.
-        self.delta_x = 1.
-        self.ymin = 0.
-        self.delta_y = 1.
-        if has_xarray:
-            self.xmax = self.Dataset['xi_rho'].shape[0] - 1.
-            self.ymax = self.Dataset['eta_rho'].shape[0] - 1.
-            self.lon = self.lon.data  # Extract, could be avoided downstream
-            self.lat = self.lat.data
-            self.sigma = self.sigma.data
-        else:
-            self.xmax = np.float(len(self.Dataset.dimensions['xi_rho'])) - 1
-            self.ymax = np.float(len(self.Dataset.dimensions['eta_rho'])) - 1
+        self.lon = self.lon.data  # Extract, could be avoided downstream
+        self.lat = self.lat.data
+        self.sigma = self.sigma.data
 
         self.name = 'roms native'
 
@@ -241,8 +210,7 @@ class Reader(BaseReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
-
+                      x=None, y=None, z=None):
         start_time = datetime.now()
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
@@ -250,10 +218,10 @@ class Reader(BaseReader):
         # If one vector component is requested, but not the other
         # we must add the other for correct rotation
         for vector_pair in vector_pairs_xy:
-            if (vector_pair[0] in requested_variables and 
+            if (vector_pair[0] in requested_variables and
                 vector_pair[1] not in requested_variables):
                 requested_variables.extend([vector_pair[1]])
-            if (vector_pair[1] in requested_variables and 
+            if (vector_pair[1] in requested_variables and
                 vector_pair[0] not in requested_variables):
                 requested_variables.extend([vector_pair[0]])
 
@@ -275,15 +243,14 @@ class Reader(BaseReader):
         indy[outside] = 0
         indx_el = indx.copy()
         indy_el = indy.copy()
-        if block is True:
-            # Adding buffer, to cover also future positions of elements
-            buffer = self.buffer
-            # Avoiding the last pixel in each dimension, since there are
-            # several grids which are shifted (rho, u, v, psi)
-            indx = np.arange(np.max([0, indx.min()-buffer]),
-                             np.min([indx.max()+buffer, self.lon.shape[1]-1]))
-            indy = np.arange(np.max([0, indy.min()-buffer]),
-                             np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+        # Adding buffer, to cover also future positions of elements
+        buffer = self.buffer
+        # Avoiding the last pixel in each dimension, since there are
+        # several grids which are shifted (rho, u, v, psi)
+        indx = np.arange(np.max([0, indx.min()-buffer]),
+                            np.min([indx.max()+buffer, self.lon.shape[1]-1]))
+        indy = np.arange(np.max([0, indy.min()-buffer]),
+                            np.min([indy.max()+buffer, self.lon.shape[0]-1]))
 
         # Find depth levels covering all elements
         if z.min() == 0 or not hasattr(self, 'hc'):
@@ -293,7 +260,7 @@ class Reader(BaseReader):
         else:
             # Find the range of indices covering given z-values
             if not hasattr(self, 'sea_floor_depth_below_sea_level'):
-                self.logger.debug('Reading sea floor depth...')
+                logger.debug('Reading sea floor depth...')
                 self.sea_floor_depth_below_sea_level = \
                     self.Dataset.variables['h'][:]
 
@@ -301,11 +268,7 @@ class Reader(BaseReader):
                 self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,
                                               Vtransform=self.Vtransform)
 
-            if has_xarray is False:
-                indxgrid, indygrid = np.meshgrid(indx, indy)
-                H = self.sea_floor_depth_below_sea_level[indygrid, indxgrid]
-            else:
-                H = self.sea_floor_depth_below_sea_level[indy, indx]
+            H = self.sea_floor_depth_below_sea_level[indy, indx]
             z_rho = depth.sdepth(H, self.hc, self.Cs_r,
                                  Vtransform=self.Vtransform)
             # Element indices must be relative to extracted subset
@@ -344,11 +307,7 @@ class Reader(BaseReader):
                     # Read landmask for whole domain, for later re-use
                     self.land_binary_mask = \
                         1 - self.Dataset.variables['mask_rho'][:]
-                if has_xarray is False:
-                    indxgrid, indygrid = np.meshgrid(indx, indy)
-                    variables[par] = self.land_binary_mask[indygrid, indxgrid]
-                else:
-                    variables[par] = self.land_binary_mask[indy, indx]
+                variables[par] = self.land_binary_mask[indy, indx]
             elif var.ndim == 2:
                 variables[par] = var[indy, indx]
             elif var.ndim == 3:
@@ -363,11 +322,8 @@ class Reader(BaseReader):
             start = datetime.now()
 
             if par not in mask_values:
-                if has_xarray is False:
-                    indxgrid, indygrid = np.meshgrid(indx, indy)
-                else:
-                    indxgrid = indx
-                    indygrid = indy
+                indxgrid = indx
+                indygrid = indy
                 if par == 'x_sea_water_velocity':
                     if not hasattr(self, 'mask_u'):
                         if 'mask_u' in self.Dataset.variables:
@@ -387,8 +343,7 @@ class Reader(BaseReader):
                         # For ROMS-Agrif this must perhaps be mask_psi?
                         self.mask_rho = self.Dataset.variables['mask_rho'][:]
                     mask = self.mask_rho[indygrid, indxgrid]
-                if has_xarray is True:
-                    mask = np.asarray(mask)
+                mask = np.asarray(mask)
                 if mask.min() == 0 and par != 'land_binary_mask':
                     first_mask_point = np.where(mask.ravel()==0)[0][0]
                     if variables[par].ndim == 3:
@@ -401,13 +356,13 @@ class Reader(BaseReader):
             if var.ndim == 4:
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
-                    self.logger.debug('sigma to z for ' + varname[0])
+                    logger.debug('sigma to z for ' + varname[0])
                     if self.precalculate_s2z_coefficients is True:
                         M = self.sea_floor_depth_below_sea_level.shape[0]
                         N = self.sea_floor_depth_below_sea_level.shape[1]
                         O = len(self.z_rho_tot)
                         if not hasattr(self, 's2z_A'):
-                            self.logger.debug('Calculating sigma2z-coefficients for whole domain')
+                            logger.debug('Calculating sigma2z-coefficients for whole domain')
                             starttime = datetime.now()
                             dummyvar = np.ones((O, M, N))
                             dummy, self.s2z_total = depth.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
@@ -417,9 +372,9 @@ class Reader(BaseReader):
                             #self.s2z_I = self.s2z_total[2].reshape(M, N)
                             self.s2z_kmax = self.s2z_total[3]
                             del self.s2z_total  # Free memory
-                            self.logger.info('Time: ' + str(datetime.now() - starttime))
+                            logger.info('Time: ' + str(datetime.now() - starttime))
                         if 'A' not in locals():
-                            self.logger.debug('Re-using sigma2z-coefficients')
+                            logger.debug('Re-using sigma2z-coefficients')
                             # Select relevant subset of full arrays
                             zle = np.arange(zi1, zi2)  # The relevant depth levels
                             A = self.s2z_A.copy()  # Awkward subsetting to prevent losing one dimension
@@ -448,7 +403,7 @@ class Reader(BaseReader):
                             #    import sys; sys.exit('stop')
                             kmax = len(zle)  # Must be checked. Or number of sigma-layers?
                     if 'A' not in locals():
-                        self.logger.debug('Calculating new sigma2z-coefficients')
+                        logger.debug('Calculating new sigma2z-coefficients')
                         variables[par], s2z = depth.multi_zslice(
                             variables[par], z_rho, variables['z'])
                         A,C,I,kmax = s2z
@@ -458,7 +413,7 @@ class Reader(BaseReader):
                         #C = C.reshape(len(zle), len(indx), len(indy))
                         #I = I.reshape(len(indx), len(indy))
                     else:
-                        self.logger.debug('Applying sigma2z-coefficients')
+                        logger.debug('Applying sigma2z-coefficients')
                         # Re-using sigma2z koefficients:
                         F = np.asarray(variables[par])
                         Fshape = F.shape
@@ -471,20 +426,13 @@ class Reader(BaseReader):
                     # Nan in input to multi_zslice gives extreme values in output
                     variables[par][variables[par]>1e+9] = np.nan
 
-            # If 2D array is returned due to the fancy slicing methods
-            # of netcdf-python, we need to take the diagonal
-            if variables[par].ndim > 1 and block is False:
-                variables[par] = variables[par].diagonal()
-
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
-            if block is False:
-                variables[par].mask[outside] = True
 
             # Skipping de-staggering, as it leads to invalid values at later interpolation
             #if block is True:
             #    # Unstagger grid for vectors
-            #    self.logger.debug('Unstaggering ' + par)
+            #    logger.debug('Unstaggering ' + par)
             #    if 'eta_v' in var.dimensions:
             #        variables[par] = np.ma.array(variables[par],
             #                            mask=variables[par].mask)
@@ -519,31 +467,24 @@ class Reader(BaseReader):
             #        elif variables[par].ndim == 3:
             #            variables[par] = variables[par][:,1::, 1::]
 
-        if block is True:
-            # TODO: should be midpoints, but angle array below needs integer
-            #indx = indx[0:-1]  # Only if de-staggering has been performed
-            #indy = indy[1::]
-            variables['x'] = indx
-            variables['y'] = indy
-        else:
-            variables['x'] = self.xmin + (indx-1)*self.delta_x
-            variables['y'] = self.ymin + (indy-1)*self.delta_y
+        # TODO: should be midpoints, but angle array below needs integer
+        #indx = indx[0:-1]  # Only if de-staggering has been performed
+        #indy = indy[1::]
+        variables['x'] = indx
+        variables['y'] = indy
 
-        variables['x'] = variables['x'].astype(np.float)
-        variables['y'] = variables['y'].astype(np.float)
+        variables['x'] = variables['x'].astype(np.float32)
+        variables['y'] = variables['y'].astype(np.float32)
         variables['time'] = nearestTime
 
         if 'x_sea_water_velocity' or 'sea_ice_x_velocity' \
                 or 'x_wind' in variables.keys():
             # We must rotate current vectors
             if not hasattr(self, 'angle_xi_east'):
-                self.logger.debug('Reading angle between xi and east...')
+                logger.debug('Reading angle between xi and east...')
                 self.angle_xi_east = self.Dataset.variables['angle'][:]
-            if has_xarray is False:
-                rad = self.angle_xi_east[tuple(np.meshgrid(indy, indx))].T
-            else:
-                rad = self.angle_xi_east[indy, indx]
-                rad = np.ma.asarray(rad)
+            rad = self.angle_xi_east[indy, indx]
+            rad = np.ma.asarray(rad)
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(
@@ -563,8 +504,8 @@ class Reader(BaseReader):
         # Masking NaN
         for var in requested_variables:
             variables[var] = np.ma.masked_invalid(variables[var])
-        
-        self.logger.debug('Time for ROMS native reader: ' + str(datetime.now()-start_time))
+
+        logger.debug('Time for ROMS native reader: ' + str(datetime.now()-start_time))
 
         return variables
 

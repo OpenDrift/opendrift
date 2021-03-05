@@ -14,8 +14,6 @@ The most basic model, :mod:`OceanDrift <opendrift.models.oceandrift.OceanDrift>`
 
     from opendrift.models.oceandrift import OceanDrift
 
-Make sure that the opendrift folder is in your PYTHONPATH.
-
 For Search and Rescue applications, the :mod:`Leeway <opendrift.models.leeway>` model (class) may be imported with the command::
 
     from opendrift.models.leeway import Leeway
@@ -109,25 +107,42 @@ The coverage of the NorKyst ocean model on the met.no Thredds server may e.g. be
 
 The variables (e.g. wind, current...) required by a specific model are given in the list "required_variables" in the model class implementation, and may be listed by::
 
-    print(OpenOil.required_variables)
-    ['x_sea_water_velocity', 'y_sea_water_velocity',
-     'sea_surface_wave_significant_height', 'sea_surface_wave_to_direction',
-     'sea_ice_area_fraction', 'x_wind', 'y_wind', 'land_binary_mask']
+     >>> from pprint import pprint
+     >>> pprint(OpenOil.required_variables)
+        {'land_binary_mask': {'fallback': 0},
+         'ocean_vertical_diffusivity': {'fallback': 0.02,
+                                        'important': False,
+                                        'profiles': True},
+         'sea_ice_area_fraction': {'fallback': 0, 'important': False},
+         'sea_ice_x_velocity': {'fallback': 0, 'important': False},
+         'sea_ice_y_velocity': {'fallback': 0, 'important': False},
+         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0,
+                                                                                                 'important': False},
+         'sea_surface_wave_period_at_variance_spectral_density_maximum': {'fallback': 0,
+                                                                          'important': False},
+         'sea_surface_wave_significant_height': {'fallback': 0, 'important': False},
+         'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0,
+                                                      'important': False},
+         'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0,
+                                                      'important': False},
+         'sea_water_salinity': {'fallback': 34, 'profiles': True},
+         'sea_water_temperature': {'fallback': 10, 'profiles': True},
+         'upward_sea_water_velocity': {'fallback': 0, 'important': False},
+         'x_sea_water_velocity': {'fallback': None},
+         'x_wind': {'fallback': None},
+         'y_sea_water_velocity': {'fallback': None},
+         'y_wind': {'fallback': None}}
 
 Variable names follow the CF-convention, ensuring that any reader may be used by any model, although developed independently.
-It is necessary to add readers for all required variables, unless they have been given a fallback (default) value::
-    print(OpenOil.fallback_values)
-    {'y_wind': 0, 'sea_ice_area_fraction': 0, 'y_sea_water_velocity': 0,
-     'sea_surface_wave_significant_height': 0, 'x_sea_water_velocity': 0,
-     'sea_surface_wave_to_direction': 0, 'x_wind': 0}
-
-The fallback values will also be used for elements which move out of the coverage of a reader in space or time, if there is no other readers which provides the given variable. In the above example, all required_variables have also been given a default value (0). It is thus possible to run a simulation without providing any readers, but elements will then not move.
-
+It is necessary to add readers for all required variables, unless they have been given a fallback (default) value which is not None.
+In the above example, it is only strictly necessary to provide readers for wind and current.
+The fallback values will be used for elements which move out of the coverage of a reader in space or time, if there is no other readers which provides the given variable.
+Variables where `important` is set to False will only be obtained from readers which are already available, new lazy readers will not be initialized if these are missing.
 Most applications will need a landmask, for stranding towards a coastline. A high resolution landmask may e.g. be taken from the `GSHHG database <https://www.soest.hawaii.edu/pwessel/gshhg/>`_ , which is available through a dedicated Reader class::
 
     from opendrift.readers import reader_global_landmask
     reader_landmask = reader_global_landmask.Reader(
-                           extent=[2, 8, 59, 63])  # lonmin, lonmax, latmin, latmax
+                           extent=[2, 59, 8, 63])  # lonmin, latmin, lonmax, latmax
 
 The longitude-latitude boundaries of the landmask reader should cover the area where the elements could possibly be advected during the run. The full resolution coastline will always be used, and a global rasterized version is used internally to speed up the checking for each element for each timestep of the model run.
 
@@ -141,15 +156,7 @@ When later running a simulation, the readers will first read data from file/URL,
 
 Readers also take care of reprojecting all data from their native map projection to a common projection, which is generally necessary as different readers may have different projection. This allows OpenDrift to use raw output from ocean/wave/atmosphere models, without the need to preprocess large amounts of data. Vectors (wind, current) are also rotated to the common calculation projection. By default, the common projection is taken from the first added reader, so that data from this reader must not be reprojected/rotated.
 
-In addition to providing variables interpolated to the element positions, readers may also provide vertical profiles (e.g. from a 3D ocean model) at the positions of all elements, if ``required_profiles`` has been specified in the model. E.g. from the model :mod:`opendrift.models.pelagicegg`::
-
-    required_profiles = ['sea_water_temperature',
-                         'sea_water_salinity',
-                         'ocean_vertical_diffusivity']
-    required_profiles_z_range = [-120, 0]  # The depth range (in m) which
-                                           # profiles shall cover
-
-Vertical profiles may be used by the model (``update()`` function) to calculate vertical mixing. See :doc:`gallery/example_codegg` for a demonstration.
+In addition to providing variables interpolated to the element positions, readers will also provide vertical profiles (e.g. from a 3D ocean model) at all positions for variables where ``profiles`` is ``True`` in the variable listing above. Profiles are here obtained for salinity, temperature and diffusivity, as these are used for the vertical mixing algorithm. See :doc:`gallery/example_vertical_mixing` for a demonstration.
 
 2.1 Lazy Readers
 ****************
@@ -218,16 +225,15 @@ The properties of the seeded elements may be displayed with::
 
     o.elements_scheduled
 
-Elements may be seeded along a line (or cone) between two points by specifying ``cone=True``. lon and lat must then be two element arrays, indicating start and end points. An uncertainty radius may also be given as a two element array, thus tracing out a cone (where a line is a special case with same radius at both ends)::
+Elements may be seeded along a line (or cone) between two points by using the method ``seed_cone``. Lon and lat must then be two element arrays, indicating start and end points. An uncertainty radius may also be given as a two element array, thus tracing out a cone (where a line is a special case with same radius at both ends)::
 
-    o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000],
-                    cone=True, time=reader_norkyst.start_time)
+    o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000],
+                time=reader_norkyst.start_time)
 
 If time is also given as a two element list (of datetime objects), elements are seeded linearly in time (here over a 5 hour interval)::
 
-    o.seed_elements(lon=[4, 4.8], lat=[60, 61],
-                    number=1000, radius=[0, 5000], cone=True,
-                    time=[norkyst.start_time, norkyst.start_time+timedelta(hours=5)])
+    o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000],
+                time=[norkyst.start_time, norkyst.start_time+timedelta(hours=5)])
 
 Specific OpenDrift models may have additional seed-functions. E.g. :mod:`opendrift.models.openoil` contains a function (seed_from_gml) to seed oil elements within contours from satellite detected oil slicks read from a GML-file. The Leeway model overloads the generic seed_elements function since it needs to read some object properties from a text-file.
 
@@ -244,17 +250,17 @@ OpenDrift allows for configuration of the model using the package `ConfigObj <ht
 
 Parameters may be set with commands like::
 
-    o.set_config('drift:scheme', 'runge-kutta')
+    o.set_config('drift:advection_scheme', 'runge-kutta')
 
 This example specifies that the Runge-Kutta propagation scheme shall be used for the run, instead of the default Euler-scheme.
 
 The following command specifies that the elements at the ocean surface shall drift with 2 % of the wind speed (in addition to the current)::
  
-    o.set_config('drift:wind_drift_factor', .02)
+    o.set_config('seed:wind_drift_factor', .02)
 
 The configuration value is retrieved by::
 
-    wind_drift_factor = o.get_config('drift:wind_drift_factor')
+    wind_drift_factor = o.get_config('seed:wind_drift_factor')
 
 
 See the example-files for more examples of configuration.

@@ -10,7 +10,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 
 o = OceanDrift(loglevel=20)
-o.fallback_values['land_binary_mask'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
 
 #%%
 # We make a reader which reconstructs the ocean current from
@@ -35,7 +35,7 @@ o.add_reader(r)
 lons = [2.39, 2.391, 2.392, 2.393, 2.394, 2.393, 2.392, 2.391, 2.39]
 lats = [60.02, 60.02, 60.019, 60.02, 60.021, 60.022, 60.021, 60.021, 60.02]
 o.seed_within_polygon(lons=lons, lats=lats,
-                      number=1000, time=r.start_time)
+                      number=2000, time=r.start_time)
 
 #%%
 # Finally running simulation

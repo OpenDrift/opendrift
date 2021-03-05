@@ -12,9 +12,6 @@ o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
 # Using live data from Thredds
-#reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
-#reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-
 o.add_readers_from_list([
     'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
 
@@ -27,9 +24,8 @@ latend = 69.991446
 lonend = 17.760061
 time = [datetime.utcnow(), datetime.utcnow() + timedelta(hours=12)]
 
-o.seed_elements(lon=[lonstart, lonend], lat=[latstart, latend],
-                oiltype='EKOFISK',
-                radius=[100, 800], number=10000, time=time, cone=True)
+o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
+            oiltype='EKOFISK', radius=[100, 800], number=10000, time=[time])
 
 print(o)
 
@@ -49,9 +45,15 @@ o.run(steps=24*2, time_step=1800, time_step_output=3600)
 #%%
 # Print and plot results
 print(o)
-o.animation(fast=True)
+
+#%%
+# Add text label on the map
+text = [{'s': 'Senja', 'x': 17.3, 'y': 69.3, 'fontsize': 20, 'color': 'g',
+         'backgroundcolor': 'white', 'bbox': dict(facecolor='white', alpha=0.8), 'zorder': 1000}]
+
+o.animation(fast=False, ocean_color='skyblue', land_color='burlywood', text=text)
 
 #%%
 # .. image:: /gallery/animations/example_cone_0.gif
 
-o.plot(fast=True)
+o.plot(fast=True, ocean_color='skyblue', land_color='dimgray', text=text)

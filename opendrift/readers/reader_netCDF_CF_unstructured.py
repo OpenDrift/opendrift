@@ -12,239 +12,407 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
+# Copyright 2020, Gaute Hope, MET Norway
+# Copyright 2020, Simon Weppe, MetOcean Solution, MetService New Zealand
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-#####################################
-# NOTE:
-# This reader is under development,
-# and presently not fully functional
-#####################################
-
-
 import numpy as np
+from datetime import datetime, timedelta, timezone
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
+import scipy, scipy.spatial
 import pyproj
+import logging
+logger = logging.getLogger(__name__)
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, UnstructuredReader
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, UnstructuredReader):
+    """
+    A reader for unstructured (irregularily gridded) `CF compliant
+    <https://cfconventions.org/>`_ netCDF files.
 
-    def __init__(self, filename=None, name=None, buffer=0.2,
-                 latstep=0.01, lonstep=0.01):
+    Args:
+        :param filename: A single netCDF file, or a pattern of files. The
+                         netCDF file can also be an URL to an OPeNDAP server.
+        :type filename: string, requiered.
 
+        :param name: Name of reader
+        :type name: string, optional
+
+        :param proj4: PROJ.4 string describing projection of data.
+        :type proj4: string, optional
+
+    .. seealso::
+
+        py:mod:`opendrift.readers.basereader.unstructured`.
+    """
+
+    # Misspelled standard names in some (Akvaplan-NIVA) FVCOM files
+    variable_aliases = {
+        'eastward_sea_water_velocity': 'x_sea_water_velocity',
+        'Northward_sea_water_velocity': 'y_sea_water_velocity',
+        'eastward wind': 'x_wind',
+        'northward wind': 'y_wind',
+        'ww': 'upward_sea_water_velocity',
+    }
+
+    node_variables = [
+        'salinity',
+        'temperature',
+        'sea_floor_depth_below_sea_level',
+        'sea_surface_height_above_geoid',
+    ]
+
+    face_variables = [
+        'x_sea_water_velocity',
+        'y_sea_water_velocity',
+        'upward_sea_water_velocity',
+    ]
+
+    dataset = None
+
+    # For in-memory caching of Sigma-coordinates and ocean depth
+    siglay = None
+    siglev = None
+    siglay_center = None
+    siglev_center = None
+    ocean_depth_nele = None
+    ocean_depth_node = None
+
+    def __init__(self, filename=None, name=None, proj4=None):
         if filename is None:
-            raise ValueError('Need filename as argument to constructor')
+            raise ValueError('Filename is missing')
         filestr = str(filename)
         if name is None:
             self.name = filestr
         else:
             self.name = name
 
-        self.geobuffer = buffer
-        self.latstep = latstep
-        self.lonstep = lonstep
+        # xarray currently does not handle this type of grid:
+        # https://github.com/pydata/xarray/issues/2233
 
-        # Due to misspelled standard_name in
-        # some (Akvaplan-NIVA) FVCOM files
-        variable_aliases = {
-            'eastward_sea_water_velocity': 'x_sea_water_velocity',
-            'Northward_sea_water_velocity': 'y_sea_water_velocity',
-            'eastward wind': 'x_wind',
-            'northward wind': 'y_wind'
-            }
+        self.timer_start("open dataset")
+        logger.info('Opening dataset: ' + filestr)
+        if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
+            logger.info('Opening files with MFDataset')
+            self.dataset = MFDataset(filename)
+        else:
+            logger.info('Opening file with Dataset')
+            self.dataset = Dataset(filename, 'r')
 
-        # Mapping FVCOM variable names to CF standard_name
-        fvcom_mapping = {
-            'um': 'x_sea_water_velocity',
-            'vm': 'y_sea_water_velocity'}
+        if proj4 is not None:
+            logger.info('Using custom projection: %s..' % proj4)
+            self.proj4 = proj4
+        else:
+            self.proj4 = self.dataset.CoordinateProjection.strip()
+            if self.proj4 == 'none': self.proj4 = None
+            logger.info('Reading projection..: %s', self.proj4)
+            assert self.proj4 is not None and len(
+                self.proj4
+            ) > 0, "No projection in data-file, please supply to reader"
 
-        self.return_block = True
+        logger.info('Reading grid and coordinate variables..')
+        assert self.dataset.CoordinateSystem == "Cartesian", "Only cartesian coordinate systems supported"
 
-        try:
-            # Open file, check that everything is ok
-            self.logger.info('Opening dataset: ' + filestr)
-            if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                self.logger.info('Opening files with MFDataset')
-                self.Dataset = MFDataset(filename)
-            else:
-                self.logger.info('Opening file with Dataset')
-                self.Dataset = Dataset(filename, 'r')
-        except Exception as e:
-            raise ValueError(e)
+        self.x = self.dataset['x'][:]
+        self.y = self.dataset['y'][:]
+        self.xc = self.dataset['xc'][:]
+        self.yc = self.dataset['yc'][:]
 
-        # We are reading and using lon/lat arrays,
-        # and not any projected coordinates
-        self.proj4 =  '+proj=latlong'
+        # Times in FVCOM files are 'Modified Julian Day (MJD)', or fractional days since
+        # 1858-11-17 00:00:00 UTC
+        assert self.dataset['time'].time_zone == 'UTC'
+        assert self.dataset['time'].units == 'days since 1858-11-17 00:00:00'
+        assert self.dataset['time'].format == 'modified julian day (MJD)'
+        ref_time = datetime(1858, 11, 17, 00, 00,
+                            00)  # TODO: include , tzinfo=timezone.utc)
+        self.times = np.array([
+            ref_time + timedelta(days=d.item())
+            for d in self.dataset['time'][:]
+        ])
+        self.start_time = self.times[0]
+        self.end_time = self.times[-1]
+        # time steps are not constant
 
-        self.logger.debug('Finding coordinate variables.')
-        # Find x, y and z coordinates
-        for var_name in self.Dataset.variables:
-            var = self.Dataset.variables[var_name]
-            if var.ndim > 1:
-                continue  # Coordinates must be 1D-array
-            attributes = var.ncattrs()
-            standard_name = ''
-            long_name = ''
-            axis = ''
-            units = ''
-            CoordinateAxisType = ''
-            if 'standard_name' in attributes:
-                standard_name = var.__dict__['standard_name']
-            if 'long_name' in attributes:
-                long_name = var.__dict__['long_name']
-            if 'axis' in attributes:
-                axis = var.__dict__['axis']
-            if 'units' in attributes:
-                units = var.__dict__['units']
-            if '_CoordinateAxisType' in attributes:
-                CoordinateAxisType = var.__dict__['_CoordinateAxisType']
-            if standard_name == 'longitude' or \
-                    long_name == 'longitude' or \
-                    var_name == 'longitude' or \
-                    axis == 'X' or \
-                    CoordinateAxisType == 'Lon' or \
-                    standard_name == 'projection_x_coordinate':
-                self.xname = var_name
-                # Fix for units; should ideally use udunits package
-                if units == 'km':
-                    unitfactor = 1000
-                else:
-                    unitfactor = 1
-                x = var[:]*unitfactor
-                self.unitfactor = unitfactor
-                self.numx = var.shape[0]
-            if standard_name == 'latitude' or \
-                    long_name == 'latitude' or \
-                    var_name == 'latitude' or \
-                    axis == 'Y' or \
-                    CoordinateAxisType == 'Lat' or \
-                    standard_name == 'projection_y_coordinate':
-                self.yname = var_name
-                # Fix for units; should ideally use udunits package
-                if units == 'km':
-                    unitfactor = 1000
-                else:
-                    unitfactor = 1
-                y = var[:]*unitfactor
-                self.numy = var.shape[0]
-            if standard_name == 'depth' or axis == 'Z':
-                if 'positive' not in var.ncattrs() or \
-                        var.__dict__['positive'] == 'up':
-                    self.z = var[:]
-                else:
-                    self.z = -var[:]
-            if standard_name == 'time' or axis == 'T' or var_name == 'time':
-                # Read and store time coverage (of this particular file)
-                time = var[:]
-                time_units = units
-                self.times = num2date(time, time_units)
-                self.start_time = self.times[0]
-                self.end_time = self.times[-1]
-                if len(self.times) > 1:
-                    self.time_step = self.times[1] - self.times[0]
-                else:
-                    self.time_step = None
+        self.xmin = np.min(self.x)
+        self.xmax = np.max(self.x)
+        self.ymin = np.min(self.y)
+        self.ymax = np.max(self.y)
 
-        if 'x' not in locals():
-            raise ValueError('Did not find x-coordinate variable')
-        if 'y' not in locals():
-            raise ValueError('Did not find y-coordinate variable')
-
-        self.lon = x
-        self.lat = y
-
-        # Find all variables having standard_name
         self.variable_mapping = {}
-        for var_name in self.Dataset.variables:
-            if var_name in [self.xname, self.yname, 'depth']:
-                continue  # Skip coordinate variables
-            var = self.Dataset.variables[var_name]
-            attributes = var.ncattrs()
-            if 'standard_name' in attributes:
-                standard_name = str(var.__dict__['standard_name'])
-                if standard_name in variable_aliases:  # Mapping if needed
-                    standard_name = variable_aliases[standard_name]
-                self.variable_mapping[standard_name] = str(var_name)
-            elif var_name in fvcom_mapping:
-                self.variable_mapping[fvcom_mapping[var_name]] = \
-                    str(var_name)
+        for var_name in self.dataset.variables:
+            # skipping coordinate variables
+            if var_name in [
+                    'x', 'y', 'time', 'lon', 'lat', 'lonc', 'latc', 'siglay',
+                    'siglev', 'siglay_center', 'siglev_center'
+            ]:
+                continue
+
+            # We only use sea_floor at nodes
+            if var_name in ['h_center']:
+                continue
+
+            var = self.dataset[var_name]
+            if 'standard_name' in var.ncattrs():
+                std_name = var.getncattr('standard_name')
+                std_name = self.variable_aliases.get(std_name, std_name)
+                self.variable_mapping[std_name] = str(var_name)
 
         self.variables = list(self.variable_mapping.keys())
 
-        self.xmin = self.lon.min()
-        self.xmax = self.lon.max()
-        self.ymin = self.lat.min()
-        self.ymax = self.lat.max()
-
         # Run constructor of parent Reader class
-        super(Reader, self).__init__()
+        super().__init__()
 
-    def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
+        self.boundary = self._build_boundary_polygon_(self.x.compressed(),
+                                                      self.y.compressed())
 
-        requested_variables, time, x, y, z, outside = \
-            self.check_arguments(requested_variables, time, x, y, z)
+        self.timer_start("build index")
+        logger.debug("building index of nodes..")
+        self.nodes_idx = self._build_ckdtree_(self.x, self.y)
 
-        nearestTime, dummy1, dummy2, indxTime, dummy3, dummy4 = \
-            self.nearest_time(time)
+        logger.debug("building index of faces..")
+        self.faces_idx = self._build_ckdtree_(self.xc, self.yc)
+
+        self.timer_end("build index")
+
+        self.timer_end("open dataset")
+
+    def plot_mesh(self):
+        """
+        Plot the grid mesh. Does not automatically show the figure.
+        """
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.scatter(self.x, self.y, marker='x', color='blue', label='nodes')
+        plt.scatter(self.xc,
+                    self.yc,
+                    marker='o',
+                    color='red',
+                    label='centroids')
+
+        x, y = getattr(self.boundary, 'context').exterior.xy
+        plt.plot(x, y, color='green', label='boundary')
+
+        plt.legend()
+        plt.title('Unstructured grid: %s\n%s' % (self.name, self.proj))
+        plt.xlabel('x [m]')
+        plt.ylabel('y [m]')
+
+    def get_variables(self,
+                      requested_variables,
+                      time=None,
+                      x=None,
+                      y=None,
+                      z=None):
+        """
+        FVCOM Grid:
+
+        FVCOM uses 'triangular prisms' for gridding. Some variables are defined
+        on the faces of the triangles, while others at the node.
+
+        `x` and `y` holds the positions of the node, while `xc` and `yc` holds
+        the positions on the centroids/faces. The centroids/faces are also
+        known as 'zonal', or elements (presumably as in finite element).
+
+        .. note::
+
+            Currently this reader does not really interpolate. It looks up the
+            closest point in time and space.
+
+        Each element has a lookup-table of its surrounding elements, this list can be
+        used when looking up elements for the interpolator of an arbitrary
+        point on the grid. The same goes for the nodes.
+
+        Let E be number of elements and N be number of nodes.
+
+        Relevant lookup-tables:
+
+        nbe:        [3 x E]  elements surround each element
+        nbve:       [9 x N]  elements surrounding each node, minimum 3
+        nbsn:       [11 x N] nodes surrounding each node
+
+        Variables:
+
+        Face:
+        * u
+        * v
+
+        Node:
+        * temperature
+        * salinity
+
+        """
 
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
+        z = np.atleast_1d(z)
+        if len(z) == 1:
+            z = z[0] * np.ones(x.shape)
 
+        logger.debug("Requested variabels: %s, lengths: %d, %d, %d" %
+                     (requested_variables, len(x), len(y), len(z)))
 
-        # Finding a subset around the particles, so that
-        # we do not interpolate more points than is needed.
-        # Performance is quite dependent on the given buffer,
-        # but it should not be made too small to make sure
-        # particles are inside box
-        #buffer = .1  # degrees around given positions
+        requested_variables, time, x, y, z, _outside = \
+            self.check_arguments(requested_variables, time, x, y, z)
 
-        lonmin = x.min() - self.geobuffer
-        lonmax = x.max() + self.geobuffer
-        latmin = y.min() - self.geobuffer
-        latmax = y.max() + self.geobuffer
-        c = np.where((self.lon > lonmin) &
-                     (self.lon < lonmax) &
-                     (self.lat > latmin) &
-                     (self.lat < latmax))[0]
+        nearest_time, _time_before, _time_after, indx_nearest, _indx_before, _indx_after = self.nearest_time(
+            time)
 
-        # Making a lon-lat grid onto which data is interpolated
-        #lonstep = .01  # hardcoded for now
-        #latstep = .01  # hardcoded for now
-        lons = np.arange(lonmin, lonmax, self.lonstep)
-        lats = np.arange(latmin, latmax, self.latstep)
-        lonsm, latsm = np.meshgrid(lons, lats)
+        logger.debug("Nearest time: %s" % nearest_time)
 
-        # Initialising dictionary to contain data
-        variables = {'x': lons, 'y': lats, 'z': z,
-                     'time': nearestTime}
+        node_variables = [
+            var for var in requested_variables if var in self.node_variables
+        ]
+        face_variables = [
+            var for var in requested_variables if var in self.face_variables
+        ]
 
-        # Reader coordinates of subset
-        for par in requested_variables:
-            var = self.Dataset.variables[self.variable_mapping[par]]
-            if var.ndim == 1:
-                data = var[c]
-            elif var.ndim == 2:
-                data = var[indxTime,c]
-            elif var.ndim == 3:
-                data = var[indxTime,0,c]
-            else:
-                raise ValueError('Wrong dimension of %s: %i' %
-                                 (var_name, var.ndim))
+        assert (len(node_variables) + len(face_variables)
+                ) == len(requested_variables), "missing variables requested"
 
-            if 'interpolator' not in locals():
-                self.logger.debug('Making interpolator...')
-                interpolator = LinearNDInterpolator((self.lat[c],
-                                                     self.lon[c]),
-                                                    data)
-            else:
-                # Re-use interpolator for other variables
-                interpolator.values[:,0] = data
-            interpolator((0,0))
+        variables = {}
 
-            variables[par] = interpolator(latsm, lonsm)
+        if node_variables:
+            logger.debug("Interpolating node-variables..")
 
-        #print variables
+            nodes = self._nearest_node_(x, y)
+            assert len(nodes) == len(x)
+
+            for var in node_variables:
+                dvar = self.variable_mapping.get(var)
+                logger.debug("Interpolating: %s (%s)" % (var, dvar))
+                dvar = self.dataset[dvar]
+
+                # sigma ind depends on whether variable is defined on sigma layer og sigma level
+                sigma_ind = self.__nearest_node_sigma__(dvar, nodes, z)
+                assert len(sigma_ind) == len(z)
+
+                # Reading the smallest block covering the actual data
+                block = dvar[indx_nearest,
+                             slice(sigma_ind.min(),
+                                   sigma_ind.max() + 1),
+                             slice(nodes.min(),
+                                   nodes.max() + 1)]
+                # Picking the nearest value
+                variables[var] = block[sigma_ind - sigma_ind.min(),
+                                       nodes - nodes.min()]
+
+        if face_variables:
+            logger.debug("Interpolating face-variables..")
+
+            fcs = self._nearest_face_(x, y)
+            assert len(fcs) == len(x)
+
+            for var in face_variables:
+                dvar = self.variable_mapping.get(var)
+                logger.debug("Interpolating: %s (%s)" % (var, dvar))
+                dvar = self.dataset[dvar]
+
+                # sigma ind depends on whether variable is defined on sigma layer og sigma level
+                sigma_ind = self.__nearest_face_sigma__(dvar, fcs, z)
+                assert len(sigma_ind) == len(z)
+
+                # Reading the smallest profile slice covering the actual data
+                block = dvar[indx_nearest,
+                             slice(sigma_ind.min(),
+                                   sigma_ind.max() + 1),
+                             slice(fcs.min(),
+                                   fcs.max() + 1)]
+                # Picking the nearest value
+                variables[var] = block[sigma_ind - sigma_ind.min(),
+                                       fcs - fcs.min()]
+
         return variables
+
+    @staticmethod
+    def _vector_nearest_(X, xp):
+        """
+        Find nearest element in vector of vectors `X` for each `xp`.
+
+        Args:
+
+            X   NxM matrix of levels
+            xp  M   vector of positions
+
+        Returns:
+            i   M   vector of indices [0..N] of closest element in
+                    X[0..N, i] to xp[i]
+        """
+        xp = np.atleast_2d(xp)
+        return np.argmin(np.abs(X - xp), axis=0)
+
+    def __nearest_node_sigma__(self, var, nodes, z):
+        """
+        Find nearest depth at node (sigma layer or sigma level depending on where the variable is defined).
+        """
+        shp = var.shape
+
+        if self.siglay is None:
+            logger.debug('Reading siglays into memory...')
+            self.siglay = self.dataset['siglay'][:]
+
+        if self.siglev is None:
+            logger.debug('Reading siglevs into memory...')
+            self.siglev = self.dataset['siglev'][:]
+
+        if shp[1] == self.siglay.shape[0]:
+            sigmas = self.siglay[:, nodes]
+        else:
+            sigmas = self.siglev[:, nodes]
+
+        if self.ocean_depth_node is None:
+            logger.debug('Reading ocean depth into memory...')
+            self.ocean_depth_node = self.dataset['h'][:]
+
+        # Calculating depths from sigmas
+        depths = self.z_from_sigma(sigmas, self.ocean_depth_node[nodes])
+
+        return self._vector_nearest_(depths, z)
+
+    def __nearest_face_sigma__(self, var, el, z):
+        """
+        Find nearest depth at element (sigma layer or sigma level depending on where the variable is defined).
+        """
+        shp = var.shape
+
+        if self.siglay_center is None:
+            logger.info('Reading siglay_centers into memory...')
+            self.siglay_center = self.dataset['siglay_center'][:]
+
+        if self.siglev_center is None:
+            logger.info('Reading siglev_centers into memory...')
+            self.siglev_center = self.dataset['siglev_center'][:]
+
+        if shp[1] == self.siglay_center.shape[0]:
+            sigmas = self.siglay_center[:, el]
+        else:
+            sigmas = self.siglev_center[:, el]
+
+        if self.ocean_depth_nele is None:
+            logger.info('Reading ocean depth center into memory...')
+            self.ocean_depth_nele = self.dataset['h_center'][:]
+
+        # Calculating depths from sigmas
+        depths = self.z_from_sigma(sigmas, self.ocean_depth_nele[el])
+
+        return self._vector_nearest_(depths, z)
+
+    @staticmethod
+    def z_from_sigma(sigma, depth, elevation=0):
+        """
+        Calculate z-depth from sigma constant.
+
+        https://rdrr.io/github/edwardlavender/fvcom.tbx/src/R/depth_from_known.R
+
+        Args:
+
+            sigma       Sigma coefficient(s)
+            depth       Depth below mean sea-surface
+            elevation   Elevation of sea-surface (e.g. tidal)
+
+        Returns: z, depth below sea-surface in meters.
+        """
+        return sigma * (depth + elevation)
+

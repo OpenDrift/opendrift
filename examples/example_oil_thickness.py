@@ -15,21 +15,21 @@ timestep = timedelta(minutes=10)
 timestep_output = timedelta(minutes=60)
 duration = timedelta(hours=20)
 mass_oil = 2000  # mass oil per particle
-oiltype = '*GENERIC DIESEL'
-#oiltype = '*GENERIC BUNKER C'
+oiltype = 'GENERIC DIESEL'
+#oiltype = 'GENERIC BUNKER C'
 
 #%%
 # First run, where surface oil thickness is updated
 o1 = OpenOil(loglevel=20, weathering_model='noaa')
 #%%
 # Northwards wind, eastwards current
-o1.fallback_values['land_binary_mask'] = 0
-o1.fallback_values['x_wind'] = 0
-o1.fallback_values['y_wind'] = 7
-o1.fallback_values['sea_surface_wave_stokes_drift_x_velocity'] = 0
-o1.fallback_values['sea_surface_wave_stokes_drift_y_velocity'] = .3
-o1.fallback_values['x_sea_water_velocity'] = .1
-o1.fallback_values['y_sea_water_velocity'] = 0
+o1.set_config('environment:fallback:land_binary_mask', 0)
+o1.set_config('environment:fallback:x_wind', 0)
+o1.set_config('environment:fallback:y_wind', 7)
+o1.set_config('environment:fallback:sea_surface_wave_stokes_drift_x_velocity', 0)
+o1.set_config('environment:fallback:sea_surface_wave_stokes_drift_y_velocity', .3)
+o1.set_config('environment:fallback:x_sea_water_velocity', .1)
+o1.set_config('environment:fallback:y_sea_water_velocity', 0)
 #%%
 # Using Johansen droplet spectrum, which depends on oil film thickness
 o1.set_config('wave_entrainment:droplet_size_distribution',
@@ -60,7 +60,13 @@ o1.animation(color='oil_film_thickness', fast=True,
 #%%
 # Second run, identical but without updating surface oil thickness
 o2 = OpenOil(loglevel=20, weathering_model='noaa')
-o2.fallback_values = o1.fallback_values
+o2.set_config('environment:fallback:land_binary_mask', 0)
+o2.set_config('environment:fallback:x_wind', 0)
+o2.set_config('environment:fallback:y_wind', 7)
+o2.set_config('environment:fallback:sea_surface_wave_stokes_drift_x_velocity', 0)
+o2.set_config('environment:fallback:sea_surface_wave_stokes_drift_y_velocity', .3)
+o2.set_config('environment:fallback:x_sea_water_velocity', .1)
+o2.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 o2.set_config('wave_entrainment:droplet_size_distribution',
              'Johansen et al. (2015)')

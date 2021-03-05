@@ -20,6 +20,7 @@ Based on work by Simon Weppe, MetOcean Solutions Ltd.
 """
 
 import numpy as np
+import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
 
@@ -40,30 +41,20 @@ class ChemicalDrift(OceanDrift):
 
     ElementType = ChemicalElement
 
-    required_variables = [
-            'x_sea_water_velocity', 'y_sea_water_velocity',
-            'upward_sea_water_velocity',
-            'x_wind', 'y_wind',
-            'sea_surface_wave_stokes_drift_x_velocity',
-            'sea_surface_wave_stokes_drift_y_velocity',
-            'sea_surface_wave_period_at_variance_spectral_density_maximum',
-            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-            'land_binary_mask',
-            'ocean_vertical_diffusivity',
-            'sea_floor_depth_below_sea_level'
-            ]
-
-    fallback_values = {
-            'x_sea_water_velocity': 0, 'y_sea_water_velocity': 0,
-            'upward_sea_water_velocity': 0,
-            'x_wind': 0, 'y_wind': 0,
-            'sea_surface_wave_stokes_drift_x_velocity': 0,
-            'sea_surface_wave_stokes_drift_y_velocity': 0,
-            'sea_surface_wave_period_at_variance_spectral_density_maximum': 0,
-            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': 0,
-            'ocean_vertical_diffusivity': .02,
-            'sea_floor_depth_below_sea_level': 10000
-            }
+    required_variables = {
+        'x_sea_water_velocity': {'fallback': 0},
+        'y_sea_water_velocity': {'fallback': 0},
+        'upward_sea_water_velocity': {'fallback': 0},
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_period_at_variance_spectral_density_maximum': {'fallback': 0},
+        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
+        'land_binary_mask': {'fallback': None},
+        'ocean_vertical_diffusivity': {'fallback': 0.02},
+        'sea_floor_depth_below_sea_level': {'fallback': 10000},
+        }
 
     def __init__(self, *args, **kwargs):
         """ Constructor of ChemicalDrift module
@@ -105,7 +96,7 @@ class ChemicalDrift(OceanDrift):
         # These elements will not move until eventual later resuspension.
         settling = np.logical_and(self.elements.z <= seafloor_depth, self.elements.moving==1)
         if np.sum(settling) > 0:
-            self.logger.debug('Settling %s elements at seafloor' % np.sum(settling))
+            logger.debug('Settling %s elements at seafloor' % np.sum(settling))
             self.elements.moving[settling] = 0
 
     def resuspension(self):

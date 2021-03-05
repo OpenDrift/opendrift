@@ -20,9 +20,10 @@ from opendrift.models.leeway import Leeway
 from opendrift.models.shipdrift import ShipDrift
 from opendrift.models.openberg import OpenBerg
 from opendrift.models.plastdrift import PlastDrift
+from opendrift.models.radionuclides import RadionuclideDrift
 
 # Class to redirect output to text box
-class TextRedirector(object):
+class TextRedirector:
 
     def __init__(self, widget, tag='stdout'):
         self.defstdout = sys.stdout
@@ -38,29 +39,70 @@ class TextRedirector(object):
     def flush(self):
         self.defstdout.flush()
 
+# Class for help-text
+# https://stackoverflow.com/questions/20399243/display-message-when-hovering-over-something-with-mouse-cursor-in-python
+class ToolTip(object):
+
+    def __init__(self, widget):
+        self.widget = widget
+        self.tipwindow = None
+        self.id = None
+        self.x = self.y = 0
+
+    def showtip(self, text):
+        "Display text in tooltip window"
+        self.text = text
+        if self.tipwindow or not self.text:
+            return
+        x, y, cx, cy = self.widget.bbox("insert")
+        x = x + self.widget.winfo_rootx() + 57
+        y = y + cy + self.widget.winfo_rooty() +27
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(1)
+        tw.wm_geometry("+%d+%d" % (x, y))
+        label = tk.Label(tw, text=self.text, justify=tk.LEFT,
+                      background="#ffff00", relief=tk.SOLID, borderwidth=1,
+                      font=("tahoma", "10", "normal"))
+        label.pack(ipadx=1)
+
+    def hidetip(self):
+        tw = self.tipwindow
+        self.tipwindow = None
+        if tw:
+            tw.destroy()
+
+def CreateToolTip(widget, text):
+    toolTip = ToolTip(widget)
+    def enter(event):
+        toolTip.showtip(text)
+    def leave(event):
+        toolTip.hidetip()
+    widget.bind('<Enter>', enter)
+    widget.bind('<Leave>', leave)
+
 
 class OpenDriftGUI(tk.Tk):
 
     # Supported models as dictionary {model_name:model_class}
     opendrift_models = {m.__name__:m for m in
-        [Leeway, OpenOil, ShipDrift, OpenBerg, OceanDrift, PlastDrift]}
+        [Leeway, OpenOil, ShipDrift, OpenBerg, OceanDrift, PlastDrift, RadionuclideDrift]}
 
     extra_args = {'OpenOil': {'location': 'NORWAY'}}
 
     # Overriding some default config settings, suitable for GUI
     # TODO: should be set as default-default
     GUI_config = {
-            'general:time_step_minutes': 15,
-            'general:time_step_output_minutes': 30,
-            'seed:number_of_elements': 5000,
-            'seed:m3_per_hour': 100
+            'general:time_step_minutes': {'default': 15, 'min': 1},
+            'general:time_step_output_minutes': {'default': 30, 'min': 5},
+            'seed:number': {'default': 5000, 'max': 100000},
+            'seed:m3_per_hour': {'default': 100}
             }
 
     def __init__(self):
 
         tk.Tk.__init__(self)
 
-        self.title('OpenDrift ' + opendrift.__version__)
+        self.title('OpenDrift ' + opendrift.__version__ + ' GTI Turbo Ultra')
 
         ##################
         # Layout frames
@@ -68,17 +110,18 @@ class OpenDriftGUI(tk.Tk):
         self.n = ttk.Notebook(self.master)
         self.n.grid()
         self.seed = ttk.Frame(self.n)
-        self.config = ttk.Frame(self.n)
+        self.confignotebook = ttk.Notebook(self.n)
+        self.config = ttk.Frame(self.confignotebook)
+        self.forcing = ttk.Frame(self.n)
         self.n.add(self.seed, text='Seeding')
-        self.n.add(self.config, text='Config')
+        self.n.add(self.confignotebook, text='Config')
+        self.n.add(self.forcing, text='Forcing')
+        self.confignotebook.add(self.config, text='SubConfig')
 
         # Top
         self.top = tk.Frame(self.seed,
                             relief=tk.FLAT, pady=25, padx=25)
         self.top.grid(row=0, column=1, rowspan=1)
-        # Config
-        self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
-        self.con.grid(row=0, column=1, rowspan=1)
         # Time start and end
         self.start_t = tk.Frame(self.seed, relief=tk.FLAT)
         self.start_t.grid(row=20, column=0, rowspan=1)
@@ -104,16 +147,6 @@ class OpenDriftGUI(tk.Tk):
                                relief=tk.FLAT, padx=5, pady=0)
         self.results.grid(row=60, column=7, columnspan=1, sticky='ew')
 
-        ##########################
-
-        try:
-            img = ImageTk.PhotoImage(Image.open(self.o.test_data_folder() +
-                                     '../../docs/opendrift_logo.png'))
-            panel = tk.Label(self.seed, image=img)
-            panel.image = img
-            panel.grid(row=0, column=0)
-        except:
-            pass # Could not display logo
         #######################################################
         tk.Label(self.top, text='Simulation type').grid(row=0, column=0)
         self.model = tk.StringVar()
@@ -125,6 +158,7 @@ class OpenDriftGUI(tk.Tk):
         help_button = tk.Button(self.top, text='Help',
                                 command=self.show_help)
         help_button.grid(row=0, column=2, padx=50)
+
 
         ##########
         # Release
@@ -316,6 +350,24 @@ class OpenDriftGUI(tk.Tk):
         ##############
         self.set_model(list(self.opendrift_models)[0])
 
+        forcingfiles = open(self.o.test_data_folder() + '../../opendrift/scripts/data_sources.txt').readlines()
+        print(forcingfiles)
+        for i, ff in enumerate(forcingfiles):
+            tk.Label(self.forcing, text=ff.strip(), wraplength=650, font=('Courier', 8)).grid(
+                     row=i, column=0, sticky=tk.W)
+
+        ##########################
+        try:
+            img = ImageTk.PhotoImage(Image.open(
+                self.o.test_data_folder() +
+                                     '../../docs/opendrift_logo.png'))
+            panel = tk.Label(self.seed, image=img)
+            panel.image = img
+            panel.grid(row=0, column=0)
+        except Exception as e:
+            print(e)
+            pass # Could not display logo
+ 
         ##########
         # RUN
         ##########
@@ -369,7 +421,30 @@ class OpenDriftGUI(tk.Tk):
             print('='*30 + '\nPlot saved to file: '
                   + filename + '\n' + '='*30)
 
-    def set_model(self, model):
+    def validate_config(self, value_if_allowed, prior_value, key):
+        """From config menu selection."""
+        print('Input: %s -> %s', (key, value_if_allowed))
+        if value_if_allowed == 'None':
+            print('Setting None value')
+            return True
+        if value_if_allowed in ' -':
+            print('Allowing temporally empty or minus sign')
+            return True
+        sc = self.o._config[key]
+        if sc['type'] in ['int', 'float']:
+            try:
+                value_if_allowed = float(value_if_allowed)
+            except:
+                print('Nonumber')
+                return False
+        try:
+            print('Setting: %s -> %s', (key, value_if_allowed))
+            self.o.set_config(key, value_if_allowed)
+            return True
+        except:
+            return False
+
+    def set_model(self, model, rebuild_gui=True):
         
         # Creating simulation object (self.o) of chosen model class
         print('Setting model: ' + model)
@@ -378,36 +453,96 @@ class OpenDriftGUI(tk.Tk):
         else:
             extra_args = {}
         self.o = self.opendrift_models[model](**extra_args)
+        self.modelname = model  # So that new instance may be initiated at repeated run
 
         # Setting GUI-specific default config values
         for k,v in self.GUI_config.items():
             try:
-                self.o.set_config(k, v)
+                if 'default' in v:
+                    self.o._set_config_default(k, v['default'])
+                if 'min' in v:
+                    self.o._config[k]['min'] = v['min']
+                if 'max' in v:
+                    self.o._config[k]['max'] = v['max']
             except:
                 pass
 
+        if rebuild_gui is False:
+            return
+
         # Remove current GUI components and rebuild with new
-        for con in self.config.winfo_children():
+        for con in self.confignotebook.winfo_children():
             con.destroy()
-        self.con = tk.Label(self.config, text="\n\nConfiguration\n\n")
-        self.con.grid(row=0, column=1, rowspan=1)
-        for i, cs in enumerate(self.o._config_hashstrings()):
-            tk.Label(self.config, text=cs).grid(row=i, column=1, rowspan=1)
+        self.subconfig = {}
+        confnames = list(set([cn.split(':')[0] for cn in self.o._config]))
+        confnames.extend(['environment:constant', 'environment:fallback'])
+        confnames.remove('environment')
+        for sub in confnames:
+            self.subconfig[sub] = tk.Frame(self.confignotebook, pady=25)
+            self.confignotebook.add(self.subconfig[sub], text=sub)
+
+        sc = self.o.get_configspec(level=[2, 3])
+        self.config_input = {}
+        self.config_input_var = {}
+        for i, key in enumerate(list(sc)):
+            if key.startswith('environment:constant'):
+                tab = self.subconfig['environment:constant']
+                keystr = key.split(':')[-1]
+            elif key.startswith('environment:fallback'):
+                tab = self.subconfig['environment:fallback']
+                keystr = key.split(':')[-1]
+            else:
+                tab = self.subconfig[key.split(':')[0]]
+                keystr = ''.join(key.split(':')[1:])
+
+            lab = tk.Label(tab, text=keystr)
+            lab.grid(row=i, column=1, rowspan=1)
+            if sc[key]['type'] in ['float', 'int']:
+                self.config_input_var[i] = tk.StringVar()
+                vcmd = (tab.register(self.validate_config),
+                    '%P', '%s', key)
+                self.config_input[i] = tk.Entry(
+                    tab, textvariable=self.config_input_var[i],
+                    validate='key', validatecommand=vcmd,
+                    width=6, justify=tk.RIGHT)
+                self.config_input[i].insert(0, str(sc[key]['default']))
+                self.config_input[i].grid(row=i, column=2, rowspan=1)
+                tk.Label(tab, text='[%s]  min: %s, max: %s' % (
+                    sc[key]['units'], sc[key]['min'], sc[key]['max'])
+                        ).grid(row=i, column=3, rowspan=1)
+            elif sc[key]['type'] == 'bool':
+                if self.o.get_config(key) is True:
+                    value = 1
+                else:
+                    value = 0
+                self.config_input_var[i] = tk.IntVar(value=value)
+                vcb = (tab.register(self.set_config_checkbox),
+                       key, i)
+                self.config_input[i] = tk.Checkbutton(
+                    tab, variable=self.config_input_var[i],
+                    command=vcb, text='')
+                self.config_input[i].grid(row=i, column=2, rowspan=1)
+            elif sc[key]['type'] == 'enum':
+                self.config_input_var[i] = tk.StringVar(value=self.o.get_config(key))
+                width = len(max(sc[key]['enum'], key=len))
+                self.config_input[i] = ttk.Combobox(
+                    tab, width=width,
+                    textvariable=self.config_input_var[i],
+                    values=sc[key]['enum'])
+                self.config_input[i].bind("<<ComboboxSelected>>",
+                        lambda event, keyx=key, ix=i:
+                            self.set_config_enum(event, keyx, ix))
+                self.config_input[i].grid(row=i, column=2, rowspan=1)
+
+            CreateToolTip(lab, sc[key]['description'])
+
         try:
             self.results.destroy()
         except:
             pass
-        try:
-            # Removing depth input boxes
-            self.depthlabel.destroy()
-            self.depth.destroy()
-            self.seafloor.destroy()
-        except:
-            pass
 
-        print(self.o.list_configspec())
-        sc = self.o.get_seed_config()
-        print(sc)
+        # Only ESSENTIAL config items are shown on front page with seeding
+        sc = self.o.get_configspec(level=self.o.CONFIG_LEVEL_ESSENTIAL)
         self.seed_input = {}
         self.seed_input_var = {}
         self.seed_input_label = {}
@@ -416,54 +551,53 @@ class OpenDriftGUI(tk.Tk):
         self.seed_frame.grid(row=60, columnspan=8, sticky='nsew')
         # FIND
         for num, i in enumerate(sc):
-            if i in ['ocean_only']:
-                continue  # workaround, should be avoided in future
-            varlabel = i
+            varlabel = i.split(':')[-1]
             if i in self.o.ElementType.variables.keys():
                 if 'units' in self.o.ElementType.variables[i].keys():
                     units = self.o.ElementType.variables[i]['units']
                     if units == '1':
                         units = 'fraction'
-                    varlabel = '%s [%s]' % (i, units)
+                    varlabel = '%s [%s]' % (varlabel, units)
         
             self.seed_input_label[i] = tk.Label(self.seed_frame,
                                                 text=varlabel + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
-            self.seed_input_var[i] = tk.StringVar()
-            actual_val = self.o.get_config('seed:' + i)
-            if type(sc[i]['options']) is list:
+            CreateToolTip(self.seed_input_label[i], text=sc[i]['description'])
+            actual_val = self.o.get_config(i)
+            if sc[i]['type'] == 'enum':
+                self.seed_input_var[i] = tk.StringVar()
                 self.seed_input[i] = ttk.Combobox(
                     self.seed_frame, width=50,
                     textvariable=self.seed_input_var[i],
-                    values=sc[i]['options'])
+                    values=sc[i]['enum'])
                 self.seed_input_var[i].set(actual_val)
+            elif sc[i]['type'] == 'bool':
+                self.seed_input_var[i] = tk.IntVar(value=sc[i]['value'])
+                self.seed_input[i] = tk.Checkbutton(
+                    self.seed_frame, variable=self.seed_input_var[i],
+                    text=sc[i]['description'])
             else:
+                self.seed_input_var[i] = tk.StringVar()
                 self.seed_input[i] = tk.Entry(
                     self.seed_frame, textvariable=self.seed_input_var[i],
                     width=6, justify=tk.RIGHT)
                 self.seed_input[i].insert(0, actual_val)
             self.seed_input[i].grid(row=num, column=1)
 
-        # User shall be able to chose release depth for 3D models
-        if issubclass(type(self.o), OceanDrift):
-            self.depthlabel = tk.Label(self.duration, text='Release depth [m]')
-            self.depthlabel.grid(row=60, column=0)
-            self.depthvar = tk.StringVar()
-            self.depth = tk.Entry(self.duration, textvariable=self.depthvar,
-                                  width=6, justify=tk.RIGHT)
-            self.depth.grid(row=60, column=2)
-            self.depth.insert(0, '0')
-            self.seafloorvar = tk.IntVar()
-            self.seafloor = tk.Checkbutton(self.duration, variable=self.seafloorvar,
-                                           text='seafloor',
-                                           command=self.seafloorbutton)
-            self.seafloor.grid(row=60, column=3)
+    def set_config_checkbox(self, key, i):
+        i = int(i)
+        newval = self.config_input_var[i].get()
+        if newval == 0:
+            print('Setting %s to False' % key)
+            self.o.set_config(key, False)
+        elif newval == 1:
+            print('Setting %s to True' % key)
+            self.o.set_config(key, True)
 
-    def seafloorbutton(self):
-        if self.seafloorvar.get() == 1:
-            self.depth.config(state='disabled')
-        else:
-            self.depth.config(state='normal')
+    def set_config_enum(self, event, key, i):
+        newval = self.config_input_var[i].get()
+        print('Setting ' + key + newval)
+        self.o.set_config(key, newval)
 
     def show_help(self):
         help_url = 'https://opendrift.github.io/gui.html'
@@ -475,23 +609,23 @@ class OpenDriftGUI(tk.Tk):
         print('#'*50)
         print('Hang on, plot is comming in a few seconds...')
         print('#'*50)
-        month = np.int(self.months.index(self.monthvar.get()) + 1)
-        start_time = datetime(np.int(self.yearvar.get()), month,
-                              np.int(self.datevar.get()),
-                              np.int(self.hourvar.get()),
-                              np.int(self.minutevar.get()))
-        emonth = np.int(self.months.index(self.emonthvar.get()) + 1)
-        end_time = datetime(np.int(self.eyearvar.get()), emonth,
-                            np.int(self.edatevar.get()),
-                            np.int(self.ehourvar.get()),
-                            np.int(self.eminutevar.get()))
+        month = int(self.months.index(self.monthvar.get()) + 1)
+        start_time = datetime(int(self.yearvar.get()), month,
+                              int(self.datevar.get()),
+                              int(self.hourvar.get()),
+                              int(self.minutevar.get()))
+        emonth = int(self.months.index(self.emonthvar.get()) + 1)
+        end_time = datetime(int(self.eyearvar.get()), emonth,
+                            int(self.edatevar.get()),
+                            int(self.ehourvar.get()),
+                            int(self.eminutevar.get()))
         sys.stdout.flush()
-        lon = np.float(self.lon.get())
-        lat = np.float(self.lat.get())
-        radius = np.float(self.radius.get())
-        elon = np.float(self.elon.get())
-        elat = np.float(self.elat.get())
-        eradius = np.float(self.eradius.get())
+        lon = float(self.lon.get())
+        lat = float(self.lat.get())
+        radius = float(self.radius.get())
+        elon = float(self.elon.get())
+        elat = float(self.elat.get())
+        eradius = float(self.eradius.get())
         if lon != elon or lat != elat or start_time != end_time:
             lon = [lon, elon]
             lat = [lat, elat]
@@ -502,35 +636,45 @@ class OpenDriftGUI(tk.Tk):
             cone = False
 
         so = Leeway(loglevel=50)
-        so.seed_elements(lon=lon, lat=lat,
-                         radius=radius, time=start_time)
+        for k,v in self.GUI_config.items():
+            try:
+                so.set_config(k, v)
+            except:
+                pass
+        so.seed_cone(lon=lon, lat=lat, radius=radius, time=start_time)
         so.plot(buffer=.5, fast=True)
         del so
 
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
+
+        # Creating fresh instance of the current model, but keeping config
+        adjusted_config = self.o._config
+        self.set_model(self.modelname, rebuild_gui=False)
+        self.o._config = adjusted_config
+    
         try:
             self.budgetbutton.destroy()
         except Exception as e:
             print(e)
             pass
-        month = np.int(self.months.index(self.monthvar.get()) + 1)
-        start_time = datetime(np.int(self.yearvar.get()), month,
-                              np.int(self.datevar.get()),
-                              np.int(self.hourvar.get()),
-                              np.int(self.minutevar.get()))
-        emonth = np.int(self.months.index(self.emonthvar.get()) + 1)
-        end_time = datetime(np.int(self.eyearvar.get()), emonth,
-                            np.int(self.edatevar.get()),
-                            np.int(self.ehourvar.get()),
-                            np.int(self.eminutevar.get()))
+        month = int(self.months.index(self.monthvar.get()) + 1)
+        start_time = datetime(int(self.yearvar.get()), month,
+                              int(self.datevar.get()),
+                              int(self.hourvar.get()),
+                              int(self.minutevar.get()))
+        emonth = int(self.months.index(self.emonthvar.get()) + 1)
+        end_time = datetime(int(self.eyearvar.get()), emonth,
+                            int(self.edatevar.get()),
+                            int(self.ehourvar.get()),
+                            int(self.eminutevar.get()))
         sys.stdout.flush()
-        lon = np.float(self.lon.get())
-        lat = np.float(self.lat.get())
-        radius = np.float(self.radius.get())
-        elon = np.float(self.elon.get())
-        elat = np.float(self.elat.get())
-        eradius = np.float(self.eradius.get())
+        lon = float(self.lon.get())
+        lat = float(self.lat.get())
+        radius = float(self.radius.get())
+        elon = float(self.elon.get())
+        elat = float(self.elat.get())
+        eradius = float(self.eradius.get())
         if lon != elon or lat != elat or start_time != end_time:
             lon = [lon, elon]
             lat = [lat, elat]
@@ -540,41 +684,36 @@ class OpenDriftGUI(tk.Tk):
         else:
             cone = False
 
-        extra_seed_args = {}
         for se in self.seed_input:
-            if se == 'ocean_only':
-                continue  # To be fixed/removed
-            val = self.seed_input[se].get()
-            try:
-                extra_seed_args[se] = np.float(val)
-            except:
-                extra_seed_args[se] = val
-            self.o.set_config('seed:' + se, val)
+            val = self.seed_input_var[se].get()
+            if self.o._config[se]['type'] in ['float', 'int']:
+                val = float(val)
+            elif self.o._config[se]['type'] == 'bool':
+                if val == 1:
+                    val = True
+                elif val == 0:
+                    val = False
+                else:
+                    nothing
+            self.o.set_config(se, val)
 
         self.o.add_readers_from_file(self.o.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
 
-        extra_seed_args = {}
-        if issubclass(type(self.o), OceanDrift):
-            if self.seafloorvar.get() == 1:
-                z = 'seafloor'
-            else:
-                z = -np.abs(np.float(self.depthvar.get()))  # ensure negative z
-            extra_seed_args['z'] = z
-        self.o.seed_elements(lon=lon, lat=lat, radius=radius,
-                        time=start_time, cone=cone,
-                        **extra_seed_args)
+        self.o.seed_cone(lon=lon, lat=lat, radius=radius,
+                         time=start_time)#, #cone=cone,
+                         #**extra_seed_args)
 
         time_step = self.o.get_config('general:time_step_minutes')*60
+        time_step_output = self.o.get_config('general:time_step_output_minutes')*60
         duration = int(self.durationhours.get())*3600/time_step
+        extra_args = {'time_step': time_step, 'time_step_output': time_step_output}
         if self.directionvar.get() == 'backwards':
-            time_step = -time_step
+            extra_args['time_step'] = -extra_args['time_step']
+            extra_args['time_step_output'] = -extra_args['time_step_output']
         if self.has_diana is True:
-            extra_args = {'outfile': self.outputdir + '/opendrift_' +
-                self.model.get() +
-                self.o.start_time.strftime('_%Y%m%d_%H%M.nc')}
-        else:
-            extra_args = {}
+            extra_args['outfile'] = self.outputdir + '/opendrift_' + \
+                self.model.get() + self.o.start_time.strftime('_%Y%m%d_%H%M.nc')
 
         self.simulationname = 'opendrift_' + self.model.get() + \
             self.o.start_time.strftime('_%Y%m%d_%H%M')

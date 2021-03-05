@@ -14,6 +14,7 @@
 #
 # Copyright 2019, Knut-Frode Dagestad, MET Norway
 
+import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.passivetracer import PassiveTracer
 
@@ -27,9 +28,11 @@ class SeaIceDrift(OpenDriftSimulation):
     """
 
     ElementType = PassiveTracer
-    required_variables = ['sea_ice_x_velocity', 'sea_ice_y_velocity',
-                          'land_binary_mask']
-
+    required_variables = {
+            'sea_ice_x_velocity': {'fallback': None},
+            'sea_ice_y_velocity': {'fallback': None},
+            'land_binary_mask': {'fallback': None}
+        }
 
     def __init__(self, *args, **kwargs):
 

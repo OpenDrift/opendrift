@@ -26,14 +26,14 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
 lw.add_reader(reader_norkyst,
               variables=['x_sea_water_velocity', 'y_sea_water_velocity'])
 lw.add_reader(reader_arome, variables=['x_wind', 'y_wind'])
-lw.fallback_values['x_sea_water_velocity'] = 0
-lw.fallback_values['y_sea_water_velocity'] = 0
+lw.set_config('environment:fallback:x_sea_water_velocity', 0)
+lw.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 #%%
 # Seed leeway elements at defined position and time
-objType = 26  # 26 = Life-raft, no ballast
+object_type = 26  # 26 = Life-raft, no ballast
 lw.seed_elements(lon=4.5, lat=59.6, radius=100, number=1000,
-                 time=reader_arome.start_time, objectType=objType)
+                 time=reader_arome.start_time, object_type=object_type)
 
 #%%
 # Running model

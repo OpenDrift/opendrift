@@ -13,11 +13,11 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o.max_speed = 3
 
 # This example works better using hourly input from Thredds than the daily data from test folder
-reader_nordic = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
-#reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
+reader_current = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml')
+#reader_current = reader_ROMS_native.Reader(o.test_data_folder() +
 #    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
-o.add_reader([reader_nordic])
+o.add_reader([reader_current])
 o.set_config('general:coastline_action', 'previous')
 
 #%%
@@ -28,7 +28,7 @@ lons, lats = np.meshgrid(lons, lats)
 lon = lons.ravel()
 lat = lats.ravel()
 
-time = reader_nordic.start_time
+time = reader_current.start_time
 o.seed_elements(lon, lat, radius=0, number=30*30, time=time)
 
 o.run(steps=24*2, time_step=3600)

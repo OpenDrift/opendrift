@@ -30,8 +30,8 @@ for scheme in ['euler', 'runge-kutta', 'runge-kutta4']:
         leg.append(scheme + ', T=%.2fs' % time_step)
         print(leg[-1])
         o = OceanDrift(loglevel=50)
-        o.fallback_values['land_binary_mask'] = 0
-        o.set_config('drift:scheme', scheme)
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('drift:advection_scheme', scheme)
         o.add_reader(double_gyre)
         o.seed_elements(lon, lat, time=double_gyre.initial_time)
         o.run(duration=duration, time_step=time_step)

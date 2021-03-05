@@ -3,12 +3,22 @@ Publications
 
 Some papers using OpenDrift:
 
-El Rahi, J., Weeber M.P., El Serafya, G., Modelling the effect of behavior on the distribution of the jellyfish Mauve stinger (Pelagianoctiluca) in the Balearic Sea using an individual-based model, Ecological Modelling
-Volume 433, Oct. 2020, https://doi.org/10.1016/j.ecolmodel.2020.109230
+Staneva, J., Ricker, M., Carrasco Alvarez, R., Breivik, Ø., & Schrum, C. (2021). Effects of Wave-Induced Processes in a Coupled Wave–Ocean Model on Particle Transport Simulations. Water, 13(4), 415. https://doi.org/10.3390/w13040415
+
+Brekke, C., Espeseth, M. M., Dagestad, K.-F., Röhrs, J., Hole, L. R., & Reigber, A. (2021). Integrated analysis of multisensor datasets and oil drift simulations—a free-floating oil experiment in the open ocean. Journal of Geophysical Research: Oceans, 126, e2020JC016499. https://doi.org/10.1029/2020JC016499
+
+Devis-Morales, A., Rodríguez-Rubio, E. & Montoya-Sánchez, R.A. Modelling the transport of sediment discharged by Colombian rivers to the southern Caribbean Sea. Ocean Dynamics (2021). https://doi.org/10.1007/s10236-020-01431-y
+
+El Rahi, J., Weeber M.P., El Serafya, G., Modelling the effect of behavior on the distribution of the jellyfish Mauve stinger (Pelagianoctiluca) in the Balearic Sea using an individual-based model, Ecological Modelling, Volume 433, Oct. 2020, https://doi.org/10.1016/j.ecolmodel.2020.109230
+
+Laudy C., L. Mészáros, S. Wanke and M. de Juan, "Mixing Social Media Analysis and Physical Models to Monitor Invasive Species," 2020 IEEE 23rd International Conference on Information Fusion (FUSION), Rustenburg, South Africa, 2020, pp. 1-8, doi: 10.23919/FUSION45008.2020.9190335.
 
 Androulidakis, Y., Kourafalou, V., Robert Hole, L., Le Hénaff, M., & Kang, H. (2020). Pathways of Oil Spills from Potential Cuban Offshore Exploration: Influence of Ocean Circulation. Journal of Marine Science and Engineering, 8(7), 535. https://doi.org/10.3390/jmse8070535
 
 Norrie, C.R., Dunphy, B.J., Roughan, M., Weppe, S., & Lundquist, C. (2020). Spill-over from aquaculture may provide a larval subsidy for the restoration of mussel reefs. Aquaculture Environment Interactions, https://doi.org/10.3354/aei00363
+
+Ricker, M., Stanev, E. V., Badewien, T. H., Freund, H., Meyerjurgens, J., Wolff, J.-O., & Zielinski, O. (2020). Drifter observations and Lagrangian tracking of the 2018 easterly wind event in the North Sea. In Copernicus Marine Service Ocean State Report, Issue 4. Journal of Operational Oceanography, 13(sup1), s155–s160,
+https://doi.org/10.1080/1755876X.2020.1785097
 
 Romagnoni G., Kvile K.Oe., Dagestad K.F., Eikeset A.M., Kristiansen T., Stenseth N.C., Langangen Oe.: Influence of larval transport and temperature on recruitment dynamics of North Sea cod (Gadus morhua ) across spatial scales of observation, Fisheries and Oceanography, 2020, https://doi.org/10.1111/fog.12474
 
@@ -23,11 +33,17 @@ Dugstad, J.,I. M. Koszalka, P. E. Isachsen, K.-F. Dagestad and I. Fer (2019), Ve
 
 Ricker, M. and Stanev, E. V.: Circulation of the European Northwest Shelf: A Lagrangian perspective, Ocean Science., https://www.ocean-sci.net/16/637/2020/
 
+Stanev, E. V., Badewien, T. H., Freund, H., Grayek, S., Hahner, F., Meyerjürgens, J., Ricker, M., Schöneich-Argent, R. I., Wolff, J.-O., & Zielinski, O. (2019). Extreme westward surface drift in the North Sea: Public reports of stranded drifters and Lagrangian tracking. Continental Shelf Research, 177, 24–32. https://doi.org/10.1016/j.csr.2019.03.003
+
+Stanev, E. V., & Ricker, M. (2019). The Fate of Marine Litter in Semi-Enclosed Seas: A Case Study of the Black Sea. Frontiers in Marine Science, 6. https://doi.org/10.3389/fmars.2019.00660
+
 Andruszkiewicz EA, Koseff JR, Fringer OB, Ouellette NT, Lowe AB, Edwards CA and Boehm AB (2019), Modeling Environmental DNA Transport in the Coastal Ocean Using Lagrangian Particle Tracking. Front. Mar. Sci. 6:477. http://doi.org/10.3389/fmars.2019.00477
 
 Dagestad, K.-F. and Röhrs, J.: Prediction of ocean surface trajectories using satellite derived vs. modeled ocean currents, Remote Sens. Environ., Volume 223, p130-142, 2019, https://doi.org/10.1016/j.rse.2019.01.001
 
 Röhrs, J., Dagestad, K.-F., Asbjørnsen, H., Nordam, T., Skancke, J., Jones, C. E., and Brekke, C.: The effect of vertical mixing on the horizontal drift of oil spills, Ocean Sci., 14, 1581-1601, https://doi.org/10.5194/os-14-1581-2018, 2018.
+
+Gutow, L., Ricker, M., Holstein, J. M., Dannheim, J., Stanev, E. V., & Wolff, J.-O. (2018). Distribution and trajectories of floating and benthic marine macrolitter in the south-eastern North Sea. Marine Pollution Bulletin, 131, Part A, 763–772. https://doi.org/10.1016/j.marpolbul.2018.05.003
 
 Hansen J., Manjanna S., Li A.Q., Rekleitis I., Dudek G., 2018, Autonomous Marine Sampling Enhanced by Strategically Deployed Drifters in Marine Flow Fields, https://arxiv.org/abs/1811.10103
 

@@ -1,15 +1,91 @@
 History
 =======
 
+Next release
+-----------------------------
+* Config option ``drift:lift_to_seafloor`` is replaced by ``general:seafloor_action``, analoguos to ``general:coastline_action``.
+  Available options are ``none``, ``deactivate``, ``lift_to_seafloor`` as well as new option ``previous`` - moving elements back to previous position.
+* New method ``get_trajectory_lengths`` to calculate length and speeds along trajectories
+* Basemodel class does not anymore have a projection, internal coordinates are now always lon, lat
+* Color of ocean and landmask may now be overridden in plot- and animation methods with new input variables ``land_color`` and ``ocean_color``. A new input dictionary ``text`` allows map annotations.
+* opendrift-landmask-data only loads mask once for each python process,
+  reducing memory usage and improves performance where you run opendrift
+  multiple times in the same script and process.
+
+2021-02-15 / Release v1.5.6
+-----------------------------
+* New parallelisation of lonlat2xy for unprojected readers. The flag ``<reader>.multiprocessing_fail`` is replaced with ``<reader>.__parallel_fail__``
+* plot_property() can now save figure to file if filename is provided
+* netCDF attribute seed_geojson is now a GeoJSON FeatureCollection.
+* reader_netCDF_CF_generic does not anymore read 2D lon/lat variables if 1D x/y variables are detected, giving much faster initialisation.
+* General replacement of ``np.float`` and ``np.int`` with either ``float``, ``int`` or ``np.float32/64`` and ``np.int32/64``. np.float and np.int are deprecated in numpy 1.20.
+* Fixed bug occuring when interpolating environment_profiles in time, and the number of vertical layers in the ocean-model-block is larger at time1 than at time2
+
+2021-01-26 / Release v1.5.5
+---------------------------
+* New module LarvalFish, for fish eggs hatching into larvae with swimming behaviour
+* Sundby83 parameterisation of vertical diffusivity is now set to 0 below mixed layer depth (default 50m)
+* Deprecating seed argument `oiltype` in favor of `oil_type` in OpenOil. Warning is issued, but later this will become an error
+* Fixed problem with convolution of reader fields
+* Fixed newly introduced bug with Leeway ascii output file
+* Cleaned up some metadata output, and seeding arguments are written as list of GeoJSON strings to attribute `seed_geojson`
+
+2021-01-18 / Release v1.5.4
+---------------------------
+* seed_cone also accepts time as list with single element
+* Min/max values are checked/masked also for ensemble data
+* reader_netCDF_CF_generic now detects lon/lat arrays also if their variable name equals lon/lat or longitude/latitude
+
+2021-01-15 / Release v1.5.3
+---------------------------
+* Fixed bug related to derived_variables (e.g. calculating x_wind, y_wind from windspeed, winddirection)
+
+2021-01-14 / Release v1.5.2
+---------------------------
+* Fixed problem with double or missing logging output
+* ShipDrift model now gives warning and not error if input parameter are outside bounds, and parameters are clipped to boundary values
+* Fixed problem with multiprocessing/parallelization of lonlat2xy for unprojected readers
+
+2021-01-05 / Release v1.5.1
+---------------------------
+* OilLibrary updated to version 1.1.3. Slightly different weathering results, and * is removed from oil names starting with GENERIC
+
+2021-01-04 / Release v1.5.0
+---------------------------
+* Major restructuring of Basereader class. Readers now are sublasses of Structured, Unstructured or Continuous.
+* Built in GUI is improved with posibillity to adjust all config settings.
+* Some Leeway parameters are renamed from camelCase to camel_case, including: ``jibeProbability`` -> ``jibe_probability`` and ``objectType`` -> ``object_type``
+* Renamed config setting ``drift:scheme`` -> ``drift:advection_scheme``
+
+2020-11-01 / Release v1.4.2
+---------------------------
+
+* Fixed bug in v1.4.1 that OpenOil and SedimentDrift had fallback_value of 0 for `land_binary_mask`, this shall be `None`.
+
+2020-10-31 / Release v1.4.1
+---------------------------
+
+* Built in GUI is improved with docstrings and less hardcoding, based on new config mechanism, including a new bool setting ``seed:seafloor``.
+* ``model.required_variables`` is now a dictionary, which also includes the earlier ``fallback_values``, ``desired_variables`` and ``required_profiles``. Instead of providing fallback values directly in a dictionary, these shall now be provided through the config mechanism: ``o.set_config('environment:fallback:<variable>', <value>)``. Correspondingly, config setting ``environment:constant:<variable>`` may be used to specify constant values for the same variables (overriding any other readers).
+* `seed_elements <https://opendrift.github.io/autoapi/opendrift/models/basemodel/index.html#opendrift.models.basemodel.OpenDriftSimulation.seed_elements>`_ is simplified, by factoring out a new method `seed_cone <https://opendrift.github.io/autoapi/opendrift/models/basemodel/index.html#opendrift.models.basemodel.OpenDriftSimulation.seed_cone>`_
+
+2020-10-27 / Release v1.4.0
+---------------------------
+
+* New internal config mechanism, and configobj package is no longer needed. The user API (``get_config()``, ``set_config()``) is unchanged, but model developers must use the `new mechanism <https://opendrift.github.io/autoapi/opendrift/models/basemodel/index.html#opendrift.models.basemodel.OpenDriftSimulation._add_config>`_ to add configuration settings.
+* Added new reader for static 2D fields (``reader_constant_2d.py``)
+* Xarray, Dask and Xhistogram are new requirements. New method ``opendrift.open_xarray`` to open an output netCDF file lazily, with possibility to e.g. calculate density arrays/plots from datasets to large to fit in memory.
+* New model chemicaldrift
+
 2020-10-15 / Release v1.3.3
 ---------------------------
 
-* New seed method `seed_repeated_segment()`
-* New method `animate_vertical_distribution()`
+* New seed method ``seed_repeated_segment()``
+* New method ``animate_vertical_distribution()``
 * Vertical mixing scheme is greatly simplified, and should be faster for large number of elements.
 * Vertical mixing is now disabled by default in OceanDrift, but enabled in all submodules (PelagicEggDrift, SedimentDrift, RadionuclideDrift, OpenOil)
-* Vertical diffusivity option `zero` is replaced with `constant`, which means using the fallback value.
-* New config setting `drift:horizontal_diffusivity`, providing time-step independent diffusion, in contrast to `drift:current_uncertainty` and `drift:wind_uncertainty`
+* Vertical diffusivity option `zero` is replaced with ``constant``, which means using the fallback value.
+* New config setting ``drift:horizontal_diffusivity``, providing time-step independent diffusion, in contrast to ``drift:current_uncertainty`` and ``drift:wind_uncertainty``
 * Readers may be initialised from a JSON string, where `reader` is name of reader module, and other parameters are forwarded to reader constructor, e.g.: `{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh"}`
 * CMEMS reader now obtains username/password from .netrc instead of environment variables. CMEMS-motuclient is added to environment.yml
 * CMEMS reader now takes dataset name and not product name as input, and it is possible to provide variable mapping.

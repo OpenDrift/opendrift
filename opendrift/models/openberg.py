@@ -60,6 +60,7 @@ import numpy as np
 import sys
 from scipy.interpolate import interp1d
 import pyproj
+import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.elements import LagrangianArray
@@ -73,8 +74,9 @@ class IcebergObj(LagrangianArray):
 
     # We add the properties to the element class
     variables = LagrangianArray.add_variables([
-        ('wind_drift_factor', {'dtype': np.float32,				# The fraction of the wind speed at which an iceberg is moved
+        ('wind_drift_factor', {'dtype': np.float32,
                                'units': '1',
+            'description': 'The fraction of the wind speed at which an iceberg is moved',
                        	       'default': 0.018}),
         ('water_line_length', {'dtype': np.float32,				# Iceberg size
                                'units': 'm',
@@ -93,42 +95,48 @@ class OpenBerg(OpenDriftSimulation):
 
     ElementType = IcebergObj
 
-    required_variables = ['x_wind', 'y_wind',
-                          'x_sea_water_velocity', 'y_sea_water_velocity',
-                          'land_binary_mask']
-
-    fallback_values = {'x_wind': 0.0,
-                       'y_wind': 0.0,
-                       'x_sea_water_velocity': 0.0,
-                       'y_sea_water_velocity': 0.0}
+    required_variables = {
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0},
+        'x_sea_water_velocity': {'fallback': 0, 'profiles': True},
+        'y_sea_water_velocity': {'fallback': 0, 'profiles': True},
+        'land_binary_mask': {'fallback': None},
+        }
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
                      'missing_data': 'gray', 'stranded': 'red'}
-
-    configspec = '''
-        [seed]
-            wind_drift_factor = float(min=0, max=1, default=0.018)
-            water_line_length = float(min=0.1, max=99999, default=90.5)
-            keel_depth = float(min=.1, max=10000, default=60.0)
-        [drift]
-            current_uncertainty = float(min=0, max=5, default=0.15)
-            wind_uncertainty = float(min=0, max=5, default=1.5)
-        '''
 
     # Configuration
     def __init__(self, d=None, label=None, *args, **kwargs):
         self.name = 'OpenBerg'
         self.label=label
 
-        self.required_profiles = ['x_sea_water_velocity',
-                                  'y_sea_water_velocity']  # Get vertical current profiles
+        #self.required_profiles = ['x_sea_water_velocity',
+        #                          'y_sea_water_velocity']  # Get vertical current profiles
 
         self.required_profiles_z_range = [-120, 0] # [min_depth, max_depth]
 
         # Calling general constructor of parent class
         super(OpenBerg, self).__init__(*args, **kwargs)
-        self._add_configstring(self.configspec)
+
+        self._add_config({
+            'seed:wind_drift_factor': {'type': 'float', 'min': 0, 'max': 1,
+                'default': 0.018, 'units': 'fraction',
+                'level': self.CONFIG_LEVEL_ADVANCED,
+                'description': 'Icebergs are moved with this fraction of the wind speed, in addition to ocean current forcing'},
+            'seed:water_line_length': {'type': 'float', 'min': 0.1, 'max': 99999,
+                'default': 90.5, 'units': 'meters',
+                'level': self.CONFIG_LEVEL_ADVANCED,
+                'description': 'Length of iceberg.'},
+            'seed:keel_depth': {'type': 'float', 'min': 0.1, 'max': 1000,
+                'default': 60, 'units': 'meters',
+                'level': self.CONFIG_LEVEL_ADVANCED,
+                'description': 'Length of iceberg keel (part belor sea surface).'},
+            })
+
+        self._set_config_default('drift:current_uncertainty', .15)
+        self._set_config_default('drift:wind_uncertainty', .5)
 
     def seed_elements(self, *args, **kwargs):
         for var in ['wind_drift_factor', 'water_line_length', 'keel_depth']:
@@ -188,14 +196,9 @@ class OpenBerg(OpenDriftSimulation):
         else:  # ROMS sigma levels
             profile = np.abs(np.ma.filled(self.readers[reader_name].zlevels))
 
-       # Make sure that interpolation is left to reader if no blocks are used .
-       # NB! This is a workaround, two additional points should be removed in basereader!
-        if self.readers[reader_name].return_block == False:
-        	self.use_block = False
-
         # If current data is missing in at least one dimension, no weighting is performed:
         if len(missing_variables) > 0:
-        	self.logger.warning('Missing current data, weigthing array set to [1]')
+        	logger.warning('Missing current data, weigthing array set to [1]')
         	self.uw_weighting = np.array([1])
         	return
 
@@ -225,7 +228,7 @@ class OpenBerg(OpenDriftSimulation):
         self.reader_z_profile = profile[(profile >= 0) & (profile <= x.max())]
 
         if len(profile[profile < 0]) > 0:
-        	self.logger.warning('Current reader containing currents above water!'
+        	logger.warning('Current reader containing currents above water!'
         						'Weighting of current profile may not work!')
 
         # Interpolate and normalize weights:

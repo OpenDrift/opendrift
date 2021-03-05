@@ -15,6 +15,8 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 import numpy as np
 try:
@@ -23,7 +25,7 @@ except:
     raise ImportError('PyGrib library is needed for GRIB files: '
                       'https://jswhit.github.io/pygrib/docs/index.html')
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, StructuredReader
 
 # Hardcoded "GRIB-tables" for now.
 grib_variable_mapping = {
@@ -58,7 +60,7 @@ grib_variable_mapping = {
      }
 
 
-class Reader(BaseReader):
+class Reader(BaseReader, StructuredReader):
 
     def __init__(self, filename=None, name=None):
 
@@ -72,7 +74,7 @@ class Reader(BaseReader):
 
         try:
             # Open file, check that everything is ok
-            self.logger.info('Opening dataset: ' + filename)
+            logger.info('Opening dataset: ' + filename)
             self.grib = pygrib.open(filename)
         except:
             raise ValueError('Could not open ' + filename +
@@ -128,7 +130,7 @@ class Reader(BaseReader):
             centre = centre[0]
         if centre in grib_variable_mapping:
             self.grib_mapping = grib_variable_mapping[centre]
-            self.logger.info('Parameter codes not defined in mapper: ' +
+            logger.info('Parameter codes not defined in mapper: ' +
                          str(set(marsParams) - set(self.grib_mapping)))
         else:
             raise ValueError(
@@ -150,7 +152,7 @@ class Reader(BaseReader):
         if len(self.variables) > 0:
             self.times = [times[k] for k in self.indices[var]]
             if len(self.times) > 1 and self.times[0] == self.times[1]:  # Duplicate times
-                self.logger.info('Duplicate times for variables, using '
+                logger.info('Duplicate times for variables, using '
                              'only first occurance.')
                 lasttime = None
                 for i, tim in enumerate(self.times):
@@ -181,7 +183,7 @@ class Reader(BaseReader):
         super(Reader, self).__init__()
 
     def get_variables(self, requested_variables, time=None,
-                      x=None, y=None, z=None, block=False):
+                      x=None, y=None, z=None):
 
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
@@ -197,7 +199,7 @@ class Reader(BaseReader):
         latmax = np.minimum(y.max() + delta, self.ymax)
 
         for var in requested_variables:
-            ind = np.int(self.indices[var][indxTime]) + 1
+            ind = int(self.indices[var][indxTime]) + 1
             msg = self.grib[ind]
             variables[var], lats, lons = msg.data(lat1=latmin, lat2=latmax,
                                                   lon1=lonmin, lon2=lonmax)

@@ -14,9 +14,9 @@ o = OceanDrift(loglevel=50)
 #%%
 # We do not care about landmask or current for this seeding demonstration,
 # so we simple specify fallback_values instead of adding any readers
-o.fallback_values['land_binary_mask'] = 0
-o.fallback_values['x_sea_water_velocity'] = 0
-o.fallback_values['y_sea_water_velocity'] = 0
+o.set_config('environment:fallback:land_binary_mask', 0)
+o.set_config('environment:fallback:x_sea_water_velocity', 0)
+o.set_config('environment:fallback:y_sea_water_velocity', 0)
 o.set_config('drift:wind_uncertainty', 0)
 o.set_config('drift:current_uncertainty', 0)
 
@@ -53,10 +53,10 @@ print('o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time, z=z)')
 print('='*70)
 z = np.linspace(0, -50, 100)  # Linearly increasing depth
 o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time, z=z)
-o.fallback_values['y_sea_water_velocity'] = 3  # Adding some current to be able to visualise depth as color of trajectories
+o.set_config('environment:fallback:y_sea_water_velocity', 3)  # Adding some current to be able to visualise depth as color of trajectories
 o.run(steps=1)
 o.plot(linecolor='z', buffer=.7, fast=True)
-o.fallback_values['y_sea_water_velocity'] = 0
+o.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 
 #%%
@@ -75,12 +75,12 @@ o.plot(buffer=.2, fast=True)
 
 
 #%%
-# Seeding 100 elements between two points specifying keyword "cone=True" (achieving the same as previous example)
+# Seeding 100 elements between two points with seed_cone() (achieving the same as previous example)
 print('\n' + '='*70)
-print('Seeding 100 elements between two points specifying keyword "cone=True"\n (achieving the same as previous example):')
-print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=100, cone=True, time=time)')
+print('Seeding 100 elements between two points with seed_cone() (achieving the same as previous example):')
+print('o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=100, time=time)')
 print('='*70)
-o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=100, cone=True, time=time)
+o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=100, time=time)
 o.run(steps=1)
 o.plot(buffer=.2, fast=True)
 
@@ -88,9 +88,9 @@ o.plot(buffer=.2, fast=True)
 # Seeding 1000 elements along cone with radius/uncertainty increasing linearly from 0 to 5000 m
 print('\n' + '='*70)
 print('Seeding 1000 elements along cone with radius/uncertainty\n increasing linearly from 0 to 5000 m:')
-print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=time)')
+print('o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], time=time)')
 print('='*70)
-o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=time)
+o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], time=time)
 o.run(steps=1)
 o.plot(buffer=.2, fast=True)
 
@@ -98,9 +98,9 @@ o.plot(buffer=.2, fast=True)
 # If specifying time as a two element list (start and end, here +5 hours), elements are seeded linearly in time
 print('\n' + '='*70)
 print('If specifying time as a two element list (start and end,\n here +5 hours), elements are seeded linearly in time:')
-print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=[time, time+timedelta(hours=5)])')
+print('o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], time=[time, time+timedelta(hours=5)])')
 print('='*70)
-o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=[time, time+timedelta(hours=5)])
+o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], time=[time, time+timedelta(hours=5)])
 o.run(steps=5*4, time_step=900)
 o.animation(fast=True)
 
@@ -113,10 +113,10 @@ print('Any model/module may provide specialised seeding-functions, such as \n se
 print('o.seed_from_gml(o.test_data_folder() + "radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml", num_elements=2000)')
 print('='*70)
 o = OpenOil(loglevel=50)
-o.fallback_values['x_wind'] = 0
-o.fallback_values['y_wind'] = 0
-o.fallback_values['x_sea_water_velocity'] = 0
-o.fallback_values['y_sea_water_velocity'] = 0
+o.set_config('environment:fallback:x_wind', 0)
+o.set_config('environment:fallback:y_wind', 0)
+o.set_config('environment:fallback:x_sea_water_velocity', 0)
+o.set_config('environment:fallback:y_sea_water_velocity', 0)
 o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 o.run(steps=1, time_step=1800, time_step_output=1800)
 o.plot(buffer=.03, fast=True)

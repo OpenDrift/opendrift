@@ -34,7 +34,7 @@ lons, lats = np.meshgrid(lons, lats)
 lons = lons[board].ravel()
 lats = lats[board].ravel()
 
-o.seed_elements(lons, lats, radius=0, number=10000,
+o.seed_elements(lons, lats, radius=0, number=5000,
                 time=reader_norkyst.start_time)
 
 #%%

@@ -15,8 +15,8 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan20
 #reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 o.add_reader([reader_norkyst])
-o.fallback_values['x_wind'] = 3
-o.fallback_values['y_wind'] = 7
+o.set_config('environment:fallback:x_wind', 3)
+o.set_config('environment:fallback:y_wind', 7)
 o.set_config('drift:vertical_mixing', True)
 
 #%%
@@ -24,7 +24,7 @@ o.set_config('drift:vertical_mixing', True)
 time = [reader_norkyst.start_time,
         reader_norkyst.start_time + timedelta(hours=1)]
 o.seed_elements(lon=4.5, lat=62.0, z='seafloor', radius=0, number=3000,
-                time=time, oiltype='*GENERIC DIESEL')
+                time=time, oiltype='GENERIC DIESEL')
 
 #%%
 # Setting the range of droplet sizes for the seafloor release

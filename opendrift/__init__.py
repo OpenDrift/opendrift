@@ -4,7 +4,7 @@ Opendrift module
 .. currentmodule:: opendrift
 
 """
-import logging
+import logging; logger = logging.getLogger(__name__)
 import unittest
 import importlib
 import platform
@@ -18,6 +18,8 @@ from .version import __version__
 _available_models = \
     ['leeway.Leeway',
      'openoil.OpenOil',
+     'larvalfish.LarvalFish',
+     'plastdrift.PlastDrift',
      'shipdrift.ShipDrift',
      'openberg.OpenBerg']
 
@@ -43,7 +45,7 @@ def open(filename, times=None, elements=None):
     import pydoc
     from netCDF4 import Dataset
     if not os.path.exists(filename):
-        logging.info('File does not exist, trying to retrieve from URL')
+        logger.info('File does not exist, trying to retrieve from URL')
         import urllib
         try:
             urllib.urlretrieve(filename, 'opendrift_tmp.nc')
@@ -72,8 +74,51 @@ def open(filename, times=None, elements=None):
         cls = oceandrift.OceanDrift
     o = cls()
     o.io_import_file(filename, times=times, elements=elements)
-    logging.info('Returning ' + str(type(o)) + ' object')
+    logger.info('Returning ' + str(type(o)) + ' object')
     return o
+
+def open_xarray(filename, analysis_file=None, chunks={'trajectory': 50000, 'time': 1000}):
+    '''Import netCDF output file as OpenDrift object of correct class'''
+
+    import os
+    import pydoc
+    import xarray as xr
+    if not os.path.exists(filename):
+        logger.info('File does not exist, trying to retrieve from URL')
+        import urllib
+        try:
+            urllib.urlretrieve(filename, 'opendrift_tmp.nc')
+            filename = 'opendrift_tmp.nc'
+        except:
+            raise ValueError('%s does not exist' % filename)
+    n = xr.open_dataset(filename)
+    try:
+        module_name = n.opendrift_module
+        class_name = n.opendrift_class
+    except:
+        raise ValueError(filename + ' does not contain '
+                         'necessary global attributes '
+                         'opendrift_module and opendrift_class')
+    n.close()
+
+    if class_name == 'OpenOil3D':
+        class_name = 'OpenOil'
+        module_name = 'opendrift.models.openoil'
+    if class_name == 'OceanDrift3D':
+        class_name = 'OceanDrift'
+        module_name = 'opendrift.models.oceandrift'
+    cls = pydoc.locate(module_name + '.' + class_name)
+    if cls is None:
+        from opendrift.models import oceandrift
+        cls = oceandrift.OceanDrift
+    o = cls()
+    o.analysis_file = analysis_file
+    o.io_import_file_xarray(filename, chunks=chunks)
+
+
+    logger.info('Returning ' + str(type(o)) + ' object')
+    return o
+
 
 def versions():
     import multiprocessing
@@ -81,6 +126,8 @@ def versions():
     import scipy
     import matplotlib
     import netCDF4
+    import oil_library
+    import xarray
     import sys
     s = '\n------------------------------------------------------\n'
     s += 'Software and hardware:\n'
@@ -98,6 +145,8 @@ def versions():
     s += '  SciPy version %s\n' % scipy.__version__
     s += '  Matplotlib version %s\n' % matplotlib.__version__
     s += '  NetCDF4 version %s\n' % netCDF4.__version__
+    s += '  Xarray version %s\n' % xarray.__version__
+    s += '  OilLibrary version %s\n' % oil_library.__version__
     s += '  Python version %s\n' % sys.version.replace('\n', '')
     s += '------------------------------------------------------\n'
     return s
@@ -106,10 +155,10 @@ def versions():
 def import_from_ladim(ladimfile, romsfile):
     """Import Ladim output file as OpenDrift simulation obejct"""
 
-    from models.oceandrift3D import OceanDrift3D
-    o = OceanDrift3D()
+    from models.oceandrift import OceanDrift
+    o = OceanDrift()
     from netCDF4 import Dataset, date2num, num2date
-    if isinstance(romsfile, basestring):
+    if isinstance(romsfile, str):
         from opendrift.readers import reader_ROMS_native
         romsfile = reader_ROMS_native.Reader(romsfile)
     l = Dataset(ladimfile, 'r')
@@ -167,14 +216,3 @@ def import_from_ladim(ladimfile, romsfile):
 
     return o
 
-# Add timer for unittest
-def setUp(self):
-    self._started_at = time.time()
-    logging.info('STARTING TEST: {}'.format(self.id()))
-
-def tearDown(self):
-    elapsed = time.time() - self._started_at
-    logging.info('TIMING: ({}s) {}'.format(round(elapsed, 2), self.id()))
-
-unittest.TestCase.setUp = setUp
-unittest.TestCase.tearDown = tearDown

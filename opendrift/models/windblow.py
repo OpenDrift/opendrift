@@ -14,6 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.passivetracer import PassiveTracer
 
@@ -26,9 +27,10 @@ class WindBlow(OpenDriftSimulation):
     """
 
     ElementType = PassiveTracer
-    required_variables = ['x_wind', 'y_wind']
-    fallback_values = {'x_wind': 0,
-                       'y_wind': 0}
+    required_variables = {
+        'x_wind': {'fallback': 0},
+        'y_wind': {'fallback': 0}
+        }
 
     max_speed = 12  # m/s
 
