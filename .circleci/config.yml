@@ -6,6 +6,8 @@ orbs:
 test-template: &test-template
   docker:
     - image: continuumio/miniconda3
+  environment:
+    OMP_NUM_THREADS: 8
   resource_class: medium+
   steps:
     - checkout
@@ -103,6 +105,8 @@ jobs:
   docs-build:
     docker:
       - image: continuumio/miniconda3
+    environment:
+      OMP_NUM_THREADS: 8
     steps:
       - checkout
       - run:
