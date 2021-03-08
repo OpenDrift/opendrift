@@ -210,7 +210,7 @@ class PelagicPlanktonDrift(OceanDrift):
         self._add_config({ 'biology:salinity_max': {'type': 'float', 'default': None,'min': 0.0, 'max': 100.0, 'units': 'ppt',
                            'description': 'upper threshold salinity where a species population quickly declines to extinction in ppt',
                            'level': self.CONFIG_LEVEL_BASIC}})
-        self._add_config({ 'biology:salinity_tolerance': {'type': 'float', 'default': 1.0,'min': 0.0, 'max': 1.0, 'units': 'ppt',
+        self._add_config({ 'biology:salinity_tolerance': {'type': 'float', 'default': 0.1,'min': 0.0, 'max': 1.0, 'units': 'ppt',
                            'description': 'salinity tolerance before dying, in ppt',
                            'level': self.CONFIG_LEVEL_BASIC}})
         # below not implemented yet
@@ -430,14 +430,25 @@ class PelagicPlanktonDrift(OceanDrift):
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L62
             if temp_min is not None :
                 m=(temp_min+temp_tol-temp_xy)/temp_tol # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L64
+                # not sure what was intended behavior for 'm' here, and what temp_tol really means.
+                # as is, it means all particle start to die when temp_xy goes below [temp_min+temp_tol], and are all dead when temp_xy reaches [temp_min]
+                # >> m=(temp_min+temp_tol-temp_xy)/temp_tol
                 # 
-                # ** there might be a bug here, I think it should be :  
-                # m=(temp_min-temp_xy)/temp_tol instead of m=(temp_min+temp_tol-temp_xy)/temp_tol
-                # e.g. if there is a tolerance of 1.0 degrees, and temp_xy is 1 deg below temp_min, then we should have m=1 and all particle would die
+                # other option could be that particle start to decay at temp_min, and are all dead when reaching [temp_min-temp_tol]
+                # >> m=(temp_min-temp_xy)/temp_tol
                 # 
+                # to check with Andre
+                # 
+                # import pdb;pdb.set_trace()
+
                 if (m>0).any():
                   logger.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L65
+
+          m=(self.props['tempmin']+self.props['temptol']-temp)/self.props['temptol']
+          self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]
+
+
         # print('TEMP')
         # print(self.elements.survival)
         # import pdb;pdb.set_trace()
@@ -655,7 +666,7 @@ class PelagicPlanktonDrift(OceanDrift):
         if True:
           self.plankton_development()
         
-        # place holder for more sophisticated alogorithm if needed
+        # place holder for more sophisticated algorithm if needed
         if False:
           # Plankton development
           self.updatePlanktonDevelopment()

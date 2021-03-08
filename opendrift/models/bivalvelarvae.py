@@ -18,7 +18,7 @@
 
 import numpy as np
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
-import logging; logger = logger.getLogger(__name__)
+import logging; logger = logging.getLogger(__name__)
 
 
 # Defining the  element properties from Pelagicegg model

@@ -16,7 +16,7 @@
 # Copyright 2018, Simon, MetOcean Solutions Ltd.
 
 import numpy as np
-import logging; logger = logger.getLogger(__name__)
+import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
 
