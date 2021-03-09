@@ -20,20 +20,15 @@
 # The interpolation is done using a KDtree-approach defined
 # form the 2D or 3D mesh nodes
 # 
-# NOTE:
-# This reader is under development,
-# and presently not fully functional
-# 
 # Author: Simon Weppe. MetOcean Solution, MetService New Zealand
 #####################################
 
 #####################################
 # 
-# This version re-use existing code with some small tweaks to make it work with the 
-# new basereader code (split in structured.py, unstructured.py etc..)
+# This version aims to be more consistent with the new Opendrift release, 
+# re-use some of the methods in unstructured.py, and better follow the new logics
 # 
-# There will eventually be a version v2 more consistent with the new Opendrift release 
-# that re-uses the methods in unstructured.py, and better follow the new logics
+# ongoing work
 # 
 #####################################
 
@@ -48,8 +43,6 @@ from future.utils import iteritems
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree #cython-based KDtree for quick nearest-neighbor search
-from scipy.spatial import ConvexHull # convex hull of grid points
-from matplotlib.path import Path # convex hull of grid points
 import pyproj
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
 
@@ -78,7 +71,7 @@ vector_pairs_xy = [
     ]
 
 
-class Reader(BaseReader):
+class Reader(BaseReader,UnstructuredReader):
 
     def __init__(self, filename=None, name=None, proj4=None, use_3d = None):
         """Initialise reader_netCDF_CF_unstructured_SCHISM
@@ -118,7 +111,7 @@ class Reader(BaseReader):
         
         # [name_used_in_schism : equivalent_CF_name]
         schism_mapping = {
-            'dahv': 'x_sea_water_velocity',
+            'dahv': 'x_sea_water_velocity', 
             'dahv': 'y_sea_water_velocity',
             'hvel': 'x_sea_water_velocity',
             'hvel': 'y_sea_water_velocity',
@@ -138,30 +131,29 @@ class Reader(BaseReader):
             # Open file, check that everything is ok
             logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logger.info('Opening files with MFDataset')
-                # self.Dataset = MFDataset(filename)
+                logger.info('Opening files with MFdataset')
+                # self.dataset = MFdataset(filename)
                 if has_xarray:
-                    self.Dataset = xr.open_mfdataset(filename)
+                    self.dataset = xr.open_mfdataset(filename)
                 else:
-                    self.Dataset = MFDataset(filename,aggdim='time')
-
-                # in case of issues with file ordering consider imputting an explicit filelist 
+                    self.dataset = MFDataset(filename,aggdim='time')
+                # in case of issues with file ordering consider inputting an explicit filelist 
                 # to reader, for example:
                 # 
                 # ordered_filelist_1 = []
                 # ordered_filelist_1.extend(glob.glob(data_path + 'schism_marl2008*_00z_3D.nc'))# month block 1
                 # ordered_filelist_1.sort()
             else:
-                logger.info('Opening file with Dataset')
-                # self.Dataset = Dataset(filename, 'r')
+                logger.info('Opening file with dataset')
+                # self.dataset = dataset(filename, 'r')
                 if has_xarray:
-                    self.Dataset = xr.open_dataset(filename)
+                    self.dataset = xr.open_dataset(filename)
                 else:
-                    self.Dataset = Dataset(filename, 'r')
+                    self.dataset = Dataset(filename, 'r')
         except Exception as e:
             raise ValueError(e)
 
-        # Define projection of input data 
+        # Define projection of input data
         if proj4 is not None: #  user has provided a projection apriori
             self.proj4 = proj4
         else:                 # no input assumes latlon
@@ -171,25 +163,24 @@ class Reader(BaseReader):
         # check if 3d data is available and if we should use it
         self.use_3d = use_3d
         if self.use_3d is None : # not specified, use 3d data by default (if available)
-            if 'hvel' in self.Dataset.variables:
+            if 'hvel' in self.dataset.variables:
                 self.use_3d = True
             else:
                 self.use_3d = False
 
-        if self.use_3d and 'hvel' not in self.Dataset.variables:
+        if self.use_3d and 'hvel' not in self.dataset.variables:
             logger.debug('No 3D velocity data in file - cannot find variable ''hvel'' ')
-        elif self.use_3d and 'hvel' in self.Dataset.variables:
-            if 'zcor' in self.Dataset.variables: # both hvel and zcor in files - all good
-                self.nb_levels = self.Dataset.variables['hvel'].shape[2] #hvel dimensions : [time,node,lev,2]
+        elif self.use_3d and 'hvel' in self.dataset.variables:
+            if 'zcor' in self.dataset.variables: # both hvel and zcor in files - all good
+                self.nb_levels = self.dataset.variables['hvel'].shape[2] #hvel dimensions : [time,node,lev,2]
             else:
                 logger.debug('No vertical level information present in file ''zcor'' ... stopping')
                 raise ValueError('variable ''zcor'' must be present in netcdf file to be able to use 3D currents')
                         
-
         logger.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
-        for var_name in self.Dataset.variables:
-            
+        for var_name in self.dataset.variables:
+
             if var_name in ['SCHISM_hgrid_face_x','SCHISM_hgrid_face_y','SCHISM_hgrid_edge_x','SCHISM_hgrid_edge_y']:
                 # all these variables have the same standard name projection_x_coordinate,projection_y_coordinate
                 # we need to only use :
@@ -198,7 +189,7 @@ class Reader(BaseReader):
                 # which are the nodes (also called vertices)
                 continue
 
-            var = self.Dataset.variables[var_name]
+            var = self.dataset.variables[var_name]
             if var.ndim > 1:
                 continue  # Coordinates must be 1D-array
             if has_xarray:
@@ -303,29 +294,24 @@ class Reader(BaseReader):
 
         self.lon = x
         self.lat = y
+        
+        # compute CKDtree of (static) 2D nodes using _build_ckdtree_() from unstructured.py
+        logger.debug('Building CKDtree of static 2D nodes for nearest-neighbor search')
+        # self.reader_KDtree = self.build_ckdtree(self.lon,self.lat)
+        self.reader_KDtree = UnstructuredReader._build_ckdtree_(self,self.lon,self.lat) 
 
-        # computing KDtree and convex hull of reader's nodes (2D)
-        # This is done using cython-based cKDTree from scipy for quick nearest-neighbor search
-        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.html
-        logger.debug('Building KDtree for nearest-neighbor search')
-        self.reader_KDtree = cKDTree(np.vstack((self.lon,self.lat)).T) 
-        #do we need copy_data=True ..probably not since self.lon,self.lat wont change.
-
-        # build convex hull of points for particle-in-mesh checks
+        # build convex hull of points for particle-in-mesh checks using _build_boundary_polygon_() from unstructured.py
         logger.debug('Building convex hull of nodes for particle''s in-mesh checks')
-        # *** this a very approximate way of doing it...ideally we would be able to 
-        # have the actual contour of the grid....
-        hull_obj = ConvexHull(np.vstack([self.lon.data,self.lat.data]).T)
-        self.hull_path = Path(np.vstack([self.lon[hull_obj.vertices],self.lat[hull_obj.vertices]]).T)  # Matplotlib Path object
-        self.hull = np.vstack([self.lon[hull_obj.vertices],self.lat[hull_obj.vertices]]).T
-
+        # self.hull_path = self.build_boundary_path(x, y)
+        self.boundary = UnstructuredReader._build_boundary_polygon_(self,self.lon,self.lat)
+        self.hull_path = self.build_boundary_path(self.lon,self.lat) # matplotlib Path object
 
         # Find all variables having standard_name
         self.variable_mapping = {}
-        for var_name in self.Dataset.variables:
+        for var_name in self.dataset.variables:
             if var_name in [self.xname, self.yname]: #'depth'
                 continue  # Skip coordinate variables
-            var = self.Dataset.variables[var_name]
+            var = self.dataset.variables[var_name]
             if has_xarray:
                 attributes = var.attrs
                 att_dict = var.attrs
@@ -375,10 +361,34 @@ class Reader(BaseReader):
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
-
         # Dictionaries to store blocks of data for reuse (buffering)
         self.var_block_before = {}  # Data for last timestep before present
         self.var_block_after = {}   # Data for first timestep after present
+
+    def build_ckdtree(self,x,y):
+        # This is done using cython-based cKDTree from scipy for quick nearest-neighbor search
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.html
+        # self.reader_KDtree = cKDTree(np.vstack((self.lon,self.lat)).T) 
+        return cKDTree(np.vstack((x,y)).T) 
+
+    def build_boundary_path(self,x,y):
+        from scipy.spatial import ConvexHull # convex hull of grid points
+        from matplotlib.path import Path # convex hull of grid points
+        # 
+        # Build a polygon of the boundary of the mesh, for in-grid checks
+        # 
+        # simple approximation : use convex hull of mesh nodes. This will correctly include the open boundary
+        # (semi-circular) but it will miss the details of the shorelines. This is usually not a problem
+        # since the shoreline details will be covered by the landmask.
+        # 
+        # using prepared geometry rather than Matplotlib Path (as in unstructured .py)
+        # see below
+        # https://sparkgeo.com/blog/using-prepared-geometries-in-shapely/
+
+        hull_obj = ConvexHull(np.vstack([self.lon.data,self.lat.data]).T)
+        hull_path = Path(np.vstack([self.lon[hull_obj.vertices],self.lat[hull_obj.vertices]]).T)  # Matplotlib Path object
+        hull = np.vstack([self.lon[hull_obj.vertices],self.lat[hull_obj.vertices]]).T
+        return hull_path # Matplotlib Path object
 
     ##############################################################################################################
     # Legacy code from previous basereader.py code  
@@ -497,12 +507,12 @@ class Reader(BaseReader):
 
             For now the function will extract the entire slice of data of 'requested_variables' at given 'time'
 
-            We could consider extracting a subset of data around particles clouds to have less data in memory...
-            but that means we'll need to recompute the KDtree of data every time in ReaderBlockUnstruct.
-            ...Not sure which option would be fastest...to check
-
+            There is an option to extract only a subset of data around particles clouds to have less data but
+            it mean we need to recompute the KDtree of the subset nodes every time in ReaderBlockUnstruct.
+            
+            Speed gain to be tested ...
+            
         """
-        
         requested_variables, time, x, y, z, outside = \
             self.check_arguments(requested_variables, time, x, y, z)
 
@@ -519,7 +529,7 @@ class Reader(BaseReader):
         for par in requested_variables:
             if par not in ['x_sea_water_velocity','y_sea_water_velocity'] :
                 # standard case - for all variables except current velocities
-                var = self.Dataset.variables[self.variable_mapping[par]]
+                var = self.dataset.variables[self.variable_mapping[par]]
                 if var.ndim == 1:
                     data = var[:] # e.g. depth
                     logger.debug('reading constant data from unstructured reader %s' % (par))
@@ -539,7 +549,7 @@ class Reader(BaseReader):
                 # requested variables are current velocities
                 # In SCHISM netcdf filesboth [u,v] components are saved 
                 # as two different dimensions of the same variable.
-                var = self.Dataset.variables[self.variable_mapping[par]]
+                var = self.dataset.variables[self.variable_mapping[par]]
                 if var.ndim == 3: # depth-averaged current data 'dahv' defined at each node and time [time,node,2]
                     if par == 'x_sea_water_velocity':
                        data = var[indxTime,:,0]
@@ -590,10 +600,10 @@ class Reader(BaseReader):
         out :
             -flattened 'data' array
             -addition of ['x_3d','y_3d','z_3d'] items to variable_dict if needed.
-
         '''
+
         try:
-            vertical_levels = self.Dataset.variables['zcor'][id_time,:,:]
+            vertical_levels = self.dataset.variables['zcor'][id_time,:,:]
             # depth are negative down consistent with convention used in OpenDrift 
             # if using the netCDF4 library, vertical_levels is masked array where "masked" levels are those below seabed  (= 9.9692100e+36)
             # if using the xarray library, vertical_levels is nan for levels are those below seabed
@@ -706,10 +716,10 @@ class Reader(BaseReader):
         
         For an unstructured reader, this is done by checking that if particle positions are within the convex hull
         of the mesh nodes. This means it is NOT using the true polygon bounding the mesh ..but this is generally good enough
-        to locate the outer boudary (which is often circular). 
-        >> The convex hull will not be good for the shorelines though, but this 
-        is not critical since coast interaction will be handled by either by the landmask (read from file or using global_landmask) 
-        Data tnterpolation might be an issue for particles reaching the land, and not actually flagged as out-of-bounds...
+        to locate the outer boundary (which is often semi-circular). 
+        >> The convex hull will not be good for the shorelines though, but this is not critical since coast interaction 
+        will be handled by either by the landmask (read from file or using global_landmask) 
+        Data interpolation might be an issue for particles reaching the land, and not actually flagged as out-of-bounds...
         To Check...
 
         Better alternatives could be: 
@@ -743,18 +753,15 @@ class Reader(BaseReader):
             pass
             # unlikely to be used for SCHISM domain
         else:
-            # indices = np.where((x >= self.xmin) & (x <= self.xmax) &
-            #        (y >= self.ymin) & (y <= self.ymax) &
-            #        (z >= zmin) & (z <= zmax))[0]
-
-            # use the Path object (matplotlib) defined in __init__() : self.hull_path
-            in_hull =self.hull_path.contains_points(np.vstack([x,y]).T)
+            # Option 1 : use the Path object (matplotlib) defined in __init__() : self.hull_path
+            # in_hull =self.hull_path.contains_points(np.vstack([x,y]).T)
+            # Option 2 : use the Prepared Polygon object
+            in_hull = UnstructuredReader.covers_positions(self,x, y, z)
             indices = np.where(in_hull) 
-
         try:
             return indices, x[indices], y[indices]
         except:
-            return indices, x, y
+            return indices, x, y    
 
     def get_variables_interpolated(self, variables, profiles=None,
                                    profiles_depth=None, time=None,
@@ -786,6 +793,7 @@ class Reader(BaseReader):
 
         # Check which particles are covered (indep of time)
         ind_covered, reader_x, reader_y = self.covers_positions(lon, lat, z)
+
         if len(ind_covered) == 0:
             raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
                               'are outside domain of %s (%s)') %
@@ -804,9 +812,7 @@ class Reader(BaseReader):
 
         z = z.copy()[ind_covered]  # Send values and not reference
         
-
         # start interpolation procedure
-
         # 
         # general idea is to create a  new "ReaderBlockUnstruct" class that will be called instead of
         # the regular "ReaderBlock" as in basereader.py
@@ -1085,10 +1091,10 @@ class Reader(BaseReader):
             import pdb;pdb.set_trace()
             import matplotlib.tri as mtri
             from mpl_toolkits.mplot3d import Axes3D
-            X=self.Dataset.variables['SCHISM_hgrid_node_x'][:]
-            Y=self.Dataset.variables['SCHISM_hgrid_node_y'][:]
-            Z=self.Dataset.variables['depth'][:]
-            face=self.Dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
+            X=self.dataset.variables['SCHISM_hgrid_node_x'][:]
+            Y=self.dataset.variables['SCHISM_hgrid_node_y'][:]
+            Z=self.dataset.variables['depth'][:]
+            face=self.dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
             # build triangulation
             triang =mtri.Triangulation(X,Y, triangles=face, mask=None)
             # quads=Triangulation(gr.x,gr.y,quads)
@@ -1201,7 +1207,7 @@ class Reader(BaseReader):
             rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
             data[variable] = np.ma.masked_invalid(data[variable])
             # ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
-            face=self.Dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
+            face=self.dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
             # build triangulation
             triang =mtri.Triangulation(rlon,rlat, triangles=face, mask=None)
             # plot the variable 

@@ -31,7 +31,7 @@
 # https://gist.github.com/pelson/9785576
 # https://automating-gis-processes.github.io/site/notebooks/L1/geometric-objects.html
 
-from opendrift.readers.basereader import BaseReader
+from opendrift.readers.basereader import BaseReader, ContinuousReader
 import warnings
 import pyproj
 from shapely.geometry import Point, Polygon, MultiPolygon,asPolygon
@@ -39,7 +39,7 @@ import shapely
 import shapely.vectorized
 import numpy as np
 
-class Reader(BaseReader):
+class Reader(BaseReader,ContinuousReader):
     """
     The "custom" landmask reader requires a user-input text file with 
     nan-delimited polygons (in geographic WGS84 projection).
