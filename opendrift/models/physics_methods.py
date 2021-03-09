@@ -191,7 +191,7 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
 
 
 def ftle(X, Y, delta, duration):
-    """Calculate Finite Time Lyapunov Exponents"""
+    """Calculate Finite Time Lyapunov Exponents from flow map"""
     # From Johannes Rohrs
     nx = X.shape[0]
     ny = X.shape[1]
@@ -217,6 +217,38 @@ def ftle(X, Y, delta, duration):
             FTLE[i,j] = np.log(np.sqrt(max(lamda)))/np.abs(duration)
 
     return FTLE
+
+def cg_eigenvectors(X, Y, delta, duration):
+    """Calculate eigenvector and eigenvalues of cauchy-green strain tensor
+    returns eigenvalues, eigenvectors of the flow map X,Y
+    """
+
+    # From Johannes Rohrs
+    nx = X.shape[0]
+    ny = X.shape[1]
+    J = np.empty([nx,ny,2,2],np.float)
+    lamba = np.empty([nx,ny,2],np.float)
+    xi = np.empty([nx,ny,2,2],np.float)
+
+    # gradient
+    dx = np.gradient(X)
+    dy = np.gradient(Y)
+
+    # Jacobian
+    J[:,:,0,0] = dx[0] / (2*delta)
+    J[:,:,1,0] = dy[0] / (2*delta)
+    J[:,:,0,1] = dx[1] / (2*delta)
+    J[:,:,1,1] = dy[1] / (2*delta)
+
+    for i in range(0,nx):
+        for j in range(0,ny):
+            # Green-Cauchy tensor
+            D = np.dot(np.transpose(J[i,j]), J[i,j])
+            # its largest eigenvalue
+            lamba[i,j], xi[i,j] = np.linalg.eig(D)
+            lamba[lamba>1000]=np.nan # mask out land artifacts
+    return lamba, xi
+
 
 class PhysicsMethods:
     """Physics methods to be inherited by OpenDriftSimulation class"""

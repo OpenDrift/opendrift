@@ -3,7 +3,7 @@
 Double gyre - LCS with particles
 ============================================
 
-Drift of particles in an idealised (analytical) eddy current field, 
+Drift of particles in an idealised (analytical) eddy current field,
 plotted on top of the LCS. This takes some minutes to calculate.
 """
 
@@ -53,8 +53,7 @@ o.seed_elements(lon, lat, radius=.15, number=2000,
 o.disable_vertical_motion()
 o.run(duration=duration, time_step=time_step,
       time_step_output=time_step_output)
-o.animation(buffer=0, lcs=lcs, hide_landmask=True)
+o.animation(buffer=0, lcs=lcs, cmap='cividis', hide_landmask=True)
 
 #%%
 # .. image:: /gallery/animations/example_double_gyre_LCS_particles_0.gif
-
