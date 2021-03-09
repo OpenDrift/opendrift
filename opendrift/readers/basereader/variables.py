@@ -393,7 +393,7 @@ class Variables(ReaderDomain):
     environment_mappers = []
     environment_mappings = {
         'wind_from_speed_and_direction': {
-            'input': ['wind_speed', 'wind_to_direction'],
+            'input': ['wind_speed', 'wind_from_direction'],
             'output': ['x_wind', 'y_wind'],
             'method':
             lambda reader, var: reader.wind_from_speed_and_direction(var)
@@ -428,10 +428,10 @@ class Variables(ReaderDomain):
                          (self.buffer, self.name, max_speed))
 
     def wind_from_speed_and_direction(self, env):
-        north_wind = env['wind_speed'] * np.cos(
-            np.radians(env['wind_to_direction']))
-        east_wind = env['wind_speed'] * np.sin(
-            np.radians(env['wind_to_direction']))
+        north_wind = -env['wind_speed'] * np.cos(
+            np.radians(env['wind_from_direction']))
+        east_wind = -env['wind_speed'] * np.sin(
+            np.radians(env['wind_from_direction']))
         env['x_wind'] = east_wind
         env['y_wind'] = north_wind
         # Rotating might be necessary generally
