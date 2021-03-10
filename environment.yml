@@ -14,7 +14,7 @@ dependencies:
   - libgdal>=3.1
   - gdal>=3.1
   - xarray
-  - dask
+  - dask<2021.03
   - cfgrib
   - pygrib
   - xhistogram

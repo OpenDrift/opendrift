@@ -2502,7 +2502,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.add_metadata(keyword, self.fallback_values[var])
             else:
                 readers = self.priority_list[var]
-                if readers[0].startswith('constant_reader'):
+                if readers[0].startswith('constant_reader') and var in self.readers[readers[0]]._parameter_value_map:
                     self.add_metadata(keyword, self.readers[readers[
                                 0]]._parameter_value_map[var][0])
                 else:
