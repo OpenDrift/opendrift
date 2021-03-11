@@ -1381,9 +1381,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
                         np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
                         ])
-            reader_landmask.name = 'tempreader'
-            o = OceanDrift(
-                loglevel='custom')
+            o = OceanDrift(loglevel='custom')
             o.add_reader(reader_landmask)
             land_reader = reader_landmask
 
@@ -1400,9 +1398,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info('All points are in ocean')
             return lon, lat
         logger.info('Moving %i out of %i points from land to water' %
-                     (np.sum(land==1), len(lon)))
-        landlons = lon[land==1]
-        landlats = lat[land==1]
+                     (np.sum(land!=0), len(lon)))
+        landlons = lon[land!=0]
+        landlats = lat[land!=0]
         longrid = np.arange(lonmin, lonmax, deltalon)
         latgrid = np.arange(latmin, latmax, deltalat)
         longrid, latgrid = np.meshgrid(longrid, latgrid)
@@ -1428,8 +1426,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         landpoints = np.dstack([landlons, landlats])
         dist, indices = tree.query(landpoints)
         indices = indices.ravel()
-        lon[land==1] = oceangridlons[indices]
-        lat[land==1] = oceangridlats[indices]
+        lon[land!=0] = oceangridlons[indices]
+        lat[land!=0] = oceangridlats[indices]
 
         return lon, lat
 
@@ -2285,10 +2283,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             self.timer_end('preparing main loop:making dynamical landmask')
 
-        # Move point seed on land to ocean
+        # Move point seeded on land to ocean
         if self.get_config('seed:ocean_only') is True and \
-            ('land_binary_mask' not in self.fallback_values) and \
             ('land_binary_mask' in self.required_variables):
+            #('land_binary_mask' not in self.fallback_values) and \
             self.timer_start('preparing main loop:moving elements to ocean')
             self.elements_scheduled.lon, self.elements_scheduled.lat = \
                 self.closest_ocean_points(self.elements_scheduled.lon,
@@ -3341,7 +3339,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 else:
                     ax.plot(x, y, color=linecolor, alpha=alpha, linewidth=linewidth, transform = gcrs)
             else:
-                colorbar = True
+                #colorbar = True
                 # Color lines according to given parameter
                 try:
                     if isinstance(linecolor, str):
@@ -3501,7 +3499,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                          colors='gray', transform = gcrs)
                     plt.clabel(CS, fmt='%g')
 
-        if mappable is not None:
+        if mappable is not None and colorbar is True:
             cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
             # TODO: need better control of colorbar content
             if background is not None:

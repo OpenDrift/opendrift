@@ -325,7 +325,7 @@ class TestRun(unittest.TestCase):
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -38.7, 1)
+        self.assertAlmostEqual(o1.history['z'].min(), -37.0, 1)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0, 1)
         os.remove('verticalmixing.nc')
 
@@ -643,7 +643,7 @@ class TestRun(unittest.TestCase):
         o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0], -134.2, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -134.27, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
