@@ -32,11 +32,11 @@ def proj_from_CF_dict(c):
         raise ValueError('grid_mapping not given in dictionary')
     gm = c['grid_mapping_name']
 
+    if 'earth_radius' in c:
+        earth_radius = c['earth_radius']
+    else:
+        earth_radius = 6371000.
     if gm == 'polar_stereographic':
-        if 'earth_radius' in c:
-            earth_radius = c['earth_radius']
-        else:
-            earth_radius = 6371000.
         lon_0 = 0  # default, but dangerous
         for l0 in ['longitude_of_projection_origin',
                    'longitude_of_central_meridian',
@@ -65,6 +65,10 @@ def proj_from_CF_dict(c):
                                    c['latitude_of_projection_origin'],
                                    lon_0, lat_ts, k0, x0, y0, earth_radius)
                  )
+
+    elif gm == 'rotated_latitude_longitude':
+        proj4 = '+proj=ob_tran +o_proj=longlat +lon_0=%s +o_lat_p=%s +R=%s +no_defs' % (
+                c['grid_north_pole_longitude']-180, c['grid_north_pole_latitude'], earth_radius)
 
     proj = pyproj.Proj(proj4)
 
