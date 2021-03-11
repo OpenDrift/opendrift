@@ -2283,7 +2283,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             self.timer_end('preparing main loop:making dynamical landmask')
 
-        # Move point seed on land to ocean
+        # Move point seeded on land to ocean
         if self.get_config('seed:ocean_only') is True and \
             ('land_binary_mask' in self.required_variables):
             #('land_binary_mask' not in self.fallback_values) and \
