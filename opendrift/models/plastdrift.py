@@ -71,10 +71,11 @@ class PlastDrift(OceanDrift):
                     'Scheme to be used for vertical turbulent mixing'},
             })
 
+        self._set_config_default('drift:vertical_mixing', True)
         self._set_config_default('drift:vertical_advection', True)
         self._set_config_default('drift:use_tabularised_stokes_drift', True)
         self._set_config_default('general:coastline_action', 'previous')
-        self._set_config_default('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
+        self._set_config_default('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983')
 
     def update(self):
         """Update positions and properties of elements."""
@@ -92,15 +93,15 @@ class PlastDrift(OceanDrift):
 
     def update_particle_depth(self):
 
+        if self.get_config('drift:vertical_mixing') is True:
 
-        if self.get_config('vertical_mixing:mixingmodel') == 'randomwalk':
-            logger.debug('Turbulent mixing of particles using random walk')
-            self.vertical_mixing()
+            if self.get_config('vertical_mixing:mixingmodel') == 'randomwalk':
+                logger.debug('Turbulent mixing of particles using random walk')
+                self.vertical_mixing()
 
-
-        if self.get_config('vertical_mixing:mixingmodel') == 'analytical':
-            logger.debug('Submerging according to wind')
-            self.elements.z = -np.random.exponential(
-                scale=self.environment.ocean_vertical_diffusivity/
-                        self.elements.terminal_velocity,
-                size=self.num_elements_active())
+            if self.get_config('vertical_mixing:mixingmodel') == 'analytical':
+                logger.debug('Submerging according to wind')
+                self.elements.z = -np.random.exponential(
+                    scale=self.environment.ocean_vertical_diffusivity/
+                            self.elements.terminal_velocity,
+                    size=self.num_elements_active())
