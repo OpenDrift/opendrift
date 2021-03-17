@@ -2675,14 +2675,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.af.latmin = self.latmin
             self.af.latmax = self.latmax
             self.af.close()
+        else:
+            lons, lats = self.get_lonlats()  # TODO: to be removed
 
         if corners is not None:  # User provided map corners
-            lons, lats = self.get_lonlats()
             lonmin = corners[0]
             lonmax = corners[1]
             latmin = corners[2]
             latmax = corners[3]
-        elif hasattr(self, 'lonmin'):  # If dataset is lazily imported
+        elif hasattr(self, 'lonmin'):  # if dataset is lazily imported
             lonmin = self.lonmin
             lonmax = self.lonmax
             latmin = self.latmin
