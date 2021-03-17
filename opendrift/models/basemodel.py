@@ -2655,42 +2655,38 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         """
 
         # Initialise map
-        if corners is not None:
-            lons, lats = self.get_lonlats()  # TODO: to be removed
+        if hasattr(self, 'ds'):  # If dataset is lazily imported
+            lons = self.ds.lon
+            lats = self.ds.lat
+            logger.debug('Finding min longitude...')
+            self.lonmin = np.nanmin(self.ds.lon)
+            logger.debug('Finding max longitude...')
+            self.lonmax = np.nanmax(self.ds.lon)
+            logger.debug('Finding min latitude...')
+            self.latmin = np.nanmin(self.ds.lat)
+            logger.debug('Finding max latitude...')
+            self.latmax = np.nanmax(self.ds.lat)
+            if os.path.exists(self.analysis_file):
+                self.af = Dataset(self.analysis_file, 'a')
+            else:
+                self.af = Dataset(self.analysis_file, 'w')
+            self.af.lonmin = self.lonmin
+            self.af.lonmax = self.lonmax
+            self.af.latmin = self.latmin
+            self.af.latmax = self.latmax
+            self.af.close()
+
+        if corners is not None:  # User provided map corners
+            lons, lats = self.get_lonlats()
             lonmin = corners[0]
             lonmax = corners[1]
             latmin = corners[2]
             latmax = corners[3]
-        elif hasattr(self, 'ds'):
-            lons = self.ds.lon
-            lats = self.ds.lat
-            if hasattr(self, 'lonmin'):
-                lonmin = self.lonmin
-                lonmax = self.lonmax
-                latmin = self.latmin
-                latmax = self.latmax
-            else:
-                logger.debug('Finding min longitude...')
-                lonmin = np.nanmin(self.ds.lon)
-                logger.debug('Finding max longitude...')
-                lonmax = np.nanmax(self.ds.lon)
-                logger.debug('Finding min latitude...')
-                latmin = np.nanmin(self.ds.lat)
-                logger.debug('Finding max latitude...')
-                latmax = np.nanmax(self.ds.lat)
-                self.lonmin = lonmin
-                self.lonmax = lonmax
-                self.latmin = latmin
-                self.latmax = latmax
-                if os.path.exists(self.analysis_file):
-                    self.af = Dataset(self.analysis_file, 'a')
-                else:
-                    self.af = Dataset(self.analysis_file, 'w')
-                self.af.lonmin = lonmin
-                self.af.lonmax = lonmax
-                self.af.latmin = latmin
-                self.af.latmax = latmax
-                self.af.close()
+        elif hasattr(self, 'lonmin'):  # If dataset is lazily imported
+            lonmin = self.lonmin
+            lonmax = self.lonmax
+            latmin = self.latmin
+            latmax = self.latmax
         else:
             lons, lats = self.get_lonlats()
             lonmin = np.nanmin(lons) - buffer*2
@@ -2699,7 +2695,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             latmax = np.nanmax(lats) + buffer
 
         if fast is True:
-            logger.warning("plotting fast. This will make your plots less accurate.")
+            logger.warning('Plotting fast. This will make your plots less accurate.')
 
             import matplotlib.style as mplstyle
             mplstyle.use(['fast'])
@@ -2908,6 +2904,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                             per_origin_marker=per_origin_marker)
                 H = H[origin_marker]  # Presently only for origin_marker = 0
             else:
+                if origin_marker is not None:
+                    raise ValueError('Separation by origin_marker is only active when imported from file with '
+                            'open_xarray: https://opendrift.github.io/gallery/example_huge_output.html')
                 H, H_submerged, H_stranded, lon_array, lat_array = \
                     self.get_density_array(pixelsize_m=density_pixelsize_m,
                                            weight=density_weight)
