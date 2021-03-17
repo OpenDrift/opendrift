@@ -126,7 +126,7 @@ class Reader(BaseReader,UnstructuredReader):
                 logger.info('Opening files with MFdataset')
                 # self.dataset = MFdataset(filename)
                 if has_xarray:
-                    self.dataset = xr.open_mfdataset(filename)
+                    self.dataset = xr.open_mfdataset(filename,chunks={'time': 1})
                 else:
                     self.dataset = MFDataset(filename,aggdim='time')
                 # in case of issues with file ordering consider inputting an explicit filelist 
@@ -139,7 +139,7 @@ class Reader(BaseReader,UnstructuredReader):
                 logger.info('Opening file with dataset')
                 # self.dataset = dataset(filename, 'r')
                 if has_xarray:
-                    self.dataset = xr.open_dataset(filename)
+                    self.dataset = xr.open_dataset(filename,chunks={'time': 1})
                 else:
                     self.dataset = Dataset(filename, 'r')
         except Exception as e:
