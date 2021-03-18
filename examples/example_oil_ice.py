@@ -7,6 +7,7 @@ Oil in ice
 from datetime import datetime, timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
+import cmocean
 
 o = OpenOil(loglevel=20)
 
@@ -24,6 +25,7 @@ o.seed_elements(lon=19.1909, lat=79.5986, radius=50,
 o.set_config('processes:dispersion',  False)
 o.set_config('processes:evaporation',  False)
 o.set_config('processes:emulsification',  False)
+o.set_config('drift:truncate_ocean_model_below_m', 3)
 
 #%%
 # Running model
@@ -32,11 +34,11 @@ o.run(duration=timedelta(hours=48), time_step=1800, time_step_output=3600)
 #%%
 # Print and plot results
 print(o)
-o.animation(background='sea_ice_area_fraction', cmap='Greys_r',
-            vmin=0, vmax=1, fast=False)
+o.animation(background='sea_ice_area_fraction', cmap=cmocean.cm.ice,
+            vmin=0, vmax=1, bgalpha=1, fast=False)
 
 #%%
 # .. image:: /gallery/animations/example_oil_ice_0.gif
 
-o.plot(background='sea_ice_area_fraction', cmap='Greys_r',
-       vmin=0, vmax=1, fast=False)
+o.plot(background='sea_ice_area_fraction', cmap=cmocean.cm.ice,
+       vmin=0, vmax=1, bgalpha=1, fast=False)

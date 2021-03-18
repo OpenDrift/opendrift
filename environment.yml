@@ -29,6 +29,7 @@ dependencies:
   - oil_library-opendrift>=2+noaa1.1.3
   - isodate
   - coloredlogs
+  - cmocean
   - pip
   - pip:
     - motuclient

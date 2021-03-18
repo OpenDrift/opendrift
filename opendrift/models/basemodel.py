@@ -3103,10 +3103,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 if clabel is None:
                     clabel = background
 
-            cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
+            cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             cb.set_label(clabel)
-            cb.set_alpha(1)
-            cb.draw_all()
 
         anim = animation.FuncAnimation(
             plt.gcf(), plot_timestep, blit=False,
@@ -3257,7 +3255,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
              linewidth=1, lcs=None, show_particles=True, show_initial=True,
-             density_pixelsize_m=1000,
+             density_pixelsize_m=1000, bgalpha=1,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
              fast=False, hide_landmask=False, **kwargs):
@@ -3487,7 +3485,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if show_scalar is True:
                 if contourlines is False:
                     scalar = np.ma.masked_invalid(scalar)
-                    mappable = ax.pcolormesh(map_x, map_y, scalar, alpha=1,
+                    mappable = ax.pcolormesh(map_x, map_y, scalar, alpha=bgalpha,
                                    vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
                 else:
                     if contourlines is True:
@@ -3500,12 +3498,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     plt.clabel(CS, fmt='%g')
 
         if mappable is not None and colorbar is True:
-            cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
+            cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             # TODO: need better control of colorbar content
+            if linecolor != 'gray':
+                cb.set_label(str(linecolor))
             if background is not None:
                 cb.set_label(str(background))
-            if linecolor is not None:
-                cb.set_label(str(linecolor))
 
         if type(background) is list:
             delta_x = (map_x[1,2] - map_x[1,1])/2.
