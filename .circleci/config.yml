@@ -17,7 +17,7 @@ test-template: &test-template
           cat envconfig
 
     - restore_cache:
-        key: v11-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v12-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
     - run:
         name: Install requirements
         command: |
@@ -40,7 +40,7 @@ test-template: &test-template
           fi
 
     - save_cache:
-        key: v11-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v12-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
         paths:
           - "/opt/conda/envs"
 
