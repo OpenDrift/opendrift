@@ -124,7 +124,7 @@ jobs:
             fi
 
       - restore_cache:
-          key: v5-docs-deps1-{{ checksum "environment.yml" }}
+          key: v6-docs-deps1-{{ checksum "environment.yml" }}
 
       - run:
           name: Install requirements
@@ -137,7 +137,7 @@ jobs:
             fi
 
       - save_cache:
-          key: v5-docs-deps1-{{ checksum "environment.yml" }}
+          key: v6-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
