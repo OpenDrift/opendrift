@@ -59,7 +59,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         'sea_surface_wave_period_at_variance_spectral_density_maximum': {'fallback': 0},
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
-        'ocean_vertical_diffusivity': {'fallback': 0.02},
+        'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True},
         'sea_floor_depth_below_sea_level': {'fallback': 0},
         }
     
@@ -71,6 +71,9 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
                              'active': 'blue',
                              'missing_data': 'gray',
                              'settled': 'red'}
+    
+    # The depth range (in m) which profiles shall cover
+    required_profiles_z_range = [-20, 0]
 
     def __init__(self, *args, **kwargs):
 
@@ -79,7 +82,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         super(SedimentDrift3D, self).__init__(*args, **kwargs)
 
         self._add_config({
-            'drift:resuspension': {'type': 'boolean', 'default': False,
+            'drift:resuspension': {'type': 'bool', 'default': False,
                 'min': 0, 'max': 1e10, 'units': '-',
                 'description': 'switch to include resuspension',
                 'level': self.CONFIG_LEVEL_ESSENTIAL}})
