@@ -15,8 +15,9 @@
 # Copyright 2020, Knut-Frode Dagestad, MET Norway
 
 """
-ChemicalDrift is an OpenDrift module for drift and settling of chemicals.
-Based on work by Simon Weppe, MetOcean Solutions Ltd.
+ChemicalDrift is an OpenDrift module for drift and fate of chemicals.
+The module is under development within the scope of the Horizon2020 project EMERGE
+Manuel Aghito. Norwegian Meteorological Institute. 2020.
 """
 
 import numpy as np
@@ -52,7 +53,9 @@ class ChemicalDrift(OceanDrift):
         'sea_surface_wave_period_at_variance_spectral_density_maximum': {'fallback': 0},
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
-        'ocean_vertical_diffusivity': {'fallback': 0.02},
+        'ocean_vertical_diffusivity': {'fallback': 0,
+             'profiles': True},
+
         'sea_floor_depth_below_sea_level': {'fallback': 10000},
         }
 
