@@ -24,6 +24,7 @@ import numpy as np
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
+from datetime import datetime
 
 class ChemicalElement(Lagrangian3DArray):
     variables = Lagrangian3DArray.add_variables([
@@ -110,3 +111,26 @@ class ChemicalDrift(OceanDrift):
             self.elements.moving[resuspending] = 1
             # Suspend 1 cm above seafloor
             self.elements.z[resuspending] = self.elements.z[resuspending] + .01
+
+    def seed_from_STEAM(self, steam, lowerbound=0, radius=0, **kwargs):
+        """Seed elements based on a dataarray with STEAM emission data
+
+        Arguments:
+            steam: dataarray with steam emission data, with coordinates
+                * latitude   (latitude) float32
+                * longitude  (longitude) float32
+                * time       (time) datetime64[ns]
+            
+            
+            radius:      scalar, unit: meters
+            lowerbound:  scalar, elements with lower values are discarded
+        """
+
+        sel=np.where(steam > lowerbound)
+        t=steam.time[sel[0]].data
+        la=steam.latitude[sel[1]].data
+        lo=steam.longitude[sel[2]].data
+        for i in range(0,t.size):
+            number=np.array(steam.data[sel][i]/lowerbound).astype('int')
+            self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
+                            radius=radius, number=number, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9))
