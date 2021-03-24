@@ -293,4 +293,5 @@ class Reader(BaseReader,ContinuousReader):
             plt.savefig(filename)
             plt.close()
         else:
+            # plt.ion()
             plt.show()

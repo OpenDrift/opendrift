@@ -150,7 +150,7 @@ class Reader(BaseReader,UnstructuredReader):
             self.proj4 = proj4
         else:                 # no input assumes latlon
             logger.debug('Lon and lat are 1D arrays, assuming latlong projection: proj4 = ''+proj=latlong''')
-            self.proj4 = '+proj=latlong'
+            self.proj4 = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs' #'+proj=latlong'
 
         # check if 3d data is available and if we should use it
         self.use_3d = use_3d
@@ -1061,10 +1061,9 @@ class Reader(BaseReader,UnstructuredReader):
             # add nodes
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables_derived('sea_floor_depth_below_sea_level', self.start_time,rx, ry, block=True)
+            data = self.get_variables('sea_floor_depth_below_sea_level', self.start_time,rx, ry, block=True)
             rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
             ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
-            
             # set extents
             buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
             buf = 0
@@ -1082,9 +1081,7 @@ class Reader(BaseReader,UnstructuredReader):
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables_derived(variable, self.start_time,
-                                      rx, ry, block=True)
-
+            data = self.get_variables(variable, self.start_time,rx, ry, block=True)
             rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
             data[variable] = np.ma.masked_invalid(data[variable])
             # ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
@@ -1106,6 +1103,7 @@ class Reader(BaseReader,UnstructuredReader):
             plt.savefig(filename)
             plt.close()
         else:
+            # plt.ion()
             plt.show()
 
 ###########################
