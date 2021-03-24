@@ -17,9 +17,9 @@
 """
 Leeway is the search and rescue (SAR) model developed by the US Coast Guard, as originally described in
 
-    Allen, Art, 1999: Leeway Divergence, US Coast Guard tech report CG-D-XX-99
+    Allen, A.A, 2005: Leeway Divergence, USCG R&D Center Technical Report CG-D-05-05. Available through http://www.ntis.gov, reference ADA435435 
 
-    Allen AA and JV Plourde (1999) Review of Leeway; Field Experiments and Implementation, USCG R&D Center Technical Report CG-D-08-99. Available through http://www.ntis.gov, reference ADA366414
+    Allen A.A. and J.V. Plourde (1999) Review of Leeway; Field Experiments and Implementation, USCG R&D Center Technical Report CG-D-08-99. Available through http://www.ntis.gov, reference ADA366414
 
 and later extended and modified by e.g.
 

@@ -45,9 +45,15 @@ o.run(steps=24*2, time_step=1800, time_step_output=3600)
 #%%
 # Print and plot results
 print(o)
-o.animation(fast=True)
+
+#%%
+# Add text label on the map
+text = [{'s': 'Senja', 'x': 17.3, 'y': 69.3, 'fontsize': 20, 'color': 'g',
+         'backgroundcolor': 'white', 'bbox': dict(facecolor='white', alpha=0.8), 'zorder': 1000}]
+
+o.animation(fast=False, ocean_color='skyblue', land_color='burlywood', text=text)
 
 #%%
 # .. image:: /gallery/animations/example_cone_0.gif
 
-o.plot(fast=True)
+o.plot(fast=True, ocean_color='skyblue', land_color='dimgray', text=text)

@@ -878,7 +878,7 @@ class OpenOil(OceanDrift):
             k_ice = (A - 0.3) / (0.8 - 0.3)
             k_ice[A<0.3] = 0
             k_ice[A>0.8] = 1
-            if k_ice.max() > 0.3:
+            if k_ice.max() > 0:
                 logger.info('Ice concentration above 30%, using Nordam scheme for advection in ice')
             # Using decreased Stokes drift according to
             # Arneborg, L. (2017). Oil drift modellling in pack ice

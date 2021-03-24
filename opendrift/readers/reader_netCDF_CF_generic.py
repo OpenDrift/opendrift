@@ -32,11 +32,11 @@ def proj_from_CF_dict(c):
         raise ValueError('grid_mapping not given in dictionary')
     gm = c['grid_mapping_name']
 
+    if 'earth_radius' in c:
+        earth_radius = c['earth_radius']
+    else:
+        earth_radius = 6371000.
     if gm == 'polar_stereographic':
-        if 'earth_radius' in c:
-            earth_radius = c['earth_radius']
-        else:
-            earth_radius = 6371000.
         lon_0 = 0  # default, but dangerous
         for l0 in ['longitude_of_projection_origin',
                    'longitude_of_central_meridian',
@@ -65,6 +65,10 @@ def proj_from_CF_dict(c):
                                    c['latitude_of_projection_origin'],
                                    lon_0, lat_ts, k0, x0, y0, earth_radius)
                  )
+
+    elif gm == 'rotated_latitude_longitude':
+        proj4 = '+proj=ob_tran +o_proj=longlat +lon_0=%s +o_lat_p=%s +R=%s +no_defs' % (
+                c['grid_north_pole_longitude']-180, c['grid_north_pole_latitude'], earth_radius)
 
     proj = pyproj.Proj(proj4)
 
@@ -300,7 +304,11 @@ class Reader(BaseReader, StructuredReader):
             var = self.Dataset.variables[var_name]
             if var.ndim < 2:
                 continue
-            if 'standard_name' in var.attrs:
+            if var_name in standard_name_mapping:
+                # User may specify mapping if standard_name is missing, or to override existing
+                standard_name = standard_name_mapping[var_name]
+                self.variable_mapping[standard_name] = str(var_name)
+            elif 'standard_name' in var.attrs:
                 standard_name = str(var.attrs['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
@@ -325,7 +333,6 @@ class Reader(BaseReader, StructuredReader):
         if len(skipvars) > 0:
             logger.debug('Skipped variables without standard_name: %s' % skipvars)
 
-# >>>>>>> upstream/master
         self.variables = list(self.variable_mapping.keys())
 
         # Run constructor of parent Reader class
