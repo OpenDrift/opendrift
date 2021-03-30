@@ -3,6 +3,7 @@ History
 
 Next release
 -----------------------------
+* Leeway jibing probability is calculated with exponential, giving more precise results for larger time steps. Generic arguments are removed from Leeway seeding method.
 * Config option ``drift:lift_to_seafloor`` is replaced by ``general:seafloor_action``, analoguos to ``general:coastline_action``.
   Available options are ``none``, ``deactivate``, ``lift_to_seafloor`` as well as new option ``previous`` - moving elements back to previous position.
 * New method ``get_trajectory_lengths`` to calculate length and speeds along trajectories

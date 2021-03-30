@@ -145,6 +145,7 @@ class Reader(BaseReader, StructuredReader):
         lon_var_name = None
         lat_var_name = None
         self.unitfactor = 1
+        self.realizations = None
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
 
@@ -231,6 +232,10 @@ class Reader(BaseReader, StructuredReader):
                 self.realizations = var_data
                 logger.debug('%i ensemble members available'
                               % len(self.realizations))
+
+        # Temporary workaround for Barents EPS model
+        if self.realizations is None and 'ensemble_member' in self.Dataset.dims:
+            self.realizations = np.arange(self.Dataset.dims['ensemble_member'])
 
         #########################
         # Summary of geolocation
@@ -347,7 +352,7 @@ class Reader(BaseReader, StructuredReader):
             indz = 0
 
         if indrealization == None:
-            if hasattr(self, 'realizations'):
+            if self.realizations is not None:
                 indrealization = range(len(self.realizations))
             else:
                 indrealization = None

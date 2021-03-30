@@ -176,7 +176,7 @@ class ReaderDomain(Timeable):
         if self.start_time is not None and self.time_step is not None:
             outStr += '    %i times (%i missing)\n' % (
                 self.expected_time_steps, self.missing_time_steps)
-        if hasattr(self, 'realizations'):
+        if hasattr(self, 'realizations') and self.realizations is not None:
             outStr += 'Variables (%i ensemble members):\n' % len(
                 self.realizations)
         else:
