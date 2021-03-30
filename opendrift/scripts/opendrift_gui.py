@@ -609,23 +609,23 @@ class OpenDriftGUI(tk.Tk):
         print('#'*50)
         print('Hang on, plot is comming in a few seconds...')
         print('#'*50)
-        month = np.int(self.months.index(self.monthvar.get()) + 1)
-        start_time = datetime(np.int(self.yearvar.get()), month,
-                              np.int(self.datevar.get()),
-                              np.int(self.hourvar.get()),
-                              np.int(self.minutevar.get()))
-        emonth = np.int(self.months.index(self.emonthvar.get()) + 1)
-        end_time = datetime(np.int(self.eyearvar.get()), emonth,
-                            np.int(self.edatevar.get()),
-                            np.int(self.ehourvar.get()),
-                            np.int(self.eminutevar.get()))
+        month = int(self.months.index(self.monthvar.get()) + 1)
+        start_time = datetime(int(self.yearvar.get()), month,
+                              int(self.datevar.get()),
+                              int(self.hourvar.get()),
+                              int(self.minutevar.get()))
+        emonth = int(self.months.index(self.emonthvar.get()) + 1)
+        end_time = datetime(int(self.eyearvar.get()), emonth,
+                            int(self.edatevar.get()),
+                            int(self.ehourvar.get()),
+                            int(self.eminutevar.get()))
         sys.stdout.flush()
-        lon = np.float(self.lon.get())
-        lat = np.float(self.lat.get())
-        radius = np.float(self.radius.get())
-        elon = np.float(self.elon.get())
-        elat = np.float(self.elat.get())
-        eradius = np.float(self.eradius.get())
+        lon = float(self.lon.get())
+        lat = float(self.lat.get())
+        radius = float(self.radius.get())
+        elon = float(self.elon.get())
+        elat = float(self.elat.get())
+        eradius = float(self.eradius.get())
         if lon != elon or lat != elat or start_time != end_time:
             lon = [lon, elon]
             lat = [lat, elat]
@@ -658,23 +658,23 @@ class OpenDriftGUI(tk.Tk):
         except Exception as e:
             print(e)
             pass
-        month = np.int(self.months.index(self.monthvar.get()) + 1)
-        start_time = datetime(np.int(self.yearvar.get()), month,
-                              np.int(self.datevar.get()),
-                              np.int(self.hourvar.get()),
-                              np.int(self.minutevar.get()))
-        emonth = np.int(self.months.index(self.emonthvar.get()) + 1)
-        end_time = datetime(np.int(self.eyearvar.get()), emonth,
-                            np.int(self.edatevar.get()),
-                            np.int(self.ehourvar.get()),
-                            np.int(self.eminutevar.get()))
+        month = int(self.months.index(self.monthvar.get()) + 1)
+        start_time = datetime(int(self.yearvar.get()), month,
+                              int(self.datevar.get()),
+                              int(self.hourvar.get()),
+                              int(self.minutevar.get()))
+        emonth = int(self.months.index(self.emonthvar.get()) + 1)
+        end_time = datetime(int(self.eyearvar.get()), emonth,
+                            int(self.edatevar.get()),
+                            int(self.ehourvar.get()),
+                            int(self.eminutevar.get()))
         sys.stdout.flush()
-        lon = np.float(self.lon.get())
-        lat = np.float(self.lat.get())
-        radius = np.float(self.radius.get())
-        elon = np.float(self.elon.get())
-        elat = np.float(self.elat.get())
-        eradius = np.float(self.eradius.get())
+        lon = float(self.lon.get())
+        lat = float(self.lat.get())
+        radius = float(self.radius.get())
+        elon = float(self.elon.get())
+        elat = float(self.elat.get())
+        eradius = float(self.eradius.get())
         if lon != elon or lat != elat or start_time != end_time:
             lon = [lon, elon]
             lat = [lat, elat]
@@ -687,7 +687,7 @@ class OpenDriftGUI(tk.Tk):
         for se in self.seed_input:
             val = self.seed_input_var[se].get()
             if self.o._config[se]['type'] in ['float', 'int']:
-                val = np.float(val)
+                val = float(val)
             elif self.o._config[se]['type'] == 'bool':
                 if val == 1:
                     val = True

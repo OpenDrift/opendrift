@@ -204,12 +204,12 @@ def import_file_xarray(self, filename, chunks):
 
     self.steps_output = len(self.ds.time)
     ts0 = (self.ds.time[0] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-    self.start_time = datetime.utcfromtimestamp(np.float(ts0))
+    self.start_time = datetime.utcfromtimestamp(float(ts0))
     tse = (self.ds.time[-1] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-    self.end_time = datetime.utcfromtimestamp(np.float(tse))
+    self.end_time = datetime.utcfromtimestamp(float(tse))
     if len(self.ds.time) > 1:
         ts1 = (self.ds.time[1] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-        self.time_step_output = timedelta(seconds=np.float(ts1 - ts0))
+        self.time_step_output = timedelta(seconds=float(ts1 - ts0))
     self.time = self.end_time  # Using end time as default
     self.status_categories = self.ds.status.flag_meanings.split()
 
@@ -312,7 +312,7 @@ def import_file(self, filename, times=None, elements=None):
         if var in self.ElementType.variables:
             kwargs[var] = self.history[var][
                 np.arange(len(index_of_last)), index_of_last]
-    kwargs['ID'] = elements + 1
+    kwargs['ID'] = np.arange(len(elements)) + 1
     self.elements = self.ElementType(**kwargs)
     self.elements_deactivated = self.ElementType()
 

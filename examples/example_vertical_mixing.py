@@ -29,7 +29,7 @@ diffusivity[z<-20] = 0.001  # uncomment to reduce mixing below 20m
 #%%
 # Preparing mixing timestep
 time = datetime(2020, 1, 1, 0)
-o = OceanDrift(loglevel=0)
+o = OceanDrift(loglevel=20)
 o.set_config('drift:vertical_mixing', True)
 o.set_config('vertical_mixing:diffusivitymodel', 'environment')
 o.set_config('vertical_mixing:timestep', timestep_seconds)

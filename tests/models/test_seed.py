@@ -194,7 +194,6 @@ class TestSeed(unittest.TestCase):
                                 ).max().astype(np.float32),
                         o.elements_scheduled.wind_drift_factor.max())
 
-
     def test_seed_seafloor(self):
         # Check that seed:seafloor overrides z to 'seafloor'
         o = OceanDrift(loglevel=50)
@@ -205,6 +204,16 @@ class TestSeed(unittest.TestCase):
         o.set_config('seed:seafloor', True)
         o.seed_elements(lon=4, lat=60, time=datetime.now())
         self.assertAlmostEqual(o.elements_scheduled.z[0], -200)
+
+    def test_seed_ocean_only(self):
+        o = OceanDrift(loglevel=50)
+        o.set_config('seed:ocean_only', True)
+        o.seed_elements(lon=[4.8, 5.15], lat=[60, 60], time=datetime.now())
+        o.run(steps=1)
+        lat, s = o.get_property('lat')[0]
+        # Check that the second point over land has been moved to ocean
+        self.assertAlmostEqual(lat[0], 60, 5)
+        self.assertNotAlmostEqual(lat[1], 60, 5)
 
 if __name__ == '__main__':
     unittest.main()

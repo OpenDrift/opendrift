@@ -325,7 +325,7 @@ class TestRun(unittest.TestCase):
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -38.7, 1)
+        self.assertAlmostEqual(o1.history['z'].min(), -37.0, 1)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0, 1)
         os.remove('verticalmixing.nc')
 
@@ -577,41 +577,6 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
 
-    @pytest.mark.slow
-    def test_reader_order(self):
-        # Check that we get the same output indepenently of reader order
-        o = OceanDrift(loglevel=50)
-        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
-            '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
-            '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-        landmask = reader_global_landmask.Reader(extent = [2, 59.8, 6, 61])
-        lon=4.; lat=60.
-
-        # First run
-        o.add_reader([landmask, norkyst, arome])
-        o.seed_elements(lon, lat, time=norkyst.start_time)
-        o.run(steps=30)
-        # Second run
-        # Check that we get almost identical results with other projection
-        o1 = OceanDrift(loglevel=50)
-        o1.add_reader([norkyst, arome, landmask])
-        o1.seed_elements(lon, lat, time=norkyst.start_time)
-        o1.run(steps=30)
-        np.testing.assert_array_almost_equal(
-            o.elements.lon, o1.elements.lon, 2)
-        np.testing.assert_array_almost_equal(
-            o.elements.lat, o1.elements.lat, 2)
-        # Third run
-        # Check that this is identical to run 1 if projection set equal
-        o2 = OceanDrift(loglevel=50)
-        o2.add_reader([norkyst, arome, landmask])
-        o2.seed_elements(lon, lat, time=norkyst.start_time)
-        o2.set_projection(landmask.proj4)
-        o2.run(steps=30)
-        np.testing.assert_array_almost_equal(
-                o.elements.lon, o2.elements.lon, decimal=3)
-
     def test_seed_seafloor(self):
         o = OpenOil(loglevel=50)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
@@ -678,7 +643,7 @@ class TestRun(unittest.TestCase):
         o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0], -134.3, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -134.27, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
@@ -716,7 +681,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_max_subsea', 0.001)
         o.seed_elements(lon, lat, z=[-5000, -100], time=reader_norkyst.start_time,
                         density=1000, number=2)
-        o.set_config('drift:lift_to_seafloor', False)  # This time we deactivate
+        o.set_config('general:seafloor_action', 'deactivate')  # This time we deactivate
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
@@ -731,7 +696,7 @@ class TestRun(unittest.TestCase):
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
-        o = OceanDrift(loglevel=50, proj4='+proj=merc')
+        o = OceanDrift(loglevel=50)
         o.max_speed = 100
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         reader_norkyst.buffer = 200

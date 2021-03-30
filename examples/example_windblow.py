@@ -31,10 +31,10 @@ o.run(steps=48*4, time_step=900, time_step_output=3600)
 #%%
 # Print and plot results
 print(o)
-o.animation()
+o.animation(ocean_color='skyblue', land_color='burlywood')
 
 #%%
 # .. image:: /gallery/animations/example_windblow_0.gif
 
-o.plot(buffer=.5)
+o.plot(buffer=.5, ocean_color='skyblue', land_color='burlywood')
 

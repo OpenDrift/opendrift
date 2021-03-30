@@ -1,6 +1,26 @@
 History
 =======
 
+Next release
+-----------------------------
+* Config option ``drift:lift_to_seafloor`` is replaced by ``general:seafloor_action``, analoguos to ``general:coastline_action``.
+  Available options are ``none``, ``deactivate``, ``lift_to_seafloor`` as well as new option ``previous`` - moving elements back to previous position.
+* New method ``get_trajectory_lengths`` to calculate length and speeds along trajectories
+* Basemodel class does not anymore have a projection, internal coordinates are now always lon, lat
+* Color of ocean and landmask may now be overridden in plot- and animation methods with new input variables ``land_color`` and ``ocean_color``. A new input dictionary ``text`` allows map annotations.
+* opendrift-landmask-data only loads mask once for each python process,
+  reducing memory usage and improves performance where you run opendrift
+  multiple times in the same script and process.
+
+2021-02-15 / Release v1.5.6
+-----------------------------
+* New parallelisation of lonlat2xy for unprojected readers. The flag ``<reader>.multiprocessing_fail`` is replaced with ``<reader>.__parallel_fail__``
+* plot_property() can now save figure to file if filename is provided
+* netCDF attribute seed_geojson is now a GeoJSON FeatureCollection.
+* reader_netCDF_CF_generic does not anymore read 2D lon/lat variables if 1D x/y variables are detected, giving much faster initialisation.
+* General replacement of ``np.float`` and ``np.int`` with either ``float``, ``int`` or ``np.float32/64`` and ``np.int32/64``. np.float and np.int are deprecated in numpy 1.20.
+* Fixed bug occuring when interpolating environment_profiles in time, and the number of vertical layers in the ocean-model-block is larger at time1 than at time2
+
 2021-01-26 / Release v1.5.5
 ---------------------------
 * New module LarvalFish, for fish eggs hatching into larvae with swimming behaviour

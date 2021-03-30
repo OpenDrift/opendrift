@@ -55,6 +55,9 @@ class BaseReader(Variables):
         'sea_water_potential_temperature': 'sea_water_temperature',
         'x_wind_10m': 'x_wind',
         'y_wind_10m': 'y_wind',
+        'surface_wind_speed': 'wind_speed',
+        'surface_wind_direction': 'wind_from_direction',
+        'wind_direction': 'wind_from_direction',
         'sea_water_x_velocity': 'x_sea_water_velocity',
         'sea_water_y_velocity': 'y_sea_water_velocity',
         'x_sea_ice_velocity': 'sea_ice_x_velocity',
@@ -90,7 +93,6 @@ class BaseReader(Variables):
         self.is_lazy = False  # Generally False
 
         # Set projection for coordinate transformations
-        self.simulation_SRS = False  # Avoid unnecessary vector rotation
         if self.proj is None:
             if self.proj4 is not None:
                 try:
@@ -154,7 +156,8 @@ class BaseReader(Variables):
         # Adding variables which may be derived from existing ones
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
-            if em['output'][0] not in self.variables and em['input'][0] in self.variables:
+            if not all(item in em['output'] for item in self.variables) and \
+                    all(item in self.variables for item in em['input']):
                 for v in em['output']:
                     logger.debug('Adding variable mapping: %s -> %s' % (em['input'], v))
                     self.variables.append(v)

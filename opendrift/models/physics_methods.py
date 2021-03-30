@@ -195,8 +195,8 @@ def ftle(X, Y, delta, duration):
     # From Johannes Rohrs
     nx = X.shape[0]
     ny = X.shape[1]
-    J = np.empty([nx,ny,2,2],np.float)
-    FTLE = np.empty([nx,ny],np.float)
+    J = np.empty([nx,ny,2,2], np.float32)
+    FTLE = np.empty([nx,ny], np.float32)
 
     # gradient
     dx = np.gradient(X)
@@ -674,24 +674,12 @@ class PhysicsMethods:
                 env['sea_floor_depth_below_sea_level'].astype('float32')
         return sea_floor_depth
 
-    def lift_elements_to_seafloor(self):
-        '''Lift any elements which are below seafloor'''
-
-        if 'sea_floor_depth_below_sea_level' not in self.priority_list:
-            return
-        sea_floor_depth = self.sea_floor_depth()
-        below = self.elements.z < -sea_floor_depth
-        if self.get_config('drift:lift_to_seafloor') is True:
-            self.elements.z[below] = -sea_floor_depth[below]
-        else:
-            self.deactivate_elements(below, reason='seafloor')
 
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''
     Cd = 0.0012*np.ones(len(windspeed))
     Cd[windspeed > 11] = 0.001*(0.49 + 0.065*windspeed[windspeed > 11])
     return Cd
-
 
 def windspeed_from_stress_polyfit(wind_stress):
     '''Inverting Large and Pond (1981) using polyfit'''

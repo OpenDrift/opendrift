@@ -121,8 +121,9 @@ class OceanDrift(OpenDriftSimulation):
             'drift:tabularised_stokes_drift_fetch': {'type': 'enum', 'enum': ['5000', '25000', '50000'], 'default': '25000',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description':
                 'The fetch length when using tabularised Stokes drift.'},
-            'drift:lift_to_seafloor': {'type': 'bool', 'default': True,
-                'description': 'If True, elements hitting/penetrating seafloor, are lifted to seafloor height. The alternative (False) is to deactivate elements).',
+            'general:seafloor_action': {'type': 'enum', 'default': 'lift_to_seafloor',
+                'enum': ['none', 'lift_to_seafloor', 'deactivate', 'previous'],
+                'description': '"deactivate": elements are deactivated; "lift_to_seafloor": elements are lifted to seafloor level; "previous": elements are moved back to previous position; "none"; seafloor is ignored.',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:truncate_ocean_model_below_m': {'type': 'float', 'default': None,
                 'min': 0, 'max': 10000, 'units': 'm',
@@ -212,7 +213,7 @@ class OceanDrift(OpenDriftSimulation):
         bottom = np.where(self.elements.z < Zmin)
         if len(bottom[0]) > 0:
             logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
-            self.elements.z[bottom] = Zmin[bottom]
+            self.interact_with_seafloor()
             self.bottom_interaction(Zmin)
 
     def surface_stick(self):
@@ -373,7 +374,7 @@ class OceanDrift(OpenDriftSimulation):
             w = self.elements.terminal_velocity
 
             # Diffusivity and its gradient at z
-            zi = np.round(z_index(-self.elements.z)).astype(np.int)
+            zi = np.round(z_index(-self.elements.z)).astype(np.uint8)
             Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
             dKdz = gradK[zi, range(Kprofiles.shape[1])]
 
@@ -413,7 +414,7 @@ class OceanDrift(OpenDriftSimulation):
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
                 logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
-                self.elements.z[bottom] = Zmin[bottom]
+                self.interact_with_seafloor()
                 self.bottom_interaction(Zmin)
 
             if store_depths is not False:
@@ -499,7 +500,7 @@ class OceanDrift(OpenDriftSimulation):
         maxrange = -100
 
         def update(val):
-            tindex = np.int(tslider.val)
+            tindex = int(tslider.val)
             mainplot.cla()
             mainplot.grid()
             mainplot.hist(self.history['z'].T[tindex, :], bins=int(-maxrange/dz),

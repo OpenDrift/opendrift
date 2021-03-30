@@ -42,6 +42,8 @@ class Reader(BaseReader, StructuredReader):
             'mask_psi': 'land_binary_mask',
             'h': 'sea_floor_depth_below_sea_level',
             'zeta': 'sea_surface_height',
+            # 'u_eastward' : 'x_sea_water_velocity', 
+            # 'v_northward' : 'y_sea_water_velocity',
             'u': 'x_sea_water_velocity',
             'v': 'y_sea_water_velocity',
             'u_eastward': 'x_sea_water_velocity',
@@ -473,8 +475,8 @@ class Reader(BaseReader, StructuredReader):
         variables['x'] = indx
         variables['y'] = indy
 
-        variables['x'] = variables['x'].astype(np.float)
-        variables['y'] = variables['y'].astype(np.float)
+        variables['x'] = variables['x'].astype(np.float32)
+        variables['y'] = variables['y'].astype(np.float32)
         variables['time'] = nearestTime
 
         if 'x_sea_water_velocity' or 'sea_ice_x_velocity' \

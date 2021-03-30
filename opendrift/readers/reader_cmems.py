@@ -150,7 +150,7 @@ class Reader(NCReader):
             depths = np.array(depths.text.split(';'))
         except:
             depths = np.array(0)
-        self.z = np.array([np.float(d.replace('Surface', '0')) for d in depths])
+        self.z = np.array([np.float32(d.replace('Surface', '0')) for d in depths])
         self.z = -np.abs(self.z)
 
         # Axes
@@ -159,11 +159,11 @@ class Reader(NCReader):
             desc = axis.attrib['name']
             axisType = axis.attrib['axisType']
             if axisType == 'Lat':
-                latmin = np.float(axis.attrib['lower'])
-                latmax = np.float(axis.attrib['upper'])
+                latmin = np.float32(axis.attrib['lower'])
+                latmax = np.float32(axis.attrib['upper'])
             if axisType == 'Lon':
-                lonmin = np.float(axis.attrib['lower'])
-                lonmax = np.float(axis.attrib['upper'])
+                lonmin = np.float32(axis.attrib['lower'])
+                lonmax = np.float32(axis.attrib['upper'])
         # Presently only supporting lonlat-projection, which is most common from CMEMS
         self.proj4 = '+proj=latlong'
         self.xmin = lonmin

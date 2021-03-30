@@ -37,6 +37,10 @@ class StructuredReader(Variables):
     interpolation = 'linearNDFast'
     convolve = None  # Convolution kernel or kernel size
 
+    # Used to enable and track status of parallel coordinate transformations.
+    __lonlat2xy_parallel__ = None
+    __disable_parallel__ = False
+
     def __init__(self):
         if self.proj is None and (self.proj4 is None
                                   or self.proj4 == 'fakeproj'):
@@ -294,7 +298,7 @@ class StructuredReader(Variables):
                 # Truncating layers not present both before and after
                 numlayers = np.minimum(len(env_profiles_before['z']),
                                        len(env_profiles_after['z']))
-                env_profiles['z'] = env_profiles_before['z'][0:numlayers + 1]
+                env_profiles['z'] = env_profiles_before['z'][0:numlayers]
                 for var in env_profiles_before.keys():
                     if var == 'z':
                         continue
@@ -362,72 +366,39 @@ class StructuredReader(Variables):
 
     def lonlat2xy(self, lon, lat):
         if self.projected:
+            self.__lonlat2xy_parallel__ = False
             return super().lonlat2xy(lon, lat)
         else:
-            # Two methods needed for parallelisation
-            def get_x(lon_part, lat_part, num):
-                out_x[num] = self.spl_x(lon_part, lat_part)
-
-            def get_y(lon_part, lat_part, num):
-                out_y[num] = self.spl_y(lon_part, lat_part)
-
-            # TODO: Use ThreadPool, maximum number of threads should not exceed
-            # available cpus.
-
             # For larger arrays, we split and calculate in parallel
-            # The number of CPUs to use can be improved/optimised
             num_elements = len(np.atleast_1d(lon))
-            if num_elements > 100 and not hasattr(self,
-                                                  'multiprocessing_fail'):
-                try:
-                    nproc = 2
-                    if num_elements > 1000:
-                        nproc = 16
-                    if num_elements > 100000:
-                        nproc = 32
-                    if num_elements > 1000000:
-                        nproc = 64
-                    from multiprocessing import cpu_count, Manager, Process
-                    cpus = cpu_count()
-                    nproc = np.minimum(nproc, cpus - 1)
-                    nproc = np.maximum(2, nproc)
-                    logger.debug(
-                        'Running lonlat2xy in parallel, using %i of %i CPUs' %
-                        (nproc, cpus))
-                    split_lon = np.array_split(lon, nproc)
-                    split_lat = np.array_split(lat, nproc)
-                    out_x = Manager().dict()
-                    out_y = Manager().dict()
-                    processes = []
-                    for i in range(nproc):
-                        processes.append(
-                            Process(target=get_x,
-                                    args=(split_lon[i], split_lat[i], i)))
-                        processes.append(
-                            Process(target=get_y,
-                                    args=(split_lon[i], split_lat[i], i)))
-                    [p.start() for p in processes]
-                    [p.join() for p in processes]
-                    x = np.concatenate(out_x)
-                    y = np.concatenate(out_y)
-                    logger.debug('Completed lonlat2xy in parallel')
-                    return (x, y)
-                except Exception as e:
-                    logger.warning('Parallelprocessing failed:')
-                    logger.warning(e)
-                    self.multiprocessing_fail = True
+            if num_elements > 10000 and not self.__disable_parallel__:
+                from multiprocessing import cpu_count
+                from concurrent.futures import ThreadPoolExecutor
+
+                self.__lonlat2xy_parallel__ = True
+
+                nproc = cpu_count()
+                logger.debug('Running lonlat2xy in parallel using %d threads' %
+                             nproc)
+
+                # Chunk arrays
+                split_lon = np.array_split(lon, nproc)
+                split_lat = np.array_split(lat, nproc)
+
+                with ThreadPoolExecutor() as x:
+                    out_x = np.concatenate(
+                        list(x.map(self.spl_x, zip(split_lon, split_lat))))
+                    out_y = np.concatenate(
+                        list(x.map(self.spl_y, zip(split_lon, split_lat))))
+
+                return (out_x, out_y)
+
             else:
-                if hasattr(self, 'multiprocessing_fail'):
-                    logger.warning(
-                        'Multiprocessing has previously failed, reverting to using single processor for lonlat -> xy'
-                    )
-                else:
-                    # For smaller arrays, we run sequentially
-                    pass
-            logger.debug('Calculating lonlat->xy sequentially')
-            x = self.spl_x(lon, lat)
-            y = self.spl_y(lon, lat)
-            return (x, y)
+                logger.debug('Calculating lonlat2xy sequentially')
+                self.__lonlat2xy_parallel__ = False
+                x = self.spl_x(lon, lat)
+                y = self.spl_y(lon, lat)
+                return (x, y)
 
     def pixel_size(self):
         if self.projected:

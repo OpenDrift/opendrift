@@ -199,7 +199,7 @@ class Reader(BaseReader, StructuredReader):
         latmax = np.minimum(y.max() + delta, self.ymax)
 
         for var in requested_variables:
-            ind = np.int(self.indices[var][indxTime]) + 1
+            ind = int(self.indices[var][indxTime]) + 1
             msg = self.grib[ind]
             variables[var], lats, lons = msg.data(lat1=latmin, lat2=latmax,
                                                   lon1=lonmin, lon2=lonmax)

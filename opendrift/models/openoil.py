@@ -47,15 +47,11 @@ When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')
 
 The droplet diameter may be given explicitly when seeding, e.g.::
 
-.. code::
-
     o.seed_elements(4, 60, number=100, time=datetime.now(), diameter=1e-5)
 
 In this case, the diameter will not change during the simulation, which is useful e.g. for sensitivity tests. The same diameter will be used for all elements for this example, but an array of the same length as the number of elements may also be provided.
 
 If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
-
-.. code::
 
     o.set_config('seed:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
     o.set_config('seed:droplet_diameter_max_subsea', 0.005)   # 5 mm
@@ -69,6 +65,8 @@ import os
 import json
 import numpy as np
 from datetime import datetime
+import logging
+import matplotlib; matplotlib.use('Tkagg') #hack to prevent display issues 
 import pyproj
 import matplotlib.pyplot as plt
 import nc_time_axis
@@ -215,6 +213,7 @@ class OpenOil(OceanDrift):
             try:
                 from oil_library import _get_db_session
                 from oil_library.models import Oil, ImportedRecord
+                from oil_library import sample_oils
             except:
                 raise ImportError(
                     'NOAA oil library must be installed from: '
@@ -235,6 +234,9 @@ class OpenOil(OceanDrift):
             if 'generic_oiltypes' in locals():  # We put generic oils first
                 self.oiltypes = generic_oiltypes + self.oiltypes
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
+            # append names of "sample_oils" of OilLibrary (modified s.weppe)
+            for so in sample_oils._sample_oils.keys() :
+                self.oiltypes.append(so) # using unicode for consistency
         else:
             raise ValueError('Weathering model unknown: ' + weathering_model)
 
@@ -666,7 +668,7 @@ class OpenOil(OceanDrift):
                 z_index = interp1d(-self.environment_profiles['z'],
                                    z_i, bounds_error=False)
             zi = z_index(-self.elements.z)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            upper = np.maximum(np.floor(zi).astype(np.uint8), 0)
             lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
 
@@ -876,7 +878,7 @@ class OpenOil(OceanDrift):
             k_ice = (A - 0.3) / (0.8 - 0.3)
             k_ice[A<0.3] = 0
             k_ice[A>0.8] = 1
-            if k_ice.max() > 0.3:
+            if k_ice.max() > 0:
                 logger.info('Ice concentration above 30%, using Nordam scheme for advection in ice')
             # Using decreased Stokes drift according to
             # Arneborg, L. (2017). Oil drift modellling in pack ice
@@ -1024,6 +1026,7 @@ class OpenOil(OceanDrift):
 
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds()/3600. for t in time_relative])
+        fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
 
         if ax is None:
             # Left axis showing oil mass
@@ -1172,8 +1175,14 @@ class OpenOil(OceanDrift):
                 oils = session.query(ADIOS_Oil).filter(
                             ADIOS_Oil.name == oiltype)
                 ADIOS_ids = [oil.adios_oil_id for oil in oils]
+
                 if len(ADIOS_ids) == 0:
-                    raise ValueError('Oil type "%s" not found in NOAA database' % oiltype)
+                    try :
+                        # try to load oiltype even if it wasnt found in the official "oils" database instead of raising error directly
+                        # as it could still be present in sample_oils - there is probably a nicer way to do this
+                        self.oiltype = get_oil_props(oiltype) 
+                    except : 
+                        raise ValueError('Oil type "%s" not found in NOAA database' % oiltype)
                 elif len(ADIOS_ids) == 1:
                     self.oiltype = get_oil_props(oiltype)
                 else:
@@ -1192,8 +1201,8 @@ class OpenOil(OceanDrift):
             oilfile.readline()
         ref = oilfile.readline().split()
         self.oil_data = {}
-        self.oil_data['reference_thickness'] = np.float(ref[0])
-        self.oil_data['reference_wind'] = np.float(ref[1])
+        self.oil_data['reference_thickness'] = float(ref[0])
+        self.oil_data['reference_wind'] = float(ref[1])
         tref = []
         fref = []
         wmax = []
@@ -1219,6 +1228,8 @@ class OpenOil(OceanDrift):
                 else:
                     if s == 'radius':
                         val = 0  # There is no default radius
+                    elif s == 'z' and 'z' not in kwargs and self.get_config('seed:seafloor') is True:
+                        val = 'seafloor'
                     else:
                         val = self.get_config('seed:' + s)
                 if s == 'time':
@@ -1365,7 +1376,7 @@ class OpenOil(OceanDrift):
 
         for patch in tree.findall(pos1, namespaces):
             pos = patch.find(pos2, namespaces).text
-            c = np.array(pos.split()).astype(np.float)
+            c = np.array(pos.split()).astype(float)
             lon = c[0::2]
             lat = c[1::2]
             slicks.append(Polygon(list(zip(lon, lat))))

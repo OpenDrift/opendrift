@@ -15,7 +15,6 @@ class ReaderDomain(Timeable):
     Projection, spatial and temporal domain of reader.
     """
     name = None
-    simulation_SRS = False
 
     proj4 = None
     proj = None
@@ -37,6 +36,11 @@ class ReaderDomain(Timeable):
     end_time = None
     time_step = None
     times = None
+
+    """Setting this to `True` overrides temporal and spatial bounds checks.
+    Also useful for readers that are constant and do not have a temporal
+    dimension."""
+    always_valid = False
 
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
@@ -81,7 +85,7 @@ class ReaderDomain(Timeable):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
         if self.proj.crs.is_geographic:
-            if 'ob_tran' in self.proj4:
+            if 'ob_tran' in str(self.proj4):
                 logger.debug('NB: Converting degrees to radians ' +
                              'due to ob_tran srs')
                 x = np.radians(np.array(x))
@@ -96,7 +100,7 @@ class ReaderDomain(Timeable):
         """
         Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        if 'ob_tran' in self.proj4:
+        if 'ob_tran' in str(self.proj4):
             x, y = self.proj(lon, lat, inverse=False)
             return np.degrees(x), np.degrees(y)
         elif self.proj.crs.is_geographic:
@@ -171,9 +175,10 @@ class ReaderDomain(Timeable):
                   '   step: ' + str(self.time_step) + '\n'
         if self.start_time is not None and self.time_step is not None:
             outStr += '    %i times (%i missing)\n' % (
-                      self.expected_time_steps, self.missing_time_steps)
+                self.expected_time_steps, self.missing_time_steps)
         if hasattr(self, 'realizations'):
-            outStr += 'Variables (%i ensemble members):\n' % len(self.realizations)
+            outStr += 'Variables (%i ensemble members):\n' % len(
+                self.realizations)
         else:
             outStr += 'Variables:\n'
         for variable in self.variables:
@@ -387,12 +392,16 @@ class Variables(ReaderDomain):
 
     environment_mappers = []
     environment_mappings = {
-        'wind_from_speed_and_direction': {
+        'wind_from_speed_and_direction_from': {
+            'input': ['wind_speed', 'wind_from_direction'],
+            'output': ['x_wind', 'y_wind'],
+            'method':
+            lambda reader, var: reader.wind_from_speed_and_direction(var)},
+        'wind_from_speed_and_direction_to': {
             'input': ['wind_speed', 'wind_to_direction'],
             'output': ['x_wind', 'y_wind'],
             'method':
-            lambda reader, var: reader.wind_from_speed_and_direction(var)
-        },
+            lambda reader, var: reader.wind_from_speed_and_direction(var)},
         'testvar': {
             'input': ['sea_ice_thickness'],
             'output': ['istjukkleik']
@@ -405,6 +414,8 @@ class Variables(ReaderDomain):
         if self.variables is None:
             self.variables = []
 
+        super().__init__()
+
     def set_buffer_size(self, max_speed, max_vertical_speed=None):
         '''Adjust buffer to minimise data block size needed to cover elements'''
         self.buffer = 0
@@ -414,17 +425,19 @@ class Variables(ReaderDomain):
                 time_step_seconds = self.time_step.total_seconds()
             else:
                 time_step_seconds = 3600  # 1 hour if not given
-            self.buffer = np.int(
+            self.buffer = int(
                 np.ceil(max_speed * time_step_seconds / pixelsize)) + 2
             logger.debug('Setting buffer size %i for reader %s, assuming '
                          'a maximum average speed of %g m/s.' %
                          (self.buffer, self.name, max_speed))
 
     def wind_from_speed_and_direction(self, env):
-        north_wind = env['wind_speed'] * np.cos(
-            np.radians(env['wind_to_direction']))
-        east_wind = env['wind_speed'] * np.sin(
-            np.radians(env['wind_to_direction']))
+        if 'wind_from_direction' in env:
+            wfd = env['wind_from_direction']
+        else:
+            wfd = -env['wind_to_direction']
+        north_wind = -env['wind_speed']*np.cos(np.radians(wfd))
+        east_wind = -env['wind_speed']*np.sin(np.radians(wfd))
         env['x_wind'] = east_wind
         env['y_wind'] = north_wind
         # Rotating might be necessary generally
@@ -443,8 +456,8 @@ class Variables(ReaderDomain):
         Make sure x and y are floats (and not e.g. int64)
         """
         if 'x' in env.keys():
-            env['x'] = np.array(env['x'], dtype=np.float)
-            env['y'] = np.array(env['y'], dtype=np.float)
+            env['x'] = np.array(env['x'], dtype=np.float32)
+            env['y'] = np.array(env['y'], dtype=np.float32)
 
     @staticmethod
     def __check_variable_array__(name, variable):
@@ -461,23 +474,25 @@ class Variables(ReaderDomain):
             logger.debug("Checking %s for invalid values" % name)
             if isinstance(variable, list):
                 logger.debug(
-                    'Min-max checking for ensemble data (%i members)' % (len(variable)))
+                    'Min-max checking for ensemble data (%i members)' %
+                    (len(variable)))
                 # Recursive
-                return [Variables.__check_variable_array__(name, v) for v in variable]
+                return [
+                    Variables.__check_variable_array__(name, v)
+                    for v in variable
+                ]
             # with np.errstate(invalid='ignore'):
             invalid_indices = np.logical_and(
                 np.isfinite(variable),
-                np.logical_or(
-                    variable < standard_names[name]['valid_min'],
-                    variable > standard_names[name]['valid_max']))
+                np.logical_or(variable < standard_names[name]['valid_min'],
+                              variable > standard_names[name]['valid_max']))
             if np.sum(invalid_indices) > 0:
                 invalid_values = variable[invalid_indices]
                 logger.warning(
                     'Invalid values (%s to %s) found for %s, replacing with NaN'
-                    %
-                    (invalid_values.min(), invalid_values.max(), name))
+                    % (invalid_values.min(), invalid_values.max(), name))
                 logger.warning('(allowed range: [%s, %s])' %
-                                (standard_names[name]['valid_min'],
+                               (standard_names[name]['valid_min'],
                                 standard_names[name]['valid_max']))
                 variable[invalid_indices] = np.nan
 
@@ -495,10 +510,13 @@ class Variables(ReaderDomain):
 
             :meth:`.structured.StructuredReader.__check_env_arrays__`
         """
-        variables = [var for var in env.keys() if var not in ['x', 'y', 'time']]
+        variables = [
+            var for var in env.keys() if var not in ['x', 'y', 'time']
+        ]
 
         for variable in variables:
-            env[variable] = self.__check_variable_array__(variable, env[variable])
+            env[variable] = self.__check_variable_array__(
+                variable, env[variable])
 
         return env
 
@@ -548,10 +566,11 @@ class Variables(ReaderDomain):
         numx = len(x)  # To check later if all points were covered
 
         y = np.atleast_1d(y)
-        z = np.atleast_1d(z) if z is not None else np.zeros((1,))
+        z = np.atleast_1d(z) if z is not None else np.zeros((1, ))
 
         assert numx == len(y), "x, y, and z must have the same length"
-        assert len(z) == 1 or numx == len(z), "x, y, and z must have the same length"
+        assert len(z) == 1 or numx == len(
+            z), "x, y, and z must have the same length"
 
         ind_covered, xx, yy = self.covers_positions_xy(x, y, z)
         if len(ind_covered) == 0:
@@ -559,8 +578,8 @@ class Variables(ReaderDomain):
             logger.error("All particles outside domain!")
             raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
                               'are outside domain of %s (%s)') %
-                             (len(x), lon.min(), lon.max(), lat.min(), lat.max(),
-                              self.name, self.coverage_string()))
+                             (len(x), lon.min(), lon.max(), lat.min(),
+                              lat.max(), self.name, self.coverage_string()))
         x = xx
         y = yy
 
@@ -580,7 +599,8 @@ class Variables(ReaderDomain):
 
         for var in variables:
             if var in self.derived_variables:
-                logger.debug("Scheduling %s to be derived from %s" % (var, self.derived_variables[var]))
+                logger.debug("Scheduling %s to be derived from %s" %
+                             (var, self.derived_variables[var]))
                 derived_input.extend(self.derived_variables[var])
                 derived.append(var)
 
@@ -596,7 +616,7 @@ class Variables(ReaderDomain):
             self.__calculate_derived_environment_variables__(env)
             variables.extend(derived)
 
-        for e in [ env, env_profiles ]:
+        for e in [env, env_profiles]:
             if e is not None:
                 self.__check_env_coordinates__(e)
                 self.__check_env_arrays__(e)
@@ -605,8 +625,8 @@ class Variables(ReaderDomain):
 
         # Rotating vectors fields
         if rotate_to_proj is not None:
-            if self.simulation_SRS is True:
-                logger.debug('Reader SRS is the same as calculation SRS - '
+            if self.proj.crs.is_geographic:
+                logger.debug('Reader projection is latlon - '
                              'rotation of vectors is not needed.')
             else:
                 vector_pairs = []

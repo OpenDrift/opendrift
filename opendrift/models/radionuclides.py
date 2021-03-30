@@ -81,10 +81,10 @@ class RadionuclideDrift(OceanDrift):
         'ocean_vertical_diffusivity': {'fallback': 0.0001, 'profiles': True},
         'sea_water_temperature': {'fallback': 10, 'profiles': True},
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
-        'surface_downward_x_stress': {'fallback': 0},
-        'surface_downward_y_stress': {'fallback': 0},
-        'turbulent_kinetic_energy': {'fallback': 0},
-        'turbulent_generic_length_scale': {'fallback': 0},
+#        'surface_downward_x_stress': {'fallback': 0},
+#        'surface_downward_y_stress': {'fallback': 0},
+#        'turbulent_kinetic_energy': {'fallback': 0},
+#        'turbulent_generic_length_scale': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0},
         'conc3': {'fallback': 1.e-3},
         }
@@ -203,7 +203,6 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             })
 
-        self._set_config_default('drift:vertical_mixing', True)
 
 
 
@@ -292,9 +291,6 @@ class RadionuclideDrift(OceanDrift):
 
 
 
-        # Make sure vertical mixing is active when particles are simulated
-        if self.get_config('radionuclide:species:Particle_reversible'):
-            self.set_config('drift:vertical_mixing', True)
 
 
 
@@ -592,7 +588,7 @@ class RadionuclideDrift(OceanDrift):
                 z_index = interp1d(-self.environment_profiles['z'],
                                    z_i, bounds_error=False)
             zi = z_index(-self.elements.z)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            upper = np.maximum(np.floor(zi).astype(np.uint8), 0)
             lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
 
@@ -624,20 +620,6 @@ class RadionuclideDrift(OceanDrift):
         # terminal velocity for low Reynolds numbers
         W = (1.0/my_w)*(1.0/18.0)*g*partsize**2 * dr
 
-        # check if we are in a Reynolds regime where Re > 0.5
-        highRe = np.where(W*1000*partsize/my_w > 0.5)
-
-        # Use empirical equations for terminal velocity in
-        # high Reynolds numbers.
-        # Empirical equations have length units in cm!
-        my_w = 0.01854 * np.exp(-0.02783 * T0)  # in cm2/s
-        d0 = (partsize * 100) - 0.4 * \
-            (9.0 * my_w**2 / (100 * g) * DENSw / dr)**(1.0 / 3.0)  # cm
-        W2 = 19.0*d0*(0.001*dr)**(2.0/3.0)*(my_w*0.001*DENSw)**(-1.0/3.0)
-        # cm/s
-        W2 = W2/100.  # back to m/s
-
-        W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W
 
 
@@ -744,6 +726,10 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:species:LMMcation'):
             self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)]
+        # avoid setting positive z values
+        if np.nansum(self.elements.z>0):
+            logger.debug('Number of elements lowered down to sea surface: %s' % np.nansum(self.elements.z>0))
+        self.elements.z[self.elements.z > 0] = 0
 
 
 
@@ -756,18 +742,22 @@ class RadionuclideDrift(OceanDrift):
 
         if self.get_config('radionuclide:species:LMM'):
             self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = \
-                self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
+                -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
             if std > 0:
                 logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmm) & (sp_in==self.num_srev)))
         if self.get_config('radionuclide:species:LMMcation'):
             self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = \
-                self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
+                -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
             if std > 0:
                 logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmmcation) & (sp_in==self.num_srev)))
+        # avoid setting positive z values
+        if np.nansum(self.elements.z>0):
+            logger.debug('Number of elements lowered down to sea surface: %s' % np.nansum(self.elements.z>0))
+        self.elements.z[self.elements.z > 0] = 0
 
 
 
@@ -876,7 +866,11 @@ class RadionuclideDrift(OceanDrift):
             logger.debug('Adding uncertainty for resuspension from sediments: %s m' % std)
             self.elements.z[resusp] += np.random.normal(
                         0, std, sum(resusp))
-        self.elements.z[resusp] = [min(0,zz) for zz in self.elements.z[resusp]]
+        # avoid setting positive z values
+        if np.nansum(self.elements.z>0):
+            logger.debug('Number of elements lowered down to sea surface: %s' % np.nansum(self.elements.z>0))
+        self.elements.z[self.elements.z > 0] = 0
+
         self.ntransformations[self.num_srev,self.num_prev]+=sum((resusp) & (self.elements.specie==self.num_srev))
         self.elements.specie[(resusp) & (self.elements.specie==self.num_srev)] = self.num_prev
         if self.get_config('radionuclide:slowly_fraction'):
@@ -904,8 +898,12 @@ class RadionuclideDrift(OceanDrift):
 
         # Turbulent Mixing
         z_before = self.elements.z.copy()
-        self.update_terminal_velocity()
-        self.vertical_mixing()
+        if self.get_config('drift:vertical_mixing') is True:
+            self.update_terminal_velocity()
+            self.vertical_mixing()
+        else:
+            self.update_terminal_velocity()
+            self.vertical_buoyancy()
 
 
         # Resuspension

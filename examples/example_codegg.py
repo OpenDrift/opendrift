@@ -6,13 +6,13 @@ Cod egg
 
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.pelagicegg import PelagicEggDrift
-from datetime import datetime
+from datetime import datetime, timedelta
 
 o = PelagicEggDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Forcing with Topaz ocean model and MEPS atmospheric model
 o.add_readers_from_list([
-    'https://thredds.met.no/thredds/dodsC/topaz/dataset-topaz4-arc-unmasked-be',
+    'https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml',
     'https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc'])
 
 #%%
@@ -30,15 +30,14 @@ o.seed_elements(13., 67.8, z=-40, radius=2000, number=500,
 #%%
 # Adjusting some configuration
 o.set_config('drift:vertical_mixing', True)
-#o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
-o.set_config('vertical_mixing:diffusivitymodel', 'environment') # use eddy diffusivity from ocean model
+o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
 #%%
 # Vertical mixing requires fast time step
 o.set_config('vertical_mixing:timestep', 60.) # seconds
 
 #%%
 # Running model
-o.run(steps=96, time_step=3600)
+o.run(duration=timedelta(hours=48), time_step=3600)
 
 #%%
 # Print and plot results.

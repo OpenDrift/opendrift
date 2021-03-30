@@ -14,6 +14,22 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+"""
+Leeway is the search and rescue (SAR) model developed by the US Coast Guard, as originally described in
+
+    Allen, A.A, 2005: Leeway Divergence, USCG R&D Center Technical Report CG-D-05-05. Available through http://www.ntis.gov, reference ADA435435 
+
+    Allen A.A. and J.V. Plourde (1999) Review of Leeway; Field Experiments and Implementation, USCG R&D Center Technical Report CG-D-08-99. Available through http://www.ntis.gov, reference ADA366414
+
+and later extended and modified by e.g.
+
+    Breivik, O., A. Allen, C. Maisondieu, J.-C. Roth, and B. Forest, 2012: The leeway of shipping containers at different immersion levels. Ocean Dyn., 62, 741–752, doi:10.1007/s10236-012-0522-z
+
+The Leeway model is based on empirically determined coefficients as tabulated in https://github.com/OpenDrift/opendrift/blob/master/opendrift/models/OBJECTPROP.DAT
+
+The Leeway model is been reprogrammed in Python for OpenDrift by Knut-Frode Dagestad of the Norwegian Meteorological Institute.
+"""
+
 from builtins import range
 import os
 from collections import OrderedDict
@@ -34,11 +50,11 @@ class LeewayObj(LagrangianArray):
 
     """
     variables = LagrangianArray.add_variables([
-        ('object_type', {'dtype': np.int16,
+        ('object_type', {'dtype': np.uint16,
                         'units': '1',
                         'seed': False,
                         'default': 0}),
-        ('orientation', {'dtype': np.int16,
+        ('orientation', {'dtype': np.uint8,
                          'units': '1',
             'description': '0/1 is left/right of downwind. Randomly chosen at seed time',
                          'seed': False,

@@ -6,6 +6,7 @@ orbs:
 test-template: &test-template
   docker:
     - image: continuumio/miniconda3
+  resource_class: medium+
   steps:
     - checkout
     - run:
@@ -16,7 +17,7 @@ test-template: &test-template
           cat envconfig
 
     - restore_cache:
-        key: v10-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v13-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
     - run:
         name: Install requirements
         command: |
@@ -39,7 +40,7 @@ test-template: &test-template
           fi
 
     - save_cache:
-        key: v10-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v13-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
         paths:
           - "/opt/conda/envs"
 
@@ -123,7 +124,7 @@ jobs:
             fi
 
       - restore_cache:
-          key: v5-docs-deps1-{{ checksum "environment.yml" }}
+          key: v6-docs-deps1-{{ checksum "environment.yml" }}
 
       - run:
           name: Install requirements
@@ -136,7 +137,7 @@ jobs:
             fi
 
       - save_cache:
-          key: v5-docs-deps1-{{ checksum "environment.yml" }}
+          key: v6-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 

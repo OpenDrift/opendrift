@@ -74,12 +74,7 @@ def reader_from_url(url, timeout=10):
 
     if files == []:  # Try with OPeNDAP URL
         try:  # Check URL accessibility/timeout
-            try:
-                # for python 3
-                import urllib.request as urllib_request
-            except ImportError:
-                # for python 2
-                import urllib2 as urllib_request
+            import urllib.request as urllib_request
             request = urllib_request.Request(url)
             try:  # netrc
                 import netrc
