@@ -135,7 +135,7 @@ class TestModels(unittest.TestCase):
         o.set_config('environment:fallback:y_sea_water_velocity', 0) #m/s 
         o.set_config('environment:fallback:x_wind', 0 )#m/s
         o.set_config('environment:fallback:y_wind', 0) #m/s
-        o.set_config('environment:fallback:sea_water_temperature', 12.0 )# degrees Celsius
+        o.set_config('environment:fallback:sea_water_temperature', 13.0 )# degrees Celsius
         o.set_config('environment:fallback:sea_water_salinity', 35.0 )   # ppt
         o.set_config('environment:fallback:ocean_vertical_diffusivity', 0.000) # m2/s
 
@@ -147,7 +147,7 @@ class TestModels(unittest.TestCase):
         # set the "liveable" salinity and temperature thresholds so that constant values are within ranges.
         # the mortality will thus only be related to 'mortality_daily_rate'
 
-        o.set_config('biology:temperature_min', 12.1)#'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
+        o.set_config('biology:temperature_min', 12.0)#'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
         o.set_config('biology:temperature_max', 14.0)#'float(min=0.0, max=100.0, default=None)', comment=' upper threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
 
         o.set_config('biology:salinity_min', 30.0)#'float(min=0.0, max=100.0, default=None)', comment=' lower threshold temperature where a species population quickly declines to extinction in degrees Celsius') #
@@ -157,10 +157,12 @@ class TestModels(unittest.TestCase):
 
         o.seed_elements(lon=2, lat=60,z = -1.0, time=datetime(2021, 2, 24, 3, 46, 8), number=1)
         o.run(duration=timedelta(hours=4))
-        import pdb;pdb.set_trace()
+        # import pdb;pdb.set_trace()
         self.assertAlmostEqual(o.elements.lon.max(), 2.258064243, 3)    
         self.assertAlmostEqual(o.elements.survival.max(), 0.9916926, 3)  # note: different vertical position at end of the simulation that previous test
-
+        length_run_in_days = 4./24.
+        mortality_daily_rate = 0.05
+        self.assertAlmostEqual(o.elements.survival.max(), 1-(length_run_in_days*mortality_daily_rate), 4)  # 1 - (length_run_in_days*mortality_daily_rate)
 
 if __name__ == '__main__':
     unittest.main()

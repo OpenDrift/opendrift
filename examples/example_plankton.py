@@ -94,7 +94,7 @@ if False:
 
 
 # Running model
-o.run(end_time=nordic_native.start_time + timedelta(hours=4.0), time_step=3600)
+o.run(end_time=nordic_native.start_time + timedelta(hours=48.0), time_step=3600)
 
 # Print and plot results.
 # At the end the wind vanishes, and eggs come to surface
@@ -102,7 +102,7 @@ print(o)
 
 o.plot(fast=True)
 
-o.animation(fast=True, color='z')
+o.animation(fast=True,background=['x_sea_water_velocity', 'y_sea_water_velocity'], color='z')
 
 # Interactive slider (not working in browser)
 o.plot_vertical_distribution()

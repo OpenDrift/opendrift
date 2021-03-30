@@ -6,3 +6,4 @@ pyproj>=2.2
 cartopy
 git+https://github.com/OpenDrift/OilLibrary
 git+https://github.com/OpenDrift/opendrift-landmask-data.git
+pysolar

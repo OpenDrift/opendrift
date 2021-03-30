@@ -436,18 +436,10 @@ class PelagicPlanktonDrift(OceanDrift):
                 # 
                 # other option could be that particle start to decay at temp_min, and are all dead when reaching [temp_min-temp_tol]
                 # >> m=(temp_min-temp_xy)/temp_tol
-                # 
-                # to check with Andre
-                # 
-                # import pdb;pdb.set_trace()
 
                 if (m>0).any():
                   logger.debug('Minimum temperature reached for %s particles' % np.sum(m>0))
                 self.elements.survival -= np.maximum(np.minimum(m,1),0)*self.elements.survival # https://github.com/metocean/ercore/blob/ercore_nc/ercore/materials/biota.py#L65
-
-          m=(self.props['tempmin']+self.props['temptol']-temp)/self.props['temptol']
-          self.mass[:np]-=numpy.maximum(numpy.minimum(m,1),0)*self.mass[:np]
-
 
         # print('TEMP')
         # print(self.elements.survival)
