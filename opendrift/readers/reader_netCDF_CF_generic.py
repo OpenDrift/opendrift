@@ -133,7 +133,6 @@ class Reader(BaseReader, StructuredReader):
                 self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
                                                  chunks={'time': 1}, decode_times=False)
             else:
-                logger.info('Opening file with Dataset')
                 self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)

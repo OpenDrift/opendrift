@@ -2946,7 +2946,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     y_deactive[index_of_last_deactivated < i]])
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
-                    if isinstance(color, str):
+                    if isinstance(color, str) or hasattr(color, '__len__'):
                         points_deactivated.set_array(
                             colorarray_deactivated[
                                 index_of_last_deactivated < i])
@@ -3000,6 +3000,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     self.get_property(color)[0][
                         index_of_last[self.elements_deactivated.ID-1],
                                       self.elements_deactivated.ID-1].T
+            elif hasattr(color, '__len__'):  # E.g. array/list of ensemble numbers
+                colorarray_deactivated = color[self.elements_deactivated.ID-1]
+                colorarray = np.tile(color, (self.steps_output, 1)).T
             else:
                 colorarray = color
             if vmin is None:
@@ -3255,7 +3258,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
              linewidth=1, lcs=None, show_particles=True, show_initial=True,
-             density_pixelsize_m=1000, bgalpha=1,
+             density_pixelsize_m=1000, bgalpha=1, clabel=None,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
              fast=False, hide_landmask=False, **kwargs):
@@ -3342,6 +3345,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 try:
                     if isinstance(linecolor, str):
                         param = self.history[linecolor]
+                    elif hasattr(linecolor, '__len__'):
+                        param = np.tile(linecolor, (self.steps_output, 1)).T
                     else:
                         param = linecolor
                 except:
@@ -3500,7 +3505,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if mappable is not None and colorbar is True:
             cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             # TODO: need better control of colorbar content
-            if linecolor != 'gray':
+            if clabel is not None:
+                cb.set_label(clabel)
+            elif linecolor != 'gray' and not hasattr(linecolor, '__len__'):
                 cb.set_label(str(linecolor))
             if background is not None:
                 cb.set_label(str(background))
