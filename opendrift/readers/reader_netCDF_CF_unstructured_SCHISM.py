@@ -462,7 +462,6 @@ class Reader(BaseReader,UnstructuredReader):
             # update the 2D KDtree (will be used to initialize the ReaderBlockUnstruct)
             self.reader_KDtree = cKDTree(np.vstack((variables['x'],variables['y'])).T) 
             # the 3D KDtree in updated within ReaderBlockUnstruct()
-            
         return variables 
 
 
@@ -700,7 +699,8 @@ class Reader(BaseReader,UnstructuredReader):
             my = reader_y
             mz = z
 
-        z = z.copy()[ind_covered]  # Send values and not reference
+        # z = z.copy()[ind_covered]  # Send values and not reference
+        # EDIT:commented out: we need to keep the full array so that shapes are consistent
         
         # start interpolation procedure
         # 
@@ -959,6 +959,7 @@ class Reader(BaseReader,UnstructuredReader):
         import matplotlib.tri as mtri
         fig = plt.figure()
 
+
         #####################################
         # In Dev - plot unstructured mesh
         # 
@@ -1103,8 +1104,14 @@ class Reader(BaseReader,UnstructuredReader):
             plt.savefig(filename)
             plt.close()
         else:
-            # plt.ion()
+            plt.ion()
             plt.show()
+            import pdb;pdb.set_trace()
+            # variable = ['sea_floor_depth_below_sea_level','x_sea_water_velocity','y_sea_water_velocity']
+            # data = self.get_variables(variable, self.start_time,rx, ry, block=True) # where variable = ['x_sea_water_velocity','y_sea_water_velocity']
+            # plt.quiver(rlon,rlat,data['x_sea_water_velocity']) #> check what's going here
+            # >>> try to add quiver to check flow fields and how they are interpolated over time
+            # >>> also consider adding the possibiltyy to overlay quiver+particle motions for the reader_netCDF_CF_generic structured
 
 ###########################
 # ReaderBlockUnstruct class
