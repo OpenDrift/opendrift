@@ -44,7 +44,7 @@ class ReaderDomain(Timeable):
 
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
-        """Rotate vectors from one srs to another."""
+        """Rotate vectors from one crs to another."""
 
         if type(proj_from) is str:
             proj_from = pyproj.Proj(proj_from)
@@ -110,7 +110,7 @@ class ReaderDomain(Timeable):
             return x, y
 
     def y_azimuth(self, lon, lat):
-        """Calculate azimuth orientation of the y-axis of the reader SRS."""
+        """Calculate azimuth orientation of the y-axis of the reader CRS."""
         x0, y0 = self.lonlat2xy(lon, lat)
         distance = 1000.0  # Create points 1 km away to determine azimuth
         lon_2, lat_2 = self.xy2lonlat(x0, y0 + distance)
