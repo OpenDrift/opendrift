@@ -17,7 +17,7 @@ dependencies:
   - dask>=2021.03.1
   - cfgrib
   - pygrib
-  - xhistogram
+  - xhistogram<=0.1.2
   - requests
   - pytest
   - pytest-cov
