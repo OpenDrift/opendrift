@@ -286,8 +286,16 @@ class Reader(BaseReader,UnstructuredReader):
 
         self.x = x
         self.y = y
-        # self.lon = x
-        # self.lat = y
+
+        if not (self.x>360.).any() and self.use_3d :
+            logger.debug('Native (x,y) coordinates are lon/lat - cannot use 3D data, setting use_3d = False')
+            self.use_3d = False
+            import pdb;pdb.set_trace()
+            # the 3D interpolation currently doesnt work if the x,y coordinates in native netcdf files
+            # are not cartesian but geopgraphic. If that is the case, when doing 3D interpolation and tree search, 
+            # the vertical distance unit is meter, while the horizontal distance unit is degrees, which will return
+            # erroneous "closest" nodes in ReaderBlockUnstruct,interpolate()
+
         
         # compute CKDtree of (static) 2D nodes using _build_ckdtree_() from unstructured.py
         logger.debug('Building CKDtree of static 2D nodes for nearest-neighbor search')
@@ -948,7 +956,7 @@ class Reader(BaseReader,UnstructuredReader):
         return env, env_profiles
 
     def plot(self, variable=None, vmin=None, vmax=None,
-             filename=None, title=None, buffer=1, lscale='auto'):
+             filename=None, title=None, buffer=1, lscale='auto',plot_time = None):
         """Plot geographical coverage of reader."""
 
         import matplotlib.pyplot as plt
@@ -958,6 +966,9 @@ class Reader(BaseReader,UnstructuredReader):
         from opendrift_landmask_data import Landmask
         import matplotlib.tri as mtri
         fig = plt.figure()
+
+        if plot_time is None : 
+            plot_time = self.start_time
 
 
         #####################################
@@ -1062,7 +1073,7 @@ class Reader(BaseReader,UnstructuredReader):
             # add nodes
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables('sea_floor_depth_below_sea_level', self.start_time,rx, ry, block=True)
+            data = self.get_variables('sea_floor_depth_below_sea_level', plot_time,rx, ry, block=True)
             rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
             ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
             # set extents
@@ -1080,20 +1091,42 @@ class Reader(BaseReader,UnstructuredReader):
                    (self.start_time, self.end_time))
 
         if variable is not None:
-            rx = np.array([self.xmin, self.xmax])
-            ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables(variable, self.start_time,rx, ry, block=True)
-            rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
-            data[variable] = np.ma.masked_invalid(data[variable])
-            # ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
-            face=self.dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
-            # build triangulation
-            triang =mtri.Triangulation(rlon,rlat, triangles=face, mask=None)
-            # plot the variable 
-            ax.tricontourf(triang, data[variable],vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
-            # add the triangular mesh - too slow
-            # ax.triplot(triang, transform=ccrs.PlateCarree()) 
+            if len(variable) == 1: # simple scalar variable
+                variable = variable[0]
+                rx = np.array([self.xmin, self.xmax])
+                ry = np.array([self.ymin, self.ymax])
+                data = self.get_variables(variable, plot_time,rx, ry, block=True)
+                rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
+                data[variable] = np.ma.masked_invalid(data[variable])
+                # ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
+                face=self.dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
+                # build triangulation
+                triang =mtri.Triangulation(rlon,rlat, triangles=face, mask=None)
+                # plot the variable 
+                ax.tricontourf(triang, data[variable],vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+                # add the triangular mesh - too slow
+                # ax.triplot(triang, transform=ccrs.PlateCarree()) 
+
+            elif len(variable)>1 and all('water' in var for var in variable):  # vector field variable = ['x_sea_water_velocity','y_sea_water_velocity']
+                rx = np.array([self.xmin, self.xmax])
+                ry = np.array([self.ymin, self.ymax])
+                data = self.get_variables(variable, plot_time,rx, ry, block=True)
+                rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
+                # data[variable] = np.ma.masked_invalid(data[variable])
+                # ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
+                face=self.dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
+                # build triangulation
+                triang =mtri.Triangulation(rlon,rlat, triangles=face, mask=None)
+                if False:
+                    # plot the variable 
+                    ax.tricontourf(triang, data[variable],vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+                    # add the triangular mesh - too slow
+                    ax.triplot(triang, transform=ccrs.PlateCarree()) 
+
+                ax.quiver(rlon,rlat,data['x_sea_water_velocity'],data['y_sea_water_velocity'],np.sqrt(data['x_sea_water_velocity']**2 + data['y_sea_water_velocity']**2), transform=ccrs.PlateCarree() )
+
             ax.set_extent([xsp.min()-.5, xsp.max()+.5, ysp.min()-.5, ysp.max()+.5], crs=sp)
+
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
             mng.toolbar.zoom()
@@ -1199,7 +1232,7 @@ class ReaderBlockUnstruct():
 
             self.block_KDtree_3d = cKDTree(np.vstack((self.x_3d,self.y_3d,self.z_3d)).T) 
             # do we need copy_data=True ..probably not since "data" [self.x_3d,self.y_3d,self.z_3d] 
-            # will not change without the KDtree being recomputed
+            # will not change without the KDtree being recomputedplt
 
         # Mask any extremely large values, e.g. if missing netCDF _Fill_value
         filled_variables = set()
@@ -1299,11 +1332,23 @@ class ReaderBlockUnstruct():
                     #3D KDtree
                     dist,i=self.block_KDtree_3d.query(np.vstack((x,y,z)).T,nb_closest_nodes, n_jobs=-1) #quick nearest-neighbor lookup
                     # dist = distance to nodes / i = index of nodes
+                    ##############################
+                    # PLOT CHECKS
+                    if False:
+                        import matplotlib.pyplot as plt
+                        fig = plt.figure()
+                        ax = fig.add_subplot(111, projection='3d')
+                        ax.scatter(self.x_3d[i[0]].data.tolist(),self.y_3d[i[0]].data.tolist(),self.z_3d[i[0]].data.tolist(),c='r', marker='o')
+                        ax.scatter(x[0:1],y[0:1],z[0:1],c='g', marker='o')
+                        plt.ion()
+                        plt.show()
+                    ##############################3
+
                 dist[dist<DMIN]=DMIN
                 fac=(1./dist)
-                data_interpolated = (fac*data.take(i)).sum(-1)/fac.sum(-1) 
+                data_interpolated = (fac*data.take(i)).sum(-1)/fac.sum(-1)
 
-     
+
                 # # CHECK#################################################
                 # data_KD = np.vstack((self.x_3d,self.y_3d,self.z_3d)).T
                 # data_points_to_find = np.vstack((x,y,z)).T
@@ -1345,6 +1390,7 @@ class ReaderBlockUnstruct():
             for layer in range(num_layers):
                 result[layer, :] = self.interpolator2d(data[layer, :, :])
             return result
+
 
     def covers_positions(self, x, y, z=None):
         '''Check if given positions are covered by this reader block.'''
