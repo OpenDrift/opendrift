@@ -253,7 +253,7 @@ class StructuredReader(Variables):
                 reader_x, reader_y) is False):
             logger.warning('Data block from %s not large enough to '
                            'cover element positions within timestep. '
-                           'Buffer size (%s) must be increased.' %
+                           'Buffer size (%s) must be increased. See `Variables.set_buffer_size`.' %
                            (self.name, str(self.buffer)))
 
         ############################################################
