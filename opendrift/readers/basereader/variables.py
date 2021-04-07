@@ -1,7 +1,6 @@
 import numpy as np
 import pyproj
 from bisect import bisect_left
-import copy
 from abc import abstractmethod
 import logging
 logger = logging.getLogger(__name__)
@@ -416,8 +415,21 @@ class Variables(ReaderDomain):
 
         super().__init__()
 
-    def set_buffer_size(self, max_speed, max_vertical_speed=None):
-        '''Adjust buffer to minimise data block size needed to cover elements'''
+    def set_buffer_size(self, max_speed):
+        '''
+        Adjust buffer to minimise data block size needed to cover elements.
+
+        The buffer size is calculated from the maximum anticpated speed.
+        Seeding over a large area or over longer time can easily cause
+        particles to be located outside the block. This is not critical, but
+        causes interpolation to be one-sided in time for the relevant
+        particles.
+
+        Args:
+
+            max_speed: the maximum speed anticipated for particles.
+
+        '''
         self.buffer = 0
         pixelsize = self.pixel_size()
         if pixelsize is not None:
