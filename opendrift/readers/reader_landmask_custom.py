@@ -70,7 +70,6 @@ class Reader(BaseReader,ContinuousReader):
         
         if 'lonlat' not in proj4_str: # not functional yet - polygons must be in wgs84 for now   
             print('custom landmask polygon must be in WGS84 coordinates..for now')
-            import pdb;pdb.set_trace()
             # if not in wgs84 coordinates already, convert now to lon,lat
             xx,yy = self.xy2lonlat(shore[:,0], shore[:,1])
             xx[np.where(np.isinf(xx))] = np.nan
@@ -83,7 +82,6 @@ class Reader(BaseReader,ContinuousReader):
             self.crs = pyproj.CRS(self.proj4)
             # this doesnt work because self.proj.crs.is_geographic remains false in basereader.py 
             # not sure why/how ?
-            import pdb;pdb.set_trace()
         
         # Depth
         self.z = None
