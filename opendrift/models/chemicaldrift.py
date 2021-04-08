@@ -56,7 +56,15 @@ class Chemical(Lagrangian3DArray):
         ('particle_fraction', {'dtype':np.float32,
                           'units':'',
                           'default':0,
-                          'seed':False})#,
+                          'seed':False}),
+        ('mass', {'dtype': np.float32,
+                      'units': 'kg',
+                      'seed': False,
+                      'default': 1}),
+        ('mass_biodegraded', {'dtype': np.float32,
+                             'units': 'kg',
+                             'seed': False,
+                             'default': 0})#,
         # ('terminal_velocity', {'dtype': np.float32,
         #                        'units': 'm/s',
         #                        'default': -0.001})  # 1 mm/s negative buoyancy
@@ -179,6 +187,18 @@ class ChemicalDrift(OceanDrift):
             'chemical:transformations:slow_coeff': {'type': 'float', 'default': 1.2e-7,
                 'min': 0, 'max': 1e6, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:evaporation': {'type': 'bool', 'default': False,
+                'description': 'Chemical is evaporated.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'chemical:transformations:biodegradation': {'type': 'bool', 'default': False,
+                'description': 'Chemical mass is biodegraded.',
+                'level': self.CONFIG_LEVEL_BASIC},
+            'chemical:transformations:biodegradation_mode': {'type': 'enum',
+                'enum': ['Test1','Test2'], 'default': 'Test1',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:photodegradation': {'type': 'bool', 'default': False,
+                'description': 'Chemical mass is photodegraded.',
+                'level': self.CONFIG_LEVEL_BASIC},            
             # Sediment
             'chemical:sediment:sedmixdepth': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 100, 'units': 'm',
@@ -893,15 +913,59 @@ class ChemicalDrift(OceanDrift):
             self.elements.specie[(resusp) & (self.elements.specie==self.num_sirrev)] = self.num_pirrev
 
 
+    def biodegradation(self):
+        '''Biodegradation. Test implementations'''
 
-
-
+        if self.get_config('chemical:transformations:biodegradation') is True:
+            if self.get_config('chemical:transformations:biodegradation_mode')=='Test1':
+                logger.debug('Calculating: biodegradation - mode Test1')
+                
+                fraction_biodegraded = .1
+                biodegraded_now = self.elements.mass*fraction_biodegraded
+    
+                self.elements.mass_biodegraded = \
+                    self.elements.mass_biodegraded + biodegraded_now
+                self.elements.mass = \
+                    self.elements.mass - biodegraded_now
+    
+                self.deactivate_elements(self.elements.mass < .1*(self.elements.mass + self.elements.mass_biodegraded), reason='biodegraded')
+            elif self.get_config('chemical:transformations:biodegradation_mode')=='Test2':
+                logger.debug('Calculating: biodegradation - Mode Test2')
+                
+                fraction_biodegraded = .2
+                biodegraded_now = self.elements.mass*fraction_biodegraded
+    
+                self.elements.mass_biodegraded = \
+                    self.elements.mass_biodegraded + biodegraded_now
+                self.elements.mass = \
+                    self.elements.mass - biodegraded_now
+    
+                self.deactivate_elements(self.elements.mass < .1*(self.elements.mass + self.elements.mass_biodegraded), reason='biodegraded')
+        else:
+            pass
+        
+    def photodegradation(self):
+        if self.get_config('chemical:transformations:photodegradation') is True:
+            logger.debug('Calculating: photodegradation')        
+        else:    
+            pass
+    
+    def evaporation(self):
+        if self.get_config('chemical:transformations:evaporation') is True:
+            logger.debug('Calculating: evaporation')        
+        else:    
+            pass
 
     def update(self):
         """Update positions and properties of Chemical particles."""
 
         # Workaround due to conversion of datatype
         self.elements.specie = self.elements.specie.astype(np.int32)
+
+        # Degradation and evaporation
+        self.biodegradation()
+        self.photodegradation()
+        self.evaporation()
 
         # Chemical speciation
         self.update_transfer_rates()
