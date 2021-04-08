@@ -916,19 +916,21 @@ class ChemicalDrift(OceanDrift):
     def biodegradation(self):
         '''Biodegradation. Test implementations'''
 
-        # self.num_lmm    = self.specie_name2num('LMM')
-        # self.num_prev   = self.specie_name2num('Particle reversible')
-        # self.num_srev   = self.specie_name2num('Sediment reversible')
-        # self.num_psrev  = self.specie_name2num('Particle slowly reversible')
-        # self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
-
         def biodegradation_factors():
+            '''Factors for specie dependent biodegradation'''    
+
+            # self.num_lmm    = self.specie_name2num('LMM')
+            # self.num_prev   = self.specie_name2num('Particle reversible')
+            # self.num_srev   = self.specie_name2num('Sediment reversible')
+            # self.num_psrev  = self.specie_name2num('Particle slowly reversible')
+            # self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
+
             factors=np.zeros(self.elements.specie.shape)    
             factors[self.elements.specie==self.num_lmm]=3
             factors[self.elements.specie==self.num_prev]=1
-            factors[self.elements.specie==self.num_srev]=1
-            factors[self.elements.specie==self.num_psrev]=.25
-            factors[self.elements.specie==self.num_ssrev]=.25
+            factors[self.elements.specie==self.num_srev]=.25
+            factors[self.elements.specie==self.num_psrev]=.5
+            factors[self.elements.specie==self.num_ssrev]=.125
             return factors
         
         if self.get_config('chemical:transformations:biodegradation') is True:
