@@ -916,6 +916,21 @@ class ChemicalDrift(OceanDrift):
     def biodegradation(self):
         '''Biodegradation. Test implementations'''
 
+        # self.num_lmm    = self.specie_name2num('LMM')
+        # self.num_prev   = self.specie_name2num('Particle reversible')
+        # self.num_srev   = self.specie_name2num('Sediment reversible')
+        # self.num_psrev  = self.specie_name2num('Particle slowly reversible')
+        # self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
+
+        def biodegradation_factors():
+            factors=np.zeros(self.elements.specie.shape)    
+            factors[self.elements.specie==self.num_lmm]=3
+            factors[self.elements.specie==self.num_prev]=1
+            factors[self.elements.specie==self.num_srev]=1
+            factors[self.elements.specie==self.num_psrev]=.25
+            factors[self.elements.specie==self.num_ssrev]=.25
+            return factors
+        
         if self.get_config('chemical:transformations:biodegradation') is True:
             if self.get_config('chemical:transformations:biodegradation_mode')=='Test1':
                 logger.debug('Calculating: biodegradation - mode Test1')
@@ -931,8 +946,8 @@ class ChemicalDrift(OceanDrift):
                 self.deactivate_elements(self.elements.mass < .1*(self.elements.mass + self.elements.mass_biodegraded), reason='biodegraded')
             elif self.get_config('chemical:transformations:biodegradation_mode')=='Test2':
                 logger.debug('Calculating: biodegradation - Mode Test2')
-                
-                fraction_biodegraded = .2
+
+                fraction_biodegraded = .1*biodegradation_factors()
                 biodegraded_now = self.elements.mass*fraction_biodegraded
     
                 self.elements.mass_biodegraded = \
