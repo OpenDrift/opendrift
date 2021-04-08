@@ -2868,7 +2868,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   show_trajectories=False, trajectory_alpha=.1, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20, origin_marker=None,
-                  legend=None, legend_loc='best', fps=10, lscale=None, fast=False, **kwargs):
+                  legend=None, legend_loc='best', fps=8, lscale=None, fast=False, **kwargs):
         """Animate last run."""
 
 
@@ -2952,17 +2952,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                 index_of_last_deactivated < i])
 
             if drifter is not None:
-                from bisect import bisect_left
-                ind = np.max(
-                    (0, bisect_left(drifter['time'], times[i]) - 1))
-                if i < 1 or i >= len(times)-1 or \
-                        drifter['time'][ind] < times[i-1] or \
-                        drifter['time'][ind] > times[i+1]:
-                    # Do not show when outside time interval
-                    drifter_pos.set_offsets([])
-                else:
-                    drifter_pos.set_offsets(
-                        np.c_[drifter['x'][ind], drifter['y'][ind]])
+                drifter_pos.set_offsets(np.c_[drifter['x'][i], drifter['y'][i]])
 
             if show_elements is True:
                 if compare is not None:
@@ -3080,10 +3070,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                vmin=0.1, vmax=vmax, cmap=cmap, transform=gcrs)
 
         if drifter is not None:
-            drifter['x'], drifter['y'] = (drifter['lon'], drifter['lat'])
-            #map.plot(drifter['x'], drifter['y'])
-            drifter_pos = ax.scatter([], [], c='r', zorder=15,
-                                     label='Drifter', transform = gcrs)
+            # Interpolate drifter time series onto simulation times
+            sts = np.array([t.total_seconds() for t in np.array(times) - times[0]])
+            dts = np.array([t.total_seconds() for t in np.array(drifter['time']) - times[0]])
+            drifter['x'] = np.interp(sts, dts, drifter['lon'])
+            drifter['y'] = np.interp(sts, dts, drifter['lat'])
+            drifter['x'][sts<dts[0]] = np.nan
+            drifter['x'][sts>dts[-1]] = np.nan
+            drifter['y'][sts<dts[0]] = np.nan
+            drifter['y'][sts>dts[-1]] = np.nan
+            dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
+            dcolor = drifter['color'] if 'color' in drifter else 'r'
+            dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
+            dmarkersize = drifter['markersize'] if 'markersize' in drifter else 20
+            drifter_pos = ax.scatter([], [], c=dcolor, zorder=15, s=dmarkersize,
+                                     label=dlabel, transform=gcrs)
+            ax.plot(drifter['x'], drifter['y'], color=dcolor, linewidth=dlinewidth, zorder=14, transform=gcrs)
+            plt.legend()
 
         fig.canvas.draw()
         fig.set_tight_layout(True)
@@ -3618,9 +3621,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         data = reader.get_variables(
             background, time, reader_x, reader_y, None)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
-        if type(background) is list:
+        if type(background) is list:  # Ensemble reader, using first member
             u_component = data[background[0]]
             v_component = data[background[1]]
+            if isinstance(u_component, list):
+                u_component = u_component[0]
+                v_component = v_component[0]
             with np.errstate(invalid='ignore'):
                 scalar = np.sqrt(u_component**2 + v_component**2)
             # NB: rotation not completed!
@@ -3631,6 +3637,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 ).proj4_init)
         else:
             scalar = data[background]
+            if isinstance(scalar, list):  # Ensemble reader, using first member
+                scalar = scalar[0]
             u_component = v_component = None
 
         # Shift one pixel for correct plotting
@@ -4375,6 +4383,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         FFwriter=animation.FFMpegWriter(fps=fps,
                             codec='libx264', bitrate=1800,
                             extra_args=['-profile:v', 'baseline',
+                                        '-vf', 'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
                                         '-pix_fmt', 'yuv420p', '-an'])
                         anim.save(filename, writer=FFwriter)
                     except Exception as e:
