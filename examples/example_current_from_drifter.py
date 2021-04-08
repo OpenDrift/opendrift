@@ -41,7 +41,8 @@ o.seed_within_polygon(lons=lons, lats=lats,
 # Finally running simulation
 o.run(end_time=r.end_time, time_step=r.time_step)
 
-o.animation(buffer=.01, fast=True)
+o.animation(buffer=.01, fast=True, drifter={'time': driftertimes, 'lon': drifterlons, 'lat': drifterlats,
+    'label': 'CODE Drifter', 'color': 'b', 'linewidth': 2, 'markersize': 40})
 
 #%%
 # .. image:: /gallery/animations/example_current_from_drifter_0.gif
