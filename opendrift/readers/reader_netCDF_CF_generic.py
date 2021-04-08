@@ -32,11 +32,11 @@ def proj_from_CF_dict(c):
         raise ValueError('grid_mapping not given in dictionary')
     gm = c['grid_mapping_name']
 
+    if 'earth_radius' in c:
+        earth_radius = c['earth_radius']
+    else:
+        earth_radius = 6371000.
     if gm == 'polar_stereographic':
-        if 'earth_radius' in c:
-            earth_radius = c['earth_radius']
-        else:
-            earth_radius = 6371000.
         lon_0 = 0  # default, but dangerous
         for l0 in ['longitude_of_projection_origin',
                    'longitude_of_central_meridian',
@@ -65,6 +65,10 @@ def proj_from_CF_dict(c):
                                    c['latitude_of_projection_origin'],
                                    lon_0, lat_ts, k0, x0, y0, earth_radius)
                  )
+
+    elif gm == 'rotated_latitude_longitude':
+        proj4 = '+proj=ob_tran +o_proj=longlat +lon_0=%s +o_lat_p=%s +R=%s +no_defs' % (
+                c['grid_north_pole_longitude']-180, c['grid_north_pole_latitude'], earth_radius)
 
     proj = pyproj.Proj(proj4)
 
@@ -129,7 +133,6 @@ class Reader(BaseReader, StructuredReader):
                 self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
                                                  chunks={'time': 1}, decode_times=False)
             else:
-                logger.info('Opening file with Dataset')
                 self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)
@@ -141,6 +144,7 @@ class Reader(BaseReader, StructuredReader):
         lon_var_name = None
         lat_var_name = None
         self.unitfactor = 1
+        self.realizations = None
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
 
@@ -227,6 +231,10 @@ class Reader(BaseReader, StructuredReader):
                 self.realizations = var_data
                 logger.debug('%i ensemble members available'
                               % len(self.realizations))
+
+        # Temporary workaround for Barents EPS model
+        if self.realizations is None and 'ensemble_member' in self.Dataset.dims:
+            self.realizations = np.arange(self.Dataset.dims['ensemble_member'])
 
         #########################
         # Summary of geolocation
@@ -343,7 +351,7 @@ class Reader(BaseReader, StructuredReader):
             indz = 0
 
         if indrealization == None:
-            if hasattr(self, 'realizations'):
+            if self.realizations is not None:
                 indrealization = range(len(self.realizations))
             else:
                 indrealization = None

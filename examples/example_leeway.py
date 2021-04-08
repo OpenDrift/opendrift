@@ -5,6 +5,7 @@ Leeway
 """
 
 from datetime import timedelta
+import cmocean
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
 
@@ -47,7 +48,7 @@ print(lw)
 # Animation with current as background.
 # Note that drift is also depending on wind, which is not shown.
 lw.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
-             fast=True)
+             cmap=cmocean.cm.speed, vmin=0, vmax=.8, bgalpha=.7, land_color='#666666', fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_leeway_0.gif

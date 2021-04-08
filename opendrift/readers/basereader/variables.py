@@ -176,7 +176,7 @@ class ReaderDomain(Timeable):
         if self.start_time is not None and self.time_step is not None:
             outStr += '    %i times (%i missing)\n' % (
                 self.expected_time_steps, self.missing_time_steps)
-        if hasattr(self, 'realizations'):
+        if hasattr(self, 'realizations') and self.realizations is not None:
             outStr += 'Variables (%i ensemble members):\n' % len(
                 self.realizations)
         else:
@@ -392,12 +392,16 @@ class Variables(ReaderDomain):
 
     environment_mappers = []
     environment_mappings = {
-        'wind_from_speed_and_direction': {
+        'wind_from_speed_and_direction_from': {
+            'input': ['wind_speed', 'wind_from_direction'],
+            'output': ['x_wind', 'y_wind'],
+            'method':
+            lambda reader, var: reader.wind_from_speed_and_direction(var)},
+        'wind_from_speed_and_direction_to': {
             'input': ['wind_speed', 'wind_to_direction'],
             'output': ['x_wind', 'y_wind'],
             'method':
-            lambda reader, var: reader.wind_from_speed_and_direction(var)
-        },
+            lambda reader, var: reader.wind_from_speed_and_direction(var)},
         'testvar': {
             'input': ['sea_ice_thickness'],
             'output': ['istjukkleik']
@@ -428,10 +432,12 @@ class Variables(ReaderDomain):
                          (self.buffer, self.name, max_speed))
 
     def wind_from_speed_and_direction(self, env):
-        north_wind = env['wind_speed'] * np.cos(
-            np.radians(env['wind_to_direction']))
-        east_wind = env['wind_speed'] * np.sin(
-            np.radians(env['wind_to_direction']))
+        if 'wind_from_direction' in env:
+            wfd = env['wind_from_direction']
+        else:
+            wfd = -env['wind_to_direction']
+        north_wind = -env['wind_speed']*np.cos(np.radians(wfd))
+        east_wind = -env['wind_speed']*np.sin(np.radians(wfd))
         env['x_wind'] = east_wind
         env['y_wind'] = north_wind
         # Rotating might be necessary generally

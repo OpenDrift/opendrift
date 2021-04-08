@@ -1381,9 +1381,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         np.minimum(720, self.elements_scheduled.lon.max() + deltalon),
                         np.minimum(89, self.elements_scheduled.lat.max() + deltalat)
                         ])
-            reader_landmask.name = 'tempreader'
-            o = OceanDrift(
-                loglevel='custom')
+            o = OceanDrift(loglevel='custom')
             o.add_reader(reader_landmask)
             land_reader = reader_landmask
 
@@ -1400,9 +1398,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info('All points are in ocean')
             return lon, lat
         logger.info('Moving %i out of %i points from land to water' %
-                     (np.sum(land==1), len(lon)))
-        landlons = lon[land==1]
-        landlats = lat[land==1]
+                     (np.sum(land!=0), len(lon)))
+        landlons = lon[land!=0]
+        landlats = lat[land!=0]
         longrid = np.arange(lonmin, lonmax, deltalon)
         latgrid = np.arange(latmin, latmax, deltalat)
         longrid, latgrid = np.meshgrid(longrid, latgrid)
@@ -1428,8 +1426,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         landpoints = np.dstack([landlons, landlats])
         dist, indices = tree.query(landpoints)
         indices = indices.ravel()
-        lon[land==1] = oceangridlons[indices]
-        lat[land==1] = oceangridlats[indices]
+        lon[land!=0] = oceangridlons[indices]
+        lat[land!=0] = oceangridlats[indices]
 
         return lon, lat
 
@@ -2285,10 +2283,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             self.timer_end('preparing main loop:making dynamical landmask')
 
-        # Move point seed on land to ocean
+        # Move point seeded on land to ocean
         if self.get_config('seed:ocean_only') is True and \
-            ('land_binary_mask' not in self.fallback_values) and \
             ('land_binary_mask' in self.required_variables):
+            #('land_binary_mask' not in self.fallback_values) and \
             self.timer_start('preparing main loop:moving elements to ocean')
             self.elements_scheduled.lon, self.elements_scheduled.lat = \
                 self.closest_ocean_points(self.elements_scheduled.lon,
@@ -2502,7 +2500,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.add_metadata(keyword, self.fallback_values[var])
             else:
                 readers = self.priority_list[var]
-                if readers[0].startswith('constant_reader'):
+                if readers[0].startswith('constant_reader') and var in self.readers[readers[0]]._parameter_value_map:
                     self.add_metadata(keyword, self.readers[readers[
                                 0]]._parameter_value_map[var][0])
                 else:
@@ -2657,42 +2655,39 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         """
 
         # Initialise map
-        if corners is not None:
+        if hasattr(self, 'ds'):  # If dataset is lazily imported
+            lons = self.ds.lon
+            lats = self.ds.lat
+            logger.debug('Finding min longitude...')
+            self.lonmin = np.nanmin(self.ds.lon)
+            logger.debug('Finding max longitude...')
+            self.lonmax = np.nanmax(self.ds.lon)
+            logger.debug('Finding min latitude...')
+            self.latmin = np.nanmin(self.ds.lat)
+            logger.debug('Finding max latitude...')
+            self.latmax = np.nanmax(self.ds.lat)
+            if os.path.exists(self.analysis_file):
+                self.af = Dataset(self.analysis_file, 'a')
+            else:
+                self.af = Dataset(self.analysis_file, 'w')
+            self.af.lonmin = self.lonmin
+            self.af.lonmax = self.lonmax
+            self.af.latmin = self.latmin
+            self.af.latmax = self.latmax
+            self.af.close()
+        else:
             lons, lats = self.get_lonlats()  # TODO: to be removed
+
+        if corners is not None:  # User provided map corners
             lonmin = corners[0]
             lonmax = corners[1]
             latmin = corners[2]
             latmax = corners[3]
-        elif hasattr(self, 'ds'):
-            lons = self.ds.lon
-            lats = self.ds.lat
-            if hasattr(self, 'lonmin'):
-                lonmin = self.lonmin
-                lonmax = self.lonmax
-                latmin = self.latmin
-                latmax = self.latmax
-            else:
-                logger.debug('Finding min longitude...')
-                lonmin = np.nanmin(self.ds.lon)
-                logger.debug('Finding max longitude...')
-                lonmax = np.nanmax(self.ds.lon)
-                logger.debug('Finding min latitude...')
-                latmin = np.nanmin(self.ds.lat)
-                logger.debug('Finding max latitude...')
-                latmax = np.nanmax(self.ds.lat)
-                self.lonmin = lonmin
-                self.lonmax = lonmax
-                self.latmin = latmin
-                self.latmax = latmax
-                if os.path.exists(self.analysis_file):
-                    self.af = Dataset(self.analysis_file, 'a')
-                else:
-                    self.af = Dataset(self.analysis_file, 'w')
-                self.af.lonmin = lonmin
-                self.af.lonmax = lonmax
-                self.af.latmin = latmin
-                self.af.latmax = latmax
-                self.af.close()
+        elif hasattr(self, 'lonmin'):  # if dataset is lazily imported
+            lonmin = self.lonmin
+            lonmax = self.lonmax
+            latmin = self.latmin
+            latmax = self.latmax
         else:
             lons, lats = self.get_lonlats()
             lonmin = np.nanmin(lons) - buffer*2
@@ -2701,7 +2696,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             latmax = np.nanmax(lats) + buffer
 
         if fast is True:
-            logger.warning("plotting fast. This will make your plots less accurate.")
+            logger.warning('Plotting fast. This will make your plots less accurate.')
 
             import matplotlib.style as mplstyle
             mplstyle.use(['fast'])
@@ -2910,6 +2905,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                             per_origin_marker=per_origin_marker)
                 H = H[origin_marker]  # Presently only for origin_marker = 0
             else:
+                if origin_marker is not None:
+                    raise ValueError('Separation by origin_marker is only active when imported from file with '
+                            'open_xarray: https://opendrift.github.io/gallery/example_huge_output.html')
                 H, H_submerged, H_stranded, lon_array, lat_array = \
                     self.get_density_array(pixelsize_m=density_pixelsize_m,
                                            weight=density_weight)
@@ -2948,7 +2946,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     y_deactive[index_of_last_deactivated < i]])
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
-                    if isinstance(color, str):
+                    if isinstance(color, str) or hasattr(color, '__len__'):
                         points_deactivated.set_array(
                             colorarray_deactivated[
                                 index_of_last_deactivated < i])
@@ -3002,6 +3000,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     self.get_property(color)[0][
                         index_of_last[self.elements_deactivated.ID-1],
                                       self.elements_deactivated.ID-1].T
+            elif hasattr(color, '__len__'):  # E.g. array/list of ensemble numbers
+                colorarray_deactivated = color[self.elements_deactivated.ID-1]
+                colorarray = np.tile(color, (self.steps_output, 1)).T
             else:
                 colorarray = color
             if vmin is None:
@@ -3105,10 +3106,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 if clabel is None:
                     clabel = background
 
-            cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
+            cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             cb.set_label(clabel)
-            cb.set_alpha(1)
-            cb.draw_all()
 
         anim = animation.FuncAnimation(
             plt.gcf(), plot_timestep, blit=False,
@@ -3259,7 +3258,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
              linewidth=1, lcs=None, show_particles=True, show_initial=True,
-             density_pixelsize_m=1000,
+             density_pixelsize_m=1000, bgalpha=1, clabel=None,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
              fast=False, hide_landmask=False, **kwargs):
@@ -3341,11 +3340,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 else:
                     ax.plot(x, y, color=linecolor, alpha=alpha, linewidth=linewidth, transform = gcrs)
             else:
-                colorbar = True
+                #colorbar = True
                 # Color lines according to given parameter
                 try:
                     if isinstance(linecolor, str):
                         param = self.history[linecolor]
+                    elif hasattr(linecolor, '__len__'):
+                        param = np.tile(linecolor, (self.steps_output, 1)).T
                     else:
                         param = linecolor
                 except:
@@ -3489,7 +3490,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if show_scalar is True:
                 if contourlines is False:
                     scalar = np.ma.masked_invalid(scalar)
-                    mappable = ax.pcolormesh(map_x, map_y, scalar, alpha=1,
+                    mappable = ax.pcolormesh(map_x, map_y, scalar, alpha=bgalpha,
                                    vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
                 else:
                     if contourlines is True:
@@ -3501,13 +3502,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                          colors='gray', transform = gcrs)
                     plt.clabel(CS, fmt='%g')
 
-        if mappable is not None:
-            cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8)
+        if mappable is not None and colorbar is True:
+            cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             # TODO: need better control of colorbar content
+            if clabel is not None:
+                cb.set_label(clabel)
+            elif linecolor != 'gray' and not hasattr(linecolor, '__len__'):
+                cb.set_label(str(linecolor))
             if background is not None:
                 cb.set_label(str(background))
-            if linecolor is not None:
-                cb.set_label(str(linecolor))
 
         if type(background) is list:
             delta_x = (map_x[1,2] - map_x[1,1])/2.

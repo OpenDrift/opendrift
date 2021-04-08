@@ -3,6 +3,8 @@ Publications
 
 Some papers using OpenDrift:
 
+Hole, L. R., de Aguiar V., Dagestad, K-F, Kourafalou V. H., Androulidakis Y., Kangb H., Le Hénaff M., Calzadae A. (2021). Long term simulations of potential oil spills around Cuba. Mar. Pol. Bull., Volume 167. https://doi.org/10.1016/j.marpolbul.2021.112285
+
 Staneva, J., Ricker, M., Carrasco Alvarez, R., Breivik, Ø., & Schrum, C. (2021). Effects of Wave-Induced Processes in a Coupled Wave–Ocean Model on Particle Transport Simulations. Water, 13(4), 415. https://doi.org/10.3390/w13040415
 
 Brekke, C., Espeseth, M. M., Dagestad, K.-F., Röhrs, J., Hole, L. R., & Reigber, A. (2021). Integrated analysis of multisensor datasets and oil drift simulations—a free-floating oil experiment in the open ocean. Journal of Geophysical Research: Oceans, 126, e2020JC016499. https://doi.org/10.1029/2020JC016499
