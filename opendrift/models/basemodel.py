@@ -3510,7 +3510,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             # TODO: need better control of colorbar content
             if clabel is not None:
                 cb.set_label(clabel)
-            elif linecolor != 'gray' and not hasattr(linecolor, '__len__'):
+            elif isinstance(linecolor, str) and linecolor != 'gray':
                 cb.set_label(str(linecolor))
             if background is not None:
                 cb.set_label(str(background))
