@@ -69,7 +69,7 @@ class Reader(BaseReader, UnstructuredReader):
     ]
 
     dataset = None
-
+    ### I don't think this caches anything without dimensioning it first
     # For in-memory caching of Sigma-coordinates and ocean depth
     #siglay = None
     #siglev = None
@@ -132,8 +132,8 @@ class Reader(BaseReader, UnstructuredReader):
 
         ### parameters to build the grid and search it
         # the grid will be 2D nodes * layers
-        self.layers  = self.dimensions["layers"].size
-        self.nnode2D = self.dimensions["nnode"].size
+        self.layers  = self.dataset.dimensions["layers"].size
+        self.nnode2D = self.dataset.dimensions["nnode"].size
 
         ### official method for datetime objects from netcdf
         t= self.dataset.get_variables_by_attributes(axis='T')[0]
@@ -219,7 +219,7 @@ class Reader(BaseReader, UnstructuredReader):
                         crs.scale_factor_at_central_meridian,  \
                         crs.false_easting, crs.false_northing)
         else:
-            # life would be esaier by using pyproj EPSG coding
+            # life would be easier by using pyproj EPSG coding
             ##https://epsg.org/home.html
             print("""
             NetCDF projections not yet implemented:
@@ -256,6 +256,7 @@ class Reader(BaseReader, UnstructuredReader):
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
 
+
     def get_variables(self,
                       requested_variables,
                       time=None,
@@ -286,15 +287,15 @@ class Reader(BaseReader, UnstructuredReader):
         face_nodes:        [3 x E]  face_node_connectivity
 
         Variables:
-
-        Node:
-        * z
-        * temperature
-        * salinity
-        * u
-        * v
-        * w
-
+        ['ELEVATION Z     ',
+        'VELOCITY U      ',
+        'VELOCITY V      ',
+        'VELOCITY W      ',
+        'NUX FOR VELOCITY',
+        'NUY FOR VELOCITY',
+        'NUZ FOR VELOCITY',
+        'TURBULENT ENERGY',
+        'DISSIPATION     ']
         """
 
         x = np.atleast_1d(x)
