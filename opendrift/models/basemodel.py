@@ -3034,6 +3034,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         points = ax.scatter([], [], c=c, zorder=10,
                             edgecolor=[], cmap=cmap, s=markersize,
                             vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
+        
+        if (compare is None) and (legend is not None):
+            markers=[]
+            for legend_index in np.arange(len(legend)):
+                markers.append(matplotlib.lines.Line2D([0], [0], marker='o',
+                                    color='w', markerfacecolor=cmap(legend_index/(len(legend)-1)), 
+                                    markersize=10, label=legend[legend_index]))
+            ax.legend(markers, legend)
+            
         # Plot deactivated elements, with transparency
         points_deactivated = ax.scatter([], [], c=c, zorder=9,
                                         vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,

@@ -30,4 +30,8 @@ o.run(steps=24, stop_on_error=True)
 # Print and plot results
 print(o)
 o.plot(linecolor='orientation')
-#o.animation()
+#o.animation(color='orientation', markersize=20, filename="orientation.gif", legend=['left','right'],colorbar=False,cmap='bwr')
+o.animation(color='orientation', legend=['left','right'], markersize=20, colorbar=False, cmap='bwr')
+
+#%%
+# .. image:: /gallery/animations/example_shipdrift_0.gif
