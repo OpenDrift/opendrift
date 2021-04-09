@@ -3035,7 +3035,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                             edgecolor=[], cmap=cmap, s=markersize,
                             vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
         
-        if (compare is None) and (legend is not None):
+        if (compare is None) and (legend != ['']):
             markers=[]
             for legend_index in np.arange(len(legend)):
                 markers.append(matplotlib.lines.Line2D([0], [0], marker='o',
@@ -3475,7 +3475,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     c=self.plot_comparison_colors[i+1], transform = gcrs)
 
         try:
-            if legend is not None:# and compare is None:
+            handles, labels = ax.get_legend_handles_labels()
+            if legend is not None and len(handles)>0:
                 plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
             logger.warning('Cannot plot legend, due to bug in matplotlib:')
