@@ -97,7 +97,7 @@ o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
 
 #%%
 # Running model
-o.run(steps=12*2, time_step=1800, time_step_output=3600)
+o.run(steps=24*2, time_step=1800, time_step_output=3600)
 
 
 #%%
@@ -113,7 +113,8 @@ for isp in range(o.nspecies):
 
 o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
-            colorbar=True,
+            colorbar=False,
+            legend=[o.specie_num2name(i) for i in range(o.nspecies)],
             fast = True
             )
 #%%
