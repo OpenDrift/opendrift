@@ -122,7 +122,10 @@ o.animation(color='specie',
 
 #o.plot_vertical_distribution()
 #o.plot_property('specie')
-o.animation_profile()
+o.animation_profile(color='specie',
+            vmin=0,vmax=o.nspecies-1,
+            legend=[o.specie_num2name(i) for i in range(o.nspecies)],
+            )
 #%%
 # .. image:: /gallery/animations/example_radionuclides_1.gif
 

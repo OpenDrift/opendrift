@@ -3041,7 +3041,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 markers.append(matplotlib.lines.Line2D([0], [0], marker='o',
                                     color='w', markerfacecolor=cmap(legend_index/(len(legend)-1)), 
                                     markersize=10, label=legend[legend_index]))
-            ax.legend(markers, legend)
+            ax.legend(markers, legend, loc=legend_loc)
             
         # Plot deactivated elements, with transparency
         points_deactivated = ax.scatter([], [], c=c, zorder=9,
@@ -3137,15 +3137,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 pass
 
     def animation_profile(self, filename=None, compare=None,
-                          legend=['', ''], markersize=5, fps=20):
+                          legend=['', ''], markersize=5, fps=20,
+                          color=None, cmap=None, vmin=None, vmax=None,
+                          legend_loc=None):
         """Animate vertical profile of the last run."""
+        
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
             ax.set_title('%s UTC' % times[i])
-            points.set_data(x[range(x.shape[0]), i],
-                            z[range(x.shape[0]), i])
+            if PlotColors:
+                points.set_offsets(np.array( [x[range(x.shape[0]), i].T,z[range(x.shape[0]), i].T] ).T)
+                points.set_array(colorarray[:, i])
+            else:
+                points.set_data(x[range(x.shape[0]), i],
+                                z[range(x.shape[0]), i])            
+                
             points_deactivated.set_data(
                 x_deactive[index_of_last_deactivated < i],
                 z_deactive[index_of_last_deactivated < i])
@@ -3160,11 +3168,24 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             else:
                 return points
 
+        PlotColors=(compare is None) and (legend != ['',''])
+        if PlotColors:
+            if cmap is None:
+                cmap = 'jet'
+            if isinstance(cmap, str):
+                cmap = matplotlib.cm.get_cmap(cmap)
+    
+            if color is not False:
+                if isinstance(color, str):
+                    colorarray = self.get_property(color)[0].T
+
+
         # Set up plot
         index_of_first, index_of_last = \
             self.index_of_activation_and_deactivation()
         z = self.get_property('z')[0].T
         x = self.get_property('lon')[0].T
+        
         #seafloor_depth = \
         #    -self.get_property('sea_floor_depth_below_sea_level')[0].T
         fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
@@ -3174,8 +3195,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
-        points = plt.plot([], [], '.k', label=legend[0],
-                          markersize=markersize)[0]
+        if PlotColors:
+            points = ax.scatter([], [], c=[], zorder=10,
+                                 edgecolor=[], cmap=cmap, s=markersize,
+                                 vmin=vmin, vmax=vmax)
+    
+            markers=[]
+            for legend_index in np.arange(len(legend)):
+                markers.append(matplotlib.lines.Line2D([0], [0], marker='o', linewidth=0,
+                               markeredgewidth=0, markerfacecolor=cmap(legend_index/(len(legend)-1)), 
+                               markersize=10, label=legend[legend_index]))
+            ax.legend(markers, legend, loc=legend_loc)
+        else:
+            points = plt.plot([], [], '.k', label=legend[0],
+                              markersize=markersize)[0]
+
+                    
         # Plot deactivated elements, with transparency
         points_deactivated = plt.plot([], [], '.k', alpha=.3)[0]
         x_deactive = self.elements_deactivated.lon
@@ -3221,7 +3256,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         ax.add_patch(plt.Rectangle((xmin, zmin), xmax-xmin,
                      -zmin, color='cornflowerblue'))
 
-        if legend != ['', '']:
+        if legend != ['', ''] and PlotColors is False:
             plt.legend(loc=4)
 
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
