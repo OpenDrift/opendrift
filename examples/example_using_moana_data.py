@@ -38,8 +38,16 @@ o.set_config('general:use_auto_landmask', False) # prevent opendrift from making
 # generic point release location for test
 lon0 = 177.269014281   
 lat0 = -37.8719 
-radius_in_m = 1000
 nb_parts = 1000
+radius_in_m = 1000
+
+# frame release
+# lons,lats = np.meshgrid(np.linspace(173.5, 173.8, 10),np.linspace(-42.6,-42.3, 10))
+# lon0 = np.ravel(lons)
+# lat0 = np.ravel(lats)
+# nb_parts = 100
+# radius_in_m = 0
+
 z = np.random.uniform(-50,0,size=nb_parts) # generate random depth
 # continuous release from tstart_release to tend_release within a 1000m radius
 o.seed_elements(lon0, lat0, 

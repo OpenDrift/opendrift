@@ -34,22 +34,17 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan20
 # 	defined by one of the reader in order to evaluate if particles have touched the seabed or not.
 
 o.add_reader([reader_norkyst])
-o.fallback_values['x_wind'] = 0
-o.fallback_values['y_wind'] = 0
 
+o.set_config('environment:fallback:x_wind', 0)
+o.set_config('environment:fallback:y_wind', 0)
 # Adjusting some configuration
 # diffusion -
 Kxy = 0.1 # m2/s-1
 Kz = 0.0001 # m2/s-1
-# ocean_horizontal_diffusivity in m2.s-1 - new feature implemented in SedimentDrift3D, 
-# could be extended to basemodel.py
-o.fallback_values['ocean_horizontal_diffusivity'] = Kxy
-# the other option is to use current uncertainty, which is equivalent
-o.set_config('drift:current_uncertainty', (2*Kxy/900.)**.5 ) 
-# note current_uncertainty can be used to replicate an horizontal diffusion spd_uncertain = sqrt(Kxy*2/dt) 
 
+o.set_config('drift:horizontal_diffusivity', Kxy)     # Difference from first run
 # specify constant ocean_vertical_diffusivity in m2.s-1 
-o.fallback_values['ocean_vertical_diffusivity'] = Kz
+o.set_config('environment:fallback:ocean_vertical_diffusivity',Kz)
 
 # Seeding some particles
 lon = 4.5; lat = 62.0
@@ -63,10 +58,6 @@ time = [reader_norkyst.start_time,
 o.seed_elements(lon, lat, z=-1.0, radius=5, number=3000, time=time,terminal_velocity = -0.03)
 o.seed_elements(lon, lat, z=-1.0, radius=5, number=3000, time=time,terminal_velocity = -0.003)
 o.seed_elements(lon, lat, z=-1.0, radius=5, number=3000, time=time,terminal_velocity = -0.0003)
-
-
-# Seed oil elements at defined position and time - ORIGINAL
-# o.seed_elements(lon, lat, z='seafloor', radius=5, number=3000, time=time)
 
 # processes
 o.set_config('drift:vertical_advection' , False) # no vertical current available, so no vertical advection

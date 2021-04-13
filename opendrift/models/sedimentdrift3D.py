@@ -41,7 +41,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
 
     Sediment 3D motion 
     Propagation with horizontal and vertical ocean currents, horizontal and 
-    vertical diffusions (additional wind drag inherited from base class if needed).
+    vertical diffusions (additional wind drag inherited from base class but probably not relevant here).
     Suitable for sediment tracers, e.g. for tracking sediment particles.
     Adapted from OceanDrift by Simon Weppe - MetOcean Solutions.
 
@@ -83,18 +83,19 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
 
         self._add_config({
             'drift:resuspension': {'type': 'bool', 'default': False,
-                'min': 0, 'max': 1e10, 'units': '-',
-                'description': 'switch to include resuspension',
+                # 'min': 0, 'max': 1e10, 'units': '-',
+                'description': 'switch to activate/deactivate resuspension',
                 'level': self.CONFIG_LEVEL_ESSENTIAL}})
 
         # By default, sediments do strand at coastline
         self._set_config_default('general:coastline_action', 'stranding')
         # Vertical mixing is enabled as default
         self._set_config_default('drift:vertical_mixing', True)
-
         # Vertical advection switched off by default (if w is available)
         self._set_config_default('drift:vertical_advection', False)
-
+        # Settling on seafloor : for now we just deactivate settled particles - other options : ['none', 'lift_to_seafloor', 'deactivate', 'previous']
+        # eventually set to 'lift_to_seafloor' when resuspension algorithm is implemented
+        self._set_config_default('general:seafloor_action', 'deactivate') 
         # resuspension switched off by default
         self._set_config_default('drift:resuspension', False)
 
@@ -107,12 +108,12 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         this method for particle-specific behaviour
 
         Same as OceanDrfit for now - could include more sophisticaed models based on temp/salinity etc..
+        >> Maybe add some uncertainities to particle settling velocities ?
         """
         pass 
 
     def update(self):
         """Update positions and properties of elements."""
-
         self.elements.age_seconds += self.time_step.total_seconds()
 
         # Simply move particles with ambient current
@@ -137,15 +138,16 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         self.vertical_advection()
 
         # Sediment resuspension checks , if switched on
-        # self.sediment_resuspension() - ToDo!
+        self.sediment_resuspension() #- ToDo!
 
         # Deactivate elements that exceed a certain age
         if self.get_config('drift:max_age_seconds') is not None:
             self.deactivate_elements(self.elements.age_seconds >=
                                      self.get_config('drift:max_age_seconds'),
                                      reason='retired')
-        # When no resuspension is required, deactivate particles that reached the seabed
-        # this could probably be moved to a bottom_interaction()
+        
+        # >> not needed anymore > will be flagged as reason = 'seafloor' withon OceanDrift parent class
+        # When no resuspension is required, deactivate particles that reached the seabed, this could probably be moved to a bottom_interaction()
         if self.get_config('drift:resuspension') is False:
             self.deactivate_elements(self.elements.z ==
                                      -1.*self.environment.sea_floor_depth_below_sea_level,
@@ -159,12 +161,41 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         Compute ambient bed shear stresses at positions of particles that are (or just touched) the bottom
         and determine if they can settle or be resuspended based on critical_shear_stress 
         """
-        # 1-find particles on the bottom
-        # 2-compute bed shear stresses
+
+        # > use the element attribute "moving" to freeze/unfreeze settled particles (see in advect_ocean_current())
+        # > move them back only when bedshearstress > critical_shear_stress
+
+        # 1-find particles on the bottom - done in bottom_interaction() 
+        # 2-compute bed shear stresses 
         # 3-compare to critical_shear_stress
         # 4-resuspend or stay on seabed depending on 3)
         #   > probably need to use a cut-off age after which particles are de-activated anyway
         #   to prevent excessive build-up of "active" particle in the simulations
+        pass
+
+    def bottom_interaction(self, seafloor_depth):
+        """Sub method of vertical_mixing, determines settling"""
+        # Elements at or below seafloor are settled, by setting
+        # self.elements.moving to 0.
+        # These elements will not move until eventual later resuspension.
+
+        sea_floor_depth = self.sea_floor_depth()
+        below = np.where(self.elements.z < -sea_floor_depth)[0]
+        self.elements.z[below] = -sea_floor_depth[below]
+
+        settling = np.logical_and(self.elements.z <= seafloor_depth, self.elements.moving==1)
+        if np.sum(settling) > 0:
+            logger.debug('Settling %s elements at seafloor' % np.sum(settling))
+            self.elements.moving[settling] = 0
+
+    def resuspension(self):
+        """Resuspending elements if current speed > .5 m/s"""
+        resuspending = np.logical_and(self.current_speed()>.5, self.elements.moving==0)
+        if np.sum(resuspending) > 0:
+            # Allow moving again
+            self.elements.moving[resuspending] = 1
+            # Suspend 1 cm above seafloor
+            self.elements.z[resuspending] = self.elements.z[resuspending] + .01
 
 
 # General physics functions---------------------------------------------------------------------------------
