@@ -174,7 +174,7 @@ jobs:
 
       - run:
           name: Build docs
-          command: source activate opendrift && cd docs/ && make SPHINXOPTS=-v html
+          command: source activate opendrift && cd docs/ && make html
           no_output_timeout: 40m
 
       - save_cache:
