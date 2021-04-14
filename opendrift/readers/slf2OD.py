@@ -22,8 +22,8 @@ class Reader(BaseReader, UnstructuredReader):
     A reader for unstructured (irregularily gridded) `Telemac3D files.
 
     Args:
-        :param filename: A single Selafin file, or a pattern of files.
-        :type filename: string, requiered.
+        :param filename: A single Selafin file
+        :type filename: string, required.
 
         :param name: Name of reader
         :type name: string, optional
@@ -87,11 +87,21 @@ class Reader(BaseReader, UnstructuredReader):
         # self.ymax = np.max(self.y)
 
         self.variable_mapping = self.slf.varnames
+        # for information
+        defaultvars =['ELEVATION Z     ',
+        'VELOCITY U      ',
+        'VELOCITY V      ',
+        'VELOCITY W      ',
+        'NUX FOR VELOCITY',
+        'NUY FOR VELOCITY',
+        'NUZ FOR VELOCITY',
+        'TURBULENT ENERGY',
+        'DISSIPATION     ']
 
         self.timer_end("build index")
         self.timer_end("open dataset")
 
-    def querry_data(self, x, y, z, t):
+    def querry_data(self, x, y, z, t, variables=[1,2,3]):
         """
         Querry data based on the particle coordinates x, y, z
         find the nearest node in the KD tree
@@ -100,21 +110,45 @@ class Reader(BaseReader, UnstructuredReader):
         extract the variables at the point
         input:
             x,y,z: np.arrays(float)
-            3D coordinates of the particles
+                3D coordinates of the particles
             t: np.datetime64
-            age of the particle set
+                age of the particle set
+            variables: np.array(int)
+                indexes of variables
         returns:
-            data: np.array
-            structured array of variables for each particles
-
+            vectors: np.array
+            structured array of vectors u,v,w for each particles
         """
         ### nearest time tupple
         frames, duration = nearest_idx(self.time, t)
 
         ### 3 nearest nodes in 2D (prism face)
-        _,iii = self.slf.tree.query(np.vstack((x,y)).T,k=3)
+        _,iii = self.slf.tree.query(np.vstack((x,y)).T,k=1)
+        # build depth ndarrays of each fibre
+        niii = len(iii)
+        idx_3D= np.tile(np.arange(self.slf.nplan),niii).reshape( \
+                niii,self.slf.nplan)*iii[:,None]+iii[:,None]
+        depths1=self.slf.get_variables_at(frames[0],[0])[0,idx_3D]
+        depths2=self.slf.get_variables_at(frames[1],[0])[0,idx_3D]
+        # locate the profile dimension
+        pm=duration[0]*p1+duration[1]*p2
+        # calculate distance from particles to nearest point depth
+        # check function is fully vectorial
+        # depth, _= nearest_idx(pm, z)
+        idx_layer = np.abs(pm-z[:,None]).argmin(axis=1)
+        # need optimisation:
+        idx = idx3D[np.arange(niii), idx_layer]
+        vectors1=self.slf.get_variables_at(frames[0],[1,2,3])
+        vectors2=self.slf.get_variables_at(frames[1],[1,2,3])
+        vectors=duration[0]*vectors1+duration[1]*vectors2
+        return vectors[idx]
+
+    def filter_points(self, indexes):
+        """
+        Filter points that are not within the grid.To be continued
+        """
         # test they correspond to faces:
-        ifaces= np.where((np.sort(iii, axis=1)[:,None] ==np.sort(slf.ikle2, axis=1)).all(-1).any(-1))[0]
+        ifaces= np.where((np.sort(iii, axis=1)[:,None] ==np.sort(self.slf.ikle2, axis=1)).all(-1).any(-1))[0]
         # in the future
         # extract profile from the 2 frames bounding t.
         # z is always the variable idx 0
@@ -122,12 +156,6 @@ class Reader(BaseReader, UnstructuredReader):
         p2= self.slf.get_variables_at(frames[1], [0])[0,self.slf.ikle3[ifaces]]
         x1=slef.slf.meshx[ifaces]
         y1=slef.slf.meshy[ifaces]
-        # locate the profile dimension
-        pm=duration[0]*p1+duration[1]*p2
-        # calculate distance from particles to nearest point depth
-        depth, fraction= nearest_idx(pm[:,0])
-
-
 
     def nearest_idx(array, value):
         """
