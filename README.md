@@ -1,7 +1,7 @@
 [![Build Status](https://circleci.com/gh/OpenDrift/opendrift.svg?style=svg)](https://app.circleci.com/pipelines/github/OpenDrift/opendrift)
 [![Coverage Status](https://coveralls.io/repos/github/OpenDrift/opendrift/badge.svg?branch=master)](https://coveralls.io/github/OpenDrift/opendrift?branch=master)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.582321.svg)](https://doi.org/10.5281/zenodo.582321)
-[![Slack](https://img.shields.io/badge/slack-opendrift-yellow.svg?logo=slack)](https://join.slack.com/t/opendrift-dev/shared_invite/zt-ozansc5h-AzMOOS9jOs~3CBihRR37Lw)
+[![Slack](https://img.shields.io/badge/slack-opendrift-yellow.svg)](https://join.slack.com/t/opendrift-dev/shared_invite/zt-ozansc5h-AzMOOS9jOs~3CBihRR37Lw)
 
 opendrift
 =========
