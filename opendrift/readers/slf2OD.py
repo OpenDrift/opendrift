@@ -114,16 +114,20 @@ class Reader(BaseReader, UnstructuredReader):
         ### 3 nearest nodes in 2D (prism face)
         _,iii = self.slf.tree.query(np.vstack((x,y)).T,k=3)
         # test they correspond to faces:
-        ifaces= np.where((np.sort(slf.ikle2, axis=1)[:,None] == np.sort(iii, axis=1)).all(-1).any(-1))[0]
+        ifaces= np.where((np.sort(iii, axis=1)[:,None] ==np.sort(slf.ikle2, axis=1)).all(-1).any(-1))[0]
+        # in the future
         # extract profile from the 2 frames bounding t.
         # z is always the variable idx 0
         p1= self.slf.get_variables_at(frames[0], [0])[0,self.slf.ikle3[ifaces]]
         p2= self.slf.get_variables_at(frames[1], [0])[0,self.slf.ikle3[ifaces]]
-        
-        ### this will need optimisation... iterating all the closest depths
-        depths=np.empty(shape=len(iii),2) #array containing the 2 bounding depths
-        for j in range(len(iii)):
-            depths, _ = nearest_idx(iiid,
+        x1=slef.slf.meshx[ifaces]
+        y1=slef.slf.meshy[ifaces]
+        # locate the profile dimension
+        pm=duration[0]*p1+duration[1]*p2
+        # calculate distance from particles to nearest point depth
+        depth, fraction= nearest_idx(pm[:,0])
+
+
 
     def nearest_idx(array, value):
         """
@@ -155,4 +159,3 @@ class Reader(BaseReader, UnstructuredReader):
                 dist = (distance(nearest)+1, -1*distance(nearest))
         # test out of borders
         return bounds, dist
-(np.sort(a, axis=1)[:,None]==np.sort(b, axis=1))..all(-1).any(-1)
