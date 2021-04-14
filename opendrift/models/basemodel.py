@@ -3205,7 +3205,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 markers.append(matplotlib.lines.Line2D([0], [0], marker='o', linewidth=0,
                                markeredgewidth=0, markerfacecolor=cmap(legend_index/(len(legend)-1)), 
                                markersize=10, label=legend[legend_index]))
-            ax.legend(markers, legend, loc=legend_loc)
+            leg=ax.legend(markers, legend, loc=legend_loc)
+            leg.set_zorder(20)
         else:
             points = plt.plot([], [], '.k', label=legend[0],
                               markersize=markersize)[0]
