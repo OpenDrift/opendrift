@@ -4422,20 +4422,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 anim.save(filename, fps=fps, writer='imagemagick')
             else:  # MP4
                 try:
-                    try:
-                        # For perfect quality, but larger file size
-                        #FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
-                        FFwriter=animation.FFMpegWriter(fps=fps,
-                            codec='libx264', bitrate=1800,
-                            extra_args=['-profile:v', 'baseline',
-                                        '-vf', 'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
-                                        '-pix_fmt', 'yuv420p', '-an'])
-                        anim.save(filename, writer=FFwriter)
-                    except Exception as e:
-                        logger.info(e)
-                        anim.save(filename, fps=fps, bitrate=1800,
-                                  extra_args=['-an',
-                                              '-pix_fmt', 'yuv420p'])
+                    FFwriter=animation.FFMpegWriter(fps=fps,
+                        codec='libx264', bitrate=1800,
+                        extra_args=['-profile:v', 'baseline',
+                                    '-vf', 'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
+                                    '-pix_fmt', 'yuv420p', '-an'])
+                    anim.save(filename, writer=FFwriter)
                 except Exception as e:
                     logger.info(e)
                     anim.save(filename, fps=fps)
