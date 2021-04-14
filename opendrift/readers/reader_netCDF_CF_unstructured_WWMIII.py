@@ -14,13 +14,18 @@
 #
 #
 ##########################################################################
-# This reader supports native SCHISM output netcdf files and will 
-# handle interpolation of current velocities and other variables
-# in 2D and 3D.
-# The interpolation is done using a cKDtree-approach defined
-# form the 2D or 3D mesh nodes
+# This reader supports native output netcdf files from the WindWaveModel 
+# used in the coupled SCHISM-WWMIII wave-flow model. 
+# 
+# The interpolation of variable to particle positions is done 
+# using a cKDtree-approach defined from the 2D nodes as the SCHISM reader
 # 
 # Author: Simon Weppe. MetOcean Solution, MetService New Zealand
+# 
+# Roland, A., Zhang, Y.J., Wang, H.V., Meng, Y., Teng, Y.C., Maderich, V., Brovchenko, I.,
+# Dutour-Sikiric, M., Zanke, U., 2012. A fully coupled 3D wave-current interaction
+# model on unstructured grids. J. Geophys. Res. 117, C00J33. http://dx.doi.org/10.
+# 1029/2012JC007952.
 ##########################################################################
 
 ##########################################################################
@@ -85,20 +90,36 @@ class Reader(BaseReader,UnstructuredReader):
         self.convolve = None  # Convolution kernel or kernel size
         
         # [name_used_in_schism : equivalent_CF_name]
-        schism_mapping = {
-            'dahv': 'x_sea_water_velocity', 
-            'dahv': 'y_sea_water_velocity',
-            'hvel': 'x_sea_water_velocity',
-            'hvel': 'y_sea_water_velocity',
+        wwmIII_mapping = {
             'depth': 'sea_floor_depth_below_sea_level',
-            'elev' : 'sea_surface_height',
-            'temp' : 'sea_water_temperature',
-            'salt' : 'sea_water_salinity',
-            'zcor' : 'vertical_levels', # time-varying vertical coordinates
-            'sigma': 'ocean_s_coordinate',
-            'vertical_velocity' : 'upward_sea_water_velocity'}
+            'WLEV' : 'sea_surface_height',
+            'HS'    : 'sea_surface_wave_significant_height',
+            'STOKESBAROX' : 'sea_surface_wave_stokes_drift_x_velocity',
+            'STOKESBAROY' : 'sea_surface_wave_stokes_drift_y_velocity',
+            'TPPD' : 'sea_surface_wave_period_at_variance_spectral_density_maximum'}
+            # TPPD 'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment'
             # diffusivity
             # viscosity
+
+            # More variables available :
+            # pick names from CF tables here : http://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html
+            # 
+            # HS    'Significant wave height'
+            # DM    'Mean wave direction'
+            # DSPR   'Directional spreading'
+            # TPPD   'Discrete peak wave period'
+            # CPP    'peak wave speed'
+            # CGPP   'peak group velocity'
+            # PEAKDSPR 'Peak directional spreading'
+            # ORBITAL   'orbital velocity'
+            # CD    'drag coefficient'
+            # WATLEV  'water level'
+            # DEPDT  'water level change'
+            # STOKESBAROX    'barotropic Stokes velocity in X direction'
+            # STOKESBAROY    'barotropic Stokes velocity in Y direction'
+            # RSXX    'barotropic Stress potential Sxx'
+            # RSXY   'barotropic Stress potential Sxy'
+            # RSYY  'barotropic Stress potential Syy'
 
         self.return_block = True
 

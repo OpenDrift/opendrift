@@ -206,6 +206,15 @@ def bedshearstress_cw(self,p,time=None,imax=2):
     current-related stress is computed following a drag-coefficient approach
     wave-related stress is computed following Van Rijn approach
     combined wave-current mean and max stresses are computed followin Soulsby(1995) approach
+
+    https://odnature.naturalsciences.be/coherens/manual#manual
+
+    https://odnature.naturalsciences.be/downloads/coherens/documentation/chapter7.pdf#nameddest=Bed_shear_stresses
+    
+    http://www.coastalwiki.org/wiki/Shallow-water_wave_theory#
+    http://www.coastalwiki.org/wiki/Shallow-water_wave_theory#Seabed_Friction
+
+
     Arguments:
       self : Material object, expected to include fields movers, reactors (if input)
       p: particle positions array (Nx3)
@@ -257,6 +266,8 @@ def bedshearstress_cw(self,p,time=None,imax=2):
           tau_cur+=rhow*Cdrag*uub_mag**2
 
     # wave-related bed shear stress
+    # http://www.coastalwiki.org/wiki/Shallow-water_wave_theory#Seabed_Friction
+    
     if len(self.reactors)>0: # check if wave forcing is included 
       # for now assume that if reactors exist, they will be correctly input
       # computation of wave-related and combined bed shear stresses based on code from 
