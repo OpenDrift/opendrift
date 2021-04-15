@@ -29,13 +29,13 @@ o.add_reader([reader_norkyst, reader_arome])
 
 #%%
 # Seed oil elements at defined position and time
-oiltype = 'IFO-380LS 2014'
-oiltype = 'IFO 300'
-oiltype = 'IFO-180NS 2014'
-oiltype = 'GENERIC LIGHT CRUDE'
-oiltype = 'GENERIC HEAVY CRUDE'
+oil_type = 'IFO-380LS 2014'
+oil_type = 'IFO 300'
+oil_type = 'IFO-180NS 2014'
+oil_type = 'GENERIC LIGHT CRUDE'
+oil_type = 'GENERIC HEAVY CRUDE'
 o.seed_elements(lon=4.8, lat=60.0, z=0, radius=3000, number=1000,
-                time=reader_arome.start_time, oiltype=oiltype)
+                time=reader_arome.start_time, oil_type=oil_type)
 
 #%%
 # Adjusting some configuration

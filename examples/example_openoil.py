@@ -10,7 +10,7 @@ from opendrift.models.openoil import OpenOil
 
 o = OpenOil(loglevel=20, weathering_model='noaa')
 
-print(o.oiltypes)  # Print available oil types
+print(o.oil_types)  # Print available oil types
 
 #%% Add forcing date
 # Arome atmospheric model
@@ -24,11 +24,11 @@ o.add_reader([reader_norkyst, reader_arome])
 #%%
 # Seeding some particles
 time = reader_arome.start_time
-oiltype = 'GULLFAKS, EXXON'
-oiltype = 'ARABIAN MEDIUM, API'
-oiltype = 'ALGERIAN CONDENSATE'
+oil_type = 'GULLFAKS, EXXON'
+oil_type = 'ARABIAN MEDIUM, API'
+oil_type = 'ALGERIAN CONDENSATE'
 o.seed_elements(lon=4.9, lat=60.1, radius=3000, number=2000,
-                time=time, z=0, oiltype=oiltype)
+                time=time, z=0, oil_type=oil_type)
 
 #%%
 # Adjusting some configuration
