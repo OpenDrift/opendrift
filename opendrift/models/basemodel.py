@@ -1044,6 +1044,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     if var not in self.required_variables:
                         logger.debug('Not returning env-variable: ' + var)
                         continue
+                    if var not in env.dtype.names:
+                        continue  # Skipping variables that are only used to derive needed variables
                     env[var][missing_indices] = np.ma.masked_invalid(
                         env_tmp[var][0:len(missing_indices)]).astype('float32')
                     if profiles_from_reader is not None and var in profiles_from_reader:

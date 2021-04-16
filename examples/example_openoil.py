@@ -10,7 +10,7 @@ from opendrift.models.openoil import OpenOil
 
 o = OpenOil(loglevel=20, weathering_model='noaa')
 
-print(o.oil_types)  # Print available oil types
+print(o.oiltypes)  # Print available oil types
 
 #%% Add forcing date
 # Arome atmospheric model
