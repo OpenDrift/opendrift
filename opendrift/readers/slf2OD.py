@@ -81,29 +81,21 @@ class Reader(BaseReader, UnstructuredReader):
         self.time = self.start_time) + self.slf.tags['times'].astype('timedelta64[s]')
         self.end_time = self.time[-1]
 
-        # self.xmin = np.min(self.x)
-        # self.xmax = np.max(self.x)
-        # self.ymin = np.min(self.y)
-        # self.ymax = np.max(self.y)
-
-        self.variable_mapping = self.slf.varnames
+        #self.variable_mapping = self.slf.varnames
         # for information
-        defaultvars =['ELEVATION Z     ',
-        'VELOCITY U      ',
-        'VELOCITY V      ',
-        'VELOCITY W      ',
-        'NUX FOR VELOCITY',
-        'NUY FOR VELOCITY',
-        'NUZ FOR VELOCITY',
-        'TURBULENT ENERGY',
-        'DISSIPATION     ']
+
 
         self.timer_end("build index")
         self.timer_end("open dataset")
 
-    def querry_data(self, x, y, z, t, variables=[1,2,3]):
+    def get_variables(self,
+                      requested_variables,
+                      time=None,
+                      x=None,
+                      y=None,
+                      z=None):
         """
-        Querry data based on the particle coordinates x, y, z
+        Querry variables based on the particle coordinates x, y, z
         find the nearest node in the KD tree
         extract the z array corresponding.
         extract the index of the node within the 3D mesh
@@ -138,14 +130,43 @@ class Reader(BaseReader, UnstructuredReader):
         idx_layer = np.abs(pm-z[:,None]).argmin(axis=1)
         # need optimisation:
         idx = idx3D[np.arange(niii), idx_layer]
-        vectors1=self.slf.get_variables_at(frames[0],[1,2,3])
-        vectors2=self.slf.get_variables_at(frames[1],[1,2,3])
-        vectors=duration[0]*vectors1+duration[1]*vectors2
-        return vectors[idx]
+        variables={}
+        var_i=fvar(self, requested_variables):
+        for i in var_i:
+            vectors1=self.slf.get_variables_at(frames[0],[i])
+            vectors2=self.slf.get_variables_at(frames[1],[i])
+            variables[requested_variables[i]]=duration[0]*vectors1+duration[1]*vectors2
+        return variables
+
+    def cfvar(self, requested_variables):
+        """
+        setup a dictionary of equivalent names between Telemac and CF standard.
+        return index of variable within selafin file to allow a query.
+        """
+        defaultvars =['ELEVATION Z     ', 'VELOCITY U      ',
+                'VELOCITY V      ', 'VELOCITY W      ', 'NUX FOR VELOCITY',
+                'NUY FOR VELOCITY', 'NUZ FOR VELOCITY', 'TURBULENT ENERGY',
+                'DISSIPATION     ']
+        standard_names=['altitude','eastward_sea_water_velocity',
+        'northward_sea_water_velocity', 'upward_sea_water_velocity',None,None,
+        None,'specific_turbulent_kinetic_energy_of_sea_water',
+        'specific_turbulent_kinetic_energy_dissipation_in_sea_water' ]
+        equiv={}
+        for i in range(len(defaultvars)):
+            if standard_names is not None:
+                equiv[standard_names[i]]=defaultvars[i]
+        vars = np.array(self.slf.varnames)
+        eq_r = [equiv.get(v) for v in req]
+        var_i =[]
+        for i in range(len(eq_r)):
+            var_i.append(np.where(vars==eq_r[i])[0][0])
+        return var_i
 
     def filter_points(self, indexes):
         """
-        Filter points that are not within the grid.To be continued
+        Filter points that are not within the grid.
+        use finite element method to evaluate properties
+        ~~~ To be continued ~~~
         """
         # test they correspond to faces:
         ifaces= np.where((np.sort(iii, axis=1)[:,None] ==np.sort(self.slf.ikle2, axis=1)).all(-1).any(-1))[0]
