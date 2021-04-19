@@ -378,6 +378,30 @@ class ReaderDomain(Timeable):
         return nearest_time, time_before, time_after,\
             indx_nearest, indx_before, indx_after
 
+################################################################
+# Methods to derive environment variables from others available
+################################################################
+
+def land_binary_mask_from_ocean_depth(env):
+    env['land_binary_mask'] = np.float32(env['sea_floor_depth_below_sea_level'] <= 0)
+
+def wind_from_speed_and_direction(env):
+    if 'wind_from_direction' in env:
+        wfd = env['wind_from_direction']
+    else:
+        wfd = -env['wind_to_direction']
+    north_wind = -env['wind_speed']*np.cos(np.radians(wfd))
+    east_wind = -env['wind_speed']*np.sin(np.radians(wfd))
+    env['x_wind'] = east_wind
+    env['y_wind'] = north_wind
+    # Rotating might be necessary generally
+    #x,y = np.meshgrid(env['x'], env['y'])
+    #env['x_wind'], env['y_wind'] = self.rotate_vectors(
+    #    x, y,
+    #    east_wind, north_wind,
+    #    None, self.proj)
+
+################################################################
 
 class Variables(ReaderDomain):
     """
@@ -389,33 +413,59 @@ class Variables(ReaderDomain):
 
     buffer = 0
 
-    environment_mappers = []
-    environment_mappings = {
-        'wind_from_speed_and_direction_from': {
-            'input': ['wind_speed', 'wind_from_direction'],
-            'output': ['x_wind', 'y_wind'],
-            'method':
-            lambda reader, env: reader.wind_from_speed_and_direction(env)},
-        'wind_from_speed_and_direction_to': {
-            'input': ['wind_speed', 'wind_to_direction'],
-            'output': ['x_wind', 'y_wind'],
-            'method':
-            lambda reader, env: reader.wind_from_speed_and_direction(env)},
-        # Uncomment to derive land_binary_mask from sea_floor_depth_below_sea_level
-        #'land_binary_mask_from_ocean_depth': {
-        #    'input': ['sea_floor_depth_below_sea_level'],
-        #    'output': ['land_binary_mask'],
-        #    'method':
-        #    lambda reader, env: reader.land_binary_mask_from_ocean_depth(env)},
-        }
-
     def __init__(self):
         if self.derived_variables is None:
             self.derived_variables = {}
         if self.variables is None:
             self.variables = []
 
+        # Deriving environment variables from other available variables
+        self.environment_mappings = {
+            'wind_from_speed_and_direction': {
+                'input': ['wind_speed', 'wind_from_direction'],
+                'output': ['x_wind', 'y_wind'],
+                'method': wind_from_speed_and_direction,
+                #lambda reader, env: reader.wind_from_speed_and_direction(env)},
+                'active': True},
+            'wind_from_speed_and_direction_to': {
+                'input': ['wind_speed', 'wind_to_direction'],
+                'output': ['x_wind', 'y_wind'],
+                'method': wind_from_speed_and_direction,
+                #lambda reader, env: reader.wind_from_speed_and_direction(env)},
+                'active': True},
+            'land_binary_mask_from_ocean_depth': {
+                'input': ['sea_floor_depth_below_sea_level'],
+                'output': ['land_binary_mask'],
+                'method': land_binary_mask_from_ocean_depth,
+                'active': False}
+            }
+
         super().__init__()
+
+    def activate_environment_mapping(self, mapping_name):
+        if mapping_name not in self.environment_mappings:
+            raise ValueError('Available environment mappings: ' + str(self.environment_mappings))
+
+        em = self.environment_mappings[mapping_name]
+        em['active'] = True
+        if not all(item in em['output'] for item in self.variables) and \
+                    all(item in self.variables for item in em['input']):
+            for v in em['output']:
+                logger.debug('Adding variable mapping: %s -> %s' % (em['input'], v))
+                self.variables.append(v)
+                self.derived_variables[v] = em['input']
+
+    def __calculate_derived_environment_variables__(self, env):
+        for m in self.environment_mappings:
+            em = self.environment_mappings[m]
+            if em['active'] is False:
+                continue
+            if not all(item in em['output'] for item in self.variables) and \
+                    all(item in self.variables for item in em['input']):
+                for v in em['output']:
+                    logger.debug('Calculating variable mapping: %s -> %s' % (em['input'], v))
+                    method = lambda env: em['method'](env)
+                    method(env)
 
     def set_buffer_size(self, max_speed):
         '''
@@ -444,34 +494,6 @@ class Variables(ReaderDomain):
             logger.debug('Setting buffer size %i for reader %s, assuming '
                          'a maximum average speed of %g m/s.' %
                          (self.buffer, self.name, max_speed))
-
-    def land_binary_mask_from_ocean_depth(self, env):
-        env['land_binary_mask'] = np.float32(env['sea_floor_depth_below_sea_level'] <= 0)
-
-    def wind_from_speed_and_direction(self, env):
-        if 'wind_from_direction' in env:
-            wfd = env['wind_from_direction']
-        else:
-            wfd = -env['wind_to_direction']
-        north_wind = -env['wind_speed']*np.cos(np.radians(wfd))
-        east_wind = -env['wind_speed']*np.sin(np.radians(wfd))
-        env['x_wind'] = east_wind
-        env['y_wind'] = north_wind
-        # Rotating might be necessary generally
-        #x,y = np.meshgrid(env['x'], env['y'])
-        #env['x_wind'], env['y_wind'] = self.rotate_vectors(
-        #    x, y,
-        #    east_wind, north_wind,
-        #    None, self.proj)
-
-    def __calculate_derived_environment_variables__(self, env):
-        for m in self.environment_mappings:
-            em = self.environment_mappings[m]
-            if not all(item in em['output'] for item in self.variables) and \
-                    all(item in self.variables for item in em['input']):
-                for v in em['output']:
-                    logger.debug('Calculating variable mapping: %s -> %s' % (em['input'], v))
-                    em['method'](self, env)
 
     def __check_env_coordinates__(self, env):
         """
