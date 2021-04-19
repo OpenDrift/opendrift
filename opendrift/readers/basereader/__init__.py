@@ -157,12 +157,10 @@ class BaseReader(Variables):
         # Adding variables which may be derived from existing ones
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
-            if not all(item in em['output'] for item in self.variables) and \
-                    all(item in self.variables for item in em['input']):
-                for v in em['output']:
-                    logger.debug('Adding variable mapping: %s -> %s' % (em['input'], v))
-                    self.variables.append(v)
-                    self.derived_variables[v] = em['input']
+            if em['active'] is False:
+                logger.debug('Variable mapping: %s -> %s is not activated' % (em['input'], em['output']))
+                continue
+            self.activate_environment_mapping(m)
 
     def y_is_north(self):
         if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:

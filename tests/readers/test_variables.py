@@ -44,3 +44,11 @@ def test_environment_mapping(test_data):
     o.run(steps=15)
     np.testing.assert_almost_equal(o.elements.lon, 4.068, 3)
     np.testing.assert_almost_equal(o.elements.lat, 60.034, 3)
+
+    # land_binary_mask mapped from sea_floor_depth_below_sea_level
+    r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+    assert 'land_binary_mask' not in r.derived_variables  # Disabled by default
+    r.activate_environment_mapping('land_binary_mask_from_ocean_depth')
+    assert 'land_binary_mask' in r.derived_variables
+
