@@ -50,13 +50,14 @@ from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree #cython-based KDtree for quick nearest-neighbor search
 import pyproj
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
-from .consts import *
+from opendrift.readers.basereader.consts import *
 
 try:
     import xarray as xr
     has_xarray = True
 except:
     has_xarray = False
+
 
 
 class Reader(BaseReader,UnstructuredReader):
@@ -249,6 +250,7 @@ class Reader(BaseReader,UnstructuredReader):
                 time_units = units
                 # self.times = num2date(time, time_units)
                 if has_xarray:
+                    # convert from numpy.datetime64 to datetime
                     self.times = [datetime.utcfromtimestamp((OT -
                         np.datetime64('1970-01-01T00:00:00Z')
                             ) / np.timedelta64(1, 's')) for OT in time]
