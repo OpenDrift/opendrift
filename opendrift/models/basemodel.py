@@ -1861,7 +1861,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lons = [r.GetX(j) for j in range(r.GetPointCount())]
                 lats = [r.GetY(j) for j in range(r.GetPointCount())]
 
-            self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+            self.seed_within_polygon(lons=lons, lats=lats, number=num_elements, **kwargs)
             num_seeded += num_elements
 
 
@@ -1956,7 +1956,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lons = [r.GetY(j) for j in range(r.GetPointCount())]
                 lats = [r.GetX(j) for j in range(r.GetPointCount())]
 
-                self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+                self.seed_within_polygon(lons=lons, lats=lats, number=num_elements, **kwargs)
 
     def seed_from_ladim(self, ladimfile, roms):
         """Seed elements from ladim \\*.rls text file: [time, x, y, z, name]"""
