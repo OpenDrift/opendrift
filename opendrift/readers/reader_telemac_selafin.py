@@ -2,15 +2,13 @@
 # Exporting a Telemac 3D selafin file to an unstructured Netcdf file
 # Following CF 1-8 and ugrid conventions
 import numpy as np
-import netCDF4 as nC
 from datetime import datetime, timedelta
 import sys
 from os import path, environ, sep
+#Activating PYTEL
+dir = environ['HOMETEL']+'{}scripts{}python3'.format(sep,sep)
+sys.path.append(path.join( path.dirname(sys.argv[0]),dir))#pytel path use environment variables
 from data_manip.formats.selafin import Selafin
-from scipy.interpolate import LinearNDInterpolator
-#import scipy, scipy.spatial
-from scipy.spatial import cKDTree
-#import pyproj
 import logging
 logger = logging.getLogger(__name__)
 
@@ -49,7 +47,7 @@ class Reader(BaseReader, UnstructuredReader):
             self.name = filestr
         else:
             self.name = name
-
+        self.workers = -1
         self.timer_start("open dataset")
         logger.info('Opening dataset: ' + filestr)
 
@@ -68,25 +66,37 @@ class Reader(BaseReader, UnstructuredReader):
         logger.info('Reading 2D grid')
         # Run constructor of parent Reader class
         super().__init__()
-        self.boundary = self._build_boundary_polygon_(
-                        self.slf.meshx.compressed(),self.slf.meshx.compressed())
+        self.boundary = self._build_boundary_polygon_( \
+                        self.slf.meshx,self.slf.meshy)
         self.timer_start("build index")
         logger.debug("building index of nodes..")
         # using selafin method (scipy)
         self.slf.set_kd_tree()
+        #bounds
+        self.xmin,self.ymin,self.xmax, self.ymax= self.slf.meshx.min(),\
+                self.slf.meshy.min(), self.slf.meshx.max(),self.slf.meshy.max()
 
         # time management
-        self.start_time=np.datetime64(datetime(self.slf.datetime[0],self.slf.datetime[1],
-                self.slf.datetime[2],self.slf.datetime[3],self.slf.datetime[4]))
-        self.time = self.start_time) + self.slf.tags['times'].astype('timedelta64[s]')
-        self.end_time = self.time[-1]
-
-        #self.variable_mapping = self.slf.varnames
-        # for information
+        self.start_time=datetime(self.slf.datetime[0],self.slf.datetime[1],
+                self.slf.datetime[2],self.slf.datetime[3],self.slf.datetime[4])
+        # self.start_time=np.datetime64(datetime(self.slf.datetime[0],self.slf.datetime[1],
+        #         self.slf.datetime[2],self.slf.datetime[3],self.slf.datetime[4]))
+        # self.time = self.start_time + self.slf.tags['times'].astype('timedelta64[s]')
+        self.times= []
+        for i in range(len(self.slf.tags['times'])):
+            self.times.append(self.start_time+timedelta(seconds= self.slf.tags['times'][i]))
+        self.end_time = self.times[-1]
+        # sorry hardcoded
+        self.variables=['altitude','x_sea_water_velocity',
+        'y_sea_water_velocity', 'upward_sea_water_velocity',
+        'specific_turbulent_kinetic_energy',
+        'specific_turbulent_kinetic_energy_dissipation_in_sea_water' ]
 
 
         self.timer_end("build index")
         self.timer_end("open dataset")
+
+
 
     def get_variables(self,
                       requested_variables,
@@ -103,7 +113,7 @@ class Reader(BaseReader, UnstructuredReader):
         input:
             x,y,z: np.arrays(float)
                 3D coordinates of the particles
-            t: np.datetime64
+            time: np.datetime64
                 age of the particle set
             variables: np.array(int)
                 indexes of variables
@@ -111,56 +121,94 @@ class Reader(BaseReader, UnstructuredReader):
             vectors: np.array
             structured array of vectors u,v,w for each particles
         """
-        ### nearest time tupple
-        frames, duration = nearest_idx(self.time, t)
+        def cfvar(self, requested_variables):
+            """
+            setup a dictionary of equivalent names between Telemac and CF standard.
+            return index of variable within selafin file to allow a query.
+            """
+            defaultvars =['ELEVATION Z     ', 'VELOCITY U      ',
+            'VELOCITY V      ', 'VELOCITY W      ', 'NUX FOR VELOCITY',
+            'NUY FOR VELOCITY', 'NUZ FOR VELOCITY', 'TURBULENT ENERGY',
+            'DISSIPATION     ']
+            #eastward northward removed for x y
+            standard_names=['altitude','x_sea_water_velocity',
+            'y_sea_water_velocity', 'upward_sea_water_velocity',None,None,
+            None,'specific_turbulent_kinetic_energy',
+            'specific_turbulent_kinetic_energy_dissipation_in_sea_water' ]
+            equiv={}
+            vars = np.array(self.slf.varnames)
+            for i in range(len(defaultvars)):
+                if standard_names is not None:
+                    equiv[standard_names[i]]=defaultvars[i]
+                    eq_r = [equiv.get(v) for v in requested_variables]
+            var_i =[]
+            for i in range(len(eq_r)):
+                    var_i.append(np.where(vars==eq_r[i])[0][0])
+            return var_i
 
-        ### 3 nearest nodes in 2D (prism face)
-        _,iii = self.slf.tree.query(np.vstack((x,y)).T,k=1)
+        def nearest_idx(array, value):
+                """
+                we are looking for a tuple describing where the sample is and at which
+                distance. So we can calculate the FE solution of the variable value.
+                input:
+                    array: a 1D numpy array
+                    monotonic array
+                output:
+                    bounds: a tupple
+                    tupple describing the bounding indexes
+                    dist = tupple
+                    the distance between the sample and the index values
+                    so that dist[0]+dist[1]=0
+                """
+                distance = (array - value).astype(np.float)
+                nearest = (np.abs(distance)).argmin()
+                # test exact match and out of bounds
+                if (distance == 0).any() | (distance>0).all()|(distance<0).all():
+                    bounds = (nearest,None)
+                    dist = (1,0)
+                else :
+                    prop= distance[nearest]/(distance[nearest]+distance[nearest+1])
+                    dist = (1-prop, prop)
+                    if distance[nearest]>0:
+                        bounds = (nearest, nearest+1)
+                    else:
+                        bounds = (nearest, nearest-1)
+                return bounds, dist
+
+        ### nearest time tupple
+        frames, duration=nearest_idx(np.array(self.times).astype('datetime64[s]'),np.datetime64(time))
+        ### nearest node in 2D
+        # will have to be tested for scipy>1.6.0 upgrades n_jobs=workers
+        # will have to be improved for a real finite element solution (k=3 pts).
+        _,iii = self.slf.tree.query(np.vstack((x,y)).T,k=1, n_jobs=self.workers)
         # build depth ndarrays of each fibre
         niii = len(iii)
-        idx_3D= np.tile(np.arange(self.slf.nplan),niii).reshape( \
-                niii,self.slf.nplan)*iii[:,None]+iii[:,None]
+        idx_3D = np.arange(self.slf.nplan).reshape(self.slf.nplan,1)*niii+iii
         depths1=self.slf.get_variables_at(frames[0],[0])[0,idx_3D]
-        depths2=self.slf.get_variables_at(frames[1],[0])[0,idx_3D]
+        if frames[1] is not None:
+            depths2=self.slf.get_variables_at(frames[1],[0])[0,idx_3D]
+        else:
+            depths2=0
         # locate the profile dimension
-        pm=duration[0]*p1+duration[1]*p2
+        pm=duration[0]*depths1+duration[1]*depths2
         # calculate distance from particles to nearest point depth
         # check function is fully vectorial
         # depth, _= nearest_idx(pm, z)
-        idx_layer = np.abs(pm-z[:,None]).argmin(axis=1)
+        idx_layer = np.abs(pm.flatten()-z[:,None]).argmin(axis=1)
         # need optimisation:
-        idx = idx3D[np.arange(niii), idx_layer]
+        #idx = idx_3D[np.arange(niii), idx_layer]
         variables={}
-        var_i=fvar(self, requested_variables):
-        for i in var_i:
-            vectors1=self.slf.get_variables_at(frames[0],[i])
-            vectors2=self.slf.get_variables_at(frames[1],[i])
+        var_i=cfvar(self, requested_variables)
+        for i in range(len(var_i)):
+            vectors1=self.slf.get_variables_at(frames[0],[var_i[i]])[0,idx_layer].ravel()
+            if frames[1] is not None:
+                vectors2=self.slf.get_variables_at(frames[1],[var_i[i]])[0,idx_layer].ravel()
+            else:
+                vectors2=0
+
             variables[requested_variables[i]]=duration[0]*vectors1+duration[1]*vectors2
         return variables
 
-    def cfvar(self, requested_variables):
-        """
-        setup a dictionary of equivalent names between Telemac and CF standard.
-        return index of variable within selafin file to allow a query.
-        """
-        defaultvars =['ELEVATION Z     ', 'VELOCITY U      ',
-                'VELOCITY V      ', 'VELOCITY W      ', 'NUX FOR VELOCITY',
-                'NUY FOR VELOCITY', 'NUZ FOR VELOCITY', 'TURBULENT ENERGY',
-                'DISSIPATION     ']
-        standard_names=['altitude','eastward_sea_water_velocity',
-        'northward_sea_water_velocity', 'upward_sea_water_velocity',None,None,
-        None,'specific_turbulent_kinetic_energy_of_sea_water',
-        'specific_turbulent_kinetic_energy_dissipation_in_sea_water' ]
-        equiv={}
-        for i in range(len(defaultvars)):
-            if standard_names is not None:
-                equiv[standard_names[i]]=defaultvars[i]
-        vars = np.array(self.slf.varnames)
-        eq_r = [equiv.get(v) for v in req]
-        var_i =[]
-        for i in range(len(eq_r)):
-            var_i.append(np.where(vars==eq_r[i])[0][0])
-        return var_i
 
     def filter_points(self, indexes):
         """
@@ -178,6 +226,8 @@ class Reader(BaseReader, UnstructuredReader):
         x1=slef.slf.meshx[ifaces]
         y1=slef.slf.meshy[ifaces]
 
+
+    @staticmethod
     def nearest_idx(array, value):
         """
         we are looking for a tuple describing where the sample is and at which
@@ -193,7 +243,7 @@ class Reader(BaseReader, UnstructuredReader):
             so that dist[0]+dist[1]=0
         """
         distance = array - value
-        nearest = np.abs(dist).argmin()
+        nearest = np.abs(distance).argmin()
         # test exact match and out of bounds
         if distance == 0 | np.all(distance>0)|np.all(distance>0):
             bounds = (array[nearest],None)
