@@ -615,11 +615,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         sea_floor_depth = self.sea_floor_depth()
         below = np.where(self.elements.z < -sea_floor_depth)[0]
         if len(below) == 0:
-                logger.debug('No elements hit seafloor.')
-                return
+            logger.debug('No elements hit seafloor.')
+            return
 
         i = self.get_config('general:seafloor_action')
         if i == 'lift_to_seafloor':
+            logger.debug('Lifting %s elements to seafloor.' % len(below))
             self.elements.z[below] = -sea_floor_depth[below]
         elif i == 'deactivate':
             self.deactivate_elements(self.elements.z < -sea_floor_depth, reason='seafloor')
@@ -1473,6 +1474,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         lat = np.atleast_1d(lat).ravel()
         radius = np.atleast_1d(radius).ravel()
         time = np.atleast_1d(time)
+
+        if lat.max() > 90 or lat.min() < -90:
+            raise ValueError('Latitude must be between -90 and 90 degrees')
 
         if len(lon) != len(lat):
             raise ValueError('Lon and lat must have same lengths')
