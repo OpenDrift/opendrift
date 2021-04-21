@@ -50,7 +50,7 @@ class Reader(BaseReader, UnstructuredReader):
 
     dataset = None
 
-    def __init__(self, filename=None, name=None, proj4=None):
+    def __init__(self, filename=None, name=None):
         if filename is None:
             raise ValueError('Filename is missing')
         filestr = str(filename)
@@ -148,45 +148,6 @@ class Reader(BaseReader, UnstructuredReader):
                       x=None,
                       y=None,
                       z=None):
-        """
-        FVCOM Grid:
-
-        FVCOM uses 'triangular prisms' for gridding. Some variables are defined
-        on the faces of the triangles, while others at the node.
-
-        `x` and `y` holds the positions of the node, while `xc` and `yc` holds
-        the positions on the centroids/faces. The centroids/faces are also
-        known as 'zonal', or elements (presumably as in finite element).
-
-        .. note::
-
-            Currently this reader does not really interpolate. It looks up the
-            closest point in time and space.
-
-        Each element has a lookup-table of its surrounding elements, this list can be
-        used when looking up elements for the interpolator of an arbitrary
-        point on the grid. The same goes for the nodes.
-
-        Let E be number of elements and N be number of nodes.
-
-        Relevant lookup-tables:
-
-        nbe:        [3 x E]  elements surround each element
-        nbve:       [9 x N]  elements surrounding each node, minimum 3
-        nbsn:       [11 x N] nodes surrounding each node
-
-        Variables:
-
-        Face:
-        * u
-        * v
-
-        Node:
-        * temperature
-        * salinity
-
-        """
-
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
         z = np.atleast_1d(z)
