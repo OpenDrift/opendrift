@@ -110,7 +110,6 @@ class Reader(BaseReader, UnstructuredReader):
                 std_name = self.variable_aliases.get(std_name, std_name)
                 self.variable_mapping[std_name] = str(var_name)
 
-        print(self.variable_mapping)
         self.variables = list(self.variable_mapping.keys())
 
         # Run constructor of parent Reader class
