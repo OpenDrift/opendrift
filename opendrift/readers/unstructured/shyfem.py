@@ -191,7 +191,7 @@ class Reader(BaseReader, UnstructuredReader):
                         nodes - nodes.min(),
                         level_ind - level_ind.min(),
                         ]
-            elif dvar.shape == 1:
+            elif len(dvar.shape) == 1:
                 variables[var] = dvar[indx_nearest, nodes]
             else:
                 logger.error('unknown dimensionality')
