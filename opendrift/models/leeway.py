@@ -172,7 +172,7 @@ class Leeway(OpenDriftSimulation):
         self._set_config_default('general:time_step_minutes', 10)
         self._set_config_default('general:time_step_output_minutes', 60)
 
-    def seed_elements(self, object_type=None, **kwargs):
+    def seed_elements(self, lon, lat, object_type=None, **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own object_type (number),
         # but so far we only use one for each sim
@@ -255,13 +255,13 @@ class Leeway(OpenDriftSimulation):
         if hasattr(self, 'seed_cone_arguments'):
             self.ascii = self.seed_cone_arguments
         else:
-            self.ascii = {'lon': kwargs['lon'], 'lat': kwargs['lat'],
+            self.ascii = {'lon': lon, 'lat': lat,
                           'radius': kwargs['radius'] if 'radius' in kwargs else 0,
                           'number': number, 'time': kwargs['time']}
 
         # Call general seed_elements function of OpenDriftSimulation class
         # with the specific values calculated
-        super(Leeway, self).seed_elements(
+        super(Leeway, self).seed_elements(lon, lat,
             orientation=orientation, object_type=object_type,
             downwind_slope=downwind_slope,
             crosswind_slope=crosswind_slope,
