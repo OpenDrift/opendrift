@@ -56,6 +56,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         'y_wind': {'fallback': 0},
         'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
         'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
+        'sea_surface_wave_significant_height' : {'fallback': 0},
         'sea_surface_wave_period_at_variance_spectral_density_maximum': {'fallback': 0},
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
@@ -80,7 +81,8 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
 
         # Calling general constructor of parent class
         super(SedimentDrift3D, self).__init__(*args, **kwargs)
-
+        
+        # resuspension (switched off by default)
         self._add_config({
             'drift:resuspension': {'type': 'bool', 'default': False,
                 # 'min': 0, 'max': 1e10, 'units': '-',
@@ -96,8 +98,12 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         # Settling on seafloor : for now we just deactivate settled particles - other options : ['none', 'lift_to_seafloor', 'deactivate', 'previous']
         # eventually set to 'lift_to_seafloor' when resuspension algorithm is implemented
         self._set_config_default('general:seafloor_action', 'deactivate') 
-        # resuspension switched off by default
+        
         self._set_config_default('drift:resuspension', False)
+        
+        if self.get_config('drift:resuspension', True) :
+            self.set_config('general:seafloor_action', 'lift_to_seafloor')
+            # we will use this to flag particles that reached the seafloor in the sediment_resuspension()
 
         self.max_speed = 5.0
 
@@ -107,7 +113,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         and environmental variables. Sub-modules should overload
         this method for particle-specific behaviour
 
-        Same as OceanDrfit for now - could include more sophisticaed models based on temp/salinity etc..
+        Same as OceanDrift for now - could include more sophisticated models based on temp/salinity etc..
         >> Maybe add some uncertainities to particle settling velocities ?
         """
         pass 
@@ -146,12 +152,13 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
                                      self.get_config('drift:max_age_seconds'),
                                      reason='retired')
         
-        # >> not needed anymore > will be flagged as reason = 'seafloor' withon OceanDrift parent class
-        # When no resuspension is required, deactivate particles that reached the seabed, this could probably be moved to a bottom_interaction()
-        if self.get_config('drift:resuspension') is False:
-            self.deactivate_elements(self.elements.z ==
-                                     -1.*self.environment.sea_floor_depth_below_sea_level,
-                                     reason='settled')
+        # >> not needed anymore > will be flagged as reason = 'seafloor' withon OceanDrift parent 
+        if False:
+            # When no resuspension is required, deactivate particles that reached the seabed, this could probably be moved to a bottom_interaction()
+            if self.get_config('drift:resuspension') is False:
+                self.deactivate_elements(self.elements.z ==
+                                         -1.*self.environment.sea_floor_depth_below_sea_level,
+                                         reason='settled')
 
         # Note the interaction with shoreline in taken care of by interact_with_coastline in basemodel.py
         # when run() is called
@@ -171,7 +178,18 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         # 4-resuspend or stay on seabed depending on 3)
         #   > probably need to use a cut-off age after which particles are de-activated anyway
         #   to prevent excessive build-up of "active" particle in the simulations
-        pass
+        if self.get_config('drift:resuspension') is True:
+            # 1. find particles that touched the seafloor
+            #   >> identified using self.elements.moving = 0/1 which is set in bottom_interaction() within vertical_mixing()
+            # 2-compute bed shear stresses at these particle locations
+            # bedshearstress_cw()
+            >> we can access current_speed using self.current_speed() - see physics methods
+            >> we can access current_speed using self.significant_wave_height()
+            >> also most variables in self.environment
+               
+
+        else : 
+            pass
 
     def bottom_interaction(self, seafloor_depth):
         """Sub method of vertical_mixing, determines settling"""
