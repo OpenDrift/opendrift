@@ -1,6 +1,3 @@
-###
-# Exporting a Telemac 3D selafin file to an unstructured Netcdf file
-# Following CF 1-8 and ugrid conventions
 import numpy as np
 from datetime import datetime, timedelta
 import sys
@@ -118,8 +115,7 @@ class Reader(BaseReader, UnstructuredReader):
             variables: np.array(int)
                 indexes of variables
         returns:
-            vectors: np.array
-            structured array of vectors u,v,w for each particles
+            variables: dictionary of numpy arrays
         """
         def cfvar(self, requested_variables):
             """
@@ -225,36 +221,3 @@ class Reader(BaseReader, UnstructuredReader):
         p2= self.slf.get_variables_at(frames[1], [0])[0,self.slf.ikle3[ifaces]]
         x1=slef.slf.meshx[ifaces]
         y1=slef.slf.meshy[ifaces]
-
-
-    @staticmethod
-    def nearest_idx(array, value):
-        """
-        we are looking for a tuple describing where the sample is and at which
-        distance. So we can calculate the FE solution of the variable value.
-        input:
-            array: a 1D numpy array
-            monotonic array
-        output:
-            bounds: a tupple
-            tupple describing the bounding indexes
-            dist = tupple
-            the distance between the sample and the index values
-            so that dist[0]+dist[1]=0
-        """
-        distance = array - value
-        nearest = np.abs(distance).argmin()
-        # test exact match and out of bounds
-        if distance == 0 | np.all(distance>0)|np.all(distance>0):
-            bounds = (array[nearest],None)
-            dist = (1,None)
-        else :
-            if distance(nearest)>0:
-                bounds = (nearest, nearest+1)
-                prop= distance(nearest)/(distance(nearest)+distance(nearest+1))
-                dist = (prop, 1-prop)
-            else:
-                bounds = (nearest-1, nearest)
-                dist = (distance(nearest)+1, -1*distance(nearest))
-        # test out of borders
-        return bounds, dist
