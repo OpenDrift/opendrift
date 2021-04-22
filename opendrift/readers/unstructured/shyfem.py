@@ -48,7 +48,7 @@ class Reader(BaseReader, UnstructuredReader):
         'northward_sea_water_velocity': 'y_sea_water_velocity',
         'sea_floor_depth_below_sea_surface': 'sea_floor_depth_below_sea_level'
     }
-        
+
     dataset = None
 
     def __init__(self, filename=None, name=None):
@@ -97,7 +97,8 @@ class Reader(BaseReader, UnstructuredReader):
         self.ymin = np.min(self.y)
         self.ymax = np.max(self.y)
 
-        self.level = self.dataset['level'][:]
+        self.z = self.dataset['level'][:]
+        self.zmin, self.zmax = -np.inf, np.max(self.z)
 
         self.variable_mapping = {}
         for var_name in self.dataset.variables:
@@ -141,7 +142,7 @@ class Reader(BaseReader, UnstructuredReader):
         plt.title('Unstructured grid: %s\n%s' % (self.name, self.proj))
         plt.xlabel('lon [deg E]')
         plt.ylabel('lat [deg N]')
-        
+
         if corners is not None:
             plt.xlim(corners[0],corners[1])
             plt.ylim(corners[2],corners[3])
@@ -180,7 +181,7 @@ class Reader(BaseReader, UnstructuredReader):
             dvar = self.variable_mapping.get(var)
             logger.debug("Interpolating: %s (%s)" % (var, dvar))
             dvar = self.dataset[dvar]
-            
+
             if len(dvar.shape) > 2:
                 level_ind = self.__nearest_level__(z)
 
@@ -214,4 +215,4 @@ class Reader(BaseReader, UnstructuredReader):
         """
         Find nearest index of z in levels.
         """
-        return np.argmin(np.abs(self.level[:, None] + z), axis=0)
+        return np.argmin(np.abs(self.z[:, None] - z), axis=0)
