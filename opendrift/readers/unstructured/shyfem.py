@@ -46,8 +46,9 @@ class Reader(BaseReader, UnstructuredReader):
     variable_aliases = {
         'eastward_sea_water_velocity': 'x_sea_water_velocity',
         'northward_sea_water_velocity': 'y_sea_water_velocity',
+        'sea_floor_depth_below_sea_surface': 'sea_floor_depth_below_sea_level'
     }
-
+        
     dataset = None
 
     def __init__(self, filename=None, name=None):
@@ -125,7 +126,7 @@ class Reader(BaseReader, UnstructuredReader):
 
         self.timer_end("open dataset")
 
-    def plot_mesh(self):
+    def plot_mesh(self,corners=None):
         """
         Plot the grid mesh. Does not automatically show the figure.
         """
@@ -140,6 +141,10 @@ class Reader(BaseReader, UnstructuredReader):
         plt.title('Unstructured grid: %s\n%s' % (self.name, self.proj))
         plt.xlabel('lon [deg E]')
         plt.ylabel('lat [deg N]')
+        
+        if corners is not None:
+            plt.xlim(corners[0],corners[1])
+            plt.ylim(corners[2],corners[3])
 
     def get_variables(self,
                       requested_variables,
@@ -150,8 +155,8 @@ class Reader(BaseReader, UnstructuredReader):
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
         z = np.atleast_1d(z)
-        if len(z) == 1:
-            z = z[0] * np.ones(x.shape)
+        #if len(z) == 1:
+        #    z = z[0] * np.ones(x.shape)
 
         logger.debug("Requested variabels: %s, lengths: %d, %d, %d" %
                      (requested_variables, len(x), len(y), len(z)))
@@ -175,7 +180,7 @@ class Reader(BaseReader, UnstructuredReader):
             dvar = self.variable_mapping.get(var)
             logger.debug("Interpolating: %s (%s)" % (var, dvar))
             dvar = self.dataset[dvar]
-
+            
             if len(dvar.shape) > 2:
                 level_ind = self.__nearest_level__(z)
 
@@ -192,7 +197,14 @@ class Reader(BaseReader, UnstructuredReader):
                         level_ind - level_ind.min(),
                         ]
             elif len(dvar.shape) == 1:
-                variables[var] = dvar[indx_nearest, nodes]
+                # Reading the smallest block covering the actual data
+                block = dvar[slice(nodes.min(),
+                                   nodes.max() + 1), ]
+
+                # Picking the nearest value
+                variables[var] = block[
+                        nodes - nodes.min(),
+                        ]
             else:
                 logger.error('unknown dimensionality')
 
@@ -202,4 +214,4 @@ class Reader(BaseReader, UnstructuredReader):
         """
         Find nearest index of z in levels.
         """
-        return np.argmin(np.abs(self.level[:, None] - z), axis=0)
+        return np.argmin(np.abs(self.level[:, None] + z), axis=0)
