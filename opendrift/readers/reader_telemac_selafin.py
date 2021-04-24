@@ -2,6 +2,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import sys
 from os import path, environ, sep
+from scipy.spatial import cKDTree
 #Activating PYTEL
 dir = environ['HOMETEL']+'{}scripts{}python3'.format(sep,sep)
 sys.path.append(path.join( path.dirname(sys.argv[0]),dir))#pytel path use environment variables
@@ -68,7 +69,9 @@ class Reader(BaseReader, UnstructuredReader):
         self.timer_start("build index")
         logger.debug("building index of nodes..")
         # using selafin method (scipy)
-        self.slf.set_kd_tree()
+        #self.slf.tree= set_kd_tree()
+        # using scipy directly
+        self.tree = self._build_ckdtree_(self.slf.meshx, self.slf.meshy)
         #bounds
         self.xmin,self.ymin,self.xmax, self.ymax= self.slf.meshx.min(),\
                 self.slf.meshy.min(), self.slf.meshx.max(),self.slf.meshy.max()
@@ -157,29 +160,27 @@ class Reader(BaseReader, UnstructuredReader):
                     so that dist[0]+dist[1]=0
                 """
                 distance = (array - value).astype(np.float)
-                nearest = (np.abs(distance)).argmin()
+                nearest =  np.argsort(abs(distance))[:2]
                 # test exact match and out of bounds
                 if (distance == 0).any() | (distance>0).all()|(distance<0).all():
-                    bounds = (nearest,None)
+                    bounds = (nearest[0],None)
                     dist = (1,0)
                 else :
-                    prop= distance[nearest]/(distance[nearest]+distance[nearest+1])
+                    prop= abs(distance[nearest[0]]/(distance[nearest[0]]+distance[nearest[1]]))
                     dist = (1-prop, prop)
-                    if distance[nearest]>0:
-                        bounds = (nearest, nearest+1)
-                    else:
-                        bounds = (nearest, nearest-1)
+                    bounds=nearest
                 return bounds, dist
 
         ### nearest time tupple
         frames, duration=nearest_idx(np.array(self.times).astype('datetime64[s]'),np.datetime64(time))
         ### nearest node in 2D
         # will have to be tested for scipy>1.6.0 upgrades n_jobs=workers
+        # scipy 1.3.3 fails as there is no argument n_jobs
         # will have to be improved for a real finite element solution (k=3 pts).
-        _,iii = self.slf.tree.query(np.vstack((x,y)).T,k=1, n_jobs=self.workers)
+        _,iii = self.tree.query(np.vstack((x,y)).T,k=1, workers=self.workers)
         # build depth ndarrays of each fibre
         niii = len(iii)
-        idx_3D = np.arange(self.slf.nplan).reshape(self.slf.nplan,1)*niii+iii
+        idx_3D = np.arange(self.slf.nplan).reshape(self.slf.nplan,1)*self.slf.npoin2+iii
         depths1=self.slf.get_variables_at(frames[0],[0])[0,idx_3D]
         if frames[1] is not None:
             depths2=self.slf.get_variables_at(frames[1],[0])[0,idx_3D]

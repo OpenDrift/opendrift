@@ -6,11 +6,11 @@ standard_names = {
     'y_wind': {'valid_min': -50, 'valid_max': 50, 'units': 'm/s',
         'long_name': 'Component of wind along y-direction (northwards if '
                       'projection is lonlat/Mercator)'},
-    'x_sea_water_velocity': {'valid_min': -10, 'valid_max': 10,
+    'x_sea_water_velocity': {'valid_min': -20, 'valid_max': 20,
         'units': 'm/s',
         'long_name': 'Component of ocean current along x-direction '
                      ' (eastwards if projection is lonlat/Mercator)'},
-    'y_sea_water_velocity': {'valid_min': -10, 'valid_max': 10, 'units': 'm/s',
+    'y_sea_water_velocity': {'valid_min': -20, 'valid_max': 20, 'units': 'm/s',
         'long_name': 'Component of ocean current along y-direction '
                       '(northwards if projection is lonlat/Mercator)'},
     'land_binary_mask': {'valid_min': 0, 'valid_max': 1,
@@ -25,5 +25,3 @@ vector_pairs_xy = [
     ['sea_surface_wave_stokes_drift_x_velocity',
      'sea_surface_wave_stokes_drift_y_velocity']
     ]
-
-
