@@ -96,7 +96,21 @@ class Reader(BaseReader, UnstructuredReader):
         self.timer_end("build index")
         self.timer_end("open dataset")
 
+    def plot_mesh(self):
+        """
+        Plot the grid mesh. Does not automatically show the figure.
+        """
+        #### needs to read the architecture of the nodes
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.scatter(self.slf.meshx, self.slf.meshy, marker='x', color='blue', label='nodes')
+        x, y = getattr(self.boundary, 'context').exterior.xy
+        plt.plot(x, y, color='green', label='boundary')
 
+        plt.legend()
+        plt.title('Unstructured grid: %s\n%s' % (self.name, self.proj))
+        plt.xlabel('x [m]')
+        plt.ylabel('y [m]')
 
     def get_variables(self,
                       requested_variables,
