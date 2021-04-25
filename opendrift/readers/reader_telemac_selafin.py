@@ -100,17 +100,30 @@ class Reader(BaseReader, UnstructuredReader):
         """
         Plot the grid mesh. Does not automatically show the figure.
         """
-        #### needs to read the architecture of the nodes
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.scatter(self.slf.meshx, self.slf.meshy, marker='x', color='blue', label='nodes')
-        x, y = getattr(self.boundary, 'context').exterior.xy
-        plt.plot(x, y, color='green', label='boundary')
+        title='Unstructured grid: %s\n%s' % (self.name, self.proj)
+        from importlib.util import find_spec
+        if find_spec("pyvista") is not None:
+            import pyvista as pv
+            cells=np.hstack(((np.ones(len(self.slf.ikle2), dtype=np.int)*3)[:,None],self.slf.ikle2))
+            points=np.vstack((self.slf.meshx, self.slf.meshy,np.zeros(len(self.slf.meshx)))).T
+            u = pv.PolyData(points, cells)
+            plotter= pv.Plotter()
+            plotter.add_mesh(u, show_edges=True)
+#            plotter.add_title(title)
+            plotter.show_bounds(mesh=u)
+            plotter.view_xy()
+            plotter.show(title=title, window_size=[800,640])
+        else:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.scatter(self.slf.meshx, self.slf.meshy, marker='x', color='blue', label='nodes')
+            x, y = getattr(self.boundary, 'context').exterior.xy
+            plt.plot(x, y, color='green', label='boundary')
 
-        plt.legend()
-        plt.title('Unstructured grid: %s\n%s' % (self.name, self.proj))
-        plt.xlabel('x [m]')
-        plt.ylabel('y [m]')
+            plt.legend()
+            plt.title(title)
+            plt.xlabel('x [m]')
+            plt.ylabel('y [m]')
 
     def get_variables(self,
                       requested_variables,
