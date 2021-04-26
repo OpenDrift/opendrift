@@ -97,16 +97,12 @@ class Reader(BaseReader, UnstructuredReader):
         self.ymin = np.min(self.y)
         self.ymax = np.max(self.y)
 
-<<<<<<< HEAD
-        self.z = -self.dataset['level'][:]
-=======
         # levels are the depth of the bottom of each layer. re-assign to middle of layer
         # for nearest interpolation.
         self.z = -self.dataset['level'][:]
         self.z = np.insert(self.z, 0, [0.])
         self.z = self.z[:-1] + (np.diff(self.z) / 2)
         assert len(self.z) == len(self.dataset['level'][:])
->>>>>>> gauteh/shyfem
         self.zmin, self.zmax = np.min(self.z), 0.
         assert (self.z <= 0).all()
 
