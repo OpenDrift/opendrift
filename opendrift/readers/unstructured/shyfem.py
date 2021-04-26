@@ -97,8 +97,9 @@ class Reader(BaseReader, UnstructuredReader):
         self.ymin = np.min(self.y)
         self.ymax = np.max(self.y)
 
-        self.z = self.dataset['level'][:]
-        self.zmin, self.zmax = -np.inf, np.max(self.z)
+        self.z = -self.dataset['level'][:]
+        self.zmin, self.zmax = np.min(self.z), 0.
+        assert (self.z <= 0).all()
 
         self.variable_mapping = {}
         for var_name in self.dataset.variables:

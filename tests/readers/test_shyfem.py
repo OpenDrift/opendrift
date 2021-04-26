@@ -19,7 +19,7 @@ def test_get_variables(benchmark):
 
     x = np.array([13., 13.])
     y = np.array([40, 40.1])
-    z = np.array([0, 100])
+    z = np.array([0, -100])
 
     u = benchmark(r.get_variables, ['x_sea_water_velocity'], r.start_time, x,
                   y, z)['x_sea_water_velocity']
@@ -31,20 +31,20 @@ def test_get_variables(benchmark):
 def test_z_polarity():
     r = shyfem.Reader(ismar)
     assert r.zmax > r.zmin
-    assert (r.z >= 0).all()
+    assert (r.z < 0).all()
 
 def test_get_values():
     r = shyfem.Reader(ismar)
 
     x = np.array([12.411164, 12.411164])
     y = np.array([45.445023, 45.445023])
-    z = np.array([1.6, 500])
+    z = np.array([-1.6, -500])
 
     u = r.get_variables(['x_sea_water_velocity'], r.start_time, x,
                   y, z)['x_sea_water_velocity']
 
     ni = 20000
-    zi = np.array([0, 25])
+    zi = np.array([0, -25])
 
     uu = r.dataset['u_velocity'][0, ni, zi]
     np.testing.assert_array_equal(u, uu)
