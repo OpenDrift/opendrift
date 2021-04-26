@@ -38,13 +38,13 @@ def test_get_values():
 
     x = np.array([12.411164, 12.411164])
     y = np.array([45.445023, 45.445023])
-    z = np.array([-1.6, -500])
+    z = np.array([0, -500])
 
     u = r.get_variables(['x_sea_water_velocity'], r.start_time, x,
                   y, z)['x_sea_water_velocity']
 
     ni = 20000
-    zi = np.array([0, -25])
+    zi = np.array([0, 25])
 
     uu = r.dataset['u_velocity'][0, ni, zi]
     np.testing.assert_array_equal(u, uu)
