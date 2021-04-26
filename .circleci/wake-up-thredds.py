@@ -2,6 +2,7 @@
 
 import urllib.request as urllib_request
 import time
+from netCDF4 import Dataset
 
 TIMEOUT = 5.
 RETRY_DELAY = 2.
@@ -21,6 +22,14 @@ for r in [
             request = urllib_request.Request(r)
             assert urllib_request.urlopen(request, timeout=TIMEOUT).getcode() == 200
             print("ok!")
+
+            if '.nc.html' in r:
+                ncurl = r[:-5]
+                print('testing DAP: %s..' % ncurl)
+                d = Dataset(ncurl)
+                assert len(d.variables) > 0
+                print('ok!')
+
             break
         except:
             print("failed, trying again..")
