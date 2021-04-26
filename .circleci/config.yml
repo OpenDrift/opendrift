@@ -172,26 +172,11 @@ jobs:
               make clean
             fi
 
-      -run:
+      - run:
           name: Wake-up Thredds-servers
           command: |
               source activate opendrift
-              python <<EOF
-import urllib.request as urllib_request
-for r in ['https://thredds.met.no/thredds/users.html',
-        'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc.html',
-        'http://tds0.ifremer.fr',
-        'http://tds0.ifremer.fr/thredds/dodsC/GLOBCURRENT-L4-CUREUL_15M-ALT_SUM_NRT-V03.0.html',
-        'https://iws.ismar.cnr.it/thredds/dodsC/emerge/shyfem_unstrct_ADRIA_20210408.nc.html'
-]:
-    for _attempt in range(3):
-        try:
-            request = urllib_request.Request(r)  # Wake up thredds-server, if sleeping
-            urllib_request.urlopen(request, timeout=5)
-            break
-        except:
-            pass
-EOF
+              python .circleci/wake-up-thredds.py
 
       - run:
           name: Build docs
