@@ -37,7 +37,8 @@ o.set_config('environment:fallback:ocean_vertical_diffusivity',0.001) # m2/s
 # time = datetime.utcnow()
 o.seed_elements(lon=12.0, lat=68.3, z=-3.0,
                 radius=100, number=100,
-                time=nordic_native.start_time,neutral_buoyancy_salinity=31.25)  
+                time=nordic_native.start_time,neutral_buoyancy_salinity=31.25,
+                terminal_velocity = 0.0)  
 
 ####################################################################################################################
 # CONFIG
@@ -47,7 +48,7 @@ o.set_config('drift:vertical_advection', True)
 o.set_config('drift:vertical_mixing', True)
 o.set_config('drift:min_settlement_age_seconds', 3600) # minimum age before settling can occur
 
-o.set_config('vertical_mixing:diffusivitymodel', 'constant') # use eddy diffusivity from ocean model, or fallback value
+o.set_config('vertical_mixing:diffusivitymodel', 'constant') # use fallback value ocean_vertical_diffusivity
 o.set_config('vertical_mixing:timestep', 900.) # seconds - # Vertical mixing requires fast time step  (but for constant diffusivity, use same as model step)
 ####################################################################################################################
 
@@ -57,6 +58,7 @@ o.run(end_time=nordic_native.start_time + timedelta(days=4.0), time_step=900)
 # Print and plot results.
 # At the end the wind vanishes, and eggs come to surface
 print(o)
+
 
 o.plot(fast=True)
 
