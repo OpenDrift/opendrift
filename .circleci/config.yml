@@ -173,6 +173,12 @@ jobs:
             fi
 
       - run:
+          name: Wake-up Thredds-servers
+          command: |
+              source activate opendrift
+              python .circleci/wake-up-thredds.py
+
+      - run:
           name: Build docs
           command: source activate opendrift && cd docs/ && make html
           no_output_timeout: 40m

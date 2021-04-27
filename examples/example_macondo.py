@@ -5,7 +5,6 @@ Macondo
 """
 
 from datetime import datetime, timedelta
-import urllib.request as urllib_request
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
@@ -15,24 +14,16 @@ from opendrift.models.openoil import OpenOil
 o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
-# This dataset is frequently unavailable, so trying first to "wake" the thredds server:
-for r in ['http://tds0.ifremer.fr', 'http://tds0.ifremer.fr/thredds/dodsC/GLOBCURRENT-L4-CUREUL_15M-ALT_SUM_NRT-V03.0.html']:
-    try:
-        print('Fetching ' + r)
-        request = urllib_request.Request(r)  # Wake up thredds-server, if sleeping
-        urllib_request.urlopen(request, timeout=5)
-    except:
-        pass
-for attempts in range(3):
-    try:
-        # For this datasource which does not contain standard_name, we impose a variable mapping
-        reader_globcurrent = reader_netCDF_CF_generic.Reader(
-            'http://tds0.ifremer.fr/thredds/dodsC/GLOBCURRENT-L4-CUREUL_HS-ALT_SUM-V03.0',
-            standard_name_mapping={'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
-                                   'northward_eulerian_current_velocity': 'y_sea_water_velocity'})
-        break
-    except:
-        pass
+# For this datasource which does not contain standard_name, we impose a variable mapping
+try:
+    reader_globcurrent = reader_netCDF_CF_generic.Reader(
+        'http://tds0.ifremer.fr/thredds/dodsC/GLOBCURRENT-L4-CUREUL_HS-ALT_SUM-V03.0',
+        standard_name_mapping={'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
+                               'northward_eulerian_current_velocity': 'y_sea_water_velocity'})
+except:
+    print('Thredds server not available, cannot run example')
+    import sys
+    sys.exit(0)
 
 reader_oceanwind = reader_netCDF_CF_generic.Reader('https://tds0.ifremer.fr/thredds/dodsC/CERSAT-GLO-CLIM_WIND_L4-OBS_FULL_TIME_SERIE')
 

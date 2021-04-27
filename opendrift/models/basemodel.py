@@ -362,9 +362,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                      opendrift.version.version_or_git())
 
         # Check if dependencies are outdated
-        try:
-            import cfgrib
-        except:
+        import importlib
+        if importlib.util.find_spec("cmocean") is None:
             logger.warning('#'*82)
             logger.warning('Dependencies are outdated, please update with: conda env update -f environment.yml')
             logger.warning('#'*82)
@@ -1990,8 +1989,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.debug('Horizontal diffusivity is 0, no random walk.')
             return
         dt = self.time_step.total_seconds()
-        x_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
-        y_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        x_vel = self.elements.moving * np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        y_vel = self.elements.moving * np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
         speed = np.sqrt(x_vel*x_vel+y_vel*y_vel)
         logger.debug('Moving elements according to horizontal diffusivity of %s, with speeds between %s and %s m/s'
                           % (D, speed.min(), speed.max()))

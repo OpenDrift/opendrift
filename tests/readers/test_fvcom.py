@@ -9,13 +9,6 @@ akvaplan = "https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_
 akvaplan_local = "niva/AkvaplanNiva_sample.nc4"
 proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
-# Wake up thredds dataset, if sleeping
-import urllib.request as urllib_request
-for r in ['https://thredds.met.no/thredds/users.html', 'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc.html']:
-    request = urllib_request.Request(r)  # Wake up thredds-server, if sleeping
-    urllib_request.urlopen(request, timeout=5)
-
-
 def test_open():
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
     print(r)
