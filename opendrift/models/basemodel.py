@@ -362,9 +362,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                      opendrift.version.version_or_git())
 
         # Check if dependencies are outdated
-        try:
-            import cfgrib
-        except:
+        import importlib
+        if importlib.util.find_spec("cmocean") is None:
             logger.warning('#'*82)
             logger.warning('Dependencies are outdated, please update with: conda env update -f environment.yml')
             logger.warning('#'*82)
