@@ -936,9 +936,59 @@ class Reader(BaseReader,UnstructuredReader):
                     env_profiles[var] = np.ma.masked_invalid(tmp)
 
         self.timer_end('masking')
+
+        # apply log profile if we are interpolating 2D data for ['x_sea_water_velocity','y_sea_water_velocity']
+        # not using for now
+        if False :
+            self.apply_logarithmic_current_profile(env,z)
+
         self.timer_end('total')
 
         return env, env_profiles
+
+    def apply_logarithmic_current_profile(self,env,z):
+        if not self.use_3d and 'sea_floor_depth_below_sea_level' in self.variables and 'x_sea_water_velocity' in self.variables :
+            log_profile_factor = self.logarithmic_current_profile(z,env['sea_floor_depth_below_sea_level'])
+            logger.debug('Applying logarithmic current profile to 2D current data [x_sea_water_velocity,y_sea_water_velocity] %s <= factor <=%s' % (np.min(log_profile_factor), np.max(log_profile_factor) ))
+            env['x_sea_water_velocity'] = log_profile_factor * env['x_sea_water_velocity']
+            env['y_sea_water_velocity'] = log_profile_factor * env['y_sea_water_velocity']
+            if False:
+                import matplotlib.pyplot as plt
+                plt.ion()
+                plt.plot(z/env['sea_floor_depth_below_sea_level'],log_profile_factor,'.')
+                import pdb;pdb.set_trace()
+                plt.close()
+
+    def logarithmic_current_profile(self, particle_z, total_depth):
+        ''' 
+        Extrapolation of depth-averaged currents to any vertical 
+        level of the water column assuming a logarithmic profile
+
+
+        Inputs :
+            particle_z : vertical position of particle in water column (negative down as used in Opendrift)
+            total_depth : total water depth at particle position (positive down)
+            z0 : roughness length, in meters (default, z0 = 0.001m )
+
+        Returns : 
+            Factors to be apply to interpolated raw depth-averaged currents
+
+        Reference :
+            Van Rijn, 1993. Principles of Sediment Transport in Rivers,
+            Estuaries and Coastal Seas
+
+        '''
+
+        # Opendrift convention : particle_z is 0 at the surface, negative down
+        # 
+        # The particle_z we need is the height of particle above seabed (positive)
+
+        part_z_above_seabed = np.abs(total_depth) + particle_z 
+        if not hasattr(self,'z0'): 
+            self.z0 = 0.001 # typical value for sandy seabed
+        log_fac = ( np.log(part_z_above_seabed / self.z0) ) / ( np.log(np.abs(total_depth)/self.z0)-1 ) # total_depth must be positive, hence the abs()
+        log_fac[np.where(part_z_above_seabed<=0)] = 1.0 # do not change velocity value
+        return log_fac
 
     def plot(self, variable=None, vmin=None, vmax=None,
              filename=None, title=None, buffer=1, lscale='auto',plot_time = None):
@@ -1124,7 +1174,8 @@ class Reader(BaseReader,UnstructuredReader):
         else:
             plt.ion()
             plt.show()
-            import pdb;pdb.set_trace()
+            # import pdb;pdb.set_trace()
+            # 
             # variable = ['sea_floor_depth_below_sea_level','x_sea_water_velocity','y_sea_water_velocity']
             # data = self.get_variables(variable, self.start_time,rx, ry, block=True) # where variable = ['x_sea_water_velocity','y_sea_water_velocity']
             # plt.quiver(rlon,rlat,data['x_sea_water_velocity']) #> check what's going here

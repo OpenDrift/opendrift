@@ -152,7 +152,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
                                      self.get_config('drift:max_age_seconds'),
                                      reason='retired')
         
-        # >> not needed anymore > will be flagged as reason = 'seafloor' withon OceanDrift parent 
+        # >> not needed anymore > will be flagged as reason = 'seafloor' within OceanDrift parent 
         if False:
             # When no resuspension is required, deactivate particles that reached the seabed, this could probably be moved to a bottom_interaction()
             if self.get_config('drift:resuspension') is False:
@@ -183,11 +183,11 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
             #   >> identified using self.elements.moving = 0/1 which is set in bottom_interaction() within vertical_mixing()
             # 2-compute bed shear stresses at these particle locations
             # bedshearstress_cw()
-            >> we can access current_speed using self.current_speed() - see physics methods
-            >> we can access current_speed using self.significant_wave_height()
-            >> also most variables in self.environment
-               
-
+            import pdb;pdb.set_trace() 
+            # >> we can access current_speed using self.current_speed() - see physics methods
+            # >> we can access current_speed using self.significant_wave_height()
+            # >> also most variables in self.environment
+          
         else : 
             pass
 
