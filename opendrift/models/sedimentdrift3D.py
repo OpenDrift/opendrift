@@ -101,7 +101,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         
         self._set_config_default('drift:resuspension', False)
         
-        if self.get_config('drift:resuspension', True) :
+        if self.get_config('drift:resuspension') is True :
             self.set_config('general:seafloor_action', 'lift_to_seafloor')
             # we will use this to flag particles that reached the seafloor in the sediment_resuspension()
 
@@ -180,13 +180,11 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         #   to prevent excessive build-up of "active" particle in the simulations
         if self.get_config('drift:resuspension') is True:
             # 1. find particles that touched the seafloor
-            #   >> identified using self.elements.moving = 0/1 which is set in bottom_interaction() within vertical_mixing()
+            #   >> identified using self.elements.moving = 0/1 which is set in bottom_interaction(),  within vertical_mixing()
             # 2-compute bed shear stresses at these particle locations
             # bedshearstress_cw()
-            import pdb;pdb.set_trace() 
-            # >> we can access current_speed using self.current_speed() - see physics methods
-            # >> we can access current_speed using self.significant_wave_height()
-            # >> also most variables in self.environment
+            self.bedshearstress_current_wave()
+
           
         else : 
             pass
@@ -219,7 +217,47 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
 # General physics functions---------------------------------------------------------------------------------
 # Could be moved to physics_methods.py once cross-checked / accepted 
 
-def bedshearstress_cw(self,p,time=None,imax=2):
+
+    def bedshearstress_current_wave(self):
+        """
+        Computation of bed shear stress due to current and waves
+        current-related stress is computed following a drag-coefficient approach
+        wave-related stress is computed following Van Rijn approach
+        combined wave-current mean and max stresses are computed followin Soulsby(1995) approach
+
+        https://odnature.naturalsciences.be/coherens/manual#manual
+        https://odnature.naturalsciences.be/downloads/coherens/documentation/chapter7.pdf#nameddest=Bed_shear_stresses
+        
+        http://www.coastalwiki.org/wiki/Shallow-water_wave_theory#
+        http://www.coastalwiki.org/wiki/Shallow-water_wave_theory#Seabed_Friction  
+        """
+
+        # >> we can access current_speed using self.current_speed() - see physics methods
+        # >> we can access current_speed using self.significant_wave_height()
+        # >> also most variables in self.environment
+
+        rho_water = 1027 # kg/m3
+        z0 = 0.001 # roughness height - hard-coded constant for now 
+        water_depth = np.abs(self.sea_floor_depth()) # water depth positive down
+        current_speed = self.current_speed() # depth-averaged current 
+
+        # depth-averaged current approach :
+        if True : # current data fron reader is depth-averaged
+            Cdrag=( 0.4 /(np.log(abs(water_depth/z0))-1) )**2
+            #Now compute the bed shear stress [N/m2] 
+            tau_cur=rho_water*Cdrag*current_speed**2
+        else:
+            last_wet_bin_depth = 0.0 # to implement
+            Cdrag=( 0.4 /(np.log(abs(last_wet_bin_depth/z0))-1) )**2
+            #Now compute the bed shear stress [N/m2] 
+            tau_cur=rho_water*Cdrag*current_speed**2        
+
+        import pdb;pdb.set_trace() 
+        # now add wave-related bed shear stress and combine both tau_cur and tau_wave
+        # see below 
+
+
+def bedshearstress_cw_ERCORE(self,p,time=None,imax=2):
     """Computation of bed shear stress due to current and waves
     current-related stress is computed following a drag-coefficient approach
     wave-related stress is computed following Van Rijn approach

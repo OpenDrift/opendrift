@@ -982,8 +982,9 @@ class Reader(BaseReader,UnstructuredReader):
         # Opendrift convention : particle_z is 0 at the surface, negative down
         # 
         # The particle_z we need is the height of particle above seabed (positive)
-
         part_z_above_seabed = np.abs(total_depth) + particle_z 
+        # note : taking the absolute value enbsure we have positive down depth (though it make any depth<0 wrong..but log profile probably not critical at these points anyway?)
+        # if we are sure that total_depth is positive down then we should just use >> part_z_above_seabed = total_depth + particle_z 
         if not hasattr(self,'z0'): 
             self.z0 = 0.001 # typical value for sandy seabed
         log_fac = ( np.log(part_z_above_seabed / self.z0) ) / ( np.log(np.abs(total_depth)/self.z0)-1 ) # total_depth must be positive, hence the abs()
