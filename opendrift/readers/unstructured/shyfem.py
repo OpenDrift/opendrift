@@ -79,11 +79,8 @@ class Reader(BaseReader, UnstructuredReader):
         self.x, self.y = self.dataset['longitude'][:], self.dataset[
             'latitude'][:]
 
-        # Times in SHYFEM are..
-        assert self.dataset[
-            'time'].units == 'seconds since 2014-01-01 00:00:00 UTC'
-        ref_time = datetime(2014, 1, 1, 00, 00,
-                            00)  # TODO: include , tzinfo=timezone.utc)
+        ref_time = datetime.fromisoformat(self.dataset['time'].units[14:33])
+        
         self.times = np.array([
             ref_time + timedelta(seconds=d.item())
             for d in self.dataset['time'][:]
