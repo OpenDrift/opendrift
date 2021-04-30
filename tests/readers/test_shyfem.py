@@ -4,8 +4,7 @@ from tests import *
 from opendrift.readers.unstructured import shyfem
 from opendrift.models.oceandrift import OceanDrift
 
-ismar = 'https://iws.ismar.cnr.it/thredds/dodsC/emerge/shyfem_unstrct_ADRIA_20210408.nc'
-
+ismar = 'https://iws.ismar.cnr.it/thredds/dodsC/emerge/shyfem_unstructured_adriatic.nc'
 
 def test_open():
     r = shyfem.Reader(ismar)
@@ -36,8 +35,8 @@ def test_z_polarity():
 def test_get_values():
     r = shyfem.Reader(ismar)
 
-    x = np.array([12.411164, 12.411164])
-    y = np.array([45.445023, 45.445023])
+    x = np.array([16.175186, 16.175186])
+    y = np.array([42.457916, 42.457916])
     z = np.array([0, -500])
 
     u = r.get_variables(['x_sea_water_velocity'], r.start_time, x,
