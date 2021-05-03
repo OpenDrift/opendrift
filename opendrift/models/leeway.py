@@ -428,6 +428,8 @@ class Leeway(OpenDriftSimulation):
     def _substance_name(self):
         if hasattr(self, 'history'):
             object_type = self.history['object_type'][0,0]
+            if not np.isfinite(object_type):  # For backward simulations
+                object_type = self.history['object_type'][-1,0]
         else:
             object_type = np.atleast_1d(self.elements_scheduled.object_type)[0]
         return self.leewayprop[object_type]['OBJKEY']
