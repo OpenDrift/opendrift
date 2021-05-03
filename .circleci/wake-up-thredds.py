@@ -13,7 +13,7 @@ for r in [
         'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc.html',
         'http://tds0.ifremer.fr',
         'http://tds0.ifremer.fr/thredds/dodsC/GLOBCURRENT-L4-CUREUL_15M-ALT_SUM_NRT-V03.0.html',
-        'https://iws.ismar.cnr.it/thredds/dodsC/emerge/shyfem_unstrct_ADRIA_20210408.nc.html'
+        'https://iws.ismar.cnr.it/thredds/dodsC/emerge/shyfem_unstructured_adriatic.nc.html'
 ]:
     print('Waking up: %s..' % r)
     for _ in range(TRIES):
