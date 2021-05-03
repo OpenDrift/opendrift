@@ -32,8 +32,10 @@ class SedimentElement(Lagrangian3DArray):
                  'default': 0}),
         ('terminal_velocity', {'dtype': np.float32,
                                'units': 'm/s',
-                               'default': -0.001})  # 1 mm/s negative buoyancy
-
+                               'default': -0.001}), # 1 mm/s negative buoyancy
+        ('critical_shear_stress', {'dtype': np.float32,
+                                  'units': 'N/m2',
+                                  'default': 0.0})
         ])
 
 class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
@@ -78,7 +80,6 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
 
     def __init__(self, *args, **kwargs):
 
-
         # Calling general constructor of parent class
         super(SedimentDrift3D, self).__init__(*args, **kwargs)
         
@@ -95,15 +96,10 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         self._set_config_default('drift:vertical_mixing', True)
         # Vertical advection switched off by default (if w is available)
         self._set_config_default('drift:vertical_advection', False)
-        # Settling on seafloor : for now we just deactivate settled particles - other options : ['none', 'lift_to_seafloor', 'deactivate', 'previous']
-        # eventually set to 'lift_to_seafloor' when resuspension algorithm is implemented
+        # Settling on seafloor : if no resuspension (default) : deactivate settled particles 
+        #                        if resuspension is on, will be set to 'lift_to_seafloor'
+        #                        other options : ['none', 'lift_to_seafloor', 'deactivate', 'previous']
         self._set_config_default('general:seafloor_action', 'deactivate') 
-        
-        self._set_config_default('drift:resuspension', False)
-        
-        if self.get_config('drift:resuspension') is True :
-            self.set_config('general:seafloor_action', 'lift_to_seafloor')
-            # we will use this to flag particles that reached the seafloor in the sediment_resuspension()
 
         self.max_speed = 5.0
 
@@ -144,7 +140,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         self.vertical_advection()
 
         # Sediment resuspension checks , if switched on
-        self.sediment_resuspension() #- ToDo!
+        self.sediment_resuspension() #-
 
         # Deactivate elements that exceed a certain age
         if self.get_config('drift:max_age_seconds') is not None:
@@ -179,26 +175,33 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         #   > probably need to use a cut-off age after which particles are de-activated anyway
         #   to prevent excessive build-up of "active" particle in the simulations
         if self.get_config('drift:resuspension') is True:
+            self.set_config('general:seafloor_action', 'lift_to_seafloor') # we need this to
+            logger.debug('Resuspension physics included : drift:resuspension == True')
             # 1. find particles that touched the seafloor
             #   >> identified using self.elements.moving = 0/1 which is set in bottom_interaction(),  within vertical_mixing()
-            # 2-compute bed shear stresses at these particle locations
-            # bedshearstress_cw()
-            self.bedshearstress_current_wave()
-
-          
-        else : 
-            pass
-
+            # 2-compute bed shear stresses at particle locations
+            tau_cw,tau_cw_max = self.bedshearstress_current_wave()
+            # compare them with critical bed shearstresses
+            to_resuspend = (np.logical_and(self.elements.moving == 0,tau_cw_max>self.elements.critical_shear_stress))
+            if np.sum(to_resuspend) > 0 :
+                logger.debug('Resuspending %s elements where tau_cw_max>critical_shear_stress' % np.sum(to_resuspend))
+                sea_floor_depth = self.sea_floor_depth()
+                # Resuspend 1 cm above seafloor
+                self.elements.z[to_resuspend] = -sea_floor_depth[to_resuspend] + 0.01
+                # Allow moving again
+                self.elements.moving[to_resuspend] = 1
+            else:              
+              logger.debug('No elements to resuspend (tau_cw_max < critical_shear_stress everywhere')
+ 
     def bottom_interaction(self, seafloor_depth):
         """Sub method of vertical_mixing, determines settling"""
         # Elements at or below seafloor are settled, by setting
         # self.elements.moving to 0.
         # These elements will not move until eventual later resuspension.
 
-        sea_floor_depth = self.sea_floor_depth()
+        sea_floor_depth =  self.sea_floor_depth()
         below = np.where(self.elements.z < -sea_floor_depth)[0]
         self.elements.z[below] = -sea_floor_depth[below]
-
         settling = np.logical_and(self.elements.z <= seafloor_depth, self.elements.moving==1)
         if np.sum(settling) > 0:
             logger.debug('Settling %s elements at seafloor' % np.sum(settling))
@@ -213,7 +216,6 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
             # Suspend 1 cm above seafloor
             self.elements.z[resuspending] = self.elements.z[resuspending] + .01
 
-
 # General physics functions---------------------------------------------------------------------------------
 # Could be moved to physics_methods.py once cross-checked / accepted 
 
@@ -223,23 +225,27 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         Computation of bed shear stress due to current and waves
         current-related stress is computed following a drag-coefficient approach
         wave-related stress is computed following Van Rijn approach
-        combined wave-current mean and max stresses are computed followin Soulsby(1995) approach
+        combined wave-current mean and max stresses are computed following Soulsby(1995) approach
 
         https://odnature.naturalsciences.be/coherens/manual#manual
         https://odnature.naturalsciences.be/downloads/coherens/documentation/chapter7.pdf#nameddest=Bed_shear_stresses
         
         http://www.coastalwiki.org/wiki/Shallow-water_wave_theory#
         http://www.coastalwiki.org/wiki/Shallow-water_wave_theory#Seabed_Friction  
-        """
 
-        # >> we can access current_speed using self.current_speed() - see physics methods
-        # >> we can access current_speed using self.significant_wave_height()
-        # >> also most variables in self.environment
+        General relationships obtained from :
+        https://repository.tudelft.nl/islandora/object/uuid%3Aea12eb20-aee3-4f58-99fb-ebc216e98879
+        Description of TRANSPOR2004 and Implementation in Delft3D-ONLINE
+        """
 
         rho_water = 1027 # kg/m3
         z0 = 0.001 # roughness height - hard-coded constant for now 
         water_depth = np.abs(self.sea_floor_depth()) # water depth positive down
         current_speed = self.current_speed() # depth-averaged current 
+
+        #######################################################
+        # current-related bed shear stress
+        #######################################################
 
         # depth-averaged current approach :
         if True : # current data fron reader is depth-averaged
@@ -247,15 +253,77 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
             #Now compute the bed shear stress [N/m2] 
             tau_cur=rho_water*Cdrag*current_speed**2
         else:
-            last_wet_bin_depth = 0.0 # to implement
+            # 3D currents - to implement
+            last_wet_bin_depth = 0.0 
             Cdrag=( 0.4 /(np.log(abs(last_wet_bin_depth/z0))-1) )**2
             #Now compute the bed shear stress [N/m2] 
             tau_cur=rho_water*Cdrag*current_speed**2        
 
-        import pdb;pdb.set_trace() 
-        # now add wave-related bed shear stress and combine both tau_cur and tau_wave
-        # see below 
+        #######################################################
+        # wave-related bed shear stress (if wave available)
+        #######################################################
+        hs = self.significant_wave_height()
+        tp = self.wave_period()
+        # wave-related roughness
 
+        # see VanRijn 
+        # https://tinyurl.com/nyjcss5w
+        # SIMPLE GENERAL FORMULAE FOR SAND TRANSPORT IN RIVERS, ESTUARIES AND COASTAL WATERS
+        # >> page 6
+        # 
+        # Note : VanRijn 2007 suggests same equations than for current-related roughness 
+        # where 20*d50 <ksw<150*d50
+        # here we are using Nikuradse roughness for consistency with the 
+        # use of z0 in the current-related shear stress 
+
+        ksw=30*z0 # wave related bed roughness - taken as Nikuradse roughness 
+        w=2*np.pi/tp
+        kh = qkhfs( w, water_depth ) # dispersion relationship 
+        Adelta = hs/(2*np.sinh(kh)) # peak wave orbital excursion 
+        Udelta = (np.pi*hs)/(tp*np.sinh(kh))  # peak wave orbital velocity linear theory 
+
+        fw_swart = np.exp(-5.977+5.213*(Adelta/ksw)**-0.194)  # wave-related friction coefficient (Swart,1974) eq. 3.8 on VanRijn pdf
+        fw_swart = np.minimum(fw_swart,0.3)
+        fw_soulsby = 0.237 * (Adelta/ksw)**-0.52 #eq. 7.18 COHERENS, not used for now
+        tau_wave = 0.25 * rho_water * fw_swart * (Udelta)**2 # wave-related bed shear stress eq. 3.7 on VanRijn pdf
+        #cycle mean bed shear stress according to Soulsby,1995, see also COHERENS manual eq. 7.14
+        tau_cw=tau_cur*[1+1.2*(tau_wave/(tau_cur+tau_wave))**3.2]
+        # max bed shear stress during wave cycle - in theory should be used for the resuspension criterion.
+        theta_cur_dir = 0.0 #angle between direction of travel of wave and current, in radians, in practice rarely known...take 0 ?
+        # tau_max = ( (tau_cur + tau_wave*np.cos(theta_cur_dir))**2 + (tau_wave*np.sin(theta_cur_dir))**2 )**0.5 
+        tau_cw_max = (tau_cur**2 + tau_wave**2 + 2*tau_cur*tau_wave*np.cos(theta_cur_dir))**0.5 # COHERENS eq. 7.15
+        
+        return tau_cw[0],tau_cw_max 
+
+
+#from  https://github.com/csherwood-usgs/crspy/blob/master/crspy.py
+def qkhfs( w, h ):
+    """
+    Quick iterative calculation of kh in gravity-wave dispersion relationship
+    kh = qkhfs(w, h )
+    
+    Input
+        w - angular wave frequency = 2*pi/T where T = wave period [1/s]
+        h - water depth [m]
+    Returns
+        kh - wavenumber * depth [ ]
+    Orbital velocities from kh are accurate to 3e-12 !
+    RL Soulsby (2006) "Simplified calculation of wave orbital velocities"
+    HR Wallingford Report TR 155, February 2006
+    Eqns. 12a - 14
+    """
+    g = 9.81
+    x = w**2.0 *h/g
+    y = np.sqrt(x) * (x<1.) + x *(x>=1.)
+    # is this faster than a loop?
+    t = np.tanh( y )
+    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
+    t = np.tanh( y )
+    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
+    t = np.tanh( y )
+    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
+    kh = y
+    return kh
 
 def bedshearstress_cw_ERCORE(self,p,time=None,imax=2):
     """Computation of bed shear stress due to current and waves
@@ -343,10 +411,12 @@ def bedshearstress_cw_ERCORE(self,p,time=None,imax=2):
       fw = numpy.exp(-5.977+5.213*(Adelta/ksw)**-0.194)  # wave-related friction coefficient (van Rijn)
       fw = numpy.min(fw,0.3)
       tau_wave = 0.25 * rhow * fw * (Udelta)**2 # wave-related bed shear stress
-      #cycle mean bed shear stress according to Soulsby,1995
+      #cycle mean bed shear stress according to Soulsby,1995, see also COHERENS manual eq. 7.14
       tau_cw=tau_cur*[1+1.2*(tau_wave/(tau_cur+tau_wave))**3.2]
       # max bed shear stress during wave cycle
-      tau_max=[tau_wave**2+tau_cur**2]**0.5
+      theta_cur_dir = 0 #angle between direction of travel of wave and current, in radians
+      tau_max = tau_cur + tau_wave*np.cos(theta_cur_dir) + tau_wave*np.sin(theta_cur_dir)
+      tau_max=[tau_wave**2+tau_cur**2]**0.5 
     else:
       tau_max=tau_cur
       tau_cw=tau_cur
@@ -354,88 +424,3 @@ def bedshearstress_cw_ERCORE(self,p,time=None,imax=2):
     #   import pdb;pdb.set_trace()
     return tau_cur,tau_cw,tau_max,topo
 
-#from  https://github.com/csherwood-usgs/crspy/blob/master/crspy.py
-def qkhfs( w, h ):
-    """
-    Quick iterative calculation of kh in gravity-wave dispersion relationship
-    kh = qkhfs(w, h )
-    
-    Input
-        w - angular wave frequency = 2*pi/T where T = wave period [1/s]
-        h - water depth [m]
-    Returns
-        kh - wavenumber * depth [ ]
-    Orbital velocities from kh are accurate to 3e-12 !
-    RL Soulsby (2006) "Simplified calculation of wave orbital velocities"
-    HR Wallingford Report TR 155, February 2006
-    Eqns. 12a - 14
-    """
-    g = 9.81
-    x = w**2.0 *h/g
-    y = numpy.sqrt(x) * (x<1.) + x *(x>=1.)
-    # is this faster than a loop?
-    t = numpy.tanh( y )
-    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
-    t = numpy.tanh( y )
-    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
-    t = numpy.tanh( y )
-    y = y-( (y*t -x)/(t+y*(1.0-t**2.0)))
-    kh = y
-    return kh
-
-
-    # def horizontal_diffusion_depreciated(self, *args, **kwargs):
-    #     #  official code base now has the equivalent one, called horizontal_diffusion()
-    #     '''
-    #     Horizontal diffusion based on random walk technique
-    #     using diffusion coefficients K_xy (in m2/s - constant or interpolaote from field)
-    #     and uniformly distributed random numbers R(-1,1) with a zero mean.
-
-        
-    #     Constant coefficients 'ocean_horizontal_diffusivity' can be set using:
-    #     o.fallback_values['ocean_horizontal_diffusivity'] = 0.1 
-
-    #     Time-Space varying coefficients  'ocean_horizontal_diffusivity' 
-    #     can also be interpolated from an environment object (as in vertical_mixing() )
-        
-    #     * this should not be used in combination with drift:current_uncertainty > 0 
-    #     * as this model the same process, only with a different approach 
-
-    #     The random component added to the particle position to reproduce turbulent horizontal 
-    #     is computed using a approach similar to PyGnome, CMS :
-
-    #     -https://github.com/beatrixparis/connectivity-modeling-system/blob/master/cms-master/src/mod_turb.f90
-    #     -Garcia-Martinez and Tovar, 1999 - Computer Modeling of Oil Spill Trajectories With a High Accuracy Method
-    #     -Lonin, S.A., 1999. Lagrangian model for oil spill diffusion at sea. Spill Science and Technology Bulletin, 5(5): 331-336
-    #     -https://github.com/NOAA-ORR-ERD/PyGnome/blob/master/lib_gnome/Random_c.cpp#L50 
-
-    #     stored as an array in self.elements.horizontal_diffusion
- 
-    #     '''
-    #     if not self.environment.ocean_horizontal_diffusivity.any():
-    #         logger.debug('No horizontal diffusion applied - ocean_horizontal_diffusivity = 0.0')
-    #         pass
-
-    #     # check if some diffusion is not already accounted for using drift:current_uncertainty
-    #     if self.get_config('drift:current_uncertainty') != 0:
-    #         logger.debug('Warning = some horizontal diffusion already accounted for using drift:current_uncertainty')
-
-    #     diff_fac = 6 # 6 is used in PyGnome as well, but can be = 2 in other formulations, such as in the CMS model - hard coded for now
-    #     K_xy = self.environment.ocean_horizontal_diffusivity # horizontal diffusion coefficient in [m2/s]
-    #     # max diffusion distance in meters is : max_diff_distance = np.sqrt(diff_fac * K_xy * self.time_step.seconds)
-    #     # here we need velocity to fit with the update_position() subroutine
-    #     # max_diff_velocity = max_diff_distance / self.time_step.seconds = np.sqrt(diff_fac * K_xy / self.time_step.seconds) 
-    #     max_diff_velocity = np.sqrt(diff_fac * K_xy / self.time_step.seconds) # max diffusion velocity in [m/s]
-    #     # add randomness - random number in [-1,1] using uniform distribution i.e. same probabilty for each value (note some other formulations may use "normal" distribution)
-    #     diff_velocity = np.random.uniform(-1,1,size = len(max_diff_velocity)) * max_diff_velocity # in [m/s]
-    #     # random directions
-    #     theta_rand = np.random.uniform( 0, 2*np.pi, size = len(max_diff_velocity) )
-    #     # split diff_velocity into (u,v) velocities using random directions
-    #     x_vel = diff_velocity * np.cos(theta_rand)
-    #     y_vel = diff_velocity * np.sin(theta_rand)
-
-    #     logger.debug('Applying horizontal diffusion to particle positions')
-    #     logger.debug('\t\t%s   <- horizontal diffusion distance [m] ->   %s' % (np.min(diff_velocity*self.time_step.seconds), np.max(diff_velocity*self.time_step.seconds)))
-
-    #     # update positions with the diffusion velocities     
-    #     self.update_positions(x_vel, y_vel)
