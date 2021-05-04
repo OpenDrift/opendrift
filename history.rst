@@ -11,7 +11,7 @@ History
 * Several improvements to module ChemicalDrift
 * For PlastDrift model, config ``drift:vertical_mixing=False`` still gave vertical entrainment for ``mixingmodel=analytical``, but this is now changed. Sundby83 is now default model for vertical diffusivity in PlastDrift (was Large1994)
 * Increased valid range of current velocity components from 10 m/s to 15 m/s
-* Rotated pole projection (ob_tran) is not parsed from CF attributes by reader_netCDF_CF_generic.
+* Rotated pole projection (ob_tran) is now parsed from CF attributes by reader_netCDF_CF_generic.
 * Leeway jibing probability is calculated with exponential, giving more precise results for larger time steps. Generic arguments are removed from Leeway seeding method.
 * lon, lat are now positional arguments also in Leeway.seed_elements method. Leeway.seed_from_shapefile did nor work before this fix.
 * Config option ``drift:lift_to_seafloor`` is replaced by ``general:seafloor_action``, analoguos to ``general:coastline_action``.
