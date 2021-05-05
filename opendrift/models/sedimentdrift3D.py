@@ -65,16 +65,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True},
         'sea_floor_depth_below_sea_level': {'fallback': 0},
         }
-    
-    # Adding some specs - inspired from basereader.py
-    #
-    # Default plotting colors of trajectory endpoints
-
-    status_colors_default = {'initial': 'green',
-                             'active': 'blue',
-                             'missing_data': 'gray',
-                             'settled': 'red'}
-    
+        
     # The depth range (in m) which profiles shall cover
     required_profiles_z_range = [-20, 0]
 
@@ -91,15 +82,20 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
                 'level': self.CONFIG_LEVEL_ESSENTIAL}})
 
         # By default, sediments do strand at coastline
-        self._set_config_default('general:coastline_action', 'stranding')
+        self._set_config_default('general:coastline_action','stranding')
         # Vertical mixing is enabled as default
         self._set_config_default('drift:vertical_mixing', True)
         # Vertical advection switched off by default (if w is available)
         self._set_config_default('drift:vertical_advection', False)
+        #Stokes drift probably not relevant here, expect maybe for slow-settling, surface sediment
+        # keeping here as place holder
+        self._set_config_default('drift:stokes_drift',False)
+
         # Settling on seafloor : if no resuspension (default) : deactivate settled particles 
-        #                        if resuspension is on, will be set to 'lift_to_seafloor'
+        #                        if resuspension is on, this will be set to 'lift_to_seafloor'
         #                        other options : ['none', 'lift_to_seafloor', 'deactivate', 'previous']
         self._set_config_default('general:seafloor_action', 'deactivate') 
+
 
         self.max_speed = 5.0
 
@@ -125,7 +121,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         # (according to specified wind_drift_factor)
         self.advect_wind()
 
-        # Stokes drift
+        # Stokes drift - deactivated for now
         self.stokes_drift()
         
         # Turbulent Mixing
@@ -139,7 +135,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         # Vertical advection
         self.vertical_advection()
 
-        # Sediment resuspension checks , if switched on
+        # Sediment resuspension physics
         self.sediment_resuspension() #-
 
         # Deactivate elements that exceed a certain age
@@ -161,27 +157,24 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
 
     def sediment_resuspension(self):
         """
-        Compute ambient bed shear stresses at positions of particles that are (or just touched) the bottom
-        and determine if they can settle or be resuspended based on critical_shear_stress 
+        Compute ambient bed shear stresses at particle positions and determine if particles that settled 
+        can be resuspensed or not based on their critical_shear_stress
+
+        The function uses the element attribute self.elements.moving to be able to freeze/unfreeze particles 
+        motions while still keeping them "active" (see in advect_ocean_current())
+
+        Note the self.elements.moving is set to 0 in bottom_interaction(), called within vertical_mixing()
+        when particles touch the seafloor
         """
 
-        # > use the element attribute "moving" to freeze/unfreeze settled particles (see in advect_ocean_current())
-        # > move them back only when bedshearstress > critical_shear_stress
-
-        # 1-find particles on the bottom - done in bottom_interaction() 
-        # 2-compute bed shear stresses 
-        # 3-compare to critical_shear_stress
-        # 4-resuspend or stay on seabed depending on 3)
-        #   > probably need to use a cut-off age after which particles are de-activated anyway
-        #   to prevent excessive build-up of "active" particle in the simulations
         if self.get_config('drift:resuspension') is True:
-            self.set_config('general:seafloor_action', 'lift_to_seafloor') # we need this to
-            logger.debug('Resuspension physics included : drift:resuspension == True')
-            # 1. find particles that touched the seafloor
-            #   >> identified using self.elements.moving = 0/1 which is set in bottom_interaction(),  within vertical_mixing()
-            # 2-compute bed shear stresses at particle locations
+            self.set_config('general:seafloor_action', 'lift_to_seafloor')
+            logger.debug('Sediemnt resuspension physics included : drift:resuspension == True')
+            # 1-compute bed shear stresses at particle locations
             tau_cw,tau_cw_max = self.bedshearstress_current_wave()
-            # compare them with critical bed shearstresses
+            # 2-compare ambient max bedshearstress with critical bed shearstress
+            # Note the self.elements.moving is set to 0 in bottom_interaction(), called within vertical_mixing()
+            # when particles touch the seafloor
             to_resuspend = (np.logical_and(self.elements.moving == 0,tau_cw_max>self.elements.critical_shear_stress))
             if np.sum(to_resuspend) > 0 :
                 logger.debug('Resuspending %s elements where tau_cw_max>critical_shear_stress' % np.sum(to_resuspend))
@@ -207,25 +200,25 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
             logger.debug('Settling %s elements at seafloor' % np.sum(settling))
             self.elements.moving[settling] = 0
 
-    def resuspension(self):
-        """Resuspending elements if current speed > .5 m/s"""
-        resuspending = np.logical_and(self.current_speed()>.5, self.elements.moving==0)
-        if np.sum(resuspending) > 0:
-            # Allow moving again
-            self.elements.moving[resuspending] = 1
-            # Suspend 1 cm above seafloor
-            self.elements.z[resuspending] = self.elements.z[resuspending] + .01
+    # Code from sedimentdrift.py for reference  
+    # def resuspension(self):
+    #     """Resuspending elements if current speed > .5 m/s"""
+    #     resuspending = np.logical_and(self.current_speed()>.5, self.elements.moving==0)
+    #     if np.sum(resuspending) > 0:
+    #         # Allow moving again
+    #         self.elements.moving[resuspending] = 1
+    #         # Suspend 1 cm above seafloor
+    #         self.elements.z[resuspending] = self.elements.z[resuspending] + .01
 
 # General physics functions---------------------------------------------------------------------------------
-# Could be moved to physics_methods.py once cross-checked / accepted 
-
+# Note : could be moved to physics_methods.py once cross-checked / accepted 
 
     def bedshearstress_current_wave(self):
         """
         Computation of bed shear stress due to current and waves
         current-related stress is computed following a drag-coefficient approach
         wave-related stress is computed following Van Rijn approach
-        combined wave-current mean and max stresses are computed following Soulsby(1995) approach
+        Combined wave-current mean and max stresses are computed following Soulsby(1995) approach
 
         https://odnature.naturalsciences.be/coherens/manual#manual
         https://odnature.naturalsciences.be/downloads/coherens/documentation/chapter7.pdf#nameddest=Bed_shear_stresses
@@ -251,7 +244,7 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         if True : # current data fron reader is depth-averaged
             Cdrag=( 0.4 /(np.log(abs(water_depth/z0))-1) )**2
             #Now compute the bed shear stress [N/m2] 
-            tau_cur=rho_water*Cdrag*current_speed**2
+            tau_cur=rho_water*Cdrag*current_speed**2 # eq. 7.1 in COHERENS Manual
         else:
             # 3D currents - to implement
             last_wet_bin_depth = 0.0 
@@ -272,26 +265,27 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         # >> page 6
         # 
         # Note : VanRijn 2007 suggests same equations than for current-related roughness 
-        # where 20*d50 <ksw<150*d50
-        # here we are using Nikuradse roughness for consistency with the 
-        # use of z0 in the current-related shear stress 
+        # where 20*d50 <ksw<150*d50: Here we are using Nikuradse roughness for consistency 
+        # with the use of z0 in the current-related shear stress 
 
         ksw=30*z0 # wave related bed roughness - taken as Nikuradse roughness 
-        w=2*np.pi/tp
-        kh = qkhfs( w, water_depth ) # dispersion relationship 
+        w=2*np.pi/tp # angular frequency
+        kh = qkhfs( w, water_depth ) # from dispersion relationship 
         Adelta = hs/(2*np.sinh(kh)) # peak wave orbital excursion 
         Udelta = (np.pi*hs)/(tp*np.sinh(kh))  # peak wave orbital velocity linear theory 
-
-        fw_swart = np.exp(-5.977+5.213*(Adelta/ksw)**-0.194)  # wave-related friction coefficient (Swart,1974) eq. 3.8 on VanRijn pdf
+        # wave-related friction coefficient (Swart,1974) and eq. 3.8 on VanRijn pdf
+        # see also COHERENS manual eq. 7.17 which is equivalent since exp(a+b) =exp(a)*exp(b)
+        fw_swart = np.exp(-5.977+5.213*(Adelta/ksw)**-0.194)  
         fw_swart = np.minimum(fw_swart,0.3)
         fw_soulsby = 0.237 * (Adelta/ksw)**-0.52 #eq. 7.18 COHERENS, not used for now
+
         tau_wave = 0.25 * rho_water * fw_swart * (Udelta)**2 # wave-related bed shear stress eq. 3.7 on VanRijn pdf
         #cycle mean bed shear stress according to Soulsby,1995, see also COHERENS manual eq. 7.14
         tau_cw=tau_cur*[1+1.2*(tau_wave/(tau_cur+tau_wave))**3.2]
-        # max bed shear stress during wave cycle - in theory should be used for the resuspension criterion.
-        theta_cur_dir = 0.0 #angle between direction of travel of wave and current, in radians, in practice rarely known...take 0 ?
+        # max bed shear stress during wave cycle >> used for the resuspension criterion.
+        theta_cur_dir = 0.0 #angle between direction of travel of wave and current, in radians, in practice rarely known so assume 0.0 for now
         # tau_max = ( (tau_cur + tau_wave*np.cos(theta_cur_dir))**2 + (tau_wave*np.sin(theta_cur_dir))**2 )**0.5 
-        tau_cw_max = (tau_cur**2 + tau_wave**2 + 2*tau_cur*tau_wave*np.cos(theta_cur_dir))**0.5 # COHERENS eq. 7.15
+        tau_cw_max = ( tau_cur**2 + tau_wave**2 + 2*tau_cur*tau_wave*np.cos(theta_cur_dir) )**0.5 # COHERENS eq. 7.15
         
         return tau_cw[0],tau_cw_max 
 
