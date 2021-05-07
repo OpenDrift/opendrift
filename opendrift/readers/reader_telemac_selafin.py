@@ -69,7 +69,7 @@ class Reader(BaseReader, UnstructuredReader):
         self.timer_start("build index")
         logger.debug("building index of nodes..")
         # using selafin method (scipy)
-        #self.slf.tree= set_kd_tree()
+        self.x, self.y= self.slf.meshx, self.slf.meshy
         # using scipy directly
         self.tree = self._build_ckdtree_(self.slf.meshx, self.slf.meshy)
         #bounds
@@ -109,7 +109,6 @@ class Reader(BaseReader, UnstructuredReader):
             u = pv.PolyData(points, cells)
             plotter= pv.Plotter()
             plotter.add_mesh(u, show_edges=True)
-#            plotter.add_title(title)
             plotter.show_bounds(mesh=u)
             plotter.view_xy()
             plotter.show(title=title, window_size=[800,640])
@@ -192,10 +191,14 @@ class Reader(BaseReader, UnstructuredReader):
                 if (distance == 0).any() | (distance>0).all()|(distance<0).all():
                     bounds = (nearest[0],None)
                     dist = (1,0)
-                else :
-                    prop= abs(distance[nearest[0]]/(distance[nearest[0]]+distance[nearest[1]]))
-                    dist = (1-prop, prop)
+                else:
                     bounds=nearest
+                    if distance[nearest[0]]==distance[nearest[1]]*-1:
+                        dist=(.5,.5)
+                    else:
+                        prop= abs(distance[nearest[0]])/ \
+                           (abs(distance[nearest[0]])+abs(distance[nearest[1]]))
+                        dist = (1-prop, prop)
                 return bounds, dist
 
         ### nearest time tupple
@@ -205,9 +208,11 @@ class Reader(BaseReader, UnstructuredReader):
         # scipy 1.3.3 fails as there is no argument n_jobs
         # will have to be improved for a real finite element solution (k=3 pts).
         _,iii = self.tree.query(np.vstack((x,y)).T,k=1, workers=self.workers)
+        # print("iii : ",iii)
         # build depth ndarrays of each fibre
         niii = len(iii)
         idx_3D = np.arange(self.slf.nplan).reshape(self.slf.nplan,1)*self.slf.npoin2+iii
+        # print("idx_3D: ", idx_3D)
         depths1=self.slf.get_variables_at(frames[0],[0])[0,idx_3D]
         if frames[1] is not None:
             depths2=self.slf.get_variables_at(frames[1],[0])[0,idx_3D]
@@ -215,22 +220,29 @@ class Reader(BaseReader, UnstructuredReader):
             depths2=0
         # locate the profile dimension
         pm=duration[0]*depths1+duration[1]*depths2
+        # print("depth1 :", depths1,"\ndepths2: ", depths2)
+        # print("pm : ", pm)
         # calculate distance from particles to nearest point depth
         # check function is fully vectorial
         # depth, _= nearest_idx(pm, z)
-        idx_layer = np.abs(pm.flatten()-z[:,None]).argmin(axis=1)
+        # print("idx_3D", idx_3D)
+        # print("pm :",pm)
+        # print("z: ",z)
+        idx_layer = np.abs(pm-z).argmin(axis=0)
+        # print("idx_layer {}: ".format(idx_layer))
         # need optimisation:
         #idx = idx_3D[np.arange(niii), idx_layer]
         variables={}
         var_i=cfvar(self, requested_variables)
         for i in range(len(var_i)):
-            vectors1=self.slf.get_variables_at(frames[0],[var_i[i]])[0,idx_layer].ravel()
+            vectors1=self.slf.get_variables_at(frames[0],[var_i[i]])[0,idx_3D[idx_layer][0]].ravel()
             if frames[1] is not None:
-                vectors2=self.slf.get_variables_at(frames[1],[var_i[i]])[0,idx_layer].ravel()
+                vectors2=self.slf.get_variables_at(frames[1],[var_i[i]])[0,idx_3D[idx_layer][0]].ravel()
             else:
                 vectors2=0
 
             variables[requested_variables[i]]=duration[0]*vectors1+duration[1]*vectors2
+        # print(variables)
         return variables
 
 
