@@ -10,7 +10,7 @@ from opendrift.models.oceandrift import OceanDrift
 def test_covers_positions(test_data):
     reader_arome = reader_netCDF_CF_generic.Reader(
         test_data +
-        '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
+        '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
 
     ts = reader_arome.get_timeseries_at_position(
         lon=12, lat=68, variables=['x_wind', 'y_wind'])

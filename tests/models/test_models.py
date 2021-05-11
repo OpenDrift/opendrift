@@ -53,7 +53,7 @@ class TestModels(unittest.TestCase):
 
     def test_windblow(self):
         o = WindBlow(loglevel=0)
-        reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
+        reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
         o.add_reader([reader_arome])
         lat = 67.711251; lon = 13.556971  # Lofoten
         o.seed_elements(lon, lat, radius=5000, number=1000,
