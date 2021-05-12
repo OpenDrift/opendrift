@@ -165,7 +165,7 @@ jobs:
       - run:
           name: Check if docs should be re-built
           command: |
-            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${CIRCLE_BRANCH}" == "master" ]]; then
+            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* ]]; then
               echo "Clearing out examples.."
               source activate opendrift
               cd docs/
