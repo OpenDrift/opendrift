@@ -620,7 +620,7 @@ class RadionuclideDrift(OceanDrift):
         # terminal velocity for low Reynolds numbers
         W = (1.0/my_w)*(1.0/18.0)*g*partsize**2 * dr
 
-        self.elements.terminal_velocity = W
+        self.elements.terminal_velocity = W * self.elements.moving 
 
 
     def update_transfer_rates(self):
@@ -723,9 +723,11 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:species:LMM'):
             self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmm)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmm)]
+            self.elements.moving[(sp_out==self.num_srev) & (sp_in==self.num_lmm)] = 0
         if self.get_config('radionuclide:species:LMMcation'):
             self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)]
+            self.elements.moving[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)] = 0
         # avoid setting positive z values
         if np.nansum(self.elements.z>0):
             logger.debug('Number of elements lowered down to sea surface: %s' % np.nansum(self.elements.z>0))
@@ -743,6 +745,7 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:species:LMM'):
             self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
+            self.elements.moving[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = 1
             if std > 0:
                 logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] += np.random.normal(
@@ -750,6 +753,7 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:species:LMMcation'):
             self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
+            self.elements.moving[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = 1
             if std > 0:
                 logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] += np.random.normal(
@@ -827,14 +831,17 @@ class RadionuclideDrift(OceanDrift):
         kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_prev)[0])
         self.elements.specie[bottom[kktmp]] = self.num_srev
         self.ntransformations[self.num_prev,self.num_srev]+=len(kktmp)
+        self.elements.moving[bottom[kktmp]] = 0
         if self.get_config('radionuclide:slowly_fraction'):
             kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_psrev)[0])
             self.elements.specie[bottom[kktmp]] = self.num_ssrev
             self.ntransformations[self.num_psrev,self.num_ssrev]+=len(kktmp)
+            self.elements.moving[bottom[kktmp]] = 0
         if self.get_config('radionuclide:irreversible_fraction'):
             kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_pirrev)[0])
             self.elements.specie[bottom[kktmp]] = self.num_sirrev
             self.ntransformations[self.num_pirrev,self.num_sirrev]+=len(kktmp)
+            self.elements.moving[bottom[kktmp]] = 0
 
 
 
@@ -860,6 +867,7 @@ class RadionuclideDrift(OceanDrift):
 
         resusp = ( (bottom) & (speed >= critvel) )
         logger.info('Number of resuspended particles: {}'.format(np.sum(resusp)))
+        self.elements.moving[resusp] = 1
 
         self.elements.z[resusp] = Zmin[resusp] + resusp_depth
         if std > 0:
@@ -897,7 +905,6 @@ class RadionuclideDrift(OceanDrift):
 
 
         # Turbulent Mixing
-        z_before = self.elements.z.copy()
         if self.get_config('drift:vertical_mixing') is True:
             self.update_terminal_velocity()
             self.vertical_mixing()
@@ -913,32 +920,12 @@ class RadionuclideDrift(OceanDrift):
 
 
         # Horizontal advection
-        lon, lat = self.elements.lon, self.elements.lat
         self.advect_ocean_current()
 
-        # Reset lat lon for sedimented trajectories (reject hor. advection)
-        if self.get_config('radionuclide:species:Sediment_reversible'):
-            self.elements.lon[self.elements.specie==self.num_srev]   = lon[self.elements.specie==self.num_srev]
-            self.elements.lat[self.elements.specie==self.num_srev]   = lat[self.elements.specie==self.num_srev]
-        if self.get_config('radionuclide:slowly_fraction'):
-            self.elements.lon[self.elements.specie==self.num_ssrev] = lon[self.elements.specie==self.num_ssrev]
-            self.elements.lat[self.elements.specie==self.num_ssrev] = lat[self.elements.specie==self.num_ssrev]
-        if self.get_config('radionuclide:irreversible_fraction'):
-            self.elements.lon[self.elements.specie==self.num_sirrev] = lon[self.elements.specie==self.num_sirrev]
-            self.elements.lat[self.elements.specie==self.num_sirrev] = lat[self.elements.specie==self.num_sirrev]
 
         # Vertical advection
         if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
-
-        # Reset z for sedimented trajectories (reject vertical advection and mixing)
-        if self.get_config('radionuclide:species:Sediment_reversible'):
-            self.elements.z[self.elements.specie==self.num_srev]   = z_before[self.elements.specie==self.num_srev]
-        if self.get_config('radionuclide:slowly_fraction'):
-            self.elements.z[self.elements.specie==self.num_ssrev] = z_before[self.elements.specie==self.num_ssrev]
-        if self.get_config('radionuclide:irreversible_fraction'):
-            self.elements.z[self.elements.specie==self.num_sirrev] = z_before[self.elements.specie==self.num_sirrev]
-
 
 
 

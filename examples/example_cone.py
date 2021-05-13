@@ -25,7 +25,7 @@ lonend = 17.760061
 time = [datetime.utcnow(), datetime.utcnow() + timedelta(hours=12)]
 
 o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
-            oiltype='EKOFISK', radius=[100, 800], number=10000, time=[time])
+            oil_type='EKOFISK', radius=[100, 800], number=10000, time=[time])
 
 print(o)
 

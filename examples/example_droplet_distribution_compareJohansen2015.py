@@ -32,7 +32,7 @@ o.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (201
 o.set_config('processes:evaporation', False)
 o.set_config('processes:dispersion', False)
 o.seed_elements(lon=4, lat=60, time=datetime.utcnow(), number=10000, radius=100,
-                 z=0, oiltype='TROLL, STATOIL', oil_film_thickness=0.005)
+                 z=0, oil_type='TROLL, STATOIL', oil_film_thickness=0.005)
 o.run(duration=timedelta(hours=2), time_step=3600)
 
 droplet_diameters = o.elements.diameter

@@ -133,7 +133,6 @@ class Reader(BaseReader, StructuredReader):
                 self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
                                                  chunks={'time': 1}, decode_times=False)
             else:
-                logger.info('Opening file with Dataset')
                 self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)
@@ -145,6 +144,7 @@ class Reader(BaseReader, StructuredReader):
         lon_var_name = None
         lat_var_name = None
         self.unitfactor = 1
+        self.realizations = None
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
 
@@ -231,6 +231,10 @@ class Reader(BaseReader, StructuredReader):
                 self.realizations = var_data
                 logger.debug('%i ensemble members available'
                               % len(self.realizations))
+
+        # Temporary workaround for Barents EPS model
+        if self.realizations is None and 'ensemble_member' in self.Dataset.dims:
+            self.realizations = np.arange(self.Dataset.dims['ensemble_member'])
 
         #########################
         # Summary of geolocation
@@ -347,7 +351,7 @@ class Reader(BaseReader, StructuredReader):
             indz = 0
 
         if indrealization == None:
-            if hasattr(self, 'realizations'):
+            if self.realizations is not None:
                 indrealization = range(len(self.realizations))
             else:
                 indrealization = None
@@ -358,14 +362,14 @@ class Reader(BaseReader, StructuredReader):
         else: clipped = 0
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
-        ## If x or y coordinates are decreasing, we need to flip
-        # Disabled 15 Dec 2020 by KFD, may be obsolete
-        #if hasattr(self, 'x'):
-        #    print(self.x, 'X')
-        #    if self.x[0] > self.x[-1]:
-        #        indx = len(self.x) - indx
-        #    if self.y[0] > self.y[-1]:
-        #        indy = len(self.y) - indy
+        # If x or y coordinates are decreasing, we need to flip
+        if hasattr(self, 'x'):
+            if self.x[0] > self.x[-1]:
+                logging.info('Flipping x-axis of reader coordinates')
+                indx = len(self.x) - indx - 1
+            if self.y[0] > self.y[-1]:
+                logging.info('Flipping y-axis of reader coordinates')
+                indy = len(self.y) - indy - 1
         # Adding buffer, to cover also future positions of elements
         buffer = self.buffer
         if self.global_coverage():

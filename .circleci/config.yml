@@ -165,7 +165,7 @@ jobs:
       - run:
           name: Check if docs should be re-built
           command: |
-            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${CIRCLE_BRANCH}" == "master" ]]; then
+            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* ]]; then
               echo "Clearing out examples.."
               source activate opendrift
               cd docs/
@@ -173,8 +173,14 @@ jobs:
             fi
 
       - run:
+          name: Wake-up Thredds-servers
+          command: |
+              source activate opendrift
+              python .circleci/wake-up-thredds.py
+
+      - run:
           name: Build docs
-          command: source activate opendrift && cd docs/ && make SPHINXOPTS=-v html
+          command: source activate opendrift && cd docs/ && make html
           no_output_timeout: 40m
 
       - save_cache:

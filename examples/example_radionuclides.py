@@ -10,7 +10,7 @@ from datetime import timedelta, datetime
 import numpy as np
 
 
-o = RadionuclideDrift(loglevel=20, seed=0)  # Set loglevel to 0 for debug information
+o = RadionuclideDrift(loglevel=0, seed=0)  # Set loglevel to 0 for debug information
 
 # Norkyst
 #reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
@@ -63,7 +63,8 @@ o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
 
 # By default, radionuclides do not strand towards coastline
 o.set_config('general:coastline_action', 'previous')
-
+o.set_config('general:seafloor_action','lift_to_seafloor')
+#o.set_config('general:seafloor_action','previous')
 #o.set_config('general:use_auto_landmask',False)
 
 
@@ -81,6 +82,7 @@ time = datetime(td.year, td.month, td.day, 0)
 
 #latseed= 61.2; lonseed= 4.3    # Sognesjen
 #latseed= 59.0;   lonseed= 10.75 # Hvaler/Koster
+#latseed= 57.5;   lonseed= 9.3 # Kattegat
 latseed= 60.0;   lonseed= 4.5 # Bergen (?)
 
 ntraj=5000
@@ -97,7 +99,7 @@ o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
 
 #%%
 # Running model
-o.run(steps=12*2, time_step=1800, time_step_output=3600)
+o.run(steps=24*2, time_step=1800, time_step_output=3600)
 
 
 #%%
@@ -113,7 +115,8 @@ for isp in range(o.nspecies):
 
 o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
-            colorbar=True,
+            colorbar=False,
+            legend=[o.specie_num2name(i) for i in range(o.nspecies)],
             fast = True
             )
 #%%
@@ -121,7 +124,12 @@ o.animation(color='specie',
 
 #o.plot_vertical_distribution()
 #o.plot_property('specie')
-o.animation_profile()
+o.animation_profile(color='specie',
+            vmin=0,vmax=o.nspecies-1,
+            legend=[o.specie_num2name(i) for i in range(o.nspecies)],
+            legend_loc =3,
+#            markersize=10
+            )
 #%%
 # .. image:: /gallery/animations/example_radionuclides_1.gif
 
