@@ -362,14 +362,14 @@ class Reader(BaseReader, StructuredReader):
         else: clipped = 0
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
-        ## If x or y coordinates are decreasing, we need to flip
-        # Disabled 15 Dec 2020 by KFD, may be obsolete
-        #if hasattr(self, 'x'):
-        #    print(self.x, 'X')
-        #    if self.x[0] > self.x[-1]:
-        #        indx = len(self.x) - indx
-        #    if self.y[0] > self.y[-1]:
-        #        indy = len(self.y) - indy
+        # If x or y coordinates are decreasing, we need to flip
+        if hasattr(self, 'x'):
+            if self.x[0] > self.x[-1]:
+                logging.info('Flipping x-axis of reader coordinates')
+                indx = len(self.x) - indx - 1
+            if self.y[0] > self.y[-1]:
+                logging.info('Flipping y-axis of reader coordinates')
+                indy = len(self.y) - indy - 1
         # Adding buffer, to cover also future positions of elements
         buffer = self.buffer
         if self.global_coverage():
