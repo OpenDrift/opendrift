@@ -3658,8 +3658,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         for readerName in self.readers:
             reader = self.readers[readerName]
             if variable in reader.variables:
-                if time is None or (time>= reader.start_time
-                        and time <= reader.end_time) or (
+                if time is None or reader.start_time is None or (
+                    time>= reader.start_time and time <= reader.end_time) or (
                         reader.always_valid is True):
                     break
         if time is None:
