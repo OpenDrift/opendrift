@@ -1,17 +1,33 @@
+
+# This file is part of OpenDrift.
+#
+# OpenDrift is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 2
+#
+# OpenDrift is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
+#
+# Copyright 2021, Julien Moreau, Plastic@Bay CIC (UK)
+
 import numpy as np
 from datetime import datetime, timedelta
 import sys
 from os import path, environ, sep
 from scipy.spatial import cKDTree
+from importlib.metadata import version
 #Activating PYTEL
 dir = environ['HOMETEL']+'{}scripts{}python3'.format(sep,sep)
 sys.path.append(path.join( path.dirname(sys.argv[0]),dir))#pytel path use environment variables
 from data_manip.formats.selafin import Selafin
 import logging
 logger = logging.getLogger(__name__)
-
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
-
 
 class Reader(BaseReader, UnstructuredReader):
     """
@@ -204,15 +220,14 @@ class Reader(BaseReader, UnstructuredReader):
         ### nearest time tupple
         frames, duration=nearest_idx(np.array(self.times).astype('datetime64[s]'),np.datetime64(time))
         ### nearest node in 2D
-        # will have to be tested for scipy>1.6.0 upgrades n_jobs=workers
-        # scipy 1.3.3 fails as there is no argument n_jobs
         # will have to be improved for a real finite element solution (k=3 pts).
-        _,iii = self.tree.query(np.vstack((x,y)).T,k=1, workers=self.workers)
-        # print("iii : ",iii)
+        if float(version('scipy')[2:])<6.:
+            _,iii = self.tree.query(np.vstack((x,y)).T,k=1, n_jobs=self.workers)
+        else:
+            _,iii = self.tree.query(np.vstack((x,y)).T,k=1, workers=self.workers)
         # build depth ndarrays of each fibre
         niii = len(iii)
         idx_3D = np.arange(self.slf.nplan).reshape(self.slf.nplan,1)*self.slf.npoin2+iii
-        # print("idx_3D: ", idx_3D)
         depths1=self.slf.get_variables_at(frames[0],[0])[0,idx_3D]
         if frames[1] is not None:
             depths2=self.slf.get_variables_at(frames[1],[0])[0,idx_3D]
@@ -220,18 +235,8 @@ class Reader(BaseReader, UnstructuredReader):
             depths2=0
         # locate the profile dimension
         pm=duration[0]*depths1+duration[1]*depths2
-        # print("depth1 :", depths1,"\ndepths2: ", depths2)
-        # print("pm : ", pm)
         # calculate distance from particles to nearest point depth
-        # check function is fully vectorial
-        # depth, _= nearest_idx(pm, z)
-        # print("idx_3D", idx_3D)
-        # print("pm :",pm)
-        # print("z: ",z)
         idx_layer = np.abs(pm-z).argmin(axis=0)
-        # print("idx_layer {}: ".format(idx_layer))
-        # need optimisation:
-        #idx = idx_3D[np.arange(niii), idx_layer]
         variables={}
         var_i=cfvar(self, requested_variables)
         for i in range(len(var_i)):
@@ -240,9 +245,7 @@ class Reader(BaseReader, UnstructuredReader):
                 vectors2=self.slf.get_variables_at(frames[1],[var_i[i]])[0,idx_3D[idx_layer][0]].ravel()
             else:
                 vectors2=0
-
             variables[requested_variables[i]]=duration[0]*vectors1+duration[1]*vectors2
-        # print(variables)
         return variables
 
 
