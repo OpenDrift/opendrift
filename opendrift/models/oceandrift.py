@@ -195,7 +195,7 @@ class OceanDrift(OpenDriftSimulation):
         if len(in_ocean) > 0:
             w = self.environment.upward_sea_water_velocity[in_ocean]
             self.elements.z[in_ocean] = np.minimum(0,
-                self.elements.z[in_ocean] + w * self.time_step.total_seconds())
+                self.elements.z[in_ocean] + self.elements.moving[in_ocean] * w * self.time_step.total_seconds())
         else:
             logger.debug('No vertical advection for elements at surface')
 

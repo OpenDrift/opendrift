@@ -22,7 +22,7 @@ class TestReaders(unittest.TestCase):
 
         o = OceanDrift()
         reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
-            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
+            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
 
         ts = reader_arome.get_timeseries_at_position(
             lon=10, lat=68, variables = ['x_wind', 'y_wind'])

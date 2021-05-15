@@ -43,7 +43,7 @@ o.plot_property('z')
 #%%
 # Animate sediment particles colored by their depth
 o.animation(color='z', fast=False, buffer=.01)
-o.animation(color='moving', fast=False, buffer=.01)
+o.animation(color='moving', fast=False, buffer=.01, colorbar=False, legend=['Sedimented', 'Moving'])
 
 #%%
 # .. image:: /gallery/animations/example_sediments_0.gif

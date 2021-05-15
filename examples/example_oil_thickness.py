@@ -15,8 +15,8 @@ timestep = timedelta(minutes=10)
 timestep_output = timedelta(minutes=60)
 duration = timedelta(hours=20)
 mass_oil = 2000  # mass oil per particle
-oiltype = 'GENERIC DIESEL'
-#oiltype = 'GENERIC BUNKER C'
+oil_type = 'GENERIC DIESEL'
+#oil_type = 'GENERIC BUNKER C'
 
 #%%
 # First run, where surface oil thickness is updated
@@ -41,7 +41,7 @@ o1.set_config('processes:update_oilfilm_thickness', True)
 
 o1.seed_elements(lon=4.5, lat=60, number=number,
                 mass_oil=mass_oil, radius=1000,
-                oiltype=oiltype,
+                oil_type=oil_type,
                 time=datetime.utcnow())
 o1.run(time_step=timestep, time_step_output=timestep_output,
        duration=duration)
@@ -77,7 +77,7 @@ o2.set_config('processes:update_oilfilm_thickness', False)
 
 o2.seed_elements(lon=4.5, lat=60, number=number,
                 mass_oil=mass_oil, radius=1000,
-                oiltype=oiltype,
+                oil_type=oil_type,
                 time=datetime.utcnow())
 o2.run(time_step=timestep, time_step_output=timestep_output,
        duration=duration)

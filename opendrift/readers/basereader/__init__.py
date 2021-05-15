@@ -65,6 +65,7 @@ class BaseReader(Variables):
         'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
         'barotropic_sea_water_y_velocity': 'sea_ice_y_velocity',
         'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity',
+        'sea_floor_depth_below_sea_surface' : 'sea_floor_depth_below_sea_level',
         'sea_floor_depth_below_geoid' : 'sea_floor_depth_below_sea_level'
         }
 
@@ -156,12 +157,10 @@ class BaseReader(Variables):
         # Adding variables which may be derived from existing ones
         for m in self.environment_mappings:
             em = self.environment_mappings[m]
-            if not all(item in em['output'] for item in self.variables) and \
-                    all(item in self.variables for item in em['input']):
-                for v in em['output']:
-                    logger.debug('Adding variable mapping: %s -> %s' % (em['input'], v))
-                    self.variables.append(v)
-                    self.derived_variables[v] = em['input']
+            if em['active'] is False:
+                logger.debug('Variable mapping: %s -> %s is not activated' % (em['input'], em['output']))
+                continue
+            self.activate_environment_mapping(m)
 
     def y_is_north(self):
         if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:
@@ -312,7 +311,11 @@ class BaseReader(Variables):
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables(variable, self.start_time, rx, ry)
+            if variable in self.derived_variables:
+                data = self.get_variables(self.derived_variables[variable], self.start_time, rx, ry)
+                self.__calculate_derived_environment_variables__(data)
+            else:
+                data = self.get_variables(variable, self.start_time, rx, ry)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rx = np.float32(rx)
             ry = np.float32(ry)

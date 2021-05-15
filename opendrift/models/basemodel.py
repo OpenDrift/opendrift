@@ -362,9 +362,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                      opendrift.version.version_or_git())
 
         # Check if dependencies are outdated
-        try:
-            import cfgrib
-        except:
+        import importlib
+        if importlib.util.find_spec("cmocean") is None:
             logger.warning('#'*82)
             logger.warning('Dependencies are outdated, please update with: conda env update -f environment.yml')
             logger.warning('#'*82)
@@ -615,11 +614,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         sea_floor_depth = self.sea_floor_depth()
         below = np.where(self.elements.z < -sea_floor_depth)[0]
         if len(below) == 0:
-                logger.debug('No elements hit seafloor.')
-                return
+            logger.debug('No elements hit seafloor.')
+            return
 
         i = self.get_config('general:seafloor_action')
         if i == 'lift_to_seafloor':
+            logger.debug('Lifting %s elements to seafloor.' % len(below))
             self.elements.z[below] = -sea_floor_depth[below]
         elif i == 'deactivate':
             self.deactivate_elements(self.elements.z < -sea_floor_depth, reason='seafloor')
@@ -1044,6 +1044,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     if var not in self.required_variables:
                         logger.debug('Not returning env-variable: ' + var)
                         continue
+                    if var not in env.dtype.names:
+                        continue  # Skipping variables that are only used to derive needed variables
                     env[var][missing_indices] = np.ma.masked_invalid(
                         env_tmp[var][0:len(missing_indices)]).astype('float32')
                     if profiles_from_reader is not None and var in profiles_from_reader:
@@ -1472,6 +1474,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         radius = np.atleast_1d(radius).ravel()
         time = np.atleast_1d(time)
 
+        if lat.max() > 90 or lat.min() < -90:
+            raise ValueError('Latitude must be between -90 and 90 degrees')
+
         if len(lon) != len(lat):
             raise ValueError('Lon and lat must have same lengths')
 
@@ -1855,7 +1860,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lons = [r.GetX(j) for j in range(r.GetPointCount())]
                 lats = [r.GetY(j) for j in range(r.GetPointCount())]
 
-            self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+            self.seed_within_polygon(lons=lons, lats=lats, number=num_elements, **kwargs)
             num_seeded += num_elements
 
 
@@ -1950,7 +1955,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lons = [r.GetY(j) for j in range(r.GetPointCount())]
                 lats = [r.GetX(j) for j in range(r.GetPointCount())]
 
-                self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+                self.seed_within_polygon(lons=lons, lats=lats, number=num_elements, **kwargs)
+
+    def seed_letters(self, text, lon, lat, time, number, scale=1.2):
+        """Seed elements within text polygons"""
+        from matplotlib.font_manager import FontProperties
+        fp = FontProperties(family='Bitstream Vera Sans', weight='bold')
+        pol = matplotlib.textpath.TextPath((lon, lat), text, size=1, prop=fp)
+        pol._vertices *= np.array([scale, scale])
+        patch = matplotlib.patches.PathPatch(
+                pol, facecolor='none', edgecolor='black', transform=ccrs.PlateCarree())
+        po = patch.get_path().to_polygons()
+        for p in po:
+            self.seed_within_polygon(lons=p[:,0], lats=p[:,1], number=number, time=time)
 
     def seed_from_ladim(self, ladimfile, roms):
         """Seed elements from ladim \\*.rls text file: [time, x, y, z, name]"""
@@ -1984,8 +2001,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.debug('Horizontal diffusivity is 0, no random walk.')
             return
         dt = self.time_step.total_seconds()
-        x_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
-        y_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        x_vel = self.elements.moving * np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        y_vel = self.elements.moving * np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
         speed = np.sqrt(x_vel*x_vel+y_vel*y_vel)
         logger.debug('Moving elements according to horizontal diffusivity of %s, with speeds between %s and %s m/s'
                           % (D, speed.min(), speed.max()))
@@ -2868,7 +2885,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   show_trajectories=False, trajectory_alpha=.1, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20, origin_marker=None,
-                  legend=None, legend_loc='best', fps=10, lscale=None, fast=False, **kwargs):
+                  legend=None, legend_loc='best', fps=8, lscale=None, fast=False, **kwargs):
         """Animate last run."""
 
 
@@ -2946,23 +2963,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     y_deactive[index_of_last_deactivated < i]])
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
-                    if isinstance(color, str):
+                    if isinstance(color, str) or hasattr(color, '__len__'):
                         points_deactivated.set_array(
                             colorarray_deactivated[
                                 index_of_last_deactivated < i])
 
             if drifter is not None:
-                from bisect import bisect_left
-                ind = np.max(
-                    (0, bisect_left(drifter['time'], times[i]) - 1))
-                if i < 1 or i >= len(times)-1 or \
-                        drifter['time'][ind] < times[i-1] or \
-                        drifter['time'][ind] > times[i+1]:
-                    # Do not show when outside time interval
-                    drifter_pos.set_offsets([])
-                else:
-                    drifter_pos.set_offsets(
-                        np.c_[drifter['x'][ind], drifter['y'][ind]])
+                drifter_pos.set_offsets(np.c_[drifter['x'][i], drifter['y'][i]])
 
             if show_elements is True:
                 if compare is not None:
@@ -3000,6 +3007,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     self.get_property(color)[0][
                         index_of_last[self.elements_deactivated.ID-1],
                                       self.elements_deactivated.ID-1].T
+            elif hasattr(color, '__len__'):  # E.g. array/list of ensemble numbers
+                colorarray_deactivated = color[self.elements_deactivated.ID-1]
+                colorarray = np.tile(color, (self.steps_output, 1)).T
             else:
                 colorarray = color
             if vmin is None:
@@ -3041,6 +3051,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         points = ax.scatter([], [], c=c, zorder=10,
                             edgecolor=[], cmap=cmap, s=markersize,
                             vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
+        
+        if (compare is None) and (legend != ['']):
+            markers=[]
+            for legend_index in np.arange(len(legend)):
+                markers.append(matplotlib.lines.Line2D([0], [0], marker='o',
+                                    color='w', markerfacecolor=cmap(legend_index/(len(legend)-1)), 
+                                    markersize=10, label=legend[legend_index]))
+            ax.legend(markers, legend, loc=legend_loc)
+            
         # Plot deactivated elements, with transparency
         points_deactivated = ax.scatter([], [], c=c, zorder=9,
                                         vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,
@@ -3077,10 +3096,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                vmin=0.1, vmax=vmax, cmap=cmap, transform=gcrs)
 
         if drifter is not None:
-            drifter['x'], drifter['y'] = (drifter['lon'], drifter['lat'])
-            #map.plot(drifter['x'], drifter['y'])
-            drifter_pos = ax.scatter([], [], c='r', zorder=15,
-                                     label='Drifter', transform = gcrs)
+            # Interpolate drifter time series onto simulation times
+            sts = np.array([t.total_seconds() for t in np.array(times) - times[0]])
+            dts = np.array([t.total_seconds() for t in np.array(drifter['time']) - times[0]])
+            drifter['x'] = np.interp(sts, dts, drifter['lon'])
+            drifter['y'] = np.interp(sts, dts, drifter['lat'])
+            drifter['x'][sts<dts[0]] = np.nan
+            drifter['x'][sts>dts[-1]] = np.nan
+            drifter['y'][sts<dts[0]] = np.nan
+            drifter['y'][sts>dts[-1]] = np.nan
+            dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
+            dcolor = drifter['color'] if 'color' in drifter else 'r'
+            dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
+            dmarkersize = drifter['markersize'] if 'markersize' in drifter else 20
+            drifter_pos = ax.scatter([], [], c=dcolor, zorder=15, s=dmarkersize,
+                                     label=dlabel, transform=gcrs)
+            ax.plot(drifter['x'], drifter['y'], color=dcolor, linewidth=dlinewidth, zorder=14, transform=gcrs)
+            plt.legend()
 
         fig.canvas.draw()
         fig.set_tight_layout(True)
@@ -3122,15 +3154,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 pass
 
     def animation_profile(self, filename=None, compare=None,
-                          legend=['', ''], markersize=5, fps=20):
+                          legend=['', ''], markersize=5, fps=20,
+                          color=None, cmap=None, vmin=None, vmax=None,
+                          legend_loc=None):
         """Animate vertical profile of the last run."""
+        
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
             ax.set_title('%s UTC' % times[i])
-            points.set_data(x[range(x.shape[0]), i],
-                            z[range(x.shape[0]), i])
+            if PlotColors:
+                points.set_offsets(np.array( [x[range(x.shape[0]), i].T,z[range(x.shape[0]), i].T] ).T)
+                points.set_array(colorarray[:, i])
+            else:
+                points.set_data(x[range(x.shape[0]), i],
+                                z[range(x.shape[0]), i])            
+                
             points_deactivated.set_data(
                 x_deactive[index_of_last_deactivated < i],
                 z_deactive[index_of_last_deactivated < i])
@@ -3145,11 +3185,24 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             else:
                 return points
 
+        PlotColors=(compare is None) and (legend != ['',''])
+        if PlotColors:
+            if cmap is None:
+                cmap = 'jet'
+            if isinstance(cmap, str):
+                cmap = matplotlib.cm.get_cmap(cmap)
+    
+            if color is not False:
+                if isinstance(color, str):
+                    colorarray = self.get_property(color)[0].T
+
+
         # Set up plot
         index_of_first, index_of_last = \
             self.index_of_activation_and_deactivation()
         z = self.get_property('z')[0].T
         x = self.get_property('lon')[0].T
+        
         #seafloor_depth = \
         #    -self.get_property('sea_floor_depth_below_sea_level')[0].T
         fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
@@ -3159,8 +3212,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
-        points = plt.plot([], [], '.k', label=legend[0],
-                          markersize=markersize)[0]
+        if PlotColors:
+            points = ax.scatter([], [], c=[], zorder=10,
+                                 edgecolor=[], cmap=cmap, s=markersize,
+                                 vmin=vmin, vmax=vmax)
+    
+            markers=[]
+            for legend_index in np.arange(len(legend)):
+                markers.append(matplotlib.lines.Line2D([0], [0], marker='o', linewidth=0,
+                               markeredgewidth=0, markerfacecolor=cmap(legend_index/(len(legend)-1)), 
+                               markersize=10, label=legend[legend_index]))
+            leg=ax.legend(markers, legend, loc=legend_loc)
+            leg.set_zorder(20)
+        else:
+            points = plt.plot([], [], '.k', label=legend[0],
+                              markersize=markersize)[0]
+
+                    
         # Plot deactivated elements, with transparency
         points_deactivated = plt.plot([], [], '.k', alpha=.3)[0]
         x_deactive = self.elements_deactivated.lon
@@ -3206,7 +3274,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         ax.add_patch(plt.Rectangle((xmin, zmin), xmax-xmin,
                      -zmin, color='cornflowerblue'))
 
-        if legend != ['', '']:
+        if legend != ['', ''] and PlotColors is False:
             plt.legend(loc=4)
 
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
@@ -3255,7 +3323,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
              linewidth=1, lcs=None, show_particles=True, show_initial=True,
-             density_pixelsize_m=1000, bgalpha=1,
+             density_pixelsize_m=1000, bgalpha=1, clabel=None,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
              fast=False, hide_landmask=False, **kwargs):
@@ -3342,6 +3410,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 try:
                     if isinstance(linecolor, str):
                         param = self.history[linecolor]
+                    elif hasattr(linecolor, '__len__'):
+                        param = np.tile(linecolor, (self.steps_output, 1)).T
                     else:
                         param = linecolor
                 except:
@@ -3458,7 +3528,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     c=self.plot_comparison_colors[i+1], transform = gcrs)
 
         try:
-            if legend is not None:# and compare is None:
+            handles, labels = ax.get_legend_handles_labels()
+            if legend is not None and len(handles)>0:
                 plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
             logger.warning('Cannot plot legend, due to bug in matplotlib:')
@@ -3500,7 +3571,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if mappable is not None and colorbar is True:
             cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             # TODO: need better control of colorbar content
-            if linecolor != 'gray':
+            if clabel is not None:
+                cb.set_label(clabel)
+            elif isinstance(linecolor, str) and linecolor != 'gray':
                 cb.set_label(str(linecolor))
             if background is not None:
                 cb.set_label(str(background))
@@ -3585,8 +3658,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         for readerName in self.readers:
             reader = self.readers[readerName]
             if variable in reader.variables:
-                if time is None or (time>= reader.start_time
-                        and time <= reader.end_time) or (
+                if time is None or reader.start_time is None or (
+                    time>= reader.start_time and time <= reader.end_time) or (
                         reader.always_valid is True):
                     break
         if time is None:
@@ -3611,9 +3684,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         data = reader.get_variables(
             background, time, reader_x, reader_y, None)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
-        if type(background) is list:
+        if type(background) is list:  # Ensemble reader, using first member
             u_component = data[background[0]]
             v_component = data[background[1]]
+            if isinstance(u_component, list):
+                u_component = u_component[0]
+                v_component = v_component[0]
             with np.errstate(invalid='ignore'):
                 scalar = np.sqrt(u_component**2 + v_component**2)
             # NB: rotation not completed!
@@ -3624,6 +3700,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 ).proj4_init)
         else:
             scalar = data[background]
+            if isinstance(scalar, list):  # Ensemble reader, using first member
+                scalar = scalar[0]
             u_component = v_component = None
 
         # Shift one pixel for correct plotting
@@ -4362,19 +4440,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 anim.save(filename, fps=fps, writer='imagemagick')
             else:  # MP4
                 try:
-                    try:
-                        # For perfect quality, but larger file size
-                        #FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
-                        FFwriter=animation.FFMpegWriter(fps=fps,
-                            codec='libx264', bitrate=1800,
-                            extra_args=['-profile:v', 'baseline',
-                                        '-pix_fmt', 'yuv420p', '-an'])
-                        anim.save(filename, writer=FFwriter)
-                    except Exception as e:
-                        logger.info(e)
-                        anim.save(filename, fps=fps, bitrate=1800,
-                                  extra_args=['-an',
-                                              '-pix_fmt', 'yuv420p'])
+                    FFwriter=animation.FFMpegWriter(fps=fps,
+                        codec='libx264', bitrate=1800,
+                        extra_args=['-profile:v', 'baseline',
+                                    '-vf', 'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
+                                    '-pix_fmt', 'yuv420p', '-an'])
+                    anim.save(filename, writer=FFwriter)
                 except Exception as e:
                     logger.info(e)
                     anim.save(filename, fps=fps)

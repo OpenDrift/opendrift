@@ -43,7 +43,7 @@ reader_list = [
         '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc',
     '/nonexistingdisk/nonexistingfile.ext',
     o.test_data_folder() +
-            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset']
+            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc']
 
 
 class TestReaders(unittest.TestCase):
@@ -75,7 +75,7 @@ class TestReaders(unittest.TestCase):
                          ['roms native'])
         self.assertEqual(o.priority_list['x_wind'],
                          [o.test_data_folder() +
-            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset'])
+            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc'])
 
     def test_repeated_run(self):
         # NOTE: this test fails if outfile is not None

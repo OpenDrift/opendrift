@@ -172,14 +172,15 @@ class Leeway(OpenDriftSimulation):
         self._set_config_default('general:time_step_minutes', 10)
         self._set_config_default('general:time_step_output_minutes', 60)
 
-    def seed_elements(self, lon, lat, radius=0, number=None, time=None,
-                      object_type=None, jibe_probability=None, **kwargs):
+    def seed_elements(self, lon, lat, object_type=None, **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
         # All particles carry their own object_type (number),
         # but so far we only use one for each sim
         # objtype = np.ones(number)*object_type
 
-        if number is None:
+        if 'number' in kwargs and kwargs['number'] is not None:
+            number = kwargs['number']
+        else:
             number = self.get_config('seed:number')
 
         if object_type is None:
@@ -250,29 +251,24 @@ class Leeway(OpenDriftSimulation):
         # NB
         # crosswind_eps = np.zeros(number)
 
-        # Jibe probability
-        if jibe_probability is None:
-            jibe_probability = self.get_config('seed:jibe_probability')
-
         # Store seed data for ASCII format output
         if hasattr(self, 'seed_cone_arguments'):
             self.ascii = self.seed_cone_arguments
         else:
-            self.ascii = {'lon': lon, 'lat': lat, 'radius': radius,
-                          'number': number, 'time': time}
+            self.ascii = {'lon': lon, 'lat': lat,
+                          'radius': kwargs['radius'] if 'radius' in kwargs else 0,
+                          'number': number, 'time': kwargs['time']}
 
         # Call general seed_elements function of OpenDriftSimulation class
         # with the specific values calculated
-        super(Leeway, self).seed_elements(
-            lon=lon, lat=lat, radius=radius,
-            number=number, time=time,
+        super(Leeway, self).seed_elements(lon, lat,
             orientation=orientation, object_type=object_type,
             downwind_slope=downwind_slope,
             crosswind_slope=crosswind_slope,
             downwind_offset=downwind_offset,
             crosswind_offset=crosswind_offset,
             downwind_eps=downwind_eps, crosswind_eps=crosswind_eps,
-            jibe_probability=jibe_probability, **kwargs)
+            **kwargs)
 
     def list_object_categories(self, substr=None):
         '''Display leeway categories to screen
@@ -315,8 +311,8 @@ class Leeway(OpenDriftSimulation):
                               self.environment.y_sea_water_velocity)
 
         # Jibe elements randomly according to given probability
-        jp_per_timestep = self.elements.jibe_probability * \
-            np.abs(self.time_step.total_seconds()) / 3600.0
+        jibe_rate = -np.log(1-self.elements.jibe_probability)/3600  # Hourly to instantaneous
+        jp_per_timestep = 1 - np.exp(-jibe_rate*np.abs(self.time_step.total_seconds()))
         jib = jp_per_timestep > np.random.random(self.num_elements_active())
         self.elements.crosswind_slope[jib] = - self.elements.crosswind_slope[jib]
         self.elements.orientation[jib] = 1 - self.elements.orientation[jib]
@@ -430,8 +426,14 @@ class Leeway(OpenDriftSimulation):
         f.close()
 
     def _substance_name(self):
+        # TODO: find a better algorithm to return name of object category
         if hasattr(self, 'history'):
             object_type = self.history['object_type'][0,0]
+            if not np.isfinite(object_type):  # For backward simulations
+                object_type = self.history['object_type'][-1,0]
         else:
             object_type = np.atleast_1d(self.elements_scheduled.object_type)[0]
-        return self.leewayprop[object_type]['OBJKEY']
+        if np.isfinite(object_type):
+            return self.leewayprop[object_type]['OBJKEY']
+        else:
+            return ''
