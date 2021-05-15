@@ -48,7 +48,7 @@ class UnstructuredReader(Variables):
 
         Returns:
 
-            Dictionary with arrays of length len(x) with values at exact positions x, y and z.
+            Dictionary with arrays of length len(time) with values at exact positions x, y and z.
         """
 
     def _get_variables_interpolated_(self, variables, profiles,
@@ -182,4 +182,3 @@ class UnstructuredReader(Variables):
         Return nearest element or face (id) for xc and yc
         """
         return self.__nearest_ckdtree__(self.faces_idx, xc, yc)
-
