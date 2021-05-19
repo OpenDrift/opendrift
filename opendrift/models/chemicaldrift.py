@@ -59,11 +59,11 @@ class Chemical(Lagrangian3DArray):
                           'seed':False}),
         ('mass', {'dtype': np.float32,
                       'units': 'kg',
-                      'seed': False,
+                      'seed': True,
                       'default': 1}),
         ('mass_biodegraded', {'dtype': np.float32,
                              'units': 'kg',
-                             'seed': False,
+                             'seed': True,
                              'default': 0})#,
         # ('terminal_velocity', {'dtype': np.float32,
         #                        'units': 'm/s',
@@ -953,11 +953,11 @@ class ChemicalDrift(OceanDrift):
                 self.elements.mass = \
                     self.elements.mass - biodegraded_now
     
-                self.deactivate_elements(self.elements.mass < .1*(self.elements.mass + self.elements.mass_biodegraded), reason='biodegraded')
+                self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_biodegraded)/100, reason='biodegraded')
             elif self.get_config('chemical:transformations:biodegradation_mode')=='Test2':
                 logger.debug('Calculating: biodegradation - Mode Test2')
 
-                fraction_biodegraded = .1*biodegradation_factors()
+                fraction_biodegraded = .01*biodegradation_factors()
                 biodegraded_now = self.elements.mass*fraction_biodegraded
     
                 self.elements.mass_biodegraded = \
@@ -965,7 +965,7 @@ class ChemicalDrift(OceanDrift):
                 self.elements.mass = \
                     self.elements.mass - biodegraded_now
     
-                self.deactivate_elements(self.elements.mass < .1*(self.elements.mass + self.elements.mass_biodegraded), reason='biodegraded')
+                self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_biodegraded)/100, reason='biodegraded')
         else:
             pass
         
@@ -1444,7 +1444,7 @@ class ChemicalDrift(OceanDrift):
 
         return num_coarse
     
-    def seed_from_STEAM(self, steam, lowerbound=0, radius=0, **kwargs):
+    def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", **kwargs):
             """Seed elements based on a dataarray with STEAM emission data
     
             Arguments:
@@ -1457,12 +1457,36 @@ class ChemicalDrift(OceanDrift):
                 radius:      scalar, unit: meters
                 lowerbound:  scalar, elements with lower values are discarded
             """
-    
-            sel=np.where(steam > lowerbound)
+
+            mass_element_ug=1e3      # 1e3 - 1 element is 1mg chemical
+            #ug_per_element=1e6     # 1e6 - 1 element is 1g chemical
+
+            def emission_factors(scrubber_type, chemical_compound):
+                emission_factors_open_loop = {
+                    "Copper": 38.75,                # ug/L micrograms per liter
+                    "Nickel": 46.86,
+                    "Vanadium": 176.59,
+                    "Zinc": 110.84,
+                    "Naphthalene": 2.76,
+                    "Phenanthrene": 1.51
+                    }
+
+                emission_factors_closed_loop = {
+                    }
+
+                if scrubber_type=="open_loop":
+                    return emission_factors_open_loop.get(chemical_compound)
+
+            sel=np.where((steam > lowerbound) & (steam < higherbound))
             t=steam.time[sel[0]].data
             la=steam.latitude[sel[1]].data
             lo=steam.longitude[sel[2]].data
             for i in range(0,t.size):
-                number=np.array(steam.data[sel][i]/lowerbound).astype('int')
-                self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
-                                radius=radius, number=number, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9))
+                scrubberwater_vol_l=steam.data[sel][i]
+                mass_ug=scrubberwater_vol_l * emission_factors(scrubber_type, chemical_compound)
+
+                number=np.array(mass_ug / mass_element_ug).astype('int')
+                if number>0:
+                    self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
+                                radius=radius, number=number, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
+                                mass=mass_element_ug,mass_biodegraded=mass_element_ug)
