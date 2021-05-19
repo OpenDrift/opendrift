@@ -2880,6 +2880,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if self.num_elements_total() == 0 and not hasattr(self, 'ds'):
             raise ValueError('Please run simulation before animating')
 
+        markersizebymass=False
+        if isinstance(markersize, str):
+            if markersize=='mass':
+                markersizebymass=True
+                markersize=20
+        
         start_time = datetime.now()
         if cmap is None:
             cmap = 'jet'
@@ -2949,6 +2955,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 points_deactivated.set_offsets(np.c_[
                     x_deactive[index_of_last_deactivated < i],
                     y_deactive[index_of_last_deactivated < i]])
+
+                if markersizebymass:
+                    points.set_sizes((self.elements.mass / 50))
+
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
                     if isinstance(color, str) or hasattr(color, '__len__'):
@@ -3036,10 +3046,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             c = markercolor
         else:
             c = []
-        points = ax.scatter([], [], c=c, zorder=10,
+
+        if markersizebymass:
+            points = ax.scatter([], [], c=c, zorder=10,
+                            edgecolor=[], cmap=cmap, alpha=.4,
+                            vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
+        else:
+            points = ax.scatter([], [], c=c, zorder=10,
                             edgecolor=[], cmap=cmap, s=markersize,
                             vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
-        
+
+
         if (compare is None) and (legend != ['']):
             markers=[]
             for legend_index in np.arange(len(legend)):
@@ -3049,9 +3066,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             ax.legend(markers, legend, loc=legend_loc)
             
         # Plot deactivated elements, with transparency
-        points_deactivated = ax.scatter([], [], c=c, zorder=9,
+        if markersizebymass:
+            points_deactivated = ax.scatter([], [], c=c, zorder=9,
+                                        vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,
+                                        edgecolor=[], alpha=0, transform = gcrs)
+        else:
+            points_deactivated = ax.scatter([], [], c=c, zorder=9,
                                         vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,
                                         edgecolor=[], alpha=.3, transform = gcrs)
+
         x_deactive, y_deactive = (self.elements_deactivated.lon, self.elements_deactivated.lat)
 
         if compare is not None:
