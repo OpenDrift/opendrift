@@ -52,6 +52,57 @@ class Reader(BaseReader, UnstructuredReader):
     #     'northward_sea_water_velocity',
     #     'upward_sea_water_velocity'
     def __init__(self, filename=None, name=None, proj4=None):
+
+        def vardic(vars_slf):
+            """
+            Match the selafin variables from Telemac 3D to the variables used in
+            OpenDrift.
+            """
+            # Define all the variables used in OpenDrift as a dictionary
+            # This is done to the best of our knowledge
+            Vars_OD={'VELOCITY U      ':'x_sea_water_velocity',
+                    'VELOCITY V      ':'y_sea_water_velocity',
+                    'VELOCITY W      ':'upward_sea_water_velocity',
+                    'TURBULENT ENERGY':'turbulent_kinetic_energy',
+                    'TEMPERATURE     ':'sea_water_temperature',
+                    'SALINITY        ':'sea_water_salinity',
+                    'NUZ FOR VELOCITY':'ocean_vertical_diffusivity',
+                    }
+            No_OD_equiv={'x_wind',
+            'y_wind',
+            'wind_speed',
+            'sea_floor_depth_below_sea_level',
+            'wind_from_direction',
+            'sea_ice_x_velocity',
+            'sea_ice_y_velocity',
+            'sea_surface_wave_significant_height',
+            'sea_surface_wave_stokes_drift_x_velocity',
+            'sea_surface_wave_stokes_drift_y_velocity',
+            'sea_surface_wave_period_at_variance_spectral_density_maximum',
+            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
+            'sea_ice_area_fraction',
+            'surface_downward_x_stress',
+            'surface_downward_y_stress',
+            'turbulent_generic_length_scale'
+                }
+            # Sea-floor depth could be extracted from the variable Z but
+            # it would need a specific treatment in get variable
+            No_Telemac_equiv={'NUX FOR VELOCITY',
+                            'NUY FOR VELOCITY',
+                            'DISSIPATION     ',
+                            'ELEVATION Z     ',
+                            }
+            variables=[]
+            var_idx=[]
+            for i,var in enumerate(vars_slf):
+                try:
+                    variables.append(Vars_OD[var])
+                    var_idx.append(i)
+                except:
+                    logger.info(
+                    "Selafin variable {} has no equivalent in OpenDrift".format(var))
+            return np.array(variables), np.array(var_idx)
+
         try:
             filestr = str(filename)
         except Exception as e:
@@ -102,11 +153,8 @@ class Reader(BaseReader, UnstructuredReader):
         for i in range(len(self.slf.tags['times'])):
             self.times.append(self.start_time+timedelta(seconds= self.slf.tags['times'][i]))
         self.end_time = self.times[-1]
-        # sorry hardcoded
-        self.variables=['altitude','x_sea_water_velocity',
-        'y_sea_water_velocity', 'upward_sea_water_velocity',
-        'specific_turbulent_kinetic_energy',
-        'specific_turbulent_kinetic_energy_dissipation_in_sea_water' ]
+
+        self.variables, self.var_idx=vardic(self.slf.varnames)
 
 
         self.timer_end("build index")
@@ -162,31 +210,6 @@ class Reader(BaseReader, UnstructuredReader):
         returns:
             variables: dictionary of numpy arrays
         """
-        def cfvar(self, requested_variables):
-            """
-            setup a dictionary of equivalent names between Telemac and CF standard.
-            return index of variable within selafin file to allow a query.
-            """
-            defaultvars =['ELEVATION Z     ', 'VELOCITY U      ',
-            'VELOCITY V      ', 'VELOCITY W      ', 'NUX FOR VELOCITY',
-            'NUY FOR VELOCITY', 'NUZ FOR VELOCITY', 'TURBULENT ENERGY',
-            'DISSIPATION     ']
-            #eastward northward removed for x y
-            standard_names=['altitude','x_sea_water_velocity',
-            'y_sea_water_velocity', 'upward_sea_water_velocity',None,None,
-            None,'specific_turbulent_kinetic_energy',
-            'specific_turbulent_kinetic_energy_dissipation_in_sea_water' ]
-            equiv={}
-            vars = np.array(self.slf.varnames)
-            for i in range(len(defaultvars)):
-                if standard_names is not None:
-                    equiv[standard_names[i]]=defaultvars[i]
-                    eq_r = [equiv.get(v) for v in requested_variables]
-            var_i =[]
-            for i in range(len(eq_r)):
-                    var_i.append(np.where(vars==eq_r[i])[0][0])
-            return var_i
-
         def nearest_idx(array, value):
                 """
                 we are looking for a tuple describing where the sample is and at which
@@ -237,16 +260,17 @@ class Reader(BaseReader, UnstructuredReader):
         pm=duration[0]*depths1+duration[1]*depths2
         # calculate distance from particles to nearest point depth
         idx_layer = np.abs(pm-z).argmin(axis=0)
-        variables={}
-        var_i=cfvar(self, requested_variables)
-        for i in range(len(var_i)):
-            vectors1=self.slf.get_variables_at(frames[0],[var_i[i]])[0,idx_3D[idx_layer][0]].ravel()
+        vars={}
+        #var_i=cfvar(self, requested_variables)
+        for i in range(len(requested_variables)):
+            idx_v= self.var_idx[self.variables==requested_variables[i]]
+            vectors1=self.slf.get_variables_at(frames[0],[idx_v])[0,idx_3D[idx_layer][0]].ravel()
             if frames[1] is not None:
-                vectors2=self.slf.get_variables_at(frames[1],[var_i[i]])[0,idx_3D[idx_layer][0]].ravel()
+                vectors2=self.slf.get_variables_at(frames[1],[idx_v])[0,idx_3D[idx_layer][0]].ravel()
             else:
                 vectors2=0
-            variables[requested_variables[i]]=duration[0]*vectors1+duration[1]*vectors2
-        return variables
+            vars[requested_variables[i]]=duration[0]*vectors1+duration[1]*vectors2
+        return vars
 
 
     def filter_points(self, indexes):
