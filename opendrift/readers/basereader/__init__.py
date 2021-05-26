@@ -379,3 +379,13 @@ class BaseReader(Variables):
                 data[var][i] = d[var][0]
 
         return(data)
+
+    def shift_start_time(self, start_time):
+        """Shift the time coverage of reader to match given start_time"""
+        if self.start_time is None:
+            logger.warning('Reader has no time coverage, cannot shift times')
+            return
+        shift_time = self.start_time - start_time
+        self.start_time = start_time
+        self.end_time = self.end_time - shift_time
+        self.times = [t - shift_time for t in self.times]
