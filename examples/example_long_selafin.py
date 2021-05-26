@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+"""
+Use Telemac (selafin) output
+==================================
+"""
+
 # tuto
 from datetime import timedelta
 import numpy as np
