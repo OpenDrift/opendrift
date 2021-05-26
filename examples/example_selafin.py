@@ -20,11 +20,10 @@ start_time = selafin.start_time
 time_step = timedelta(seconds=selafin.slf.tags["times"][1])
 length=timedelta(seconds=selafin.slf.tags["times"][-1])
 num_steps = len(selafin.slf.tags["times"])
+
 # center seeds in the middle
-x,y = (selafin.x.max()-selafin.x.min())/2+selafin.x.min(),\
-      (selafin.y.max()-selafin.y.min())/2+selafin.y.min()
-p= Proj(proj, preserve_units=False)
-lon, lat = p(x,y,inverse=True)
+lon, lat = selafin.center()
+
 o.seed_elements(lon=lon, lat=lat, radius=20000, number= 200, z= 0, \
    time= start_time)
 o.run(time_step=time_step/10, duration=length)

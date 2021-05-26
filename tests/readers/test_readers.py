@@ -3,6 +3,8 @@ import unittest
 from datetime import datetime, timedelta
 import numpy as np
 import pytest
+
+from . import *
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_timeseries
 from opendrift.models.oceandrift import OceanDrift
@@ -19,6 +21,16 @@ def test_map_background():
     assert os.path.exists(fname)
     os.remove(fname)
 
+def test_reader_center(test_data):
+    """Plotting map of reader coverage with background field"""
+    r = reader_netCDF_CF_generic.Reader(
+        test_data +
+        '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+
+    print(r)
+    print(r.center())
+
+    assert r.center() == (4.717652840595962, 60.60320266262213)
 
 def test_timeseries_at_position():
     o = OceanDrift()
