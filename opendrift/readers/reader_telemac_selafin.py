@@ -28,13 +28,16 @@ try:
     from data_manip.formats.selafin import Selafin
 except ImportError:
     # Activating PYTEL
-    pytel = os.path.join(os.environ['HOMETEL'], 'scripts', 'python3')
-    if pytel not in sys.path:
-        logger.warning('adding telemac python scripts to PYTHONPATH: %s' %
-                       pytel)
-        sys.path.append(pytel)
+    try:
+        pytel = os.path.join(os.environ['HOMETEL'], 'scripts', 'python3')
+        if pytel not in sys.path:
+            logger.warning('adding telemac python scripts to PYTHONPATH: %s' %
+                        pytel)
+            sys.path.append(pytel)
 
-    from data_manip.formats.selafin import Selafin
+        from data_manip.formats.selafin import Selafin
+    except (KeyError, ImportError):
+        logger.error('Telemac python scripts cannot be found. These are distributed together with the Telemac source code. This reader will not work.')
 
 
 class Reader(BaseReader, UnstructuredReader):
