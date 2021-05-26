@@ -64,5 +64,15 @@ class TestReaders(unittest.TestCase):
                 'x_wind': [3, 3],
                 'y_wind': [1, 2, 4, 3, 2]})
 
+    def test_shift_time(self):
+        o = OceanDrift()
+        reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
+        new_time = datetime(2021, 5, 26, 8)
+        reader_arome.shift_start_time(new_time)
+        self.assertEqual(reader_arome.start_time, new_time)
+        self.assertEqual(reader_arome.end_time, datetime(2021, 5, 28, 8))
+        self.assertEqual(reader_arome.times[5], datetime(2021, 5, 26, 13))
+
 if __name__ == '__main__':
     unittest.main()
