@@ -18,16 +18,23 @@
 import numpy as np
 from datetime import datetime, timedelta
 import sys
-from os import path, environ, sep
+import os
 from scipy.spatial import cKDTree
 from importlib.metadata import version
-#Activating PYTEL
-dir = environ['HOMETEL']+'{}scripts{}python3'.format(sep,sep)
-sys.path.append(path.join( path.dirname(sys.argv[0]),dir))#pytel path use environment variables
-from data_manip.formats.selafin import Selafin
 import logging
 logger = logging.getLogger(__name__)
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
+
+try:
+    from data_manip.formats.selafin import Selafin
+except ImportError:
+    # Activating PYTEL
+    pytel = os.path.join(os.environ['HOMETEL'], 'scripts', 'python3')
+    if pytel not in sys.path:
+        logger.warning('adding telemac python scripts to PYTHONPATH: %s' % pytel)
+        sys.path.append(pytel)
+
+    from data_manip.formats.selafin import Selafin
 
 class Reader(BaseReader, UnstructuredReader):
     """
