@@ -19,7 +19,6 @@ from datetime import datetime, timedelta
 import sys
 import os
 from scipy.spatial import cKDTree
-from importlib.metadata import version
 import logging
 logger = logging.getLogger(__name__)
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
@@ -58,8 +57,6 @@ class Reader(BaseReader, UnstructuredReader):
 
         py:mod:`opendrift.readers.basereader.unstructured`.
     """
-
-    workers = -1
 
     # node_variables = ['z','salinity','temperature',
     #     'eastward_sea_water_velocity',
@@ -260,16 +257,10 @@ class Reader(BaseReader, UnstructuredReader):
         ### nearest time tupple
         frames, duration = nearest_idx(
             np.array(self.times).astype('datetime64[s]'), np.datetime64(time))
+
         ### nearest node in 2D
-        # will have to be improved for a real finite element solution (k=3 pts).
-        if float(version('scipy')[2:]) < 6.:
-            _, iii = self.tree.query(np.vstack((x, y)).T,
-                                     k=1,
-                                     n_jobs=self.workers)
-        else:
-            _, iii = self.tree.query(np.vstack((x, y)).T,
-                                     k=1,
-                                     workers=self.workers)
+        iii = self.__nearest_ckdtree__(self.tree, x, y)
+
         # build depth ndarrays of each fibre
         niii = len(iii)
         idx_3D = np.arange(self.slf.nplan).reshape(self.slf.nplan,
