@@ -123,6 +123,17 @@ jobs:
               echo "PR: ${GITHUB_PR_TITLE}"
             fi
 
+      - run:
+          name: Check if examples should be built
+          command: |
+            if git log --oneline --pretty=format:%s "master..${CIRCLE_SHA1}" | grep '\[run-ex\]' ; then
+              BUILD_EXAMPLES=1
+            else
+              BUILD_EXAMPLES=0
+            fi
+            echo "export BUILD_EXAMPLES=${BUILD_EXAMPLES}" >> ${BASH_ENV}
+            echo "Build examples: ${BUILD_EXAMPLES}"
+
       - restore_cache:
           key: v6-docs-deps1-{{ checksum "environment.yml" }}
 
@@ -165,7 +176,7 @@ jobs:
       - run:
           name: Check if docs should be re-built
           command: |
-            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* ]]; then
+            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${BUILD_EXAMPLES}" -eq 1 ]]; then
               echo "Clearing out examples.."
               source activate opendrift
               cd docs/
