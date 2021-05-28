@@ -28,7 +28,7 @@ from data_manip.formats.selafin import Selafin
 import logging
 logger = logging.getLogger(__name__)
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
-from memory_profiler import profile
+# from memory_profiler import profile
 
 
 
@@ -201,7 +201,6 @@ class Reader(BaseReader, UnstructuredReader):
             plt.xlabel('x [m]')
             plt.ylabel('y [m]')
 
-    @profile
     def get_variables(self,
                       requested_variables,
                       time=None,
@@ -241,8 +240,6 @@ class Reader(BaseReader, UnstructuredReader):
         idx_layer = np.abs(pm-z).argmin(axis=0)
         Idxs= self.var_idx[np.where((self.variables[:,None]==requested_variables)==True)[1]]
         idx_nodes = idx_3D[idx_layer,np.arange(len(idx_layer))]
-        logger.info("idx_nodes shape {}".format(idx_nodes.shape))
-        logger.info("idx_nodes dtype {}".format(idx_nodes.dtype))
         vectors= self.__extractslf__(self, frames, duration, Idxs, idx_nodes.ravel())
         vars={}
         for i in range(len(requested_variables)):
