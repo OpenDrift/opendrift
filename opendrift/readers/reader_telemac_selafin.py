@@ -28,6 +28,9 @@ from data_manip.formats.selafin import Selafin
 import logging
 logger = logging.getLogger(__name__)
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
+from memory_profiler import profile
+
+
 
 class Reader(BaseReader, UnstructuredReader):
     """
@@ -43,6 +46,9 @@ class Reader(BaseReader, UnstructuredReader):
         :param proj4: PROJ.4 string describing projection of data.
         :type proj4: string, optional
 
+        :param start_time: The date time of the start of the file
+        :type start_time: datetime.datetime object, recommanded
+
     .. seealso::
 
         py:mod:`opendrift.readers.basereader.unstructured`.
@@ -51,7 +57,10 @@ class Reader(BaseReader, UnstructuredReader):
     #     'eastward_sea_water_velocity',
     #     'northward_sea_water_velocity',
     #     'upward_sea_water_velocity'
-    def __init__(self, filename=None, name=None, proj4=None):
+    def __init__(self, filename=None, name=None, proj4=None, start_time=None):
+        """
+
+        """
 
         def vardic(vars_slf):
             """
@@ -67,6 +76,7 @@ class Reader(BaseReader, UnstructuredReader):
                     'TEMPERATURE     ':'sea_water_temperature',
                     'SALINITY        ':'sea_water_salinity',
                     'NUZ FOR VELOCITY':'ocean_vertical_diffusivity',
+
                     }
             No_OD_equiv={'x_wind',
             'y_wind',
@@ -90,7 +100,7 @@ class Reader(BaseReader, UnstructuredReader):
             No_Telemac_equiv={'NUX FOR VELOCITY',
                             'NUY FOR VELOCITY',
                             'DISSIPATION     ',
-                            'ELEVATION Z     ',
+                            'ELEVATION Z     '
                             }
             variables=[]
             var_idx=[]
@@ -119,8 +129,7 @@ class Reader(BaseReader, UnstructuredReader):
         logger.info('Opening file with Dataset')
         self.slf = Selafin(filename)
 
-        logger.info("File:\n{}\nTitle:\n{}".format(self.slf.file, \
-                                self.slf.title))
+        logger.info("Title: {}".format(self.slf.title))
         try:
             str(proj4)
         except Exception as e:
@@ -144,18 +153,22 @@ class Reader(BaseReader, UnstructuredReader):
                 self.slf.meshy.min(), self.slf.meshx.max(),self.slf.meshy.max()
 
         # time management
-        self.start_time=datetime(self.slf.datetime[0],self.slf.datetime[1],
+        if start_time is not None:
+            if type(start_time) is datetime:
+                self.start_time=start_time
+            else:
+                logger.warning("The specified start time is not a datetime object")
+        else:
+            logger.info("loading the datetime from the selafin file")
+            self.start_time=datetime(self.slf.datetime[0],self.slf.datetime[1],
                 self.slf.datetime[2],self.slf.datetime[3],self.slf.datetime[4])
-        # self.start_time=np.datetime64(datetime(self.slf.datetime[0],self.slf.datetime[1],
-        #         self.slf.datetime[2],self.slf.datetime[3],self.slf.datetime[4]))
-        # self.time = self.start_time + self.slf.tags['times'].astype('timedelta64[s]')
         self.times= []
         for i in range(len(self.slf.tags['times'])):
             self.times.append(self.start_time+timedelta(seconds= self.slf.tags['times'][i]))
         self.end_time = self.times[-1]
-
+        self.altitude_ID=np.where(np.array(self.slf.varnames)=='ELEVATION Z     ')[0]
+        self.meshID=(np.arange(self.slf.nplan)[:,None]*self.slf.npoin2).astype(np.int)
         self.variables, self.var_idx=vardic(self.slf.varnames)
-
 
         self.timer_end("build index")
         self.timer_end("open dataset")
@@ -188,6 +201,7 @@ class Reader(BaseReader, UnstructuredReader):
             plt.xlabel('x [m]')
             plt.ylabel('y [m]')
 
+    @profile
     def get_variables(self,
                       requested_variables,
                       time=None,
@@ -205,43 +219,13 @@ class Reader(BaseReader, UnstructuredReader):
                 3D coordinates of the particles
             time: np.datetime64
                 age of the particle set
-            variables: np.array(int)
-                indexes of variables
+            requested_variables: np.array(str)
+                variables selected by the model
         returns:
             variables: dictionary of numpy arrays
         """
-        def nearest_idx(array, value):
-                """
-                we are looking for a tuple describing where the sample is and at which
-                distance. So we can calculate the FE solution of the variable value.
-                input:
-                    array: a 1D numpy array
-                    monotonic array
-                output:
-                    bounds: a tupple
-                    tupple describing the bounding indexes
-                    dist = tupple
-                    the distance between the sample and the index values
-                    so that dist[0]+dist[1]=0
-                """
-                distance = (array - value).astype(np.float)
-                nearest =  np.argsort(abs(distance))[:2]
-                # test exact match and out of bounds
-                if (distance == 0).any() | (distance>0).all()|(distance<0).all():
-                    bounds = (nearest[0],None)
-                    dist = (1,0)
-                else:
-                    bounds=nearest
-                    if distance[nearest[0]]==distance[nearest[1]]*-1:
-                        dist=(.5,.5)
-                    else:
-                        prop= abs(distance[nearest[0]])/ \
-                           (abs(distance[nearest[0]])+abs(distance[nearest[1]]))
-                        dist = (1-prop, prop)
-                return bounds, dist
-
         ### nearest time tupple
-        frames, duration=nearest_idx(np.array(self.times).astype('datetime64[s]'),np.datetime64(time))
+        frames, duration=self.__nearest_idx__(np.array(self.times).astype('datetime64[s]'),np.datetime64(time))
         ### nearest node in 2D
         # will have to be improved for a real finite element solution (k=3 pts).
         if float(version('scipy')[2:])<6.:
@@ -250,41 +234,81 @@ class Reader(BaseReader, UnstructuredReader):
             _,iii = self.tree.query(np.vstack((x,y)).T,k=1, workers=self.workers)
         # build depth ndarrays of each fibre
         niii = len(iii)
-        idx_3D = np.arange(self.slf.nplan).reshape(self.slf.nplan,1)*self.slf.npoin2+iii
-        depths1=self.slf.get_variables_at(frames[0],[0])[0,idx_3D]
-        if frames[1] is not None:
-            depths2=self.slf.get_variables_at(frames[1],[0])[0,idx_3D]
-        else:
-            depths2=0
+        idx_3D = self.meshID +iii
         # locate the profile dimension
-        pm=duration[0]*depths1+duration[1]*depths2
-        # calculate distance from particles to nearest point depth
+        pm=self.__extractslf__(self, frames, duration, self.altitude_ID, idx_3D)[0]
+        # calculate distance from particles to nearest point altitude
         idx_layer = np.abs(pm-z).argmin(axis=0)
+        Idxs= self.var_idx[np.where((self.variables[:,None]==requested_variables)==True)[1]]
+        idx_nodes = idx_3D[idx_layer,np.arange(len(idx_layer))]
+        logger.info("idx_nodes shape {}".format(idx_nodes.shape))
+        logger.info("idx_nodes dtype {}".format(idx_nodes.dtype))
+        vectors= self.__extractslf__(self, frames, duration, Idxs, idx_nodes.ravel())
         vars={}
-        #var_i=cfvar(self, requested_variables)
         for i in range(len(requested_variables)):
-            idx_v= self.var_idx[self.variables==requested_variables[i]]
-            vectors1=self.slf.get_variables_at(frames[0],[idx_v])[0,idx_3D[idx_layer][0]].ravel()
-            if frames[1] is not None:
-                vectors2=self.slf.get_variables_at(frames[1],[idx_v])[0,idx_3D[idx_layer][0]].ravel()
-            else:
-                vectors2=0
-            vars[requested_variables[i]]=duration[0]*vectors1+duration[1]*vectors2
+            vars[requested_variables[i]]= vectors[i]
         return vars
 
+    @staticmethod
+    def __nearest_idx__(array, value):
+        """
+        we are looking for a tuple describing where the sample is and at which
+        distance. So we can calculate the FE solution of the variable value.
+        input:
+            array: a 1D numpy array
+            monotonic array
+        output:
+            bounds: a tupple
+            tupple describing the bounding indexes
+            dist = tupple
+            the distance between the sample and the index values
+            so that dist[0]+dist[1]=0
+        """
+        distance = (array - value).astype(np.float)
+        nearest =  np.argsort(abs(distance))[:2]
+        # test exact match and out of bounds
+        if (distance == 0).any() | (distance>0).all()|(distance<0).all():
+            bounds = (nearest[0],None)
+            dist = (1,0)
+        else:
+            bounds=nearest
+            if distance[nearest[0]]==distance[nearest[1]]*-1:
+                dist=(.5,.5)
+            else:
+                prop= abs(distance[nearest[0]])/ \
+                   (abs(distance[nearest[0]])+abs(distance[nearest[1]]))
+                dist = (1-prop, prop)
+        return bounds, dist
 
-    def filter_points(self, indexes):
+    @staticmethod
+    def __extractslf__(self, frames, duration, index_var, index_nodes):
         """
-        Filter points that are not within the grid.
-        use finite element method to evaluate properties
-        ~~~ To be continued ~~~
+        extract variables from slf files
+        index_var must be a list of integer
         """
-        # test they correspond to faces:
-        ifaces= np.where((np.sort(iii, axis=1)[:,None] ==np.sort(self.slf.ikle2, axis=1)).all(-1).any(-1))[0]
-        # in the future
-        # extract profile from the 2 frames bounding t.
-        # z is always the variable idx 0
-        p1= self.slf.get_variables_at(frames[0], [0])[0,self.slf.ikle3[ifaces]]
-        p2= self.slf.get_variables_at(frames[1], [0])[0,self.slf.ikle3[ifaces]]
-        x1=slef.slf.meshx[ifaces]
-        y1=slef.slf.meshy[ifaces]
+        vector1=self.slf.get_variables_at(frames[0],index_var.tolist())[:,index_nodes]
+        # print("vector1: ",vector1.shape)
+        if frames[1] is not None:
+                vector2=self.slf.get_variables_at(frames[1],index_var.tolist())[:,index_nodes]
+        else:
+                vector2=0
+
+        vector=duration[0]*vector1+duration[1]*vector2
+        vector1, vector2=None,None
+        return vector
+
+    # def filter_points(self, indexes):
+    #     """
+    #     Filter points that are not within the grid.
+    #     use finite element method to evaluate properties
+    #     ~~~ To be continued ~~~
+    #     """
+    #     # test they correspond to faces:
+    #     ifaces= np.where((np.sort(iii, axis=1)[:,None] ==np.sort(self.slf.ikle2, axis=1)).all(-1).any(-1))[0]
+    #     # in the future
+    #     # extract profile from the 2 frames bounding t.
+    #     # z is always the variable idx 0
+    #     p1= self.slf.get_variables_at(frames[0], [0])[0,self.slf.ikle3[ifaces]]
+    #     p2= self.slf.get_variables_at(frames[1], [0])[0,self.slf.ikle3[ifaces]]
+    #     x1=slef.slf.meshx[ifaces]
+    #     y1=slef.slf.meshy[ifaces]
