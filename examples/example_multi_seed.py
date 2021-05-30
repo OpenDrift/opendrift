@@ -26,15 +26,16 @@ o.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 #%%
 # Seed oil particles within contour detected from satellite
-o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
+o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml',
+                num_elements=2000, origin_marker=0)
 
 #%%
 # Additional continous point release, lasting 24 hours
-o.seed_elements(3.8, 60.9, radius=0, number=1000,
+o.seed_elements(3.8, 60.9, radius=0, number=1000, origin_marker=1,
                 time=[datetime(2015,11,16,8), datetime(2015,11,17,8)])
 #%%
 # Additional cone release (e.g. from moving ship)
-o.seed_cone([3.6, 4.4], [61.5, 61.2], radius=[1000, 10000],
+o.seed_cone([3.6, 4.4], [61.5, 61.2], radius=[1000, 10000], origin_marker=2,
                 number=1000, time=[datetime(2015,11,16,1), datetime(2015,11,16,8)])
 
 #%%
@@ -45,7 +46,7 @@ o.run(steps=50*4, time_step=900, time_step_output=3600)
 # Print and plot results
 print(o)
 o.plot(fast=True)
-o.animation(fast=True)
+o.animation(fast=True, color='origin_marker', legend=['satellite slick', 'continuous point', 'cone'], colorbar=False)
 
 #%%
 # .. image:: /gallery/animations/example_multi_seed_0.gif
