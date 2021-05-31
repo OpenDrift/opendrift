@@ -1,6 +1,7 @@
 import pyproj
 import numpy as np
 from opendrift.readers import reader_netCDF_CF_generic
+from opendrift.readers import basereader
 from opendrift.models.basemodel import OpenDriftSimulation
 from . import *
 
@@ -45,7 +46,6 @@ def test_equiv_proj(test_data):
 
 
 def test_lonlat(test_data):
-    """ These two projections are almost equivalent """
     # Only used for projection
     reader_current = reader_netCDF_CF_generic.Reader(
         test_data +
@@ -90,3 +90,41 @@ def test_lonlat(test_data):
     np.testing.assert_array_almost_equal(nu, ru, decimal=3)
     np.testing.assert_array_almost_equal(nv, rv, decimal=3)
 
+def test_many_rotate_stere(test_data, benchmark):
+    # Only used for projection
+    reader_current = reader_netCDF_CF_generic.Reader(
+        test_data +
+        '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+
+    # Simulation SRS
+    p = OpenDriftSimulation.SRS()
+
+    lon, lat = 4., 62.
+    x, y = reader_current.lonlat2xy(lon, lat)
+
+    u = np.linspace(-2, 2, 1000000)
+    v = np.linspace(2, -2, 1000000)
+
+    _ru, _rv = benchmark(reader_current.rotate_vectors, x, y, u, v, reader_current.proj, p)
+
+def test_many_rotate_lambert(benchmark):
+    # Lambert North
+    proj = "+proj=lcc +lat_1=49.50000000000001 +lat_0=49.50000000000001 +lon_0=0 \
+            +k_0=0.999877341 +x_0=600000 +y_0=200000 +a=6378249.2 +b=6356515 \
+            +units=m +no_defs"
+
+    # Only used for projection
+    r = basereader.variables.ReaderDomain()
+    r.proj4 = proj
+    r.proj = pyproj.Proj(proj)
+
+    # Simulation SRS
+    p = OpenDriftSimulation.SRS()
+
+    lon, lat = 4., 62.
+    x, y = r.lonlat2xy(lon, lat)
+
+    u = np.linspace(-2, 2, 1000000)
+    v = np.linspace(2, -2, 1000000)
+
+    _ru, _rv = benchmark(r.rotate_vectors, x, y, u, v, proj, p)
