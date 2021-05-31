@@ -126,6 +126,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     proj_latlon = pyproj.Proj('+proj=latlong')
 
+    @classmethod
+    def SRS(cls):
+        return cls.proj_latlon
+
     def __init__(self, seed=0, iomodule='netcdf',
                  loglevel=logging.DEBUG, logtime='%H:%M:%S', logfile=None):
         """Initialise OpenDriftSimulation
