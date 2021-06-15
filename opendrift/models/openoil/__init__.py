@@ -953,10 +953,11 @@ class OpenOil(OceanDrift):
     def get_wave_breaking_droplet_diameter(self):
         dm = self.get_config('wave_entrainment:droplet_size_distribution')
         if dm == 'Johansen et al. (2015)':
-            d = self.get_wave_breaking_droplet_diameter_johansen2015()
+            return self.get_wave_breaking_droplet_diameter_johansen2015()
         elif dm == 'Li et al. (2017)':
-            d = self.get_wave_breaking_droplet_diameter_liz2017()
-        return d
+            return self.get_wave_breaking_droplet_diameter_liz2017()
+        else:
+            raise Exception("no droplet size distribution specified")
 
     def get_wave_breaking_droplet_diameter_liz2017(self):
         # Li,Zhengkai, M. Spaulding, D. French-McCay, D. Crowley, J.R. Payne: "Development of a unified oil droplet size distribution model
