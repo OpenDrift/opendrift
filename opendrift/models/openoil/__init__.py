@@ -61,24 +61,17 @@ After each wave breaking event, a new droplet diameter will be chosen based on t
 """
 
 from io import open
-import os
-import json
 import numpy as np
 from datetime import datetime
 import pyproj
 import matplotlib.pyplot as plt
-import nc_time_axis
 import logging; logger = logging.getLogger(__name__)
 
-from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
-import opendrift.models.noaa_oil_weathering as noaa
+from opendrift.models.oceandrift import OceanDrift
+from opendrift.elements import LagrangianArray
+from . import noaa_oil_weathering as noaa
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
 
-
-try:
-    from itertools import izip as zip
-except ImportError:
-    pass
 
 # Defining the oil element properties
 class Oil(Lagrangian3DArray):
