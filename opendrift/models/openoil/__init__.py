@@ -13,6 +13,7 @@
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
+# Copyright 2021, Gaute Hope, MET Norway
 """
 OpenOil is a 3D oil drift module bundled within the OpenDrift framework.
 
@@ -44,13 +45,17 @@ The vertical (and thus indirectly also the horizontal) motion of oil (droplets) 
 
 When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')``), which is the default, the density is obtained from the NOAA database according to the oiltype selected when seeding. This value can not be overridden by the user, and it will also change during the simulation due to oil weathering processes (evaporation and emulsification).
 
-The droplet diameter may be given explicitly when seeding, e.g.::
+The droplet diameter may be given explicitly when seeding, e.g.:
+
+.. code::
 
     o.seed_elements(4, 60, number=100, time=datetime.now(), diameter=1e-5)
 
 In this case, the diameter will not change during the simulation, which is useful e.g. for sensitivity tests. The same diameter will be used for all elements for this example, but an array of the same length as the number of elements may also be provided.
 
 If a constant droplet diameter is not given by the user, it will be chosen randomly within given config limits for a subsea spill ('blowout'), and modified after any later wave breaking event. Oil droplets seeded under sea surface (z<0) will be assigned initial diameters between the following limits, typical for a subsea blowout (Johansen, 2000)::
+
+.. code::
 
     o.set_config('seed:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
     o.set_config('seed:droplet_diameter_max_subsea', 0.005)   # 5 mm
@@ -1709,7 +1714,6 @@ class OpenOil(OceanDrift):
 
         if not 'time' in kwargs:
             try:  # get time from filename
-                timestr = filename[-28:-13]
                 time = datetime.strptime(filename[-28:-13], '%Y%m%d.%H%M%S')
                 logger.info('Parsed time from filename: %s' % time)
             except:
