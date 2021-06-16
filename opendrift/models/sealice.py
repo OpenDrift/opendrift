@@ -12,8 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright 2021, Trond Kristiansen, Niva
-# Jan 2021 Simplified by Knut-Frode Dagestad, MET Norway, and adapted to to Kvile et al. (2018)
+# Copyright 2021, Julien Moreau, Plastic@Bay CIC
 
 import datetime
 import numpy as np
@@ -75,15 +74,15 @@ class SeaLice(OceanDrift):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
-        'sea_surface_wave_significant_height': {'fallback': 0},
-        'x_wind': {'fallback': 0},
-        'y_wind': {'fallback': 0},
+        # 'sea_surface_wave_significant_height': {'fallback': 0},
+        # 'x_wind': {'fallback': 0},
+        # 'y_wind': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
         'sea_floor_depth_below_sea_level': {'fallback': 50},
         'surface_net_downward_radiative_flux':{'fallback': None},
-        'ocean_vertical_diffusivity': {'fallback': 0.01, 'profiles': True},
-        'sea_water_temperature': {'fallback': 10, 'profiles': True},
-        'sea_water_salinity': {'fallback': 34, 'profiles': True}
+        'ocean_vertical_diffusivity': {'fallback': 0.01},
+        'sea_water_temperature': {'fallback': 10},
+        'sea_water_salinity': {'fallback': 34}
     }
 
     # required_profiles_z_range = [0, -50]  # The depth range (in m) which profiles should cover
