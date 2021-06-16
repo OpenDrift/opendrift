@@ -157,7 +157,7 @@ class SeaLice(OceanDrift):
                                 'level': self.CONFIG_LEVEL_ADVANCED},
             })
 
-        # self._set_config_default('drift:vertical_mixing', True)
+
 
         # self.LicePerFish=parameters['LicePerFish'] # need to be added in module parameters
         # self.AvFishW8 = parameters['AvFishW8'] # need to be added in module parameters
