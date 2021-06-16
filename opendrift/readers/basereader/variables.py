@@ -41,6 +41,18 @@ class ReaderDomain(Timeable):
     dimension."""
     always_valid = False
 
+    def center(self):
+        """
+        Returns center of reader (in lon, lat)
+        """
+
+        if any(xx is None for xx in [self.xmin, self.xmax, self.ymin, self.ymax]):
+            return None, None
+
+        x = self.xmin + (self.xmax - self.xmin) / 2
+        y = self.ymin + (self.ymax - self.ymin) / 2
+        return self.xy2lonlat(x, y)
+
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
         """Rotate vectors from one crs to another."""

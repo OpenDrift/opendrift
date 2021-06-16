@@ -94,10 +94,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             module/subclass using environment data from any readers which
             can provide the requested variables. Used in method 'update'
             to update properties of elements every time_step.
-        proj4: string defining the common spatial reference system (SRS) onto
-            which data from all readers are interpolated
-        proj: Proj object initialised from proj4 string; used for
-            coordinate tranformations
         time_step: timedelta object, time interval at which element properties
             are updated (including advection).
         time_step_output: timedelta object, time interval at which element
@@ -129,6 +125,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
     proj_latlon = pyproj.Proj('+proj=latlong')
+
+    @classmethod
+    def SRS(cls):
+        return cls.proj_latlon
 
     def __init__(self, seed=0, iomodule='netcdf',
                  loglevel=logging.DEBUG, logtime='%H:%M:%S', logfile=None):
@@ -2892,6 +2892,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if self.num_elements_total() == 0 and not hasattr(self, 'ds'):
             raise ValueError('Please run simulation before animating')
 
+        markersizebymass = False
+        if isinstance(markersize, str):
+            if markersize == 'mass':
+                markersizebymass = True
+                markersize = 20
+
         start_time = datetime.now()
         if cmap is None:
             cmap = 'jet'
@@ -2961,6 +2967,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 points_deactivated.set_offsets(np.c_[
                     x_deactive[index_of_last_deactivated < i],
                     y_deactive[index_of_last_deactivated < i]])
+
+                if markersizebymass:
+                    points.set_sizes((self.elements.mass / 50))
+
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
                     if isinstance(color, str) or hasattr(color, '__len__'):
@@ -3048,22 +3058,35 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             c = markercolor
         else:
             c = []
-        points = ax.scatter([], [], c=c, zorder=10,
+
+        if markersizebymass:
+            points = ax.scatter([], [], c=c, zorder=10,
+                            edgecolor=[], cmap=cmap, alpha=.4,
+                            vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
+        else:
+            points = ax.scatter([], [], c=c, zorder=10,
                             edgecolor=[], cmap=cmap, s=markersize,
                             vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
-        
+
+
         if (compare is None) and (legend != ['']):
             markers=[]
             for legend_index in np.arange(len(legend)):
                 markers.append(matplotlib.lines.Line2D([0], [0], marker='o',
-                                    color='w', markerfacecolor=cmap(legend_index/(len(legend)-1)), 
+                                    color='w', markerfacecolor=cmap(legend_index/(len(legend)-1)),
                                     markersize=10, label=legend[legend_index]))
             ax.legend(markers, legend, loc=legend_loc)
-            
+
         # Plot deactivated elements, with transparency
-        points_deactivated = ax.scatter([], [], c=c, zorder=9,
+        if markersizebymass:
+            points_deactivated = ax.scatter([], [], c=c, zorder=9,
+                                        vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,
+                                        edgecolor=[], alpha=0, transform = gcrs)
+        else:
+            points_deactivated = ax.scatter([], [], c=c, zorder=9,
                                         vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,
                                         edgecolor=[], alpha=.3, transform = gcrs)
+
         x_deactive, y_deactive = (self.elements_deactivated.lon, self.elements_deactivated.lat)
 
         if compare is not None:
@@ -3158,7 +3181,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                           color=None, cmap=None, vmin=None, vmax=None,
                           legend_loc=None):
         """Animate vertical profile of the last run."""
-        
+
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
@@ -3169,8 +3192,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 points.set_array(colorarray[:, i])
             else:
                 points.set_data(x[range(x.shape[0]), i],
-                                z[range(x.shape[0]), i])            
-                
+                                z[range(x.shape[0]), i])
+
             points_deactivated.set_data(
                 x_deactive[index_of_last_deactivated < i],
                 z_deactive[index_of_last_deactivated < i])
@@ -3191,7 +3214,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 cmap = 'jet'
             if isinstance(cmap, str):
                 cmap = matplotlib.cm.get_cmap(cmap)
-    
+
             if color is not False:
                 if isinstance(color, str):
                     colorarray = self.get_property(color)[0].T
@@ -3202,7 +3225,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.index_of_activation_and_deactivation()
         z = self.get_property('z')[0].T
         x = self.get_property('lon')[0].T
-        
+
         #seafloor_depth = \
         #    -self.get_property('sea_floor_depth_below_sea_level')[0].T
         fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
@@ -3216,11 +3239,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             points = ax.scatter([], [], c=[], zorder=10,
                                  edgecolor=[], cmap=cmap, s=markersize,
                                  vmin=vmin, vmax=vmax)
-    
+
             markers=[]
             for legend_index in np.arange(len(legend)):
                 markers.append(matplotlib.lines.Line2D([0], [0], marker='o', linewidth=0,
-                               markeredgewidth=0, markerfacecolor=cmap(legend_index/(len(legend)-1)), 
+                               markeredgewidth=0, markerfacecolor=cmap(legend_index/(len(legend)-1)),
                                markersize=10, label=legend[legend_index]))
             leg=ax.legend(markers, legend, loc=legend_loc)
             leg.set_zorder(20)
@@ -3228,7 +3251,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             points = plt.plot([], [], '.k', label=legend[0],
                               markersize=markersize)[0]
 
-                    
+
         # Plot deactivated elements, with transparency
         points_deactivated = plt.plot([], [], '.k', alpha=.3)[0]
         x_deactive = self.elements_deactivated.lon
@@ -3852,7 +3875,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return H, H_submerged, H_stranded, lon_array, lat_array
 
-    
+
     def get_density_array_proj(self, pixelsize_m, density_proj=None, llcrnrlon=None,llcrnrlat=None,urcrnrlon=None,urcrnrlat=None, weight=None):
         #
         # TODO: should be merged with get_density_array
@@ -4035,7 +4058,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         nc.close()
 
-    def write_netcdf_density_map_proj(self, filename, pixelsize_m='auto', density_proj=None, 
+    def write_netcdf_density_map_proj(self, filename, pixelsize_m='auto', density_proj=None,
                             llcrnrlon=None, llcrnrlat=None, urcrnrlon=None, urcrnrlat=None):
         '''Write netCDF file with map of particles densities for a given projection or area'''
         #
@@ -4060,7 +4083,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if latspan > 5:
                 pixelsize_m = 4000
 
-        if density_proj is None: # add default projection with equal-area property 
+        if density_proj is None: # add default projection with equal-area property
             density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
 
 

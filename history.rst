@@ -1,6 +1,10 @@
 History
 =======
 
+Next release
+------------
+* New method ``reader.shift_start_time(start_time)`` to shift time coverage of reader
+
 2021-05-03 / Release v1.6.0
 -----------------------------
 * Reader environment mappings (deriving variables from others) can be activated with >>> o.activate_environment_mapping(<mapping_name>). Method to derive wind components from ``wind_speed`` and ``wind_from_direction / wind_to_direction`` is activated by default.

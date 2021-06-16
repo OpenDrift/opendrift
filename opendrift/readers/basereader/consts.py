@@ -17,6 +17,8 @@ standard_names = {
                       '(northwards if projection is lonlat/Mercator)'},
     'land_binary_mask': {'valid_min': 0, 'valid_max': 1,
                          'long_name': '1 is land, 0 is sea'},
+    'sea_floor_depth_below_sea_level': {'valid_min': 0, 'valid_max': 12000,
+                         'long_name': 'Depth of seafloor'},
     'ocean_vertical_diffusivity': {'valid_min': 0, 'valid_max': 1}}
 
 # Identify x-y vector components/pairs for rotation (NB: not east-west pairs!)
