@@ -855,6 +855,8 @@ class RadionuclideDrift(OceanDrift):
                   (self.get_config('radionuclide:species:Sediment_reversible'))):
             return
 
+        specie_in = self.elements.specie.copy()
+
         critvel = self.get_config('radionuclide:sediment:resuspension_critvel')
         resusp_depth = self.get_config('radionuclide:sediment:resuspension_depth')
         std = self.get_config('radionuclide:sediment:resuspension_depth_uncert')
@@ -887,6 +889,9 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:irreversible_fraction'):
             self.ntransformations[self.num_sirrev,self.num_pirrev]+=sum((resusp) & (self.elements.specie==self.num_sirrev))
             self.elements.specie[(resusp) & (self.elements.specie==self.num_sirrev)] = self.num_pirrev
+
+        specie_out = self.elements.specie.copy()
+        self.update_radionuclide_diameter(specie_in, specie_out)
 
 
 
