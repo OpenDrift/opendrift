@@ -18,6 +18,11 @@ test-template: &test-template
 
     - restore_cache:
         key: v13-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+
+    - run:
+        name: Install rust
+        command: curl https://sh.rustup.rs -sSf | sh -s -- -y
+
     - run:
         name: Install requirements
         no_output_timeout: 30m
@@ -137,6 +142,10 @@ jobs:
 
       - restore_cache:
           key: v6-docs-deps1-{{ checksum "environment.yml" }}
+
+      - run:
+          name: Install rust
+          command: curl https://sh.rustup.rs -sSf | sh -s -- -y
 
       - run:
           name: Install requirements
