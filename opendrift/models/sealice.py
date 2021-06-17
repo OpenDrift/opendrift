@@ -27,34 +27,34 @@ class SeaLiceElement(Lagrangian3DArray):
     """
 
     variables = Lagrangian3DArray.add_variables([
-        ('particle_biomass',{'dtype': np.float,
+        ('particle_biomass',{'dtype': np.float32,
                             'units': 'kg',
                             'default': 1000.}),
-        ('hatched',{'dtype': np.float,
+        ('hatched',{'dtype': np.float32,
                             'units': '',
                             'default': 0.}),
-        ('nauplii', {'dtype': np.float,
+        ('nauplii', {'dtype': np.float32,
                             'units': '',
                             'default': 0.}),
-        ('copepodid', {'dtype': np.float,
+        ('copepodid', {'dtype': np.float32,
                      'units': '',
                      'default': 0.}),
-        ('dead', {'dtype': np.bool,
+        ('dead', {'dtype': np.int8,
                      'units': '',
-                     'default': False}),
-        ('degree_days', {'dtype': np.float,
+                     'default': 0}),
+        ('degree_days', {'dtype': np.float32,
                      'units': '',
                     'default': 0}), #range 40-170
-        ('salinity_above', {'dtype': np.bool,
+        ('safe_salinity_above', {'dtype': np.int8,
                      'units': '',
-                    'default': False}),
-        ('temperature_above', {'dtype': np.float,
-                     'units': '',
-                    'default': 10}),
-        ('temperature_below', {'dtype': np.float,
+                    'default': 0}),
+        ('temperature_above', {'dtype': np.float32,
                      'units': '',
                     'default': 10}),
-        ('light', {'dtype': np.float,
+        ('temperature_below', {'dtype': np.float32,
+                     'units': '',
+                    'default': 10}),
+        ('light', {'dtype': np.float32,
                      'units': 'µmol photon  s−1 m−2',
                      'default': 0.})
                       ])
@@ -90,67 +90,68 @@ class SeaLice(OceanDrift):
     def __init__(self,*args, **kwargs):
 
         # Calling general constructor of parent class
-        super(SeaLice, self).__init__(*args, **kwargs)
+        # super(SeaLice, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Configuration options
         self._add_config({
-            'general:LicePerFish':{'type':np.float, 'default':0.5, # this could become an element property
+            'general:LicePerFish':{'type':'float', 'default':0.5, # this could become an element property
                                 'min': 0.0, 'max': None, 'units': '',
                                 'description': 'Number of lice per fish',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:AvFishW8':{'type':np.float, 'default':4.5, # this could become an element property
+            'general:AvFishW8':{'type':'float', 'default':4.5, # this could become an element property
                                 'min': 0.0, 'max': 1.0, 'units': 'fraction',
                                 'description': 'Average fish weight',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:seeding_time_step':{'type':np.float, 'default':None,
+            'general:seeding_time_step':{'type':'float', 'default':None,
                                 'min': None, 'max': None, 'units': 'seconds',
                                 'description': 'Time between particle release',
                                 'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'general:death_rate':{'type':np.float, 'default':0.01/3600,
+            'general:death_rate':{'type':'float', 'default':0.01/3600,
                                 'min': 0., 'max': None, 'units': 's-1',
                                 'description': 'Rate of Larvae death per seconds',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:maturation_rate':{'type':np.float, 'default':0.1/3600,
+            'general:maturation_rate':{'type':'float', 'default':0.1/3600,
                                 'min': 0., 'max': None, 'units': 's-1',
                                 'description': 'Rate of Nauplii maturation in Copepodids',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:maturity_date':{'type':np.float, 'default':3.63,
+            'general:maturity_date':{'type':'float', 'default':3.63,
                                 'min': 0., 'max': None, 'units': 'days',
                                 'description': 'Days to start maturing into Copepodids',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:sinking_velocity':{'type':np.float, 'default':0.00025,
+            'general:sinking_velocity':{'type':'float', 'default':0.00025,
                                 'min': 0., 'max': 0.01, 'units': 'm.s-1',
                                 'description': 'Larvae sinking velocity',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:vertical_migration_speed':{'type':np.float, 'default':0.00075,
+            'general:vertical_migration_speed':{'type':'float', 'default':0.00075,
                                 'min': 0., 'max': 0.01, 'units': 'm.s-1',
                                 'description': 'Larvae vertical speed',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:freezing_salinity':{'type':np.float, 'default':27,
+            'general:freezing_salinity':{'type':'float', 'default':27,
                                 'min': 0., 'max': 35., 'units': 'PSU',
                                 'description': 'Salinity immobilising larvae',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:avoided_salinity':{'type':np.float, 'default':32,
+            'general:avoided_salinity':{'type':'float', 'default':32,
                                 'min': 0., 'max': 50., 'units': 'PSU',
                                 'description': 'Salinity actively avoided',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:nu':{'type':np.float, 'default':500.,
+            'general:nu':{'type':'float', 'default':500.,
                                 'min': 100, 'max': 1000, 'units': 'nm',
                                 'description': 'Wavelength used to calculate irradiance',
                                 'level': self.CONFIG_LEVEL_ADVANCED},
-            'general:k_water':{'type':np.float, 'default':-0.2,
+            'general:k_water':{'type':'float', 'default':-0.2,
                                 'min': -10., 'max': 0., 'units': '',
                                 'description': 'coefficient of exponential decay of light in water',
                                 'level': self.CONFIG_LEVEL_ADVANCED},
-            'general:Nauplii_light_trigger':{'type':np.float, 'default':2.E-5,
+            'general:Nauplii_light_trigger':{'type':'float', 'default':2.E-5,
                                 'min': 0., 'max': 1., 'units': 'µmol photon  s−1 m−2',
                                 'description': 'light detection threshold of Nauplii',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'general:Copepodid_light_trigger':{'type':np.float, 'default':0.392,
+            'general:Copepodid_light_trigger':{'type':'float', 'default':0.392,
                                 'min': 0.0, 'max': 1.0, 'units': 'µmol photon  s−1 m−2',
                                 'description': 'light detection threshold of copepodids',
                                 'level': self.CONFIG_LEVEL_BASIC},
-             'general:twilight':{'type':np.float, 'default':15,
+             'general:twilight':{'type':'float', 'default':15,
                                 'min': 0., 'max': 90., 'units': 'degrees',
                                 'description': 'angle below the horizon for twilight',
                                 'level': self.CONFIG_LEVEL_ADVANCED},
@@ -271,12 +272,13 @@ class SeaLice(OceanDrift):
         distribute the age fractions in the particles
         """
         # First desactivate dead particles
-        dead=self.elements.dead
+        dead=self.elements.dead.astype(np.bool)
         alive= np.logical_not(dead)
         Dying=self.elements.hatched[alive]<self.elements.nauplii[alive]+self.elements.copepodid[alive]+1
-        self.elements.dead[Dying]=True
-        self.deactivate_elements(self.elements.dead, reason="All dead")
+        self.elements.dead[Dying]=1
+        self.deactivate_elements(self.elements.dead.astype(np.bool), reason="All dead")
         # Take care of new borns
+        dead=self.elements.dead.astype(np.bool)
         alive= np.logical_not(dead)
         New_release = self.elements.age_seconds[alive]<self.time_step
         self.elements.hatched[New_release]=new_born(self, self.elements.Particle_biomass[New_release])
@@ -293,7 +295,7 @@ class SeaLice(OceanDrift):
         """
         Backup= self.elements.z[Normal_salt]
         self.elements.z[Normal_salt] +=self.sensing_distance
-        self.elements.salinity_above[Normal_salt]=self.environment.sea_water_salinity>self.avoided_salinity
+        self.elements.safe_salinity_above[Normal_salt]=np.int8(self.environment.sea_water_salinity>self.avoided_salinity)
         self.elements.temperature_above[Normal_salt]= self.environment.sea_water_temperature
         self.elements.z[Normal_salt] -= 2* self.sensing_distance
         self.elements.temperature_below[Normal_salt]= self.environment.sea_water_temperature
@@ -304,6 +306,7 @@ class SeaLice(OceanDrift):
         Calculate the degree days of a particles
         >>> under development <<<
         """
+        ### define active elements
         self.elements.degree_days+=self.environment.sea_water_temperature* \
                 self.time_step.total_seconds()/timedelta(days=1).total_seconds()
 
@@ -346,9 +349,9 @@ class SeaLice(OceanDrift):
         ### identify the elements involved in the different scenarios
         Filter_N= self.elements.copepodid < self.elements.nauplii
         Filter_C=np.logical_not(Filter_N)
-        light_mig_N= self.environment.light[Filter_N&self.elements.salinity_above[Normal_salt]] > self.Nauplii_light_trigger
-        light_mig_C= self.environment.light[Filter_C&self.elements.salinity_above[Normal_salt]] > self.Copepodid_light_trigger
-        up_temp_mig= self.elements.warmer_above[np.logical_not(light_mig_N&light_mig_C) & self.elements.salinity_above[Normal_salt]] > self.environment.sea_water_temperature
+        light_mig_N= self.environment.light[Filter_N&self.elements.safe_salinity_above[Normal_salt].astype(np.bool)] > self.Nauplii_light_trigger
+        light_mig_C= self.environment.light[Filter_C&self.elements.safe_salinity_above[Normal_salt].astype(np.bool)] > self.Copepodid_light_trigger
+        up_temp_mig= self.elements.warmer_above[np.logical_not(light_mig_N&light_mig_C) & self.elements.safe_salinity_above[Normal_salt].astype(np.bool)] > self.environment.sea_water_temperature
         down_temp_mig=self.elements.warmer_below[np.logical_not(light_mig_N & light_mig_C & up_temp_mig)]>self.environment.sea_water_temperature
 
         ### Active migration
