@@ -163,20 +163,21 @@ class SeaLice(OceanDrift):
             })
 
     def prepare_run(self):
-        logger.info("preparing the run")
+        logger.info("preparing the run...")
         ### need to find a better way of initialising the variables...
         self.prefix="lice:"
-        self.vertical_migration_speed=self.get_config(self.prefix+'vertical_migration_speed')
-        self.sensing_distance=2*self.vertical_migration_speed*self.time_step.total_seconds()
+        self.vertical_migration_speed=self.get_config(self.prefix+'vertical_migration_speed') \
+                                        *self.time_step.total_seconds()
+        self.sensing_distance=2*self.vertical_migration_speed
         self.tau= np.pi+2*np.deg2rad(self.get_config(self.prefix+'twilight')) #width of solar irridation distribution
         self.nu=self.get_config(self.prefix+'nu')
-        self.sinking_velocity=self.get_config(self.prefix+'sinking_velocity')
+        self.sinking_velocity=self.get_config(self.prefix+'sinking_velocity') \
+                                *self.time_step.total_seconds()
         self.freezing_salinity=self.get_config(self.prefix+'freezing_salinity')
         self.avoided_salinity=self.get_config(self.prefix+'avoided_salinity')
         self.k_water=self.get_config(self.prefix+'k_water')
         self.Nauplii_light_trigger=self.get_config(self.prefix+'Nauplii_light_trigger')
         self.Copepodid_light_trigger=self.get_config(self.prefix+'Copepodid_light_trigger')
-        logger.info("Preparing super individual population evolution...")
         self.new_born()
         self.population()
         self.ref_date = datetime(1,1,1,0,0)
@@ -198,7 +199,7 @@ class SeaLice(OceanDrift):
         and A(t) is the total number of adult female lice on each farm,
         derived here from lice target levels and number of fish on site.
         """
-        logger.info("Calculating standard spawn of nauplii")
+        logger.debug("Calculating standard spawn of nauplii")
         Ne, nu = 592 , 0.6
         Eps=0.0476/timedelta(days=1).total_seconds()*self.get_config( \
                                                 self.prefix+'seeding_time_step')
@@ -225,6 +226,7 @@ class SeaLice(OceanDrift):
         Juveniles(Nauplii), adults(Copepodid), dead lices arrays through
         the duration of the experiment
         """
+        logger.debug("Building global population model")
         death_rate=self.get_config(self.prefix+'death_rate')* self.time_step.total_seconds()
         maturation_rate=self.get_config(self.prefix+'maturation_rate')* self.time_step.total_seconds()
         duration = self.get_config('general:duration')/ self.time_step.total_seconds()
@@ -244,7 +246,7 @@ class SeaLice(OceanDrift):
         """
         distribute the age fractions in the particles
         """
-        logger.info("Aging the super_individuals")
+        logger.debug("Aging the super_individuals")
         scaling = self.elements.particle_biomass*self.elements.LicePerFish/ \
                     self.elements.AvFishW8
         #identify new spawns
@@ -268,46 +270,46 @@ class SeaLice(OceanDrift):
         self.deactivate_elements(self.elements.eliminated.astype(np.bool), reason="All dead")
 
 
-    def sensing(self, Normal_salt):
+    def sensing(self):
         """
         Lice sensing if above or bellow the conditions are better for them
         within a specified distance.
         moving the particles up and then down then back in their initial position
         """
-        logger.info("sensing temperature and salinity")
-        Backup= self.elements.z[Normal_salt]
-        self.elements.z[Normal_salt] +=self.sensing_distance
-        self.elements.safe_salinity_above[Normal_salt]=np.int8( \
-                    self.environment.sea_water_salinity>self.avoided_salinity)
-        self.elements.temperature_above[Normal_salt]= self.environment.sea_water_temperature
-        self.elements.z[Normal_salt] = Backup-self.sensing_distance
-        self.elements.temperature_below[Normal_salt]= self.environment.sea_water_temperature
-        self.elements.z[Normal_salt] = Backup
+        logger.debug("sensing temperature and salinity")
+        Backup= np.copy(self.elements.z[:])
+        self.elements.z +=self.sensing_distance
+        self.elements.safe_salinity_above[self.environment.sea_water_salinity> \
+                                            self.avoided_salinity]=1
+        self.elements.temperature_above= self.environment.sea_water_temperature
+        self.elements.z -= 2*self.sensing_distance
+        self.elements.temperature_below= self.environment.sea_water_temperature
+        self.elements.z = Backup
 
     def degree_days(self):
         """
         Calculate the degree days of a particles
         >>> under development <<<
         """
-        logger.info("accumulate degree_days **Experimental**")
+        logger.debug("accumulate degree_days **Experimental**")
         ### define active elements
         self.elements.degree_days+=self.environment.sea_water_temperature* \
                 self.time_step.total_seconds()/timedelta(days=1).total_seconds()
 
-    def solar_noon(self):
-        """
-        Search solar noon at the longitude
-        """
-        self.ref_date=self.time.date.replace(hour=0,minute=0,second=0)
-        Av_lon= np.mean(self.elements.lon)
-        Av_lat= np.mean(self.elements.lat)
-        minutes=np.arange(0,60*24, dtype=np.float32)
-        angles = np.empty_like(minutes)
-        for i in range(len(minutes)):
-            angles[i]=hour_angle(self.ref_date+timedelta(minutes=float(minutes[i])),Av_lon)
-
-        solar_noon=o.ref_date+timedelta(minutes=float(minutes[np.argmin(np.abs(angles))]))
-        self.noon_elevation=solar_elevation(solar_noon, Av_lon, Av_lat)
+    # def solar_noon(self):
+    #     """
+    #     Search solar noon at the longitude
+    #     """
+    #     self.ref_date=self.time.date.replace(hour=0,minute=0,second=0)
+    #     Av_lon= np.mean(self.elements.lon)
+    #     Av_lat= np.mean(self.elements.lat)
+    #     minutes=np.arange(0,60*24, dtype=np.float32)
+    #     angles = np.empty_like(minutes)
+    #     for i in range(len(minutes)):
+    #         angles[i]=hour_angle(self.ref_date+timedelta(minutes=float(minutes[i])),Av_lon)
+    #
+    #     solar_noon=o.ref_date+timedelta(minutes=float(minutes[np.argmin(np.abs(angles))]))
+    #     self.noon_elevation=solar_elevation(solar_noon, Av_lon, Av_lat)
 
 
     def irradiance(self):
@@ -338,17 +340,17 @@ class SeaLice(OceanDrift):
         and temperature triggers.
         """
         ### all lice sink at the same speed
-        self.elements.z -= self.sinking_velocity*self.time_step.total_seconds()
+        self.elements.z -= self.sinking_velocity
 
         ### filter actively avoiding salt
-        Frozen=self.environment.sea_water_salinity<self.freezing_salinity
+        # Frozen=self.environment.sea_water_salinity<self.freezing_salinity
         Avoiding = np.logical_and((self.freezing_salinity< \
                     self.environment.sea_water_salinity),
                     (self.environment.sea_water_salinity<self.avoided_salinity))
 
         Normal_salt = self.environment.sea_water_salinity>=self.avoided_salinity
 
-        self.sensing(Normal_salt)
+        self.sensing()
         ### Irradiance computation
         self.irradiance()
         ### identify the elements involved in the different scenarios
@@ -357,24 +359,25 @@ class SeaLice(OceanDrift):
         safe_up_salt=Normal_salt&self.elements.safe_salinity_above.astype(np.bool)
         #### need to be able to deal with false arrays of Filter_N and C...
         ### They generate empty arrays
-        light_mig_N= Filter_N&(self.elements.light[safe_up_salt] \
+        light_mig_N= safe_up_salt&Filter_N&(self.elements.light \
                     > self.Nauplii_light_trigger)
 
-        light_mig_C= Filter_C&(self.elements.light[safe_up_salt] \
+        light_mig_C= safe_up_salt&Filter_C&(self.elements.light \
                     > self.Copepodid_light_trigger)
 
-        up_temp_mig= safe_up_salt&(light_mig_N==False)&(light_mig_C==False)& \
+        up_temp_mig= safe_up_salt&~light_mig_N&~light_mig_C& \
                     (self.elements.temperature_above \
                     > self.environment.sea_water_temperature)
-        down_temp_mig=(up_temp_mig==False)&(light_mig_N==False)& \
-                    (light_mig_C==False)&(self.elements.temperature_below> \
-                    self.environment.sea_water_temperature)
+        down_temp_mig=Normal_salt&~up_temp_mig&~light_mig_N& ~light_mig_C& \
+                        (self.elements.temperature_below> \
+                        self.environment.sea_water_temperature)
 
         ### Active migration
-        self.elements.z[np.logical_or(Avoiding,down_temp_mig)] -= self.vertical_migration_speed \
-                                                *self.time_step.total_seconds()
-        self.elements.z[np.logical_or(np.logical_or(light_mig_N,light_mig_C),up_temp_mig)] += \
-                    self.vertical_migration_speed*self.time_step.total_seconds()
+        going_down=np.logical_or(Avoiding,down_temp_mig)
+        going_up=np.logical_or(np.logical_or(light_mig_N,light_mig_C),up_temp_mig)
+        logger.debug("{} going down, {} going up".format(going_down.sum(), going_up.sum()))
+        self.elements.z[going_down] -= self.vertical_migration_speed
+        self.elements.z[going_up] +=   self.vertical_migration_speed
 
 
     def update(self):

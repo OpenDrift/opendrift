@@ -75,8 +75,7 @@ class Reader(BaseReader, UnstructuredReader):
                     'TURBULENT ENERGY':'turbulent_kinetic_energy',
                     'TEMPERATURE     ':'sea_water_temperature',
                     'SALINITY        ':'sea_water_salinity',
-                    'NUZ FOR VELOCITY':'ocean_vertical_diffusivity',
-
+                    'ELEVATION Z     ':'sea_floor_depth_below_sea_level',
                     }
             No_OD_equiv={'x_wind',
             'y_wind',
@@ -100,7 +99,7 @@ class Reader(BaseReader, UnstructuredReader):
             No_Telemac_equiv={'NUX FOR VELOCITY',
                             'NUY FOR VELOCITY',
                             'DISSIPATION     ',
-                            'ELEVATION Z     '
+                            'NUZ FOR VELOCITY'
                             }
             variables=[]
             var_idx=[]
@@ -166,7 +165,8 @@ class Reader(BaseReader, UnstructuredReader):
         for i in range(len(self.slf.tags['times'])):
             self.times.append(self.start_time+timedelta(seconds= self.slf.tags['times'][i]))
         self.end_time = self.times[-1]
-        self.altitude_ID=np.where(np.array(self.slf.varnames)=='ELEVATION Z     ')[0]
+        self.altitude_ID=np.array(self.slf.varindex)[np.array( \
+                            self.slf.varnames)=='ELEVATION Z     '].tolist()
         self.meshID=(np.arange(self.slf.nplan)[:,None]*self.slf.npoin2).astype(np.int)
         self.variables, self.var_idx=vardic(self.slf.varnames)
 
@@ -238,12 +238,20 @@ class Reader(BaseReader, UnstructuredReader):
         pm=self.__extractslf__(self, frames, duration, self.altitude_ID, idx_3D)[0]
         # calculate distance from particles to nearest point altitude
         idx_layer = np.abs(pm-z).argmin(axis=0)
-        Idxs= self.var_idx[np.where((self.variables[:,None]==requested_variables)==True)[1]]
+        indices=self.variables ==np.array(requested_variables)[:,None]
+        Idxs= []
+        for line in indices:
+            Idxs.append(self.var_idx[line])
         idx_nodes = idx_3D[idx_layer,np.arange(len(idx_layer))]
         vectors= self.__extractslf__(self, frames, duration, Idxs, idx_nodes.ravel())
         vars={}
         for i in range(len(requested_variables)):
-            vars[requested_variables[i]]= vectors[i]
+            if requested_variables[i]=='sea_floor_depth_below_sea_level':
+                bottom=self.__extractslf__(self, frames, duration, self.altitude_ID, idx_3D[0])
+                surface=self.__extractslf__(self, frames, duration, self.altitude_ID, idx_3D[-1])
+                vars['sea_floor_depth_below_sea_level']=surface-bottom
+            else:
+                vars[requested_variables[i]]= vectors[i]
         return vars
 
     @staticmethod
@@ -283,10 +291,9 @@ class Reader(BaseReader, UnstructuredReader):
         extract variables from slf files
         index_var must be a list of integer
         """
-        vector1=self.slf.get_variables_at(frames[0],index_var.tolist())[:,index_nodes]
-        # print("vector1: ",vector1.shape)
+        vector1=self.slf.get_variables_at(frames[0],index_var)[:,index_nodes]
         if frames[1] is not None:
-                vector2=self.slf.get_variables_at(frames[1],index_var.tolist())[:,index_nodes]
+                vector2=self.slf.get_variables_at(frames[1],index_var)[:,index_nodes]
         else:
                 vector2=0
 
