@@ -20,7 +20,7 @@ test-template: &test-template
         key: v13-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
 
     - run: apt-get update
-    - run: apt-get upgrade
+    - run: apt-get -y upgrade
     - run:
         name: Install Rust
         #command: curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -146,7 +146,7 @@ jobs:
           key: v6-docs-deps1-{{ checksum "environment.yml" }}
 
       - run: apt-get update
-      - run: apt-get upgrade
+      - run: apt-get -y upgrade
       - run:
           name: Install Rust
           command: apt install -y rustc
