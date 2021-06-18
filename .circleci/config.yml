@@ -33,6 +33,7 @@ test-template: &test-template
         no_output_timeout: 30m
         command: |
           if [ ! -e /opt/conda/envs/opendrift ]; then
+            conda update -n base conda
             if [ -v PYTHON_VERSION ]; then
               # pin python and numpy
               conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
@@ -40,6 +41,7 @@ test-template: &test-template
               echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
               echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
 
+              conda install -c conda-forge setuptools-rust
               conda env update -n opendrift -q -f environment.yml
             else
               conda env create -q --file environment.yml
