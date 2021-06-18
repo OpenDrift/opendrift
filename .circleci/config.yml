@@ -19,8 +19,8 @@ test-template: &test-template
     - restore_cache:
         key: v13-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
 
-    - run: sudo apt-get update
-    - run: sudo apt-get install curl
+    - run: apt-get update
+    - run: apt-get install curl
     - run:
         name: Install Rust
         command: curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -144,8 +144,8 @@ jobs:
       - restore_cache:
           key: v6-docs-deps1-{{ checksum "environment.yml" }}
 
-      - run: sudo apt-get update
-      - run: sudo apt-get install curl
+      - run: apt-get update
+      - run: apt-get install curl
       - run:
           name: Install Rust
           command: curl https://sh.rustup.rs -sSf | sh -s -- -y
