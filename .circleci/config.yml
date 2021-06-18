@@ -24,7 +24,7 @@ test-template: &test-template
     - run: apt-get install -y curl
     - run:
         name: Install Rust
-        command: curl https://sh.rustup.rs -sSf | sh -s -- -y
+        command: curl https://sh.rustup.rs -sSf | sh -s -- -y | pip install setuptools-rust
         #command: apt install -y rustc
     - run:
         name: Install requirements
@@ -151,7 +151,7 @@ jobs:
       - run: apt-get install -y curl
       - run:
           name: Install Rust
-          command: curl https://sh.rustup.rs -sSf | sh -s -- -y
+          command: curl https://sh.rustup.rs -sSf | sh -s -- -y | pip install setuptools-rust
           #command: apt install -y rustc
 
       - run:
