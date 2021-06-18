@@ -33,3 +33,4 @@ dependencies:
   - pip
   - pip:
     - motuclient
+    - git+https://github.com/gauteh/roaring-landmask
