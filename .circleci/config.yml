@@ -34,7 +34,6 @@ test-template: &test-template
         command: |
           if [ ! -e /opt/conda/envs/opendrift ]; then
             conda update -n base -c defaults conda
-            pip install setuptools-rust
             if [ -v PYTHON_VERSION ]; then
               # pin python and numpy
               conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
@@ -50,7 +49,7 @@ test-template: &test-template
 
             source activate opendrift
 
-            pip install pyyaml coveralls
+            pip install pyyaml coveralls setuptools-rust
           fi
 
     - save_cache:
