@@ -33,7 +33,8 @@ test-template: &test-template
         no_output_timeout: 30m
         command: |
           if [ ! -e /opt/conda/envs/opendrift ]; then
-            conda update -n base conda
+            conda update -n base -c defaults conda
+            pip install setuptools-rust
             if [ -v PYTHON_VERSION ]; then
               # pin python and numpy
               conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
