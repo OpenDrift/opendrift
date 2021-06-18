@@ -23,7 +23,7 @@ test-template: &test-template
     - run: apt-get -y upgrade
     - run: apt-get install -y curl
     - run: pip install --upgrade pip
-    - run: pip install setuptools-rust
+      #- run: pip install setuptools-rust
     - run:
         name: Install Rust
         command: curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -152,7 +152,7 @@ jobs:
       - run: apt-get -y upgrade
       - run: apt-get install -y curl
       - run: pip install --upgrade pip
-      - run: pip install setuptools-rust
+        #- run: pip install setuptools-rust
       - run:
           name: Install Rust
           command: curl https://sh.rustup.rs -sSf | sh -s -- -y
