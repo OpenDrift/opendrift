@@ -24,7 +24,7 @@ test-template: &test-template
     - run:
         name: Install Rust
         #command: curl https://sh.rustup.rs -sSf | sh -s -- -y
-        command: apt install rustc
+        command: apt install -y rustc
     - run:
         name: Install requirements
         no_output_timeout: 30m
@@ -149,7 +149,7 @@ jobs:
       #- run: apt-get install -y curl
       - run:
           name: Install Rust
-          command: apt install rustc
+          command: apt install -y rustc
           #command: curl https://sh.rustup.rs -sSf | sh -s -- -y
 
       - run:
