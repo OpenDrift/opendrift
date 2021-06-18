@@ -33,4 +33,5 @@ dependencies:
   - pip
   - pip:
     - motuclient
+    - setuptools-rust
     - git+https://github.com/gauteh/roaring-landmask
