@@ -37,19 +37,22 @@ test-template: &test-template
             if [ -v PYTHON_VERSION ]; then
               # pin python and numpy
               conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
+              conda install -c conda-forge pip
+              pip install pyyaml coveralls setuptools-rust
 
               echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
               echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
 
-              conda install -c conda-forge setuptools-rust
               conda env update -n opendrift -q -f environment.yml
             else
+              conda install -c conda-forge pip
+              pip install pyyaml coveralls setuptools-rust
               conda env create -q --file environment.yml
             fi
 
             source activate opendrift
 
-            pip install pyyaml coveralls setuptools-rust
+            #pip install pyyaml coveralls setuptools-rust
           fi
 
     - save_cache:

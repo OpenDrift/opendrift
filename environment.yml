@@ -30,8 +30,8 @@ dependencies:
   - isodate
   - coloredlogs
   - cmocean
-  - setuptools-rust
   - pip
   - pip:
     - motuclient
+    - setuptools-rust
     - git+https://github.com/gauteh/roaring-landmask
