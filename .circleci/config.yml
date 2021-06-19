@@ -21,7 +21,7 @@ test-template: &test-template
 
     - run: apt-get update
     - run: apt-get -y upgrade
-    - run: apt-get install -y curl
+    - run: apt-get install -y curl build-essential
     - run: pip install --upgrade pip
       #- run: pip install setuptools-rust
     - run:
