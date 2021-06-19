@@ -33,7 +33,7 @@ test-template: &test-template
         no_output_timeout: 30m
         command: |
           source $HOME/.cargo/env # activate rust install
-          
+
           if [ ! -e /opt/conda/envs/opendrift ]; then
             conda update -n base -c defaults conda
             if [ -v PYTHON_VERSION ]; then
@@ -51,6 +51,7 @@ test-template: &test-template
             source activate opendrift
 
             pip install pyyaml coveralls setuptools-rust
+            pip install git+https://github.com/gauteh/roaring-landmask
           fi
 
     - save_cache:
