@@ -76,6 +76,9 @@ class Reader(BaseReader, UnstructuredReader):
                     'TEMPERATURE     ':'sea_water_temperature',
                     'SALINITY        ':'sea_water_salinity',
                     'ELEVATION Z     ':'sea_floor_depth_below_sea_level',
+                    'NUZ FOR VELOCITY':'ocean_vertical_diffusivity'
+                    'NUX FOR VELOCITY':'horizontal_diffusivity'
+
                     }
             No_OD_equiv={'x_wind',
             'y_wind',
@@ -96,10 +99,8 @@ class Reader(BaseReader, UnstructuredReader):
                 }
             # Sea-floor depth could be extracted from the variable Z but
             # it would need a specific treatment in get variable
-            No_Telemac_equiv={'NUX FOR VELOCITY',
-                            'NUY FOR VELOCITY',
+            No_Telemac_equiv={ 'NUY FOR VELOCITY',
                             'DISSIPATION     ',
-                            'NUZ FOR VELOCITY'
                             }
             variables=[]
             var_idx=[]
