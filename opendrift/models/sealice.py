@@ -381,9 +381,9 @@ class SeaLice(OceanDrift):
 
 
     def update(self):
-        self.advect_ocean_current()
         self.SI_pop()
-        # self.solar_noon()
+        self.degree_days()
+        self.advect_ocean_current()        
+        self.vertical_mixing()
         self.Lice_vertical_migration()
         self.depth_test()
-        self.degree_days()
