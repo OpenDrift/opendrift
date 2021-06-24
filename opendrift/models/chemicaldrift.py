@@ -654,6 +654,8 @@ class ChemicalDrift(OceanDrift):
 
         self.elements.terminal_velocity = W
 
+        self.elements.terminal_velocity = W * self.elements.moving
+
 
     def update_transfer_rates(self):
         '''Pick out the correct row from transfer_rates for each element. Modify the
@@ -886,6 +888,8 @@ class ChemicalDrift(OceanDrift):
                   (self.get_config('chemical:species:Sediment_reversible'))):
             return
 
+        specie_in = self.elements.specie.copy()
+
         critvel = self.get_config('chemical:sediment:resuspension_critvel')
         resusp_depth = self.get_config('chemical:sediment:resuspension_depth')
         std = self.get_config('chemical:sediment:resuspension_depth_uncert')
@@ -920,6 +924,8 @@ class ChemicalDrift(OceanDrift):
             self.ntransformations[self.num_sirrev,self.num_pirrev]+=sum((resusp) & (self.elements.specie==self.num_sirrev))
             self.elements.specie[(resusp) & (self.elements.specie==self.num_sirrev)] = self.num_pirrev
 
+        specie_out = self.elements.specie.copy()
+        self.update_chemical_diameter(specie_in, specie_out)
 
     def biodegradation(self):
         '''Biodegradation. Test implementations'''
