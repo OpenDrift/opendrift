@@ -270,7 +270,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:horizontal_diffusivity': {'type': 'float', 'default': 0,
-                'min': 0, 'max': 100, 'units': 'm2/s',
+                'min': 0, 'max': 100000, 'units': 'm2/s',
                 'description': 'Add horizontal diffusivity (random walk)',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:wind_uncertainty': {'type': 'float', 'default': 0,
