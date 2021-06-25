@@ -237,16 +237,24 @@ class BaseReader(Variables):
         from opendrift_landmask_data import Landmask
         fig = plt.figure()
 
-        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
-                                 [self.ymax, self.ymin, self.ymax, self.ymin])
-        lonmin = np.min(corners[0]) - buffer*2
-        lonmax = np.max(corners[0]) + buffer*2
-        latmin = np.min(corners[1]) - buffer
-        latmax = np.max(corners[1]) + buffer
-        latspan = latmax - latmin
+        if self.global_coverage():
+            lonmin=-180
+            lonmax=180
+            latmin=-89
+            latmax=89
+        else:
+            corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                     [self.ymax, self.ymin, self.ymax, self.ymin])
+            print(corners)
+            lonmin = np.min(corners[0]) - buffer*2
+            lonmax = np.max(corners[0]) + buffer*2
+            latmin = np.min(corners[1]) - buffer
+            latmax = np.max(corners[1]) + buffer
+            latspan = latmax - latmin
 
         # Initialise map
-        if latspan < 90:
+        #if latspan < 90:
+        if not self.global_coverage():
             # Stereographic projection centred on domain, if small domain
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
@@ -272,21 +280,25 @@ class BaseReader(Variables):
         gl.top_labels = False
 
         # Get boundary
-        npoints = 10  # points per side
-        x = np.array([])
-        y = np.array([])
-        x = np.concatenate((x, np.linspace(self.xmin, self.xmax, npoints)))
-        y = np.concatenate((y, [self.ymin]*npoints))
-        x = np.concatenate((x, [self.xmax]*npoints))
-        y = np.concatenate((y, np.linspace(self.ymin, self.ymax, npoints)))
-        x = np.concatenate((x, np.linspace(self.xmax, self.xmin, npoints)))
-        y = np.concatenate((y, [self.ymax]*npoints))
-        x = np.concatenate((x, [self.xmin]*npoints))
-        y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
-        # from x/y vectors create a Patch to be added to map
-        lon, lat = self.xy2lonlat(x, y)
-        lat[lat>89] = 89.
-        lat[lat<-89] = -89.
+        if self.global_coverage():
+            lon = np.array([-180, 180, 180, -180, -180])
+            lat = np.array([-89, -89, 89, 89, -89])
+        else:
+            npoints = 10  # points per side
+            x = np.array([])
+            y = np.array([])
+            x = np.concatenate((x, np.linspace(self.xmin, self.xmax, npoints)))
+            y = np.concatenate((y, [self.ymin]*npoints))
+            x = np.concatenate((x, [self.xmax]*npoints))
+            y = np.concatenate((y, np.linspace(self.ymin, self.ymax, npoints)))
+            x = np.concatenate((x, np.linspace(self.xmax, self.xmin, npoints)))
+            y = np.concatenate((y, [self.ymax]*npoints))
+            x = np.concatenate((x, [self.xmin]*npoints))
+            y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
+            # from x/y vectors create a Patch to be added to map
+            lon, lat = self.xy2lonlat(x, y)
+            lat[lat>89] = 89.
+            lat[lat<-89] = -89.
         p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
         xsp = p[:, 0]
         ysp = p[:, 1]
