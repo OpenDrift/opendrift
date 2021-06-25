@@ -18,11 +18,24 @@ test-template: &test-template
 
     - restore_cache:
         key: v13-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+
+    - run: apt-get update
+    - run: apt-get -y upgrade
+    - run: apt-get install -y curl build-essential
+    - run: pip install --upgrade pip
+      #- run: pip install setuptools-rust
+    - run:
+        name: Install Rust
+        command: curl https://sh.rustup.rs -sSf | sh -s -- -y
+        #command: apt install -y rustc
     - run:
         name: Install requirements
         no_output_timeout: 30m
         command: |
+          source $HOME/.cargo/env # activate rust install
+
           if [ ! -e /opt/conda/envs/opendrift ]; then
+            conda update -n base -c defaults conda
             if [ -v PYTHON_VERSION ]; then
               # pin python and numpy
               conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
@@ -37,7 +50,8 @@ test-template: &test-template
 
             source activate opendrift
 
-            pip install pyyaml coveralls
+            pip install pyyaml coveralls setuptools-rust
+            pip install git+https://github.com/gauteh/roaring-landmask
           fi
 
     - save_cache:
@@ -137,6 +151,16 @@ jobs:
 
       - restore_cache:
           key: v6-docs-deps1-{{ checksum "environment.yml" }}
+
+      - run: apt-get update
+      - run: apt-get -y upgrade
+      - run: apt-get install -y curl
+      - run: pip install --upgrade pip
+        #- run: pip install setuptools-rust
+      - run:
+          name: Install Rust
+          command: curl https://sh.rustup.rs -sSf | sh -s -- -y
+          #command: apt install -y rustc
 
       - run:
           name: Install requirements
