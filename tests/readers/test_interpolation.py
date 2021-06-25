@@ -17,10 +17,12 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
+import os
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers import reader_netCDF_CF_generic
@@ -37,6 +39,62 @@ o = OceanDrift()
 class TestInterpolation(unittest.TestCase):
     """Tests spatial interpolation"""
 
+    def test_dateline(self):
+
+        # Make synthetic netCDF file with currents from 0 to 360 deg longitude
+        fc = 'opendrift_test_current_0_360.nc'
+        lon = np.arange(0, 360)
+        lat = np.arange(-88, 89)
+        start_time = datetime(2021, 1, 1)
+        time = [start_time + i*timedelta(hours=24) for i in range(3)]
+        t, xcurr, ycurr = np.meshgrid(time, np.zeros(lat.shape), np.zeros(lon.shape), indexing='ij')
+        xcurr[:, :, 0:180] = 1  # eastward
+        xcurr[:, :, 180:] = -1  # westward, i.e. current divergence at lon=0
+        ds = xr.Dataset(
+            {"xcurr": (("time", "lat", "lon"), xcurr, {'standard_name': 'x_sea_water_velocity'}),
+             "ycurr": (("time", "lat", "lon"), ycurr, {'standard_name': 'y_sea_water_velocity'})},
+            coords={"lon": lon, "lat": lat, "time": time})
+        ds.to_netcdf(fc)
+
+        # Make synthetic netCDF file with winds from -180 to 180 deg longitude
+        fw = 'opendrift_test_winds_180_180.nc'
+        lon = np.arange(-180, 180)
+        t, xwind, ywind = np.meshgrid(time, np.zeros(lat.shape), np.zeros(lon.shape), indexing='ij')
+        ywind[:, :, 0:180] = 1  # northward
+        ywind[:, :, 180:] = -1  # southward, i.e. wind divergence at lon=180
+        ds = xr.Dataset(
+            {"xwind": (("time", "lat", "lon"), xwind, {'standard_name': 'x_wind'}),
+             "ywind": (("time", "lat", "lon"), ywind, {'standard_name': 'y_wind'})},
+            coords={"lon": lon, "lat": lat, "time": time})
+        ds.to_netcdf(fw)
+
+        reader_current = reader_netCDF_CF_generic.Reader(fc)
+        reader_wind = reader_netCDF_CF_generic.Reader(fw)
+
+        # Simulation across 0 meridian
+        o = OceanDrift(loglevel=30)
+        o.add_readers_from_list([fc, fw])
+        o.seed_elements(lon=[-2, 2], lat=[60, 60], time=start_time, wind_drift_factor=.1)
+        o.run(steps=2)
+        # Check that current give divergence, and that
+        # wind is northwards east of 0 and southwards to the east 
+        np.testing.assert_array_almost_equal(o.elements.lon, [-2.129,  2.129], decimal=3)
+        np.testing.assert_array_almost_equal(o.elements.lat, [60.006, 59.994], decimal=3)
+
+        # Simulation across dateline (180 E/W)
+        o = OceanDrift(loglevel=30)
+        o.add_readers_from_list([fc, fw])
+        o.seed_elements(lon=[-175, 175], lat=[60, 60], time=start_time, wind_drift_factor=.1)
+        o.run(steps=2)
+        #o.plot(fast=True)
+        # Check that current give convergence, and that
+        # wind is northwards east of 180 and southwards to the west 
+        np.testing.assert_array_almost_equal(o.elements.lon, [-175.129,  175.129], decimal=3)
+        np.testing.assert_array_almost_equal(o.elements.lat, [60.006, 59.994], decimal=3)
+
+        # Cleaning up
+        os.remove(fw)
+        os.remove(fc)
 
     def get_synthetic_data_dict(self):
         data_dict = {}
