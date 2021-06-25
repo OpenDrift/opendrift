@@ -290,6 +290,12 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         return tau_cw[0],tau_cw_max 
 
 
+        # For more reference on bedshearstress and friction factor
+        # >> https://www.researchgate.net/publication/233398452_A_fully_coupled_3D_wave-current_interaction_model_on_unstructured_grids
+        # or even see SCHISM code ?
+        # p4/18
+
+
 #from  https://github.com/csherwood-usgs/crspy/blob/master/crspy.py
 def qkhfs( w, h ):
     """
