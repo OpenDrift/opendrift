@@ -11,7 +11,6 @@ https://thredds.met.no/thredds/dodsC/barents25km_agg
 /vol/vvfelles/opendrift/forcing_data/nordic/nordic_aggregate.nc
 https://thredds.met.no/thredds/dodsC/cmems/mywavewam3km/dataset-wam-arctic-1hr3km-be.ncml
 https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml
-https://thredds.met.no/thredds/dodsC/topaz/dataset-topaz4-arc-unmasked-be
 /lustre/storeB/project/metproduction/from_opdata/roms/Nordic-4km_SURF_1h_avg_00.nc
 https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
 https://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc
