@@ -26,7 +26,8 @@ reader_landmask = reader_global_landmask.Reader(
                     llcrnrlon=171.5, llcrnrlat=-43.5,
                     urcrnrlon=177.0, urcrnrlat=-38.0)
 
-reader_custom = reader_landmask_custom.Reader(polygon_file = '/home/simon/Documents/GitHub/opendrift/examples/schism_marl_edit.shore')
+
+reader_custom = reader_landmask_custom.Reader(polygon_file = 'schism_marl_edit.shore')
 # reader_custom.plot() # check reader was correctly loaded, close figure to continue
 
 # NZTM proj4 string found at https://spatialreference.org/ref/epsg/nzgd2000-new-zealand-transverse-mercator-2000/

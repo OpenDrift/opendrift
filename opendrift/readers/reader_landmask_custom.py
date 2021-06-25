@@ -34,20 +34,32 @@
 from opendrift.readers.basereader import BaseReader, ContinuousReader
 import warnings
 import pyproj
-from shapely.geometry import Point, Polygon, MultiPolygon,asPolygon
+from shapely.geometry import Polygon, MultiPolygon,asPolygon
 import shapely
 import shapely.vectorized
 import numpy as np
 
 class Reader(BaseReader,ContinuousReader):
     """
-    The "custom" landmask reader requires a user-input text file with 
+    A "custom" landmask reader which can read user-input text file with
     nan-delimited polygons (in geographic WGS84 projection).
-
+    This reader is expected to be useful for higher-resolution simulation with
+    complex shorelines. If high-resolution shoreline is not essential, it is
+    probably more efficient to use :py:mod:`.reader_global_landmask`.
+    .. code::
+        NaN NaN
+        172.7027815248  -40.5000246431
+        172.7041782184  -40.5016429927
+        ...
+        172.6000000000  -40.5000000000
+        172.7027815248  -40.5000246431
+        NaN NaN
+        175.8076904447  -41.3622783036
+        ...
     Args:
-        :param polygon_file: None.
-        :type polygon_file: string.
+        polygon_file: path to file with polyons.
     """
+
     name = 'custom_landmask'
     return_block = False
     variables = ['land_binary_mask']
@@ -93,9 +105,6 @@ class Reader(BaseReader,ContinuousReader):
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
 
-        # setup landmask
-        # self.mask = Landmask(extent, skippoly)
-
         # Loop through polygon to build MultiPolygon object
         # 
         # make sure that start and end lines are [nan,nan] as well
@@ -113,31 +122,12 @@ class Reader(BaseReader,ContinuousReader):
         self.mask= MultiPolygon(poly)
         self.mask = shapely.prepared.prep(self.mask)
 
-
-        # lon_rel = np.linspace(151.21,151.215,100) # start from second grid point rather than actual edge
-        # lat_rel = np.linspace(-33.86,-33.856,100)
-        # [lon_grid,lat_grid]=np.meshgrid(lon_rel,lat_rel)
-        # x_tmp = np.ravel(lon_grid).copy()
-        # y_tmp = np.ravel(lat_grid).copy()
-
-        # on_land = shapely.vectorized.contains(land, np.ravel(lon_grid), np.ravel(lat_grid))
-
-        # import matplotlib.pyplot as plt 
-        # plt.ion()
-        # # plot mesh nodes
-        # plt.plot(x_tmp,y_tmp,'b.')
-        # plt.plot(x_tmp[on_land],y_tmp[on_land],'r.')
-        # plt.plot(shore[:,0],shore[:,1],'k')
-        # import pdb;pdb.set_trace()
-
     def __on_land__(self, x, y):
-        # check if particles positions (x,y) are within any shore or island polygon
-
-        # return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)
+        """
+        Check if particles positions (x,y) are within any shore or island
+        polygon.
+        """
         return shapely.vectorized.contains(self.mask,x,y)
-        # returns a boolean array :
-        #   True if in land/island polygon
-        #   False if not
 
     def get_variables(self, requestedVariables, time = None,
                       x = None, y = None, z = None, block = False):
@@ -178,8 +168,6 @@ class Reader(BaseReader,ContinuousReader):
         latmin = np.min(corners[1]) - buffer
         latmax = np.max(corners[1]) + buffer
         latspan = latmax - latmin
-
-
 
         # Initialise map
         if latspan < 90:
@@ -293,5 +281,4 @@ class Reader(BaseReader,ContinuousReader):
             plt.savefig(filename)
             plt.close()
         else:
-            # plt.ion()
             plt.show()
