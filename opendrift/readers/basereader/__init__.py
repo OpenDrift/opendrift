@@ -245,7 +245,6 @@ class BaseReader(Variables):
         else:
             corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
                                      [self.ymax, self.ymin, self.ymax, self.ymin])
-            print(corners)
             lonmin = np.min(corners[0]) - buffer*2
             lonmax = np.max(corners[0]) + buffer*2
             latmin = np.min(corners[1]) - buffer
