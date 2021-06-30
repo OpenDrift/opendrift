@@ -162,6 +162,21 @@ class TestInterpolation(unittest.TestCase):
         self.assertEqual(values[10], 1.6487979858538129)
         self.assertEqual(sum(values.mask), 15)
 
+    def test_flipped(self):
+        x = np.arange(10).astype(np.float32)
+        y = np.arange(20).astype(np.float32)
+        X, Y = np.meshgrid(x, y)
+        d = X*5
+        b = ReaderBlock({'x': x, 'y': y, 'v': d, 'time': datetime.now()})
+        b_flipped = ReaderBlock({'x': np.flip(x), 'y': y, 'v': np.flip(d, axis=1), 'time': datetime.now()})
+        x0 = np.array([0, 7, 7.3, 7.41, 9])  # Some random points
+        y0 = np.array([5, 5, 8, 8.2, 5])
+        bi = b.Interpolator2DClass(b.x, b.y, x0, y0)
+        bi_flipped = b_flipped.Interpolator2DClass(b_flipped.x, b_flipped.y, x0, y0)
+        
+        np.testing.assert_array_almost_equal(bi(d), bi_flipped(np.flip(d, axis=1)))
+        np.testing.assert_array_almost_equal(bi(d), 5*x0)
+
     def test_interpolation_ensemble(self):
         data_dict, x, y, z = self.get_synthetic_data_dict()
         x = x[0:15]
