@@ -19,8 +19,8 @@ def test_covers_positions(test_data):
     x_wind = ts['x_wind']
     assert len(x_wind) == 49
 
-    np.testing.assert_almost_equal(x_wind[0], 2.615, 2)
-    np.testing.assert_almost_equal(x_wind[-1], -0.222, 2)
+    np.testing.assert_almost_equal(x_wind[0], 2.836, 2)
+    np.testing.assert_almost_equal(x_wind[-1], -0.667, 2)
 
 def test_environment_mapping(test_data):
 

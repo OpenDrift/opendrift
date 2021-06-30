@@ -369,16 +369,7 @@ class Reader(BaseReader, StructuredReader):
                 x = np.mod(x + 180, 360) - 180 # Shift x/lons to -180-180
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
-        # If x or y coordinates are decreasing, we need to flip
-        if hasattr(self, 'x'):
-            if self.x[0] > self.x[-1]:
-                logging.info('Flipping x-axis of reader coordinates')
-                indx = len(self.x) - indx - 1
-            if self.y[0] > self.y[-1]:
-                logging.info('Flipping y-axis of reader coordinates')
-                indy = len(self.y) - indy - 1
-        # Adding buffer, to cover also future positions of elements
-        buffer = self.buffer
+        buffer = self.buffer  # Adding buffer, to cover also future positions of elements
         indy = np.arange(np.max([0, indy.min()-buffer]),
                          np.min([indy.max()+buffer, self.numy]))
         indx = np.arange(indx.min()-buffer, indx.max()+buffer+1)

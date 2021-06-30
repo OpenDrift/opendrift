@@ -59,7 +59,7 @@ class TestModels(unittest.TestCase):
         o.seed_elements(lon, lat, radius=5000, number=1000,
                         time=reader_arome.start_time)
         o.run(steps=24, time_step=3600)
-        self.assertAlmostEqual(o.elements.lon.max(), 16.167, 2)
+        self.assertAlmostEqual(o.elements.lon.max(), 15.864, 2)
 
     def test_shipdrift(self):
         """Sintef case study"""
@@ -160,8 +160,8 @@ class TestModels(unittest.TestCase):
         for indx in range(len(arr)):
             self.assertAlmostEqual(o.uw_weighting[indx],arr[indx],8)
 
-        self.assertAlmostEqual(o.history['lon'].data[0][1],3.9921231,3)
-        self.assertAlmostEqual(o.history['lat'].data[0][1],62.0108299,3)
+        self.assertAlmostEqual(o.history['lon'].data[0][1],3.991, 3)
+        self.assertAlmostEqual(o.history['lat'].data[0][1],62.011, 3)
 
     def test_oil_in_ice(self):
         """ Testing ice-in-oil transport with
@@ -171,7 +171,7 @@ class TestModels(unittest.TestCase):
         lon = 24; lat = 81
 
         # Distances calculated with fallback_values and Nordam's equation
-        distances = {'0.2':21.2914, '0.5':15.1405, '0.8':7.2}
+        distances = {'0.2': 21.2914, '0.5': 15.1405, '0.8': 7.2}
 
         geod = pyproj.Geod(ellps='WGS84')
 
