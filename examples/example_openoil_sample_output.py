@@ -50,4 +50,5 @@ ncdump = check_output(args).decode().strip()
 print(ncdump)
 
 #%%
-# :download:`Download sample file <openoil_sample_output.nc>`
+# .. only:: builder_html or readthedocs
+#   :download:`Download sample file <openoil_sample_output.nc>`
