@@ -4,6 +4,7 @@ Analysing huge output files
 ===========================
 """
 
+import os
 from datetime import datetime, timedelta
 import opendrift
 from opendrift.models.oceandrift import OceanDrift
@@ -48,6 +49,10 @@ for om in [0, 1]:
     o.animation(density=True, density_pixelsize_m=500, fast=False,
                 corners=[4.0, 6, 59.5, 61],
                 origin_marker=om, show_elements=False, vmin=0, vmax=200)
+
+# Cleaning up
+os.remove('simulation.nc')
+os.remove('simulation_density.nc')
 
 #%%
 # First seeding
