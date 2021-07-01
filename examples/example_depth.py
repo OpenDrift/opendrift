@@ -29,7 +29,7 @@ o.set_config('drift:horizontal_diffusivity', 10)  # m2/s
 
 #%%
 # Running model
-o.run(duration=timedelta(hours=24), time_step=1800, outfile='openoil.nc')
+o.run(duration=timedelta(hours=24), time_step=1800)
 
 #%%
 # Plot results with lines and particles colored by depth

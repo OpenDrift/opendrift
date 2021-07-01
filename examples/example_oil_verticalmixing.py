@@ -4,6 +4,7 @@ Oil vertical mixing
 ==================================
 """
 
+import os
 from datetime import timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
@@ -42,6 +43,8 @@ o.plot_property('z')
 o.plot_oil_budget()
 o.animation(fast=True)
 o.animate_vertical_distribution()
+
+os.remove(ncfile)  # cleaning up
 
 #%%
 # .. image:: /gallery/animations/example_oil_verticalmixing_0.gif
