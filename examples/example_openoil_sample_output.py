@@ -52,4 +52,4 @@ print(ncdump)
 #%%
 # .. only:: builder_html or readthedocs
 #
-#   :download:`Download sample file <openoil_sample_output.nc>`
+#    :download:`Download sample file <openoil_sample_output.nc>`
