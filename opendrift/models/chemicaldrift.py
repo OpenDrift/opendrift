@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright 2020, Knut-Frode Dagestad, MET Norway
+# Copyright 2020, Manuel Aghito, MET Norway
 
 """
 ChemicalDrift is an OpenDrift module for drift and fate of chemicals.
@@ -107,6 +107,8 @@ class ChemicalDrift(OceanDrift):
 #        'turbulent_generic_length_scale': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0},
         'conc3': {'fallback': 1.e-3},
+        'spm': {'fallback': 50},
+#        'mass_concentration_of_suspended_matter_in_sea_water': {'fallback': 0},
         }
 
     # The depth range (in m) which profiles shall cover
@@ -524,6 +526,7 @@ class ChemicalDrift(OceanDrift):
 
                 #TODO: calculation of KOC for ionic chemicals
 
+            logger.info('Partitioning coefficients (Tref,freshwater)')
             logger.info('KOC_sed: %s L/KgOC' % KOC_sed)
             logger.info('KOC_SPM: %s L/KgOC' % KOC_SPM)
             logger.info('KOC_DOM: %s L/KgOC' % KOC_DOM)
@@ -541,27 +544,6 @@ class ChemicalDrift(OceanDrift):
             logger.info('Kd_SPM: %s L/Kg' % Kd_SPM)
             logger.info('Kd_DOM: %s L/Kg' % Kd_DOM)
 
-
-            # Temperature correction
-            Kd_sed=Kd_sed * self.tempcorr("Arrhenius",-3.3e3,25,20)
-            Kd_SPM=Kd_SPM * self.tempcorr("Arrhenius",-3.3e3,25,20)
-            Kd_DOM=Kd_DOM * self.tempcorr("Arrhenius",-3.3e3,25,20)
-
-            logger.info('Temperature correction')
-            logger.info('Kd_sed: %s L/KgOC' % Kd_sed)
-            logger.info('Kd_SPM: %s L/KgOC' % Kd_sed)
-            logger.info('Kd_DOM: %s L/KgOC' % Kd_DOM)
-
-            # Saninity correction
-            logger.info('Salinity correction')
-            Kd_sed=Kd_sed * self.salinitycorr(0.2724,25,35)
-            Kd_SPM=Kd_SPM * self.salinitycorr(0.2724,25,35)
-            Kd_DOM=Kd_DOM * self.salinitycorr(0.2724,25,35)
-
-            logger.info('Kd_sed: %s L/Kg' % Kd_sed)
-            logger.info('Kd_SPM: %s L/Kg' % Kd_SPM)
-            logger.info('Kd_DOM: %s L/Kg' % Kd_DOM)
-
             # From Karickhoff and Morris 1985
             k_ads = 33.3 / (60*60) # L/(Kg*s) = 33 L/(kgOM*h)
 
@@ -569,24 +551,27 @@ class ChemicalDrift(OceanDrift):
             k_des_SPM = k_ads / Kd_SPM # 1/s
             k_des_DOM = k_ads / Kd_DOM # 1/s
 
-            logger.info('Kd_ads: %s L/(Kg*s)' % k_ads)
-            logger.info('Kd_des_sed: %s L/Kg' % k_des_sed)
-            logger.info('Kd_des_SPM: %s L/Kg' % k_des_SPM)
-            logger.info('Kd_des_DOM: %s L/Kg' % k_des_DOM)
+            Tcorr = self.tempcorr("Arrhenius",-3.3e3,25,20)
+            Scorr = self.salinitycorr(0.2724,25,35)
 
-            #logger.info('KOM_sed: %s L/KgOM' % KOM_sed)
-            #logger.info('KOM_SPM: %s L/KgOM' % KOM_SPM)
-            #logger.info('KOM_DOM: %s L/KgOM' % KOM_DOM)
+            concSPM = concSPM * 1e-3 # (Kg/L)
+            concDOM = concDOM * 1e-3 # (Kg/L)
+            self.k_ads = k_ads
 
-            self.transfer_rates[self.num_lmm,self.num_humcol] = k_des_DOM * Kd_DOM * (concDOM / 1000)  # k12
-            self.transfer_rates[self.num_humcol,self.num_lmm] = k_des_DOM                              # k21
-            #                                                 1/s    * L/Kg   * (Kg/m3    / L/m3) = 1/s
-            self.transfer_rates[self.num_lmm,self.num_prev] = k_des_SPM * Kd_SPM * (concSPM / 1000)    # k13
-            self.transfer_rates[self.num_prev,self.num_lmm] = k_des_SPM                                # k31
+            self.k21_0 = k_des_DOM
+            self.k31_0 = k_des_SPM
+            self.k41_0 = k_des_sed * sed_phi
+
+            self.transfer_rates[self.num_lmm,self.num_humcol] = k_ads * concDOM             # k12
+            self.transfer_rates[self.num_humcol,self.num_lmm] = k_des_DOM / Tcorr / Scorr   # k21
+
+            self.transfer_rates[self.num_lmm,self.num_prev] = k_ads * concSPM               # k13
+            self.transfer_rates[self.num_prev,self.num_lmm] = k_des_SPM / Tcorr / Scorr     # k31
 
             self.transfer_rates[self.num_lmm,self.num_srev] = \
-                k_des_sed * Kd_sed * sed_L * sed_dens * (1.-sed_poro) * sed_phi / sed_H     # k14
-            self.transfer_rates[self.num_srev,self.num_lmm] = k_des_sed * sed_phi           # k41
+                k_ads * sed_L * sed_dens * (1.-sed_poro) * sed_phi / sed_H                  # k14
+            self.transfer_rates[self.num_srev,self.num_lmm] = \
+                k_des_sed * sed_phi / Tcorr / Scorr                                         # k41
 
             self.transfer_rates[self.num_srev,self.num_ssrev] = slow_coeff                  # k46
             self.transfer_rates[self.num_ssrev,self.num_srev] = slow_coeff*.1               # k64
@@ -855,16 +840,26 @@ class ChemicalDrift(OceanDrift):
                 salinity=self.environment.sea_water_salinity
                 salinity[salinity==0]=np.median(salinity)
 
+                tempcorr = self.tempcorr("Arrhenius",-3.3e3,temperature,20)
+                salinitycorr = self.salinitycorr(0.2724,temperature,salinity)
+
                 # Temperature and salinity correction for desorption rates (inversely proportional to Kd)
-                self.elements.transfer_rates1D[:,self.num_lmm] = self.elements.transfer_rates1D[:,self.num_lmm] \
-                    * self.tempcorr("Arrhenius",-3.3e3,25,20) \
-                    / self.tempcorr("Arrhenius",-3.3e3,temperature,20)
 
-                self.elements.transfer_rates1D[:,self.num_lmm] = self.elements.transfer_rates1D[:,self.num_lmm] \
-                    * self.salinitycorr(0.2724,25,35) \
-                    / self.salinitycorr(0.2724,temperature,salinity)
+                self.elements.transfer_rates1D[self.elements.specie==self.num_humcol,self.num_lmm] = \
+                    self.k21_0 / tempcorr[self.elements.specie==self.num_humcol] / salinitycorr[self.elements.specie==self.num_humcol]
 
-                # TODO Add correction for SPM concentration here?
+                self.elements.transfer_rates1D[self.elements.specie==self.num_prev,self.num_lmm] = \
+                    self.k31_0 / tempcorr[self.elements.specie==self.num_prev] / salinitycorr[self.elements.specie==self.num_prev]
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
+                    self.k41_0 / tempcorr[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
+
+                # Updating sorption rates according to local SPM concentration
+
+                concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3) 
+                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
+                    self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+
 
             if self.get_config('chemical:species:Sediment_reversible'):
                 # Only LMM chemicals close to seabed are allowed to interact with sediments
@@ -1230,10 +1225,9 @@ class ChemicalDrift(OceanDrift):
         if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
 
-
-        ## Uncomment this for testing/plotting of final status
-        #self.update_transfer_rates()
-
+        # Update transfer rates after last time step
+        if self.time == (self.expected_end_time - self.time_step):
+            self.update_transfer_rates()
 
 
 
