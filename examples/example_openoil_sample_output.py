@@ -50,6 +50,8 @@ ncdump = check_output(args).decode().strip()
 print(ncdump)
 
 #%%
-# .. only:: builder_html or readthedocs
+#.. only :: html
+#
+# .. container:: sphx-glr-download
 #
 #    :download:`Download sample file <openoil_sample_output.nc>`
