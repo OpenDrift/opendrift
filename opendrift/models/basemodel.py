@@ -2969,7 +2969,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     y_deactive[index_of_last_deactivated < i]])
 
                 if markersizebymass:
-                    points.set_sizes((self.elements.mass / 50))
+                    points.set_sizes(30*(self.elements.mass / (self.elements.mass + self.elements.mass_biodegraded)))
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
