@@ -262,10 +262,18 @@ class BaseReader(Variables):
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
             ax = fig.add_subplot(1, 1, 1, projection=sp)
             corners_stere = sp.transform_points(ccrs.PlateCarree(), np.array(corners[0]), np.array(corners[1]))
+            latmax = np.maximum(latmax, lat0)
+            latmin = np.minimum(latmin, lat0)
         else:
             # Global map if reader domain is large
             sp = ccrs.Mercator()
             ax = fig.add_subplot(1, 1, 1, projection=sp)
+
+
+        if lscale == 'auto':  # Custom lscale - this should be generalized to Basemodel also
+            s = cfeature.AdaptiveScaler('coarse',
+                (('low', 100), ('intermediate', 20), ('high', 10), ('fine', 5)))
+            lscale = s.scale_from_extent([lonmin, lonmax, latmin, latmax])
 
         # GSHHS coastlines
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
@@ -338,7 +346,7 @@ class BaseReader(Variables):
                 logger.warning('Ensemble data, plotting only first member')
                 data[variable] = data[variable][0,:,:]
             mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
-                                     transform=ccrs.PlateCarree())
+                                     transform=ccrs.PlateCarree(), shading='flat')
             cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
             cbar.set_label(variable)
 
