@@ -272,7 +272,7 @@ class BaseReader(Variables):
 
         if lscale == 'auto':  # Custom lscale - this should be generalized to Basemodel also
             s = cfeature.AdaptiveScaler('coarse',
-                (('low', 100), ('intermediate', 20), ('high', 10), ('fine', 5)))
+                (('low', 100), ('intermediate', 20), ('high', 10), ('full', 5)))
             lscale = s.scale_from_extent([lonmin, lonmax, latmin, latmax])
 
         # GSHHS coastlines
