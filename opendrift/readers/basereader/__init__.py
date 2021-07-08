@@ -23,6 +23,10 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pyproj
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 from .structured import StructuredReader
 from .unstructured import UnstructuredReader
@@ -231,11 +235,6 @@ class BaseReader(Variables):
              filename=None, title=None, buffer=1, lscale='auto'):
         """Plot geographical coverage of reader."""
 
-        import matplotlib.pyplot as plt
-        from matplotlib.patches import Polygon
-        import cartopy.crs as ccrs
-        import cartopy.feature as cfeature
-        from opendrift_landmask_data import Landmask
         fig = plt.figure()
 
         if self.global_coverage():
@@ -250,7 +249,6 @@ class BaseReader(Variables):
             lonmax = np.max(corners[0]) + buffer*2
             latmin = np.min(corners[1]) - buffer
             latmax = np.max(corners[1]) + buffer
-            latspan = latmax - latmin
 
         # Initialise map
         if not self.global_coverage():
@@ -275,6 +273,7 @@ class BaseReader(Variables):
         # GSHHS coastlines
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
         f._geometries_cache = {}
+        print(sum(1 for _ in f.geometries()), 'Num geometries, lscale: ', lscale)
         ax.add_geometries(
             #f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
             f.geometries(),
