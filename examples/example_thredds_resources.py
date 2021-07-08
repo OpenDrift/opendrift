@@ -8,7 +8,7 @@ from datetime import datetime
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers.reader_netCDF_CF_generic import Reader
 
-o = OceanDrift(loglevel=50)
+o = OceanDrift(loglevel=0)
 
 thredds_resources = open(o.test_data_folder()+'../../opendrift/scripts/data_sources.txt').readlines()
 times = {}
