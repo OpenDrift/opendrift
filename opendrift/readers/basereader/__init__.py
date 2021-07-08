@@ -276,8 +276,7 @@ class BaseReader(Variables):
             lscale = s.scale_from_extent([lonmin, lonmax, latmin, latmax])
 
         # GSHHS coastlines
-        f = cfeature.GSHHSFeature(scale=lscale, levels=[1,2,3,4],
-                                  facecolor=cfeature.COLORS['land'])
+        f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
         ax.add_geometries(
             f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
             ccrs.PlateCarree(),
@@ -315,12 +314,11 @@ class BaseReader(Variables):
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
                                zorder=100)
             ax.add_patch(boundary)
-            buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
-            buf = 0
-            try:
+            if self.global_coverage():
+                ax.set_global()
+            else:
+                buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
                 ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
-            except:
-                pass
         if title is None:
             plt.title(self.name)
         else:
