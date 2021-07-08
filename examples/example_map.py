@@ -18,9 +18,11 @@ sp = ccrs.Stereographic(central_longitude=0, central_latitude=60)
 ax = fig.add_subplot(1, 1, 1, projection=sp)
 
 corners = [-10, 10, 55, 65]
-f = cfeature.GSHHSFeature(scale='h', levels=[1])
+corners = [-30, 30, 45, 75]
+f = cfeature.GSHHSFeature(scale='auto', levels=[1])
 ax.add_geometries(
-    f.intersecting_geometries(corners),
+    #f.intersecting_geometries(corners),
+    f.geometries(),
     ccrs.PlateCarree(),
     facecolor=cfeature.COLORS['land'],
     edgecolor='black')
