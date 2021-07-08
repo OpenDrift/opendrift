@@ -253,22 +253,19 @@ class BaseReader(Variables):
             latspan = latmax - latmin
 
         # Initialise map
-        #if latspan < 90:
         if not self.global_coverage():
             # Stereographic projection centred on domain, if small domain
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
-            ax = fig.add_subplot(1, 1, 1, projection=sp)
-            corners_stere = sp.transform_points(ccrs.PlateCarree(), np.array(corners[0]), np.array(corners[1]))
             latmax = np.maximum(latmax, lat0)
             latmin = np.minimum(latmin, lat0)
         else:
             # Global map if reader domain is large
             sp = ccrs.Mercator()
-            ax = fig.add_subplot(1, 1, 1, projection=sp)
 
+        ax = fig.add_subplot(1, 1, 1, projection=sp)
 
         if lscale == 'auto':  # Custom lscale - this should be generalized to Basemodel also
             s = cfeature.AdaptiveScaler('coarse',
@@ -277,8 +274,10 @@ class BaseReader(Variables):
 
         # GSHHS coastlines
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
+        f._geometries_cache = {}
         ax.add_geometries(
-            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+            #f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+            f.geometries(),
             ccrs.PlateCarree(),
             facecolor=cfeature.COLORS['land'],
             edgecolor='black')
