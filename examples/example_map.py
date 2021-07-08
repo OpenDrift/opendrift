@@ -9,6 +9,9 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy
 import shapely
+from opendrift.models.oceandrift import OceanDrift
+o = OceanDrift(loglevel=0)
+from opendrift_landmask_data import Landmask
 
 print(cartopy.__version__)
 print(shapely.__version__)
@@ -17,9 +20,11 @@ fig = plt.figure()
 sp = ccrs.Stereographic(central_longitude=0, central_latitude=60)
 ax = fig.add_subplot(1, 1, 1, projection=sp)
 
-corners = [-10, 10, 55, 65]
 corners = [-30, 30, 45, 75]
-f = cfeature.GSHHSFeature(scale='auto', levels=[1])
+s = cfeature.AdaptiveScaler('coarse',
+                (('low', 100), ('intermediate', 20), ('high', 5), ('full', 1)))
+lscale = s.scale_from_extent([corners[0], corners[1], corners[2], corners[3]])
+f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
 ax.add_geometries(
     #f.intersecting_geometries(corners),
     f.geometries(),
