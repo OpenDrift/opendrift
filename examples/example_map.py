@@ -19,7 +19,7 @@ for lscale in ['coarse', 'low', 'intermediate', 'high', 'auto']:
     #                (('low', 100), ('intermediate', 20), ('high', 5), ('full', 1)))
     #lscale = s.scale_from_extent([corners[0], corners[1], corners[2], corners[3]])
     #lscale = 'auto'
-    print(lscale, 'LSCALE')
+    print(lscale, 'LSCALE ')
     f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
     ax.add_geometries(
         #f.intersecting_geometries(corners),
