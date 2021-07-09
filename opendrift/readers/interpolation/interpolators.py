@@ -191,7 +191,7 @@ class Linear1DInterpolator():
         z_interpolator(z[0])  # to prevent threading issues
         # Indices corresponding to layers above and below
         interp_zi = z_interpolator(z)
-        self.index_above = np.floor(interp_zi).astype(np.uint8)
+        self.index_above = np.floor(interp_zi).astype(np.int8)
         self.index_above[self.index_above < 0] = 0
         self.index_below = np.minimum(self.index_above + 1, len(zgrid) - 1)
         self.weight_above = 1 - (interp_zi - self.index_above)
