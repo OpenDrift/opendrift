@@ -11,7 +11,7 @@ import cartopy
 import shapely
 from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift(loglevel=0)
-from opendrift_landmask_data import Landmask
+#from opendrift_landmask_data import Landmask
 
 print(cartopy.__version__)
 print(shapely.__version__)
