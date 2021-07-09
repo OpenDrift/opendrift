@@ -9,8 +9,8 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy
 import shapely
-from opendrift.models.oceandrift import OceanDrift
-o = OceanDrift(loglevel=0)
+#from opendrift.models.oceandrift import OceanDrift
+#o = OceanDrift(loglevel=0)
 #from opendrift_landmask_data import Landmask
 
 print(cartopy.__version__)
@@ -24,6 +24,7 @@ corners = [-30, 30, 45, 75]
 s = cfeature.AdaptiveScaler('coarse',
                 (('low', 100), ('intermediate', 20), ('high', 5), ('full', 1)))
 lscale = s.scale_from_extent([corners[0], corners[1], corners[2], corners[3]])
+print(lscale, 'LSCALE')
 f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
 ax.add_geometries(
     #f.intersecting_geometries(corners),
