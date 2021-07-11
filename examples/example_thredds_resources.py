@@ -24,7 +24,7 @@ for t in thredds_resources:
         ts = str(datetime.now() - start)
         times[t] = ts
         print('Time to open reader: ', ts)
-        r.plot()
+        r.plot(lscale='intermediate')
 
 #%%
 # Summary of times to open each dataset:
