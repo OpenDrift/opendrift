@@ -273,7 +273,6 @@ class BaseReader(Variables):
         # GSHHS coastlines
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
         f._geometries_cache = {}
-        print(sum(1 for _ in f.geometries()), 'Num geometries, lscale: ', lscale)
         ax.add_geometries(
             #f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
             f.geometries(),
