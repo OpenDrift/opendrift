@@ -119,6 +119,7 @@ class Reader(BaseReader, StructuredReader):
             # Read sigma-coordinate values
             try:
                 self.sigma = self.Dataset.variables['s_rho'][:]
+                self.sigma = self.sigma.data  # Extract data
             except:
                 num_sigma = len(self.Dataset.dimensions['s_rho'])
                 logger.warning(
@@ -153,6 +154,10 @@ class Reader(BaseReader, StructuredReader):
             # Horizontal oordinates and directions
             self.lat = self.Dataset.variables['lat_rho'][:]
             self.lon = self.Dataset.variables['lon_rho'][:]
+            self.lon = self.lon.data  # Extract, could be avoided downstream
+            self.lat = self.lat.data
+            if self.lat.ndim == 1:
+                self.lon, self.lat = np.meshgrid(self.lon, self.lat)
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
@@ -190,10 +195,6 @@ class Reader(BaseReader, StructuredReader):
             self.time_step = self.times[1] - self.times[0]
         else:
             self.time_step = None
-
-        self.lon = self.lon.data  # Extract, could be avoided downstream
-        self.lat = self.lat.data
-        self.sigma = self.sigma.data
 
         self.name = 'roms native'
 
