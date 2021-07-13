@@ -158,7 +158,7 @@ class Reader(BaseReader, StructuredReader):
             self.lat = self.lat.data
             if self.lat.ndim == 1:
                 self.lon, self.lat = np.meshgrid(self.lon, self.lat)
-                self.angle_xi_east = np.zeros(self.lon.shape)  # east-north projection
+                self.angle_xi_east = 0
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
@@ -487,10 +487,14 @@ class Reader(BaseReader, StructuredReader):
                 or 'x_wind' in variables.keys():
             # We must rotate current vectors
             if not hasattr(self, 'angle_xi_east'):
-                logger.debug('Reading angle between xi and east...')
-                self.angle_xi_east = self.Dataset.variables['angle'][:]
-            rad = self.angle_xi_east[indy, indx]
-            rad = np.ma.asarray(rad)
+                if 'angle' in self.Dataset.variables:
+                    logger.debug('Reading angle between xi and east...')
+                    self.angle_xi_east = self.Dataset.variables['angle'][:]
+            if isinstance(self.angle_xi_east, int):
+                rad = self.angle_xi_east
+            else:
+                rad = self.angle_xi_east[indy, indx]
+                rad = np.ma.asarray(rad)
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(
