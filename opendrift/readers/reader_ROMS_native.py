@@ -146,9 +146,9 @@ class Reader(BaseReader, StructuredReader):
             del self.ROMS_variable_mapping['u']
             del self.ROMS_variable_mapping['v']
 
-        if 'u_eastward' in self.Dataset.variables:
-            del self.ROMS_variable_mapping['u']
-            del self.ROMS_variable_mapping['v']
+        for var in list(self.ROMS_variable_mapping):  # Remove unused variables
+            if var not in self.Dataset.variables:
+                del self.ROMS_variable_mapping[var]
 
         if 'lat_rho' in self.Dataset.variables:
             # Horizontal oordinates and directions
@@ -158,6 +158,7 @@ class Reader(BaseReader, StructuredReader):
             self.lat = self.lat.data
             if self.lat.ndim == 1:
                 self.lon, self.lat = np.meshgrid(self.lon, self.lat)
+                self.angle_xi_east = np.zeros(self.lon.shape)  # east-north projection
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
@@ -329,15 +330,19 @@ class Reader(BaseReader, StructuredReader):
                     if not hasattr(self, 'mask_u'):
                         if 'mask_u' in self.Dataset.variables:
                             self.mask_u = self.Dataset.variables['mask_u'][:]
-                        else:
+                        elif 'mask_rho' in self.Dataset.variables:
                             self.mask_u = self.Dataset.variables['mask_rho'][:]
+                        else:
+                            continue
                     mask = self.mask_u[indygrid, indxgrid]
                 elif par == 'y_sea_water_velocity':
                     if not hasattr(self, 'mask_v'):
                         if 'mask_v' in self.Dataset.variables:
                             self.mask_v = self.Dataset.variables['mask_v'][:]
-                        else:
+                        elif 'mask_rho' in self.Dataset.variables:
                             self.mask_v = self.Dataset.variables['mask_rho'][:]
+                        else:
+                            continue
                     mask = self.mask_v[indygrid, indxgrid]
                 else:
                     if not hasattr(self, 'mask_rho'):
