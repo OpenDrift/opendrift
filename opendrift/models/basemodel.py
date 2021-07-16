@@ -2917,7 +2917,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             if density is True:
                 density_weight = None
-            else:
+            elif density is not False:
                 density_weight=density
                 density=True
         if density is True:  # Get density arrays
