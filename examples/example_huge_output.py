@@ -39,7 +39,7 @@ o.run(duration=timedelta(hours=24),
 o = opendrift.open_xarray(outfile, analysis_file='simulation_density.nc')
 
 #%%
-# Making two animations, for each of the two seedings / origin_markere.
+# Making two animations, for each of the two seedings / origin_markers.
 # The calculated density fields will be stored/cached in the analysis file
 # for later re-use, as their calculation may be time consuming
 # for huge output files.
