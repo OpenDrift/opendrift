@@ -71,7 +71,7 @@ o.animation(density=runoff, density_pixelsize_m=1500, fast=True,
 
 
 #%%
-# .. image:: /gallery/animations/example_huge_output_0.gif
+# .. image:: /gallery/animations/example_river_runoff_0.gif
 
 # Cleaning up
 os.remove(outfile)
