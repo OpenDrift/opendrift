@@ -166,8 +166,8 @@ class Reader(BaseReader,UnstructuredReader):
                 continue
 
             var = self.dataset.variables[var_name]
-            if var.ndim > 1:
-                continue  # Coordinates must be 1D-array
+            # if var.ndim > 1:
+            #     continue  # Coordinates must be 1D-array
             if has_xarray:
                 attributes = var.attrs
                 att_dict = var.attrs
@@ -200,6 +200,10 @@ class Reader(BaseReader,UnstructuredReader):
                     CoordinateAxisType == 'Lon' or \
                     standard_name == 'projection_x_coordinate':
                 self.xname = var_name
+                if var.ndim == 2:
+                    # When datasets are concatenated by mfdataset(), coordinates vector (1D) may
+                    # be tiled to a 2D array of size (time,node), keep only one vector for x,y  
+                    var = var[0,:]
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
                     unitfactor = 1000
@@ -219,6 +223,10 @@ class Reader(BaseReader,UnstructuredReader):
                     CoordinateAxisType == 'Lat' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
+                if var.ndim == 2:
+                    # When datasets are concatenated by mfdataset(), coordinates vector (1D) may
+                    # be tiled to a 2D array of size (time,node), keep only one vector for x,y  
+                    var = var[0,:]
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
                     unitfactor = 1000
