@@ -270,7 +270,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:horizontal_diffusivity': {'type': 'float', 'default': 0,
-                'min': 0, 'max': 100, 'units': 'm2/s',
+                'min': 0, 'max': 100000, 'units': 'm2/s',
                 'description': 'Add horizontal diffusivity (random walk)',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:wind_uncertainty': {'type': 'float', 'default': 0,
@@ -2000,7 +2000,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if D == 0:
             logger.debug('Horizontal diffusivity is 0, no random walk.')
             return
-        dt = self.time_step.total_seconds()
+        dt = np.abs(self.time_step.total_seconds())
         x_vel = self.elements.moving * np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
         y_vel = self.elements.moving * np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
         speed = np.sqrt(x_vel*x_vel+y_vel*y_vel)
@@ -2917,6 +2917,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             if density is True:
                 density_weight = None
+            elif density is not False:
+                density_weight=density
+                density=True
         if density is True:  # Get density arrays
             if hasattr(self, 'ds'):  # opened with Xarray
                 if origin_marker is None:
@@ -2925,6 +2928,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 else:
                     per_origin_marker = True
                 H, lon_array, lat_array = self.get_density_xarray(pixelsize_m=density_pixelsize_m,
+                                            weights=density_weight,
                                             per_origin_marker=per_origin_marker)
                 H = H[origin_marker]  # Presently only for origin_marker = 0
             else:
@@ -2969,7 +2973,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     y_deactive[index_of_last_deactivated < i]])
 
                 if markersizebymass:
-                    points.set_sizes((self.elements.mass / 50))
+                    points.set_sizes(30*(self.elements.mass / (self.elements.mass + self.elements.mass_biodegraded)))
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
@@ -3743,7 +3747,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return map_x, map_y, scalar, u_component, v_component
 
-    def get_density_xarray(self, pixelsize_m, weight=None, per_origin_marker=False):
+    def get_density_xarray(self, pixelsize_m, weights=None, per_origin_marker=False):
         from xhistogram.xarray import histogram
 
         if os.path.exists(self.analysis_file) and 'lon_bin' in xr.open_dataset(self.analysis_file):  # Import from file
@@ -3790,6 +3794,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             latbin = np.arange(latmin-deltalat, latmax+deltalat, deltalat)
             lonbin = np.arange(lonmin-deltalon, lonmax+deltalon, deltalon)
 
+            if weights is not None:
+                if isinstance(weights, str):  # element property
+                    weights = self.get_property(weights)[0]
+                elif not hasattr(weights, '__len__'):  # scalar
+                    weights = weights*xr.ones_like(self.ds.lon)
+                else:  # provided array
+                    weights = xr.DataArray(weights, dims=['trajectory'],
+                                           coords={'trajectory': self.ds.coords['trajectory']})
+
             histograms = []
             if per_origin_marker is True:
                 max_om = self.ds.origin_marker.max().compute().values
@@ -3802,6 +3815,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     histograms.append(h)
             else:
                 h = histogram(self.ds.lon, self.ds.lat, bins=[lonbin, latbin],
+                              weights=weights,
                               dim=['trajectory'])
                 histograms = [h]
 

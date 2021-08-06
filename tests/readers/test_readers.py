@@ -45,8 +45,8 @@ def test_timeseries_at_position():
     x_wind = ts['x_wind']
     assert len(x_wind) == 49
     print(x_wind)
-    np.testing.assert_almost_equal(x_wind[0], 0.7187035864262712, 2)
-    np.testing.assert_almost_equal(x_wind[-1], -4.42124883644046, 2)
+    np.testing.assert_almost_equal(x_wind[0], -.256, 2)
+    np.testing.assert_almost_equal(x_wind[-1], -4.307, 2)
 
 
 def test_shift_time():

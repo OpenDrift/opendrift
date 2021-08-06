@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright 2020, Knut-Frode Dagestad, MET Norway
+# Copyright 2020, Manuel Aghito, MET Norway
 
 """
 ChemicalDrift is an OpenDrift module for drift and fate of chemicals.
@@ -49,20 +49,20 @@ class Chemical(Lagrangian3DArray):
 #         ('transfer_rates1D', {'dtype':np.array(3, dtype=np.float32),
 #                     'units': '1/s',
 #                     'default': 0.})
-        ('LMM_fraction', {'dtype':np.float32,
-                          'units':'',
-                          'default':0,
-                          'seed':False}),
-        ('particle_fraction', {'dtype':np.float32,
-                          'units':'',
-                          'default':0,
-                          'seed':False}),
+#        ('LMM_fraction', {'dtype':np.float32,
+#                          'units':'',
+#                          'default':0,
+#                          'seed':False}),
+#        ('particle_fraction', {'dtype':np.float32,
+#                          'units':'',
+#                          'default':0,
+#                          'seed':False}),
         ('mass', {'dtype': np.float32,
-                      'units': 'kg',
+                      'units': 'ug',
                       'seed': True,
-                      'default': 1}),
+                      'default': 1e3}),
         ('mass_biodegraded', {'dtype': np.float32,
-                             'units': 'kg',
+                             'units': 'ug',
                              'seed': True,
                              'default': 0})#,
         # ('terminal_velocity', {'dtype': np.float32,
@@ -107,6 +107,8 @@ class ChemicalDrift(OceanDrift):
 #        'turbulent_generic_length_scale': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0},
         'conc3': {'fallback': 1.e-3},
+        'spm': {'fallback': 50},
+#        'mass_concentration_of_suspended_matter_in_sea_water': {'fallback': 0},
         }
 
     # The depth range (in m) which profiles shall cover
@@ -128,7 +130,7 @@ class ChemicalDrift(OceanDrift):
         # TODO: descriptions and units must be added in config setting below
         self._add_config({
             'chemical:transfer_setup': {'type': 'enum',
-                'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom'], 'default': 'custom',
+                'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom', 'organics'], 'default': 'custom',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:slowly_fraction': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
@@ -194,16 +196,60 @@ class ChemicalDrift(OceanDrift):
                 'description': 'Chemical mass is biodegraded.',
                 'level': self.CONFIG_LEVEL_BASIC},
             'chemical:transformations:biodegradation_mode': {'type': 'enum',
-                'enum': ['Test1','Test2'], 'default': 'Test1',
+                'enum': ['Test1','Test2','OverallRateConstants'], 'default': 'Test1',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:transformations:photodegradation': {'type': 'bool', 'default': False,
                 'description': 'Chemical mass is photodegraded.',
-                'level': self.CONFIG_LEVEL_BASIC},            
+                'level': self.CONFIG_LEVEL_BASIC},
+            'chemical:transformations:dissociation': {'type': 'enum',
+                'enum': ['nondiss','acid', 'base', 'amphoter'], 'default': 'nondiss',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:LogKOW': {'type': 'float', 'default': 4.46,
+                'min': -3, 'max': 10, 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:TrefKOW': {'type': 'float', 'default': 25.,
+                'min': -3, 'max': 30, 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:DeltaH_KOC_Sed': {'type': 'float', 'default': -34750.,
+                'min': -100000., 'max': 100000., 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:DeltaH_KOC_DOM': {'type': 'float', 'default': -25950.,
+                'min': -100000., 'max': 100000., 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:Setchenow': {'type': 'float', 'default': 0.2724,
+                'min': 0, 'max': 1, 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:pKa_acid': {'type': 'float', 'default': -1,
+                'min': 0, 'max': 14, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:pKa_base': {'type': 'float', 'default': -1,
+                'min': 0, 'max': 14, 'units': '',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            #
+            'chemical:transformations:k_W_tot': {'type': 'float', 'default': 952,
+                'min': 1, 'max': None, 'units': 'hours',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'half life in water, total'},
+            'chemical:transformations:Tref_kWt': {'type': 'float', 'default': 25.,
+                'min': -3, 'max': 30, 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:DeltaH_kWt': {'type': 'float', 'default': 50000.,
+                'min': -100000., 'max': 100000., 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            #
+            'chemical:transformations:k_S_tot': {'type': 'float', 'default': 687,
+                'min': 1, 'max': None, 'units': 'hours',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'half life in sediments, total'},
+            'chemical:transformations:Tref_kSt': {'type': 'float', 'default': 4.,
+                'min': -3, 'max': 30, 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:DeltaH_kSt': {'type': 'float', 'default': 50000.,
+                'min': -100000., 'max': 100000., 'units': '',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             # Sediment
-            'chemical:sediment:sedmixdepth': {'type': 'float', 'default': 1,
+            'chemical:sediment:mixing_depth': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:sediment:sediment_density': {'type': 'float', 'default': 2600,
+            'chemical:sediment:density': {'type': 'float', 'default': 2600,
                 'min': 0, 'max': 10000, 'units': 'kg/m3',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:sediment:effective_fraction': {'type': 'float', 'default': 0.9,
@@ -215,7 +261,7 @@ class ChemicalDrift(OceanDrift):
             'chemical:sediment:porosity': {'type': 'float', 'default': 0.6,
                 'min': 0, 'max': 1, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:sediment:layer_thick': {'type': 'float', 'default': 1,
+            'chemical:sediment:layer_thickness': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:sediment:desorption_depth': {'type': 'float', 'default': 1,
@@ -274,6 +320,13 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:species:Polymer', True)
             self.set_config('chemical:species:Particle_reversible', True)
             self.set_config('chemical:species:Sediment_reversible', True)
+        elif self.get_config('chemical:transfer_setup')=='organics':
+            self.set_config('chemical:species:LMM',True)
+            self.set_config('chemical:species:Particle_reversible', True)
+            self.set_config('chemical:species:Particle_slowly_reversible', False)
+            self.set_config('chemical:species:Sediment_reversible', True)
+            self.set_config('chemical:species:Sediment_slowly_reversible', True)
+            self.set_config('chemical:species:Humic_colloid', True)
         elif self.get_config('chemical:transfer_setup')=='custom':
             # Do nothing, species must be set manually
             pass
@@ -323,10 +376,6 @@ class ChemicalDrift(OceanDrift):
 
 
 
-
-
-
-
     def seed_elements(self, *args, **kwargs):
 
         self.init_species()
@@ -339,7 +388,6 @@ class ChemicalDrift(OceanDrift):
             num_elements = kwargs['number']
         else:
             num_elements = self.get_config('seed:number')
-
 
 
         if 'specie' in kwargs:
@@ -401,6 +449,43 @@ class ChemicalDrift(OceanDrift):
 
         super(ChemicalDrift, self).seed_elements(*args, **kwargs)
 
+    def tempcorr(self,mode,DeltaH,T_C,Tref_C):
+
+        if mode == 'Arrhenius':
+            R = 8.3145 # J/(mol*K)
+            T_K = T_C + 273.15
+            Tref_K = Tref_C + 273.15
+            corr = np.e**(-(DeltaH/R)*(1/T_K - 1/Tref_K))
+        elif mode =='Q10':
+            corr = 2**((T_C - Tref_C)/10)
+        return corr
+
+    def salinitycorr(self,Setschenow,Temperature,Salinity):
+
+        # Setschenow constant for the given chemical (L/mol)
+        # Salinity   (PSU =g/Kg)
+        # Temperature (Celsius)
+
+        MWsalt=68.35 # average mass of sea water salt (g/mol) Schwarzenbach Gschwend Imboden Environmental Organic Chemistry
+
+        Dens_sw=self.sea_water_density(T=Temperature, S=Salinity)*1e-3 # (Kg/L)
+
+        # ConcSalt= (Salinitypsu/MWsalt)∙Dens_sw
+        #         = (     g/Kg    /    g/mol  )∙  Kg/L
+        #         = mol/Kg ∙ Kg/L = mol/L
+
+        ConcSalt=(Salinity/MWsalt)*Dens_sw
+
+        # Log(Kd_fin)=(Setschenow ∙ ConcSalt)+Log(Kd_T)
+        # Kd_fin = 10^(Setschenow ∙ ConcSalt) * Kd_T
+
+        corr=10**(Setschenow*ConcSalt)
+
+        logger.debug('ConcSalt: %s' % ConcSalt)
+        logger.debug('Dsw: %s' % Dens_sw)
+        logger.debug('corr: %s' % corr)
+
+        return corr
 
 
 
@@ -416,7 +501,129 @@ class ChemicalDrift(OceanDrift):
         self.transfer_rates = np.zeros([self.nspecies,self.nspecies])
         self.ntransformations = np.zeros([self.nspecies,self.nspecies])
 
-        if transfer_setup == 'Bokna_137Cs':
+        if transfer_setup == 'organics':
+
+            self.num_lmm    = self.specie_name2num('LMM')
+            self.num_humcol = self.specie_name2num('Humic colloid')
+            self.num_prev   = self.specie_name2num('Particle reversible')
+            self.num_srev   = self.specie_name2num('Sediment reversible')
+            #self.num_psrev  = self.specie_name2num('Particle slowly reversible')
+            self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
+
+            # Values from EMERGE-Aquatox
+            Org2C      = 0.526  # kgOC/KgOM
+            #Kd         = self.get_config('chemical:transformations:Kd')
+            KOW        = 10**self.get_config('chemical:transformations:LogKOW')
+            KOWTref    = self.get_config('chemical:transformations:TrefKOW')
+            DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
+            DH_KOC_DOM = self.get_config('chemical:transformations:DeltaH_KOC_DOM')
+            Setchenow  = self.get_config('chemical:transformations:Setchenow')
+
+
+            diss       = self.get_config('chemical:transformations:dissociation')
+            pKa_acid   = self.get_config('chemical:transformations:pKa_acid')
+            pKa_base   = self.get_config('chemical:transformations:pKa_base')
+            pH_water   = 8.1
+            pH_sed     = 6.9
+            fOC_SPM    = 0.05       # typical values from 0.01 to 0.1 gOC/g
+            fOC_sed    = 0.05       # typical values from 0.01 to 0.1 gOC/g
+                                    # Question
+                                    # Do we need separate fOC for SPM and Sed
+            concDOM   = 1.e-3 / Org2C    # concentration of available dissolved organic matter (kg/m3)
+                                         # rough initial estimate for coastal waters, doi: 10.1002/lom3.10118
+            #concDOM   = 50.e-3     # HIGHER VALUE FOR TESTING!!!!!!!!!!!!
+
+            # Values from Simonsen et al (2019a)
+            slow_coeff  = self.get_config('chemical:transformations:slow_coeff')
+            concSPM     = 50.e-3                                                # available SPM (kg/m3)
+            sed_L       = self.get_config('chemical:sediment:mixing_depth')     # sediment mixing depth (m)
+            sed_dens    = self.get_config('chemical:sediment:density')          # default particle density (kg/m3)
+            sed_phi     = self.get_config('chemical:sediment:corr_factor')      # sediment correction factor
+            sed_poro    = self.get_config('chemical:sediment:porosity')         # sediment porosity
+            sed_H       = self.get_config('chemical:sediment:layer_thickness')  # thickness of seabed interaction layer (m)
+
+
+            if diss=='nondiss':
+                KOC_DOM    = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014
+                KOC_sed    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C
+                KOC_SPM    = KOC_sed
+                #KOC_Sed    = 1.26 * kOW**0.81   # (L/KgOC),Ragas et al., 2019
+            else:
+                if diss=='acid':
+                    Phi_n    = 1/(1 + 10**(pH-pKa_acid))
+                    Phi_diss = 1-Phi_n
+
+                elif diss=='base':
+                    Phi_n    = 1/(1 + 10**(pH-pKa_base))
+                    Phi_diss = 1-Phi_n
+
+                elif diss=='amphoter':
+                    Phi_n      = 1/(1 + 10**(pH-pKa_acid) + 10**(pKa_base))
+                    Phi_anion  = Phi_n * 10**(pH-pKa_acid)
+                    Phi_cation = Phi_n * 10**(pKa_base-pH)
+
+                #TODO: calculation of KOC for ionic chemicals
+
+            logger.info('Partitioning coefficients (Tref,freshwater)')
+            logger.info('KOC_sed: %s L/KgOC' % KOC_sed)
+            logger.info('KOC_SPM: %s L/KgOC' % KOC_SPM)
+            logger.info('KOC_DOM: %s L/KgOC' % KOC_DOM)
+
+            #KOM_sed = KOC_sed * Org2C #  L/KgOC * KgOC/KgOM = L/KgOM
+            #KOM_SPM = KOC_sed * Org2C #  L/KgOC * KgOC/KgOM = L/KgOM
+            #KOM_DOM = KOC_DOM * Org2C #  L/KgOC * KgOC/KgOM = L/KgOM
+
+            # to be calculated separately for sed, SPM, dom (different KOC, pH, fOC)
+            self.Kd_sed = Kd_sed = KOC_sed * fOC_sed    # L/KgOC * KgOC/KG = L/Kg
+            self.Kd_SPM = Kd_SPM = KOC_SPM * fOC_SPM    # L/KgOC * KgOC/KG = L/Kg
+            self.Kd_DOM = Kd_DOM = KOC_DOM * Org2C      # L/KgOC * KgOC/KgOM * 1KgOM/Kg = L/Kg (=KOM_DOM)
+            # TODO Use setconfig() to store these?
+
+            logger.info('Kd_sed: %s L/Kg' % Kd_sed)
+            logger.info('Kd_SPM: %s L/Kg' % Kd_SPM)
+            logger.info('Kd_DOM: %s L/Kg' % Kd_DOM)
+
+            # From Karickhoff and Morris 1985
+            k_ads = 33.3 / (60*60) # L/(Kg*s) = 33 L/(kgOM*h)
+
+            k_des_sed = k_ads / Kd_sed # 1/s
+            k_des_SPM = k_ads / Kd_SPM # 1/s
+            k_des_DOM = k_ads / Kd_DOM # 1/s
+
+            # Default corrections, assuming temperature 25 salinity 35
+            TcorrSed = self.tempcorr("Arrhenius",DH_KOC_Sed,25,KOWTref)
+            TcorrDOM = self.tempcorr("Arrhenius",DH_KOC_DOM,25,KOWTref)
+            Scorr    = self.salinitycorr(Setchenow,KOWTref,35)
+
+            concSPM = concSPM * 1e-3 # (Kg/L)
+            concDOM = concDOM * 1e-3 # (Kg/L)
+
+            self.k_ads = k_ads
+            self.k21_0 = k_des_DOM
+            self.k31_0 = k_des_SPM
+            self.k41_0 = k_des_sed * sed_phi
+            # TODO Use setconfig() to store these?
+
+            self.transfer_rates[self.num_lmm,self.num_humcol] = k_ads * concDOM             # k12
+            self.transfer_rates[self.num_humcol,self.num_lmm] = k_des_DOM / TcorrDOM / Scorr# k21
+
+            self.transfer_rates[self.num_lmm,self.num_prev] = k_ads * concSPM               # k13
+            self.transfer_rates[self.num_prev,self.num_lmm] = k_des_SPM / TcorrSed / Scorr  # k31
+
+            self.transfer_rates[self.num_lmm,self.num_srev] = \
+                k_ads * sed_L * sed_dens * (1.-sed_poro) * sed_phi / sed_H                  # k14
+                # TODO CHECK DIMENSIONS!!!!! L-m3 !!!!
+
+            self.transfer_rates[self.num_srev,self.num_lmm] = \
+                k_des_sed * sed_phi / TcorrSed / Scorr                                      # k41
+
+            self.transfer_rates[self.num_srev,self.num_ssrev] = slow_coeff                  # k46
+            self.transfer_rates[self.num_ssrev,self.num_srev] = slow_coeff*.1               # k64
+
+            self.transfer_rates[self.num_humcol,self.num_prev] = 1.e-5      # k23, Salinity interval >20 psu
+            self.transfer_rates[self.num_prev,self.num_humcol] = 0          # TODO check if valid for organics
+
+        elif transfer_setup == 'Bokna_137Cs':
 
             self.num_lmm    = self.specie_name2num('LMM')
             self.num_prev   = self.specie_name2num('Particle reversible')
@@ -429,19 +636,19 @@ class ChemicalDrift(OceanDrift):
             Kd         = self.get_config('chemical:transformations:Kd')
             Dc         = self.get_config('chemical:transformations:Dc')
             slow_coeff = self.get_config('chemical:transformations:slow_coeff')
-            susp_mat    = 1.e-3   # concentration of available suspended particulate matter (kg/m3)
-            sedmixdepth = self.get_config('chemical:sediment:sedmixdepth')     # sediment mixing depth (m)
-            default_density =  self.get_config('chemical:sediment:sediment_density') # default particle density (kg/m3)
-            f           =  self.get_config('chemical:sediment:effective_fraction')      # fraction of effective sorbents
-            phi         =  self.get_config('chemical:sediment:corr_factor')      # sediment correction factor
-            poro        =  self.get_config('chemical:sediment:porosity')      # sediment porosity
-            layer_thick =  self.get_config('chemical:sediment:layer_thick')      # thickness of seabed interaction layer (m)
+            concSPM    = 1.e-3   # concentration of available suspended particulate matter (kg/m3)
+            sed_L = self.get_config('chemical:sediment:mixing_depth')     # sediment mixing depth (m)
+            sed_dens =  self.get_config('chemical:sediment:density') # default particle density (kg/m3)
+            sed_f           =  self.get_config('chemical:sediment:effective_fraction')      # fraction of effective sorbents
+            sed_phi         =  self.get_config('chemical:sediment:corr_factor')      # sediment correction factor
+            sed_poro        =  self.get_config('chemical:sediment:porosity')      # sediment porosity
+            sed_H =  self.get_config('chemical:sediment:layer_thickness')      # thickness of seabed interaction layer (m)
 
-            self.transfer_rates[self.num_lmm,self.num_prev] = Dc * Kd * susp_mat
+            self.transfer_rates[self.num_lmm,self.num_prev] = Dc * Kd * concSPM
             self.transfer_rates[self.num_prev,self.num_lmm] = Dc
             self.transfer_rates[self.num_lmm,self.num_srev] = \
-                Dc * Kd * sedmixdepth * default_density * (1.-poro) * f * phi / layer_thick
-            self.transfer_rates[self.num_srev,self.num_lmm] = Dc * phi
+                Dc * Kd * sed_L * sed_dens * (1.-sed_poro) * sed_f * sed_phi / sed_H
+            self.transfer_rates[self.num_srev,self.num_lmm] = Dc * sed_phi
             self.transfer_rates[self.num_srev,self.num_ssrev] = slow_coeff
             self.transfer_rates[self.num_prev,self.num_psrev] = slow_coeff
             self.transfer_rates[self.num_ssrev,self.num_srev] = slow_coeff*.1
@@ -459,19 +666,19 @@ class ChemicalDrift(OceanDrift):
             # Only consider the reversible fraction
             Kd         = self.get_config('chemical:transformations:Kd')
             Dc         = self.get_config('chemical:transformations:Dc')
-            susp_mat    = 1.e-3   # concentration of available suspended particulate matter (kg/m3)
-            sedmixdepth = self.get_config('chemical:sediment:sedmixdepth')     # sediment mixing depth (m)
-            default_density =  self.get_config('chemical:sediment:sediment_density') # default particle density (kg/m3)
-            f           =  self.get_config('chemical:sediment:effective_fraction')      # fraction of effective sorbents
-            phi         =  self.get_config('chemical:sediment:corr_factor')      # sediment correction factor
-            poro        =  self.get_config('chemical:sediment:porosity')      # sediment porosity
-            layer_thick =  self.get_config('chemical:sediment:layer_thick')      # thickness of seabed interaction layer (m)
+            concSPM    = 1.e-3   # concentration of available suspended particulate matter (kg/m3)
+            sed_L           = self.get_config('chemical:sediment:mixing_depth')     # sediment mixing depth (m)
+            sed_dens        = self.get_config('chemical:sediment:density') # default particle density (kg/m3)
+            sed_f           = self.get_config('chemical:sediment:effective_fraction')      # fraction of effective sorbents
+            sed_phi         = self.get_config('chemical:sediment:corr_factor')      # sediment correction factor
+            sed_poro        = self.get_config('chemical:sediment:porosity')      # sediment porosity
+            sed_H =  self.get_config('chemical:sediment:layer_thickness')      # thickness of seabed interaction layer (m)
 
-            self.transfer_rates[self.num_lmm,self.num_prev] = Dc * Kd * susp_mat
+            self.transfer_rates[self.num_lmm,self.num_prev] = Dc * Kd * concSPM
             self.transfer_rates[self.num_prev,self.num_lmm] = Dc
             self.transfer_rates[self.num_lmm,self.num_srev] = \
-                Dc * Kd * sedmixdepth * default_density * (1.-poro) * f * phi / layer_thick
-            self.transfer_rates[self.num_srev,self.num_lmm] = Dc * phi
+                Dc * Kd * sed_L * sed_dens * (1.-sed_poro) * sed_f * sed_phi / sed_H
+            self.transfer_rates[self.num_srev,self.num_lmm] = Dc * sed_phi
 
         elif transfer_setup=='custom':
         # Set of custom values for testing/development
@@ -585,8 +792,8 @@ class ChemicalDrift(OceanDrift):
 #         self.transfer_rates[:] = 0.
 #         print ('\n ###### \n IMPORTANT:: \n transfer rates have been hacked! \n#### \n ')
 
-#         logger.info('nspecies: %s' % self.nspecies)
-#         logger.info('Transfer rates:\n %s' % self.transfer_rates)
+        logger.info('nspecies: %s' % self.nspecies)
+        logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -654,6 +861,8 @@ class ChemicalDrift(OceanDrift):
 
         self.elements.terminal_velocity = W
 
+        self.elements.terminal_velocity = W * self.elements.moving
+
 
     def update_transfer_rates(self):
         '''Pick out the correct row from transfer_rates for each element. Modify the
@@ -662,14 +871,51 @@ class ChemicalDrift(OceanDrift):
         transfer_setup=self.get_config('chemical:transfer_setup')
         if transfer_setup == 'Bokna_137Cs' or \
          transfer_setup=='custom' or \
-         transfer_setup=='137Cs_rev':
+         transfer_setup=='137Cs_rev'or \
+         transfer_setup=='organics':
             self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
+
+            if transfer_setup=='organics':
+                # filtering out zero values from temperature and salinity
+                # TODO: Find out if problem is in the reader or in the data
+                temperature=self.environment.sea_water_temperature
+                temperature[temperature==0]=np.median(temperature)
+
+                salinity=self.environment.sea_water_salinity
+                salinity[salinity==0]=np.median(salinity)
+
+                KOWTref    = self.get_config('chemical:transformations:TrefKOW')
+                DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
+                DH_KOC_DOM = self.get_config('chemical:transformations:DeltaH_KOC_DOM')
+                Setchenow  = self.get_config('chemical:transformations:Setchenow')
+
+                tempcorrSed = self.tempcorr("Arrhenius",DH_KOC_Sed,temperature,KOWTref)
+                tempcorrDOM = self.tempcorr("Arrhenius",DH_KOC_DOM,temperature,KOWTref)
+                salinitycorr = self.salinitycorr(Setchenow,temperature,salinity)
+
+                # Temperature and salinity correction for desorption rates (inversely proportional to Kd)
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_humcol,self.num_lmm] = \
+                    self.k21_0 / tempcorrDOM[self.elements.specie==self.num_humcol] / salinitycorr[self.elements.specie==self.num_humcol]
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_prev,self.num_lmm] = \
+                    self.k31_0 / tempcorrSed[self.elements.specie==self.num_prev] / salinitycorr[self.elements.specie==self.num_prev]
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
+                    self.k41_0 / tempcorrSed[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
+
+                # Updating sorption rates according to local SPM concentration
+
+                concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3) 
+                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
+                    self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+
 
             if self.get_config('chemical:species:Sediment_reversible'):
                 # Only LMM chemicals close to seabed are allowed to interact with sediments
                 # minimum height/maximum depth for each particle
                 Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
-                interaction_thick = self.get_config('chemical:sediment:layer_thick')      # thickness of seabed interaction layer (m)
+                interaction_thick = self.get_config('chemical:sediment:layer_thickness')      # thickness of seabed interaction layer (m)
                 dist_to_seabed = self.elements.z - Zmin
                 self.elements.transfer_rates1D[(self.elements.specie == self.num_lmm) &
                                  (dist_to_seabed > interaction_thick), self.num_srev] = 0.
@@ -809,12 +1055,18 @@ class ChemicalDrift(OceanDrift):
 
         # Transfer to reversible particles
         self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)] = dia_part
+
+        # TODO Choose a proper diameter for aggregated particles
+        if self.get_config('chemical:species:Humic_colloid'):
+            self.elements.diameter[(sp_out==self.num_prev) & (sp_in==self.num_humcol)] = dia_part/2
+
+        logger.debug('Updated particle diameter for %s elements' % len(self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)]))
+
         std = self.get_config('chemical:particle_diameter_uncertainty')
         if std > 0:
             logger.debug('Adding uncertainty for particle diameter: %s m' % std)
             self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)] += np.random.normal(
                     0, std, sum((sp_out==self.num_prev) & (sp_in!=self.num_prev)))
-
         # Transfer to slowly reversible particles
         if self.get_config('chemical:slowly_fraction'):
             self.elements.diameter[(sp_out==self.num_psrev) & (sp_in!=self.num_psrev)] = dia_part
@@ -886,6 +1138,8 @@ class ChemicalDrift(OceanDrift):
                   (self.get_config('chemical:species:Sediment_reversible'))):
             return
 
+        specie_in = self.elements.specie.copy()
+
         critvel = self.get_config('chemical:sediment:resuspension_critvel')
         resusp_depth = self.get_config('chemical:sediment:resuspension_depth')
         std = self.get_config('chemical:sediment:resuspension_depth_uncert')
@@ -920,6 +1174,8 @@ class ChemicalDrift(OceanDrift):
             self.ntransformations[self.num_sirrev,self.num_pirrev]+=sum((resusp) & (self.elements.specie==self.num_sirrev))
             self.elements.specie[(resusp) & (self.elements.specie==self.num_sirrev)] = self.num_pirrev
 
+        specie_out = self.elements.specie.copy()
+        self.update_chemical_diameter(specie_in, specie_out)
 
     def biodegradation(self):
         '''Biodegradation. Test implementations'''
@@ -937,7 +1193,7 @@ class ChemicalDrift(OceanDrift):
             factors[self.elements.specie==self.num_lmm]=3
             factors[self.elements.specie==self.num_prev]=1
             factors[self.elements.specie==self.num_srev]=.25
-            factors[self.elements.specie==self.num_psrev]=.5
+            #factors[self.elements.specie==self.num_psrev]=.5
             factors[self.elements.specie==self.num_ssrev]=.125
             return factors
         
@@ -948,31 +1204,77 @@ class ChemicalDrift(OceanDrift):
                 fraction_biodegraded = .1
                 biodegraded_now = self.elements.mass*fraction_biodegraded
     
-                self.elements.mass_biodegraded = \
-                    self.elements.mass_biodegraded + biodegraded_now
-                self.elements.mass = \
-                    self.elements.mass - biodegraded_now
-    
-                self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_biodegraded)/100, reason='biodegraded')
             elif self.get_config('chemical:transformations:biodegradation_mode')=='Test2':
                 logger.debug('Calculating: biodegradation - Mode Test2')
 
                 fraction_biodegraded = .01*biodegradation_factors()
                 biodegraded_now = self.elements.mass*fraction_biodegraded
     
-                self.elements.mass_biodegraded = \
-                    self.elements.mass_biodegraded + biodegraded_now
-                self.elements.mass = \
-                    self.elements.mass - biodegraded_now
-    
-                self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_biodegraded)/100, reason='biodegraded')
+            elif self.get_config('chemical:transformations:biodegradation_mode')=='OverallRateConstants':
+                # TODO: Rearrange code. Calculations here are for overall degradation including
+                # biodegradation, photodegradation, and hydrolysys
+
+                logger.debug('Calculating overall degradation using overall rate constants')
+
+                biodegraded_now = np.zeros(self.num_elements_active())
+
+                # Degradation in the water
+                k_W_tot = -np.log(0.5)/(self.get_config('chemical:transformations:k_W_tot')*(60*60)) # (1/s)
+                Tref_kWt = self.get_config('chemical:transformations:Tref_kWt')
+                DH_kWt = self.get_config('chemical:transformations:DeltaH_kWt')
+
+                W =   (self.elements.specie == self.num_lmm) \
+                    + (self.elements.specie == self.num_humcol)
+
+                TW=self.environment.sea_water_temperature[W]
+                TW[TW==0]=np.median(TW)
+
+                k_W_fin = k_W_tot * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
+
+                biodegraded_now[W] = self.elements.mass[W] * (1-np.exp(-k_W_fin * self.time_step.seconds))
+
+                # Degradation in the sediments
+
+                k_S_tot = -np.log(0.5)/(self.get_config('chemical:transformations:k_S_tot')*(60*60)) # (1/s)
+                Tref_kSt = self.get_config('chemical:transformations:Tref_kSt')
+                DH_kSt = self.get_config('chemical:transformations:DeltaH_kSt')
+
+                S =   (self.elements.specie == self.num_srev) \
+                    + (self.elements.specie == self.num_ssrev)
+
+                TS=self.environment.sea_water_temperature[S]
+                TS[TS==0]=np.median(TS)
+
+                k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
+
+                biodegraded_now[S] = self.elements.mass[S] * (1-np.exp(-k_S_fin * self.time_step.seconds))
+
+            self.elements.mass_biodegraded = self.elements.mass_biodegraded + biodegraded_now
+            self.elements.mass = self.elements.mass - biodegraded_now
+            self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_biodegraded)/100, reason='biodegraded')
+
         else:
+
             pass
         
     def photodegradation(self):
         if self.get_config('chemical:transformations:photodegradation') is True:
             logger.debug('Calculating: photodegradation')        
         else:    
+                #TS=self.environment.sea_water_temperature[S]
+                #TS[TS==0]=np.median(TS)
+                #
+                #SS=self.environment.sea_water_salinity[S]
+                #SS[SS==0]=np.median(SS)
+                #
+                #KOWTref    = self.get_config('chemical:transformations:TrefKOW')
+                #DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
+                #Setchenow  = self.get_config('chemical:transformations:Setchenow')
+                #sed_dens   = self.get_config('chemical:sediment:density')          # default particle density (kg/m3)
+                #sed_poro   = self.get_config('chemical:sediment:porosity')         # sediment porosity
+                #Kd_Sed_fin = self.Kd_sed    * self.tempcorr("Arrhenius",DH_KOC_Sed,TS,KOWTref) \
+                #                            * self.salinitycorr(Setchenow,KOWTref,SS)
+                #AvailableCorr=1/(1+Kd_Sed_fin*(sed_dens/1000)*(1-sed_poro)/sed_poro)
             pass
     
     def evaporation(self):
@@ -1020,8 +1322,11 @@ class ChemicalDrift(OceanDrift):
         if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
 
-
-
+        # Update transfer rates after last time step
+        if      self.time == (self.expected_end_time - self.time_step) or \
+                self.time == (self.expected_end_time) or \
+                self.num_elements_active() == 0 :
+            self.update_transfer_rates()
 
 
 
@@ -1489,4 +1794,4 @@ class ChemicalDrift(OceanDrift):
                 if number>0:
                     self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
                                 radius=radius, number=number, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
-                                mass=mass_element_ug,mass_biodegraded=mass_element_ug)
+                                mass=mass_element_ug,mass_biodegraded=0)

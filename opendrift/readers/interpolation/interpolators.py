@@ -112,9 +112,8 @@ class Linear2DInterpolator():
     def __init__(self, xgrid, ygrid, x, y):
         self.x = x
         self.y = y
-        self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
-        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
-
+        self.xi = (x - xgrid[0])/(xgrid[-1]-xgrid[0])*(len(xgrid)-1)
+        self.yi = (y - ygrid[0])/(ygrid[-1]-ygrid[0])*(len(ygrid)-1)
 
     def __call__(self, array2d):
         if isinstance(array2d,np.ma.MaskedArray):
@@ -192,7 +191,7 @@ class Linear1DInterpolator():
         z_interpolator(z[0])  # to prevent threading issues
         # Indices corresponding to layers above and below
         interp_zi = z_interpolator(z)
-        self.index_above = np.floor(interp_zi).astype(np.uint8)
+        self.index_above = np.floor(interp_zi).astype(np.int8)
         self.index_above[self.index_above < 0] = 0
         self.index_below = np.minimum(self.index_above + 1, len(zgrid) - 1)
         self.weight_above = 1 - (interp_zi - self.index_above)

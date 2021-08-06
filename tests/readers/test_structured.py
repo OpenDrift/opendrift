@@ -17,7 +17,7 @@ def test_set_convolve(test_data):
     x2 = reader2.get_variables_interpolated(['x_sea_water_velocity'], lon = 3., lat = 60., time = time)[0]['x_sea_water_velocity']
 
     assert x != x2
-    np.testing.assert_allclose(x2, np.array([0.08291302]))
+    np.testing.assert_array_almost_equal(x2, np.array([0.082982]))
 
 def test_lonlat2xy_sequential(test_data, benchmark):
     reader = reader_ROMS_native.Reader(test_data + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')

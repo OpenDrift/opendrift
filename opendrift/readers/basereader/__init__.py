@@ -23,6 +23,10 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pyproj
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 from .structured import StructuredReader
 from .unstructured import UnstructuredReader
@@ -66,7 +70,8 @@ class BaseReader(Variables):
         'barotropic_sea_water_y_velocity': 'sea_ice_y_velocity',
         'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity',
         'sea_floor_depth_below_sea_surface' : 'sea_floor_depth_below_sea_level',
-        'sea_floor_depth_below_geoid' : 'sea_floor_depth_below_sea_level'
+        'sea_floor_depth_below_geoid' : 'sea_floor_depth_below_sea_level',
+        'mass_concentration_of_suspended_matter_in_sea_water' : 'spm'
         }
 
     xy2eastnorth_mapping = {
@@ -230,40 +235,47 @@ class BaseReader(Variables):
              filename=None, title=None, buffer=1, lscale='auto'):
         """Plot geographical coverage of reader."""
 
-        import matplotlib.pyplot as plt
-        from matplotlib.patches import Polygon
-        import cartopy.crs as ccrs
-        import cartopy.feature as cfeature
-        from opendrift_landmask_data import Landmask
         fig = plt.figure()
 
-        corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
-                                 [self.ymax, self.ymin, self.ymax, self.ymin])
-        lonmin = np.min(corners[0]) - buffer*2
-        lonmax = np.max(corners[0]) + buffer*2
-        latmin = np.min(corners[1]) - buffer
-        latmax = np.max(corners[1]) + buffer
-        latspan = latmax - latmin
+        if self.global_coverage():
+            lonmin=-180
+            lonmax=180
+            latmin=-89
+            latmax=89
+        else:
+            corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
+                                     [self.ymax, self.ymin, self.ymax, self.ymin])
+            lonmin = np.min(corners[0]) - buffer*2
+            lonmax = np.max(corners[0]) + buffer*2
+            latmin = np.min(corners[1]) - buffer
+            latmax = np.max(corners[1]) + buffer
 
         # Initialise map
-        if latspan < 90:
+        if not self.global_coverage():
             # Stereographic projection centred on domain, if small domain
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
-            ax = fig.add_subplot(1, 1, 1, projection=sp)
-            corners_stere = sp.transform_points(ccrs.PlateCarree(), np.array(corners[0]), np.array(corners[1]))
+            latmax = np.maximum(latmax, lat0)
+            latmin = np.minimum(latmin, lat0)
         else:
             # Global map if reader domain is large
             sp = ccrs.Mercator()
-            ax = fig.add_subplot(1, 1, 1, projection=sp)
+
+        ax = fig.add_subplot(1, 1, 1, projection=sp)
+
+        if lscale == 'auto':  # Custom lscale - this should be generalized to Basemodel also
+            s = cfeature.AdaptiveScaler('coarse',
+                (('low', 100), ('intermediate', 20), ('high', 5), ('full', 1)))
+            lscale = s.scale_from_extent([lonmin, lonmax, latmin, latmax])
 
         # GSHHS coastlines
-        f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
-                                  facecolor=cfeature.COLORS['land'])
+        f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
+        f._geometries_cache = {}
         ax.add_geometries(
-            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+            #f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+            f.geometries(),
             ccrs.PlateCarree(),
             facecolor=cfeature.COLORS['land'],
             edgecolor='black')
@@ -272,21 +284,25 @@ class BaseReader(Variables):
         gl.top_labels = False
 
         # Get boundary
-        npoints = 10  # points per side
-        x = np.array([])
-        y = np.array([])
-        x = np.concatenate((x, np.linspace(self.xmin, self.xmax, npoints)))
-        y = np.concatenate((y, [self.ymin]*npoints))
-        x = np.concatenate((x, [self.xmax]*npoints))
-        y = np.concatenate((y, np.linspace(self.ymin, self.ymax, npoints)))
-        x = np.concatenate((x, np.linspace(self.xmax, self.xmin, npoints)))
-        y = np.concatenate((y, [self.ymax]*npoints))
-        x = np.concatenate((x, [self.xmin]*npoints))
-        y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
-        # from x/y vectors create a Patch to be added to map
-        lon, lat = self.xy2lonlat(x, y)
-        lat[lat>89] = 89.
-        lat[lat<-89] = -89.
+        if self.global_coverage():
+            lon = np.array([-180, 180, 180, -180, -180])
+            lat = np.array([-89, -89, 89, 89, -89])
+        else:
+            npoints = 10  # points per side
+            x = np.array([])
+            y = np.array([])
+            x = np.concatenate((x, np.linspace(self.xmin, self.xmax, npoints)))
+            y = np.concatenate((y, [self.ymin]*npoints))
+            x = np.concatenate((x, [self.xmax]*npoints))
+            y = np.concatenate((y, np.linspace(self.ymin, self.ymax, npoints)))
+            x = np.concatenate((x, np.linspace(self.xmax, self.xmin, npoints)))
+            y = np.concatenate((y, [self.ymax]*npoints))
+            x = np.concatenate((x, [self.xmin]*npoints))
+            y = np.concatenate((y, np.linspace(self.ymax, self.ymin, npoints)))
+            # from x/y vectors create a Patch to be added to map
+            lon, lat = self.xy2lonlat(x, y)
+            lat[lat>89] = 89.
+            lat[lat<-89] = -89.
         p = sp.transform_points(ccrs.PlateCarree(), lon, lat)
         xsp = p[:, 0]
         ysp = p[:, 1]
@@ -295,12 +311,11 @@ class BaseReader(Variables):
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
                                zorder=100)
             ax.add_patch(boundary)
-            buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
-            buf = 0
-            try:
+            if self.global_coverage():
+                ax.set_global()
+            else:
+                buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
                 ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
-            except:
-                pass
         if title is None:
             plt.title(self.name)
         else:
@@ -325,8 +340,16 @@ class BaseReader(Variables):
             if data[variable].ndim > 2:
                 logger.warning('Ensemble data, plotting only first member')
                 data[variable] = data[variable][0,:,:]
-            mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
-                                     transform=ccrs.PlateCarree())
+            if self.global_coverage():
+                mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
+                                         transform=ccrs.PlateCarree(), shading='nearest')
+            else:
+                p = sp.transform_points(ccrs.PlateCarree(), rlon, rlat)
+                mapx = p[:,:,0]
+                mapy = p[:,:,1]
+                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax,
+                                         shading='nearest')
+
             cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
             cbar.set_label(variable)
 
