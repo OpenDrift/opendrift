@@ -3,6 +3,8 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Kotzakoulakis, K., & George, S. (2021). Advanced oil spill modeling and simulation techniques. In M. R. Riazi (Ed.), Oil spill occurrence, simulation and behavior (pp. 225-264). CRC Press, Taylor & Francis Group. https://doi.org/10.1201/9780429432156
+
 Reche P., Artal O., Pinilla E., Ruiz C., Venegas O., Arriagada A., Falvey M., CHONOS: Oceanographic information website for Chilean Patagonia, Ocean & Coastal Management, Volume 208, 1 July 2021, https://doi.org/10.1016/j.ocecoaman.2021.105634
 
 Peytavin, A., Sainte-Rose, B., Forget, G., and Campin, J.-M.: Ocean Plastic Assimilator v0.1: Assimilation of Plastics Concentration Data Into Lagrangian Dispersion Models, Geosci. Model Dev. Discuss. [preprint], https://doi.org/10.5194/gmd-2020-385, in review, 2021.
