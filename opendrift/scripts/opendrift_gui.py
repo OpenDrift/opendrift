@@ -173,9 +173,9 @@ class OpenDriftGUI(tk.Tk):
         self.lonvar = tk.StringVar()
         self.radiusvar = tk.StringVar()
         self.lat = tk.Entry(self.start, textvariable=self.latvar,
-                            width=6, justify=tk.RIGHT)
+                            width=10, justify=tk.RIGHT)
         self.lon = tk.Entry(self.start, textvariable=self.lonvar,
-                            width=6, justify=tk.RIGHT)
+                            width=10, justify=tk.RIGHT)
         self.radius = tk.Entry(self.start, width=6,
                                textvariable=self.radiusvar,
                                justify=tk.RIGHT)
@@ -188,6 +188,10 @@ class OpenDriftGUI(tk.Tk):
         self.lonvar.trace('w', self.copy_position)
         self.latvar.trace('w', self.copy_position)
         self.radiusvar.trace('w', self.copy_position)
+        conv=tk.Label(self.start, text='Convert from deg/min/sec', fg='blue')
+        conv.grid(row=11, column=0, columnspan=2)
+        conv.bind("<Button-1>", lambda e: self.convert_lonlat())
+
         ##########
         # Time
         ##########
@@ -245,8 +249,8 @@ class OpenDriftGUI(tk.Tk):
         tk.Label(self.end, text='Longitude', bg='gray').grid(row=0, column=1)
         tk.Label(self.end, text='Latitude', bg='gray').grid(row=0, column=0)
         tk.Label(self.end, text='Radius [m]', bg='gray').grid(row=0, column=2)
-        self.elat = tk.Entry(self.end, width=6, justify=tk.RIGHT)
-        self.elon = tk.Entry(self.end, width=6, justify=tk.RIGHT)
+        self.elat = tk.Entry(self.end, width=10, justify=tk.RIGHT)
+        self.elon = tk.Entry(self.end, width=10, justify=tk.RIGHT)
         self.eradius = tk.Entry(self.end, width=6, justify=tk.RIGHT)
         self.elon.grid(row=10, column=1)
         self.elon.insert(0, '4.5')
@@ -604,6 +608,12 @@ class OpenDriftGUI(tk.Tk):
         print('Opening help website:\n' + help_url)
         import webbrowser
         webbrowser.open(help_url)
+
+    def convert_lonlat(self):
+        convert_url = 'https://www.rapidtables.com/convert/number/degrees-minutes-seconds-to-degrees.html'
+        print('Opening conversion website:\n' + convert_url)
+        import webbrowser
+        webbrowser.open(convert_url)
 
     def check_seeding(self):
         print('#'*50)
