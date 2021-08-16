@@ -70,13 +70,15 @@ If you later want to edit the OpenDrift source code, or be able to update from r
 Building and using the Docker image
 +++++++++++++++++++++++++++++++++++
 
-It is also possible to run OpenDrift in a `docker https://www.docker.com/`_ container. You can either use the pre-built images (each release or latest master):
+It is also possible to run OpenDrift in a `docker <https://www.docker.com/>`_
+container. You can either use the `pre-built images (each release or latest
+master) <https://hub.docker.com/r/opendrift/opendrift>`_:
 
 .. code-block:: bash
 
   $ docker run -it --rm opendrift/opendrift:latest
 
-or if you want to re-build the image using your local version of opendrift, check out opendrift and make your changes:
+or if you want to re-build the image using your local version of opendrift, check out opendrift and make your changes, then:
 
 .. code-block:: bash
 
