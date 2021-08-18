@@ -68,6 +68,7 @@ plt.plot(seed_times, runoff_river2, 'r', label='River 2')
 plt.ylabel('Runoff  [m3/s]')
 plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %b %H:%M'))
 plt.margins(x=0)
+plt.legend()
 plt.show()
 
 runoff = np.concatenate((runoff_river1, runoff_river2))
