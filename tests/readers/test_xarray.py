@@ -56,8 +56,7 @@ class TestXarray(unittest.TestCase):
         H, Hsub, Hsurf, lon_array, lat_array = o.get_density_array(pixelsize_m=density_pixelsize_m)
 
         ox = opendrift.open_xarray(outfile, analysis_file=analysis_file)
-        Hx, lon_arrayx, lat_arrayx = ox.get_density_xarray(pixelsize_m=density_pixelsize_m)
-        Hx = Hx[0]  # Presently only for origin_marker = 0
+        Hx, Hx_om, lon_arrayx, lat_arrayx = ox.get_density_xarray(pixelsize_m=density_pixelsize_m)
         self.assertAlmostEqual(lon_array[0], 3.94, 1)
         self.assertAlmostEqual(lon_array[-1], 4.76, 1)
         self.assertAlmostEqual(lon_arrayx[0], 3.90, 1)
