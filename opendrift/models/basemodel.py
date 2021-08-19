@@ -2928,8 +2928,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 else:
                     per_origin_marker = True
                 H, H_om, lon_array, lat_array = self.get_density_xarray(pixelsize_m=density_pixelsize_m,
-                                            weights=density_weight,
-                                            per_origin_marker=per_origin_marker)
+                                                                        weights=density_weight)
+                if per_origin_marker is True:
+                    H = H_om[:,:,:,origin_marker]
             else:
                 if origin_marker is not None:
                     raise ValueError('Separation by origin_marker is only active when imported from file with '
@@ -3760,16 +3761,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if lat<lat_bin.min() or lat>lat_bin.max():
             raise ValueError('Latitude %s is outside range %s to %s' % (lat, lat_bin.min(), lat_bin.max()))
 
-        ilon = np.abs(lon_bin-lon).argmin()
-        ilat = np.abs(lat_bin-lat).argmin()
-        print(ilon, ilat)
-        print(lon_bin[ilon], lat_bin[ilat])
+        t_total = self.af.density.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+        t_origin_marker = self.af.density_origin_marker.sel(lon_bin=lon, lat_bin=lat, method='nearest')
 
-        t_total = self.af.histogram_lon_lat[:, ilon, ilat]
+        return t_total, t_origin_marker
 
-        return t_total, t_om
-
-    def get_density_xarray(self, pixelsize_m, weights=None, per_origin_marker=False):
+    def get_density_xarray(self, pixelsize_m, weights=None, per_origin_marker=True):
         from xhistogram.xarray import histogram
 
         if os.path.exists(self.analysis_file):
@@ -3778,7 +3775,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             lon_bin = self.ads.lon_bin.values
             lat_bin = self.ads.lat_bin.values
             density = self.ads.density.values
-            density_origin_marker = self.ads.density_origin_marker.values
+            if 'density_origin_marker' in self.ads:
+                density_origin_marker = self.ads.density_origin_marker.values
+            else:
+                density_origin_marker = None
             self.ads.close()
             return density, density_origin_marker, lon_bin, lat_bin
 
