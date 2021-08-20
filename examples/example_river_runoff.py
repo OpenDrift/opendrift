@@ -51,10 +51,10 @@ o.run(duration=timedelta(hours=48),
 o = opendrift.open_xarray(outfile, analysis_file=analysis_file)
 
 #%%
-# We want to extract timeseries at the coordinates of a hypothetical measuring station
+# We want to extract timeseries of river water at the coordinates of a hypothetical measuring station
+# as well as the amount of river water passing through two defined areas/regions
 station_lon = 9.4
 station_lat = 58.1
-# and the amount of river water passing through two defined areas/regions
 box1_lon = [8.4, 8.8]
 box1_lat = [57.9, 58.1]
 box2_lon = [9.5, 9.9]
@@ -73,18 +73,11 @@ box2_lat = [58.3, 58.5]
 
 runoff_river1 = np.abs(np.cos(np.arange(number)*2*np.pi/(number)))  # Impose a temporal variation of runoff
 runoff_river2 = 10*runoff_river1  # Let river 2 have 10 times as large runoff as river 1
-plt.plot(seed_times, runoff_river1, 'b', label='River 1')
-plt.plot(seed_times, runoff_river2, 'r', label='River 2')
-plt.ylabel('Runoff  [m3/s]')
-plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %b %H:%M'))
-plt.margins(x=0)
-plt.legend()
-plt.show()
-
 runoff = np.concatenate((runoff_river1, runoff_river2))
 
+#%%
+# Calculate density with given pixel size, weighted by runoff amount per element
 o.get_density_xarray(pixelsize_m=1500, weights=runoff)
-
 
 
 text = [{'s': 'River 1', 'x': 8.55, 'y': 58.56, 'fontsize': 20, 'color': 'g',
@@ -102,34 +95,41 @@ o.animation(density=runoff, density_pixelsize_m=1500, fast=False,
 #%%
 # .. image:: /gallery/animations/example_river_runoff_0.gif
 
-
 #%%
-# Extracting time series at the location of the station
-t, t_om = o.get_density_timeseries(lon=station_lon, lat=station_lat)
-t_om.isel(origin_marker=0).plot(label='River 1')
-t_om.isel(origin_marker=1).plot(label='River 2')
-t.plot(label='Total', linestyle='--')
-plt.legend()
-plt.title('Density of water at Station') 
-plt.show()
-
-#%%
-# Extracting time series of river water passing through the two defined areas/boxes
+# Plotting time series of river runoff, and corresponding water passing through the station and the two defined areas/boxes
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1)
+# Runoff
+ax1.plot(seed_times, runoff_river1, label='River 1')
+ax1.plot(seed_times, runoff_river2, label='River 2')
+ax1.set_ylabel('Runoff  [m3/s]')
+ax1.set_title('Runoff')
+ax1.margins(x=0)
+ax1.legend()
 # Area 1
 t1, t1_om = o.get_density_timeseries(lon=box1_lon, lat=box1_lat)
-t1_om.isel(origin_marker=0).plot(label='River 1')
-t1_om.isel(origin_marker=1).plot(label='River 2')
-t1.plot(label='Total', linestyle='--')
-plt.legend()
-plt.title('Amount of water passing through Area 1') 
-plt.show()
+t1_om.isel(origin_marker=0).plot(label='River 1', ax=ax2)
+t1_om.isel(origin_marker=1).plot(label='River 2', ax=ax2)
+t1.plot(label='Total', linestyle='--', ax=ax2)
+ax2.legend()
+ax2.margins(x=0)
+ax2.set_title('Amount of water passing through Area 1')
 # Area 2
 t2, t2_om = o.get_density_timeseries(lon=box2_lon, lat=box2_lat)
-t2_om.isel(origin_marker=0).plot(label='River 1')
-t2_om.isel(origin_marker=1).plot(label='River 2')
-t2.plot(label='Total', linestyle='--')
-plt.legend()
-plt.title('Amount of water passing through Area 2') 
+t2_om.isel(origin_marker=0).plot(label='River 1', ax=ax3)
+t2_om.isel(origin_marker=1).plot(label='River 2', ax=ax3)
+t2.plot(label='Total', linestyle='--', ax=ax3)
+ax3.legend()
+ax3.margins(x=0)
+ax3.set_title('Amount of water passing through Area 2')
+# Extracting time series at the location of the station
+t, t_om = o.get_density_timeseries(lon=station_lon, lat=station_lat)
+t_om.isel(origin_marker=0).plot(label='River 1', ax=ax4)
+t_om.isel(origin_marker=1).plot(label='River 2', ax=ax4)
+t.plot(label='Total', linestyle='--', ax=ax4)
+ax4.legend()
+ax4.margins(x=0)
+ax4.set_title('Density of water at Station')
+
 plt.show()
 
 
