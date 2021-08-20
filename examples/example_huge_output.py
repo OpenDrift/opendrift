@@ -35,6 +35,7 @@ o.run(duration=timedelta(hours=24),
 # Opening the output file lazily with Xarray.
 # This will work even if the file is too large to fit in memory, as it
 # will read and process data chuck-by-chunk directly from file using Dask.
+# (See also `example_river_runoff.py <https://opendrift.github.io/gallery/example_river_runoff.html>`_)
 # Note that the analysis file will be re-used if existing. Thus this file should be deleted after making any changes to the simulation above.
 o = opendrift.open_xarray(outfile, analysis_file='simulation_density.nc')
 
