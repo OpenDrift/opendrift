@@ -2762,6 +2762,25 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             for te in text:
                 plt.text(transform=ccrs.Geodetic(), **te)
 
+        if 'box' in kwargs:
+            if not isinstance(kwargs['box'], list):
+                box = list(kwargs['box'])
+            else:
+                box = kwargs['box']
+            for bx in box:
+                lonmn = bx['lon'][0]
+                lonmx = bx['lon'][1]
+                latmn = bx['lat'][0]
+                latmx = bx['lat'][1]
+                del bx['lon']
+                del bx['lat']
+                if 'text' in bx:
+                    plt.text(x=lonmn, y=latmx, s=bx['text'], transform=ccrs.Geodetic())
+                    del bx['text']
+                patch = matplotlib.patches.Rectangle(xy=[lonmn, latmn],
+                    width=lonmx-lonmn, height=latmx-latmn, transform=ccrs.Geodetic(), **bx)
+                ax.add_patch(patch)
+
         def show_landmask(landmask):
             maxn = 512.
             dx = (lonmax - lonmin) / maxn
@@ -3752,17 +3771,28 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         if not hasattr(self, 'analysis_file'):
             raise ValueError('Density has to be calculated with get_density_array or animation')
+
         self.af = xr.open_dataset(self.analysis_file)
         lon_bin = self.af.lon_bin.values
         lat_bin = self.af.lat_bin.values
 
-        if lon<lon_bin.min() or lon>lon_bin.max():
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
+        if lon.min()<lon_bin.min() or lon.max()>lon_bin.max():
             raise ValueError('Longitude %s is outside range %s to %s' % (lon, lon_bin.min(), lon_bin.max()))
-        if lat<lat_bin.min() or lat>lat_bin.max():
+        if lat.min()<lat_bin.min() or lat.max()>lat_bin.max():
             raise ValueError('Latitude %s is outside range %s to %s' % (lat, lat_bin.min(), lat_bin.max()))
 
-        t_total = self.af.density.sel(lon_bin=lon, lat_bin=lat, method='nearest')
-        t_origin_marker = self.af.density_origin_marker.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+        if len(lon) == 1:
+            t_total = self.af.density.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+            t_origin_marker = self.af.density_origin_marker.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+        elif len(lon) == 2:
+            t_total = self.af.density.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
+            t_total = t_total.sum(('lon_bin', 'lat_bin'))
+            t_origin_marker = self.af.density_origin_marker.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
+            t_origin_marker = t_origin_marker.sum(('lon_bin', 'lat_bin'))
+        else:
+            raise ValueError('Lon and lat must have length 1 (point) or 2 (min, max)')
 
         return t_total, t_origin_marker
 
