@@ -17,13 +17,15 @@
 Interface to the ADIOS oil database.
 """
 
+import logging
+logger = logging.getLogger(__name__)
 import requests
 from typing import List
 
 ADIOS = "https://adios.orr.noaa.gov/api/oils/"
 
 # The SSL configuration of the ADIOS database does not work outside the browser it seems. Please see
-# this issue: https://github.com/NOAA-ORR-ERD/adios_oil_database/issues/2.
+# this issue: https://github.com/NOAA-ORR-ERD/adios_oil_database/issues/2 .
 VERIFY = False
 
 
@@ -60,39 +62,39 @@ class Oil:
     def __repr__(self):
         return f"[<adios.Oil> {self._id}] {self.name}"
 
-
-def __oils_per_page__() -> float:
-    """
-    Number of oils per page.
-    """
-    m = requests.get(ADIOS, {'limit': 1}, verify=VERIFY).json()
-    total = int(m['meta']['total'])
-    pages = float(m['meta']['totalPages'])
-
-    return total / pages
-
-
 def oils(limit=50) -> List[Oil]:
     """
     Get all oils.
+
+    Args:
+
+        limit: number of oils to retrieve, <= 0 means all available.
+
+
+    Returns:
+
+        List of `class:Oil`s.
     """
-    LIMIT = 50
-    n = __oils_per_page__()
-    assert n > 0
+    LIMIT = 200
 
     oils = []
 
     while len(oils) < limit or limit <= 0:
-        p = int(len(oils) / n)  # current page
+        p = int(len(oils) / LIMIT) + 1  # next page
+        logging.debug(f"Requesting list of oils from ADIOS, oils: {len(oils)} of {limit}, page: {p}")
         o = requests.get(ADIOS, {
             'dir': 'asc',
             'limit': LIMIT,
             'page': p,
             'sort': 'metadata.name'
-        },
-                         verify=VERIFY).json()
+        }, verify=VERIFY).json()
+
         oils.extend(o['data'])
 
+        if float(o['meta']['totalPages']) <= p:
+            break
+
+    limit = len(oils) if limit <= 0 else limit
     oils = oils[:min(limit, len(oils))]
     oils = [Oil.from_json(o) for o in oils]
 
