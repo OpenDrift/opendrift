@@ -30,7 +30,7 @@ schism_native = reader_netCDF_CF_unstructured_SCHISM.Reader(
 	filename = 'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/schism_marl20080101_00z_3D.nc', 
 	proj4 = proj4str_nztm, 
 	use_3d = True)
-# schism_native.plot_mesh(variable = 'sea_floor_depth_below_sea_level') # check reader was correctly loaded, close figure to continue
+# schism_native.plot_mesh(variable = ['sea_floor_depth_below_sea_level']) # check reader was correctly loaded
 
 o.add_reader([reader_landmask,schism_native])
 o.set_config('general:use_auto_landmask', False) # prevent opendrift from making a new dynamical landmask with global_landmask

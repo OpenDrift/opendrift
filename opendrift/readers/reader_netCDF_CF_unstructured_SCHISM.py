@@ -906,6 +906,15 @@ class Reader(BaseReader,UnstructuredReader):
              filename=None, title=None, buffer=1, lscale='auto',plot_time = None):
         """Plot geographical coverage of reader."""
 
+        #####################################
+        # In Dev - plot unstructured mesh
+        # 
+        # To do 
+        #  - plot a given timestep, and levels for flows
+        #  - incorporate that to animation as in basemodel.py etc...
+        # 
+        #####################################
+
         import matplotlib.pyplot as plt
         from matplotlib.patches import Polygon
         import cartopy.crs as ccrs
@@ -916,46 +925,6 @@ class Reader(BaseReader,UnstructuredReader):
 
         if plot_time is None : 
             plot_time = self.start_time
-
-        #####################################
-        # In Dev - plot unstructured mesh
-        # 
-        # To do 
-        #  - plot in correct cartopy projection, consistent with basereader.py plot()
-        #  - plot a given timestep for flows
-        #  - incorporate that to animation as in basemodel.py etc...
-        # 
-        #####################################
-        import pdb;pdb.set_trace()
-        if False:
-            import pdb;pdb.set_trace()
-            import matplotlib.tri as mtri
-            from mpl_toolkits.mplot3d import Axes3D
-            X=self.dataset.variables['SCHISM_hgrid_node_x'][:]
-            Y=self.dataset.variables['SCHISM_hgrid_node_y'][:]
-            Z=self.dataset.variables['depth'][:]
-            face=self.dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
-            # build triangulation
-            triang =mtri.Triangulation(X,Y, triangles=face, mask=None)
-            # quads=Triangulation(gr.x,gr.y,quads)
-
-            #
-            # plot the triangular mesh 
-            plt.triplot(triang) 
-            # plot the variable - here depth for now
-            plt.tricontourf(triang, Z)
-            # more complex 3D plots 
-            # ax = fig.add_subplot(1,1,1, projection='3d')
-            # ax.plot_trisurf(triang,Z, cmap='jet')
-            # or 
-            # from https://github.com/metocean/schism-public/blob/master/LSC/lsc.py
-            # tricon=ax.tricontourf(triang,Z,cmap='jet')
-            # ax.view_init(azim=-90, elev=90)
-            plt.ion()
-            plt.show()
-            import pdb;pdb.set_trace()
-        #####################################
-
 
         corners = self.xy2lonlat([self.xmin, self.xmin, self.xmax, self.xmax],
                                  [self.ymax, self.ymin, self.ymax, self.ymin])
@@ -1056,22 +1025,7 @@ class Reader(BaseReader,UnstructuredReader):
                 # ax.triplot(triang, transform=ccrs.PlateCarree()) 
 
             elif len(variable)>1 and all('water' in var for var in variable):  # vector field variable = ['x_sea_water_velocity','y_sea_water_velocity']
-                rx = np.array([self.xmin, self.xmax])
-                ry = np.array([self.ymin, self.ymax])
-                data = self.get_variables(variable, plot_time,rx, ry, block=True)
-                rlon, rlat = self.xy2lonlat(data['x'], data['y']) # node coordinates
-                # data[variable] = np.ma.masked_invalid(data[variable])
-                # ax.plot(rlon,rlat, '.',transform=ccrs.PlateCarree())
-                face=self.dataset.variables['SCHISM_hgrid_face_nodes'][:,0:3]-1
-                # build triangulation
-                triang =mtri.Triangulation(rlon,rlat, triangles=face, mask=None)
-                if False:
-                    # plot the variable 
-                    ax.tricontourf(triang, data[variable],vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
-                    # add the triangular mesh - too slow
-                    ax.triplot(triang, transform=ccrs.PlateCarree()) 
-
-                ax.quiver(rlon,rlat,data['x_sea_water_velocity'],data['y_sea_water_velocity'],np.sqrt(data['x_sea_water_velocity']**2 + data['y_sea_water_velocity']**2), transform=ccrs.PlateCarree() )
+                pass # not implemented yet 
 
             ax.set_extent([xsp.min()-.5, xsp.max()+.5, ysp.min()-.5, ysp.max()+.5], crs=sp)
 
@@ -1087,13 +1041,7 @@ class Reader(BaseReader,UnstructuredReader):
         else:
             plt.ion()
             plt.show()
-            # import pdb;pdb.set_trace()
-            # 
-            # variable = ['sea_floor_depth_below_sea_level','x_sea_water_velocity','y_sea_water_velocity']
-            # data = self.get_variables(variable, self.start_time,rx, ry, block=True) # where variable = ['x_sea_water_velocity','y_sea_water_velocity']
-            # plt.quiver(rlon,rlat,data['x_sea_water_velocity']) #> check what's going here
-            # >>> try to add quiver to check flow fields and how they are interpolated over time
-            # >>> also consider adding the possibiltyy to overlay quiver+particle motions for the reader_netCDF_CF_generic structured
+            import pdb;pdb.set_trace()
 
 ###########################
 # ReaderBlockUnstruct class
