@@ -7,7 +7,7 @@ SCHISM native reader
 
 import numpy as np
 from datetime import timedelta, datetime
-from opendrift.readers import reader_netCDF_CF_unstructured_SCHISM
+from opendrift.readers import reader_schism_native
 from opendrift.readers import reader_global_landmask
 from opendrift.models.oceandrift import OceanDrift
 
@@ -26,7 +26,7 @@ reader_landmask = reader_global_landmask.Reader(
 
 # NZTM proj4 string found at https://spatialreference.org/ref/epsg/nzgd2000-new-zealand-transverse-mercator-2000/
 proj4str_nztm = '+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
-schism_native = reader_netCDF_CF_unstructured_SCHISM.Reader(
+schism_native = reader_schism_native.Reader(
 	filename = 'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/schism_marl20080101_00z_3D.nc', 
 	proj4 = proj4str_nztm, 
 	use_3d = True)
