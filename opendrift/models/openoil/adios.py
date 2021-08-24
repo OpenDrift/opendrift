@@ -18,6 +18,7 @@ Interface to the ADIOS oil database.
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 import requests
 from typing import List
@@ -44,7 +45,8 @@ class ThinOil:
     product_type: str
     sample_date: str
 
-    def __init__(self, _id, _type, name, API, gnome_suitable, labels, location, model_completeness, product_type, sample_date):
+    def __init__(self, _id, _type, name, API, gnome_suitable, labels, location,
+                 model_completeness, product_type, sample_date):
         self.id = _id
         self.type = _type
         self.name = name
@@ -63,27 +65,40 @@ class ThinOil:
     def __repr__(self):
         return f"[<adios.ThinOil> {self.id}] {self.name}"
 
+    def is_generic(self):
+        return 'GENERIC' in self.name
+
     def make_full(self) -> 'Oil':
         """
         Fetch the full oil from ADIOS.
         """
-        logger.debug(f"Fetching full oil: {self.id, self.name}")
-        o = requests.get(f"{ADIOS}/{self.id}", verify=VERIFY).json()
-        return Oil(self, o)
+        return Oil.from_id(self.id)
 
 
 class Oil(ThinOil):
     data: dict
 
-    def __init__(self, thin, o):
-        self.__dict__.update(thin.__dict__) # This is so bad. But whatever.
+    def __init__(self, o):
         self.data = o
+
+        data = o['data']
+        meta = data['attributes']['metadata']
+        self.id = data['_id']
+        self.name = meta['name']
 
         from pprint import pp
         pp(o)
 
+    @staticmethod
+    def from_id(_id) -> 'Oil':
+        logger.debug(f"Fetching full oil: {_id}")
+        o = requests.get(f"{ADIOS}/{_id}", verify=VERIFY).json()
+        return Oil(o)
+
+
     def __repr__(self):
         return f"[<adios.Oil> {self.id}] {self.name}"
+
 
 def oils(limit=50) -> List[ThinOil]:
     """
@@ -108,13 +123,16 @@ def oils(limit=50) -> List[ThinOil]:
     # XXX: This fails when batch size is less or unequal to `batch`.
     while len(oils) < limit or limit <= 0:
         p = int(len(oils) / batch) + 1  # next page, XXX: check for off-by-one?
-        logging.debug(f"Requesting list of oils from ADIOS, oils: {len(oils)} of {limit}, page: {p}")
+        logging.debug(
+            f"Requesting list of oils from ADIOS, oils: {len(oils)} of {limit}, page: {p}"
+        )
         o = requests.get(ADIOS, {
             'dir': 'asc',
             'limit': batch,
             'page': p,
             'sort': 'metadata.name'
-        }, verify=VERIFY).json()
+        },
+                         verify=VERIFY).json()
 
         oils.extend(o['data'])
 
