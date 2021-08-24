@@ -61,7 +61,8 @@ class Reader(BaseReader,UnstructuredReader):
     A reader for unstructured (irregularily gridded) `SCHISM` files.
 
     Args:
-        :param filename: SCHISM netcdf output file(s) (can use wildcard to load more than one)
+        :param filename: a single SCHISM netcdf output file, or a pattern of files.
+                         The netCDF file can also be an URL to an OPeNDAP server.
         :type filename: string, required.
 
         :param name: Name of reader
