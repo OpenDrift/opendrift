@@ -288,17 +288,16 @@ class Reader(BaseReader,UnstructuredReader):
             # the vertical distance unit is meter, while the horizontal distance unit is degrees, which will return
             # erroneous "closest" nodes in ReaderBlockUnstruct,interpolate()
 
-        
+        # Run constructor of parent Reader class
+        super(Reader, self).__init__()
+
         # compute CKDtree of (static) 2D nodes using _build_ckdtree_() from unstructured.py
         logger.debug('Building CKDtree of static 2D nodes for nearest-neighbor search')
-        # self.reader_KDtree = self.build_ckdtree(self.lon,self.lat)
-        self.reader_KDtree = UnstructuredReader._build_ckdtree_(self,self.x,self.y) 
+        self.reader_KDtree = self._build_ckdtree_(self.x,self.y) 
 
         # build convex hull of points for particle-in-mesh checks using _build_boundary_polygon_() from unstructured.py
         logger.debug('Building convex hull of nodes for particle''s in-mesh checks')
-        # self.hull_path = self.build_boundary_path(x, y)
-        self.boundary = UnstructuredReader._build_boundary_polygon_(self,self.x,self.y)
-        # self.hull_path = self.build_boundary_path(self.x,self.y) # matplotlib Path object
+        self.boundary = self._build_boundary_polygon_(self.x,self.y)
 
         # Find all variables having standard_name
         self.variable_mapping = {}
@@ -998,7 +997,7 @@ class Reader(BaseReader,UnstructuredReader):
         log_fac[np.where(part_z_above_seabed<=0)] = 1.0 # do not change velocity value
         return log_fac
 
-    def plot(self, variable=None, vmin=None, vmax=None,
+    def plot_mesh(self, variable=None, vmin=None, vmax=None,
              filename=None, title=None, buffer=1, lscale='auto',plot_time = None):
         """Plot geographical coverage of reader."""
 
