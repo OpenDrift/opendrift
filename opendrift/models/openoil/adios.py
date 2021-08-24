@@ -29,9 +29,12 @@ ADIOS = "https://adios.orr.noaa.gov/api/oils/"
 VERIFY = False
 
 
-class Oil:
-    _id: str
-    _type: str
+class ThinOil:
+    """
+    Basic Oil object for listing. Upgrade to `class:Oil` object for useful methods.
+    """
+    id: str
+    type: str
     name: str
     API: float
     gnome_suitable: bool
@@ -41,28 +44,48 @@ class Oil:
     product_type: str
     sample_date: str
 
+    def __init__(self, _id, _type, name, API, gnome_suitable, labels, location, model_completeness, product_type, sample_date):
+        self.id = _id
+        self.type = _type
+        self.name = name
+        self.API = API
+        self.gnome_suitable = gnome_suitable
+        self.labels = labels
+        self.location = location
+        self.model_completeness = model_completeness
+        self.product_type = product_type
+        self.sample_date = sample_date
+
     @staticmethod
-    def from_json(d) -> 'Oil':
-        o = Oil()
-        o._id = d['_id']
-        o._type = d['type']
-
-        meta = d['attributes']['metadata']
-        o.name = meta['name']
-        o.API = meta['API']
-        o.gnome_suitable = meta['gnome_suitable']
-        o.labels = meta['labels']
-        o.location = meta['location']
-        o.model_completeness = meta['model_completeness']
-        o.product_type = meta['product_type']
-        o.sample_date = meta['sample_date']
-
-        return o
+    def from_json(d) -> 'ThinOil':
+        return ThinOil(d['_id'], d['type'], **d['attributes']['metadata'])
 
     def __repr__(self):
-        return f"[<adios.Oil> {self._id}] {self.name}"
+        return f"[<adios.ThinOil> {self.id}] {self.name}"
 
-def oils(limit=50) -> List[Oil]:
+    def make_full(self) -> 'Oil':
+        """
+        Fetch the full oil from ADIOS.
+        """
+        logger.debug(f"Fetching full oil: {self.id, self.name}")
+        o = requests.get(f"{ADIOS}/{self.id}", verify=VERIFY).json()
+        return Oil(self, o)
+
+
+class Oil(ThinOil):
+    data: dict
+
+    def __init__(self, thin, o):
+        self.__dict__.update(thin.__dict__) # This is so bad. But whatever.
+        self.data = o
+
+        from pprint import pp
+        pp(o)
+
+    def __repr__(self):
+        return f"[<adios.Oil> {self.id}] {self.name}"
+
+def oils(limit=50) -> List[ThinOil]:
     """
     Get all oils.
 
@@ -73,18 +96,22 @@ def oils(limit=50) -> List[Oil]:
 
     Returns:
 
-        List of `class:Oil`s.
+        List of `class:ThinOil`s.
     """
-    LIMIT = 200
+    # The batch size seems to be maximum 205 at the moment.
+    MAX_BATCH_SZ = 205
+
+    batch = min(MAX_BATCH_SZ, limit)
 
     oils = []
 
+    # XXX: This fails when batch size is less or unequal to `batch`.
     while len(oils) < limit or limit <= 0:
-        p = int(len(oils) / LIMIT) + 1  # next page
+        p = int(len(oils) / batch) + 1  # next page, XXX: check for off-by-one?
         logging.debug(f"Requesting list of oils from ADIOS, oils: {len(oils)} of {limit}, page: {p}")
         o = requests.get(ADIOS, {
             'dir': 'asc',
-            'limit': LIMIT,
+            'limit': batch,
             'page': p,
             'sort': 'metadata.name'
         }, verify=VERIFY).json()
@@ -96,6 +123,6 @@ def oils(limit=50) -> List[Oil]:
 
     limit = len(oils) if limit <= 0 else limit
     oils = oils[:min(limit, len(oils))]
-    oils = [Oil.from_json(o) for o in oils]
+    oils = [ThinOil.from_json(o) for o in oils]
 
     return oils
