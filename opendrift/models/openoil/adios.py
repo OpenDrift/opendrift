@@ -99,6 +99,43 @@ class Oil(ThinOil):
     def __repr__(self):
         return f"[<adios.Oil> {self.id}] {self.name}"
 
+    def density_at_temp(self, t) -> float:
+        raise NotImplementedError
+
+    def kvis_at_temp(self, t) -> float:
+        raise NotImplementedError
+
+    @property
+    def mass_fraction(self) -> float:
+        raise NotImplementedError
+
+    def oil_water_surface_tension(self) -> List:
+        raise NotImplementedError
+
+    @property
+    def bulltime(self) -> float:
+        raise NotImplementedError
+
+    @property
+    def bullwinkle(self) -> float:
+        raise NotImplementedError
+
+    @property
+    def emulsion_water_fraction_max(self) -> float:
+        raise NotImplementedError
+
+    def vapor_pressure(self, t) -> float:
+        raise NotImplementedError
+
+    @property
+    def molecular_weight(self) -> float:
+        raise NotImplementedError
+
+    @property
+    def k0y(self) -> float:
+        # XXX: No idea what this is.
+        raise NotImplementedError
+
 
 def oils(limit=50) -> List[ThinOil]:
     """
