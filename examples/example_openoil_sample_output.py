@@ -30,7 +30,7 @@ o.add_reader([rc, reader_norkyst, reader_arome])
 time = [reader_arome.start_time,
         reader_arome.start_time + timedelta(hours=1)]
 o.seed_elements(lon=5.05, lat=59.95, radius=1500, number=100,
-                time=time, z=0, m3_per_hour=2, oiltype='TAU 1999')
+                time=time, z=0, m3_per_hour=2, oil_type='TAU 1999')
 
 #%%
 # Running model
@@ -48,3 +48,10 @@ from subprocess import check_output
 args = [ "ncdump", "-h", ncfile ]
 ncdump = check_output(args).decode().strip()
 print(ncdump)
+
+#%%
+#.. only :: html
+#
+# .. container:: sphx-glr-download
+#
+#    :download:`Download sample file <openoil_sample_output.nc>`

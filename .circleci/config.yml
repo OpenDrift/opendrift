@@ -17,9 +17,10 @@ test-template: &test-template
           cat envconfig
 
     - restore_cache:
-        key: v13-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v14-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
     - run:
         name: Install requirements
+        no_output_timeout: 30m
         command: |
           if [ ! -e /opt/conda/envs/opendrift ]; then
             if [ -v PYTHON_VERSION ]; then
@@ -40,7 +41,7 @@ test-template: &test-template
           fi
 
     - save_cache:
-        key: v13-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+        key: v14-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
         paths:
           - "/opt/conda/envs"
 
@@ -123,8 +124,19 @@ jobs:
               echo "PR: ${GITHUB_PR_TITLE}"
             fi
 
+      - run:
+          name: Check if examples should be built
+          command: |
+            if git log --oneline --pretty=format:%s "master..${CIRCLE_SHA1}" | grep '\[run-ex\]' ; then
+              BUILD_EXAMPLES=1
+            else
+              BUILD_EXAMPLES=0
+            fi
+            echo "export BUILD_EXAMPLES=${BUILD_EXAMPLES}" >> ${BASH_ENV}
+            echo "Build examples: ${BUILD_EXAMPLES}"
+
       - restore_cache:
-          key: v6-docs-deps1-{{ checksum "environment.yml" }}
+          key: v7-docs-deps1-{{ checksum "environment.yml" }}
 
       - run:
           name: Install requirements
@@ -137,7 +149,7 @@ jobs:
             fi
 
       - save_cache:
-          key: v6-docs-deps1-{{ checksum "environment.yml" }}
+          key: v7-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
@@ -165,7 +177,7 @@ jobs:
       - run:
           name: Check if docs should be re-built
           command: |
-            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${CIRCLE_BRANCH}" == "master" ]]; then
+            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${BUILD_EXAMPLES}" -eq 1 ]]; then
               echo "Clearing out examples.."
               source activate opendrift
               cd docs/
@@ -173,8 +185,14 @@ jobs:
             fi
 
       - run:
+          name: Wake-up Thredds-servers
+          command: |
+              source activate opendrift
+              python .circleci/wake-up-thredds.py
+
+      - run:
           name: Build docs
-          command: source activate opendrift && cd docs/ && make SPHINXOPTS=-v html
+          command: source activate opendrift && cd docs/ && make html
           no_output_timeout: 40m
 
       - save_cache:

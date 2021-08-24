@@ -1,5 +1,6 @@
 from abc import abstractmethod
 import numpy as np
+import scipy
 import logging
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ class UnstructuredReader(Variables):
         :class:`.structured.StructuredReader`
 
     """
+    # Number of parallel threads to use when possible
+    PARALLEL_WORKERS = -1
 
     boundary = None
 
@@ -48,7 +51,7 @@ class UnstructuredReader(Variables):
 
         Returns:
 
-            Dictionary with arrays of length len(x) with values at exact positions x, y and z.
+            Dictionary with arrays of length len(time) with values at exact positions x, y and z.
         """
 
     def _get_variables_interpolated_(self, variables, profiles,
@@ -156,13 +159,12 @@ class UnstructuredReader(Variables):
         P = np.vstack((x, y)).T
         return cKDTree(P)
 
-    @staticmethod
-    def __nearest_ckdtree__(idx, x, y):
+    def __nearest_ckdtree__(self, idx, x, y):
         """
         Return index of nearest point in cKDTree
         """
         q = np.vstack((x, y)).T
-        return idx.query(q, k = 1, workers = -1)[1]
+        return idx.query(q, k = 1, workers = self.PARALLEL_WORKERS)[1]
 
     @staticmethod
     def __nearest_rtree__(idx, x, y):
@@ -182,4 +184,3 @@ class UnstructuredReader(Variables):
         Return nearest element or face (id) for xc and yc
         """
         return self.__nearest_ckdtree__(self.faces_idx, xc, yc)
-

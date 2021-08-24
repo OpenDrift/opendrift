@@ -69,12 +69,12 @@ reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016
 x = reader_arctic.x[10:12]
 y = reader_arctic.y[10:12]
 z = np.array([-20, -10])
-variables = ['sea_surface_elevation', 'sea_ice_area_fraction', 'barotropic_sea_water_x_velocity', 'y_sea_water_velocity', 'sea_floor_depth_below_sea_level', 'sea_water_salinity', 'x_sea_water_velocity', 'barotropic_sea_water_y_velocity', 'sea_water_temperature', 'sea_ice_thickness']
+variables = ['sea_surface_elevation', 'sea_ice_area_fraction', 'y_sea_water_velocity', 'sea_floor_depth_below_sea_level', 'sea_water_salinity', 'x_sea_water_velocity', 'sea_water_temperature', 'sea_ice_thickness']
 reader_arctic.buffer=1000 # read all
 reader_arctic.verticalbuffer=1000 # read all
 start_time = datetime.now()
 for t in reader_arctic.times:
-    v = reader_arctic.get_variables(variables, time=t, x=x, y=y, z=z, block=True)
+    v = reader_arctic.get_variables(variables, time=t, x=x, y=y, z=z)
 time_spent = datetime.now() - start_time
 print('%6.2f seconds on this machine' % time_spent.total_seconds())
 
@@ -102,7 +102,8 @@ reader_arctic.buffer=10
 reader_arctic.verticalbuffer=1
 o = OpenOil(loglevel=50) # Quiet
 o.add_reader(reader_arctic)
-o.fallback_values['x_wind'] = 10
+o.set_config('environment:fallback:x_wind', 10)
+o.set_config('environment:fallback:y_wind', 0)
 o.set_config('vertical_mixing:timestep', 1)
 o.seed_elements(lon=15, lat=72, number=50, radius=10000,
                 time=reader_arctic.start_time)
@@ -117,8 +118,8 @@ print('Test 5: Vertical mixing with 500000 elements and 10 cycles (memory-heavy)
 print('  38.0 seconds on reference machine.')
 o = OpenOil(loglevel=50) # Quiet
 o.add_reader(reader_arctic)
-o.fallback_values['x_wind'] = 10
-o.set_config('vertical_mixing:verticalresolution', 3)
+o.set_config('environment:fallback:x_wind', 10)
+o.set_config('environment:fallback:y_wind', 0)
 o.set_config('vertical_mixing:timestep', 50)
 o.seed_elements(lon=15, lat=72, number=500000, radius=10000,
                 time=reader_arctic.start_time)

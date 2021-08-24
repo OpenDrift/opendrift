@@ -9,7 +9,6 @@ akvaplan = "https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_
 akvaplan_local = "niva/AkvaplanNiva_sample.nc4"
 proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
-
 def test_open():
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
     print(r)

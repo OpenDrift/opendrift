@@ -133,7 +133,6 @@ class Reader(BaseReader, StructuredReader):
                 self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
                                                  chunks={'time': 1}, decode_times=False)
             else:
-                logger.info('Opening file with Dataset')
                 self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)
@@ -145,6 +144,7 @@ class Reader(BaseReader, StructuredReader):
         lon_var_name = None
         lat_var_name = None
         self.unitfactor = 1
+        self.realizations = None
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
 
@@ -231,6 +231,10 @@ class Reader(BaseReader, StructuredReader):
                 self.realizations = var_data
                 logger.debug('%i ensemble members available'
                               % len(self.realizations))
+
+        # Temporary workaround for Barents EPS model
+        if self.realizations is None and 'ensemble_member' in self.Dataset.dims:
+            self.realizations = np.arange(self.Dataset.dims['ensemble_member'])
 
         #########################
         # Summary of geolocation
@@ -341,6 +345,7 @@ class Reader(BaseReader, StructuredReader):
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None,
                       indrealization=None):
+
         requested_variables, time, x, y, z, _outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
@@ -361,7 +366,7 @@ class Reader(BaseReader, StructuredReader):
             indz = 0
 
         if indrealization == None:
-            if hasattr(self, 'realizations'):
+            if self.realizations is not None:
                 indrealization = range(len(self.realizations))
             else:
                 indrealization = None
@@ -370,43 +375,34 @@ class Reader(BaseReader, StructuredReader):
         if hasattr(self, 'clipped'):
             clipped = self.clipped
         else: clipped = 0
+
+        if self.global_coverage():
+            if self.lon_range() == '0to360':
+                x = np.mod(x, 360)  # Shift x/lons to 0-360 
+            elif self.lon_range() == '-180to180':
+                x = np.mod(x + 180, 360) - 180 # Shift x/lons to -180-180
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
         indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
-        ## If x or y coordinates are decreasing, we need to flip
-        # Disabled 15 Dec 2020 by KFD, may be obsolete
-        #if hasattr(self, 'x'):
-        #    print(self.x, 'X')
-        #    if self.x[0] > self.x[-1]:
-        #        indx = len(self.x) - indx
-        #    if self.y[0] > self.y[-1]:
-        #        indy = len(self.y) - indy
-        # Adding buffer, to cover also future positions of elements
-        buffer = self.buffer
-        if self.global_coverage():
-            #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
-            if indx.min() < 0:  # Primitive fix for crossing 0-meridian
-                indx = indx + self.numx
-            indx = np.arange(np.max([0, indx.min()-buffer]),
-                                np.min([indx.max()+buffer, self.numx]))
-        else:
-            indx = np.arange(np.max([0, indx.min()-buffer]),
-                                np.min([indx.max()+buffer, self.numx]))
+        buffer = self.buffer  # Adding buffer, to cover also future positions of elements
         indy = np.arange(np.max([0, indy.min()-buffer]),
-                            np.min([indy.max()+buffer, self.numy]))
-        if indx.min() <= 0 and indx.max() >= self.numx:
-            indx = np.arange(0, self.numx)
+                         np.min([indy.max()+buffer, self.numy]))
+        indx = np.arange(indx.min()-buffer, indx.max()+buffer+1)
 
-        variables = {}
-
-        if indx.min() < 0 and indx.max() > 0:
-            logger.debug('Requested data block is not continous in file'+
+        if self.global_coverage() and indx.min() < 0 and indx.max() > 0 and indx.max() < self.numx:
+            logger.debug('Requested data block is not continuous in file'+
                           ', must read two blocks and concatenate.')
             indx_left = indx[indx<0] + self.numx  # Shift to positive indices
             indx_right = indx[indx>=0]
-            continous = False
+            if indx_right.max() >= indx_left.min():  # Avoid overlap
+                indx_right = np.arange(indx_right.min(), indx_left.min())
+            continuous = False
         else:
-            continous = True
-        
+            continuous = True
+            indx = np.arange(np.max([0, indx.min()]),
+                             np.min([indx.max(), self.numx]))
+
+        variables = {}
+
         for par in requested_variables:
             if hasattr(self, 'rotate_mapping') and par in self.rotate_mapping:
                 logger.debug('Using %s to retrieve %s' %
@@ -418,7 +414,7 @@ class Reader(BaseReader, StructuredReader):
             var = self.Dataset.variables[self.variable_mapping[par]]
 
             ensemble_dim = None
-            if continous is True:
+            if continuous is True:
                 if var.ndim == 2:
                     variables[par] = var[indy, indx]
                 elif var.ndim == 3:
@@ -487,10 +483,6 @@ class Reader(BaseReader, StructuredReader):
             variables['y'] = indy
         variables['x'] = np.asarray(variables['x'])
         variables['y'] = np.asarray(variables['y'])
-        if self.global_coverage():
-            # TODO: this should be checked
-            if self.xmax + self.delta_x >= 360 and variables['x'].max() > 180:
-                variables['x'] -= 360
 
         variables['time'] = nearestTime
 

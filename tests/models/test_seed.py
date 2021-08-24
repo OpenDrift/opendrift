@@ -215,5 +215,10 @@ class TestSeed(unittest.TestCase):
         self.assertAlmostEqual(lat[0], 60, 5)
         self.assertNotAlmostEqual(lat[1], 60, 5)
 
+    def test_seed_letters(self):
+        o = OceanDrift(loglevel=50)
+        o.seed_letters('Obey Soros', lon=-2, lat=61, time=datetime.now(), number=1000)
+        self.assertAlmostEqual(o.elements_scheduled.lon.max(), 5.64, 1)
+
 if __name__ == '__main__':
     unittest.main()

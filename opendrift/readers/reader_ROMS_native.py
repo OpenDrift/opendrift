@@ -121,6 +121,7 @@ class Reader(BaseReader, StructuredReader):
             # Read sigma-coordinate values
             try:
                 self.sigma = self.Dataset.variables['s_rho'][:]
+                self.sigma = self.sigma.data  # Extract data
             except:
                 num_sigma = len(self.Dataset.dimensions['s_rho'])
                 logger.warning(
@@ -147,14 +148,19 @@ class Reader(BaseReader, StructuredReader):
             del self.ROMS_variable_mapping['u']
             del self.ROMS_variable_mapping['v']
 
-        if 'u_eastward' in self.Dataset.variables:
-            del self.ROMS_variable_mapping['u']
-            del self.ROMS_variable_mapping['v']
+        for var in list(self.ROMS_variable_mapping):  # Remove unused variables
+            if var not in self.Dataset.variables:
+                del self.ROMS_variable_mapping[var]
 
         if 'lat_rho' in self.Dataset.variables:
             # Horizontal oordinates and directions
             self.lat = self.Dataset.variables['lat_rho'][:]
             self.lon = self.Dataset.variables['lon_rho'][:]
+            self.lon = self.lon.data  # Extract, could be avoided downstream
+            self.lat = self.lat.data
+            if self.lat.ndim == 1:
+                self.lon, self.lat = np.meshgrid(self.lon, self.lat)
+                self.angle_xi_east = 0
         else:
             if gridfile is None:
                 raise ValueError(filename + ' does not contain lon/lat '
@@ -192,10 +198,6 @@ class Reader(BaseReader, StructuredReader):
             self.time_step = self.times[1] - self.times[0]
         else:
             self.time_step = None
-
-        self.lon = self.lon.data  # Extract, could be avoided downstream
-        self.lat = self.lat.data
-        self.sigma = self.sigma.data
 
         self.name = 'roms native'
 
@@ -330,15 +332,19 @@ class Reader(BaseReader, StructuredReader):
                     if not hasattr(self, 'mask_u'):
                         if 'mask_u' in self.Dataset.variables:
                             self.mask_u = self.Dataset.variables['mask_u'][:]
-                        else:
+                        elif 'mask_rho' in self.Dataset.variables:
                             self.mask_u = self.Dataset.variables['mask_rho'][:]
+                        else:
+                            continue
                     mask = self.mask_u[indygrid, indxgrid]
                 elif par == 'y_sea_water_velocity':
                     if not hasattr(self, 'mask_v'):
                         if 'mask_v' in self.Dataset.variables:
                             self.mask_v = self.Dataset.variables['mask_v'][:]
-                        else:
+                        elif 'mask_rho' in self.Dataset.variables:
                             self.mask_v = self.Dataset.variables['mask_rho'][:]
+                        else:
+                            continue
                     mask = self.mask_v[indygrid, indxgrid]
                 else:
                     if not hasattr(self, 'mask_rho'):
@@ -483,10 +489,14 @@ class Reader(BaseReader, StructuredReader):
                 or 'x_wind' in variables.keys():
             # We must rotate current vectors
             if not hasattr(self, 'angle_xi_east'):
-                logger.debug('Reading angle between xi and east...')
-                self.angle_xi_east = self.Dataset.variables['angle'][:]
-            rad = self.angle_xi_east[indy, indx]
-            rad = np.ma.asarray(rad)
+                if 'angle' in self.Dataset.variables:
+                    logger.debug('Reading angle between xi and east...')
+                    self.angle_xi_east = self.Dataset.variables['angle'][:]
+            if isinstance(self.angle_xi_east, int):
+                rad = self.angle_xi_east
+            else:
+                rad = self.angle_xi_east[indy, indx]
+                rad = np.ma.asarray(rad)
             if 'x_sea_water_velocity' in variables.keys():
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(

@@ -19,6 +19,9 @@ from opendrift_landmask_data import Landmask
 
 import warnings
 import pyproj
+import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Reader(BaseReader, ContinuousReader):
@@ -86,10 +89,24 @@ class Reader(BaseReader, ContinuousReader):
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
 
         # setup landmask
-        self.mask = Landmask(extent, skippoly)
+        try:
+            from roaring_landmask import RoaringLandmask
+            logger.warning("using the experimental RoaringLandmask")
+            self.mask = RoaringLandmask.new()
+
+            if skippoly:
+                logger.warning('skippoly is not supported with RoaringLandmask')
+
+        except ImportError:
+            self.mask = Landmask(extent, skippoly)
 
     def __on_land__(self, x, y):
-        return self.mask.contains (x, y, skippoly = self.skippoly, checkextent = False)
+        if isinstance(self.mask, Landmask):
+            return self.mask.contains(x, y, skippoly = self.skippoly, checkextent = False)
+        else:
+            x = x.astype(np.float64)
+            y = y.astype(np.float64)
+            return self.mask.contains_many(x, y)
 
     def get_variables(self, requestedVariables, time = None,
                       x = None, y = None, z = None):

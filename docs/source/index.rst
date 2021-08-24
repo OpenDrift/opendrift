@@ -113,6 +113,7 @@ Contents
    docker
    gui
    references
+   services
    autoapi/index
 
 

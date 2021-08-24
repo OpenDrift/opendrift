@@ -95,10 +95,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             module/subclass using environment data from any readers which
             can provide the requested variables. Used in method 'update'
             to update properties of elements every time_step.
-        proj4: string defining the common spatial reference system (SRS) onto
-            which data from all readers are interpolated
-        proj: Proj object initialised from proj4 string; used for
-            coordinate tranformations
         time_step: timedelta object, time interval at which element properties
             are updated (including advection).
         time_step_output: timedelta object, time interval at which element
@@ -130,6 +126,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
     proj_latlon = pyproj.Proj('+proj=latlong')
+
+    @classmethod
+    def SRS(cls):
+        return cls.proj_latlon
 
     def __init__(self, seed=0, iomodule='netcdf',
                  loglevel=logging.DEBUG, logtime='%H:%M:%S', logfile=None):
@@ -271,7 +271,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:horizontal_diffusivity': {'type': 'float', 'default': 0,
-                'min': 0, 'max': 100, 'units': 'm2/s',
+                'min': 0, 'max': 100000, 'units': 'm2/s',
                 'description': 'Add horizontal diffusivity (random walk)',
                 'level': self.CONFIG_LEVEL_ADVANCED},
             'drift:wind_uncertainty': {'type': 'float', 'default': 0,
@@ -363,9 +363,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                      opendrift.version.version_or_git())
 
         # Check if dependencies are outdated
-        try:
-            import cfgrib
-        except:
+        import importlib
+        if importlib.util.find_spec("cmocean") is None:
             logger.warning('#'*82)
             logger.warning('Dependencies are outdated, please update with: conda env update -f environment.yml')
             logger.warning('#'*82)
@@ -616,11 +615,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         sea_floor_depth = self.sea_floor_depth()
         below = np.where(self.elements.z < -sea_floor_depth)[0]
         if len(below) == 0:
-                logger.debug('No elements hit seafloor.')
-                return
+            logger.debug('No elements hit seafloor.')
+            return
 
         i = self.get_config('general:seafloor_action')
         if i == 'lift_to_seafloor':
+            logger.debug('Lifting %s elements to seafloor.' % len(below))
             self.elements.z[below] = -sea_floor_depth[below]
         elif i == 'deactivate':
             self.deactivate_elements(self.elements.z < -sea_floor_depth, reason='seafloor')
@@ -1045,6 +1045,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     if var not in self.required_variables:
                         logger.debug('Not returning env-variable: ' + var)
                         continue
+                    if var not in env.dtype.names:
+                        continue  # Skipping variables that are only used to derive needed variables
                     env[var][missing_indices] = np.ma.masked_invalid(
                         env_tmp[var][0:len(missing_indices)]).astype('float32')
                     if profiles_from_reader is not None and var in profiles_from_reader:
@@ -1473,6 +1475,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         radius = np.atleast_1d(radius).ravel()
         time = np.atleast_1d(time)
 
+        if lat.max() > 90 or lat.min() < -90:
+            raise ValueError('Latitude must be between -90 and 90 degrees')
+
         if len(lon) != len(lat):
             raise ValueError('Lon and lat must have same lengths')
 
@@ -1856,7 +1861,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lons = [r.GetX(j) for j in range(r.GetPointCount())]
                 lats = [r.GetY(j) for j in range(r.GetPointCount())]
 
-            self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+            self.seed_within_polygon(lons=lons, lats=lats, number=num_elements, **kwargs)
             num_seeded += num_elements
 
 
@@ -1951,7 +1956,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lons = [r.GetY(j) for j in range(r.GetPointCount())]
                 lats = [r.GetX(j) for j in range(r.GetPointCount())]
 
-                self.seed_within_polygon(lons, lats, num_elements, **kwargs)
+                self.seed_within_polygon(lons=lons, lats=lats, number=num_elements, **kwargs)
+
+    def seed_letters(self, text, lon, lat, time, number, scale=1.2):
+        """Seed elements within text polygons"""
+        from matplotlib.font_manager import FontProperties
+        fp = FontProperties(family='Bitstream Vera Sans', weight='bold')
+        pol = matplotlib.textpath.TextPath((lon, lat), text, size=1, prop=fp)
+        pol._vertices *= np.array([scale, scale])
+        patch = matplotlib.patches.PathPatch(
+                pol, facecolor='none', edgecolor='black', transform=ccrs.PlateCarree())
+        po = patch.get_path().to_polygons()
+        for p in po:
+            self.seed_within_polygon(lons=p[:,0], lats=p[:,1], number=number, time=time)
 
     def seed_from_ladim(self, ladimfile, roms):
         """Seed elements from ladim \\*.rls text file: [time, x, y, z, name]"""
@@ -1984,9 +2001,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if D == 0:
             logger.debug('Horizontal diffusivity is 0, no random walk.')
             return
-        dt = self.time_step.total_seconds()
-        x_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
-        y_vel = np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        dt = np.abs(self.time_step.total_seconds())
+        x_vel = self.elements.moving * np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
+        y_vel = self.elements.moving * np.sqrt(2*D/dt)*np.random.normal(scale=1, size=self.num_elements_active())
         speed = np.sqrt(x_vel*x_vel+y_vel*y_vel)
         logger.debug('Moving elements according to horizontal diffusivity of %s, with speeds between %s and %s m/s'
                           % (D, speed.min(), speed.max()))
@@ -2746,6 +2763,25 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             for te in text:
                 plt.text(transform=ccrs.Geodetic(), **te)
 
+        if 'box' in kwargs:
+            if not isinstance(kwargs['box'], list):
+                box = list(kwargs['box'])
+            else:
+                box = kwargs['box']
+            for bx in box:
+                lonmn = bx['lon'][0]
+                lonmx = bx['lon'][1]
+                latmn = bx['lat'][0]
+                latmx = bx['lat'][1]
+                del bx['lon']
+                del bx['lat']
+                if 'text' in bx:
+                    plt.text(x=lonmn, y=latmx, s=bx['text'], transform=ccrs.Geodetic())
+                    del bx['text']
+                patch = matplotlib.patches.Rectangle(xy=[lonmn, latmn],
+                    width=lonmx-lonmn, height=latmx-latmn, transform=ccrs.Geodetic(), **bx)
+                ax.add_patch(patch)
+
         def show_landmask(landmask):
             maxn = 512.
             dx = (lonmax - lonmin) / maxn
@@ -2869,12 +2905,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   show_trajectories=False, trajectory_alpha=.1, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20, origin_marker=None,
-                  legend=None, legend_loc='best', fps=10, lscale=None, fast=False, **kwargs):
+                  legend=None, legend_loc='best', fps=8, lscale=None, fast=False, **kwargs):
         """Animate last run."""
 
 
         if self.num_elements_total() == 0 and not hasattr(self, 'ds'):
             raise ValueError('Please run simulation before animating')
+
+        markersizebymass = False
+        if isinstance(markersize, str):
+            if markersize == 'mass':
+                markersizebymass = True
+                markersize = 20
 
         start_time = datetime.now()
         if cmap is None:
@@ -2895,6 +2937,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             if density is True:
                 density_weight = None
+            elif density is not False:
+                density_weight=density
+                density=True
         if density is True:  # Get density arrays
             if hasattr(self, 'ds'):  # opened with Xarray
                 if origin_marker is None:
@@ -2902,9 +2947,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     per_origin_marker = False
                 else:
                     per_origin_marker = True
-                H, lon_array, lat_array = self.get_density_xarray(pixelsize_m=density_pixelsize_m,
-                                            per_origin_marker=per_origin_marker)
-                H = H[origin_marker]  # Presently only for origin_marker = 0
+                H, H_om, lon_array, lat_array = self.get_density_xarray(pixelsize_m=density_pixelsize_m,
+                                                                        weights=density_weight)
+                if per_origin_marker is True:
+                    H = H_om[:,:,:,origin_marker]
             else:
                 if origin_marker is not None:
                     raise ValueError('Separation by origin_marker is only active when imported from file with '
@@ -2945,25 +2991,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 points_deactivated.set_offsets(np.c_[
                     x_deactive[index_of_last_deactivated < i],
                     y_deactive[index_of_last_deactivated < i]])
+
+                if markersizebymass:
+                    points.set_sizes(30*(self.elements.mass / (self.elements.mass + self.elements.mass_biodegraded)))
+
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
-                    if isinstance(color, str):
+                    if isinstance(color, str) or hasattr(color, '__len__'):
                         points_deactivated.set_array(
                             colorarray_deactivated[
                                 index_of_last_deactivated < i])
 
             if drifter is not None:
-                from bisect import bisect_left
-                ind = np.max(
-                    (0, bisect_left(drifter['time'], times[i]) - 1))
-                if i < 1 or i >= len(times)-1 or \
-                        drifter['time'][ind] < times[i-1] or \
-                        drifter['time'][ind] > times[i+1]:
-                    # Do not show when outside time interval
-                    drifter_pos.set_offsets([])
-                else:
-                    drifter_pos.set_offsets(
-                        np.c_[drifter['x'][ind], drifter['y'][ind]])
+                drifter_pos.set_offsets(np.c_[drifter['x'][i], drifter['y'][i]])
 
             if show_elements is True:
                 if compare is not None:
@@ -3001,6 +3041,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     self.get_property(color)[0][
                         index_of_last[self.elements_deactivated.ID-1],
                                       self.elements_deactivated.ID-1].T
+            elif hasattr(color, '__len__'):  # E.g. array/list of ensemble numbers
+                colorarray_deactivated = color[self.elements_deactivated.ID-1]
+                colorarray = np.tile(color, (self.steps_output, 1)).T
             else:
                 colorarray = color
             if vmin is None:
@@ -3039,13 +3082,35 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             c = markercolor
         else:
             c = []
-        points = ax.scatter([], [], c=c, zorder=10,
+
+        if markersizebymass:
+            points = ax.scatter([], [], c=c, zorder=10,
+                            edgecolor=[], cmap=cmap, alpha=.4,
+                            vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
+        else:
+            points = ax.scatter([], [], c=c, zorder=10,
                             edgecolor=[], cmap=cmap, s=markersize,
                             vmin=vmin, vmax=vmax, label=legend[0], transform = gcrs)
+
+
+        if (compare is None) and (legend != ['']):
+            markers=[]
+            for legend_index in np.arange(len(legend)):
+                markers.append(matplotlib.lines.Line2D([0], [0], marker='o',
+                                    color='w', markerfacecolor=cmap(legend_index/(len(legend)-1)),
+                                    markersize=10, label=legend[legend_index]))
+            ax.legend(markers, legend, loc=legend_loc)
+
         # Plot deactivated elements, with transparency
-        points_deactivated = ax.scatter([], [], c=c, zorder=9,
+        if markersizebymass:
+            points_deactivated = ax.scatter([], [], c=c, zorder=9,
+                                        vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,
+                                        edgecolor=[], alpha=0, transform = gcrs)
+        else:
+            points_deactivated = ax.scatter([], [], c=c, zorder=9,
                                         vmin=vmin, vmax=vmax, s=markersize, cmap=cmap,
                                         edgecolor=[], alpha=.3, transform = gcrs)
+
         x_deactive, y_deactive = (self.elements_deactivated.lon, self.elements_deactivated.lat)
 
         if compare is not None:
@@ -3078,10 +3143,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                vmin=0.1, vmax=vmax, cmap=cmap, transform=gcrs)
 
         if drifter is not None:
-            drifter['x'], drifter['y'] = (drifter['lon'], drifter['lat'])
-            #map.plot(drifter['x'], drifter['y'])
-            drifter_pos = ax.scatter([], [], c='r', zorder=15,
-                                     label='Drifter', transform = gcrs)
+            # Interpolate drifter time series onto simulation times
+            sts = np.array([t.total_seconds() for t in np.array(times) - times[0]])
+            dts = np.array([t.total_seconds() for t in np.array(drifter['time']) - times[0]])
+            drifter['x'] = np.interp(sts, dts, drifter['lon'])
+            drifter['y'] = np.interp(sts, dts, drifter['lat'])
+            drifter['x'][sts<dts[0]] = np.nan
+            drifter['x'][sts>dts[-1]] = np.nan
+            drifter['y'][sts<dts[0]] = np.nan
+            drifter['y'][sts>dts[-1]] = np.nan
+            dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
+            dcolor = drifter['color'] if 'color' in drifter else 'r'
+            dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
+            dmarkersize = drifter['markersize'] if 'markersize' in drifter else 20
+            drifter_pos = ax.scatter([], [], c=dcolor, zorder=15, s=dmarkersize,
+                                     label=dlabel, transform=gcrs)
+            ax.plot(drifter['x'], drifter['y'], color=dcolor, linewidth=dlinewidth, zorder=14, transform=gcrs)
+            plt.legend()
 
         fig.canvas.draw()
         fig.set_tight_layout(True)
@@ -3123,15 +3201,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 pass
 
     def animation_profile(self, filename=None, compare=None,
-                          legend=['', ''], markersize=5, fps=20):
+                          legend=['', ''], markersize=5, fps=20,
+                          color=None, cmap=None, vmin=None, vmax=None,
+                          legend_loc=None):
         """Animate vertical profile of the last run."""
+
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
             ax.set_title('%s UTC' % times[i])
-            points.set_data(x[range(x.shape[0]), i],
-                            z[range(x.shape[0]), i])
+            if PlotColors:
+                points.set_offsets(np.array( [x[range(x.shape[0]), i].T,z[range(x.shape[0]), i].T] ).T)
+                points.set_array(colorarray[:, i])
+            else:
+                points.set_data(x[range(x.shape[0]), i],
+                                z[range(x.shape[0]), i])
+
             points_deactivated.set_data(
                 x_deactive[index_of_last_deactivated < i],
                 z_deactive[index_of_last_deactivated < i])
@@ -3146,11 +3232,24 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             else:
                 return points
 
+        PlotColors=(compare is None) and (legend != ['',''])
+        if PlotColors:
+            if cmap is None:
+                cmap = 'jet'
+            if isinstance(cmap, str):
+                cmap = matplotlib.cm.get_cmap(cmap)
+
+            if color is not False:
+                if isinstance(color, str):
+                    colorarray = self.get_property(color)[0].T
+
+
         # Set up plot
         index_of_first, index_of_last = \
             self.index_of_activation_and_deactivation()
         z = self.get_property('z')[0].T
         x = self.get_property('lon')[0].T
+
         #seafloor_depth = \
         #    -self.get_property('sea_floor_depth_below_sea_level')[0].T
         fig = plt.figure(figsize=(10, 6.))  # Suitable aspect ratio
@@ -3160,8 +3259,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
-        points = plt.plot([], [], '.k', label=legend[0],
-                          markersize=markersize)[0]
+        if PlotColors:
+            points = ax.scatter([], [], c=[], zorder=10,
+                                 edgecolor=[], cmap=cmap, s=markersize,
+                                 vmin=vmin, vmax=vmax)
+
+            markers=[]
+            for legend_index in np.arange(len(legend)):
+                markers.append(matplotlib.lines.Line2D([0], [0], marker='o', linewidth=0,
+                               markeredgewidth=0, markerfacecolor=cmap(legend_index/(len(legend)-1)),
+                               markersize=10, label=legend[legend_index]))
+            leg=ax.legend(markers, legend, loc=legend_loc)
+            leg.set_zorder(20)
+        else:
+            points = plt.plot([], [], '.k', label=legend[0],
+                              markersize=markersize)[0]
+
+
         # Plot deactivated elements, with transparency
         points_deactivated = plt.plot([], [], '.k', alpha=.3)[0]
         x_deactive = self.elements_deactivated.lon
@@ -3207,7 +3321,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         ax.add_patch(plt.Rectangle((xmin, zmin), xmax-xmin,
                      -zmin, color='cornflowerblue'))
 
-        if legend != ['', '']:
+        if legend != ['', ''] and PlotColors is False:
             plt.legend(loc=4)
 
         anim = animation.FuncAnimation(plt.gcf(), plot_timestep, blit=False,
@@ -3256,7 +3370,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
              linewidth=1, lcs=None, show_particles=True, show_initial=True,
-             density_pixelsize_m=1000, bgalpha=1,
+             density_pixelsize_m=1000, bgalpha=1, clabel=None,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
              fast=False, hide_landmask=False, **kwargs):
@@ -3343,6 +3457,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 try:
                     if isinstance(linecolor, str):
                         param = self.history[linecolor]
+                    elif hasattr(linecolor, '__len__'):
+                        param = np.tile(linecolor, (self.steps_output, 1)).T
                     else:
                         param = linecolor
                 except:
@@ -3459,7 +3575,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     c=self.plot_comparison_colors[i+1], transform = gcrs)
 
         try:
-            if legend is not None:# and compare is None:
+            handles, labels = ax.get_legend_handles_labels()
+            if legend is not None and len(handles)>0:
                 plt.legend(loc=legend_loc, markerscale=2)
         except Exception as e:
             logger.warning('Cannot plot legend, due to bug in matplotlib:')
@@ -3501,7 +3618,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if mappable is not None and colorbar is True:
             cb = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             # TODO: need better control of colorbar content
-            if linecolor != 'gray':
+            if clabel is not None:
+                cb.set_label(clabel)
+            elif isinstance(linecolor, str) and linecolor != 'gray':
                 cb.set_label(str(linecolor))
             if background is not None:
                 cb.set_label(str(background))
@@ -3586,8 +3705,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         for readerName in self.readers:
             reader = self.readers[readerName]
             if variable in reader.variables:
-                if time is None or (time>= reader.start_time
-                        and time <= reader.end_time) or (
+                if time is None or reader.start_time is None or (
+                    time>= reader.start_time and time <= reader.end_time) or (
                         reader.always_valid is True):
                     break
         if time is None:
@@ -3612,9 +3731,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         data = reader.get_variables(
             background, time, reader_x, reader_y, None)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
-        if type(background) is list:
+        if type(background) is list:  # Ensemble reader, using first member
             u_component = data[background[0]]
             v_component = data[background[1]]
+            if isinstance(u_component, list):
+                u_component = u_component[0]
+                v_component = v_component[0]
             with np.errstate(invalid='ignore'):
                 scalar = np.sqrt(u_component**2 + v_component**2)
             # NB: rotation not completed!
@@ -3625,6 +3747,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 ).proj4_init)
         else:
             scalar = data[background]
+            if isinstance(scalar, list):  # Ensemble reader, using first member
+                scalar = scalar[0]
             u_component = v_component = None
 
         # Shift one pixel for correct plotting
@@ -3643,25 +3767,54 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return map_x, map_y, scalar, u_component, v_component
 
-    def get_density_xarray(self, pixelsize_m, weight=None, per_origin_marker=False):
+    def get_density_timeseries(self, lon, lat):
+        """Get timeseries at a point from pre-calculated density field"""
+
+        if not hasattr(self, 'analysis_file'):
+            raise ValueError('Density has to be calculated with get_density_array or animation')
+
+        self.af = xr.open_dataset(self.analysis_file)
+        lon_bin = self.af.lon_bin.values
+        lat_bin = self.af.lat_bin.values
+
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
+        if lon.min()<lon_bin.min() or lon.max()>lon_bin.max():
+            raise ValueError('Longitude %s is outside range %s to %s' % (lon, lon_bin.min(), lon_bin.max()))
+        if lat.min()<lat_bin.min() or lat.max()>lat_bin.max():
+            raise ValueError('Latitude %s is outside range %s to %s' % (lat, lat_bin.min(), lat_bin.max()))
+
+        if len(lon) == 1:
+            t_total = self.af.density.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+            t_origin_marker = self.af.density_origin_marker.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+        elif len(lon) == 2:
+            t_total = self.af.density.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
+            t_total = t_total.sum(('lon_bin', 'lat_bin'))
+            t_origin_marker = self.af.density_origin_marker.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
+            t_origin_marker = t_origin_marker.sum(('lon_bin', 'lat_bin'))
+        else:
+            raise ValueError('Lon and lat must have length 1 (point) or 2 (min, max)')
+
+        return t_total, t_origin_marker
+
+    def get_density_xarray(self, pixelsize_m, weights=None, per_origin_marker=True):
         from xhistogram.xarray import histogram
 
-        if os.path.exists(self.analysis_file) and 'lon_bin' in xr.open_dataset(self.analysis_file):  # Import from file
+        if os.path.exists(self.analysis_file):
+            self.ads = xr.open_dataset(self.analysis_file)  # Import from file
             logger.info('Importing from saved analysis file')
-            self.af = xr.open_dataset(self.analysis_file)
-            histograms = []
-            for var in self.af.variables:
-                if var[0:9] == 'histogram':
-                    histograms.append(self.af[var])
-            lonbin = self.af.lon_bin.values
-            latbin = self.af.lat_bin.values
-            deltalon = (lonbin[1]-lonbin[0])
-            lonbin = np.append(lonbin, lonbin[-1] + deltalon) - deltalon/2
-            deltalat = (latbin[1]-latbin[0])
-            latbin = np.append(latbin, latbin[-1] + deltalat) - deltalat/2
-            self.af.close()
+            lon_bin = self.ads.lon_bin.values
+            lat_bin = self.ads.lat_bin.values
+            density = self.ads.density.values
+            if 'density_origin_marker' in self.ads:
+                density_origin_marker = self.ads.density_origin_marker.values
+            else:
+                density_origin_marker = None
+            self.ads.close()
+            return density, density_origin_marker, lon_bin, lat_bin
 
         else:  # Calculate
+            self.ads = xr.Dataset()  # Dataset to store all data, to be saved to self.analysis_file
             start = datetime.now()
             logger.info('Calculating density array, this may take some time...')
             deltalat = pixelsize_m/111000.0  # m to degrees
@@ -3676,49 +3829,70 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lonmax = np.nanmax(self.ds.lon)
                 latmin = np.nanmin(self.ds.lat)
                 latmax = np.nanmax(self.ds.lat)
-                if os.path.exists(self.analysis_file):
-                    self.af = Dataset(self.analysis_file, 'a')
-                else:
-                    self.af = Dataset(self.analysis_file, 'w')
-                self.af.lonmin = lonmin
-                self.af.lonmax = lonmax
-                self.af.latmin = latmin
-                self.af.latmax = latmax
-                self.af.close()
+                self.ads.attrs['lonmin'] = lonmin
+                self.ads.attrs['lonmax'] = lonmax
+                self.ads.attrs['latmin'] = latmin
+                self.ads.attrs['latmax'] = latmax
+                self.ads.coords['time'] = self.ds.coords['time']
 
             deltalon = deltalat/np.cos(np.radians((latmin+latmax)/2))
             latbin = np.arange(latmin-deltalat, latmax+deltalat, deltalat)
             lonbin = np.arange(lonmin-deltalon, lonmax+deltalon, deltalon)
 
-            histograms = []
+            if weights is not None:
+                if isinstance(weights, str):  # element property
+                    # We do not add 2D weights to analysis file, to save space
+                    self.ads.attrs['weights'] = weights
+                    weights = self.get_property(weights)[0]
+                elif not hasattr(weights, '__len__'):  # scalar
+                    weights = xr.DataArray(weights*xr.ones_like(self.ds.lon), dims=['trajectory'],
+                                           coords={'trajectory': self.ds.coords['trajectory']})
+                    self.ads['weights'] = weights
+                else:  # provided array
+                    weights = xr.DataArray(weights, dims=['trajectory'],
+                                           coords={'trajectory': self.ds.coords['trajectory']})
+                    self.ads['weights'] = weights
+
             if per_origin_marker is True:
                 max_om = self.ds.origin_marker.max().compute().values
+                origin_marker = np.arange(max_om+1)
+                self.ads.coords['origin_marker'] = origin_marker
+                density_om = xr.DataArray(np.zeros((len(self.ds.coords['time']),
+                                                   len(lonbin)-1, len(latbin)-1, len(origin_marker))),
+                                          name='density_origin_marker',
+                                          dims=('time', 'lon_bin', 'lat_bin', 'origin_marker'))
                 for om in range(max_om+1):
                     logger.info('\tcalculating for origin_marker %s...' % om)
                     h = histogram(self.ds.lon.where(self.ds.origin_marker==om),
                                   self.ds.lat.where(self.ds.origin_marker==om), bins=[lonbin, latbin],
+                                  weights=weights,
                                   dim=['trajectory'])
-                    h.name = 'histogram_lon_lat_' + str(om)
-                    histograms.append(h)
+                    lon_bin = h.coords['lon_bin']
+                    lat_bin = h.coords['lat_bin']
+                    density_om[:, :, :, om] = h.copy()
+                self.ads['density_origin_marker'] = density_om
+                # Computing total density historgram from om-components
+                density = density_om.sum(dim='origin_marker')
+                self.ads['density'] = density
             else:
-                h = histogram(self.ds.lon, self.ds.lat, bins=[lonbin, latbin],
+                # Adding total density historgram
+                density = histogram(self.ds.lon, self.ds.lat, bins=[lonbin, latbin],
+                              weights=weights,
                               dim=['trajectory'])
-                histograms = [h]
+                lon_bin = density.coords['lon_bin']
+                lat_bin = density.coords['lat_bin']
+                self.ads['density'] = density
+                density_om = None
 
-            if self.analysis_file is not None:
-                logger.info('Writing density array to analysis file: %s'
-                                 % self.analysis_file)
-                for om, h in enumerate(histograms):
-                    if os.path.exists(self.analysis_file):
-                        mode = 'a'
-                    else:
-                        mode = 'w'
-                    logger.info('\twriting for origin_marker %s...' % om)
-                    h.to_netcdf(self.analysis_file, mode)
+            self.ads.coords['lon_bin'] = lon_bin
+            self.ads.coords['lat_bin'] = lat_bin
+
+            self.ads.to_netcdf(self.analysis_file)
+
             logger.info('Time to calculate density array: %s' %
                              (datetime.now() - start))
 
-        return histograms, lonbin, latbin
+        return density, density_om, lonbin, latbin
 
     def get_density_array(self, pixelsize_m, weight=None):
         lon = self.get_property('lon')[0]
@@ -3775,7 +3949,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return H, H_submerged, H_stranded, lon_array, lat_array
 
-    
+
     def get_density_array_proj(self, pixelsize_m, density_proj=None, llcrnrlon=None,llcrnrlat=None,urcrnrlon=None,urcrnrlat=None, weight=None):
         #
         # TODO: should be merged with get_density_array
@@ -3958,7 +4132,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         nc.close()
 
-    def write_netcdf_density_map_proj(self, filename, pixelsize_m='auto', density_proj=None, 
+    def write_netcdf_density_map_proj(self, filename, pixelsize_m='auto', density_proj=None,
                             llcrnrlon=None, llcrnrlat=None, urcrnrlon=None, urcrnrlat=None):
         '''Write netCDF file with map of particles densities for a given projection or area'''
         #
@@ -3983,7 +4157,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if latspan > 5:
                 pixelsize_m = 4000
 
-        if density_proj is None: # add default projection with equal-area property 
+        if density_proj is None: # add default projection with equal-area property
             density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
 
 
@@ -4363,19 +4537,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 anim.save(filename, fps=fps, writer='imagemagick')
             else:  # MP4
                 try:
-                    try:
-                        # For perfect quality, but larger file size
-                        #FFwriter=animation.FFMpegWriter(fps=fps, extra_args=['-vcodec', 'libx264'])
-                        FFwriter=animation.FFMpegWriter(fps=fps,
-                            codec='libx264', bitrate=1800,
-                            extra_args=['-profile:v', 'baseline',
-                                        '-pix_fmt', 'yuv420p', '-an'])
-                        anim.save(filename, writer=FFwriter)
-                    except Exception as e:
-                        logger.info(e)
-                        anim.save(filename, fps=fps, bitrate=1800,
-                                  extra_args=['-an',
-                                              '-pix_fmt', 'yuv420p'])
+                    FFwriter=animation.FFMpegWriter(fps=fps,
+                        codec='libx264', bitrate=1800,
+                        extra_args=['-profile:v', 'baseline',
+                                    '-vf', 'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
+                                    '-pix_fmt', 'yuv420p', '-an'])
+                    anim.save(filename, writer=FFwriter)
                 except Exception as e:
                     logger.info(e)
                     anim.save(filename, fps=fps)

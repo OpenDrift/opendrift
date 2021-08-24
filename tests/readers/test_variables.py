@@ -10,7 +10,7 @@ from opendrift.models.oceandrift import OceanDrift
 def test_covers_positions(test_data):
     reader_arome = reader_netCDF_CF_generic.Reader(
         test_data +
-        '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset')
+        '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
 
     ts = reader_arome.get_timeseries_at_position(
         lon=12, lat=68, variables=['x_wind', 'y_wind'])
@@ -19,8 +19,8 @@ def test_covers_positions(test_data):
     x_wind = ts['x_wind']
     assert len(x_wind) == 49
 
-    np.testing.assert_almost_equal(x_wind[0], 2.615, 2)
-    np.testing.assert_almost_equal(x_wind[-1], -0.222, 2)
+    np.testing.assert_almost_equal(x_wind[0], 2.836, 2)
+    np.testing.assert_almost_equal(x_wind[-1], -0.667, 2)
 
 def test_environment_mapping(test_data):
 
@@ -44,3 +44,11 @@ def test_environment_mapping(test_data):
     o.run(steps=15)
     np.testing.assert_almost_equal(o.elements.lon, 4.068, 3)
     np.testing.assert_almost_equal(o.elements.lat, 60.034, 3)
+
+    # land_binary_mask mapped from sea_floor_depth_below_sea_level
+    r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+    assert 'land_binary_mask' not in r.derived_variables  # Disabled by default
+    r.activate_environment_mapping('land_binary_mask_from_ocean_depth')
+    assert 'land_binary_mask' in r.derived_variables
+

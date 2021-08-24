@@ -1,7 +1,34 @@
 Publications
 ============
 
-Some papers using OpenDrift:
+Some papers using or mentioning OpenDrift:
+
+Kotzakoulakis, K., & George, S. (2021). Advanced oil spill modeling and simulation techniques. In M. R. Riazi (Ed.), Oil spill occurrence, simulation and behavior (pp. 225-264). CRC Press, Taylor & Francis Group. https://doi.org/10.1201/9780429432156
+
+Reche P., Artal O., Pinilla E., Ruiz C., Venegas O., Arriagada A., Falvey M., CHONOS: Oceanographic information website for Chilean Patagonia, Ocean & Coastal Management, Volume 208, 1 July 2021, https://doi.org/10.1016/j.ocecoaman.2021.105634
+
+Peytavin, A., Sainte-Rose, B., Forget, G., and Campin, J.-M.: Ocean Plastic Assimilator v0.1: Assimilation of Plastics Concentration Data Into Lagrangian Dispersion Models, Geosci. Model Dev. Discuss. [preprint], https://doi.org/10.5194/gmd-2020-385, in review, 2021.
+
+Melsom A., Kvile K.Ø., Dagestad K.-F., Broström G., Langangen Ø., Exploring drift simulations from ocean circulation experiments: Application to cod eggs and larval drift, Accepted for publication, https://doi.org/10.3354/cr01652
+
+Strand K.O., Huserbråten M., Dagestad K.-F., Mauritzen C., Grøsvik B.E., Nogueira L.A., Melsom A., Röhrs J., Potential sources of marine plastic from survey beaches in the Arctic and Northeast Atlantic, Science of The Total Environment, Vol 790, 10, 2021, https://doi.org/10.1016/j.scitotenv.2021.148009
+
+Kotzakoulakis, K., & George, S. (2021). Advanced oil spill modeling and simulation techniques. In M. R. Riazi (Ed.), Oil spill occurrence, simulation and behavior (pp. 225-264). CRC Press, Taylor & Francis Group. https://doi.org/10.1201/9780429432156
+
+Morane C.-H., North E.W., Solé J., Solé, Bahamón N., Carreton M., Estimating the spawning locations of the deep-sea red and blue shrimp Aristeus antennatus (Crustacea: Decapoda) in the northwestern Mediterranean Sea with a backtracking larval transport model, Deep Sea Research Part I Oceanographic Research Papers 174(7):103558, May 2021, https://doi.org/10.1016/j.dsr.2021.103558
+
+Hadjimitsis D. et al. (2021) ‘EXCELSIOR’ H2020 Widespread Teaming Phase 2 Project: Earth Observation and Geoinformatics Research and Innovation Agenda for Cultural Heritage. In: Ioannides M., Fink E., Cantoni L., Champion E. (eds) Digital Heritage. Progress in Cultural Heritage: Documentation, Preservation, and Protection. EuroMed 2020. Lecture Notes in Computer Science, vol 12642. Springer, Cham. https://doi.org/10.1007/978-3-030-73043-7_13
+
+Vora M., Sanni S., Flage R., An environmental risk assessment framework for enhanced oil recovery solutions from offshore oil and gas industry, Environmental Impact Assessment Review 88 (2021), https://doi.org/10.1016/j.eiar.2020.106512
+
+Dugstad J.S., Isachsen P.E., Fer I., The mesoscale eddy field in the Lofoten Basin from high-resolution Lagrangian simulations, Ocean Sci., 17, 651–674, 2021
+https://doi.org/10.5194/os-17-651-2021
+
+Clavel-Henry M., Solé J., Bahamona N., Carretón M., Companya J.B., Larval transport of Aristeus antennatus shrimp (Crustacea: Decapoda: Dendrobranchiata: Aristeidae) near the Palamós submarine canyon (NW Mediterranean Sea) linked to the North Balearic Front, Progress in Oceanography, Vol 192, March 2021, https://doi.org/10.1016/j.pocean.2021.102515
+
+Keramea, P., Spanoudaki, K., Zodiatis, G., Gikas, G., Sylaios, G., Oil Spill Modeling: A Critical Review on Current Trends, Perspectives, and Challenges. J. Mar. Sci. Eng. 2021, https://doi.org/10.3390/jmse9020181
+
+Hole, L. R., de Aguiar V., Dagestad, K-F, Kourafalou V. H., Androulidakis Y., Kangb H., Le Hénaff M., Calzadae A. (2021). Long term simulations of potential oil spills around Cuba. Mar. Pol. Bull., Volume 167. https://doi.org/10.1016/j.marpolbul.2021.112285
 
 Staneva, J., Ricker, M., Carrasco Alvarez, R., Breivik, Ø., & Schrum, C. (2021). Effects of Wave-Induced Processes in a Coupled Wave–Ocean Model on Particle Transport Simulations. Water, 13(4), 415. https://doi.org/10.3390/w13040415
 
@@ -9,11 +36,15 @@ Brekke, C., Espeseth, M. M., Dagestad, K.-F., Röhrs, J., Hole, L. R., & Reigber
 
 Devis-Morales, A., Rodríguez-Rubio, E. & Montoya-Sánchez, R.A. Modelling the transport of sediment discharged by Colombian rivers to the southern Caribbean Sea. Ocean Dynamics (2021). https://doi.org/10.1007/s10236-020-01431-y
 
+Gancheva I., Peneva E., Remote Sensing and Modelling of the Mopang Oil Pollution near the Bulgarian Black Sea Coast, https://www.researchgate.net/publication/349177048_Remote_Sensing_and_Modelling_of_the_Mopang_Oil_Pollution_near_the_Bulgarian_Black_Sea_Coast
+
 El Rahi, J., Weeber M.P., El Serafya, G., Modelling the effect of behavior on the distribution of the jellyfish Mauve stinger (Pelagianoctiluca) in the Balearic Sea using an individual-based model, Ecological Modelling, Volume 433, Oct. 2020, https://doi.org/10.1016/j.ecolmodel.2020.109230
 
 Laudy C., L. Mészáros, S. Wanke and M. de Juan, "Mixing Social Media Analysis and Physical Models to Monitor Invasive Species," 2020 IEEE 23rd International Conference on Information Fusion (FUSION), Rustenburg, South Africa, 2020, pp. 1-8, doi: 10.23919/FUSION45008.2020.9190335.
 
 Androulidakis, Y., Kourafalou, V., Robert Hole, L., Le Hénaff, M., & Kang, H. (2020). Pathways of Oil Spills from Potential Cuban Offshore Exploration: Influence of Ocean Circulation. Journal of Marine Science and Engineering, 8(7), 535. https://doi.org/10.3390/jmse8070535
+
+Ypma, S. L., Georgiou, S., Dugstad, J. S., Pietrzak, J. D., & Katsman, C. A. (2020). Pathways and water mass transformation along and across the Mohn‐Knipovich Ridge in the Nordic Seas. Journal of Geophysical Research: Oceans, 125, e2020JC016075. https://doi.org/10.1029/2020JC016075
 
 Norrie, C.R., Dunphy, B.J., Roughan, M., Weppe, S., & Lundquist, C. (2020). Spill-over from aquaculture may provide a larval subsidy for the restoration of mussel reefs. Aquaculture Environment Interactions, https://doi.org/10.3354/aei00363
 

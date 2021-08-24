@@ -50,17 +50,17 @@ class TestStranding(unittest.TestCase):
         self.assertEqual(o.elements_deactivated.status.min(), 1)
         self.assertEqual(o.elements_deactivated.status.max(), 1)
         self.assertEqual(o.num_elements_scheduled(), 0)
-        self.assertEqual(o.num_elements_active(), 79)
+        self.assertEqual(o.num_elements_active(), 81)
         self.assertEqual(o.num_elements_activated(), 100)
-        self.assertEqual(o.num_elements_deactivated(), 21)
+        self.assertEqual(o.num_elements_deactivated(), 19)
         self.assertEqual(o.num_elements_total(), 100)
 
         # Check calculated trajectory lengths and speeds
         total_length, distances, speeds = o.get_trajectory_lengths()
-        self.assertAlmostEqual(total_length.max(), 15978.1, 1)
-        self.assertAlmostEqual(total_length.min(), 1326.97, 1)
+        self.assertAlmostEqual(total_length.max(), 14978.3, 1)
+        self.assertAlmostEqual(total_length.min(), 1225.2, 1)
         self.assertAlmostEqual(speeds.max(), 0.127, 1)
-        self.assertAlmostEqual(distances.max(), 2750.0, 1)
+        self.assertAlmostEqual(distances.max(), 2859.0, 1)
 
     def test_stranding_roms(self):
         o = PelagicEggDrift(loglevel=20)

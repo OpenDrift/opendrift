@@ -27,7 +27,7 @@ o.seed_from_geojson("""{
       "properties": {
         "time": "2020-11-06T12:30:00Z",
         "number": 1000,
-        "oiltype": "DVALIN 2020",
+        "oil_type": "DVALIN 2020",
         "m3_per_hour": 50
       }
     }""")

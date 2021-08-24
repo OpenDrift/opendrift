@@ -43,7 +43,7 @@ reader_list = [
         '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc',
     '/nonexistingdisk/nonexistingfile.ext',
     o.test_data_folder() +
-            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset']
+            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc']
 
 
 class TestReaders(unittest.TestCase):
@@ -75,7 +75,7 @@ class TestReaders(unittest.TestCase):
                          ['roms native'])
         self.assertEqual(o.priority_list['x_wind'],
                          [o.test_data_folder() +
-            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF.nc_20160202_subset'])
+            '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc'])
 
     def test_repeated_run(self):
         # NOTE: this test fails if outfile is not None
@@ -186,7 +186,7 @@ class TestReaders(unittest.TestCase):
                         wind_drift_factor=.02,
                         number=10, radius=1000)
         o.run(steps=8)
-        self.assertEqual(o.num_elements_deactivated(), 4)
+        self.assertEqual(o.num_elements_deactivated(), 2)
 
     #def test_lazy_readers_and_corrupt_data(self):
     #    o = OceanDrift(loglevel=0)
@@ -402,7 +402,7 @@ class TestReaders(unittest.TestCase):
                          profiles['sea_water_temperature'][0,0])
         # Check interpolated temperature at 33 m depth
         self.assertAlmostEqual(data['sea_water_temperature'][1],
-                               8.36, 2)
+                               8.32, 2)
         #import matplotlib.pyplot as plt
         #plt.plot(profiles['sea_water_temperature'][:,0])
         #plt.plot(profiles['sea_water_temperature'][:,1], 'r')
@@ -454,17 +454,17 @@ class TestReaders(unittest.TestCase):
                               reader_nordic.start_time,
                               testlon, testlat, testz,
                               o.required_profiles)
-        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.267, 2)
-        self.assertAlmostEqual(env['sea_water_temperature'][1], 0.468122, 3)
+        self.assertAlmostEqual(env['sea_water_temperature'][0], 4.251, 2)
+        self.assertAlmostEqual(env['sea_water_temperature'][1], 0.122, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
         self.assertIsNone(np.testing.assert_array_almost_equal(
             missing, [False,False,False,False,False]))
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,0],
-                               4.267, 2)
+                               4.251, 2)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,4], 10)
         #self.assertAlmostEqual(env_profiles['sea_water_temperature'][8,2], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][7,2],
-                               2.3049809, 3)
+                               2.159, 3)
         # Get separate data
         env2, env_profiles2, missing2 = \
             o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
@@ -539,10 +539,10 @@ class TestReaders(unittest.TestCase):
         # Compare
         lat1 = o1.get_property('lat')[0]
         lat2 = o2.get_property('lat')[0]
-        self.assertEqual(len(lat1), 14)
+        self.assertEqual(len(lat1), 13)
         self.assertEqual(len(lat2), 17)
         self.assertIsNone(np.testing.assert_allclose(
-                            lat1[0:13], lat2[0:13]))
+                            lat1[0:12], lat2[0:12]))
         # Test reader netCDF_CF_generic
         r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
@@ -581,7 +581,7 @@ class TestReaders(unittest.TestCase):
 
         reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
                     wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
-        self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.22553520,8)
+        self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.2236, 4)
 
 
     def test_valid_minmax(self):
@@ -618,7 +618,7 @@ class TestReaders(unittest.TestCase):
         o.run(steps=2)
         variables.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
         u = o.get_property('x_sea_water_velocity')[0]
-        self.assertAlmostEqual(u.max(), -.137, 3)  # Some numerical error allowed
+        self.assertAlmostEqual(u.max(), -.069, 3)  # Some numerical error allowed
 
 
 if __name__ == '__main__':

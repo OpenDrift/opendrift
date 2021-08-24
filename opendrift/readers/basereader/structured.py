@@ -143,8 +143,25 @@ class StructuredReader(Variables):
                                                          mode='nearest')
         return env
 
+    def lon_range(self):
+        if not self.global_coverage():
+            raise ValueError('Only valid for readers with global coverage')
+        if self.xmin < 0:
+            return '-180to180'
+        else:
+            return '0to360'
+
     def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
                                      time, reader_x, reader_y, z):
+
+        # For global readers, we shift coordinates to match actual lon range
+        if self.global_coverage():
+            if self.lon_range() == '-180to180':
+                logger.debug('Shifting coordinates to -180-180')
+                reader_x = np.mod(reader_x + 180, 360) - 180
+            elif self.lon_range() == '0to360':
+                logger.debug('Shifting coordinates to 0-360')
+                reader_x = np.mod(reader_x, 360)
 
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
@@ -253,7 +270,7 @@ class StructuredReader(Variables):
                 reader_x, reader_y) is False):
             logger.warning('Data block from %s not large enough to '
                            'cover element positions within timestep. '
-                           'Buffer size (%s) must be increased.' %
+                           'Buffer size (%s) must be increased. See `Variables.set_buffer_size`.' %
                            (self.name, str(self.buffer)))
 
         ############################################################
