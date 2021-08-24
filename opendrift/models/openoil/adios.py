@@ -95,7 +95,6 @@ class Oil(ThinOil):
         o = requests.get(f"{ADIOS}/{_id}", verify=VERIFY).json()
         return Oil(o)
 
-
     def __repr__(self):
         return f"[<adios.Oil> {self.id}] {self.name}"
 
@@ -137,13 +136,14 @@ class Oil(ThinOil):
         raise NotImplementedError
 
 
-def oils(limit=50) -> List[ThinOil]:
+def oils(limit=50, query='') -> List[ThinOil]:
     """
     Get all oils.
 
     Args:
 
         limit: number of oils to retrieve, <= 0 means all available.
+        query: search string (name, id, location).
 
 
     Returns:
@@ -159,15 +159,17 @@ def oils(limit=50) -> List[ThinOil]:
 
     # XXX: This fails when batch size is less or unequal to `batch`.
     while len(oils) < limit or limit <= 0:
-        p = int(len(oils) / batch) + 1  # next page, XXX: check for off-by-one?
+        p = int(len(oils) / batch)  # next page, XXX: check for off-by-one?
         logging.debug(
             f"Requesting list of oils from ADIOS, oils: {len(oils)} of {limit}, page: {p}"
         )
+
         o = requests.get(ADIOS, {
             'dir': 'asc',
             'limit': batch,
             'page': p,
-            'sort': 'metadata.name'
+            'sort': 'metadata.name',
+            'q': query
         },
                          verify=VERIFY).json()
 
