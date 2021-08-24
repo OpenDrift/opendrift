@@ -31,7 +31,7 @@
 # Note the interpolation approach is closer to what is done in 
 # structured.py with cached reader "blocks" that are re-used for 
 # successive interpolation between two model time steps. 
-# unstructured.py instead read data at each interpolation cycle
+# unstructured.py instead of reading data at each interpolation cycle
 # 
 ##########################################################################
 
