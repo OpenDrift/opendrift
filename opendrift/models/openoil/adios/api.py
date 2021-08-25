@@ -48,7 +48,7 @@ def oils(limit=50, query='') -> List[ThinOil]:
 
     oils = []
 
-    # XXX: This fails when batch size is less or unequal to `batch`.
+    # XXX: This may fail when batch size is less or unequal to `batch`.
     while limit is None or len(oils) < limit:
         p = int(len(oils) / batch)  # next page, XXX: check for off-by-one?
         logging.debug(
@@ -68,6 +68,8 @@ def oils(limit=50, query='') -> List[ThinOil]:
 
         if len(oils) >= int(o['meta']['total']) or (limit is not None and len(oils) >= limit):
             break
+
+    logger.info(f"Fetched {len(oils)} oils from ADIOS")
 
     limit = len(oils) if limit is None else limit
     oils = oils[:min(limit, len(oils))]

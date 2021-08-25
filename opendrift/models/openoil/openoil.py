@@ -71,12 +71,21 @@ import pyproj
 import matplotlib.pyplot as plt
 import logging
 logger = logging.getLogger(__name__)
+from functools import lru_cache
 
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.elements import LagrangianArray
 from . import noaa_oil_weathering as noaa
 from . import adios
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
+
+@lru_cache
+def noaa_oils():
+    logger.warning("Fetching all oils from ADIOS database")
+    oiltypes = adios.oils(None)
+    oiltypes.sort(key = lambda o: o.name)
+
+    return oiltypes
 
 
 # Defining the oil element properties
@@ -297,12 +306,10 @@ class OpenOil(OceanDrift):
 
     def list_of_oils(self):
         if self.oil_weathering_model == 'noaa':  # Currently the only option
-            self.oiltypes = adios.oils(None)
-            self.oiltypes.sort(key = lambda o: o.name)
+            self.oiltypes = noaa_oils()
 
             # Update config with oiltypes
             oiltypes = [a.name for a in self.oiltypes]
-
             return oiltypes
         else:
             raise ValueError('Weathering model unknown: ' + self.oil_weathering_model)
