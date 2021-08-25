@@ -98,6 +98,7 @@ class Reader(BaseReader,UnstructuredReader):
             'zcor' : 'vertical_levels', # time-varying vertical coordinates
             'sigma': 'ocean_s_coordinate',
             'vertical_velocity' : 'upward_sea_water_velocity'}
+            # 'wetdry_elem': 'land_binary_mask' # disabled for now 
             # diffusivity
             # viscosity
 
@@ -408,7 +409,7 @@ class Reader(BaseReader,UnstructuredReader):
 
         # extracts the full slices of requested_variables at time indxTime
         for par in requested_variables:
-            if par not in ['x_sea_water_velocity','y_sea_water_velocity'] :
+            if par not in ['x_sea_water_velocity','y_sea_water_velocity','land_binary_mask'] :
                 # standard case - for all variables except current velocities
                 var = self.dataset.variables[self.variable_mapping[par]]
                 if var.ndim == 1:
@@ -426,7 +427,7 @@ class Reader(BaseReader,UnstructuredReader):
                 else:
                     raise ValueError('Wrong dimension of %s: %i' %
                                      (self.variable_mapping[par], var.ndim))
-            else :               
+            elif par in ['x_sea_water_velocity','y_sea_water_velocity'] :               
                 # requested variables are current velocities
                 # In SCHISM netcdf filesboth [u,v] components are saved 
                 # as two different dimensions of the same variable.
@@ -448,7 +449,16 @@ class Reader(BaseReader,UnstructuredReader):
                     # convert 3D data matrix to one column array and define corresponding data coordinates [x,y,z]
                     # (+ update variables dictionary with 3d coords if needed)
                     data,variables = self.convert_3d_to_array(indxTime,data,variables)
-            
+
+            elif par in ['land_binary_mask'] :
+                dry_elem = self.dataset.variables[self.variable_mapping[par]][indxTime,:] # dry_elem =1 if dry, 0 if wet
+                # find indices of nodes making up the dry elements
+                node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][indxTime,dry_elem.values.astype('bool'),:]) # id of nodes making up each elements
+                # remove nans, and keep unique indices
+                node_id = np.unique(node_id[~np.isnan(node_id)])
+                data = 0.0*self.x # build array, same size as node
+                data[node_id.astype(int)] = 1.0 # set dry nodes to one to be used as 'land_binary_mask'
+
             variables[par] = data # save all data slice to dictionary with key 'par'
             # Store coordinates of returned points
             #  >> done in previous steps here, line 380 and in convert_3d_to_array()
@@ -1342,8 +1352,16 @@ class ReaderBlockUnstruct():
             nearest = False
             # land mask 
             if varname == 'land_binary_mask':
-                nearest = True
-                self.interpolator2d_nearest = Nearest2DInterpolator(self.x, self.y, x, y)
+                # here we need to make a choice on when to flag as land not based on
+                if False :
+                    nearest = True
+                    self.interpolator2d_nearest = Nearest2DInterpolator(self.x, self.y, x, y)
+                # if closest node is dry then we assume particle is on land
+                nb_closest_nodes = 1
+                #2D KDtree
+                dist,i=self.block_KDtree.query(np.vstack((x,y)).T,nb_closest_nodes, n_jobs=-1) #quick nearest-neighbor lookup
+                data_interpolated = data[i] # we keep closest value
+
             # ensemble data
             if type(data) is list:
                 num_ensembles = len(data)
