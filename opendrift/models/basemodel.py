@@ -555,6 +555,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         for c, i in self._config.items():
             if c.startswith(prefix):
                 val = i['value'] if 'value' in i else None
+
+                val = val(self) if callable(val) else val
+
                 if i['type'] == 'bool':
                     rang = ''
                 elif i['type'] in ['float', 'int']:
