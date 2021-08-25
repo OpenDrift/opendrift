@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 import requests
 from typing import List
 
-from .oil import ThinOil, Oil
+from .oil import ThinOil, OpendriftOil
 
 ADIOS = "https://adios.orr.noaa.gov/api/oils/"
 
@@ -75,8 +75,8 @@ def oils(limit=50, query='') -> List[ThinOil]:
 
     return oils
 
-def get_full_oil_from_id(_id) -> 'Oil':
+def get_full_oil_from_id(_id) -> 'OpendriftOil':
     logger.debug(f"Fetching full oil: {_id}")
     o = requests.get(f"{ADIOS}/{_id}", verify=VERIFY).json()
-    return Oil(o)
+    return OpendriftOil(o)
 
