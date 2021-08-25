@@ -154,13 +154,13 @@ class TestOil(unittest.TestCase):
                 if oil == 'SMORBUKK KONDENSAT' and windspeed == 3:
                     fraction_dispersed = 0
                     fraction_submerged = 0
-                    fraction_evaporated = 0.526
+                    fraction_evaporated = 0.589
                     meanlon = 4.81742
                 elif oil == 'SMORBUKK KONDENSAT' and windspeed == 8:
-                    fraction_dispersed = 0.086
-                    fraction_submerged = 0.372
-                    fraction_evaporated = 0.479
-                    meanlon = 4.811
+                    fraction_dispersed = 0.092
+                    fraction_submerged = 0.390
+                    fraction_evaporated = 0.473
+                    meanlon = 4.809
                 elif oil == 'SKRUGARD' and windspeed == 8:
                     fraction_dispersed = 0.139
                     fraction_submerged = 0.367
@@ -217,7 +217,7 @@ class TestOil(unittest.TestCase):
         o.run(duration=timedelta(days=1), time_step=1800)
         initial_mass = o.get_property('mass_oil')[0][0, 0]
         biodegraded30 = o.elements.mass_biodegraded
-        factor = 0.127 #(1-e^(-1))
+        factor = 0.120 #(1-e^(-1))
         self.assertAlmostEqual(biodegraded30[-1]/initial_mass, factor, 3)
 
     @unittest.skipIf(has_oil_library is False,
