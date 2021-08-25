@@ -88,13 +88,4 @@ def test_set_oil_type():
     assert o.oiltype.name == 'AASGARD A 2003'
     print(o.oiltype)
 
-def test_oil_density_at_temp():
-    o = OpenOil(loglevel=50)
-    o.set_oiltype('AASGARD A 2003')
-    assert o.oiltype.density_at_temp(285) == 816.6828030078809
-
-def test_oil_kvis_at_temp():
-    o = OpenOil(loglevel=50)
-    o.set_oiltype('AASGARD A 2003')
-    assert o.oiltype.kvis_at_temp(285) == 3.298187589355751e-05
 

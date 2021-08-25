@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 from typing import List
 
 from . import api
-from .api import oils
+from .api import oils, find_full_oil_from_name, get_full_oil_from_id
 
 from . import oil
 

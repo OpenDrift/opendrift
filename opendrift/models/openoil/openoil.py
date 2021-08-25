@@ -75,6 +75,7 @@ logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.elements import LagrangianArray
 from . import noaa_oil_weathering as noaa
+from . import adios
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
 
 
@@ -294,45 +295,26 @@ class OpenOil(OceanDrift):
         'FENJA (PIL) 2015': .75
     }
 
-    def __init__(self, weathering_model='noaa', *args, **kwargs):
+    def list_of_oils(self):
+        if self.oil_weathering_model == 'noaa':  # Currently the only option
+            self.oiltypes = adios.oils(None)
+            self.oiltypes.sort(key = lambda o: o.name)
 
-        if weathering_model == 'noaa':  # Currently the only option
-            try:
-                from oil_library import _get_db_session
-                from oil_library.models import Oil, ImportedRecord
-            except:
-                raise ImportError('NOAA oil library must be installed from: '
-                                  'https://github.com/NOAA-ORR-ERD/OilLibrary')
-            # Get list of all oiltypes in NOAA database
-            session = _get_db_session()
-            if 'location' in kwargs:
-                self.oiltypes = session.query(
-                    Oil.name).join(ImportedRecord).filter(
-                        ImportedRecord.location == kwargs['location']).all()
-                del kwargs['location']
-                all_oiltypes = session.query(Oil.name).all()
-                generic_oiltypes = [
-                    o for o in all_oiltypes if o[0][0:7] == 'GENERIC'
-                ]
-                generic_oiltypes = sorted([o[0] for o in generic_oiltypes])
-            else:
-                self.oiltypes = session.query(Oil.name).all()
-            self.oiltypes = sorted([o[0] for o in self.oiltypes])
-            if 'generic_oiltypes' in locals():  # We put generic oils first
-                self.oiltypes = generic_oiltypes + self.oiltypes
-            self.oiltypes = [
-                ot for ot in self.oiltypes if ot not in self.duplicate_oils
-            ]
+            # Update config with oiltypes
+            oiltypes = [a.name for a in self.oiltypes]
+
+            return oiltypes
         else:
-            raise ValueError('Weathering model unknown: ' + weathering_model)
+            raise ValueError('Weathering model unknown: ' + self.oil_weathering_model)
 
+    def __init__(self, weathering_model='noaa', *args, **kwargs):
         self.oil_weathering_model = weathering_model
+
+        if not self.oil_weathering_model == 'noaa':  # Currently the only option
+            raise ValueError('Weathering model unknown: ' + weathering_model)
 
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
-
-        # Update config with oiltypes
-        oiltypes = [str(a) for a in self.oiltypes]
 
         self._add_config({
             'seed:m3_per_hour': {
@@ -424,9 +406,9 @@ class OpenOil(OceanDrift):
                 'type':
                 'enum',
                 'enum':
-                oiltypes,
+                self.list_of_oils(),
                 'default':
-                oiltypes[0],
+                'AASGARD A 2003',
                 'level':
                 self.CONFIG_LEVEL_ESSENTIAL,
                 'description':
@@ -610,7 +592,7 @@ class OpenOil(OceanDrift):
                 self.noaa_mass_balance['mass_components']*0
 
             self.oil_water_interfacial_tension = \
-                self.oiltype.oil_water_surface_tension()[0]
+                self.oiltype.oil_water_surface_tension()
             logger.info('Oil-water surface tension is %f Nm' %
                         self.oil_water_interfacial_tension)
 
@@ -759,7 +741,7 @@ class OpenOil(OceanDrift):
         emul_time = self.oiltype.bulltime
         emul_constant = self.oiltype.bullwinkle
         # max water content fraction - get from database
-        Y_max = self.oiltype.get('emulsion_water_fraction_max')
+        Y_max = self.oiltype.emulsion_water_fraction_max
         if self.oil_name in self.max_water_fraction:
             max_water_fraction = self.max_water_fraction[self.oil_name]
             logger.debug(
@@ -1423,57 +1405,10 @@ class OpenOil(OceanDrift):
         self.oil_name = oiltype
         self.set_config('seed:oil_type', oiltype)
         if self.oil_weathering_model == 'noaa':
-            try:
-                from oil_library import get_oil_props, _get_db_session
-                from oil_library.models import Oil as ADIOS_Oil
-                from oil_library.oil_props import OilProps
-                session = _get_db_session()
-                oils = session.query(ADIOS_Oil).filter(
-                    ADIOS_Oil.name == oiltype)
-                ADIOS_ids = [oil.adios_oil_id for oil in oils]
-                if len(ADIOS_ids) == 0:
-                    raise ValueError(
-                        'Oil type "%s" not found in NOAA database' % oiltype)
-                elif len(ADIOS_ids) == 1:
-                    self.oiltype = get_oil_props(oiltype)
-                else:
-                    logger.warning(
-                        'Two oils found with name %s (ADIOS IDs %s and %s). Using the first.'
-                        % (oiltype, ADIOS_ids[0], ADIOS_ids[1]))
-                    self.oiltype = OilProps(oils[0])
-            except Exception as e:
-                logger.warning(e)
-            return
-
-        if oiltype not in self.oiltypes:
-            raise ValueError(
-                'Oiltype %s is unknown. The following oiltypes are available: %s'
-                % (oiltype, str(self.oiltypes)))
-        indx = self.oiltypes.index(oiltype)
-        linenumber = self.oiltypes_linenumbers[indx]
-        oilfile = open(self.oiltype_file, 'r')
-        for i in range(linenumber + 1):
-            oilfile.readline()
-        ref = oilfile.readline().split()
-        self.oil_data = {}
-        self.oil_data['reference_thickness'] = float(ref[0])
-        self.oil_data['reference_wind'] = float(ref[1])
-        tref = []
-        fref = []
-        wmax = []
-        while True:
-            line = oilfile.readline()
-            if not line[0].isdigit():
-                break
-            line = line.split()
-            tref.append(line[0])
-            fref.append(line[1])
-            wmax.append(line[3])
-        oilfile.close()
-        self.oil_data['tref'] = np.array(tref, dtype='float') * 3600.
-        self.oil_data['fref'] = np.array(fref, dtype='float') * .01
-        self.oil_data['wmax'] = np.array(wmax, dtype='float')
-        self.oil_data['oiltype'] = oiltype  # Store name of oil type
+            self.oiltype = adios.find_full_oil_from_name(self.oil_name)
+            if not self.oiltype.valid():
+                logger.error(f"{self.oiltype} is not a valid oil for Opendrift simulations")
+                raise ValueError()
 
     def store_oil_seed_metadata(self, **kwargs):
         for s in [

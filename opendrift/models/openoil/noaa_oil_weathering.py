@@ -35,7 +35,7 @@ def evap_decay_constant(substance, wind_speed, sea_water_temperature,
 
 def water_uptake_coefficient(substance, wind_speed):
     # water uptake rate constant - from database
-    K0Y = substance.get('k0y')
+    K0Y = substance.k0y
     drop_max = 1.0e-5
     k_emul = 6.0 * K0Y * wind_speed * wind_speed / drop_max
     return k_emul
