@@ -203,7 +203,7 @@ class TestOil(unittest.TestCase):
         o = OpenOil(loglevel=50, weathering_model='noaa')
 
         o.seed_elements(lon=4.8, lat=60, number=100,
-                        time=datetime.now(), oiltype='SIRTICA')
+                        time=datetime.now(), oil_type='SIRTICA')
         o.set_config('processes:dispersion', True)
         o.set_config('processes:evaporation', True)
         o.set_config('processes:emulsification', True)

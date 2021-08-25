@@ -106,9 +106,6 @@ class OpendriftOil(ThinOil):
         self.id = data['_id']
         self.name = meta['name']
 
-        from pprint import pp
-        pp(o)
-
         logger.debug(f'Parsing Oil: {self.id} / {self.name}')
         self.oil = AdiosOil.from_py_json(data['attributes'])
 
@@ -119,6 +116,12 @@ class OpendriftOil(ThinOil):
 
     def __repr__(self):
         return f"[<adios.Oil> {self.id}] {self.name}"
+
+    def valid(self):
+        """
+        Check whether this oil can be used in Opendrift simulations.
+        """
+        return self.oil.metadata.gnome_suitable
 
     @__require_gnome_oil__
     def density_at_temp(self, t, unit='K') -> float:
@@ -144,7 +147,11 @@ class OpendriftOil(ThinOil):
     @property
     @__require_gnome_oil__
     def bulltime(self) -> float:
-        return self.gnome_oil['bullwinkle_time']
+        bulltime = self.gnome_oil['bullwinkle_time']
+        if bulltime is None:
+            return -999. # legacy from old oil_library
+        else:
+            return bulltime
 
     @property
     @__require_gnome_oil__
@@ -187,8 +194,8 @@ class OpendriftOil(ThinOil):
 
     @property
     @__require_gnome_oil__
-    def molecular_weight(self) -> float:
-        return self.gnome_oil['molecular_weight']
+    def molecular_weight(self):
+        return np.asarray(self.gnome_oil['molecular_weight'])
 
     @property
     @__require_gnome_oil__
