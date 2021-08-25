@@ -13,10 +13,10 @@ import numpy as np
 
 import unit_conversion as uc
 
-from adios_db.models.oil.validation.warnings import WARNINGS
-from adios_db.models.oil.validation.errors import ERRORS
+import logging
+logger = logging.getLogger(__name__)
 
-from adios_db.computation import estimations as est
+from . import estimations as est
 from .physical_properties import get_density_data, get_kinematic_viscosity_data, get_distillation_cuts
 from .physical_properties import bullwinkle_fraction, max_water_fraction_emulsion
 from .physical_properties import Density, KinematicViscosity
@@ -382,7 +382,8 @@ def normalized_cut_values(oil):
         # should be a warning if api < 50 or not a crude
         oil_api = oil.metadata.API
         if oil.metadata.product_type != 'Crude Oil NOS':
-            print(WARNINGS['W007'] + "  - oil not recommended for use in Gnome")
+            logger.error('warning: oil not recommended for use in Gnome')
+            # print(WARNINGS['W007'] + "  - oil not recommended for use in Gnome")
         if oil_api < 0:
             raise ValueError("Density is too large for estimations. Oil not suitable for use in Gnome")
 
@@ -453,7 +454,8 @@ def normalized_cut_values_james(oil, N=10):
     oil_api = oil.metadata.API
     if len(cuts) == 0:
         if oil.metadata.product_type != 'Crude Oil NOS':
-            print(WARNINGS['W007'] + "  - oil not recommended for use in Gnome")
+            logger.error('warning: oil not recommended for use in Gnome')
+            # print(WARNINGS['W007'] + "  - oil not recommended for use in Gnome")
         if oil_api < 0:
             raise ValueError("Density is too large for estimations. Oil not suitable for use in Gnome")
         BP_i = est.cut_temps_from_api(oil_api)
