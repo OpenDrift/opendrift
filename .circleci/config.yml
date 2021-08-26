@@ -130,7 +130,7 @@ jobs:
         command: |
           apt update -y
           apt install -y libssl-dev pkg-config curl build-essential libgeos-dev
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain nightly
 
     - run:
         name: Install setuptools-rust
@@ -143,19 +143,20 @@ jobs:
         command: |
             source activate opendrift
             source $HOME/.cargo/env
-            pip install git+https://github.com/gauteh/roaring-landmask
+            pip install -v git+https://github.com/gauteh/roaring-landmask
 
     - run:
         name: Remove Opendrift Landmask Data
         command: |
             source activate opendrift
-            conda remove -f opendrift-landmask-data
+            conda remove --force -y opendrift-landmask-data
 
     - run:
         name: Check for RoaringLandmask
         command: |
             source activate opendrift
-            python -c 'from roaring_landmask import RoaringLandmask; RoaringLandmask()'
+            source $HOME/.cargo/env
+            python -c 'from roaring_landmask import RoaringLandmask; r = RoaringLandmask.new()'
 
     - run_tests
 
