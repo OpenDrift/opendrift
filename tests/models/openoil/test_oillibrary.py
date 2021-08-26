@@ -134,7 +134,7 @@ def test_dispersion():
                             lat=60,
                             number=100,
                             time=datetime.now(),
-                            oiltype=oilname)
+                            oil_type=oilname)
             o.set_config('processes:dispersion', True)
             o.set_config('vertical_mixing:timestep', 10)
             o.set_config('environment:fallback:land_binary_mask', 0)
@@ -186,7 +186,7 @@ def test_no_dispersion():
                     lat=60,
                     number=100,
                     time=datetime.now(),
-                    oiltype='SIRTICA')
+                    oil_type='SIRTICA')
     o.set_config('processes:dispersion', False)
     o.set_config('environment:fallback:land_binary_mask', 0)
     o.set_config('environment:fallback:x_wind', 8)
@@ -197,7 +197,7 @@ def test_no_dispersion():
     b = o.get_oil_budget()
     actual_dispersed = b['mass_dispersed'] / b['mass_total']
     np.testing.assert_almost_equal(actual_dispersed[-1], 0)
-    np.testing.assert_array_almost_equal(o.elements.lon[0:3], [4.801, 4.801, 4.801], 3)
+    np.testing.assert_array_almost_equal(o.elements.lon[4:7], [4.808, 4.796, 4.8], 3)
 
 
 def test_biodegradation():
@@ -239,7 +239,7 @@ def test_droplet_distribution():
                         lat=60,
                         number=100,
                         time=datetime.now(),
-                        oiltype=oiltype)
+                        oil_type=oiltype)
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 8)
         o.set_config('environment:fallback:y_wind', 0)
