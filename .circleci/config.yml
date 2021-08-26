@@ -113,6 +113,53 @@ jobs:
       - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.17
 
+  python_latest_roaring:
+    docker:
+      - image: continuumio/miniconda3
+    resource_class: medium+
+    environment:
+      - PYTHON_VERSION=3.7
+      - NUMPY_VERSION=1.17
+    steps:
+    - checkout
+
+    - install_conda_environment
+
+    - run:
+        name: Install rust
+        command: |
+          apt update -y
+          apt install -y libssl-dev pkg-config curl build-essential libgeos-dev
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+    - run:
+        name: Install setuptools-rust
+        command: |
+            source activate opendrift
+            pip install setuptools-rust
+
+    - run:
+        name: Install roaring-landmask
+        command: |
+            source activate opendrift
+            source $HOME/.cargo/env
+            pip install git+https://github.com/gauteh/roaring-landmask
+
+    - run:
+        name: Remove Opendrift Landmask Data
+        command: |
+            source activate opendrift
+            conda remove -f opendrift-landmask-data
+
+    - run:
+        name: Check for RoaringLandmask
+        command: |
+            source activate opendrift
+            python -c 'from roaring_landmask import RoaringLandmask; RoaringLandmask()'
+
+    - run_tests
+
+
   docs-build:
     docker:
       - image: continuumio/miniconda3
@@ -253,6 +300,7 @@ workflows:
       - python_latest
       - python_38_numpy_119
       - python_37_numpy_117
+      - python_latest_roaring
 
   build:
     jobs:
