@@ -97,6 +97,7 @@ class Reader(BaseReader, ContinuousReader):
         try:
             from roaring_landmask import RoaringLandmask
             logger.warning("using the experimental RoaringLandmask")
+            self.mask_type = 1
             self.mask = RoaringLandmask.new()
 
             if skippoly:
@@ -105,10 +106,11 @@ class Reader(BaseReader, ContinuousReader):
 
         except ImportError:
             from opendrift_landmask_data import Landmask
+            self.mask_type = 0
             self.mask = Landmask(extent, skippoly)
 
     def __on_land__(self, x, y):
-        if isinstance(self.mask, Landmask):
+        if self.mask_type == 0:
             return self.mask.contains(x,
                                       y,
                                       skippoly=self.skippoly,
