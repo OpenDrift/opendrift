@@ -27,6 +27,50 @@ commands:
             fi
 
 
+  install_conda_environment:
+    steps:
+      - run:
+          name: Checksum environment
+          command: |
+            echo "python=${PYTHON_VERSION}" > envconfig
+            echo "numpy=${NUMPY_VERSION}" >> envconfig
+            cat envconfig
+
+      - restore_cache:
+          key: v14-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+
+      - run:
+          name: Install requirements
+          no_output_timeout: 30m
+          command: |
+            if [ ! -e /opt/conda/envs/opendrift ]; then
+              if [ -v PYTHON_VERSION ]; then
+                # pin python and numpy
+                conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
+
+                echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
+                echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
+
+                conda env update -n opendrift -q -f environment.yml
+              else
+                conda env create -q --file environment.yml
+              fi
+
+              source activate opendrift
+
+              pip install pyyaml coveralls
+            fi
+
+      - save_cache:
+          key: v14-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          paths:
+            - "/opt/conda/envs"
+      - run:
+          name: List environment
+          command: |
+            source activate opendrift
+            conda list
+
 
 test-template: &test-template
   docker:
@@ -34,47 +78,8 @@ test-template: &test-template
   resource_class: medium+
   steps:
     - checkout
-    - run:
-        name: Checksum environment
-        command: |
-          echo "python=${PYTHON_VERSION}" > envconfig
-          echo "numpy=${NUMPY_VERSION}" >> envconfig
-          cat envconfig
 
-    - restore_cache:
-        key: v14-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
-    - run:
-        name: Install requirements
-        no_output_timeout: 30m
-        command: |
-          if [ ! -e /opt/conda/envs/opendrift ]; then
-            if [ -v PYTHON_VERSION ]; then
-              # pin python and numpy
-              conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
-
-              echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
-              echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
-
-              conda env update -n opendrift -q -f environment.yml
-            else
-              conda env create -q --file environment.yml
-            fi
-
-            source activate opendrift
-
-            pip install pyyaml coveralls
-          fi
-
-    - save_cache:
-        key: v14-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
-        paths:
-          - "/opt/conda/envs"
-
-    - run:
-        name: List environment
-        command: |
-          source activate opendrift
-          conda list
+    - install_conda_environment
 
     - restore_cache:
         key: v1-landmask
