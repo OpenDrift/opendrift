@@ -71,15 +71,15 @@ import pyproj
 import matplotlib.pyplot as plt
 import logging
 logger = logging.getLogger(__name__)
-from functools import lru_cache
 
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.elements import LagrangianArray
 from . import noaa_oil_weathering as noaa
 from . import adios
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
+from opendrift.util.cache import file_cache, opendrift_cache
 
-@lru_cache
+@file_cache(path = opendrift_cache() / "ADIOS", timeout = 10 * 60)
 def noaa_oils():
     logger.warning("Fetching all oils from ADIOS database")
     oiltypes = adios.oils(None)

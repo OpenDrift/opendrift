@@ -12,6 +12,7 @@ def test_get_300():
     sids = set(ids)
     assert len(ids) == len(sids)
 
+@pytest.mark.skip
 def test_get_all():
     oils = adios.oils(None)
     print(oils[0])
