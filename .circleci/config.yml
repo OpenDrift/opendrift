@@ -116,7 +116,7 @@ jobs:
   python_latest_roaring:
     docker:
       - image: continuumio/miniconda3
-    resource_class: medium+
+    resource_class: xlarge
     environment:
       - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.17
