@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 def opendrift_cache():
     """
-    Return the platform cache directory.
+    Return the opendrift cache directory.
     """
     c = xdg.xdg_cache_home() / "opendrift"
     if not os.path.exists(c):

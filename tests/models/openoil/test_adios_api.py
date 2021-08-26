@@ -27,3 +27,11 @@ def test_get_full():
     thin = adios.oils(1)[0]
     full = thin.make_full()
     print(full)
+
+def test_bunker_c_1987():
+    o = adios.oils(query='Bunker C [1987]')
+    print([oo.name for oo in o])
+    assert len(o) > 1
+    o = adios.find_full_oil_from_name('Bunker C [1987]')
+    assert o.valid()
+
