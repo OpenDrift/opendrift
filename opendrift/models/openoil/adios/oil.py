@@ -68,9 +68,6 @@ class ThinOil:
     def __repr__(self):
         return f"[<adios.ThinOil> {self.id}] {self.name}"
 
-    def is_generic(self):
-        return 'GENERIC' in self.name
-
     def make_full(self) -> 'OpendriftOil':
         """
         Fetch the full oil from ADIOS.

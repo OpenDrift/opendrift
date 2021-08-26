@@ -310,6 +310,7 @@ class OpenOil(OceanDrift):
 
             # Update config with oiltypes
             oiltypes = [a.name for a in self.oiltypes]
+            oiltypes.extend(adios.oil_name_alias.keys())
             return oiltypes
         else:
             raise ValueError('Weathering model unknown: ' + self.oil_weathering_model)
@@ -1409,6 +1410,9 @@ class OpenOil(OceanDrift):
             plt.show()
 
     def set_oiltype(self, oiltype):
+        oiltype = adios.oil_name_alias.get(oiltype, oiltype)
+        logger.info(f'setting oil_type to: {oiltype}')
+
         self.oil_name = oiltype
         self.set_config('seed:oil_type', oiltype)
         if self.oil_weathering_model == 'noaa':
