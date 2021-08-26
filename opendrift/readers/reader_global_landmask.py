@@ -15,12 +15,12 @@
 # Copyright 2020, Gaute Hope, MET Norway
 
 from opendrift.readers.basereader import BaseReader, ContinuousReader
-from opendrift_landmask_data import Landmask
 
 import warnings
 import pyproj
 import numpy as np
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,29 +53,34 @@ class Reader(BaseReader, ContinuousReader):
     name = 'global_landmask'
     variables = ['land_binary_mask']
     proj4 = None
-    crs   = None
+    crs = None
     skippoly = False
 
     def __init__(self,
-                 extent = None,
-                 llcrnrlon = None,
-                 llcrnrlat = None,
-                 urcrnrlon = None,
-                 urcrnrlat = None,
-                 skippoly = False):
+                 extent=None,
+                 llcrnrlon=None,
+                 llcrnrlat=None,
+                 urcrnrlon=None,
+                 urcrnrlat=None,
+                 skippoly=False):
         self.proj4 = '+proj=lonlat +ellps=WGS84'
         self.crs = pyproj.CRS(self.proj4)
         self.skippoly = skippoly
 
-        super (Reader, self).__init__ ()
+        super(Reader, self).__init__()
 
         # Depth
         self.z = None
 
         if extent and (llcrnrlat or llcrnrlon or urcrnrlat or urcrnrlon):
-            raise Exception ("'extent' cannot be given togheter with any of 'llcrnrlon', ..'")
-        elif extent is None and (llcrnrlat or llcrnrlon or urcrnrlat or urcrnrlon):
-            warnings.warn("llcrnrlon, llcrnrlat, et. al. is deprecated for the global landmask reader. Prefer 'extent' in stead.", DeprecationWarning)
+            raise Exception(
+                "'extent' cannot be given togheter with any of 'llcrnrlon', ..'"
+            )
+        elif extent is None and (llcrnrlat or llcrnrlon or urcrnrlat
+                                 or urcrnrlon):
+            warnings.warn(
+                "llcrnrlon, llcrnrlat, et. al. is deprecated for the global landmask reader. Prefer 'extent' in stead.",
+                DeprecationWarning)
             extent = [llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat]
 
         # Read and store min, max and step of x and y
@@ -95,21 +100,30 @@ class Reader(BaseReader, ContinuousReader):
             self.mask = RoaringLandmask.new()
 
             if skippoly:
-                logger.warning('skippoly is not supported with RoaringLandmask')
+                logger.warning(
+                    'skippoly is not supported with RoaringLandmask')
 
         except ImportError:
+            from opendrift_landmask_data import Landmask
             self.mask = Landmask(extent, skippoly)
 
     def __on_land__(self, x, y):
         if isinstance(self.mask, Landmask):
-            return self.mask.contains(x, y, skippoly = self.skippoly, checkextent = False)
+            return self.mask.contains(x,
+                                      y,
+                                      skippoly=self.skippoly,
+                                      checkextent=False)
         else:
             x = x.astype(np.float64)
             y = y.astype(np.float64)
             return self.mask.contains_many(x, y)
 
-    def get_variables(self, requestedVariables, time = None,
-                      x = None, y = None, z = None):
+    def get_variables(self,
+                      requestedVariables,
+                      time=None,
+                      x=None,
+                      y=None,
+                      z=None):
         """
         Get binary mask of whether elements are on land or not.
 
@@ -126,5 +140,4 @@ class Reader(BaseReader, ContinuousReader):
         """
 
         self.check_arguments(requestedVariables, time, x, y, z)
-        return { 'land_binary_mask': self.__on_land__(x,y) }
-
+        return {'land_binary_mask': self.__on_land__(x, y)}
