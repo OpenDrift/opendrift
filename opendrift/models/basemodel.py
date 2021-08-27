@@ -2781,6 +2781,24 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     width=lonmx-lonmn, height=latmx-latmn, transform=ccrs.Geodetic(), **bx)
                 ax.add_patch(patch)
 
+        def show_landmask_roaring(roaring):
+            maxn = 512.
+            dx = (lonmax - lonmin) / maxn
+            dy = (latmax - latmin) / maxn
+            dx = max(roaring.dx, dx)
+            dy = max(roaring.dy, dy)
+
+            x = np.arange(lonmin, lonmax, dx)
+            y = np.arange(latmin, latmax, dy)
+
+            yy, xx = np.meshgrid(y, x)
+            img = roaring.mask.contains_many(xx.ravel(), yy.ravel()).reshape(yy.shape).T
+
+            from matplotlib import colors
+            cmap = colors.ListedColormap([ocean_color, land_color])
+            ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
+                      transform=ccrs.PlateCarree(), cmap=cmap)
+
         def show_landmask(landmask):
             maxn = 512.
             dx = (lonmax - lonmin) / maxn
@@ -2819,7 +2837,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     logger.debug("Using existing GSHHS shapes..")
                     landmask = self.readers['global_landmask'].mask
                     if fast:
-                        show_landmask(landmask)
+                        if self.readers['global_landmask'].mask_type == 0:
+                            show_landmask(landmask)
+                        else:
+                            show_landmask_roaring(landmask)
 
                     else:
                         extent = box(lonmin, latmin, lonmax, latmax)
@@ -2835,8 +2856,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             else:
                 if fast:
-                    from opendrift_landmask_data import Landmask
-                    show_landmask(Landmask(skippoly=True))
+                    mask_type, mask = opendrift.readers.reader_global_landmask.get_mask()
+                    if mask_type == 0:
+                        show_landmask(mask)
+                    elif mask_type == 1:
+                        show_landmask_roaring(mask)
 
                 else:
                     logger.debug ("Adding GSHHS shapes..")

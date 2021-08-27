@@ -25,6 +25,23 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def get_mask(skippoly = False, extent = None):
+    try:
+        from roaring_landmask import RoaringLandmask
+        logger.warning("using the experimental RoaringLandmask")
+        mask_type = 1
+        mask = RoaringLandmask.new()
+
+        if skippoly or extent:
+            logger.warning(
+                'skippoly and extent is not supported with RoaringLandmask')
+
+    except ImportError:
+        from opendrift_landmask_data import Landmask
+        mask_type = 0
+        mask = Landmask(extent, skippoly)
+
+    return mask_type, mask
 
 class Reader(BaseReader, ContinuousReader):
     """
@@ -87,33 +104,17 @@ class Reader(BaseReader, ContinuousReader):
                 DeprecationWarning)
             extent = [llcrnrlon, llcrnrlat, urcrnrlon, urcrnrlat]
 
+        # setup landmask
+        self.mask_type, self.mask = get_mask(skippoly, extent)
+
         # Read and store min, max and step of x and y
-        if extent is not None:
+        if self.mask_type == 0 and extent is not None:
             self.xmin, self.ymin, self.xmax, self.ymax = extent
         else:
             self.xmin, self.ymin = -180, -90
             self.xmax, self.ymax = 180, 90
 
-        self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
-        self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
-
-        # setup landmask
-        try:
-            from roaring_landmask import RoaringLandmask
-            logger.warning("using the experimental RoaringLandmask")
-            self.mask_type = 1
-            self.mask = RoaringLandmask.new()
-
-            if skippoly:
-                logger.warning(
-                    'skippoly is not supported with RoaringLandmask')
-
-        except ImportError:
-            from opendrift_landmask_data import Landmask
-            self.mask_type = 0
-            self.mask = Landmask(extent, skippoly)
-
-        if extent:
+        if self.mask_type == 0 and extent:
             extent = box(*[self.xmin, self.ymin, self.xmax, self.ymax])
             self.extent = shapely.prepared.prep(extent)
 
