@@ -1,9 +1,16 @@
 History
 =======
 
-Next release
+Next release / Release v1.7.0
 ------------
 * New method ``reader.shift_start_time(start_time)`` to shift time coverage of reader
+* Density arrays calculated with method "get_density" for files opened with `open_xarray` can now be weighted with any property, or a user provided array. `origin_marker is now a dimension of the arrays stored in analysis netCDF file. Made new method `get_density_timeseries`
+* ROMS native reader now accepts datasets where lon and lat are 1-dimensional
+* Fixed bug related to extrapolating 3D data to seafloor
+* Fixed bug with interpolation where latitude/y-coordinate is decreasing and not increasing (flipped upside down). Also fixed small inaccuracy of structured interpolation.
+* Fixed horizontal diffusion for backwards simulations
+* Enable the use of `roaring-landmask <https://github.com/gauteh/roaring-landmask>`_ as landmask reader, if installed.
+* Add Telemac / Selafin reader (requires telemac python scripts).
 
 2021-05-03 / Release v1.6.0
 -----------------------------
