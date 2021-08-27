@@ -25,13 +25,19 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# TODO: replace this with weakref + thread-safety
+__roaring_mask__ = None
+
 def get_mask(skippoly = False, extent = None):
     try:
-        from roaring_landmask import RoaringLandmask
-        logger.warning("using the experimental RoaringLandmask")
-        mask_type = 1
-        mask = RoaringLandmask.new()
+        if __roaring_mask__ is None:
+            from roaring_landmask import RoaringLandmask
+            logger.warning("using the experimental RoaringLandmask")
+            mask = RoaringLandmask.new()
+        else:
+            mask = __roaring_mask__
 
+        mask_type = 1
         if skippoly or extent:
             logger.warning(
                 'skippoly and extent is not supported with RoaringLandmask')
