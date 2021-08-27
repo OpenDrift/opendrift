@@ -89,12 +89,9 @@ class Reader(BaseReader, ContinuousReader):
         # Read and store min, max and step of x and y
         if extent is not None:
             self.xmin, self.ymin, self.xmax, self.ymax = extent
-            extent = box(*[self.xmin, self.ymin, self.xmax, self.ymax])
-            self.extent = shapely.prepared.prep(extent)
         else:
             self.xmin, self.ymin = -180, -90
             self.xmax, self.ymax = 180, 90
-            self.extent = None
 
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
@@ -114,6 +111,10 @@ class Reader(BaseReader, ContinuousReader):
             from opendrift_landmask_data import Landmask
             self.mask_type = 0
             self.mask = Landmask(extent, skippoly)
+
+        if extent:
+            extent = box(*[self.xmin, self.ymin, self.xmax, self.ymax])
+            self.extent = shapely.prepared.prep(extent)
 
     def __on_land__(self, x, y):
         if self.mask_type == 0:
