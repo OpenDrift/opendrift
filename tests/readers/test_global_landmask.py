@@ -15,9 +15,10 @@ def test_reader_landmask_generate():
 
     if os.path.exists(mmapf): os.unlink(mmapf)
 
-    reader_global_landmask.Reader()
+    r = reader_global_landmask.Reader()
 
-    assert os.path.exists(mmapf)
+    if r.mask_type == 0:
+        assert os.path.exists(mmapf)
 
 
 @pytest.mark.veryslow
@@ -32,7 +33,8 @@ def test_reader_landmask_generate_extent():
     r = reader_global_landmask.Reader(extent=[4, 55, 11, 65])
     assert r.extent is not None
 
-    assert os.path.exists(mmapf)
+    if r.mask_type == 0:
+        assert os.path.exists(mmapf)
 
 
 def test_landmask_global():

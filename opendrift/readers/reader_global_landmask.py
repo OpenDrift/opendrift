@@ -58,6 +58,7 @@ class Reader(BaseReader, ContinuousReader):
     crs = None
     skippoly = False
     extent = None
+    mask_type = 0  # 0 is opendrift_landmask_data, 1 is roaring_landmask. try not to make any code depend on this!
 
     def __init__(self,
                  extent=None,
