@@ -19,6 +19,8 @@ from opendrift.readers.basereader import BaseReader, ContinuousReader
 import warnings
 import pyproj
 import numpy as np
+import shapely.vectorized
+from shapely.geometry import box
 import logging
 
 logger = logging.getLogger(__name__)
@@ -55,6 +57,7 @@ class Reader(BaseReader, ContinuousReader):
     proj4 = None
     crs = None
     skippoly = False
+    extent = None
 
     def __init__(self,
                  extent=None,
@@ -86,9 +89,12 @@ class Reader(BaseReader, ContinuousReader):
         # Read and store min, max and step of x and y
         if extent is not None:
             self.xmin, self.ymin, self.xmax, self.ymax = extent
+            extent = box(*[self.xmin, self.ymin, self.xmax, self.ymax])
+            self.extent = shapely.prepared.prep(extent)
         else:
             self.xmin, self.ymin = -180, -90
             self.xmax, self.ymax = 180, 90
+            self.extent = None
 
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)

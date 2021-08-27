@@ -2812,8 +2812,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.priority_list['land_binary_mask'][0] == 'shape' or (
                 self.priority_list['land_binary_mask'][0] == 'global_landmask' \
                 and not self.readers['global_landmask'].skippoly \
-                and (self.readers['global_landmask'].mask.extent is None \
-                    or self.readers['global_landmask'].mask.extent.contains(box(lonmin, latmin, lonmax, latmax))))):
+                and (self.readers['global_landmask'].extent is None \
+                    or self.readers['global_landmask'].extent.contains(box(lonmin, latmin, lonmax, latmax))))):
 
                 if self.priority_list['land_binary_mask'][0] == 'global_landmask':
                     logger.debug("Using existing GSHHS shapes..")

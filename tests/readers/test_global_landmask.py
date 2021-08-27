@@ -29,13 +29,15 @@ def test_reader_landmask_generate_extent():
 
     if os.path.exists(mmapf): os.unlink(mmapf)
 
-    reader_global_landmask.Reader(extent=[4, 55, 11, 65])
+    r = reader_global_landmask.Reader(extent=[4, 55, 11, 65])
+    assert r.extent is not None
 
     assert os.path.exists(mmapf)
 
 
 def test_landmask_global():
     reader_global = reader_global_landmask.Reader(extent=[4, 55, 11, 65])
+    assert reader_global.extent is None
 
     assert reader_global.__on_land__(np.array([10]), np.array([60])) == [True]
     assert reader_global.__on_land__(np.array([5]), np.array([60])) == [False]
