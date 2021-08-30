@@ -47,14 +47,15 @@ def get_mask(skippoly = False, extent = None):
     Returns an instance of the landmask type and landmask. The mask data is
     usually shared between threads.
     """
+    global __roaring_mask__
+
     try:
         if __roaring_mask__ is None:
             from roaring_landmask import RoaringLandmask
             logger.warning("using the experimental RoaringLandmask")
-            mask = RoaringLandmask.new()
-        else:
-            mask = __roaring_mask__
+            __roaring_mask__ = RoaringLandmask.new()
 
+        mask = __roaring_mask__
         mask_type = 1
         if skippoly or extent:
             logger.warning(

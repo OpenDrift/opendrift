@@ -39,7 +39,7 @@ def test_reader_landmask_generate_extent():
 
 def test_landmask_global():
     reader_global = reader_global_landmask.Reader(extent=[4, 55, 11, 65])
-    assert reader_global.extent is not None
+    assert reader_global.extent is not None or reader_global.mask_type == 1
 
     assert reader_global.__on_land__(np.array([10]), np.array([60])) == [True]
     assert reader_global.__on_land__(np.array([5]), np.array([60])) == [False]
