@@ -22,7 +22,7 @@ commands:
           name: Upload to coveralls
           command: |
             source activate opendrift
-            if [ ! -v PYTHON_VERSION ]; then
+            if [ ! -v COVERALLS_UPLOAD ]; then
               COVERALLS_REPO_TOKEN=nEzcGcepz6KeM8OpvG2WoxbGjMGwivyAQ coveralls
             fi
 
@@ -100,6 +100,8 @@ test-template: &test-template
 jobs:
   python_latest:
     <<: *test-template
+    environment:
+      - COVERALLS_UPLOAD=1
 
   python_38_numpy_119:
     <<: *test-template
@@ -116,7 +118,7 @@ jobs:
   python_latest_roaring:
     docker:
       - image: continuumio/miniconda3
-    resource_class: xlarge
+    resource_class: medium+
     environment:
       - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.17
