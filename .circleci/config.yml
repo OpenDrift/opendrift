@@ -145,11 +145,11 @@ jobs:
             source $HOME/.cargo/env
             pip install -v git+https://github.com/gauteh/roaring-landmask
 
-    # - run:
-    #     name: Remove Opendrift Landmask Data
-    #     command: |
-    #         source activate opendrift
-    #         conda remove --force -y opendrift-landmask-data
+    - run:
+        name: Remove Opendrift Landmask Data
+        command: |
+            source activate opendrift
+            conda remove --force -y opendrift-landmask-data
 
     - run:
         name: Check for RoaringLandmask
