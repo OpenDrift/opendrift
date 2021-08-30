@@ -2781,97 +2781,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     width=lonmx-lonmn, height=latmx-latmn, transform=ccrs.Geodetic(), **bx)
                 ax.add_patch(patch)
 
-        def show_landmask_roaring(roaring):
-            maxn = 512.
-            dx = (lonmax - lonmin) / maxn
-            dy = (latmax - latmin) / maxn
-            dx = max(roaring.dx, dx)
-            dy = max(roaring.dy, dy)
-
-            x = np.arange(lonmin, lonmax, dx)
-            y = np.arange(latmin, latmax, dy)
-
-            yy, xx = np.meshgrid(y, x)
-            img = roaring.mask.contains_many(xx.ravel(), yy.ravel()).reshape(yy.shape).T
-
-            from matplotlib import colors
-            cmap = colors.ListedColormap([ocean_color, land_color])
-            ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
-                      transform=ccrs.PlateCarree(), cmap=cmap)
-
-        def show_landmask(landmask):
-            maxn = 512.
-            dx = (lonmax - lonmin) / maxn
-            dy = (latmax - latmin) / maxn
-            dx = max(landmask.dx, dx)
-            dy = max(landmask.dy, dy)
-
-            x = np.array([lonmin, lonmax])
-            y = np.array([latmin, latmax])
-            ndx = np.int32(dx / landmask.dx)  # normalized delta
-            ndy = np.int32(dy / landmask.dy)
-
-            xm, ym = landmask.invtransform * (x, y)
-            xm = xm.astype(np.int32)
-            ym = ym.astype(np.int32)
-
-            img = landmask.mask[ym[0]:ym[1]:ndy, xm[0]:xm[1]:ndx]
-
-            from matplotlib import colors
-            cmap = colors.ListedColormap([ocean_color, land_color])
-            ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
-                      transform=ccrs.PlateCarree(), cmap=cmap)
-
-        import shapely
-        from shapely.geometry import box
-
         if not hide_landmask:
-            if 'land_binary_mask' in self.priority_list and (
-                self.priority_list['land_binary_mask'][0] == 'shape' or (
-                self.priority_list['land_binary_mask'][0] == 'global_landmask' \
-                and not self.readers['global_landmask'].skippoly \
-                and (self.readers['global_landmask'].extent is None \
-                    or self.readers['global_landmask'].extent.contains(box(lonmin, latmin, lonmax, latmax))))):
-
-                if self.priority_list['land_binary_mask'][0] == 'global_landmask':
-                    logger.debug("Using existing GSHHS shapes..")
-                    landmask = self.readers['global_landmask'].mask
-                    if fast:
-                        if self.readers['global_landmask'].mask_type == 0:
-                            show_landmask(landmask)
-                        else:
-                            show_landmask_roaring(landmask)
-
-                    else:
-                        extent = box(lonmin, latmin, lonmax, latmax)
-                        extent = shapely.prepared.prep(extent)
-                        polys = [p for p in landmask.polys.geoms if extent.intersects(p)]
-
-                        ax.add_geometries(polys,
-                                ccrs.PlateCarree(),
-                                facecolor=land_color,
-                                edgecolor='black')
-                else:  # Using custom shape reader
-                    ax.add_geometries(self.readers['shape'].polys, ccrs.PlateCarree(), facecolor=land_color, edgecolor='black')
-
+            if 'land_binary_mask' in self.priority_list and self.priority_list['land_binary_mask'][0] == 'shape':
+                logger.debug('Using custom shapes for plotting land..')
+                ax.add_geometries(self.readers['shape'].polys, ccrs.PlateCarree(), facecolor=land_color, edgecolor='black')
             else:
-                if fast:
-                    mask_type, mask = opendrift.readers.reader_global_landmask.get_mask()
-                    if mask_type == 0:
-                        show_landmask(mask)
-                    elif mask_type == 1:
-                        show_landmask_roaring(mask)
-
-                else:
-                    logger.debug ("Adding GSHHS shapes..")
-                    f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
-                            facecolor=land_color)
-                    ax.add_geometries(
-                            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
-                            ccrs.PlateCarree(),
-                            facecolor=land_color,
-                            edgecolor='black')
-
+                opendrift.readers.reader_global_landmask.plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color, land_color, lscale)
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels=True)
         if cartopy.__version__ < '0.18.0':
