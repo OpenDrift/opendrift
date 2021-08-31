@@ -114,6 +114,10 @@ class OpendriftOil(ThinOil):
     def __repr__(self):
         return f"[<adios.Oil> {self.id}] {self.name}"
 
+    def json(self):
+        import json
+        return json.dumps(self.data)
+
     def valid(self):
         """
         Check whether this oil can be used in Opendrift simulations.
