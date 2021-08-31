@@ -1,6 +1,10 @@
 History
 =======
 
+2021-09-01 / Release v1.7.1
+------------
+* Using OilLibrary v4+noaa1.1.3
+
 2021-08-30 / Release v1.7.0
 ------------
 * New method ``reader.shift_start_time(start_time)`` to shift time coverage of reader
