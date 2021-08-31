@@ -22,7 +22,7 @@ commands:
           name: Upload to coveralls
           command: |
             source activate opendrift
-            if [ ! -v COVERALLS_UPLOAD ]; then
+            if [ -v COVERALLS_UPLOAD ]; then
               COVERALLS_REPO_TOKEN=nEzcGcepz6KeM8OpvG2WoxbGjMGwivyAQ coveralls
             fi
 
