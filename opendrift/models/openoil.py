@@ -185,7 +185,7 @@ class OpenOil(OceanDrift):
                      'evaporated': 'yellow', 'dispersed': 'magenta'}
 
     duplicate_oils = ['ALVHEIM BLEND, STATOIL', 'DRAUGEN, STATOIL',
-                      'EKOFISK BLEND 2000', 'EKOFISK BLEND, STATOIL',
+                      'EKOFISK BLEND, STATOIL',
                       'EKOFISK, CITGO', 'EKOFISK, EXXON', 'EKOFISK, PHILLIPS',
                       'EKOFISK, STATOIL', 'ELDFISK', 'ELDFISK B',
                       'GLITNE, STATOIL', 'GOLIAT BLEND, STATOIL',
