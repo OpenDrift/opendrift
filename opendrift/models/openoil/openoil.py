@@ -1420,6 +1420,18 @@ class OpenOil(OceanDrift):
             if not self.oiltype.valid():
                 logger.error(f"{self.oiltype} is not a valid oil for Opendrift simulations")
                 raise ValueError()
+        else:
+            raise ValueError("unsupported oil weathering model")
+
+    def set_oiltype_by_id(self, oiltypeid):
+        if self.oil_weathering_model == 'noaa':
+            self.oiltype = adios.get_full_oil_from_id(oiltypeid)
+            self.oil_name = self.oiltype.name
+            if not self.oiltype.valid():
+                logger.error(f"{self.oiltype} is not a valid oil for Opendrift simulations")
+                raise ValueError()
+        else:
+            raise ValueError("unsupported oil weathering model")
 
     def store_oil_seed_metadata(self, **kwargs):
         for s in [
@@ -1501,6 +1513,7 @@ class OpenOil(OceanDrift):
             )
             kwargs['oil_type'] = kwargs['oiltype']
             del kwargs['oiltype']
+
         if 'oil_type' in kwargs:
             self.set_config('seed:oil_type', kwargs['oil_type'])
             del kwargs['oil_type']

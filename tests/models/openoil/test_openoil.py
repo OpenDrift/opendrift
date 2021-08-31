@@ -88,4 +88,11 @@ def test_set_oil_type():
     assert o.oiltype.name == 'AASGARD A 2003'
     print(o.oiltype)
 
+def test_set_oil_type_by_id():
+    o = OpenOil(loglevel=50)
+    o.set_oiltype_by_id('NO00108')
+    assert o.oiltype.name == 'AASGARD A 2003'
+    print(o.oiltype)
+
+
 

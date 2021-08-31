@@ -21,7 +21,7 @@ from typing import List
 
 from .oil import ThinOil, OpendriftOil
 
-ADIOS = "https://adios.orr.noaa.gov/api/oils/"
+ADIOS = "https://adios.orr.noaa.gov/api/oils"
 
 # The SSL configuration of the ADIOS database does not work outside the browser it seems. Please see
 # this issue: https://github.com/NOAA-ORR-ERD/adios_oil_database/issues/2 .
@@ -62,7 +62,9 @@ def oils(limit=50, query='') -> List[ThinOil]:
             'sort': 'metadata.name',
             'q': query
         },
-                         verify=VERIFY).json()
+                         verify=VERIFY)
+        o.raise_for_status()
+        o = o.json()
 
         oils.extend(o['data'])
 
@@ -91,6 +93,7 @@ def find_full_oil_from_name(name) -> 'OpendriftOil':
 
 def get_full_oil_from_id(_id) -> 'OpendriftOil':
     logger.debug(f"Fetching full oil: {_id}")
-    o = requests.get(f"{ADIOS}/{_id}", verify=VERIFY).json()
-    return OpendriftOil(o)
+    o = requests.get(f"{ADIOS}/{_id}", verify=VERIFY)
+    o.raise_for_status()
+    return OpendriftOil(o.json())
 
