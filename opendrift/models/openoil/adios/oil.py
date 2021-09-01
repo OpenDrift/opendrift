@@ -118,6 +118,9 @@ class OpendriftOil(ThinOil):
         import json
         return json.dumps(self.data)
 
+    def make_full(self) -> 'OpendriftOil':
+        return self
+
     def valid(self):
         """
         Check whether this oil can be used in Opendrift simulations.
