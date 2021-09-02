@@ -1938,7 +1938,7 @@ class ChemicalDrift(OceanDrift):
                     "Fluoranthene": 0.16,
                     "Benzo(a)anthracene": 0.13,
                     "Benzo(a)pyrene": 0.05,
-                    "Dibenzo(a,h)anthracene" 0.03
+                    "Dibenzo(a,h)anthracene": 0.03
                     }
 
                 emission_factors_closed_loop = {
