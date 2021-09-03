@@ -24,16 +24,6 @@ from .oil import OpendriftOil
 
 logger = logging.getLogger(__name__)
 
-
-# @cache
-# def __get_archive__():
-#     archive = resources.files('opendrift.models.openoil.adios').joinpath(
-#         'oils.tar.xz').open('rb')
-
-#     with tarfile.open(fileobj=archive, mode='r:xz') as c:
-#         return [json.load(c.extractfile(f)) for f in c]
-
-
 @cache
 def __get_archive__():
     import lzma
@@ -42,14 +32,6 @@ def __get_archive__():
         with lzma.open(archive, 'rt') as c:
             oils = json.load(c)
             return oils
-            # return [OpendriftOil(o) for o in oils]
-
-# @cache
-# def __get_archive__():
-#     with resources.files('opendrift.models.openoil.adios').joinpath(
-#             'oils.json').open('rb') as c:
-#         oils = json.load(c)
-#         return [OpendriftOil(o) for o in oils]
 
 def get_oil_names():
     return [o['data']['attributes']['metadata']['name'] for o in __get_archive__()]
