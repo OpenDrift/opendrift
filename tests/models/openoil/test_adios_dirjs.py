@@ -12,9 +12,16 @@ def test_get_all_oils(benchmark):
     oils = benchmark(adios.dirjs.oils, None)
     assert len(oils) >= 1700
 
+
 def test_get_all_oil_names(benchmark):
     oils = benchmark(adios.dirjs.get_oil_names)
     assert len(oils) >= 1700
+
+
+def test_get_all_oil_names_location(benchmark):
+    oils = benchmark(adios.dirjs.get_oil_names, location='NORWAY')
+    assert len(oils) >= 150 and len(oils) <= 180
+
 
 def test_bunker_c_1987():
     o = adios.dirjs.oils(query='Bunker C [1987]')
@@ -22,13 +29,14 @@ def test_bunker_c_1987():
     assert len(o) == 1
     assert o[0].valid()
 
+
 def test_get_oil_by_name(benchmark):
     oil = benchmark(adios.dirjs.find_full_oil_from_name, 'AASGARD A 2003')
     assert oil.name == 'AASGARD A 2003'
     assert oil.valid()
 
+
 def test_get_oil_by_id(benchmark):
     oil = benchmark(adios.dirjs.get_full_oil_from_id, 'NO00108')
     assert oil.name == 'AASGARD A 2003'
     assert oil.valid()
-
