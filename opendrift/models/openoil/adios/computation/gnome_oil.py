@@ -88,7 +88,7 @@ def make_gnome_oil(oil):
     # metadata:
     go = get_empty_dict()
     # make sure we don't change the original oil object
-    oil = copy.deepcopy(oil)
+    # oil = copy.deepcopy(oil)
     go['name'] = oil.metadata.name
 
     dens = Density(oil)
