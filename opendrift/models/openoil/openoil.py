@@ -294,20 +294,15 @@ class OpenOil(OceanDrift):
         'FENJA (PIL) 2015': .75
     }
 
-    def list_of_oils(self):
-        if self.oil_weathering_model == 'noaa':  # Currently the only option
-            self.oiltypes = adios.get_oil_names()
-
-            # Update config with oiltypes
-            self.oiltypes.extend(adios.oil_name_alias.keys())
-            return self.oiltypes
-        else:
-            raise ValueError('Weathering model unknown: ' + self.oil_weathering_model)
-
     def __init__(self, weathering_model='noaa', *args, **kwargs):
         self.oil_weathering_model = weathering_model
 
-        if not self.oil_weathering_model == 'noaa':  # Currently the only option
+        if self.oil_weathering_model == 'noaa':  # Currently the only option
+            self.oiltypes = adios.get_oil_names(location = kwargs.get('location', None))
+
+            # Update config with oiltypes
+            self.oiltypes.extend(adios.oil_name_alias.keys())
+        else:
             raise ValueError('Weathering model unknown: ' + weathering_model)
 
         # Calling general constructor of parent class
@@ -403,7 +398,7 @@ class OpenOil(OceanDrift):
                 'type':
                 'enum',
                 'enum':
-                self.list_of_oils(),
+                self.oiltypes,
                 'default':
                 'AASGARD A 2003',
                 'level':

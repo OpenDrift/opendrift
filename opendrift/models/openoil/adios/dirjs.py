@@ -24,6 +24,7 @@ from .oil import OpendriftOil
 
 logger = logging.getLogger(__name__)
 
+
 @cache
 def __get_archive__():
     import lzma
@@ -33,28 +34,41 @@ def __get_archive__():
             oils = json.load(c)
             return oils
 
-def get_oil_names():
-    return [o['data']['attributes']['metadata']['name'] for o in __get_archive__()]
+
+def get_oil_names(location=None):
+    a = __get_archive__()
+
+    if location is not None:
+        a = filter(
+            lambda o: o['data']['attributes']['metadata'].get(
+                'location', None) == location, a)
+
+    return [o['data']['attributes']['metadata']['name'] for o in a]
 
 
 def oils(limit=50, query=''):
-    oils = filter(lambda o: query in o['data']['attributes']['metadata']['name'], __get_archive__())
+    oils = filter(
+        lambda o: query in o['data']['attributes']['metadata']['name'],
+        __get_archive__())
     return list(OpendriftOil(o) for o in itertools.islice(oils, limit))
+
 
 def find_full_oil_from_name(name) -> 'OpendriftOil':
     logger.info(f'Querying ADIOS database for oil: {name}')
-    o = oils(query = name)
+    o = oils(query=name)
 
     if len(o) > 1:
-        logger.warning(f"Several oils found with name: {name}: {[oo.id for oo in o]}, using first.")
+        logger.warning(
+            f"Several oils found with name: {name}: {[oo.id for oo in o]}, using first."
+        )
     elif len(o) < 1:
         raise ValueError(f"No oil found with name: {name}")
 
     return o[0]
+
 
 def get_full_oil_from_id(_id) -> 'OpendriftOil':
     logger.debug(f"Fetching full oil: {_id}")
     oils = filter(lambda o: _id == o['data']['_id'], __get_archive__())
     oil = next(OpendriftOil(o) for o in oils)
     return oil
-
