@@ -20,10 +20,9 @@ Interface to the ADIOS oil database.
 import logging
 logger = logging.getLogger(__name__)
 
-from . import api
 from . import dirjs
 from . import oil
-from .api import oils, find_full_oil_from_name, get_full_oil_from_id
+from .dirjs import get_oil_names, oils, find_full_oil_from_name, get_full_oil_from_id
 
 oil_name_alias = {
         'GENERIC BUNKER C': 'Bunker C [1987]',
