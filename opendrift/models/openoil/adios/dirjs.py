@@ -18,14 +18,14 @@ from importlib import resources
 import logging
 import json
 import itertools
-from functools import cache
+from functools import lru_cache
 
 from .oil import OpendriftOil
 
 logger = logging.getLogger(__name__)
 
 
-@cache
+@lru_cache(maxsize=None)
 def __get_archive__():
     import lzma
     with resources.files('opendrift.models.openoil.adios').joinpath(
