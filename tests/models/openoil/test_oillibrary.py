@@ -33,7 +33,7 @@ def test_oils():
     assert len(o.oiltypes) >= 1478
 
     for oiltype in o.oiltypes[12:14]:
-        if oiltype.name == 'JP-8':
+        if oiltype == 'JP-8':
             continue
         o = OpenOil(loglevel=50, weathering_model='noaa')
         o.set_config('environment:fallback:x_wind', 7)
@@ -47,7 +47,7 @@ def test_oils():
                         number=3,
                         z=0,
                         time=datetime.now(),
-                        oil_type=oiltype.name)
+                        oil_type=oiltype)
         o.set_config('processes:evaporation', True)
         o.set_config('processes:emulsification', True)
         o.set_config('drift:vertical_mixing', False)

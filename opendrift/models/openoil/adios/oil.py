@@ -22,58 +22,12 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 from typing import List
-import copy
-
-from . import api
 
 from .models.oil.oil import Oil as AdiosOil
 from .computation import gnome_oil
 from .computation import physical_properties
 from .computation import estimations
 from .util.estimations import oil_water_surface_tension_from_api
-
-
-class ThinOil:
-    """
-    Basic Oil object for listing. Upgrade to `class:Oil` object for useful methods.
-    """
-    id: str
-    type: str
-    name: str
-    API: float
-    gnome_suitable: bool
-    labels: List[str]
-    location: str
-    model_completeness: float
-    product_type: str
-    sample_date: str
-
-    def __init__(self, _id, _type, name, API, gnome_suitable, labels, location,
-                 model_completeness, product_type, sample_date):
-        self.id = _id
-        self.type = _type
-        self.name = name
-        self.API = API
-        self.gnome_suitable = gnome_suitable
-        self.labels = labels
-        self.location = location
-        self.model_completeness = model_completeness
-        self.product_type = product_type
-        self.sample_date = sample_date
-
-    @staticmethod
-    def from_json(d) -> 'ThinOil':
-        return ThinOil(d['_id'], d['type'], **d['attributes']['metadata'])
-
-    def __repr__(self):
-        return f"[<adios.ThinOil> {self.id}] {self.name}"
-
-    def make_full(self) -> 'OpendriftOil':
-        """
-        Fetch the full oil from ADIOS.
-        """
-        return api.get_full_oil_from_id(self.id)
-
 
 class NotFullOil(Exception):
     pass
@@ -90,7 +44,17 @@ def __require_gnome_oil__(f):
     return w
 
 
-class OpendriftOil(ThinOil):
+class OpendriftOil:
+    id: str
+    type: str
+    name: str
+    API: float
+    gnome_suitable: bool
+    labels: List[str]
+    location: str
+    model_completeness: float
+    product_type: str
+    sample_date: str
     data: dict
     oil: AdiosOil
     gnome_oil: dict

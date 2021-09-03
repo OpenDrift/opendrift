@@ -29,7 +29,6 @@ dependencies:
   - isodate
   - coloredlogs
   - cmocean
-  - xdg
   - pip
   - pip:
     - motuclient
