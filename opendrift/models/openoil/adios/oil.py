@@ -109,7 +109,7 @@ class OpendriftOil(ThinOil):
         if not self.oil.metadata.gnome_suitable:
             logger.error(f'{self.id} / {self.name}: is not GNOME suitable')
         else:
-            self.gnome_oil = gnome_oil.make_gnome_oil(copy.deepcopy(self.oil))
+            self.gnome_oil = gnome_oil.make_gnome_oil(self.oil)
 
     def __repr__(self):
         return f"[<adios.Oil> {self.id}] {self.name}"
