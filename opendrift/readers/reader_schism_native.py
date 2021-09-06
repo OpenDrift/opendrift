@@ -636,6 +636,7 @@ class Reader(BaseReader,UnstructuredReader):
     def _get_variables_interpolated_(self, variables, profiles,
                                    profiles_depth, time,
                                    reader_x, reader_y, z):
+
         """
         This method _must_ be implemented by every reader. Usually by
         subclassing one of the reader types (e.g.
@@ -666,24 +667,6 @@ class Reader(BaseReader,UnstructuredReader):
         """
 
         # block = False # legacy stuff 
-
-        self.timer_start('total')
-        self.timer_start('preparing')
-        # Raise error if time not not within coverage of reader
-        if not self.covers_time(time):
-            raise ValueError('%s is outside time coverage (%s - %s) of %s' %
-                             (time, self.start_time, self.end_time, self.name))
-
-        # Check which particles are covered (indep of time)
-        # ind_covered, reader_x, reader_y = self.covers_positions(lon, lat, z) 
-        ind_covered = UnstructuredReader.covers_positions(self,reader_x, reader_y, z)
-
-        if len(ind_covered) == 0:
-            lon,lat = self.xy2lonlat(reader_x,reader_y)
-            raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
-                              'are outside domain of %s (%s)') %
-                             (len(lon), lon.min(), lon.max(), lat.min(),
-                              lat.max(), self.name, self.coverage_string()))
 
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
@@ -891,76 +874,30 @@ class Reader(BaseReader,UnstructuredReader):
                     for var in profiles:
                         env_profiles[var] = np.ma.array([env[var], env[var]])
         self.timer_end('interpolation_time')
-        ####################
-        # Rotate vectors
-        ####################
-        # if rotate_to_proj is not None:
-        #     if self.simulation_SRS is True:
-        #         logger.debug('Reader SRS is the same as calculation SRS - '
-        #                       'rotation of vectors is not needed.')
-        #     else:
-        #         vector_pairs = []
-        #         for var in variables:
-        #             for vector_pair in vector_pairs_xy:
-        #                 if var in vector_pair:
-        #                     counterpart = list(set(vector_pair) -
-        #                                        set([var]))[0]
-        #                     if counterpart in variables:
-        #                         vector_pairs.append(vector_pair)
-        #                     else:
-        #                         sys.exit('Missing component of vector pair:' +
-        #                                  counterpart)
-        #         # Extract unique vector pairs
-        #         vector_pairs = [list(x) for x in set(tuple(x)
-        #                         for x in vector_pairs)]
-
-        #         if len(vector_pairs) > 0:
-        #             self.timer_start('rotating vectors')
-        #             for vector_pair in vector_pairs:
-        #                 env[vector_pair[0]], env[vector_pair[1]] = \
-        #                     self.rotate_vectors(reader_x, reader_y,
-        #                                         env[vector_pair[0]],
-        #                                         env[vector_pair[1]],
-        #                                         self.proj, rotate_to_proj)
-        #                 if profiles is not None and vector_pair[0] in profiles:
-        #                     env_profiles[vector_pair[0]], env_profiles[vector_pair[1]] = \
-        #                             self.rotate_vectors (reader_x, reader_y,
-        #                                     env_profiles[vector_pair[0]],
-        #                                     env_profiles[vector_pair[1]],
-        #                                     self.proj,
-        #                                     rotate_to_proj)
-
-
-        #             self.timer_end('rotating vectors')
-
-        # Masking non-covered particles
-        self.timer_start('masking')
-        if len(ind_covered) != len(reader_x):
-            logger.debug('Masking %i elements outside coverage' %
-                          (len(reader_x)-len(ind_covered)))
-
-            for var in variables:
-                tmp = np.nan*np.ones(lon.shape)
-                tmp[ind_covered] = env[var].copy()
-                env[var] = np.ma.masked_invalid(tmp)
-                # Filling also fin missing columns
-                # for env_profiles outside coverage
-                if env_profiles is not None and var in env_profiles.keys():
-                    tmp = np.nan*np.ones((env_profiles[var].shape[0],
-                                          len(lon)))
-                    tmp[:, ind_covered] = env_profiles[var].copy()
-                    env_profiles[var] = np.ma.masked_invalid(tmp)
-
-        self.timer_end('masking')
+        # the masking, rotation etc.. is done in variables.py get_variables_interpolated_xy()
 
         # apply log profile if we are interpolating 2D data for ['x_sea_water_velocity','y_sea_water_velocity']
         # not using for now
         if False :
             self.apply_logarithmic_current_profile(env,z)
 
-        self.timer_end('total')
-
         return env, env_profiles
+
+    def covers_positions_xy(self, x, y, z=0):
+        """
+        Check which points are within boundary of mesh.
+
+        Wrapper function of covers_positions() from unstructured.py which is called in 
+        get_variables_interpolated_xy() function from variables.py 
+
+        It returns indices of in-mesh points, and in-mesh point coordinates rather than a boolean array (inside/outside) 
+
+        Within get_variables_interpolated_xy() from variables.py, data is queried for these in-mesh points only and the 
+        full array (incl. out of mesh positions) is re-generated with correct masking 
+
+        """
+        ind_covered = np.where(self.covers_positions(x, y))[0]
+        return ind_covered ,x[ind_covered], y[ind_covered]
 
     def apply_logarithmic_current_profile(self,env,z):
         if not self.use_3d and 'sea_floor_depth_below_sea_level' in self.variables and 'x_sea_water_velocity' in self.variables :
