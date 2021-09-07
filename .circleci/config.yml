@@ -199,7 +199,7 @@ jobs:
             echo "Build examples: ${BUILD_EXAMPLES}"
 
       - restore_cache:
-          key: v7-docs-deps1-{{ checksum "environment.yml" }}
+          key: v8-docs-deps1-{{ checksum "environment.yml" }}
 
       - run:
           name: Install requirements
@@ -209,10 +209,11 @@ jobs:
               source activate opendrift
               conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
               pip install sphinx-rtd-theme
+              pip install roaring-landmask
             fi
 
       - save_cache:
-          key: v7-docs-deps1-{{ checksum "environment.yml" }}
+          key: v8-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
