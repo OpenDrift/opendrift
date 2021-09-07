@@ -1,31 +1,35 @@
-# See https://opendrift.github.io for usage
+FROM python:3.9-slim-buster as base
 
-FROM continuumio/miniconda3
+FROM base as builder
 
 ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get -y update
+RUN apt-get install -y git libgdal-dev build-essential
+RUN apt-get install -y --reinstall g++
+
 ENV PATH /code/opendrift/opendrift/scripts:$PATH
 
 RUN mkdir /code
 WORKDIR /code
 
-RUN conda config --add channels noaa-orr-erd
-RUN conda config --add channels conda-forge
-RUN conda config --add channels opendrift
-
-# Install opendrift environment into base conda environment
-COPY environment.yml .
-RUN /opt/conda/bin/conda env update -n base -f environment.yml
+RUN pip install poetry
+RUN poetry config virtualenvs.create false
 
 # Cache cartopy maps
-RUN /bin/bash -c "echo -e \"import cartopy\nfor s in ('c', 'l', 'i', 'h', 'f'): cartopy.io.shapereader.gshhs(s)\" | python"
-
-# Cache landmask generation
-RUN /bin/bash -c "echo -e \"import opendrift_landmask_data as old\nold.Landmask()\" | python"
+# RUN /bin/bash -c "echo -e \"import cartopy\nfor s in ('c', 'l', 'i', 'h', 'f'): cartopy.io.shapereader.gshhs(s)\" | python"
 
 # Install opendrift
 ADD . /code
-RUN pip install -e .
+RUN poetry install
+
+FROM base
+COPY --from=builder /usr/local/lib/python3.9 /usr/local/lib/python3.6
+ADD . /code
+
+RUN apt-get -y update
+RUN apt-get install -y libgdal20
 
 # Test installation
-RUN /bin/bash -c "echo -e \"import opendrift\" | python"
+# RUN /bin/bash -c "echo -e \"import opendrift\" | python"
 
