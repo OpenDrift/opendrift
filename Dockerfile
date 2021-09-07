@@ -23,12 +23,14 @@ RUN poetry config virtualenvs.create false
 ADD . /code
 RUN poetry install
 
-FROM base
-COPY --from=builder /usr/local/lib/python3.9 /usr/local/lib/python3.6
-ADD . /code
+# FROM base
+# COPY --from=builder /usr/local /usr/local
+# COPY --from=builder /root /root
+# ADD . /code
+# WORKDIR /code
 
-RUN apt-get -y update
-RUN apt-get install -y libgdal20
+# RUN apt-get -y update
+# RUN apt-get install -y libgdal20 libproj12
 
 # Test installation
 # RUN /bin/bash -c "echo -e \"import opendrift\" | python"
