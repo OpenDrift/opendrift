@@ -119,7 +119,8 @@ class Reader(BaseReader, ContinuousReader):
              filename=None,
              title=None,
              buffer=1,
-             lscale='auto'):
+             lscale='auto',
+             show_GSHHS = False):
         """Plot geographical coverage of reader."""
 
         import matplotlib.pyplot as plt
@@ -158,10 +159,9 @@ class Reader(BaseReader, ContinuousReader):
             #              np.array(corners[0]).max(), 89,
             #              resolution='c', projection='cyl')
 
-        if False:
-            # dont plot GHSS coastlines here
-            #
-            # GSHHS coastlines
+        if show_GSHHS :
+
+            # add GSHHS coastlines for comparison
             f = cfeature.GSHHSFeature(scale=lscale,
                                       levels=[1],
                                       facecolor=cfeature.COLORS['land'])
@@ -204,11 +204,12 @@ class Reader(BaseReader, ContinuousReader):
                 # https://scitools.org.uk/cartopy/docs/latest/tutorials/understanding_transform.html
                 ax.add_geometries([poly],
                                   crs=ccrs.PlateCarree(),
-                                  facecolor='b',
+                                  facecolor= 'darkgrey',
                                   edgecolor='red',
-                                  alpha=0.8)
+                                  alpha=0.75)
             # could maybe use feature.ShapelyFeature ?
             # feature.ShapelyFeature(self.mask, crs = ccrs.PlateCarree())
+            self.mask.__dict__['context']
 
             buf = (xsp.max() -
                    xsp.min()) * .1  # Some whitespace around polygon
@@ -230,41 +231,6 @@ class Reader(BaseReader, ContinuousReader):
         plt.xlabel('Time coverage: %s to %s' %
                    (self.start_time, self.end_time))
 
-        if variable is not None:
-            rx = np.array([self.xmin, self.xmax])
-            ry = np.array([self.ymin, self.ymax])
-            data = self.get_variables_derived(variable,
-                                              self.start_time,
-                                              rx,
-                                              ry,
-                                              block=True)
-            rx, ry = np.meshgrid(data['x'], data['y'])
-            rlon, rlat = self.xy2lonlat(rx, ry)
-            #map_x, map_y = map(rlon, rlat, inverse=False)
-            data[variable] = np.ma.masked_invalid(data[variable])
-            if hasattr(self, 'convolve'):
-                from scipy import ndimage
-                N = self.convolve
-                if isinstance(N, (int, np.integer)):
-                    kernel = np.ones((N, N))
-                    kernel = kernel / kernel.sum()
-                else:
-                    kernel = N
-                self.logger.debug('Convolving variables with kernel: %s' %
-                                  kernel)
-                data[variable] = ndimage.convolve(data[variable],
-                                                  kernel,
-                                                  mode='nearest')
-            #map.pcolormesh(map_x, map_y, data[variable], vmin=vmin, vmax=vmax)
-            ax.pcolormesh(rlon,
-                          rlat,
-                          data[variable],
-                          vmin=vmin,
-                          vmax=vmax,
-                          transform=ccrs.PlateCarree())
-            #cbar = map.colorbar()
-            #cbar.set_label(variable)
-
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
             mng.toolbar.zoom()
@@ -277,4 +243,4 @@ class Reader(BaseReader, ContinuousReader):
         else:
             plt.ion()
             plt.show()
-            # import pdb;pdb.set_trace()
+            import pdb;pdb.set_trace()

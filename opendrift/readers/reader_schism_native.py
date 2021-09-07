@@ -1289,7 +1289,7 @@ class ReaderBlockUnstruct():
             nearest = False
             # land mask 
             if varname == 'land_binary_mask':
-                # here we need to make a choice on when to flag as land not based on
+                # here we need to make a choice on when to flag as land 
                 if False :
                     nearest = True
                     self.interpolator2d_nearest = Nearest2DInterpolator(self.x, self.y, x, y)
