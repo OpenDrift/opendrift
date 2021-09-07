@@ -278,7 +278,7 @@ class Reader(BaseReader,UnstructuredReader):
             self.use_3d = False
             import pdb;pdb.set_trace()
             # the 3D interpolation currently doesnt work if the x,y coordinates in native netcdf files
-            # are not cartesian but geopgraphic. If that is the case, when doing 3D interpolation and tree search, 
+            # are not cartesian but geographic. If that is the case, when doing 3D interpolation and tree search, 
             # the vertical distance unit is meter, while the horizontal distance unit is degrees, which will return
             # erroneous "closest" nodes in ReaderBlockUnstruct,interpolate()
 
@@ -414,14 +414,7 @@ class Reader(BaseReader,UnstructuredReader):
             if has_xarray is True:
                 variables[par] = np.asarray(variables[par])
 
-        self.use_subset = False # Work in Progress
-        if self.use_subset: # for testing subsetting data before computin KD-trees
-            variables = self.clip_reader_data(variables_dict = variables, x_particle = x,y_particle = y, requested_variables = requested_variables) # clip reader data to particle cloud coverage 
-            # update the 2D KDtree (will be used to initialize the ReaderBlockUnstruct)
-            self.reader_KDtree = cKDTree(np.vstack((variables['x'],variables['y'])).T) 
-            # the 3D KDtree in updated within ReaderBlockUnstruct()
         return variables 
-
 
     def convert_3d_to_array(self,id_time,data,variable_dict):
         ''' 
@@ -479,110 +472,7 @@ class Reader(BaseReader,UnstructuredReader):
             variable_dict['z_3d'] = np.ravel(vertical_levels[~vertical_levels.mask])
 
         return data,variable_dict
-
-    def clip_reader_data(self,variables_dict, x_particle,y_particle,requested_variables=None):
-        # clip "variables_dict" to current particle cloud extents [x_particle,y_particle] (+ buffer)
-        # 
-        # Find a subset of mesh nodes that include the particle 
-        # cloud. The frame should not be made too small to make sure
-        # particles remain inside the frame over the time 
-        # that interpolator is used (i.e. depends on model timestep)
-        # 
-        # 
-        #  returns updated "variables" dict and data array
-        deg2meters = 1.1e5 # approx
-        buffer = .1  # degrees around given positions ~10km
-        buffer = .05  # degrees around given positions ~ 5km - reader seems quite sensitive to that buffer...
-        if self.xmax <= 360 :
-            pass # latlong reference system - keep same buffer value
-        else:
-            buffer = buffer * deg2meters# projected reference system in meters
-        self.subset_frame = [x_particle.min() - buffer,
-                             x_particle.max() + buffer, 
-                             y_particle.min() - buffer,
-                             y_particle.max() + buffer]
-        logger.debug('Spatial frame used for schism reader %s (buffer = %s) ' % (str(self.subset_frame) , buffer))
-        # find lon,lat of reader that are within the particle cloud
-        self.id_frame = np.where((self.lon >= self.subset_frame[0]) &
-                     (self.lon <= self.subset_frame[1]) &
-                     (self.lat >= self.subset_frame[2]) &
-                     (self.lat <= self.subset_frame[3]))[0]
-        logger.debug('Using %s ' % (int(100*self.id_frame.shape[0]/self.lon.shape[0])) + '%' + ' of native nodes' )
-        # print(variables_dict['x'].shape)
-        # print( self.id_frame.max())
-
-        if False:
-            import matplotlib.pyplot as plt
-            plt.ion()
-            plt.plot(x_particle,y_particle,'.')
-            box = np.array([(self.subset_frame[0],self.subset_frame[2]),\
-                            (self.subset_frame[1],self.subset_frame[2]),\
-                            (self.subset_frame[1],self.subset_frame[3]),\
-                            (self.subset_frame[0],self.subset_frame[3]),\
-                            (self.subset_frame[0],self.subset_frame[2])])
-            plt.plot(box[:,0],box[:,1])
-            plt.title('frame used in clip_reader_data()')
-            import pdb;pdb.set_trace()
-            # plt.close()
-
-        variables_dict['x'] = variables_dict['x'][self.id_frame]
-        variables_dict['y'] = variables_dict['y'][self.id_frame]
-        variables_dict['z'] = variables_dict['z'][self.id_frame]
-
-        if 'x_3d' in variables_dict:
-            ID= np.where((variables_dict['x_3d'] >= self.subset_frame[0]) &
-                 (variables_dict['x_3d'] <= self.subset_frame[1]) &
-                 (variables_dict['y_3d'] >= self.subset_frame[2]) &
-                 (variables_dict['y_3d']<= self.subset_frame[3]))[0]  
-            variables_dict['x_3d'] = variables_dict['x_3d'][ID]
-            variables_dict['y_3d'] = variables_dict['y_3d'][ID]
-            variables_dict['z_3d'] = variables_dict['z_3d'][ID]
-
-        for par in requested_variables:
-            if 'x_3d' not in variables_dict:
-                # 2D data
-                variables_dict[par] = variables_dict[par][self.id_frame]
-            else: # can be either 2D or 3D data, in case requested_variables includes both 2D and 3D data
-                if variables_dict[par].shape[0] == self.lon.shape[0] : # this "par" is 2D data
-                    variables_dict[par] = variables_dict[par][self.id_frame]
-                else:
-                    # 3D data converted to array
-                    variables_dict[par] = variables_dict[par][ID]
-
-        return variables_dict
         
-    # copied from StructuredReader
-    def set_convolution_kernel(self, convolve):
-        """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
-        self.convolve = convolve
-
-    def __convolve_block__(self, env):
-        """
-        Convolve arrays with a kernel, if reader.convolve is set
-        """
-        if self.convolve is not None:
-            from scipy import ndimage
-            N = self.convolve
-            if isinstance(N, (int, np.integer)):
-                kernel = np.ones((N, N))
-                kernel = kernel / kernel.sum()
-            else:
-                kernel = N
-            logger.debug('Convolving variables with kernel: %s' % kernel)
-            for variable in env:
-                if variable in ['x', 'y', 'z', 'time']:
-                    pass
-                else:
-                    if env[variable].ndim == 2:
-                        env[variable] = ndimage.convolve(env[variable],
-                                                         kernel,
-                                                         mode='nearest')
-                    elif env[variable].ndim == 3:
-                        env[variable] = ndimage.convolve(env[variable],
-                                                         kernel[:, :, None],
-                                                         mode='nearest')
-        return env
-
     def _get_variables_interpolated_(self, variables, profiles,
                                    profiles_depth, time,
                                    reader_x, reader_y, z):
@@ -614,26 +504,6 @@ class Reader(BaseReader,UnstructuredReader):
            The function returns environment data 'env' interpolated at particle positions [x,y] 
 
         """
-
-        # block = False # legacy stuff 
-
-        self.timer_start('total')
-        self.timer_start('preparing')
-        # Raise error if time not not within coverage of reader
-        if not self.covers_time(time):
-            raise ValueError('%s is outside time coverage (%s - %s) of %s' %
-                             (time, self.start_time, self.end_time, self.name))
-
-        # Check which particles are covered (indep of time)
-        # ind_covered, reader_x, reader_y = self.covers_positions(lon, lat, z) 
-        ind_covered = UnstructuredReader.covers_positions(self,reader_x, reader_y, z)
-
-        if len(ind_covered) == 0:
-            lon,lat = self.xy2lonlat(reader_x,reader_y)
-            raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
-                              'are outside domain of %s (%s)') %
-                             (len(lon), lon.min(), lon.max(), lat.min(),
-                              lat.max(), self.name, self.coverage_string()))
 
         # Find reader time_before/time_after
         time_nearest, time_before, time_after, i1, i2, i3 = \
@@ -838,70 +708,53 @@ class Reader(BaseReader,UnstructuredReader):
                     for var in profiles:
                         env_profiles[var] = np.ma.array([env[var], env[var]])
         self.timer_end('interpolation_time')
-        ####################
-        # Rotate vectors
-        ####################
-        # if rotate_to_proj is not None:
-        #     if self.simulation_SRS is True:
-        #         logger.debug('Reader SRS is the same as calculation SRS - '
-        #                       'rotation of vectors is not needed.')
-        #     else:
-        #         vector_pairs = []
-        #         for var in variables:
-        #             for vector_pair in vector_pairs_xy:
-        #                 if var in vector_pair:
-        #                     counterpart = list(set(vector_pair) -
-        #                                        set([var]))[0]
-        #                     if counterpart in variables:
-        #                         vector_pairs.append(vector_pair)
-        #                     else:
-        #                         sys.exit('Missing component of vector pair:' +
-        #                                  counterpart)
-        #         # Extract unique vector pairs
-        #         vector_pairs = [list(x) for x in set(tuple(x)
-        #                         for x in vector_pairs)]
-
-        #         if len(vector_pairs) > 0:
-        #             self.timer_start('rotating vectors')
-        #             for vector_pair in vector_pairs:
-        #                 env[vector_pair[0]], env[vector_pair[1]] = \
-        #                     self.rotate_vectors(reader_x, reader_y,
-        #                                         env[vector_pair[0]],
-        #                                         env[vector_pair[1]],
-        #                                         self.proj, rotate_to_proj)
-        #                 if profiles is not None and vector_pair[0] in profiles:
-        #                     env_profiles[vector_pair[0]], env_profiles[vector_pair[1]] = \
-        #                             self.rotate_vectors (reader_x, reader_y,
-        #                                     env_profiles[vector_pair[0]],
-        #                                     env_profiles[vector_pair[1]],
-        #                                     self.proj,
-        #                                     rotate_to_proj)
-
-
-        #             self.timer_end('rotating vectors')
-
-        # Masking non-covered particles
-        self.timer_start('masking')
-        if len(ind_covered) != len(reader_x):
-            logger.debug('Masking %i elements outside coverage' %
-                          (len(reader_x)-len(ind_covered)))
-
-            for var in variables:
-                tmp = np.nan*np.ones(lon.shape)
-                tmp[ind_covered] = env[var].copy()
-                env[var] = np.ma.masked_invalid(tmp)
-                # Filling also fin missing columns
-                # for env_profiles outside coverage
-                if env_profiles is not None and var in env_profiles.keys():
-                    tmp = np.nan*np.ones((env_profiles[var].shape[0],
-                                          len(lon)))
-                    tmp[:, ind_covered] = env_profiles[var].copy()
-                    env_profiles[var] = np.ma.masked_invalid(tmp)
-
-        self.timer_end('masking')
-        self.timer_end('total')
+        # the masking, rotation etc.. is done in variables.py get_variables_interpolated_xy()
 
         return env, env_profiles
+
+    # copied from StructuredReader
+    def set_convolution_kernel(self, convolve):
+        """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
+        self.convolve = convolve
+
+    def __convolve_block__(self, env):
+        """
+        Convolve arrays with a kernel, if reader.convolve is set
+        """
+        if self.convolve is not None:
+            from scipy import ndimage
+            N = self.convolve
+            if isinstance(N, (int, np.integer)):
+                kernel = np.ones((N, N))
+                kernel = kernel / kernel.sum()
+            else:
+                kernel = N
+            logger.debug('Convolving variables with kernel: %s' % kernel)
+            for variable in env:
+                if variable in ['x', 'y', 'z', 'time']:
+                    pass
+                else:
+                    if env[variable].ndim == 2:
+                        env[variable] = ndimage.convolve(env[variable],
+                                                         kernel,
+                                                         mode='nearest')
+                    elif env[variable].ndim == 3:
+                        env[variable] = ndimage.convolve(env[variable],
+                                                         kernel[:, :, None],
+                                                         mode='nearest')
+        return env
+
+    def covers_positions_xy(self, x, y, z=0):
+        """
+        Check which points are within boundary of mesh.
+        Wrapper function of covers_positions() from unstructured.py which is called in 
+        get_variables_interpolated_xy() function from variables.py 
+        It returns indices of in-mesh points, and in-mesh point coordinates rather than a boolean array (inside/outside) 
+        Within get_variables_interpolated_xy() from variables.py, data is queried for these in-mesh points only and the 
+        full array (incl. out of mesh positions) is re-generated with correct masking 
+        """
+        ind_covered = np.where(self.covers_positions(x, y))[0]
+        return ind_covered ,x[ind_covered], y[ind_covered]
 
     def plot_mesh(self, variable=None, vmin=None, vmax=None,
              filename=None, title=None, buffer=1, lscale='auto',plot_time = None):
@@ -1058,7 +911,6 @@ class Reader(BaseReader,UnstructuredReader):
 # vertical_interpolation_methods = {
 #     'nearest': Nearest1DInterpolator,
 #     'linear': Linear1DInterpolator}
-
 
 class ReaderBlockUnstruct():
     """Class to store and interpolate the data from an *unstructured* reader.
