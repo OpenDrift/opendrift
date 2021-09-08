@@ -19,6 +19,7 @@ from opendrift.readers.basereader import BaseReader, ContinuousReader
 import pyproj
 import shapely
 import shapely.ops
+import shapely.vectorized
 import cartopy
 import itertools
 import logging
