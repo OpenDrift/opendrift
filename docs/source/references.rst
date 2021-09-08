@@ -3,9 +3,9 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
-Cristiani J, Rubidge E, Forbes C, Moore-Maley B and O’Connor MI (2021) A Biophysical Model and Network Analysis of Invertebrate Community Dispersal Reveals Regional Patterns of Seagrass Habitat Connectivity. Front. Mar. Sci. 8:717469. doi: 10.3389/fmars.2021.717469
+Cristiani J, Rubidge E, Forbes C, Moore-Maley B and O’Connor MI (2021) A Biophysical Model and Network Analysis of Invertebrate Community Dispersal Reveals Regional Patterns of Seagrass Habitat Connectivity. Front. Mar. Sci. 8:717469. https://doi.org/10.3389/fmars.2021.717469
 
-Tinker J and Hermanson L (2021) Towards Winter Seasonal Predictability of the North West European Shelf Seas. Front. Mar. Sci. 8:698997. doi: 10.3389/fmars.2021.698997
+Tinker J and Hermanson L (2021) Towards Winter Seasonal Predictability of the North West European Shelf Seas. Front. Mar. Sci. 8:698997. https://doi.org/10.3389/fmars.2021.698997
 
 Kotzakoulakis, K., & George, S. (2021). Advanced oil spill modeling and simulation techniques. In M. R. Riazi (Ed.), Oil spill occurrence, simulation and behavior (pp. 225-264). CRC Press, Taylor & Francis Group. https://doi.org/10.1201/9780429432156
 
