@@ -128,24 +128,10 @@ jobs:
     - install_conda_environment
 
     - run:
-        name: Install rust
-        command: |
-          apt update -y
-          apt install -y libssl-dev pkg-config curl build-essential libgeos-dev
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain nightly
-
-    - run:
-        name: Install setuptools-rust
-        command: |
-            source activate opendrift
-            pip install setuptools-rust
-
-    - run:
         name: Install roaring-landmask
         command: |
             source activate opendrift
-            source $HOME/.cargo/env
-            pip install -v git+https://github.com/gauteh/roaring-landmask
+            pip install -v roaring_landmask
 
     - run:
         name: Remove Opendrift Landmask Data
