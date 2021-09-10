@@ -115,11 +115,11 @@ importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
 
 [[package]]
 name = "cloudpickle"
-version = "1.6.0"
+version = "2.0.0"
 description = "Extended pickling support for Python objects"
 category = "main"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 
 [[package]]
 name = "colorama"
@@ -596,7 +596,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 
 [[package]]
 name = "roaring-landmask"
-version = "0.2.2"
+version = "0.2.4"
 description = "A fast and limited-memory structure with a landmask based on GSHHG for determing whether a point on Earth is on land or in the ocean"
 category = "main"
 optional = false
@@ -854,8 +854,8 @@ click = [
     {file = "click-8.0.1.tar.gz", hash = "sha256:8c04c11192119b1ef78ea049e0a6f0463e4c48ef00a30160c704337586f3ad7a"},
 ]
 cloudpickle = [
-    {file = "cloudpickle-1.6.0-py3-none-any.whl", hash = "sha256:3a32d0eb0bc6f4d0c57fbc4f3e3780f7a81e6fee0fa935072884d58ae8e1cc7c"},
-    {file = "cloudpickle-1.6.0.tar.gz", hash = "sha256:9bc994f9e9447593bd0a45371f0e7ac7333710fcf64a4eb9834bf149f4ef2f32"},
+    {file = "cloudpickle-2.0.0-py3-none-any.whl", hash = "sha256:6b2df9741d06f43839a3275c4e6632f7df6487a1f181f5f46a052d3c917c3d11"},
+    {file = "cloudpickle-2.0.0.tar.gz", hash = "sha256:5cd02f3b417a783ba84a4ec3e290ff7929009fe51f6405423cfccfadd43ba4a4"},
 ]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
@@ -1310,27 +1310,27 @@ pyyaml = [
     {file = "PyYAML-5.4.1.tar.gz", hash = "sha256:607774cbba28732bfa802b54baa7484215f530991055bb562efbed5b2f20a45e"},
 ]
 roaring-landmask = [
-    {file = "roaring_landmask-0.2.2-cp310-cp310-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:55ab20ea71646b13294e09e676fc941dae14055fbd6fc897ca99541b3c7c8f53"},
-    {file = "roaring_landmask-0.2.2-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:a646159120b5a8b2c930d49d34245f23ac5f45ccdde3b746f299f1856a363d85"},
-    {file = "roaring_landmask-0.2.2-cp36-cp36m-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:69d7c4d185c16e7611398eccb00e231984c142e5d7618879b195e930d25f6f12"},
-    {file = "roaring_landmask-0.2.2-cp36-cp36m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:40d442a93579d23a1fa7fecee075d72b0c88642da14d1f4b141ca9585725c6bb"},
-    {file = "roaring_landmask-0.2.2-cp36-none-win32.whl", hash = "sha256:a089769f399dca53a74236d1a48d7895ea5c904aa94cf7302fbad72e7b393eee"},
-    {file = "roaring_landmask-0.2.2-cp36-none-win_amd64.whl", hash = "sha256:8acb0120d08a615837aa8aecfe2b9b35212af304948f758bf1c69a0bc1c20f4c"},
-    {file = "roaring_landmask-0.2.2-cp37-cp37m-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:244f44e365b112a57e36f00001dd17955ae0d0d9eee0a05dffb99f76af418194"},
-    {file = "roaring_landmask-0.2.2-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:9be8a800a41ff41864804132b911f4a8a7610bfba7f099dc3492ef2b2ce11870"},
-    {file = "roaring_landmask-0.2.2-cp37-none-win32.whl", hash = "sha256:ce4e63fdf5100ab47eda42a399d9bc68ad8291374f1be2cedba6fbcf1e2be37c"},
-    {file = "roaring_landmask-0.2.2-cp37-none-win_amd64.whl", hash = "sha256:4858e918147762f1a06aeba93228e31c300af1cc717b3264e67b6d0c10b132b8"},
-    {file = "roaring_landmask-0.2.2-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:1343479b2ce1c06c03c6a226928596dc070eb3d233f528d2b40e7e6cb26bfdaa"},
-    {file = "roaring_landmask-0.2.2-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:3a79998516add5b784f565d322623757a33edc612d3fb8013f011bcb0df7469d"},
-    {file = "roaring_landmask-0.2.2-cp38-none-win32.whl", hash = "sha256:417243165e93c398705574db4429f5024e50f8b81a3ab60525dc5bbbe8b7aaf3"},
-    {file = "roaring_landmask-0.2.2-cp38-none-win_amd64.whl", hash = "sha256:917aea77a2832e2a5490913200e1bcd02c4b69179c01b7a6987b13bc30712850"},
-    {file = "roaring_landmask-0.2.2-cp39-cp39-macosx_10_7_x86_64.whl", hash = "sha256:7f18ae36c3757d9a9bb1aa337d7a5e91446f9efc25d4c54b93cf34db86307b04"},
-    {file = "roaring_landmask-0.2.2-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:8ddbd5922ae4886328fe4b8e12790514799952abeeeb7d2c27ee9c4e8e8245ea"},
-    {file = "roaring_landmask-0.2.2-cp39-cp39-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:2e0eaa7b4bfd900e324afd7ef9770f9aa2aa4f06b87efe9f7987032ec1e353dc"},
-    {file = "roaring_landmask-0.2.2-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:274c8d2512768a6cb6a305289a96220587d363593d93ffec018b1b1c996f4e90"},
-    {file = "roaring_landmask-0.2.2-cp39-none-win32.whl", hash = "sha256:35e08295e554e8be362c561000e056f53bd939168030821989041c07dd63c7d3"},
-    {file = "roaring_landmask-0.2.2-cp39-none-win_amd64.whl", hash = "sha256:f49d69e9c9484dbeefcceaab0ff1be0fc2b772e82e3ac5e2e3d2dea9f501d03d"},
-    {file = "roaring_landmask-0.2.2.tar.gz", hash = "sha256:f7ec452222f251140c89133201a4e3fc99a28092eecc5ab8011d30c4392014a2"},
+    {file = "roaring_landmask-0.2.4-cp310-cp310-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:5419241777362ebad01d67aa76c18ed25dbd9dfba27bb3998cf37bcf1ed9022a"},
+    {file = "roaring_landmask-0.2.4-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:51c289219d5cad8c1c534d0a149f1e91bc4688ecb155ce15ce6e224129f813c4"},
+    {file = "roaring_landmask-0.2.4-cp36-cp36m-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:dd7c7eba4f93c36f5bbdd448df65b259492713674d5e280ac30e0540bfbb3fb1"},
+    {file = "roaring_landmask-0.2.4-cp36-cp36m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:1e7bb8b135dce0213ef4d7d24b0ae85b8f1f7494046bbf1740f2becae042eb36"},
+    {file = "roaring_landmask-0.2.4-cp36-none-win32.whl", hash = "sha256:603caa72ca6cc1bef8a0b1af8715202322c056ae1899bbdf9ff089f9bc918c21"},
+    {file = "roaring_landmask-0.2.4-cp36-none-win_amd64.whl", hash = "sha256:529cf3e8630d523b277e0794a3219b4c60f591e124b637239e25b891d2d5c147"},
+    {file = "roaring_landmask-0.2.4-cp37-cp37m-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:f7f6c41080b02c5be85093602d99bb29f9b040d46d1d18480edee9341272d29a"},
+    {file = "roaring_landmask-0.2.4-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:c6bdbde16ff07f92071d16649280b58b52872c424cf9245131d654dfa89e92e3"},
+    {file = "roaring_landmask-0.2.4-cp37-none-win32.whl", hash = "sha256:d2cb3bdd941cbf1dbdb8a2cd65e2eb2d057bfac3e456b48bbaddf954df4a51ff"},
+    {file = "roaring_landmask-0.2.4-cp37-none-win_amd64.whl", hash = "sha256:9fd0e6256e9d3558ba78af4708f6762fa5ff14522943b76f031e2b50f71599e9"},
+    {file = "roaring_landmask-0.2.4-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:55e96c0d6c5b1bae5f0f1eaafa1aeaad6c6a498643efc8eaa476724c405c5a90"},
+    {file = "roaring_landmask-0.2.4-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:54e387e42aeb95dd72878b8057a6745e20c5fa10f229e7e3701d1a34704e0c19"},
+    {file = "roaring_landmask-0.2.4-cp38-none-win32.whl", hash = "sha256:97a89d528bc14b4a575a30934ab040caa18262d9909f9c6c57d5290a7011510a"},
+    {file = "roaring_landmask-0.2.4-cp38-none-win_amd64.whl", hash = "sha256:1bce995756da188fb5644aa8140c03694c397f3a703a69e2c31be6edeae46899"},
+    {file = "roaring_landmask-0.2.4-cp39-cp39-macosx_10_7_x86_64.whl", hash = "sha256:7cd4a306cdf5d51bf6736659b27724587cc0eec6cd2f49d713df896aa56340fc"},
+    {file = "roaring_landmask-0.2.4-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:e713a9a601912385cb04480aea080153baf2fea9d750905560e33fdfb65fa7db"},
+    {file = "roaring_landmask-0.2.4-cp39-cp39-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:5ed235b9edb5ae7f9dd19cd0619298be4e926331e36ba4a6e89a6b610e53328a"},
+    {file = "roaring_landmask-0.2.4-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:386a847c9cbd9df5bff7010630fce470887f7ee2743dec13c7b9760fd2abc48d"},
+    {file = "roaring_landmask-0.2.4-cp39-none-win32.whl", hash = "sha256:2b044ff74a6a97b3608afcefbb725e21fdbfeeb7bd986ab93cbaddfdc0752dcc"},
+    {file = "roaring_landmask-0.2.4-cp39-none-win_amd64.whl", hash = "sha256:a861339e82cfb86b0012aad70f2c1089d0dd95f1238397b0e4b8227e2bd2ab05"},
+    {file = "roaring_landmask-0.2.4.tar.gz", hash = "sha256:b1eab2b65f9e06ef17900ace3d5da9e6da4b369e2b1c2ef9aa688b14ca0daca1"},
 ]
 scipy = [
     {file = "scipy-1.6.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:a15a1f3fc0abff33e792d6049161b7795909b40b97c6cc2934ed54384017ab76"},
