@@ -83,7 +83,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
         y = np.arange(latmin, latmax, dy)
 
         yy, xx = np.meshgrid(y, x)
-        img = roaring.mask.contains_many(xx.ravel(), yy.ravel()).reshape(yy.shape).T
+        img = roaring.mask.contains_many_par(xx.ravel(), yy.ravel()).reshape(yy.shape).T
 
         from matplotlib import colors
         cmap = colors.ListedColormap([ocean_color, land_color])
@@ -229,7 +229,7 @@ class Reader(BaseReader, ContinuousReader):
         else:
             x = x.astype(np.float64)
             y = y.astype(np.float64)
-            return self.mask.contains_many(x, y)
+            return self.mask.contains_many_par(x, y)
 
     def get_variables(self,
                       requestedVariables,
