@@ -143,7 +143,6 @@ jobs:
         name: Check for RoaringLandmask
         command: |
             source activate opendrift
-            source $HOME/.cargo/env
             python -c 'from roaring_landmask import RoaringLandmask; r = RoaringLandmask.new()'
 
     - run_tests
