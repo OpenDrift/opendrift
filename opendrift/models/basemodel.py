@@ -57,7 +57,7 @@ except ImportError:
 import opendrift
 from opendrift.timer import Timeable
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy, standard_names
-from opendrift.readers import reader_from_url
+from opendrift.readers import reader_from_url, reader_global_landmask
 from opendrift.models.physics_methods import PhysicsMethods
 
 class OpenDriftSimulation(PhysicsMethods, Timeable):
@@ -1375,7 +1375,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info('No land reader added, '
                          'making a temporary landmask reader')
             from opendrift.models.oceandrift import OceanDrift
-            from opendrift.readers import reader_global_landmask
             reader_landmask = reader_global_landmask.Reader(
                     extent = [
                         np.maximum(-360, self.elements_scheduled.lon.min() - deltalon),
@@ -1386,7 +1385,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             o = OceanDrift(loglevel='custom')
             o.add_reader(reader_landmask)
             land_reader = reader_landmask
-
         else:
             logger.info('Using existing reader for land_binary_mask')
             land_reader_name = self.priority_list['land_binary_mask'][0]
@@ -2294,7 +2292,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'assumed maximum speed of %s m/s. '
                 'Adding a customised landmask may be faster...' % self.max_speed)
             self.timer_start('preparing main loop:making dynamical landmask')
-            from opendrift.readers import reader_global_landmask
             reader_landmask = reader_global_landmask.Reader(extent = simulation_extent)
             self.add_reader(reader_landmask)
 
@@ -2786,7 +2783,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 logger.debug('Using custom shapes for plotting land..')
                 ax.add_geometries(self.readers['shape'].polys, ccrs.PlateCarree(), facecolor=land_color, edgecolor='black')
             else:
-                opendrift.readers.reader_global_landmask.plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color, land_color, lscale)
+                reader_global_landmask.plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color, land_color, lscale)
 
         gl = ax.gridlines(ccrs.PlateCarree(), draw_labels=True)
         if cartopy.__version__ < '0.18.0':
