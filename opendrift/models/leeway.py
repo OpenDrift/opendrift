@@ -395,6 +395,11 @@ class Leeway(OpenDriftSimulation):
             lat = lats[step,:]
             orientation = orientations[step,:]
             status = statuss[step,:]
+            if sum(status==0) == 0:  # All elements deactivated: using last position
+                lon = lons[step-1,:]
+                lat = lats[step-1,:]
+                orientation = orientations[step-1,:]
+                status = statuss[step-1,:]
             num_active = np.sum(~status.mask)
             status[status.mask] = 41  # seeded on land
             lon[status.mask] = 0
