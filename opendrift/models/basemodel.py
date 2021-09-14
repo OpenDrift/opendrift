@@ -2902,7 +2902,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             """Sub function needed for matplotlib animation."""
             ax.set_title('%s\n%s UTC' % (self._figure_title(), times[i]))
             if background is not None:
-                map_x, map_y, scalar, u_component, v_component = \
+                map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
                     self.get_map_background(ax, background,
                                             time=times[i])
                 # https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data
@@ -2986,15 +2986,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 vmax = colorarray.max()
 
         if background is not None:
-            map_x, map_y, scalar, u_component, v_component = \
+            map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
                 self.get_map_background(ax, background,
                                         time=self.start_time)
             bg = ax.pcolormesh(map_x, map_y, scalar[:-1,:-1], alpha=bgalpha,
                                antialiased=True, linewidth=0.0, rasterized=True,
                                vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
             if type(background) is list:
-                bg_quiv = ax.quiver(map_x[::skip, ::skip],
-                                    map_y[::skip, ::skip],
+                bg_quiv = ax.quiver(qmap_x[::skip, ::skip],
+                                    qmap_y[::skip, ::skip],
                                     u_component[::skip, ::skip],
                                     v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
@@ -3531,7 +3531,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lat_res = lat_res.T
                 map_x, map_y = (lon_res, lat_res)
             else:
-                map_x, map_y, scalar, u_component, v_component = \
+                map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
                     self.get_map_background(ax, background, time=time)
                                         #self.time_step_output)
 
@@ -3563,7 +3563,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if type(background) is list:
             delta_x = (map_x[1,2] - map_x[1,1])/2.
             delta_y = (map_y[2,1] - map_y[1,1])/2.
-            ax.quiver(map_x[::skip, ::skip] + delta_x, map_y[::skip, ::skip] + delta_y,
+            ax.quiver(qmap_x[::skip, ::skip] + delta_x, qmap_y[::skip, ::skip] + delta_y,
                       u_component[::skip, ::skip],
                       v_component[::skip, ::skip], scale=scale, transform = gcrs)
 
@@ -3694,13 +3694,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             reader_x[reader_x<0] = 0
 
         rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
+        qrlons, qrlats = reader.xy2lonlat(reader_x+reader.delta_x/2, reader_y+reader.delta_y/2)
         if rlons.max() > 360:
             rlons = rlons - 360
+            qrlons = qrlons - 360
         map_x, map_y = (rlons, rlats)
+        qmap_x, qmap_y = (qrlons, qrlats)
 
         scalar = np.ma.masked_invalid(scalar)
 
-        return map_x, map_y, scalar, u_component, v_component
+        return map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y
 
     def get_density_timeseries(self, lon, lat):
         """Get timeseries at a point from pre-calculated density field"""
