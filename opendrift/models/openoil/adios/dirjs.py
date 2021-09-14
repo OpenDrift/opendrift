@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=None)
 def __get_archive__():
     import lzma
-    with resources.files('opendrift.models.openoil.adios').joinpath(
-            'oils.xz').open('rb') as archive:
+    with resources.open_binary('opendrift.models.openoil.adios',
+                               'oils.xz') as archive:
         with lzma.open(archive, 'rt') as c:
             oils = json.load(c)
             return oils
