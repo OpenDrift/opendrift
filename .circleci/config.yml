@@ -119,9 +119,6 @@ jobs:
     docker:
       - image: continuumio/miniconda3
     resource_class: medium+
-    environment:
-      - PYTHON_VERSION=3.7
-      - NUMPY_VERSION=1.17
     steps:
     - checkout
 
