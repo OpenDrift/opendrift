@@ -305,6 +305,8 @@ class OpenOil(OceanDrift):
         else:
             raise ValueError('Weathering model unknown: ' + weathering_model)
 
+        kwargs.pop('location', None)
+
         # Calling general constructor of parent class
         super(OpenOil, self).__init__(*args, **kwargs)
 
