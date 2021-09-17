@@ -11,7 +11,7 @@ A purpose specific trajectory model is made by subclassing **OpenDriftSimulation
   * defining (or importing/reusing) a particle/element type (e.g. oil particle, larvae particle...), by specifying names and default values of the (additional) properties the elements shall have.
   * defining which environment variables (wind, waves, current...) shall be needed by the model to update positions and properties of elements (below).
 
-    * these environment variables are obtained by :doc:`Readers <data_model>`, however, when writing a model/module one do not need to worry about how environment variables are obtained.
+    * these environment variables are obtained by :doc:`Readers <theory/data_model>`, however, when writing a model/module one do not need to worry about how environment variables are obtained.
   * defining a class method **update()** to be called at each model time step.
 
 The method **update()** will in principle do two different things, regardless of the specific application:

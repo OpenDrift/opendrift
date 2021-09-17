@@ -2,11 +2,11 @@ History
 =======
 
 2021-09-01 / Release v1.7.1
-------------
+---------------------------
 * Using OilLibrary v4+noaa1.1.3
 
 2021-08-30 / Release v1.7.0
-------------
+---------------------------
 * New method ``reader.shift_start_time(start_time)`` to shift time coverage of reader
 * Density arrays calculated with method "get_density" for files opened with `open_xarray` can now be weighted with any property, or a user provided array. `origin_marker is now a dimension of the arrays stored in analysis netCDF file. Made new method `get_density_timeseries`
 * ROMS native reader now accepts datasets where lon and lat are 1-dimensional
@@ -181,7 +181,7 @@ History
 * Cartopy is used for plotting (with fast option only using raster, see :meth:`opendrift.models.basemap.plot`)
 * GSHHS full is used for a dedicated landmask reader (using full resolution always, possibly to :mod:`only use mask <opendrift.readers.reader_global_landmask>` for faster simulations)
 * New documentation at https://opendrift.github.io
-* Conda packages at https://anaconda.org/OpenDrift/repo (see :ref:`miniconda_install`)
-* Pypi packages (see :ref:`pip_install`)
+* Conda packages at https://anaconda.org/OpenDrift/repo
+* Pypi packages
 * OilLibrary also ported to Python 3
 * `Python 2 support dropped <https://github.com/python/devguide/pull/344>`_ (but may still work for a while)
