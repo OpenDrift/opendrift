@@ -367,8 +367,8 @@ class Reader(BaseReader, StructuredReader):
                 x = np.mod(x, 360)  # Shift x/lons to 0-360 
             elif self.lon_range() == '-180to180':
                 x = np.mod(x + 180, 360) - 180 # Shift x/lons to -180-180
-        indx = np.floor(np.abs(x-self.x[0])/self.delta_x).astype(int) + clipped
-        indy = np.floor(np.abs(y-self.y[0])/self.delta_y).astype(int) + clipped
+        indx = np.floor(np.abs(x-self.x[0])/self.delta_x-clipped).astype(int) + clipped
+        indy = np.floor(np.abs(y-self.y[0])/self.delta_y-clipped).astype(int) + clipped
         buffer = self.buffer  # Adding buffer, to cover also future positions of elements
         indy = np.arange(np.max([0, indy.min()-buffer]),
                          np.min([indy.max()+buffer, self.numy]))
