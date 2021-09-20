@@ -129,10 +129,11 @@ def close(self):
         " ".join(self.status_categories)
 
     # Write origin_marker definitions
-    self.outfile.variables['origin_marker'].flag_values = \
-        np.array(np.arange(len(self.origin_marker)))
-    self.outfile.variables['origin_marker'].flag_meanings = \
-        " ".join(self.origin_marker.values())
+    if 'origin_marker' in self.outfile.variables:
+        self.outfile.variables['origin_marker'].flag_values = \
+            np.array(np.arange(len(self.origin_marker)))
+        self.outfile.variables['origin_marker'].flag_meanings = \
+            " ".join(self.origin_marker.values())
 
     # Write final timesteps to file
     self.outfile.time_coverage_end = str(self.time)
