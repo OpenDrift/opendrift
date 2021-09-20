@@ -28,9 +28,9 @@ t1 = datetime.now()
 t2 = t1 + timedelta(hours=48)
 number = 25000
 o.seed_elements(time=[t1, t2], lon=9.017931, lat=58.562702, number=number,
-                origin_marker=0)  # River 1
+                origin_marker_name='River 1')  # River 1
 o.seed_elements(time=[t1, t2], lon=8.824815, lat=58.425648, number=number,
-                origin_marker=1)  # River 2
+                origin_marker_name='River 2')  # River 2
 seed_times = o.elements_scheduled_time[0:number]
 
 reader_x = reader_oscillating.Reader('x_sea_water_velocity', period_seconds=3600*24,
@@ -80,9 +80,9 @@ runoff = np.concatenate((runoff_river1, runoff_river2))
 o.get_density_xarray(pixelsize_m=1500, weights=runoff)
 
 
-text = [{'s': 'River 1', 'x': 8.55, 'y': 58.56, 'fontsize': 20, 'color': 'g',
+text = [{'s': o.origin_marker[0], 'x': 8.55, 'y': 58.56, 'fontsize': 20, 'color': 'g',
          'backgroundcolor': 'white', 'bbox': dict(facecolor='white', alpha=0.8), 'zorder': 1000},
-        {'s': 'River 2', 'x': 8.35, 'y': 58.42, 'fontsize': 20, 'color': 'g',
+        {'s': o.origin_marker[1], 'x': 8.35, 'y': 58.42, 'fontsize': 20, 'color': 'g',
          'backgroundcolor': 'white', 'bbox': dict(facecolor='white', alpha=0.8), 'zorder': 1000},
         {'s': '* Station', 'x': station_lon, 'y': station_lat, 'fontsize': 20, 'color': 'k',
          'backgroundcolor': 'white', 'bbox': dict(facecolor='none', edgecolor='none', alpha=0.4), 'zorder': 1000}]
@@ -99,32 +99,32 @@ o.animation(density=runoff, density_pixelsize_m=1500, fast=False,
 # Plotting time series of river runoff, and corresponding water passing through the station and the two defined areas/boxes
 fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1)
 # Runoff
-ax1.plot(seed_times, runoff_river1, label='River 1')
-ax1.plot(seed_times, runoff_river2, label='River 2')
+ax1.plot(seed_times, runoff_river1, label=o.origin_marker[0])
+ax1.plot(seed_times, runoff_river2, label=o.origin_marker[1])
 ax1.set_ylabel('Runoff  [m3/s]')
 ax1.set_title('Runoff')
 ax1.margins(x=0)
 ax1.legend()
 # Area 1
 t1, t1_om = o.get_density_timeseries(lon=box1_lon, lat=box1_lat)
-t1_om.isel(origin_marker=0).plot(label='River 1', ax=ax2)
-t1_om.isel(origin_marker=1).plot(label='River 2', ax=ax2)
+t1_om.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax2)
+t1_om.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax2)
 t1.plot(label='Total', linestyle='--', ax=ax2)
 ax2.legend()
 ax2.margins(x=0)
 ax2.set_title('Amount of water passing through Area 1')
 # Area 2
 t2, t2_om = o.get_density_timeseries(lon=box2_lon, lat=box2_lat)
-t2_om.isel(origin_marker=0).plot(label='River 1', ax=ax3)
-t2_om.isel(origin_marker=1).plot(label='River 2', ax=ax3)
+t2_om.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax3)
+t2_om.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax3)
 t2.plot(label='Total', linestyle='--', ax=ax3)
 ax3.legend()
 ax3.margins(x=0)
 ax3.set_title('Amount of water passing through Area 2')
 # Extracting time series at the location of the station
 t, t_om = o.get_density_timeseries(lon=station_lon, lat=station_lat)
-t_om.isel(origin_marker=0).plot(label='River 1', ax=ax4)
-t_om.isel(origin_marker=1).plot(label='River 2', ax=ax4)
+t_om.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax4)
+t_om.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax4)
 t.plot(label='Total', linestyle='--', ax=ax4)
 ax4.legend()
 ax4.margins(x=0)
