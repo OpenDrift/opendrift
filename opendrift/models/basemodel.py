@@ -122,6 +122,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     max_speed = 1  # Assumed max average speed of any element
     required_profiles_z_range = None  # [min_depth, max_depth]
+    origin_marker = None  # Dictionary to store named seeding locations
     plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
     proj_latlon = pyproj.Proj('+proj=latlong')
@@ -1467,6 +1468,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if 'cone' in kwargs:
             raise ValueError('Keyword *cone* for seed_elements is deprecated, use seed_cone() instead.')
 
+        if self.origin_marker is None:
+            self.origin_marker = {}
+        if 'origin_marker' in kwargs:
+            origin_marker = kwargs['origin_marker']
+        else:
+            origin_marker = len(self.origin_marker)
+        if 'origin_marker_name' in kwargs:
+            origin_marker_name = kwargs['origin_marker_name']
+            del kwargs['origin_marker_name']
+        else:
+            origin_marker_name = 'Seed %d' % len(self.origin_marker)
+        if not 'origin_marker' in kwargs:
+            kwargs['origin_marker'] = origin_marker
+        if '_' in origin_marker_name:
+            raise ValueError('Underscore (_) not allowed in origin_marker_name')
+        self.origin_marker[str(origin_marker)] = origin_marker_name.replace(' ', '_')
+
         lon = np.atleast_1d(lon).ravel()
         lat = np.atleast_1d(lat).ravel()
         radius = np.atleast_1d(radius).ravel()
@@ -2603,6 +2621,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             element_ind = deactivated
             time_ind = np.minimum(time_ind + 1, self.history.shape[1] - 1)
 
+        # TODO: storing of variables and environment below should be collected in a single loop
         # Store present state in history recarray
         for i, var in enumerate(self.elements.variables):
             if self.export_variables is not None and \
@@ -2614,6 +2633,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             # some elements have been deactivated
             self.history[var][ID_ind, time_ind] = \
                 getattr(self.elements, var)[element_ind]
+            if len(ID_ind) > 0:
+                newmin = np.min(self.history[var][ID_ind, time_ind])
+                newmax = np.max(self.history[var][ID_ind, time_ind])
+                if not 'valid_min' in self.history_metadata[var]:
+                    self.history_metadata[var]['valid_min'] = newmin
+                    self.history_metadata[var]['valid_max'] = newmax
+                self.history_metadata[var]['valid_min'] = np.minimum(self.history_metadata[var]['valid_min'],
+                                                                     newmin) 
+                self.history_metadata[var]['valid_max'] = np.maximum(self.history_metadata[var]['valid_max'],
+                                                                     newmax) 
         # Copy environment data to history array
         for i, var in enumerate(self.environment.dtype.names):
             if self.export_variables is not None and \
@@ -2621,6 +2650,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 continue
             self.history[var][ID_ind, time_ind] = \
                 getattr(self.environment, var)[element_ind]
+            if len(ID_ind) > 0:
+                newmin = np.min(self.history[var][ID_ind, time_ind])
+                newmax = np.max(self.history[var][ID_ind, time_ind])
+                if not 'valid_min' in self.history_metadata[var]:
+                    self.history_metadata[var]['valid_min'] = newmin
+                    self.history_metadata[var]['valid_max'] = newmax
+                self.history_metadata[var]['valid_min'] = np.minimum(self.history_metadata[var]['valid_min'],
+                                                                     newmin) 
+                self.history_metadata[var]['valid_max'] = np.maximum(self.history_metadata[var]['valid_max'],
+                                                                     newmax) 
 
         # Call writer if buffer is full
         if (self.outfile is not None) and \
