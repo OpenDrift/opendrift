@@ -7,7 +7,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 akvaplan = "https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc"
 akvaplan_local = "niva/AkvaplanNiva_sample.nc4"
-proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+proj = "+proj=utm +zone=33, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 def test_open():
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
