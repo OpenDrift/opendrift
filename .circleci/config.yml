@@ -10,7 +10,7 @@ commands:
           name: Run tests
           command: |
             source activate opendrift
-            pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
+            pytest --circleci-parallelize -n auto --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
 
       - store_test_results:
           path: test-results
@@ -37,7 +37,7 @@ commands:
             cat envconfig
 
       - restore_cache:
-          key: v15-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
 
       - run:
           name: Install requirements
@@ -58,11 +58,11 @@ commands:
 
               source activate opendrift
 
-              pip install pyyaml coveralls
+              pip install pyyaml coveralls pytest-xdist pytest-circleci-parallelized
             fi
 
       - save_cache:
-          key: v15-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
           paths:
             - "/opt/conda/envs"
       - run:
@@ -100,17 +100,20 @@ test-template: &test-template
 jobs:
   python_latest:
     <<: *test-template
+    parallelism: 10
     environment:
       - COVERALLS_UPLOAD=1
 
   python_38_numpy_119:
     <<: *test-template
+    parallelism: 10
     environment:
       - PYTHON_VERSION=3.8
       - NUMPY_VERSION=1.19
 
   python_37_numpy_117:
     <<: *test-template
+    parallelism: 10
     environment:
       - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.17
@@ -119,6 +122,7 @@ jobs:
     docker:
       - image: continuumio/miniconda3
     resource_class: medium+
+    parallelism: 10
     steps:
     - checkout
 
