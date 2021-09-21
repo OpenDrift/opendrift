@@ -119,20 +119,20 @@ test-template: &test-template
 jobs:
   python_latest:
     <<: *test-template
-    parallelism: 10
+    parallelism: 5
     environment:
       - COVERALLS_UPLOAD=1
 
   python_38_numpy_119:
     <<: *test-template
-    parallelism: 10
+    parallelism: 5
     environment:
       - PYTHON_VERSION=3.8
       - NUMPY_VERSION=1.19
 
   python_37_numpy_117:
     <<: *test-template
-    parallelism: 10
+    parallelism: 5
     environment:
       - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.17
@@ -141,7 +141,7 @@ jobs:
     docker:
       - image: continuumio/miniconda3
     resource_class: medium+
-    parallelism: 10
+    parallelism: 5
     steps:
     - checkout
 
@@ -160,12 +160,6 @@ jobs:
         command: |
             source activate opendrift
             conda remove --force -y opendrift-landmask-data
-
-    - run:
-        name: Check for RoaringLandmask
-        command: |
-            source activate opendrift
-            python -c 'from roaring_landmask import RoaringLandmask; r = RoaringLandmask.new()'
 
     - run_tests
 
