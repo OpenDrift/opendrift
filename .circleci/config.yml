@@ -58,7 +58,7 @@ commands:
 
               source activate opendrift
 
-              pip install pyyaml coveralls pytest-xdist[psutil] pytest-circleci-parallelized
+              pip install pyyaml coveralls pytest-xdist[psutil] pytest-circleci-parallelized pytest-cov
             fi
 
       - save_cache:
