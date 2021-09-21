@@ -1056,11 +1056,11 @@ class ReaderBlockUnstruct():
                 DMIN=1.e-10
                 if data.shape[0] == self.x.shape[0] : # 2D data- full slice
                     #2D KDtree
-                    dist,i=self.block_KDtree.query(np.vstack((x,y)).T,nb_closest_nodes, n_jobs=-1) #quick nearest-neighbor lookup
+                    dist,i=self.block_KDtree.query(np.vstack((x,y)).T,nb_closest_nodes, workers=-1) #quick nearest-neighbor lookup
                     # dist = distance to nodes / i = index of nodes
                 elif hasattr(self,'z_3d') and (data.shape[0] == self.x_3d.shape[0]) : #3D data
                     #3D KDtree
-                    dist,i=self.block_KDtree_3d.query(np.vstack((x,y,z)).T,nb_closest_nodes, n_jobs=-1) #quick nearest-neighbor lookup
+                    dist,i=self.block_KDtree_3d.query(np.vstack((x,y,z)).T,nb_closest_nodes, workers=-1) #quick nearest-neighbor lookup
                     # dist = distance to nodes / i = index of nodes
                     ##############################
                     # PLOT CHECKS
