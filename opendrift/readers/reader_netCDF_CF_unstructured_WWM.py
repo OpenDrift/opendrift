@@ -55,8 +55,8 @@ from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree #cython-based KDtree for quick nearest-neighbor search
 import pyproj
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
-from opendrift.readers.reader_netCDF_CF_unstructured_SCHISM import Reader as SchismReader
-from opendrift.readers.reader_netCDF_CF_unstructured_SCHISM import ReaderBlockUnstruct 
+from opendrift.readers.reader_schism_native import Reader as SchismReader
+from opendrift.readers.reader_schism_native import ReaderBlockUnstruct 
 from opendrift.readers.basereader.consts import *
 
 
