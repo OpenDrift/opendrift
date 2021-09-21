@@ -18,13 +18,13 @@ commands:
       - store_artifacts:
           path: test-results
 
-      - run:
-          name: Upload to coveralls
-          command: |
-            source activate opendrift
-            if [ -v COVERALLS_UPLOAD ]; then
-              COVERALLS_REPO_TOKEN=nEzcGcepz6KeM8OpvG2WoxbGjMGwivyAQ coveralls
-            fi
+      # - run:
+      #     name: Upload to coveralls
+      #     command: |
+      #       source activate opendrift
+      #       if [ -v COVERALLS_UPLOAD ]; then
+      #         COVERALLS_REPO_TOKEN=nEzcGcepz6KeM8OpvG2WoxbGjMGwivyAQ coveralls
+      #       fi
 
 
   install_conda_environment:
