@@ -146,12 +146,11 @@ def close(self):
         for key, value in self.metadata_dict.items():
             self.outfile.setncattr(key, str(value))
 
-    # Write history metadata items anew, if any are added during simulation
+    # Write min and max values as variable attributes
     for var in self.history_metadata:
         if var in self.outfile.variables:
-            for key, value in self.history_metadata[var].items():
-                if key not in ['dtype', 'constant', 'default', 'seed']:
-                    self.outfile.variables[var].setncattr(key, str(value))
+            self.outfile.variables[var].setncattr('minval', self.minvals[var])
+            self.outfile.variables[var].setncattr('maxval', self.maxvals[var])
 
     # Write bounds metadata
     self.outfile.geospatial_lat_min = self.history['lat'].min()
@@ -228,7 +227,8 @@ def import_file_xarray(self, filename, chunks):
         self.time_step_output = timedelta(seconds=float(ts1 - ts0))
     self.time = self.end_time  # Using end time as default
     self.status_categories = self.ds.status.flag_meanings.split()
-    self.origin_marker = [s.replace('_', ' ') for s in self.ds.origin_marker.flag_meanings.split()]
+    if 'flag_meanings' in self.ds.origin_marker.attrs:
+        self.origin_marker = [s.replace('_', ' ') for s in self.ds.origin_marker.flag_meanings.split()]
 
     num_elements = len(self.ds.trajectory)
     elements=np.arange(num_elements)
@@ -255,10 +255,16 @@ def import_file_xarray(self, filename, chunks):
     # Read some saved parameters
     if os.path.exists(self.analysis_file):
         self.af = xr.open_dataset(self.analysis_file)
-        self.lonmin = self.af.lonmin
-        self.lonmax = self.af.lonmax
-        self.latmin = self.af.latmin
-        self.latmax = self.af.latmax
+        if 'lonmin' in self.af:
+            self.lonmin = self.af.lonmin
+            self.lonmax = self.af.lonmax
+            self.latmin = self.af.latmin
+            self.latmax = self.af.latmax
+    if 'minval' in self.ds.lon.attrs:
+        self.lonmin = np.float32(self.ds.lon.minval)
+        self.latmin = np.float32(self.ds.lat.minval)
+        self.lonmax = np.float32(self.ds.lon.maxval)
+        self.latmax = np.float32(self.ds.lat.maxval)
 
 def import_file(self, filename, times=None, elements=None):
     """Create OpenDrift object from imported file.

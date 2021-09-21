@@ -122,7 +122,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     max_speed = 1  # Assumed max average speed of any element
     required_profiles_z_range = None  # [min_depth, max_depth]
-    origin_marker = None  # Dictionary to store named seeding locations
     plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
 
     proj_latlon = pyproj.Proj('+proj=latlong')
@@ -155,6 +154,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         """
 
         self.show_continuous_performance = False
+
+        self.origin_marker = None  # Dictionary to store named seeding locations
+
+        self.minvals = {}  # Dicionaries to store minimum and maximum values of variables
+        self.maxvals = {}
 
         # List to store GeoJSON dicts of seeding commands
         self.seed_geojson = []
@@ -2636,13 +2640,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if len(ID_ind) > 0:
                 newmin = np.min(self.history[var][ID_ind, time_ind])
                 newmax = np.max(self.history[var][ID_ind, time_ind])
-                if not 'valid_min' in self.history_metadata[var]:
-                    self.history_metadata[var]['valid_min'] = newmin
-                    self.history_metadata[var]['valid_max'] = newmax
-                self.history_metadata[var]['valid_min'] = np.minimum(self.history_metadata[var]['valid_min'],
-                                                                     newmin) 
-                self.history_metadata[var]['valid_max'] = np.maximum(self.history_metadata[var]['valid_max'],
-                                                                     newmax) 
+                if var not in self.minvals:
+                    self.minvals[var] = newmin
+                    self.maxvals[var] = newmax
+                else:
+                    self.minvals[var] = np.minimum(self.minvals[var], newmin)
+                    self.maxvals[var] = np.maximum(self.maxvals[var], newmax)
         # Copy environment data to history array
         for i, var in enumerate(self.environment.dtype.names):
             if self.export_variables is not None and \
@@ -2653,13 +2656,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if len(ID_ind) > 0:
                 newmin = np.min(self.history[var][ID_ind, time_ind])
                 newmax = np.max(self.history[var][ID_ind, time_ind])
-                if not 'valid_min' in self.history_metadata[var]:
-                    self.history_metadata[var]['valid_min'] = newmin
-                    self.history_metadata[var]['valid_max'] = newmax
-                self.history_metadata[var]['valid_min'] = np.minimum(self.history_metadata[var]['valid_min'],
-                                                                     newmin) 
-                self.history_metadata[var]['valid_max'] = np.maximum(self.history_metadata[var]['valid_max'],
-                                                                     newmax) 
+                if var not in self.minvals:
+                    self.minvals[var] = newmin
+                    self.maxvals[var] = newmax
+                else:
+                    self.minvals[var] = np.minimum(self.minvals[var], newmin)
+                    self.maxvals[var] = np.maximum(self.maxvals[var], newmax)
 
         # Call writer if buffer is full
         if (self.outfile is not None) and \

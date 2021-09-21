@@ -34,6 +34,10 @@ class TestXarray(unittest.TestCase):
         """Test density"""
         outfile = 'test_xarray.nc'
         analysis_file = 'test_xarray_analysis.nc'
+        if os.path.exists(outfile):
+            os.remove(outfile)
+        if os.path.exists(analysis_file):
+            os.remove(analysis_file)
         o = OceanDrift(loglevel=20)
         o.set_config('environment:fallback:land_binary_mask', 0)
         t1 = datetime.now()
