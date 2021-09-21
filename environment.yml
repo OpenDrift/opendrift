@@ -22,7 +22,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-benchmark
-  - cartopy
+  - cartopy<0.20
   - nc-time-axis
   - geojson
   - opendrift-landmask-data
