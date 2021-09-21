@@ -10,7 +10,7 @@ commands:
           name: Run tests
           command: |
             source activate opendrift
-            pytest -n 8 --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
+            pytest -n 3 --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
 
       - store_test_results:
           path: test-results
@@ -92,7 +92,7 @@ commands:
 test-template: &test-template
   docker:
     - image: continuumio/miniconda3
-  resource_class: xlarge
+  resource_class: medium+
   steps:
     - checkout
 
@@ -137,7 +137,7 @@ jobs:
   python_latest_roaring:
     docker:
       - image: continuumio/miniconda3
-    resource_class: xlarge
+    resource_class: medium+
     steps:
     - checkout
 
