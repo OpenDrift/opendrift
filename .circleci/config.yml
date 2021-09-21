@@ -10,7 +10,7 @@ commands:
           name: Run tests
           command: |
             source activate opendrift
-            pytest --circleci-parallelize -n 3 --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
+            pytest -n 8 --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
 
       - store_test_results:
           path: test-results
@@ -58,7 +58,7 @@ commands:
 
               source activate opendrift
 
-              pip install pyyaml coveralls pytest-xdist[psutil] pytest-circleci-parallelized pytest-cov
+              pip install pyyaml coveralls pytest-xdist[psutil] pytest-cov
             fi
 
       - save_cache:
@@ -84,7 +84,7 @@ commands:
 test-template: &test-template
   docker:
     - image: continuumio/miniconda3
-  resource_class: medium+
+  resource_class: xlarge
   steps:
     - checkout
 
@@ -111,20 +111,17 @@ test-template: &test-template
 jobs:
   python_latest:
     <<: *test-template
-    parallelism: 10
     environment:
       - COVERALLS_UPLOAD=1
 
   python_38_numpy_119:
     <<: *test-template
-    parallelism: 10
     environment:
       - PYTHON_VERSION=3.8
       - NUMPY_VERSION=1.19
 
   python_37_numpy_117:
     <<: *test-template
-    parallelism: 10
     environment:
       - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.17
@@ -132,8 +129,7 @@ jobs:
   python_latest_roaring:
     docker:
       - image: continuumio/miniconda3
-    resource_class: medium+
-    parallelism: 10
+    resource_class: xlarge
     steps:
     - checkout
 
