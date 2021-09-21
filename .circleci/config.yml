@@ -73,12 +73,20 @@ commands:
 
   install_cartopy_shapes:
     steps:
+      - restore_cache:
+          key: v1-cartopy-shapes
+
       - run:
           name: Download cartopy shapes
           command: |
             source activate opendrift
             python -c "import cartopy;list(map(cartopy.io.shapereader.gshhs, ('c', 'l', 'i', 'h', 'f')))"
             python -c "import cartopy; cartopy.io.shapereader.natural_earth(resolution='110m', category='cultural', name='admin_0_countries')"
+
+      - save_cache:
+          key: v1-cartopy-shapes
+          paths:
+            - "/root/.local/share/cartopy"
 
 
 test-template: &test-template
