@@ -10,8 +10,7 @@ commands:
           name: Run tests
           command: |
             source activate opendrift
-            echo "CPUs: $(nproc)"
-            pytest --circleci-parallelize -n $(nproc) --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
+            pytest --circleci-parallelize -n 3 --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
 
       - store_test_results:
           path: test-results
