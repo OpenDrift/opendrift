@@ -339,6 +339,7 @@ jobs:
           command: |
             source activate opendrift
             cd docs/
+            ls -R source/gallery
             make html
           no_output_timeout: 40m
 
