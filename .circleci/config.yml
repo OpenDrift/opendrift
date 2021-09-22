@@ -244,7 +244,7 @@ jobs:
           no_output_timeout: 40m
 
       - store_test_results:
-          path: doc/_build/test-results
+          path: docs/test-results
 
       - persist_to_workspace:
           root: docs/build

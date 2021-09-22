@@ -48,7 +48,7 @@ sharded-gallery:
 %.rst: ../examples/%.py
 	$(eval F := $(shell basename $?))
 	echo "Building example: $(F)"
-	sphinx-build -D "sphinx_gallery_conf.filename_pattern=$(F)" -D extensions=sphinx_gallery.gen_gallery -b html source build "source/gallery/$@"
+	sphinx-build -D "sphinx_gallery_conf.filename_pattern=$(F)" -D extensions=sphinx_gallery.gen_gallery -b html source build/html "source/gallery/$@"
 
 checksum-plots:
 	@find source -type f -exec md5sum {} \; | sort -k 2  | md5sum
