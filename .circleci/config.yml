@@ -163,12 +163,104 @@ jobs:
 
     - run_tests
 
+  docs-build-examples:
+    docker:
+      - image: continuumio/miniconda3
+    parallelism: 4
+    steps:
+      - checkout
+      - run:
+          name: Update packages
+          command: apt-get update
+      - run:
+          name: Install packages
+          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick jq curl
+
+      - run:
+          name: Get PR title
+          command: |
+            if [[ -v CIRCLE_PULL_REQUEST ]]; then
+              PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
+              GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq -e '.title')
+              echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
+              echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
+              echo "PR: ${GITHUB_PR_TITLE}"
+            fi
+
+      - run:
+          name: Check if examples should be built
+          command: |
+            if git log --oneline --pretty=format:%s "master..${CIRCLE_SHA1}" | grep '\[run-ex\]' ; then
+              BUILD_EXAMPLES=1
+            else
+              BUILD_EXAMPLES=0
+            fi
+            echo "export BUILD_EXAMPLES=${BUILD_EXAMPLES}" >> ${BASH_ENV}
+            echo "Build examples: ${BUILD_EXAMPLES}"
+
+      - install_conda_environment
+
+      - install_cartopy_shapes
+
+      - run:
+          name: Install sphinx and friends
+          command: |
+            if [ ! -e /opt/conda/envs/opendrift ]; then
+              source activate opendrift
+              conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+              pip install sphinx-rtd-theme
+            fi
+
+      # the gallery cache is not perfect because it will not detect changes to the opendrift code,
+      # only the examples.
+
+      - run:
+          name: Checksum gallery
+          command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
+
+      - restore_cache:
+          key: gallery-v4-{{ checksum "/tmp/gallery-checksum.txt" }}
+
+      - run:
+          name: Check if docs should be re-built
+          command: |
+            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${BUILD_EXAMPLES}" -eq 1 ]]; then
+              echo "Clearing out examples.."
+              source activate opendrift
+              cd docs/
+              make clean
+            fi
+
+      - run:
+          name: Wake-up Thredds-servers
+          command: |
+              source activate opendrift
+              python .circleci/wake-up-thredds.py
+
+      - run:
+          name: Build docs
+          command: |
+            source activate opendrift
+            cd docs/
+            make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
+          no_output_timeout: 40m
+
+      - store_test_results:
+          path: doc/_build/test-results
+
+      - persist_to_workspace:
+          root: docs/build
+          paths: html
 
   docs-build:
     docker:
       - image: continuumio/miniconda3
     steps:
       - checkout
+
+      - attach_workspace:
+          at: docs/build
+
       - run:
           name: Update packages
           command: apt-get update
@@ -216,23 +308,14 @@ jobs:
           paths:
             - "/opt/conda/envs"
 
-      # the gallery cache is not perfect because it will not detect changes to the opendrift code,
-      # only the examples.
-      #
       # the plot cache is not perfect, because it will only detect plot directive changes
       # in the docs/source and not inline plot directives in the opendrift module. these
       # should be re-generated anyway though, but won't be cached until the docs change.
 
       - run:
-          name: Checksum gallery
-          command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
-
-      - run:
           name: Checksum plots
           command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
 
-      - restore_cache:
-          key: gallery-v4-{{ checksum "/tmp/gallery-checksum.txt" }}
 
       - restore_cache:
           key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
@@ -244,7 +327,8 @@ jobs:
               echo "Clearing out examples.."
               source activate opendrift
               cd docs/
-              make clean
+              # make clean
+              rm -rf docs/build/plot_directive
             fi
 
       - run:
@@ -255,7 +339,7 @@ jobs:
 
       - run:
           name: Build docs
-          command: source activate opendrift && cd docs/ && make html
+          command: source activate opendrift && cd docs/ && make html-nogallery
           no_output_timeout: 40m
 
       - save_cache:
@@ -267,12 +351,6 @@ jobs:
           key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
           paths:
             - "docs/build/plot_directive"
-
-      - store_test_results:
-          path: doc/_build/test-results
-
-      - store_artifacts:
-          path: doc/_build/test-results
 
       - persist_to_workspace:
           root: docs/build
@@ -314,7 +392,11 @@ workflows:
 
   build:
     jobs:
-      - docs-build
+      - docs-build-examples
+
+      - docs-build:
+          requires:
+            - docs-build-examples
 
       - docs-deploy:
           requires:
