@@ -40,6 +40,9 @@ sharded-gallery:
 	$(eval SHRD := $(shell printf "$(TMP)/examples_%02d" $(SHARD)))
 	@cat $(SHRD)
 
+	@echo "Making skeleton example files.."
+	sphinx-build -D extensions=sphinx_gallery.gen_gallery -D plot_gallery=0 -b html source build/html
+
 	cat $(SHRD) | sed -e 's|.py|.rst|' | xargs -L 1 make
 
 	@rm $(TMP)/examples*
