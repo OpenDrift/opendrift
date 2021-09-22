@@ -89,7 +89,7 @@ text = [{'s': o.origin_marker[0], 'x': 8.55, 'y': 58.56, 'fontsize': 20, 'color'
 box = [{'lon': box1_lon, 'lat': box1_lat, 'text': 'Area 1', 'fc': 'none', 'alpha': 0.8, 'lw': 1, 'ec': 'k'},
        {'lon': box2_lon, 'lat': box2_lat, 'text': 'Area 2', 'fc': 'none', 'alpha': 0.8, 'lw': 1, 'ec': 'k'}]
 
-o.animation(density=runoff, density_pixelsize_m=1500, fast=False,
+o.animation(background=o.ads.density.where(o.ads.density>0), bgalpha=1, fast=False,
             show_elements=False, vmin=0, vmax=120, text=text, box=box)
 
 #%%

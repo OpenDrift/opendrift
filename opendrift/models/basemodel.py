@@ -2721,10 +2721,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.latmin = np.nanmin(self.ds.lat)
             logger.debug('Finding max latitude...')
             self.latmax = np.nanmax(self.ds.lat)
-            if os.path.exists(self.analysis_file):
-                self.af = Dataset(self.analysis_file, 'a')
-            else:
-                self.af = Dataset(self.analysis_file, 'w')
+            if not hasattr(self, 'af'):
+                if os.path.exists(self.analysis_file):
+                    self.af = Dataset(self.analysis_file, 'a')
+                else:
+                    self.af = Dataset(self.analysis_file, 'w')
             self.af.lonmin = self.lonmin
             self.af.lonmax = self.lonmax
             self.af.latmin = self.latmin
@@ -2943,9 +2944,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             """Sub function needed for matplotlib animation."""
             ax.set_title('%s\n%s UTC' % (self._figure_title(), times[i]))
             if background is not None:
-                map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
-                    self.get_map_background(ax, background,
-                                            time=times[i])
+                if isinstance(background, xr.DataArray):
+                    scalar = background[i,:,:].values
+                elif isinstance(background, str):
+                    map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
+                        self.get_map_background(ax, background,
+                                                time=times[i])
                 # https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data
                 bg.set_array(scalar[:-1,:-1].ravel())
                 if type(background) is list:
@@ -3027,9 +3031,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 vmax = colorarray.max()
 
         if background is not None:
-            map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
-                self.get_map_background(ax, background,
-                                        time=self.start_time)
+            if isinstance(background, xr.DataArray):
+                map_x = background.coords['lon_bin']
+                map_y = background.coords['lat_bin']
+                scalar = background[0,:,:]
+                map_y, map_x = np.meshgrid(map_y, map_x)
+            else:
+                map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
+                    self.get_map_background(ax, background,
+                                            time=self.start_time)
             bg = ax.pcolormesh(map_x, map_y, scalar[:-1,:-1], alpha=bgalpha,
                                antialiased=True, linewidth=0.0, rasterized=True,
                                vmin=vmin, vmax=vmax, cmap=cmap, transform = gcrs)
@@ -3156,7 +3166,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             elif background is not None:
                 item = bg
                 if clabel is None:
-                    clabel = background
+                    if isinstance(background, xr.DataArray):
+                        clabel = background.name
+                    else:
+                        clabel = background
 
             cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             cb.set_label(clabel)
@@ -3776,7 +3789,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return t_total, t_origin_marker
 
-    def get_density_xarray(self, pixelsize_m, weights=None, per_origin_marker=True):
+    def get_density_xarray(self, pixelsize_m, weights=None, per_origin_marker=True,
+                           dominating_origin_marker=False):
         from xhistogram.xarray import histogram
 
         if os.path.exists(self.analysis_file):
@@ -3853,6 +3867,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 # Computing total density historgram from om-components
                 density = density_om.sum(dim='origin_marker')
                 self.ads['density'] = density
+
+                if dominating_origin_marker is True:
+                    logger.info('Calculating dominating origin_marker')
+                    self.ads['dominating_origin_marker'] = density_om.argmax(
+                        dim='origin_marker', skipna=True)
+                    self.ads['dominating_origin_marker'] = \
+                        self.ads['dominating_origin_marker'].where(density>0)
             else:
                 # Adding total density historgram
                 density = histogram(self.ds.lon, self.ds.lat, bins=[lonbin, latbin],
