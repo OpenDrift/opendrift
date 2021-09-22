@@ -247,6 +247,7 @@ jobs:
             source activate opendrift
             cd docs/
             make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
+            ls -R source
           no_output_timeout: 40m
 
       - store_test_results:
@@ -257,7 +258,7 @@ jobs:
 
       - persist_to_workspace:
           root: docs/source
-          path: gallery
+          paths: gallery
 
   docs-build:
     docker:
