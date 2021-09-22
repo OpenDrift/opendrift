@@ -17,6 +17,7 @@ t1 = datetime.now()
 t2 = t1 + timedelta(hours=6)
 number = 10000
 outfile = 'simulation.nc'  # Raw simulation output
+analysis_file = 'simulation_density.nc'
 o.seed_elements(time=t1, lon=4, lat=60, number=number,
                 origin_marker=0)
 o.seed_elements(time=[t1, t2], lon=4.2, lat=60.4, number=number,
@@ -37,7 +38,8 @@ o.run(duration=timedelta(hours=24),
 # will read and process data chuck-by-chunk directly from file using Dask.
 # (See also `example_river_runoff.py <https://opendrift.github.io/gallery/example_river_runoff.html>`_)
 # Note that the analysis file will be re-used if existing. Thus this file should be deleted after making any changes to the simulation above.
-o = opendrift.open_xarray(outfile, analysis_file='simulation_density.nc')
+oa = opendrift.open_xarray(outfile, analysis_file=analysis_file)
+oa.get_density_xarray(pixelsize_m=500)
 
 #%%
 # Making two animations, for each of the two seedings / origin_markers.
@@ -47,13 +49,13 @@ o = opendrift.open_xarray(outfile, analysis_file='simulation_density.nc')
 # Note that other analysis/plotting methods are not yet adapted
 # to datasets opened lazily with open_xarray
 for om in [0, 1]:
-    o.animation(density=True, density_pixelsize_m=500, fast=False,
-                corners=[4.0, 6, 59.5, 61],
-                origin_marker=om, show_elements=False, vmin=0, vmax=200)
+    background=oa.ads.density_origin_marker.isel(origin_marker=om)
+    o.animation(background=background.where(background>0), bgalpha=1,
+                corners=[4.0, 6, 59.5, 61], fast=False, show_elements=False, vmin=0, vmax=200)
 
 # Cleaning up
-os.remove('simulation.nc')
-os.remove('simulation_density.nc')
+os.remove(outfile)
+os.remove(analysis_file)
 
 #%%
 # First seeding
