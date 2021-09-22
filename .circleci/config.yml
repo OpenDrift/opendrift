@@ -187,17 +187,6 @@ jobs:
               echo "PR: ${GITHUB_PR_TITLE}"
             fi
 
-      - run:
-          name: Check if examples should be built
-          command: |
-            if git log --oneline --pretty=format:%s "master..${CIRCLE_SHA1}" | grep '\[run-ex\]' ; then
-              BUILD_EXAMPLES=1
-            else
-              BUILD_EXAMPLES=0
-            fi
-            echo "export BUILD_EXAMPLES=${BUILD_EXAMPLES}" >> ${BASH_ENV}
-            echo "Build examples: ${BUILD_EXAMPLES}"
-
       - install_conda_environment
 
       - install_cartopy_shapes
@@ -209,18 +198,35 @@ jobs:
             conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
 
-      # the gallery cache is not perfect because it will not detect changes to the opendrift code,
-      # only the examples.
-
       - run:
           name: Checksum gallery
           command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
 
+      - run:
+          name: Checksum plots
+          command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
+
+      # saved in docs-build
       - restore_cache:
-          key: gallery-v4-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v5-{{ checksum "/tmp/gallery-checksum.txt" }}
+
+      # saved in docs-build
+      - restore_cache:
+          key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
 
       - run:
-          name: Check if docs should be re-built
+          name: Check if examples should be re-built
+          command: |
+            if git log --oneline --pretty=format:%s "master^1..${CIRCLE_SHA1}" | grep '\[run-ex\]' ; then
+              BUILD_EXAMPLES=1
+            else
+              BUILD_EXAMPLES=0
+            fi
+            echo "export BUILD_EXAMPLES=${BUILD_EXAMPLES}" >> ${BASH_ENV}
+            echo "Build examples: ${BUILD_EXAMPLES}"
+
+      - run:
+          name: Clean cache if docs should be re-built
           command: |
             if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${BUILD_EXAMPLES}" -eq 1 ]]; then
               echo "Clearing out examples.."
@@ -307,33 +313,17 @@ jobs:
           paths:
             - "/opt/conda/envs"
 
+      # the plot and gallery cache is not perfect, because it will only detect plot directive changes
+      # in the docs/source and not inline plot directives in the opendrift module. these
+      # should be re-generated anyway though, but won't be cached until the docs change.
 
       - run:
           name: Checksum gallery
           command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
 
-      # the plot cache is not perfect, because it will only detect plot directive changes
-      # in the docs/source and not inline plot directives in the opendrift module. these
-      # should be re-generated anyway though, but won't be cached until the docs change.
-
       - run:
           name: Checksum plots
           command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
-
-
-      - restore_cache:
-          key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
-
-      - run:
-          name: Check if docs should be re-built
-          command: |
-            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${BUILD_EXAMPLES}" -eq 1 ]]; then
-              echo "Clearing out examples.."
-              source activate opendrift
-              cd docs/
-              # make clean
-              rm -rf docs/build/plot_directive
-            fi
 
       - run:
           name: Wake-up Thredds-servers
@@ -343,11 +333,14 @@ jobs:
 
       - run:
           name: Build docs
-          command: source activate opendrift && cd docs/ && make html-nogallery
+          command: |
+            source activate opendrift
+            cd docs/
+            make html
           no_output_timeout: 40m
 
       - save_cache:
-          key: gallery-v4-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v5-{{ checksum "/tmp/gallery-checksum.txt" }}
           paths:
             - "docs/source/gallery"
 
