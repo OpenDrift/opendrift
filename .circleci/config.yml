@@ -174,7 +174,7 @@ jobs:
           command: apt-get update
       - run:
           name: Install packages
-          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick jq curl
+          command: apt-get install -y build-essential jq curl
 
       - run:
           name: Get PR title
@@ -205,11 +205,9 @@ jobs:
       - run:
           name: Install sphinx and friends
           command: |
-            if [ ! -e /opt/conda/envs/opendrift ]; then
-              source activate opendrift
-              conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
-              pip install sphinx-rtd-theme
-            fi
+            source activate opendrift
+            conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            pip install sphinx-rtd-theme
 
       # the gallery cache is not perfect because it will not detect changes to the opendrift code,
       # only the examples.
@@ -293,15 +291,16 @@ jobs:
       - restore_cache:
           key: v7-docs-deps1-{{ checksum "environment.yml" }}
 
+      - install_conda_environment
+
+      - install_cartopy_shapes
+
       - run:
-          name: Install requirements
+          name: Install sphinx and friends
           command: |
-            if [ ! -e /opt/conda/envs/opendrift ]; then
-              conda env create --file environment.yml
-              source activate opendrift
-              conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
-              pip install sphinx-rtd-theme
-            fi
+            source activate opendrift
+            conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            pip install sphinx-rtd-theme
 
       - save_cache:
           key: v7-docs-deps1-{{ checksum "environment.yml" }}
