@@ -256,8 +256,8 @@ jobs:
           path: docs/test-results
 
       - persist_to_workspace:
-          root: docs/build
-          paths: html
+          root: docs/source
+          path: gallery
 
   docs-build:
     docker:
@@ -266,7 +266,7 @@ jobs:
       - checkout
 
       - attach_workspace:
-          at: docs/build
+          at: docs/source
 
       - run:
           name: Update packages
