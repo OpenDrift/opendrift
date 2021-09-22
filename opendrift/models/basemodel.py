@@ -4571,7 +4571,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             proj = reader.proj
 
-        import scipy.ndimage as ndimage
         from opendrift.models.physics_methods import ftle
 
         if not isinstance(duration, timedelta):

@@ -45,7 +45,8 @@ sphinx_gallery_conf = {
      'backreferences_dir': None,
      'capture_repr': ('_repr_html_', '__repr__'),
      'abort_on_example_error': False,
-     'thumbnail_size': (300, 300)
+     'thumbnail_size': (300, 300),
+     'junit': '../test-results/sphinx-gallery/junit.xml',
 }
 
 # Remove matplotlib agg warnings from generated doc when using plt.show
