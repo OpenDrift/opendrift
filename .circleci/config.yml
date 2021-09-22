@@ -166,7 +166,7 @@ jobs:
   docs-build-examples:
     docker:
       - image: continuumio/miniconda3
-    parallelism: 4
+    parallelism: 20
     steps:
       - checkout
       - run:
@@ -306,6 +306,11 @@ jobs:
           key: v7-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
+
+
+      - run:
+          name: Checksum gallery
+          command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
 
       # the plot cache is not perfect, because it will only detect plot directive changes
       # in the docs/source and not inline plot directives in the opendrift module. these
