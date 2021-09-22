@@ -252,6 +252,9 @@ jobs:
       - store_test_results:
           path: docs/test-results
 
+      - store_artifacts:
+          path: docs/test-results
+
       - persist_to_workspace:
           root: docs/build
           paths: html
