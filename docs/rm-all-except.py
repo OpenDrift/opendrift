@@ -1,12 +1,12 @@
 #! /usr/bin/env python
 #
-# Remove all produced example files, except those provided as list in input file.
+# Remove all empty example files, outside current shard, when building
+# sharded-gallery.
 #
 # Author: Gaute Hope (gauteh@met.no) (c) 2021-09-23
 
 import os
 import sys
-import shutil
 from pathlib import Path
 from glob import glob
 
