@@ -392,7 +392,7 @@ workflows:
       - python_37_numpy_117
       - python_latest_roaring
 
-  build:
+  docs:
     jobs:
       - docs-build-examples
 
@@ -407,12 +407,9 @@ workflows:
             branches:
              only: master
 
-  # This workflow will be run on all branches but master (to test)
-  build_without_publishing_job:
+  docker:
     jobs:
-
-      # This first job is for opendrift, Python 3
-      - docker-publish/publish:
+      - docker-publish/build:
           image: opendrift/opendrift
           dockerfile: Dockerfile
           deploy: false
@@ -437,10 +434,6 @@ workflows:
                    echo "opendrift/opendrift:v${DOCKER_TAG}"
                    echo "opendrift/opendrift:py3-v${DOCKER_TAG}"
 
-
-  # This workflow will deploy images on merge to master only
-  docker_with_lifecycle:
-    jobs:
 
       - docker-publish/publish:
           image: opendrift/opendrift
