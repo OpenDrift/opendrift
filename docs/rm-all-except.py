@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 #
 # Remove all produced example files, except those provided as list in input file.
+#
+# Author: Gaute Hope (gauteh@met.no) (c) 2021-09-23
 
 import os
 import sys
