@@ -42,6 +42,11 @@ sharded-gallery:
 
 	@cat $(SHRD) | sed -e 's|.py|.rst|' | xargs -L 1 make
 
+	rm source/gallery/gallery_python.zip
+	rm source/gallery/gallery_jupyter.zip
+	rm source/gallery/index.rst
+	python3 rm-all-except.py $(SHRD)
+
 	@rm $(TMP)/examples*
 	@rmdir $(TMP)
 
