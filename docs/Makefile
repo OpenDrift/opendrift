@@ -40,17 +40,16 @@ sharded-gallery:
 	$(eval SHRD := $(shell printf "$(TMP)/examples_%02d" $(SHARD)))
 	@cat $(SHRD)
 
-	@echo "Making skeleton example files.."
-	sphinx-build -D extensions=sphinx_gallery.gen_gallery -D plot_gallery=0 -b html source build/html
-
-	cat $(SHRD) | sed -e 's|.py|.rst|' | xargs -L 1 make
+	@cat $(SHRD) | sed -e 's|.py|.rst|' | xargs -L 1 make
 
 	@rm $(TMP)/examples*
 	@rmdir $(TMP)
 
 %.rst: ../examples/%.py
 	$(eval F := $(shell basename $?))
-	echo "Building example: $(F)"
+	@echo "Building example: $(F)"
+	@mkdir -p source/gallery
+	@touch "source/gallery/$@"
 	sphinx-build -D "sphinx_gallery_conf.filename_pattern=$(F)" -D extensions=sphinx_gallery.gen_gallery -b html source build/html "source/gallery/$@"
 
 checksum-plots:

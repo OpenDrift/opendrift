@@ -432,9 +432,7 @@ workflows:
                    echo "Version for Docker tag is ${DOCKER_TAG}"
                    echo "This build will deploy the following containers:"
                    echo "opendrift/opendrift:latest"
-                   echo "opendrift/opendrift:py3"
                    echo "opendrift/opendrift:v${DOCKER_TAG}"
-                   echo "opendrift/opendrift:py3-v${DOCKER_TAG}"
 
 
   # This workflow will deploy images on merge to master only
