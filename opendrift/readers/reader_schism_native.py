@@ -36,6 +36,9 @@
 # 
 # Ongoing work on speed improvements....
 # 
+#   - consider using pykdtree (https://github.com/storpipfugl/pykdtree)
+#     for faster KDtree computations - test efficiency
+# 
 ##########################################################################
 
 
@@ -48,16 +51,11 @@ from future.utils import iteritems
 from netCDF4 import Dataset, MFDataset, num2date
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree #cython-based KDtree for quick nearest-neighbor search
+# consider using https://github.com/storpipfugl/pykdtree for KDtree computations - test efficiency
 import pyproj
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
 from opendrift.readers.basereader.consts import *
-
-try:
-    import xarray as xr
-    has_xarray = True
-except:
-    has_xarray = False
-
+import xarray as xr
 
 
 class Reader(BaseReader,UnstructuredReader):
@@ -108,12 +106,8 @@ class Reader(BaseReader,UnstructuredReader):
             # Open file, check that everything is ok
             logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logger.info('Opening files with MFdataset')
-                # self.dataset = MFdataset(filename)
-                if has_xarray:
-                    self.dataset = xr.open_mfdataset(filename,chunks={'time': 1})
-                else:
-                    self.dataset = MFDataset(filename,aggdim='time')
+                logger.info('Opening files with open_mfdataset')
+                self.dataset = xr.open_mfdataset(filename,chunks={'time': 1})
                 # in case of issues with file ordering consider inputting an explicit filelist 
                 # to reader, for example:
                 # 
@@ -122,11 +116,8 @@ class Reader(BaseReader,UnstructuredReader):
                 # ordered_filelist_1.sort()
             else:
                 logger.info('Opening file with dataset')
-                # self.dataset = dataset(filename, 'r')
-                if has_xarray:
-                    self.dataset = xr.open_dataset(filename,chunks={'time': 1})
-                else:
-                    self.dataset = Dataset(filename, 'r')
+                self.dataset = xr.open_dataset(filename,chunks={'time': 1})
+
         except Exception as e:
             raise ValueError(e)
 
@@ -168,12 +159,8 @@ class Reader(BaseReader,UnstructuredReader):
 
             var = self.dataset.variables[var_name]
 
-            if has_xarray:
-                attributes = var.attrs
-                att_dict = var.attrs
-            else:
-                attributes = var.ncattrs()
-                att_dict = var.__dict__
+            attributes = var.attrs
+            att_dict = var.attrs
             # attributes = var.ncattrs()
             standard_name = ''
             long_name = ''
@@ -209,10 +196,7 @@ class Reader(BaseReader,UnstructuredReader):
                     unitfactor = 1000
                 else:
                     unitfactor = 1
-                if has_xarray:
-                    var_data = var.values
-                else:
-                    var_data = var[:]
+                var_data = var.values
                 x = var_data*unitfactor
                 self.unitfactor = unitfactor
                 self.numx = var.shape[0]
@@ -232,38 +216,26 @@ class Reader(BaseReader,UnstructuredReader):
                     unitfactor = 1000
                 else:
                     unitfactor = 1
-                if has_xarray:
-                    var_data = var.values
-                else:
-                    var_data = var[:]
+                var_data = var.values
                 y = var_data*unitfactor
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
-                if has_xarray:
-                    var_data = var.values
-                else:
-                    var_data = var[:]
+                var_data = var.values
                 if 'positive' not in var.ncattrs() or \
                         var.__dict__['positive'] == 'up':
                     self.z = var_data
                 else:
                     self.z = -var_data
             if standard_name == 'time' or axis == 'T' or var_name == 'time':
-                if has_xarray:
-                    var_data = var.values
-                else:
-                    var_data = var[:]
+                var_data = var.values
                 # Read and store time coverage (of this particular file)
                 time = var_data
                 time_units = units
                 # self.times = num2date(time, time_units)
-                if has_xarray:
-                    # convert from numpy.datetime64 to datetime
-                    self.times = [datetime.utcfromtimestamp((OT -
-                        np.datetime64('1970-01-01T00:00:00Z')
-                            ) / np.timedelta64(1, 's')) for OT in time]
-                else:
-                    self.times = num2date(time, time_units)
+                # convert from numpy.datetime64 to datetime
+                self.times = [datetime.utcfromtimestamp((OT -
+                    np.datetime64('1970-01-01T00:00:00Z')
+                        ) / np.timedelta64(1, 's')) for OT in time]
 
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
@@ -306,12 +278,8 @@ class Reader(BaseReader,UnstructuredReader):
             if var_name in [self.xname, self.yname]: #'depth'
                 continue  # Skip coordinate variables
             var = self.dataset.variables[var_name]
-            if has_xarray:
-                attributes = var.attrs
-                att_dict = var.attrs
-            else:
-                attributes = var.ncattrs()
-                att_dict = var.__dict__
+            attributes = var.attrs
+            att_dict = var.attrs
 
             if var_name in schism_mapping:
                 # current velocity variables ['dahv','hvel'] need special treatment because
@@ -462,8 +430,7 @@ class Reader(BaseReader,UnstructuredReader):
             variables[par] = data # save all data slice to dictionary with key 'par'
             # Store coordinates of returned points
             #  >> done in previous steps here, line 380 and in convert_3d_to_array()
-            if has_xarray is True:
-                variables[par] = np.asarray(variables[par])
+            variables[par] = np.asarray(variables[par])
 
         self.use_subset = False # Functionnal now  - need to check results are consistent.
         if self.use_subset: # for testing subsetting data before computin KD-trees
@@ -497,11 +464,11 @@ class Reader(BaseReader,UnstructuredReader):
             # depth are negative down consistent with convention used in OpenDrift 
             # if using the netCDF4 library, vertical_levels is masked array where "masked" levels are those below seabed  (= 9.9692100e+36)
             # if using the xarray library, vertical_levels is nan for levels are those below seabed
-            if has_xarray:
-                # convert to masked array to be consistent with what netCDF4 lib returns
-                vertical_levels = np.ma.array(vertical_levels, mask = np.isnan(vertical_levels.data)) 
-                data = np.asarray(data)
-                # vertical_levels.mask = np.isnan(vertical_levels.data) # masked using nan's when using xarray
+
+            # convert to masked array to be consistent with what netCDF4 lib returns
+            vertical_levels = np.ma.array(vertical_levels, mask = np.isnan(vertical_levels.data)) 
+            data = np.asarray(data)
+            # vertical_levels.mask = np.isnan(vertical_levels.data) # masked using nan's when using xarray
         except:
             logger.debug('no vertical level information present in file ''zcor'' ... stopping')
             raise ValueError('variable ''zcor'' must be present in netcdf file to be able to use 3D currents')
