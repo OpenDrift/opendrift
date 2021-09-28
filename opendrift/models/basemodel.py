@@ -1635,6 +1635,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                       'time': [str(timespan[0]), str(timespan[1])],
                       'radius': [float(radius[0]), float(radius[-1])],
                       'number': number}
+        # added s.weppe
+        for key in properties.keys():
+            if isinstance(properties[key],np.ndarray):
+                properties[key] = np.array2string(properties[key])
+
         f = geojson.Feature(geometry=geo, properties=properties)
         self.seed_geojson.append(f)
 
