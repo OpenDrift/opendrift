@@ -76,7 +76,8 @@ def verticaldiffusivity_Sundby1983(windspeed, depth, mixedlayerdepth=50, backgro
     '''
 
     K = 76.1e-4 + 2.26e-4 * windspeed*windspeed * np.ones(np.atleast_1d(depth.shape))
-    K[depth>mixedlayerdepth] = background_diffusivity  # Cutoff below mixed layer
+    K[depth>mixedlayerdepth-1] = (K[depth>mixedlayerdepth-1]+background_diffusivity)/2  # Transition
+    K[depth>=mixedlayerdepth] = background_diffusivity  # Cutoff below mixed layer
     # valid = windspeed_squared < 13**2
     return K
 

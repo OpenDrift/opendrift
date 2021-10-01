@@ -121,7 +121,7 @@ class ChemicalDrift(OceanDrift):
         'upward_sea_water_velocity': {'fallback': 0},
         'conc3': {'fallback': 1.e-3},
         'spm': {'fallback': 50},
-        'ocean_mixed_layer_thickness_defined_by_sigma_theta': {'fallback': 50},
+        'ocean_mixed_layer_thickness': {'fallback': 50},
 #        'mass_concentration_of_suspended_matter_in_sea_water': {'fallback': 0},
         }
 
