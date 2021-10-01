@@ -52,6 +52,7 @@ class PlastDrift(OceanDrift):
         'x_wind': {'fallback': 0},
         'y_wind': {'fallback': 0},
         'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True},
+        'ocean_mixed_layer_thickness': {'fallback': 50},
         'sea_floor_depth_below_sea_level': {'fallback': 10000},
         'land_binary_mask': {'fallback': None},
         }

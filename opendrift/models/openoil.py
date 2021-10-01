@@ -171,6 +171,7 @@ class OpenOil(OceanDrift):
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
         'sea_floor_depth_below_sea_level': {'fallback': 10000},
         'ocean_vertical_diffusivity': {'fallback': 0.02, 'important': False, 'profiles': True},
+        'ocean_mixed_layer_thickness': {'fallback': 50, 'important': False},
         'land_binary_mask': {'fallback': None}
     }
 
