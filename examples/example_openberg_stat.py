@@ -39,9 +39,9 @@ o.add_reader([reader_current, reader_wind])
 # This factor depends on the properties of the elements.
 # Default empirical values are:
 # - Wind drift fraction: 0.018 (1.8 %) (Garret 1985)
-# - Iceberg size: 	Keel dept = 60m
-#					Waterline length = 90.5m
-# 					NB! Iceberg size is irrelevant for current_reader with 1D z-profile
+# - Iceberg size: Keel dept = 60m
+# Waterline length = 90.5m
+# NB! Iceberg size is irrelevant for current_reader with 1D z-profile
 
 o.seed_elements(3.3, 61.3, radius=3000, number=500,
                 time=reader_current.start_time)
