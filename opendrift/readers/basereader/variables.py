@@ -217,9 +217,14 @@ class ReaderDomain(Timeable):
                                & (z >= self.zmin) & (z <= self.zmax))[0]
         else:
             if self.proj.crs.is_geographic and not self.global_coverage():
-                indices = np.where((np.mod(x, 360) >= self.xmin) & (np.mod(x, 360) <= self.xmax)
-                                   & (y >= self.ymin) & (y <= self.ymax)
-                                   & (z >= self.zmin) & (z <= self.zmax))[0]
+                if self.xmin >= 0:
+                    indices = np.where((np.mod(x, 360) >= self.xmin) & (np.mod(x, 360) <= self.xmax)
+                                       & (y >= self.ymin) & (y <= self.ymax)
+                                       & (z >= self.zmin) & (z <= self.zmax))[0]
+                elif self.xmin < 0:
+                    indices = np.where((np.mod(x-180, 360)+180 >= self.xmin) & (np.mod(x-180, 360)+180 <= self.xmax)
+                                       & (y >= self.ymin) & (y <= self.ymax)
+                                       & (z >= self.zmin) & (z <= self.zmax))[0]
             else:
                 indices = np.where((x >= self.xmin) & (x <= self.xmax)
                                    & (y >= self.ymin) & (y <= self.ymax)
