@@ -68,8 +68,26 @@ class TestInterpolation(unittest.TestCase):
             coords={"lon": lon, "lat": lat, "time": time})
         ds.to_netcdf(fw)
 
+        # Make synthetic netCDF file with winds from 160 to 280 deg longitude (Pacific)
+        fw2 = 'opendrift_test_winds_160_280.nc'
+        lon = np.arange(160, 280)
+        t, xwind, ywind = np.meshgrid(time, np.zeros(lat.shape), np.zeros(lon.shape), indexing='ij')
+        ywind[:, :, 0:20] = -1  # southhward
+        ywind[:, :, 20:] = 1  # northward, i.e. wind divergence at lon=180
+        ds = xr.Dataset(
+            {"xwind": (("time", "lat", "lon"), xwind, {'standard_name': 'x_wind'}),
+             "ywind": (("time", "lat", "lon"), ywind, {'standard_name': 'y_wind'})},
+            coords={"lon": lon, "lat": lat, "time": time})
+        ds.to_netcdf(fw2)
+
         reader_current = reader_netCDF_CF_generic.Reader(fc)
         reader_wind = reader_netCDF_CF_generic.Reader(fw)
+        reader_wind2 = reader_netCDF_CF_generic.Reader(fw2)
+
+        lons = np.array([-175, 0, 175])
+        lats = np.array([60, 60, 60])
+        np.testing.assert_array_almost_equal(reader_wind.covers_positions(lons, lats)[0], [0, 1, 2], decimal=1)
+        np.testing.assert_array_almost_equal(reader_wind2.covers_positions(lons, lats)[0], [0, 2], decimal=1)
 
         # Simulation across 0 meridian
         o = OceanDrift(loglevel=30)
@@ -92,8 +110,20 @@ class TestInterpolation(unittest.TestCase):
         np.testing.assert_array_almost_equal(o.elements.lon, [-175.129,  175.129], decimal=3)
         np.testing.assert_array_almost_equal(o.elements.lat, [60.006, 59.994], decimal=3)
 
+        # Same as above, but with wind reader from 160 to 280 deg
+        o = OceanDrift(loglevel=30)
+        o.add_readers_from_list([fc, fw2])
+        o.seed_elements(lon=[-175, 175], lat=[60, 60], time=start_time, wind_drift_factor=.1)
+        o.run(steps=2)
+        #o.plot(fast=True)
+        # Check that current give convergence, and that
+        # wind is northwards east of 180 and southwards to the west 
+        np.testing.assert_array_almost_equal(o.elements.lon, [-175.129,  175.129], decimal=3)
+        np.testing.assert_array_almost_equal(o.elements.lat, [60.006, 59.994], decimal=3)
+
         # Cleaning up
         os.remove(fw)
+        os.remove(fw2)
         os.remove(fc)
 
     def get_synthetic_data_dict(self):
