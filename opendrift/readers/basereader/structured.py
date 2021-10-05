@@ -162,7 +162,7 @@ class StructuredReader(Variables):
             elif self.lon_range() == '0to360':
                 logger.debug('Shifting coordinates to 0-360')
                 reader_x = np.mod(reader_x, 360)
-        elif self.proj.crs.is_geographic and self.xmin>=0:
+        elif self.proj.crs.is_geographic and self.xmin>0:
             logger.debug('Modulating longitudes to 0-360 for self.name')
             reader_x = np.mod(reader_x, 360)
 
