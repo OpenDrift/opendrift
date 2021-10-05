@@ -222,7 +222,7 @@ class ReaderDomain(Timeable):
                                        & (y >= self.ymin) & (y <= self.ymax)
                                        & (z >= self.zmin) & (z <= self.zmax))[0]
                 elif self.xmin < 0:
-                    indices = np.where((np.mod(x-180, 360)+180 >= self.xmin) & (np.mod(x-180, 360)+180 <= self.xmax)
+                    indices = np.where((np.mod(x+180, 360)-180 >= self.xmin) & (np.mod(x+180, 360)-180 <= self.xmax)
                                        & (y >= self.ymin) & (y <= self.ymax)
                                        & (z >= self.zmin) & (z <= self.zmax))[0]
             else:
