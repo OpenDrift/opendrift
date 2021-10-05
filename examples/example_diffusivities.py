@@ -26,7 +26,7 @@ for w, c in zip(windspeed, colors):
 plt.plot(verticaldiffusivity_stepfunction(depth), depth,
          '-m', label='Stepfunction')
 
-plt.xlabel('Vertical diffusivity [m/s2]')
+plt.xlabel('Vertical diffusivity [m2/s]')
 plt.ylabel('Depth [m]')
 plt.gca().set_ylim([0, depth.max()])
 plt.gca().set_xlim([0, None])

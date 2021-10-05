@@ -216,9 +216,14 @@ class ReaderDomain(Timeable):
             indices = np.where((y >= self.ymin) & (y <= self.ymax)
                                & (z >= self.zmin) & (z <= self.zmax))[0]
         else:
-            indices = np.where((x >= self.xmin) & (x <= self.xmax)
-                               & (y >= self.ymin) & (y <= self.ymax)
-                               & (z >= self.zmin) & (z <= self.zmax))[0]
+            if self.proj.crs.is_geographic and not self.global_coverage():
+                indices = np.where((np.mod(x, 360) >= self.xmin) & (np.mod(x, 360) <= self.xmax)
+                                   & (y >= self.ymin) & (y <= self.ymax)
+                                   & (z >= self.zmin) & (z <= self.zmax))[0]
+            else:
+                indices = np.where((x >= self.xmin) & (x <= self.xmax)
+                                   & (y >= self.ymin) & (y <= self.ymax)
+                                   & (z >= self.zmin) & (z <= self.zmax))[0]
 
         try:
             return indices, x[indices], y[indices]
@@ -236,11 +241,12 @@ class ReaderDomain(Timeable):
     def global_coverage(self):
         """Return True if global coverage east-west"""
 
-        if self.proj.crs.is_geographic is True and self.delta_x is not None:
-            if (self.xmin - self.delta_x <= 0) and (self.xmax + self.delta_x >=
+        dx = self.delta_x if self.delta_x is not None else 0
+        if self.proj.crs.is_geographic is True:
+            if (self.xmin - dx <= 0) and (self.xmax + dx >=
                                                     360):
                 return True  # Global 0 to 360
-            if (self.xmin - self.delta_x <= -180) and (self.xmax + self.delta_x
+            if (self.xmin - dx <= -180) and (self.xmax + dx
                                                        >= 180):
                 return True  # Global -180 to 180
 
