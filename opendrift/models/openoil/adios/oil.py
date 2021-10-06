@@ -18,6 +18,7 @@ Interface to the ADIOS oil database.
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import numpy as np
@@ -26,8 +27,8 @@ from typing import List
 from .models.oil.oil import Oil as AdiosOil
 from .computation import gnome_oil
 from .computation import physical_properties
-from .computation import estimations
 from .util.estimations import oil_water_surface_tension_from_api
+
 
 class NotFullOil(Exception):
     pass
@@ -105,7 +106,7 @@ class OpendriftOil:
 
     @property
     @__require_gnome_oil__
-    def mass_fraction(self) -> float:
+    def mass_fraction(self) -> np.ndarray:
         return np.asarray(self.gnome_oil['mass_fraction'])
 
     @__require_gnome_oil__
@@ -117,7 +118,7 @@ class OpendriftOil:
     def bulltime(self) -> float:
         bulltime = self.gnome_oil['bullwinkle_time']
         if bulltime is None:
-            return -999. # legacy from old oil_library
+            return -999.  # legacy from old oil_library
         else:
             return bulltime
 
