@@ -2946,7 +2946,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if background is not None:
                 if isinstance(background, xr.DataArray):
                     scalar = background[i,:,:].values
-                elif isinstance(background, str):
+                else:
                     map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
                         self.get_map_background(ax, background,
                                                 time=times[i])

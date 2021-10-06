@@ -54,12 +54,16 @@ cmems = reader_cmems.Reader(
 o = OceanDrift()
 
 o.add_reader(cmems)
+# Alternatively, use OPeNDAP directly:
+# https://help.marine.copernicus.eu/en/articles/5182598-how-to-consume-the-opendap-api-and-cas-sso-using-python
+#o.add_readers_from_list(['https://nrt-dev.cmems-du.eu/thredds/dodsC/global-analysis-forecast-phy-001-024-hourly-merged-uv'])
+
 o.seed_elements(lon=lon, lat=lat, number=5000, radius=1000, time=time)
 o.run(duration=duration)
 
 # Although total current (SMOC) has been used as forcing, we plot the tidal current as background field, disguised as ice velocity
 o.animation(fast=True, clabel='Tidal current [m/s]', skip=1, scale=20, 
-            background=[ 'sea_ice_x_velocity', 'sea_ice_y_velocity'])
+            background=['sea_ice_x_velocity', 'sea_ice_y_velocity'])
 
 #%%
 # .. image:: /gallery/animations/example_cmems_0.gif
