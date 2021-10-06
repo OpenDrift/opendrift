@@ -106,7 +106,7 @@ class OceanDrift(OpenDriftSimulation):
                 'enum': ['environment', 'stepfunction', 'windspeed_Sundby1983',
                  'windspeed_Large1994', 'gls_tke','constant'], 'level': self.CONFIG_LEVEL_ADVANCED,
                  'units': 'seconds', 'description': 'Algorithm/source used for profile of vertical diffusivity. Environment means that diffusivity is aquired from readers or environment constants/fallback.'},
-            'vertical_mixing:background_diffusivity': {'type': 'float', 'min': 0, 'max': 1, 'default': .001,
+            'vertical_mixing:background_diffusivity': {'type': 'float', 'min': 0, 'max': 1, 'default': 1.2e-5,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'units': 'm2s-1', 'description':
                 'Background diffusivity used below mixed layer for wind parameterisations.'},
             'vertical_mixing:TSprofiles': {'type': 'bool', 'default': False, 'level':
