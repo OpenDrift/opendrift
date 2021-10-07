@@ -243,12 +243,12 @@ class ReaderDomain(Timeable):
 
         if np.min(exlons) < 0:
             # Reader domain is from -180 to 180 or somewhere in between.
-            assert np.min(exlons) <= 180
+            assert np.max(exlons) <= 180.1
 
             lons = np.mod(lons+180, 360) - 180
         else:
             # Reader domain is from 0 to 360 or somewhere in between.
-            assert np.min(exlons) <= 360
+            assert np.max(exlons) <= 360.1
 
             lons = np.mod(lons, 360)
 
