@@ -166,7 +166,7 @@ jobs:
   docs-build-examples:
     docker:
       - image: continuumio/miniconda3
-    parallelism: 20
+    parallelism: 40
     steps:
       - checkout
       - run:
@@ -208,7 +208,7 @@ jobs:
 
       # saved in docs-build
       - restore_cache:
-          key: gallery-v6-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v7-{{ checksum "/tmp/gallery-checksum.txt" }}
 
       # saved in docs-build
       - restore_cache:
@@ -345,7 +345,7 @@ jobs:
           no_output_timeout: 40m
 
       - save_cache:
-          key: gallery-v6-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v7-{{ checksum "/tmp/gallery-checksum.txt" }}
           paths:
             - "docs/source/gallery"
 
