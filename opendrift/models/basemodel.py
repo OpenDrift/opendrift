@@ -349,6 +349,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'description': description_fallback}
         self._add_config(c)
 
+        self.history = None  # Recarray to store trajectories and properties
+
         # Find variables which require profiles
         self.required_profiles = [var for var in self.required_variables
             if 'profiles' in self.required_variables[var] and
@@ -2186,9 +2188,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # Some cleanup needed if starting from imported state
         if self.steps_calculation >= 1:
             self.steps_calculation = 0
-        if hasattr(self, 'history'):
+        if self.history is not None:
             # Delete history matrix before new run
-            delattr(self, 'history')
+            self.history = None
             # Renumbering elements from 0 to num_elements, necessary fix when
             # importing from file, where elements may have been deactivated
             # TODO: should start from 1?
@@ -2726,10 +2728,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     self.af = Dataset(self.analysis_file, 'a')
                 else:
                     self.af = Dataset(self.analysis_file, 'w')
-            self.af.lonmin = self.lonmin
-            self.af.lonmax = self.lonmax
-            self.af.latmin = self.latmin
-            self.af.latmax = self.latmax
+            self.af['lonmin'] = self.lonmin
+            self.af['lonmax'] = self.lonmax
+            self.af['latmin'] = self.latmin
+            self.af['latmax'] = self.latmax
             self.af.close()
         else:
             lons, lats = self.get_lonlats()  # TODO: to be removed
@@ -2886,7 +2888,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         """Animate last run."""
 
 
-        if self.num_elements_total() == 0 and not hasattr(self, 'ds'):
+        if self.history is not None and self.num_elements_total() == 0 and not hasattr(self, 'ds'):
             raise ValueError('Please run simulation before animating')
 
         markersizebymass = False
@@ -4659,7 +4661,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if hasattr(self, attr):
                 delattr(self, attr)
         #del self.start_time
-        #del self.history
+        self.history = None
         #del self.elements
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array

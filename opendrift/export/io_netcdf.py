@@ -266,7 +266,7 @@ def import_file_xarray(self, filename, chunks):
         self.lonmax = np.float32(self.ds.lon.maxval)
         self.latmax = np.float32(self.ds.lat.maxval)
 
-def import_file(self, filename, times=None, elements=None):
+def import_file(self, filename, times=None, elements=None, load_history=True):
     """Create OpenDrift object from imported file.
      times: indices of time steps to be imported, must be contineous range.
      elements: indices of elements to be imported
@@ -315,29 +315,33 @@ def import_file(self, filename, times=None, elements=None):
     history_dtype = np.dtype(history_dtype_fields)
 
     # Import dataset (history)
-    self.history = np.ma.array(
-        np.zeros([num_elements, self.steps_output]),
-        dtype=history_dtype, mask=[True])
-    for var in infile.variables:
-        if var in ['time', 'trajectory']:
-            continue
-        try:
-            self.history[var] = infile.variables[var][elements, times]
-        except Exception as e:
-            logger.info(e)
-            pass
+    if load_history is True:
+        self.history = np.ma.array(
+            np.zeros([num_elements, self.steps_output]),
+            dtype=history_dtype, mask=[True])
+        for var in infile.variables:
+            if var in ['time', 'trajectory']:
+                continue
+            try:
+                self.history[var] = infile.variables[var][elements, times]
+            except Exception as e:
+                logger.info(e)
+                pass
 
-    # Initialise elements from given (or last) state/time
-    firstlast = np.ma.notmasked_edges(self.history['status'], axis=1)
-    index_of_last = firstlast[1][1]
-    kwargs = {}
-    for var in infile.variables:
-        if var in self.ElementType.variables:
-            kwargs[var] = self.history[var][
-                np.arange(len(index_of_last)), index_of_last]
-    kwargs['ID'] = np.arange(len(elements)) + 1
-    self.elements = self.ElementType(**kwargs)
-    self.elements_deactivated = self.ElementType()
+        # Initialise elements from given (or last) state/time
+        firstlast = np.ma.notmasked_edges(self.history['status'], axis=1)
+        index_of_last = firstlast[1][1]
+        kwargs = {}
+        for var in infile.variables:
+            if var in self.ElementType.variables:
+                kwargs[var] = self.history[var][
+                    np.arange(len(index_of_last)), index_of_last]
+        kwargs['ID'] = np.arange(len(elements)) + 1
+        self.elements = self.ElementType(**kwargs)
+        self.elements_deactivated = self.ElementType()
+    else:
+        self.history = None
+        logger.warning('Not importing history')
 
     # Remove elements which are scheduled for deactivation
     self.remove_deactivated_elements()

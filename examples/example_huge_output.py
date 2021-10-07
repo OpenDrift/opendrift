@@ -50,7 +50,7 @@ oa.get_density_xarray(pixelsize_m=500)
 # to datasets opened lazily with open_xarray
 for om in [0, 1]:
     background=oa.ads.density_origin_marker.isel(origin_marker=om)
-    o.animation(background=background.where(background>0), bgalpha=1,
+    oa.animation(background=background.where(background>0), bgalpha=1,
                 corners=[4.0, 6, 59.5, 61], fast=False, show_elements=False, vmin=0, vmax=200)
 
 # Cleaning up
