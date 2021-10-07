@@ -15,7 +15,7 @@ r2 = ConstantReader({'ocean_mixed_layer_thickness': 50})
 r1.xmax = 3
 r2.xmin = 3
 
-#%% 
+#%%
 # First with Sundby1983 parameterization of diffusivity, based on wind and MLD
 o = OceanDrift(loglevel=50)
 o.seed_cone(lon=[2, 4], lat=[60, 60], time=datetime.now(), number=5000)
@@ -31,7 +31,7 @@ o.animation_profile()
 #%%
 # .. image:: /gallery/animations/example_mixed_layer_depth_0.gif
 
-#% 
+#%%
 # Same, but with Large1994 parameterization of diffusivity
 o = OceanDrift(loglevel=50)
 o.seed_cone(lon=[2, 4], lat=[60, 60], time=datetime.now(), number=5000)

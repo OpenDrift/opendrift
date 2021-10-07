@@ -2742,10 +2742,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             latmin = corners[2]
             latmax = corners[3]
         elif hasattr(self, 'lonmin'):  # if dataset is lazily imported
-            lonmin = self.lonmin
-            lonmax = self.lonmax
-            latmin = self.latmin
-            latmax = self.latmax
+            lonmin = self.lonmin - buffer*2
+            lonmax = self.lonmax + buffer*2
+            latmin = self.latmin - buffer
+            latmax = self.latmax + buffer
         else:
             lons, lats = self.get_lonlats()
             lonmin = np.nanmin(lons) - buffer*2
