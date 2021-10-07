@@ -122,5 +122,25 @@ def test_performance_global(benchmark):
     # warmup
     reader_global.__on_land__(xx, yy)
 
-    print("masking against cartopy")
     benchmark(reader_global.__on_land__, xx, yy)
+
+def test_dateline():
+    mask = reader_global_landmask.Reader()
+
+    x = np.linspace(-180, 180, 100)
+    y = np.linspace(-100, 100, 100)
+
+    xx, yy = np.meshgrid(x, y)
+    xx, yy = xx.ravel(), yy.ravel()
+    mm = mask.__on_land__(xx, yy)
+
+    # Offset
+    x2 = np.linspace(180, 540, 100)
+    y2 = np.linspace(-100, 100, 100)
+
+
+    xx, yy = np.meshgrid(x2, y2)
+    xx, yy = xx.ravel(), yy.ravel()
+    MM = mask.__on_land__(xx, yy)
+
+    np.testing.assert_array_equal(mm, MM)

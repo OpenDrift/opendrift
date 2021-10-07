@@ -221,6 +221,8 @@ class Reader(BaseReader, ContinuousReader):
             self.extent = shapely.prepared.prep(extent)
 
     def __on_land__(self, x, y):
+        x = self.modulate_longitude(x)
+
         if self.mask_type == 0:
             return self.mask.contains(x,
                                       y,
