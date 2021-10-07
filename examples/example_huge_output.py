@@ -42,6 +42,11 @@ oa = opendrift.open_xarray(outfile, analysis_file=analysis_file)
 oa.get_density_xarray(pixelsize_m=500)
 
 #%%
+# Plot the cumulative coverage of first seeding (origin_marker=0)
+b=oa.ads.density_origin_marker.isel(origin_marker=0).sum(dim='time')
+oa.plot(background=b.where(b>0), fast=True, show_particles=False, vmin=0, vmax=1000, clabel='First seeding')
+
+#%%
 # Making two animations, for each of the two seedings / origin_markers.
 # The calculated density fields will be stored/cached in the analysis file
 # for later re-use, as their calculation may be time consuming
