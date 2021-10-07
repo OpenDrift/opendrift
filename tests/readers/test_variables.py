@@ -1,10 +1,72 @@
 import numpy as np
-import pytest
+import pyproj
 from . import *
 from datetime import datetime, timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
 from opendrift.models.oceandrift import OceanDrift
+
+from opendrift.readers.basereader.variables import ReaderDomain
+
+def test_modulate_longitude_360():
+    class R360(ReaderDomain):
+        xmin = 0
+        xmax = 340
+        ymin = -80
+        ymax = 80
+
+        def __init__(self):
+            self.proj4 = '+proj=lonlat +ellps=WGS84'
+            self.crs = pyproj.CRS(self.proj4)
+            self.proj = pyproj.Proj(self.proj4)
+            super().__init__()
+
+    r = R360()
+    lons = np.linspace(0, 300, 100)
+
+    assert (r.modulate_longitude(lons) == lons).all()
+
+    lons = np.array([-180, -90])
+    assert (r.modulate_longitude(lons) == np.array([360-180, 360-90])).all()
+
+    lons = np.array([0, 90])
+    assert (r.modulate_longitude(lons) == np.array([0, 90])).all()
+
+    lons = np.array([100, 180])
+    assert (r.modulate_longitude(lons) == np.array([100, 180])).all()
+
+    lons = np.array([240, 350])
+    assert (r.modulate_longitude(lons) == np.array([240, 350])).all()
+
+def test_modulate_longitude_180():
+    class R180(ReaderDomain):
+        xmin = -150
+        xmax = 180
+        ymin = -80
+        ymax = 80
+
+        def __init__(self):
+            self.proj4 = '+proj=lonlat +ellps=WGS84'
+            self.crs = pyproj.CRS(self.proj4)
+            self.proj = pyproj.Proj(self.proj4)
+            super().__init__()
+
+    r = R180()
+    lons = np.linspace(-180, 150, 100)
+
+    assert (r.modulate_longitude(lons) == lons).all()
+
+    lons = np.array([-180, -90])
+    assert (r.modulate_longitude(lons) == np.array([-180, -90])).all()
+
+    lons = np.array([0, 90])
+    assert (r.modulate_longitude(lons) == np.array([0, 90])).all()
+
+    lons = np.array([100, 180])
+    assert (r.modulate_longitude(lons) == np.array([100, -180])).all()
+
+    lons = np.array([240])
+    assert (r.modulate_longitude(lons) == np.array([-120])).all()
 
 
 def test_covers_positions(test_data):

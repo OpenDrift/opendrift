@@ -236,6 +236,29 @@ class ReaderDomain(Timeable):
             logger.exception(ex)
             return indices, x, y
 
+    def modulate_longitude(self, lons):
+        """
+        Modulate the input longitude to the domain supported by the reader.
+        """
+
+        yy = np.array([self.ymin, self.ymax, self.ymax, self.ymin])
+        xx = np.array([self.xmin, self.xmin, self.xmax, self.xmax])
+
+        exlons, _lats = self.xy2lonlat(xx, yy)
+
+        if np.min(exlons) < 0:
+            # Reader domain is from -180 to 180 or somewhere in between.
+            assert np.min(exlons) <= 180
+
+            lons = np.mod(lons+180, 360) - 180
+        else:
+            # Reader domain is from 0 to 360 or somewhere in between.
+            assert np.min(exlons) <= 360
+
+            lons = np.mod(lons, 360)
+
+        return lons
+
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
 
