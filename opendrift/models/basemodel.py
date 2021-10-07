@@ -2863,7 +2863,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         return fig, ax, crs, lons.T, lats.T, index_of_first, index_of_last
 
     def get_lonlats(self):
-        if hasattr(self, 'history'):
+        if self.history is not None:
             lons = self.history['lon']
             lats = self.history['lat']
         else:
@@ -3422,7 +3422,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         alpha = np.max((min_alpha, alpha))
         if legend is False:
             legend = None
-        if hasattr(self, 'history') and linewidth != 0:
+        if self.history is not None and linewidth != 0:
             # Plot trajectories
             from matplotlib.colors import is_color_like
             if linecolor is None or is_color_like(linecolor) is True:
@@ -4433,7 +4433,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     def __repr__(self):
         """String representation providing overview of model status."""
         outStr = '===========================\n'
-        if hasattr(self, 'history'):
+        if self.history is not None:
             outStr += self.performance()
             outStr += '===========================\n'
         outStr += 'Model:\t' + type(self).__name__ + \
@@ -4657,7 +4657,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info('Nothing to reset')
             return
 
-        for attr in ['start_time', 'history', 'elements']:
+        for attr in ['start_time', 'elements']:
             if hasattr(self, attr):
                 delattr(self, attr)
         #del self.start_time
