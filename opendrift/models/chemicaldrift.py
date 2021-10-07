@@ -200,7 +200,7 @@ class ChemicalDrift(OceanDrift):
             'chemical:transformations:Dc': {'type': 'float', 'default': 1.16e-5,                # Simonsen 2019
                 'min': 0, 'max': 1e6, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:transformations:slow_coeff': {'type': 'float', 'default': 1.2e-7,         # Simonsen 2019
+            'chemical:transformations:slow_coeff': {'type': 'float', 'default': 0, #1.2e-7,         # Simonsen 2019
                 'min': 0, 'max': 1e6, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:transformations:volatilization': {'type': 'bool', 'default': False,
@@ -606,10 +606,10 @@ class ChemicalDrift(OceanDrift):
 
                 #TODO: calculation of KOC for ionic chemicals
 
-            logger.info('Partitioning coefficients (Tref,freshwater)')
-            logger.info('KOC_sed: %s L/KgOC' % KOC_sed)
-            logger.info('KOC_SPM: %s L/KgOC' % KOC_SPM)
-            logger.info('KOC_DOM: %s L/KgOC' % KOC_DOM)
+            logger.debug('Partitioning coefficients (Tref,freshwater)')
+            logger.debug('KOC_sed: %s L/KgOC' % KOC_sed)
+            logger.debug('KOC_SPM: %s L/KgOC' % KOC_SPM)
+            logger.debug('KOC_DOM: %s L/KgOC' % KOC_DOM)
 
             #KOM_sed = KOC_sed * Org2C #  L/KgOC * KgOC/KgOM = L/KgOM
             #KOM_SPM = KOC_sed * Org2C #  L/KgOC * KgOC/KgOM = L/KgOM
@@ -621,9 +621,9 @@ class ChemicalDrift(OceanDrift):
             self.Kd_DOM = Kd_DOM = KOC_DOM * Org2C      # L/KgOC * KgOC/KgOM * 1KgOM/Kg = L/Kg (=KOM_DOM)
             # TODO Use setconfig() to store these?
 
-            logger.info('Kd_sed: %s L/Kg' % Kd_sed)
-            logger.info('Kd_SPM: %s L/Kg' % Kd_SPM)
-            logger.info('Kd_DOM: %s L/Kg' % Kd_DOM)
+            logger.debug('Kd_sed: %s L/Kg' % Kd_sed)
+            logger.debug('Kd_SPM: %s L/Kg' % Kd_SPM)
+            logger.debug('Kd_DOM: %s L/Kg' % Kd_DOM)
 
             # From Karickhoff and Morris 1985
             k_ads = 33.3 / (60*60) # L/(Kg*s) = 33 L/(kgOM*h)
@@ -834,8 +834,8 @@ class ChemicalDrift(OceanDrift):
 #         self.transfer_rates[:] = 0.
 #         print ('\n ###### \n IMPORTANT:: \n transfer rates have been hacked! \n#### \n ')
 
-        logger.info('nspecies: %s' % self.nspecies)
-        logger.info('Transfer rates:\n %s' % self.transfer_rates)
+        logger.debug('nspecies: %s' % self.nspecies)
+        logger.debug('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -900,6 +900,8 @@ class ChemicalDrift(OceanDrift):
 
         # terminal velocity for low Reynolds numbers
         W = (1.0/my_w)*(1.0/18.0)*g*partsize**2 * dr
+
+        #W=np.zeros_like(W) #Setting to zero for debugging
 
         self.elements.terminal_velocity = W
 
@@ -1353,7 +1355,7 @@ class ChemicalDrift(OceanDrift):
 
             R=8.206e-05 #(atm m3)/(mol K)
 
-            mixedlayerdepth = self.environment.ocean_mixed_layer_thickness_defined_by_sigma_theta
+            mixedlayerdepth = self.environment.ocean_mixed_layer_thickness
 
             # mask of dissolved elements within mixed layer
             W =     (self.elements.specie == self.num_lmm) \
@@ -1399,7 +1401,7 @@ class ChemicalDrift(OceanDrift):
             HenryLaw = Henry * (1 + 0.01143 * S) / ( R * (T+273.15) )
 
             MTCvol = 1 / ( 1/MTCw + 1/(MTCa * HenryLaw))     # (cm/s)
-            #mixedlayerdepth = self.environment.ocean_mixed_layer_thickness_defined_by_sigma_theta[W]
+            #mixedlayerdepth = self.environment.ocean_mixed_layer_thickness[W]
             #Thick = np.clip(self.environment.sea_floor_depth_below_sea_level[W],0,mixedlayerdepth) # (m)
             Thick = mixedlayerdepth
 
@@ -1909,7 +1911,7 @@ class ChemicalDrift(OceanDrift):
 
         return num_coarse
     
-    def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", **kwargs):
+    def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", mass_element_ug=100e3, **kwargs):
             """Seed elements based on a dataarray with STEAM emission data
     
             Arguments:
@@ -1924,7 +1926,8 @@ class ChemicalDrift(OceanDrift):
             """
 
             #mass_element_ug=1e3      # 1e3 - 1 element is 1mg chemical
-            mass_element_ug=10e3      # 100e3 - 1 element is 100mg chemical
+            #mass_element_ug=20e3      # 100e3 - 1 element is 100mg chemical
+            #mass_element_ug=100e3      # 100e3 - 1 element is 100mg chemical
             #mass_element_ug=1e6     # 1e6 - 1 element is 1g chemical
 
             def emission_factors(scrubber_type, chemical_compound):
@@ -1951,12 +1954,25 @@ class ChemicalDrift(OceanDrift):
             t=steam.time[sel[0]].data
             la=steam.latitude[sel[1]].data
             lo=steam.longitude[sel[2]].data
+
+            data=np.array(steam.data)
+
             for i in range(0,t.size):
-                scrubberwater_vol_l=steam.data[sel][i]
+                scrubberwater_vol_l=data[sel][i]
                 mass_ug=scrubberwater_vol_l * emission_factors(scrubber_type, chemical_compound)
 
                 number=np.array(mass_ug / mass_element_ug).astype('int')
+
                 if number>0:
+                    z = -1*np.random.uniform(0, 1, number)
                     self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
                                 radius=radius, number=number, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
-                                mass=mass_element_ug,mass_degraded=0,mass_volatilized=0)
+                                mass=mass_element_ug,mass_degraded=0,mass_volatilized=0, z=z)
+
+                mass_residual = mass_ug - number*mass_element_ug
+
+                if mass_residual>0:
+                    z = -1*np.random.uniform(0, 1, 1)
+                    self.seed_elements(lon=lo[i], lat=la[i],
+                                radius=radius, number=1, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
+                                mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z)
