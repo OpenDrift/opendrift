@@ -1934,7 +1934,11 @@ class ChemicalDrift(OceanDrift):
                     "Vanadium": 176.59,
                     "Zinc": 110.84,
                     "Naphthalene": 2.76,
-                    "Phenanthrene": 1.51
+                    "Phenanthrene": 1.51,
+                    "Fluoranthene": 0.16,
+                    "Benzo(a)anthracene": 0.13,
+                    "Benzo(a)pyrene": 0.05,
+                    "Dibenzo(a,h)anthracene": 0.03
                     }
 
                 emission_factors_closed_loop = {
