@@ -2725,14 +2725,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.latmax = np.nanmax(self.ds.lat)
             if not hasattr(self, 'af'):
                 if os.path.exists(self.analysis_file):
-                    self.af = Dataset(self.analysis_file, 'a')
+                    self.ads = xr.open_dataset(self.analysis_file, mode='a')
                 else:
-                    self.af = Dataset(self.analysis_file, 'w')
-            self.af['lonmin'] = self.lonmin
-            self.af['lonmax'] = self.lonmax
-            self.af['latmin'] = self.latmin
-            self.af['latmax'] = self.latmax
-            self.af.close()
+                    self.ads = xr.open_dataset(self.analysis_file, mode='w')
+            self.ads['lonmin'] = self.lonmin
+            self.ads['lonmax'] = self.lonmax
+            self.ads['latmin'] = self.latmin
+            self.ads['latmax'] = self.latmax
+            self.ads.close()
         else:
             lons, lats = self.get_lonlats()  # TODO: to be removed
 
@@ -3767,9 +3767,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if not hasattr(self, 'analysis_file'):
             raise ValueError('Density has to be calculated with get_density_array or animation')
 
-        self.af = xr.open_dataset(self.analysis_file)
-        lon_bin = self.af.lon_bin.values
-        lat_bin = self.af.lat_bin.values
+        self.ads = xr.open_dataset(self.analysis_file)
+        lon_bin = self.ads.lon_bin.values
+        lat_bin = self.ads.lat_bin.values
 
         lon = np.atleast_1d(lon)
         lat = np.atleast_1d(lat)
@@ -3779,12 +3779,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             raise ValueError('Latitude %s is outside range %s to %s' % (lat, lat_bin.min(), lat_bin.max()))
 
         if len(lon) == 1:
-            t_total = self.af.density.sel(lon_bin=lon, lat_bin=lat, method='nearest')
-            t_origin_marker = self.af.density_origin_marker.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+            t_total = self.ads.density.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+            t_origin_marker = self.ads.density_origin_marker.sel(lon_bin=lon, lat_bin=lat, method='nearest')
         elif len(lon) == 2:
-            t_total = self.af.density.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
+            t_total = self.ads.density.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
             t_total = t_total.sum(('lon_bin', 'lat_bin'))
-            t_origin_marker = self.af.density_origin_marker.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
+            t_origin_marker = self.ads.density_origin_marker.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
             t_origin_marker = t_origin_marker.sum(('lon_bin', 'lat_bin'))
         else:
             raise ValueError('Lon and lat must have length 1 (point) or 2 (min, max)')
