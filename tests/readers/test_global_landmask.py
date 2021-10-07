@@ -128,7 +128,7 @@ def test_dateline():
     mask = reader_global_landmask.Reader()
 
     x = np.linspace(-180, 180, 100)
-    y = np.linspace(-100, 100, 100)
+    y = np.linspace(-90, 90, 100)
 
     xx, yy = np.meshgrid(x, y)
     xx, yy = xx.ravel(), yy.ravel()
@@ -136,7 +136,7 @@ def test_dateline():
 
     # Offset
     x2 = np.linspace(180, 540, 100)
-    y2 = np.linspace(-100, 100, 100)
+    y2 = np.linspace(-90, 90, 100)
 
 
     xx, yy = np.meshgrid(x2, y2)
