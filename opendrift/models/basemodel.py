@@ -2715,15 +2715,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if hasattr(self, 'ds'):  # If dataset is lazily imported
             lons = self.ds.lon
             lats = self.ds.lat
-            logger.debug('Finding min longitude...')
-            self.lonmin = np.nanmin(self.ds.lon)
-            logger.debug('Finding max longitude...')
-            self.lonmax = np.nanmax(self.ds.lon)
-            logger.debug('Finding min latitude...')
-            self.latmin = np.nanmin(self.ds.lat)
-            logger.debug('Finding max latitude...')
-            self.latmax = np.nanmax(self.ds.lat)
-            if not hasattr(self, 'af'):
+            if not hasattr(self, 'lonmin'):
+                logger.debug('Finding min longitude...')
+                self.lonmin = np.nanmin(self.ds.lon)
+                logger.debug('Finding max longitude...')
+                self.lonmax = np.nanmax(self.ds.lon)
+                logger.debug('Finding min latitude...')
+                self.latmin = np.nanmin(self.ds.lat)
+                logger.debug('Finding max latitude...')
+                self.latmax = np.nanmax(self.ds.lat)
+            if not hasattr(self, 'ads'):
                 if os.path.exists(self.analysis_file):
                     self.ads = xr.open_dataset(self.analysis_file, mode='a')
                 else:
@@ -3403,8 +3404,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         mappable = None
 
-        if self.num_elements_total() == 0:
-            raise ValueError('Please run simulation before plotting')
+        if self.history is not None and self.num_elements_total() == 0 and not hasattr(self, 'ds'):
+            raise ValueError('Please run simulation before animating')
 
         start_time = datetime.now()
 
@@ -3578,7 +3579,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 time = self.time - self.time_step_output
             else:
                 time = None
-            if background == 'residence':
+            if isinstance(background, xr.DataArray):
+                map_x = background.coords['lon_bin']
+                map_y = background.coords['lat_bin']
+                scalar = background
+                map_y, map_x = np.meshgrid(map_y, map_x)
+            elif background == 'residence':
                 scalar,lon_res,lat_res = self.get_residence_time(
                     pixelsize_m=density_pixelsize_m)
                 scalar[scalar==0] = np.nan
@@ -3613,8 +3619,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 cb.set_label(clabel)
             elif isinstance(linecolor, str) and linecolor != 'gray':
                 cb.set_label(str(linecolor))
-            if background is not None:
-                cb.set_label(str(background))
+            if background is not None and clabel is None:
+                if isinstance(background, xr.DataArray):
+                    cb.set_label(background.name)
+                else:
+                    cb.set_label(str(background))
 
         if type(background) is list:
             delta_x = (map_x[1,2] - map_x[1,1])/2.
