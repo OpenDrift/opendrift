@@ -878,6 +878,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     def latest_time(self):
         return min(self.start_time, self.expected_end_time)
 
+    def reader_relevant(self, reader):
+        if hasattr(self, 'expected_endtime') and reader.start_time is not None and (
+                (reader.start_time > self.latest_time() or
+                 reader.end_time < self.earliest_time())):
+            logger.debug('Reader does not cover simulation period')
+            return False
+        if len(set(self.required_variables) &
+               set(reader.variables)) == 0:
+            logger.debug('Reader does not contain any relevant variables')
+            return False
+        return True
+
     def discard_reader_if_not_relevant(self, reader):
         if hasattr(self, 'expected_endtime') and reader.start_time is not None and (
                 (reader.start_time > self.latest_time() or
@@ -909,12 +921,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 del self.priority_list[var]
 
     def discard_irrelevant_readers(self):
+        discard = []
+
         for readername in self.readers:
             reader = self.readers[readername]
             if reader.is_lazy:
                 continue
-            if self.discard_reader_if_not_relevant(reader):
-                logger.debug('DISCARDED: ' + readername)
+
+            if not self.reader_relevant(reader):
+                discard.append(reader)
+
+        for reader in discard:
+            self.discard_reader(reader)
+            logger.debug('DISCARDED: ' + reader.name)
 
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
