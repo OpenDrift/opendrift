@@ -252,14 +252,14 @@ def import_file_xarray(self, filename, chunks):
     for da in ['lon', 'lat']:
         self.ds[da] = self.ds[da].where(self.ds.status>=0)
 
-    # Read some saved parameters
-    if os.path.exists(self.analysis_file):
-        self.ads = xr.open_dataset(self.analysis_file)
-        if 'lonmin' in self.ads:
-            self.lonmin = self.ads.lonmin
-            self.lonmax = self.ads.lonmax
-            self.latmin = self.ads.latmin
-            self.latmax = self.ads.latmax
+    ## Read some saved parameters
+    #if self.analysis_file is not None:
+    #    self.ads = xr.open_dataset(self.analysis_file)
+    #    if 'lonmin' in self.ads:
+    #        self.lonmin = self.ads.lonmin
+    #        self.lonmax = self.ads.lonmax
+    #        self.latmin = self.ads.latmin
+    #        self.latmax = self.ads.latmax
     if 'minval' in self.ds.lon.attrs:
         self.lonmin = np.float32(self.ds.lon.minval)
         self.latmin = np.float32(self.ds.lat.minval)

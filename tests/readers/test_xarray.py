@@ -33,11 +33,8 @@ class TestXarray(unittest.TestCase):
     def test_density(self):
         """Test density"""
         outfile = 'test_xarray.nc'
-        analysis_file = 'test_xarray_analysis.nc'
         if os.path.exists(outfile):
             os.remove(outfile)
-        if os.path.exists(analysis_file):
-            os.remove(analysis_file)
         o = OceanDrift(loglevel=20)
         o.set_config('environment:fallback:land_binary_mask', 0)
         t1 = datetime.now()
@@ -59,21 +56,20 @@ class TestXarray(unittest.TestCase):
         density_pixelsize_m=5000
         H, Hsub, Hsurf, lon_array, lat_array = o.get_density_array(pixelsize_m=density_pixelsize_m)
 
-        ox = opendrift.open_xarray(outfile, analysis_file=analysis_file)
-        Hx, Hx_om, lon_arrayx, lat_arrayx = ox.get_density_xarray(pixelsize_m=density_pixelsize_m)
+        ox = opendrift.open_xarray(outfile)
+        Hx = ox.get_histogram(pixelsize_m=density_pixelsize_m)
         self.assertAlmostEqual(lon_array[0], 3.94, 1)
         self.assertAlmostEqual(lon_array[-1], 4.76, 1)
-        self.assertAlmostEqual(lon_arrayx[0], 3.90, 1)
-        self.assertAlmostEqual(lon_arrayx[-1], 4.67, 1)
-        self.assertEqual(Hx.shape, H.shape)
+        self.assertAlmostEqual(Hx.lon_bin[0].values, 3.90, 1)
+        self.assertAlmostEqual(Hx.lon_bin[-1].values, 4.67, 1)
+        self.assertEqual(Hx.sum(dim='origin_marker').shape, H.shape)
         Hsum = H.sum(axis=1).sum(axis=1)
-        Hxsum = Hx.sum(axis=1).sum(axis=1)
+        Hxsum = Hx.sum(('lon_bin', 'lat_bin', 'origin_marker'))
         self.assertEqual(Hsum[0], 118)
         self.assertEqual(Hxsum[0], 118)
         self.assertEqual(Hsum[-1], 300)
         self.assertEqual(Hxsum[-1], 300)
         os.remove(outfile)
-        os.remove(analysis_file)
 
 if __name__ == '__main__':
     unittest.main()

@@ -2743,16 +2743,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.latmin = np.nanmin(self.ds.lat)
                 logger.debug('Finding max latitude...')
                 self.latmax = np.nanmax(self.ds.lat)
-            if not hasattr(self, 'ads'):
-                if os.path.exists(self.analysis_file):
-                    self.ads = xr.open_dataset(self.analysis_file, mode='a')
-                else:
-                    self.ads = xr.open_dataset(self.analysis_file, mode='w')
-            self.ads['lonmin'] = self.lonmin
-            self.ads['lonmax'] = self.lonmax
-            self.ads['latmin'] = self.latmin
-            self.ads['latmax'] = self.latmax
-            self.ads.close()
+            #if not hasattr(self, 'ads') and self.analysis_file is not None:
+            #    if os.path.exists(self.analysis_file):
+            #        self.ads = xr.open_dataset(self.analysis_file, mode='a')
+            #    else:
+            #        self.ads = xr.open_dataset(self.analysis_file, mode='w')
+            #    self.ads['lonmin'] = self.lonmin
+            #    self.ads['lonmax'] = self.lonmax
+            #    self.ads['latmin'] = self.latmin
+            #    self.ads['latmax'] = self.latmax
+            #    self.ads.close()
         else:
             lons, lats = self.get_lonlats()  # TODO: to be removed
 
@@ -3789,140 +3789,180 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y
 
-    def get_density_timeseries(self, lon, lat):
-        """Get timeseries at a point from pre-calculated density field"""
+#    def get_density_timeseries(self, lon, lat):
+#        """Get timeseries at a point from pre-calculated density field"""
+#
+#        if not hasattr(self, 'analysis_file'):
+#            raise ValueError('Density has to be calculated with get_density_array or animation')
+#
+#        self.ads = xr.open_dataset(self.analysis_file)
+#        lon_bin = self.ads.lon_bin.values
+#        lat_bin = self.ads.lat_bin.values
+#
+#        lon = np.atleast_1d(lon)
+#        lat = np.atleast_1d(lat)
+#        if lon.min()<lon_bin.min() or lon.max()>lon_bin.max():
+#            raise ValueError('Longitude %s is outside range %s to %s' % (lon, lon_bin.min(), lon_bin.max()))
+#        if lat.min()<lat_bin.min() or lat.max()>lat_bin.max():
+#            raise ValueError('Latitude %s is outside range %s to %s' % (lat, lat_bin.min(), lat_bin.max()))
+#
+#        if len(lon) == 1:
+#            t_total = self.ads.density.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+#            t_origin_marker = self.ads.density_origin_marker.sel(lon_bin=lon, lat_bin=lat, method='nearest')
+#        elif len(lon) == 2:
+#            t_total = self.ads.density.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
+#            t_total = t_total.sum(('lon_bin', 'lat_bin'))
+#            t_origin_marker = self.ads.density_origin_marker.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
+#            t_origin_marker = t_origin_marker.sum(('lon_bin', 'lat_bin'))
+#        else:
+#            raise ValueError('Lon and lat must have length 1 (point) or 2 (min, max)')
+#
+#        return t_total, t_origin_marker
 
-        if not hasattr(self, 'analysis_file'):
-            raise ValueError('Density has to be calculated with get_density_array or animation')
+    def get_lonlat_bins(self, pixelsize_m):
+        latmin = self.latmin
+        latmax = self.latmax
+        lonmin = self.lonmin
+        lonmax = self.lonmax
+        deltalat = pixelsize_m/111000.0  # m to degrees
+        deltalon = deltalat/np.cos(np.radians((latmin+latmax)/2))
+        latbin = np.arange(latmin-deltalat, latmax+deltalat, deltalat)
+        lonbin = np.arange(lonmin-deltalon, lonmax+deltalon, deltalon)
+        return lonbin, latbin
 
-        self.ads = xr.open_dataset(self.analysis_file)
-        lon_bin = self.ads.lon_bin.values
-        lat_bin = self.ads.lat_bin.values
-
-        lon = np.atleast_1d(lon)
-        lat = np.atleast_1d(lat)
-        if lon.min()<lon_bin.min() or lon.max()>lon_bin.max():
-            raise ValueError('Longitude %s is outside range %s to %s' % (lon, lon_bin.min(), lon_bin.max()))
-        if lat.min()<lat_bin.min() or lat.max()>lat_bin.max():
-            raise ValueError('Latitude %s is outside range %s to %s' % (lat, lat_bin.min(), lat_bin.max()))
-
-        if len(lon) == 1:
-            t_total = self.ads.density.sel(lon_bin=lon, lat_bin=lat, method='nearest')
-            t_origin_marker = self.ads.density_origin_marker.sel(lon_bin=lon, lat_bin=lat, method='nearest')
-        elif len(lon) == 2:
-            t_total = self.ads.density.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
-            t_total = t_total.sum(('lon_bin', 'lat_bin'))
-            t_origin_marker = self.ads.density_origin_marker.sel(lon_bin=slice(lon[0], lon[1]), lat_bin=slice(lat[0], lat[1]))
-            t_origin_marker = t_origin_marker.sum(('lon_bin', 'lat_bin'))
-        else:
-            raise ValueError('Lon and lat must have length 1 (point) or 2 (min, max)')
-
-        return t_total, t_origin_marker
-
-    def get_density_xarray(self, pixelsize_m, weights=None, per_origin_marker=True,
-                           dominating_origin_marker=False):
+    def get_histogram(self, pixelsize_m, **kwargs):
         from xhistogram.xarray import histogram
+        lonbin, latbin = self.get_lonlat_bins(pixelsize_m)
+        max_om = int(self.ds.origin_marker.max().compute().values)
+        origin_marker=range(max_om+1)
+        if 'weights' in kwargs and kwargs['weights'] is not None and kwargs['weights'].ndim <2:
+            kwargs['weights'] = xr.DataArray(kwargs['weights'], dims=['trajectory'],
+                                             coords={'trajectory': self.ds.coords['trajectory']})
+        # Xarray Dataset to store histogram per origin_marker
+        h_om = xr.DataArray(np.zeros((len(self.ds.coords['time']),
+                             len(lonbin)-1, len(latbin)-1, max_om+1)),
+                             name='density_origin_marker',
+                             dims=('time', 'lon_bin', 'lat_bin', 'origin_marker'))
+        h_om.coords['time'] = self.ds.coords['time']
+        h_om.coords['origin_marker'] = origin_marker
 
-        if os.path.exists(self.analysis_file):
-            self.ads = xr.open_dataset(self.analysis_file)  # Import from file
-            logger.info('Importing from saved analysis file')
-            lon_bin = self.ads.lon_bin.values
-            lat_bin = self.ads.lat_bin.values
-            density = self.ads.density.values
-            if 'density_origin_marker' in self.ads:
-                density_origin_marker = self.ads.density_origin_marker.values
-            else:
-                density_origin_marker = None
-            self.ads.close()
-            return density, density_origin_marker, lon_bin, lat_bin
+        for om in origin_marker:
+            logger.info('\tcalculating for origin_marker %s...' % om)
+            h = histogram(self.ds.lon.where(self.ds.origin_marker==om),
+                          self.ds.lat.where(self.ds.origin_marker==om), bins=[lonbin, latbin],
+                          dim=['trajectory'],
+                          **kwargs)
+            if om == 0:
+                h_om.coords['lon_bin'] = h.coords['lon_bin']
+                h_om.coords['lat_bin'] = h.coords['lat_bin']
+            h_om[:, :, :, om] = h#.copy()
+        return h_om
 
-        else:  # Calculate
-            self.ads = xr.Dataset()  # Dataset to store all data, to be saved to self.analysis_file
-            start = datetime.now()
-            logger.info('Calculating density array, this may take some time...')
-            deltalat = pixelsize_m/111000.0  # m to degrees
-            if hasattr(self, 'lonmin'):
-                lonmin = self.lonmin
-                lonmax = self.lonmax
-                latmin = self.latmin
-                latmax = self.latmax
-            else:
-                logger.debug('Finding min and max of lon and lat...')
-                lonmin = np.nanmin(self.ds.lon)
-                lonmax = np.nanmax(self.ds.lon)
-                latmin = np.nanmin(self.ds.lat)
-                latmax = np.nanmax(self.ds.lat)
-                self.ads.attrs['lonmin'] = lonmin
-                self.ads.attrs['lonmax'] = lonmax
-                self.ads.attrs['latmin'] = latmin
-                self.ads.attrs['latmax'] = latmax
-                self.ads.coords['time'] = self.ds.coords['time']
+    #def get_density_xarray(self, pixelsize_m, weights=None, per_origin_marker=True,
+    #                       dominating_origin_marker=False):
+    #    from xhistogram.xarray import histogram
 
-            deltalon = deltalat/np.cos(np.radians((latmin+latmax)/2))
-            latbin = np.arange(latmin-deltalat, latmax+deltalat, deltalat)
-            lonbin = np.arange(lonmin-deltalon, lonmax+deltalon, deltalon)
+    #    if os.path.exists(self.analysis_file):
+    #        self.ads = xr.open_dataset(self.analysis_file)  # Import from file
+    #        logger.info('Importing from saved analysis file')
+    #        lon_bin = self.ads.lon_bin.values
+    #        lat_bin = self.ads.lat_bin.values
+    #        density = self.ads.density.values
+    #        if 'density_origin_marker' in self.ads:
+    #            density_origin_marker = self.ads.density_origin_marker.values
+    #        else:
+    #            density_origin_marker = None
+    #        self.ads.close()
+    #        return density, density_origin_marker, lon_bin, lat_bin
 
-            if weights is not None:
-                if isinstance(weights, str):  # element property
-                    # We do not add 2D weights to analysis file, to save space
-                    self.ads.attrs['weights'] = weights
-                    weights = self.get_property(weights)[0]
-                elif not hasattr(weights, '__len__'):  # scalar
-                    weights = xr.DataArray(weights*xr.ones_like(self.ds.lon), dims=['trajectory'],
-                                           coords={'trajectory': self.ds.coords['trajectory']})
-                    self.ads['weights'] = weights
-                else:  # provided array
-                    weights = xr.DataArray(weights, dims=['trajectory'],
-                                           coords={'trajectory': self.ds.coords['trajectory']})
-                    self.ads['weights'] = weights
+    #    else:  # Calculate
+    #        self.ads = xr.Dataset()  # Dataset to store all data, to be saved to self.analysis_file
+    #        start = datetime.now()
+    #        logger.info('Calculating density array, this may take some time...')
+    #        deltalat = pixelsize_m/111000.0  # m to degrees
+    #        if hasattr(self, 'lonmin'):
+    #            lonmin = self.lonmin
+    #            lonmax = self.lonmax
+    #            latmin = self.latmin
+    #            latmax = self.latmax
+    #        else:
+    #            logger.debug('Finding min and max of lon and lat...')
+    #            lonmin = np.nanmin(self.ds.lon)
+    #            lonmax = np.nanmax(self.ds.lon)
+    #            latmin = np.nanmin(self.ds.lat)
+    #            latmax = np.nanmax(self.ds.lat)
+    #            self.ads.attrs['lonmin'] = lonmin
+    #            self.ads.attrs['lonmax'] = lonmax
+    #            self.ads.attrs['latmin'] = latmin
+    #            self.ads.attrs['latmax'] = latmax
+    #            self.ads.coords['time'] = self.ds.coords['time']
 
-            if per_origin_marker is True:
-                max_om = self.ds.origin_marker.max().compute().values
-                origin_marker = np.arange(max_om+1)
-                self.ads.coords['origin_marker'] = origin_marker
-                density_om = xr.DataArray(np.zeros((len(self.ds.coords['time']),
-                                                   len(lonbin)-1, len(latbin)-1, len(origin_marker))),
-                                          name='density_origin_marker',
-                                          dims=('time', 'lon_bin', 'lat_bin', 'origin_marker'))
-                for om in range(max_om+1):
-                    logger.info('\tcalculating for origin_marker %s...' % om)
-                    h = histogram(self.ds.lon.where(self.ds.origin_marker==om),
-                                  self.ds.lat.where(self.ds.origin_marker==om), bins=[lonbin, latbin],
-                                  weights=weights,
-                                  dim=['trajectory'])
-                    lon_bin = h.coords['lon_bin']
-                    lat_bin = h.coords['lat_bin']
-                    density_om[:, :, :, om] = h.copy()
-                self.ads['density_origin_marker'] = density_om
-                # Computing total density historgram from om-components
-                density = density_om.sum(dim='origin_marker')
-                self.ads['density'] = density
+    #        deltalon = deltalat/np.cos(np.radians((latmin+latmax)/2))
+    #        latbin = np.arange(latmin-deltalat, latmax+deltalat, deltalat)
+    #        lonbin = np.arange(lonmin-deltalon, lonmax+deltalon, deltalon)
 
-                if dominating_origin_marker is True:
-                    logger.info('Calculating dominating origin_marker')
-                    self.ads['dominating_origin_marker'] = density_om.argmax(
-                        dim='origin_marker', skipna=True)
-                    self.ads['dominating_origin_marker'] = \
-                        self.ads['dominating_origin_marker'].where(density>0)
-            else:
-                # Adding total density historgram
-                density = histogram(self.ds.lon, self.ds.lat, bins=[lonbin, latbin],
-                              weights=weights,
-                              dim=['trajectory'])
-                lon_bin = density.coords['lon_bin']
-                lat_bin = density.coords['lat_bin']
-                self.ads['density'] = density
-                density_om = None
+    #        if weights is not None:
+    #            if isinstance(weights, str):  # element property
+    #                # We do not add 2D weights to analysis file, to save space
+    #                self.ads.attrs['weights'] = weights
+    #                #weights = self.get_property(weights)[0]
+    #                weights = self.ds[weights]
+    #            elif not hasattr(weights, '__len__'):  # scalar
+    #                weights = xr.DataArray(weights*xr.ones_like(self.ds.lon), dims=['trajectory'],
+    #                                       coords={'trajectory': self.ds.coords['trajectory']})
+    #                self.ads['weights'] = weights
+    #            else:  # provided array
+    #                weights = xr.DataArray(weights, dims=['trajectory'],
+    #                                       coords={'trajectory': self.ds.coords['trajectory']})
+    #                self.ads['weights'] = weights
 
-            self.ads.coords['lon_bin'] = lon_bin
-            self.ads.coords['lat_bin'] = lat_bin
+    #        if per_origin_marker is True:
+    #            max_om = self.ds.origin_marker.max().compute().values
+    #            origin_marker = np.arange(max_om+1)
+    #            self.ads.coords['origin_marker'] = origin_marker
+    #            density_om = xr.DataArray(np.zeros((len(self.ds.coords['time']),
+    #                                               len(lonbin)-1, len(latbin)-1, len(origin_marker))),
+    #                                      name='density_origin_marker',
+    #                                      dims=('time', 'lon_bin', 'lat_bin', 'origin_marker'))
+    #            for om in range(max_om+1):
+    #                logger.info('\tcalculating for origin_marker %s...' % om)
+    #                h = histogram(self.ds.lon.where(self.ds.origin_marker==om),
+    #                              self.ds.lat.where(self.ds.origin_marker==om), bins=[lonbin, latbin],
+    #                              weights=weights,
+    #                              dim=['trajectory'])
+    #                lon_bin = h.coords['lon_bin']
+    #                lat_bin = h.coords['lat_bin']
+    #                density_om[:, :, :, om] = h.copy()
+    #            self.ads['density_origin_marker'] = density_om
+    #            # Computing total density historgram from om-components
+    #            density = density_om.sum(dim='origin_marker')
+    #            self.ads['density'] = density
 
-            self.ads.to_netcdf(self.analysis_file)
+    #            if dominating_origin_marker is True:
+    #                logger.info('Calculating dominating origin_marker')
+    #                self.ads['dominating_origin_marker'] = density_om.argmax(
+    #                    dim='origin_marker', skipna=True)
+    #                self.ads['dominating_origin_marker'] = \
+    #                    self.ads['dominating_origin_marker'].where(density>0)
+    #        else:
+    #            # Adding total density historgram
+    #            density = histogram(self.ds.lon, self.ds.lat, bins=[lonbin, latbin],
+    #                          weights=weights,
+    #                          dim=['trajectory'])
+    #            lon_bin = density.coords['lon_bin']
+    #            lat_bin = density.coords['lat_bin']
+    #            self.ads['density'] = density
+    #            density_om = None
 
-            logger.info('Time to calculate density array: %s' %
-                             (datetime.now() - start))
+    #        self.ads.coords['lon_bin'] = lon_bin
+    #        self.ads.coords['lat_bin'] = lat_bin
 
-        return density, density_om, lonbin, latbin
+    #        self.ads.to_netcdf(self.analysis_file)
+
+    #        logger.info('Time to calculate density array: %s' %
+    #                         (datetime.now() - start))
+
+    #    return density, density_om, lonbin, latbin
 
     def get_density_array(self, pixelsize_m, weight=None):
         lon = self.get_property('lon')[0]
