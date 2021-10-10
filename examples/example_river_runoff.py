@@ -8,18 +8,14 @@ import os
 from datetime import datetime, timedelta
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+from matplotlib.dates import DateFormatter
 import opendrift
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.readers import reader_oscillating
 
 
 outfile = 'runoff.nc'  # Raw simulation output
-analysis_file = 'runoff_density.nc'  # Raw simulation output
-try:
-    os.remove(analysis_file)
-except OSError:
-    pass
+histogram_file = 'runoff_histogram.nc'
 
 #%%
 # First make a simulation with two seedings, marked by *origin_marker*
@@ -47,8 +43,7 @@ o.run(duration=timedelta(hours=48),
 # Opening the output file lazily with Xarray.
 # This will work even if the file is too large to fit in memory, as it
 # will read and process data chuck-by-chunk directly from file using Dask.
-# Note that the analysis file will be re-used if existing. Thus this file should be deleted after making any changes to the simulation above.
-o = opendrift.open_xarray(outfile, analysis_file=analysis_file)
+o = opendrift.open_xarray(outfile)
 
 #%%
 # We want to extract timeseries of river water at the coordinates of a hypothetical measuring station
@@ -77,8 +72,11 @@ runoff = np.concatenate((runoff_river1, runoff_river2))
 
 #%%
 # Calculate density with given pixel size, weighted by runoff amount per element
-o.get_density_xarray(pixelsize_m=1500, weights=runoff)
+river_water = o.get_histogram(pixelsize_m=1500, weights=runoff, density=False)
 
+rw = river_water.sum(dim='origin_marker')  # For both rivers
+#rw = river_water.isel(origin_marker=1)    # For one of the rivers
+river_water.name = 'River water [m3/cell]'
 
 text = [{'s': o.origin_marker[0], 'x': 8.55, 'y': 58.56, 'fontsize': 20, 'color': 'g',
          'backgroundcolor': 'white', 'bbox': dict(facecolor='white', alpha=0.8), 'zorder': 1000},
@@ -89,7 +87,7 @@ text = [{'s': o.origin_marker[0], 'x': 8.55, 'y': 58.56, 'fontsize': 20, 'color'
 box = [{'lon': box1_lon, 'lat': box1_lat, 'text': 'Area 1', 'fc': 'none', 'alpha': 0.8, 'lw': 1, 'ec': 'k'},
        {'lon': box2_lon, 'lat': box2_lat, 'text': 'Area 2', 'fc': 'none', 'alpha': 0.8, 'lw': 1, 'ec': 'k'}]
 
-o.animation(background=o.ads.density.where(o.ads.density>0), bgalpha=1, fast=False,
+o.animation(background=rw.where(rw>0), bgalpha=1, fast=False,
             show_elements=False, vmin=0, vmax=120, text=text, box=box)
 
 #%%
@@ -103,36 +101,57 @@ ax1.plot(seed_times, runoff_river1, label=o.origin_marker[0])
 ax1.plot(seed_times, runoff_river2, label=o.origin_marker[1])
 ax1.set_ylabel('Runoff  [m3/s]')
 ax1.set_title('Runoff')
-ax1.margins(x=0)
-ax1.legend()
 # Area 1
-t1, t1_om = o.get_density_timeseries(lon=box1_lon, lat=box1_lat)
-t1_om.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax2)
-t1_om.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax2)
-t1.plot(label='Total', linestyle='--', ax=ax2)
-ax2.legend()
-ax2.margins(x=0)
+t1 = river_water.sel(lon_bin=slice(box1_lon[0], box1_lon[1]),
+                     lat_bin=slice(box1_lat[0], box1_lat[1]))
+t1 = t1.sum(('lon_bin', 'lat_bin'))
+t1.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax2)
+t1.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax2)
+t1.sum(dim='origin_marker').plot(label='Total', linestyle='--', ax=ax2)
 ax2.set_title('Amount of water passing through Area 1')
 # Area 2
-t2, t2_om = o.get_density_timeseries(lon=box2_lon, lat=box2_lat)
-t2_om.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax3)
-t2_om.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax3)
-t2.plot(label='Total', linestyle='--', ax=ax3)
-ax3.legend()
-ax3.margins(x=0)
+t2 = river_water.sel(lon_bin=slice(box2_lon[0], box2_lon[1]),
+                     lat_bin=slice(box2_lat[0], box2_lat[1]))
+t2 = t2.sum(('lon_bin', 'lat_bin'))
+t2.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax3)
+t2.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax3)
+t2.sum(dim='origin_marker').plot(label='Total', linestyle='--', ax=ax3)
 ax3.set_title('Amount of water passing through Area 2')
 # Extracting time series at the location of the station
-t, t_om = o.get_density_timeseries(lon=station_lon, lat=station_lat)
-t_om.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax4)
-t_om.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax4)
-t.plot(label='Total', linestyle='--', ax=ax4)
+t = river_water.sel(lon_bin=station_lon, lat_bin=station_lat, method='nearest')
+t.isel(origin_marker=0).plot(label=o.origin_marker[0], ax=ax4)
+t.isel(origin_marker=1).plot(label=o.origin_marker[1], ax=ax4)
+t.sum(dim='origin_marker').plot(label='Total', linestyle='--', ax=ax4)
 ax4.legend()
 ax4.margins(x=0)
-ax4.set_title('Density of water at Station')
 
+for ax in [ax1, ax2, ax3]:
+    ax.margins(x=0)
+    ax.legend()
+    ax.set_xticks([])
+    ax.set_xlabel(None)
+ax4.set_title('Density of water at Station')
+ax4.xaxis.set_major_formatter(DateFormatter("%d %b %H"))
 plt.show()
+
+#%%
+# Finally, plot the spatial distribution of mean age of water 
+num = o.get_histogram(pixelsize_m=1500, weights=None, density=False)
+num.name = 'number'
+num.to_netcdf(histogram_file)
+
+mas = o.get_histogram(pixelsize_m=1500, weights=o.ds['age_seconds'], density=False)
+mas = mas/3600  # in hours
+mas = mas/num  # per area
+mas.name='mean_age'
+mas.to_netcdf(histogram_file, 'a')
+mas = mas.mean(dim='time').sum(dim='origin_marker')  # Mean time of both rivers
+#mas = mas.mean(dim='time').isel(origin_marker=1)  # Mean age of a single river
+mas.name='Mean age of water [hours]'
+
+o.plot(background=mas.where(mas>0), fast=True, show_particles=False)
 
 
 # Cleaning up
 os.remove(outfile)
-os.remove(analysis_file)
+os.remove(histogram_file)
