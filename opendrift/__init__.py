@@ -117,7 +117,6 @@ def open_xarray(filename, chunks={'trajectory': 50000, 'time': 1000}):
     logger.info('Returning ' + str(type(o)) + ' object')
     return o
 
-
 def versions():
     import multiprocessing
     import platform
