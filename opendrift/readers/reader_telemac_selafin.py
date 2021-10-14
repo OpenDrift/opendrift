@@ -76,7 +76,7 @@ class Reader(BaseReader, UnstructuredReader):
                     'TEMPERATURE     ':'sea_water_temperature',
                     'SALINITY        ':'sea_water_salinity',
                     'ELEVATION Z     ':'sea_floor_depth_below_sea_level',
-                    'NUZ FOR VELOCITY':'ocean_vertical_diffusivity'
+                    'NUZ FOR VELOCITY':'ocean_vertical_diffusivity',
                     'NUX FOR VELOCITY':'horizontal_diffusivity'
 
                     }
