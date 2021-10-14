@@ -17,5 +17,3 @@ build
 
 examples/openoil_sample_output.nc
 examples/oil3Dmixing.nc
-dump
-opendrift/scripts/sea_lice
