@@ -1,4 +1,3 @@
-
 # This file is part of OpenDrift.
 #
 # OpenDrift is free software: you can redistribute it and/or modify
@@ -17,51 +16,42 @@
 
 import numpy as np
 from datetime import datetime, timedelta
-import sys
-from os import path, environ, sep
+import sys, os, logging
 from scipy.spatial import cKDTree
-from importlib.metadata import version
-#Activating PYTEL
-dir = environ['HOMETEL']+'{}scripts{}python3'.format(sep,sep)
-sys.path.append(path.join( path.dirname(sys.argv[0]),dir))#pytel path use environment variables
-from data_manip.formats.selafin import Selafin
-import logging
 logger = logging.getLogger(__name__)
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
-# from memory_profiler import profile
 
+try:
+    from data_manip.formats.selafin import Selafin
+except ImportError:
+    # Activating PYTEL
+    try:
+        pytel = os.path.join(os.environ['HOMETEL'], 'scripts', 'python3')
+        if pytel not in sys.path:
+            logger.warning('adding telemac python scripts to PYTHONPATH: %s' %
+                        pytel)
+            sys.path.append(pytel)
+
+        from data_manip.formats.selafin import Selafin
+    except (KeyError, ImportError):
+        logger.error('Telemac python scripts cannot be found. These are distributed together with the Telemac source code. This reader will not work.')
 
 
 class Reader(BaseReader, UnstructuredReader):
     """
-    A reader for unstructured (irregularily gridded) `Telemac3D files.
-
+    A reader for unstructured (irregularily gridded) `Telemac3D` files.
     Args:
         :param filename: A single Selafin file
         :type filename: string, required.
-
         :param name: Name of reader
         :type name: string, optional
-
         :param proj4: PROJ.4 string describing projection of data.
         :type proj4: string, optional
-
-        :param start_time: The date time of the start of the file
-        :type start_time: datetime.datetime object, recommanded
-
     .. seealso::
-
         py:mod:`opendrift.readers.basereader.unstructured`.
     """
-    # node_variables = ['z','salinity','temperature',
-    #     'eastward_sea_water_velocity',
-    #     'northward_sea_water_velocity',
-    #     'upward_sea_water_velocity'
+
     def __init__(self, filename=None, name=None, proj4=None, start_time=None):
-        """
-
-        """
-
         def vardic(vars_slf):
             """
             Match the selafin variables from Telemac 3D to the variables used in
@@ -69,90 +59,79 @@ class Reader(BaseReader, UnstructuredReader):
             """
             # Define all the variables used in OpenDrift as a dictionary
             # This is done to the best of our knowledge
-            Vars_OD={'VELOCITY U      ':'x_sea_water_velocity',
-                    'VELOCITY V      ':'y_sea_water_velocity',
-                    'VELOCITY W      ':'upward_sea_water_velocity',
-                    'TURBULENT ENERGY':'turbulent_kinetic_energy',
-                    'TEMPERATURE     ':'sea_water_temperature',
-                    'SALINITY        ':'sea_water_salinity',
-                    'ELEVATION Z     ':'sea_floor_depth_below_sea_level',
-                    'NUZ FOR VELOCITY':'ocean_vertical_diffusivity',
-                    'NUX FOR VELOCITY':'horizontal_diffusivity'
+            Vars_OD = {
+                'VELOCITY U      ': 'x_sea_water_velocity',
+                'VELOCITY V      ': 'y_sea_water_velocity',
+                'VELOCITY W      ': 'upward_sea_water_velocity',
+                'TURBULENT ENERGY': 'turbulent_kinetic_energy',
+                'TEMPERATURE     ': 'sea_water_temperature',
+                'SALINITY        ': 'sea_water_salinity',
+                'NUZ FOR VELOCITY': 'ocean_vertical_diffusivity',
+                'NUX FOR VELOCITY': 'horizontal_diffusivity',
+                'ELEVATION Z     ':'sea_floor_depth_below_sea_level',
+            }
 
-                    }
-            No_OD_equiv={'x_wind',
-            'y_wind',
-            'wind_speed',
-            'sea_floor_depth_below_sea_level',
-            'wind_from_direction',
-            'sea_ice_x_velocity',
-            'sea_ice_y_velocity',
-            'sea_surface_wave_significant_height',
-            'sea_surface_wave_stokes_drift_x_velocity',
-            'sea_surface_wave_stokes_drift_y_velocity',
-            'sea_surface_wave_period_at_variance_spectral_density_maximum',
-            'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
-            'sea_ice_area_fraction',
-            'surface_downward_x_stress',
-            'surface_downward_y_stress',
-            'turbulent_generic_length_scale'
-                }
-            # Sea-floor depth could be extracted from the variable Z but
-            # it would need a specific treatment in get variable
-            No_Telemac_equiv={ 'NUY FOR VELOCITY',
-                            'DISSIPATION     ',
-                            }
-            variables=[]
-            var_idx=[]
-            for i,var in enumerate(vars_slf):
+            No_OD_equiv = {
+                'x_wind', 'y_wind', 'wind_speed',
+                'sea_floor_depth_below_sea_level', 'wind_from_direction',
+                'sea_ice_x_velocity', 'sea_ice_y_velocity',
+                'sea_surface_wave_significant_height',
+                'sea_surface_wave_stokes_drift_x_velocity',
+                'sea_surface_wave_stokes_drift_y_velocity',
+                'sea_surface_wave_period_at_variance_spectral_density_maximum',
+                'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment',
+                'sea_ice_area_fraction', 'surface_downward_x_stress',
+                'surface_downward_y_stress', 'turbulent_generic_length_scale'
+            }
+            No_Telemac_equiv = {
+                'NUY FOR VELOCITY',
+                'DISSIPATION     ',
+            }
+            variables = []
+            var_idx = []
+            for i, var in enumerate(vars_slf):
                 try:
                     variables.append(Vars_OD[var])
                     var_idx.append(i)
                 except:
                     logger.info(
-                    "Selafin variable {} has no equivalent in OpenDrift".format(var))
+                        "Selafin variable {} has no equivalent in OpenDrift".
+                        format(var))
             return np.array(variables), np.array(var_idx)
 
-        try:
-            filestr = str(filename)
-        except Exception as e:
-                logger.info(e)
-        ### that's not a needed test?
-        if name is None:
-            self.name = filestr
-        else:
-            self.name = name
-        self.workers = -1
-        self.timer_start("open dataset")
-        logger.info('Opening dataset: ' + filestr)
+        self.name = name if name is not None else filename
 
-        logger.info('Opening file with Dataset')
+        self.timer_start("open dataset")
+        logger.info('Opening dataset: %s' % filename)
         self.slf = Selafin(filename)
 
-        logger.info("Title: {}".format(self.slf.title))
-        try:
-            str(proj4)
-        except Exception as e:
-                logger.info(e)
-        logger.info('Using custom projection: %s.' % proj4)
+        logger.info("File:\n{}\nTitle:\n{}".format(self.slf.file, \
+                                self.slf.title))
+        logger.info('Using projection: %s.' % proj4)
         self.proj4 = proj4
 
         logger.info('Reading 2D grid')
+
         # Run constructor of parent Reader class
         super().__init__()
         self.boundary = self._build_boundary_polygon_( \
                         self.slf.meshx,self.slf.meshy)
+
         self.timer_start("build index")
-        logger.debug("building index of nodes..")
+        logger.debug("building index of nodes...")
         # using selafin method (scipy)
-        self.x, self.y= self.slf.meshx, self.slf.meshy
+        self.x, self.y = self.slf.meshx, self.slf.meshy
+
+        logger.debug('nodes: %d' % len(self.x))
+
         # using scipy directly
         self.tree = self._build_ckdtree_(self.slf.meshx, self.slf.meshy)
         #bounds
         self.xmin,self.ymin,self.xmax, self.ymax= self.slf.meshx.min(),\
                 self.slf.meshy.min(), self.slf.meshx.max(),self.slf.meshy.max()
 
-        # time management
+        ### time management
+        # Slf files have a wrong start time due to a formating error in Telemac
         if start_time is not None:
             if type(start_time) is datetime:
                 self.start_time=start_time
@@ -162,14 +141,16 @@ class Reader(BaseReader, UnstructuredReader):
             logger.info("loading the datetime from the selafin file")
             self.start_time=datetime(self.slf.datetime[0],self.slf.datetime[1],
                 self.slf.datetime[2],self.slf.datetime[3],self.slf.datetime[4])
-        self.times= []
+        self.times = []
         for i in range(len(self.slf.tags['times'])):
-            self.times.append(self.start_time+timedelta(seconds= self.slf.tags['times'][i]))
+            self.times.append(self.start_time +
+                              timedelta(seconds=self.slf.tags['times'][i]))
         self.end_time = self.times[-1]
         self.altitude_ID=np.array(self.slf.varindex)[np.array( \
                             self.slf.varnames)=='ELEVATION Z     '].tolist()
-        self.meshID=(np.arange(self.slf.nplan)[:,None]*self.slf.npoin2).astype(np.int)
-        self.variables, self.var_idx=vardic(self.slf.varnames)
+        self.meshID=(np.arange(self.slf.nplan)[:,None] \
+                     *self.slf.npoin2).astype(np.int)
+        self.variables, self.var_idx = vardic(self.slf.varnames)
 
         self.timer_end("build index")
         self.timer_end("open dataset")
@@ -178,22 +159,29 @@ class Reader(BaseReader, UnstructuredReader):
         """
         Plot the grid mesh. Does not automatically show the figure.
         """
-        title='Unstructured grid: %s\n%s' % (self.name, self.proj)
+        title = 'Unstructured grid: %s\n%s' % (self.name, self.proj)
         from importlib.util import find_spec
         if find_spec("pyvista") is not None:
             import pyvista as pv
-            cells=np.hstack(((np.ones(len(self.slf.ikle2), dtype=np.int)*3)[:,None],self.slf.ikle2))
-            points=np.vstack((self.slf.meshx, self.slf.meshy,np.zeros(len(self.slf.meshx)))).T
+            cells = np.hstack(
+                ((np.ones(len(self.slf.ikle2), dtype=np.int) * 3)[:, None],
+                 self.slf.ikle2))
+            points = np.vstack((self.slf.meshx, self.slf.meshy,
+                                np.zeros(len(self.slf.meshx)))).T
             u = pv.PolyData(points, cells)
-            plotter= pv.Plotter()
+            plotter = pv.Plotter()
             plotter.add_mesh(u, show_edges=True)
             plotter.show_bounds(mesh=u)
             plotter.view_xy()
-            plotter.show(title=title, window_size=[800,640])
+            plotter.show(title=title, window_size=[800, 640])
         else:
             import matplotlib.pyplot as plt
             plt.figure()
-            plt.scatter(self.slf.meshx, self.slf.meshy, marker='x', color='blue', label='nodes')
+            plt.scatter(self.slf.meshx,
+                        self.slf.meshy,
+                        marker='x',
+                        color='blue',
+                        label='nodes')
             x, y = getattr(self.boundary, 'context').exterior.xy
             plt.plot(x, y, color='green', label='boundary')
 
@@ -209,29 +197,26 @@ class Reader(BaseReader, UnstructuredReader):
                       y=None,
                       z=None):
         """
-        Querry variables based on the particle coordinates x, y, z
-        find the nearest node in the KD tree
-        extract the z array corresponding.
-        extract the index of the node within the 3D mesh
-        extract the variables at the point
-        input:
+        - Query variables based on the particle coordinates x, y, z
+        - find the nearest node in the KD tree
+        - extract the z array corresponding.
+        - extract the index of the node within the 3D mesh
+        - extract the variables at the point
+        Args:
             x,y,z: np.arrays(float)
                 3D coordinates of the particles
             time: np.datetime64
                 age of the particle set
-            requested_variables: np.array(str)
-                variables selected by the model
-        returns:
+            variables: np.array(int)
+                indexes of variables
+        Returns:
             variables: dictionary of numpy arrays
         """
         ### nearest time tupple
-        frames, duration=self.__nearest_idx__(np.array(self.times).astype('datetime64[s]'),np.datetime64(time))
+        frames, duration=self.__nearest_idx__(np.array(self.times).astype( \
+                         'datetime64[s]'),np.datetime64(time))
         ### nearest node in 2D
-        # will have to be improved for a real finite element solution (k=3 pts).
-        if float(version('scipy')[2:])<6.:
-            _,iii = self.tree.query(np.vstack((x,y)).T,k=1, n_jobs=self.workers)
-        else:
-            _,iii = self.tree.query(np.vstack((x,y)).T,k=1, workers=self.workers)
+        iii = self.__nearest_ckdtree__(self.tree, x, y)
         # build depth ndarrays of each fibre
         niii = len(iii)
         idx_3D = self.meshID +iii
@@ -248,8 +233,10 @@ class Reader(BaseReader, UnstructuredReader):
         vars={}
         for i in range(len(requested_variables)):
             if requested_variables[i]=='sea_floor_depth_below_sea_level':
-                bottom=self.__extractslf__(self, frames, duration, self.altitude_ID, idx_3D[0])
-                surface=self.__extractslf__(self, frames, duration, self.altitude_ID, idx_3D[-1])
+                bottom=self.__extractslf__(self, frames, duration,
+                                            self.altitude_ID, idx_3D[0])
+                surface=self.__extractslf__(self, frames, duration,
+                                            self.altitude_ID, idx_3D[-1])
                 vars['sea_floor_depth_below_sea_level']=surface-bottom
             else:
                 vars[requested_variables[i]]= vectors[i]
@@ -301,19 +288,3 @@ class Reader(BaseReader, UnstructuredReader):
         vector=duration[0]*vector1+duration[1]*vector2
         vector1, vector2=None,None
         return vector
-
-    # def filter_points(self, indexes):
-    #     """
-    #     Filter points that are not within the grid.
-    #     use finite element method to evaluate properties
-    #     ~~~ To be continued ~~~
-    #     """
-    #     # test they correspond to faces:
-    #     ifaces= np.where((np.sort(iii, axis=1)[:,None] ==np.sort(self.slf.ikle2, axis=1)).all(-1).any(-1))[0]
-    #     # in the future
-    #     # extract profile from the 2 frames bounding t.
-    #     # z is always the variable idx 0
-    #     p1= self.slf.get_variables_at(frames[0], [0])[0,self.slf.ikle3[ifaces]]
-    #     p2= self.slf.get_variables_at(frames[1], [0])[0,self.slf.ikle3[ifaces]]
-    #     x1=slef.slf.meshx[ifaces]
-    #     y1=slef.slf.meshy[ifaces]
