@@ -219,7 +219,11 @@ class Reader(BaseReader, StructuredReader):
                 elif time.ndim == 2:
                     self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
                 else:
-                    self.times = num2date(time, time_units)
+                    if 'calendar' in var.attrs:
+                        calendar = var.attrs['calendar']
+                    else:
+                        calendar = 'standard'
+                    self.times = num2date(time, time_units, calendar=calendar)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
