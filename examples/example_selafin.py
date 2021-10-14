@@ -1,4 +1,9 @@
-# tuto
+
+#!/usr/bin/env python
+"""
+Loading a Selafin file
+================
+"""
 from datetime import timedelta, datetime
 import numpy as np
 from os import sep
