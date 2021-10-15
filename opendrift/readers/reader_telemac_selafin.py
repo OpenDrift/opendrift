@@ -17,7 +17,7 @@
 import numpy as np
 from datetime import datetime, timedelta
 import sys, os, logging
-from scipy.spatial import cKDTree
+
 logger = logging.getLogger(__name__)
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
 
@@ -29,12 +29,14 @@ except ImportError:
         pytel = os.path.join(os.environ['HOMETEL'], 'scripts', 'python3')
         if pytel not in sys.path:
             logger.warning('adding telemac python scripts to PYTHONPATH: %s' %
-                        pytel)
+                           pytel)
             sys.path.append(pytel)
 
         from data_manip.formats.selafin import Selafin
     except (KeyError, ImportError):
-        logger.error('Telemac python scripts cannot be found. These are distributed together with the Telemac source code. This reader will not work.')
+        logger.error(
+            'Telemac python scripts cannot be found. These are distributed together with the Telemac source code. This reader will not work.'
+        )
 
 
 class Reader(BaseReader, UnstructuredReader):
@@ -50,7 +52,6 @@ class Reader(BaseReader, UnstructuredReader):
     .. seealso::
         py:mod:`opendrift.readers.basereader.unstructured`.
     """
-
     def __init__(self, filename=None, name=None, proj4=None, start_time=None):
         def vardic(vars_slf):
             """
@@ -68,7 +69,7 @@ class Reader(BaseReader, UnstructuredReader):
                 'SALINITY        ': 'sea_water_salinity',
                 'NUZ FOR VELOCITY': 'ocean_vertical_diffusivity',
                 'NUX FOR VELOCITY': 'horizontal_diffusivity',
-                'ELEVATION Z     ':'sea_floor_depth_below_sea_level',
+                'ELEVATION Z     ': 'sea_floor_depth_below_sea_level',
             }
 
             No_OD_equiv = {
@@ -134,13 +135,17 @@ class Reader(BaseReader, UnstructuredReader):
         # Slf files have a wrong start time due to a formating error in Telemac
         if start_time is not None:
             if type(start_time) is datetime:
-                self.start_time=start_time
+                self.start_time = start_time
             else:
-                logger.warning("The specified start time is not a datetime object")
+                logger.warning(
+                    "The specified start time is not a datetime object")
         else:
             logger.info("loading the datetime from the selafin file")
-            self.start_time=datetime(self.slf.datetime[0],self.slf.datetime[1],
-                self.slf.datetime[2],self.slf.datetime[3],self.slf.datetime[4])
+            self.start_time = datetime(self.slf.datetime[0],
+                                       self.slf.datetime[1],
+                                       self.slf.datetime[2],
+                                       self.slf.datetime[3],
+                                       self.slf.datetime[4])
         self.times = []
         for i in range(len(self.slf.tags['times'])):
             self.times.append(self.start_time +
@@ -149,7 +154,7 @@ class Reader(BaseReader, UnstructuredReader):
         self.altitude_ID=np.array(self.slf.varindex)[np.array( \
                             self.slf.varnames)=='ELEVATION Z     '].tolist()
         self.meshID=(np.arange(self.slf.nplan)[:,None] \
-                     *self.slf.npoin2).astype(np.int)
+                     *self.slf.npoin2).astype(int)
         self.variables, self.var_idx = vardic(self.slf.varnames)
 
         self.timer_end("build index")
@@ -219,27 +224,29 @@ class Reader(BaseReader, UnstructuredReader):
         iii = self.__nearest_ckdtree__(self.tree, x, y)
         # build depth ndarrays of each fibre
         niii = len(iii)
-        idx_3D = self.meshID +iii
+        idx_3D = self.meshID + iii
         # locate the profile dimension
-        pm=self.__extractslf__(self, frames, duration, self.altitude_ID, idx_3D)[0]
+        pm = self.__extractslf__(self, frames, duration, self.altitude_ID,
+                                 idx_3D)[0]
         # calculate distance from particles to nearest point altitude
-        idx_layer = np.abs(pm-z).argmin(axis=0)
-        indices=self.variables ==np.array(requested_variables)[:,None]
-        Idxs= []
+        idx_layer = np.abs(pm - z).argmin(axis=0)
+        indices = self.variables == np.array(requested_variables)[:, None]
+        Idxs = []
         for line in indices:
             Idxs.append(self.var_idx[line])
-        idx_nodes = idx_3D[idx_layer,np.arange(len(idx_layer))]
-        vectors= self.__extractslf__(self, frames, duration, Idxs, idx_nodes.ravel())
-        vars={}
+        idx_nodes = idx_3D[idx_layer, np.arange(len(idx_layer))]
+        vectors = self.__extractslf__(self, frames, duration, Idxs,
+                                      idx_nodes.ravel())
+        vars = {}
         for i in range(len(requested_variables)):
-            if requested_variables[i]=='sea_floor_depth_below_sea_level':
-                bottom=self.__extractslf__(self, frames, duration,
-                                            self.altitude_ID, idx_3D[0])
-                surface=self.__extractslf__(self, frames, duration,
-                                            self.altitude_ID, idx_3D[-1])
-                vars['sea_floor_depth_below_sea_level']=surface-bottom
+            if requested_variables[i] == 'sea_floor_depth_below_sea_level':
+                bottom = self.__extractslf__(self, frames, duration,
+                                             self.altitude_ID, idx_3D[0])
+                surface = self.__extractslf__(self, frames, duration,
+                                              self.altitude_ID, idx_3D[-1])
+                vars['sea_floor_depth_below_sea_level'] = surface - bottom
             else:
-                vars[requested_variables[i]]= vectors[i]
+                vars[requested_variables[i]] = vectors[i]
         return vars
 
     @staticmethod
@@ -258,19 +265,19 @@ class Reader(BaseReader, UnstructuredReader):
             so that dist[0]+dist[1]=0
         """
         distance = (array - value).astype(np.float)
-        nearest =  np.argsort(abs(distance))[:2]
+        nearest = np.argsort(abs(distance))[:2]
         # test exact match and out of bounds
-        if (distance == 0).any() | (distance>0).all()|(distance<0).all():
-            bounds = (nearest[0],None)
-            dist = (1,0)
+        if (distance == 0).any() | (distance > 0).all() | (distance < 0).all():
+            bounds = (nearest[0], None)
+            dist = (1, 0)
         else:
-            bounds=nearest
-            if distance[nearest[0]]==distance[nearest[1]]*-1:
-                dist=(.5,.5)
+            bounds = nearest
+            if distance[nearest[0]] == distance[nearest[1]] * -1:
+                dist = (.5, .5)
             else:
                 prop= abs(distance[nearest[0]])/ \
                    (abs(distance[nearest[0]])+abs(distance[nearest[1]]))
-                dist = (1-prop, prop)
+                dist = (1 - prop, prop)
         return bounds, dist
 
     @staticmethod
@@ -279,12 +286,14 @@ class Reader(BaseReader, UnstructuredReader):
         extract variables from slf files
         index_var must be a list of integer
         """
-        vector1=self.slf.get_variables_at(frames[0],index_var)[:,index_nodes]
+        vector1 = self.slf.get_variables_at(frames[0], index_var)[:,
+                                                                  index_nodes]
         if frames[1] is not None:
-                vector2=self.slf.get_variables_at(frames[1],index_var)[:,index_nodes]
+            vector2 = self.slf.get_variables_at(frames[1],
+                                                index_var)[:, index_nodes]
         else:
-                vector2=0
+            vector2 = 0
 
-        vector=duration[0]*vector1+duration[1]*vector2
-        vector1, vector2=None,None
+        vector = duration[0] * vector1 + duration[1] * vector2
+        vector1, vector2 = None, None
         return vector
