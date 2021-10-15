@@ -75,7 +75,7 @@ def proj_from_CF_dict(c):
     return proj4, proj
 
 
-class Reader(BaseReader, StructuredReader):
+class Reader(StructuredReader, BaseReader):
     """
     A reader for `CF-compliant <https://cfconventions.org/>`_ netCDF files. It can take a single file, or a file pattern.
 

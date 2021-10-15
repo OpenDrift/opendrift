@@ -2311,7 +2311,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.debug('\tPreparing %s' % reader.name)
             reader.prepare(
                 extent=simulation_extent,
-                start_time=self.start_time, end_time = self.expected_end_time)
+                start_time=self.start_time, end_time=self.expected_end_time, max_speed=self.max_speed)
 
         ##############################################################
         # If no landmask has been added, we determine it dynamically
