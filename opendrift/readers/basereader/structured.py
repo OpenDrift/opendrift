@@ -25,15 +25,11 @@ class StructuredReader(Variables):
 
         :py:mod:`opendrift.readers`
     """
-    # `projected` is set to True if `fakeproj` is used
-    projected = None
-    shape = None
+
+    # TODO: should the variables below not be instance variables, and not class variables?
     clipped = 0
     x = None
     y = None
-
-    var_block_before = None
-    var_block_after = None
     interpolation = 'linearNDFast'
     convolve = None  # Convolution kernel or kernel size
 
@@ -52,6 +48,10 @@ class StructuredReader(Variables):
             from scipy.interpolate import LinearNDInterpolator
             import copy
             from . import fakeproj
+
+            # `projected` is set to True if `fakeproj` is used
+            self.projected = None
+            self.shape = None
 
             self.proj4 = 'None'
             self.proj = fakeproj.fakeproj()
@@ -111,6 +111,16 @@ class StructuredReader(Variables):
             keywords: variables (string)
             values: 2D ndarray bounding x and y.
         """
+
+    def prepare(self, extent, start_time, end_time, max_speed):
+        """Prepare reader for given simulation coverage in time and space."""
+        logger.debug('Clearing cache for reader %s before starting new simulation' % self.name)
+        self.var_block_before = {}
+        self.var_block_after = {}
+        if self.time_step is None:  # Set buffer large nough for whole simulation
+                logger.debug('Time step is None for %s, setting buffer size large nough for whole simulation' % self.name)
+                self.set_buffer_size(max_speed, end_time-start_time)
+        super().prepare(extent, start_time, end_time, max_speed)
 
     def set_convolution_kernel(self, convolve):
         """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
@@ -275,6 +285,7 @@ class StructuredReader(Variables):
                            'cover element positions within timestep. '
                            'Buffer size (%s) must be increased. See `Variables.set_buffer_size`.' %
                            (self.name, str(self.buffer)))
+            # TODO; could add dynamic incraes of buffer size here
 
         ############################################################
         # Interpolate before/after blocks onto particles in space
