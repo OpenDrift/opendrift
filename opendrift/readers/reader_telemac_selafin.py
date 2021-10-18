@@ -226,8 +226,7 @@ class Reader(BaseReader, UnstructuredReader):
         niii = len(iii)
         idx_3D = self.meshID + iii
         # locate the profile dimension
-        pm = self.__extractslf__(self, frames, duration, self.altitude_ID,
-                                 idx_3D)[0]
+        pm = self.__extractslf__(frames, duration, self.altitude_ID, idx_3D)[0]
         # calculate distance from particles to nearest point altitude
         idx_layer = np.abs(pm - z).argmin(axis=0)
         indices = self.variables == np.array(requested_variables)[:, None]
@@ -235,14 +234,14 @@ class Reader(BaseReader, UnstructuredReader):
         for line in indices:
             Idxs.append(self.var_idx[line])
         idx_nodes = idx_3D[idx_layer, np.arange(len(idx_layer))]
-        vectors = self.__extractslf__(self, frames, duration, Idxs,
+        vectors = self.__extractslf__(frames, duration, Idxs,
                                       idx_nodes.ravel())
         vars = {}
         for i in range(len(requested_variables)):
             if requested_variables[i] == 'sea_floor_depth_below_sea_level':
-                bottom = self.__extractslf__(self, frames, duration,
+                bottom = self.__extractslf__(frames, duration,
                                              self.altitude_ID, idx_3D[0])
-                surface = self.__extractslf__(self, frames, duration,
+                surface = self.__extractslf__(frames, duration,
                                               self.altitude_ID, idx_3D[-1])
                 vars['sea_floor_depth_below_sea_level'] = surface - bottom
             else:
@@ -264,7 +263,7 @@ class Reader(BaseReader, UnstructuredReader):
             the distance between the sample and the index values
             so that dist[0]+dist[1]=0
         """
-        distance = (array - value).astype(np.float)
+        distance = (array - value).astype(float)
         nearest = np.argsort(abs(distance))[:2]
         # test exact match and out of bounds
         if (distance == 0).any() | (distance > 0).all() | (distance < 0).all():
@@ -280,7 +279,6 @@ class Reader(BaseReader, UnstructuredReader):
                 dist = (1 - prop, prop)
         return bounds, dist
 
-    @staticmethod
     def __extractslf__(self, frames, duration, index_var, index_nodes):
         """
         extract variables from slf files
