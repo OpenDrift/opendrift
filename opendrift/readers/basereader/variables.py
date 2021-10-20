@@ -267,10 +267,10 @@ class ReaderDomain(Timeable):
 
         dx = self.delta_x if self.delta_x is not None else 0
         if self.proj.crs.is_geographic is True:
-            if (self.xmin - dx <= 0) and (self.xmax + dx >=
+            if (self.xmin - 2*dx <= 0) and (self.xmax + 2*dx >=
                                                     360):
                 return True  # Global 0 to 360
-            if (self.xmin - dx <= -180) and (self.xmax + dx
+            if (self.xmin - 2*dx <= -180) and (self.xmax + 2*dx
                                                        >= 180):
                 return True  # Global -180 to 180
 
