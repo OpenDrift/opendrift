@@ -402,7 +402,7 @@ class BaseReader(Variables):
             for var in variables:
                 data[var][i] = d[var][0]
 
-        return(data)
+        return data 
 
     def shift_start_time(self, start_time):
         """Shift the time coverage of reader to match given start_time"""
