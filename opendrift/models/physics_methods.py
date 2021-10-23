@@ -19,6 +19,35 @@ import numpy as np
 from math import sqrt
 import pyproj
 
+def wind_drift_factor_from_trajectory(trajectory_dict):
+    '''Estimate wind_drift_fator based on wind and current along given trajectory
+
+    trajectory_dict: dictionary with arrays of same length of the following variables:
+    time, lon, lat, x_wind, y_wind, x_sea_water_velocity, y_sea_water_velocity
+
+    Returns array of same length minus one of the fitted wind_drift_factor
+    '''
+
+    geod = pyproj.Geod(ellps='WGS84')
+    cu = trajectory_dict['x_sea_water_velocity']
+    cv = trajectory_dict['y_sea_water_velocity']
+    wu = trajectory_dict['x_wind']
+    wv = trajectory_dict['y_wind']
+    lon = trajectory_dict['lon']
+    lat = trajectory_dict['lat']
+    time = trajectory_dict['time']
+    current_speed = np.sqrt(cu**2+cv**2)
+    current_azimuth = np.degrees(np.arctan2(cu, cv))
+    wind_speed = np.sqrt(wu**2+wv**2)
+    time_step = (time[1]-time[0]).total_seconds()
+    # Move forward from each position with current
+    lonf, latf, back_az = geod.fwd(lon[0:-1], lat[0:-1], current_azimuth[0:-1], current_speed[0:-1]*time_step)
+    # Find distance and azimuth to next observational position
+    azimuth_forward, a2, distance = geod.inv(lonf, latf, lon[1:], lat[1:])
+    # Find the wind_drift_factor needed to give the remaining distance
+    wind_drift_factor = distance / (time_step*wind_speed[0:-1])
+
+    return wind_drift_factor
 
 def oil_wave_entrainment_rate_li2017(dynamic_viscosity, oil_density, interfacial_tension,
                                      significant_wave_height=None, wave_breaking_fraction=None,
