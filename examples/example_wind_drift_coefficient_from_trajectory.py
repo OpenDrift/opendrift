@@ -53,9 +53,9 @@ print(wind_drift_factor)
 
 #%%
 # The mean retrieved wind_drift_factor is 0.036, slichtly higher than the value 0.033 used for the simulation.
-# The difference is due to the "noise" added by horizontal diffusion
+# The difference is due to the "noise" added by horizontal diffusion.
 # Note that the retieved wind_drift_factor is linked to the wind and current used for the retrieval,
-# other forcing datasets will yeld different value of the wind_drift_factor
+# other forcing datasets will yeld different value of the wind_drift_factor.
 print(wind_drift_factor.mean())
 
 plt.hist(wind_drift_factor, label='Retrieved wind_drift_factor')
