@@ -47,7 +47,10 @@ def wind_drift_factor_from_trajectory(trajectory_dict):
     # Find the wind_drift_factor needed to give the remaining distance
     wind_drift_factor = distance / (time_step*wind_speed[0:-1])
 
-    return wind_drift_factor
+    wind_azimuth = np.degrees(np.arctan2(wu, wv))
+    azimuth_offset = azimuth_forward - wind_azimuth[0:-1]  # 0 if downwind drift, positive if rightwards drift is needed towards end position
+
+    return wind_drift_factor, azimuth_offset
 
 def oil_wave_entrainment_rate_li2017(dynamic_viscosity, oil_density, interfacial_tension,
                                      significant_wave_height=None, wave_breaking_fraction=None,
