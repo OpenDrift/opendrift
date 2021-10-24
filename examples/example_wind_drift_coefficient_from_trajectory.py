@@ -5,7 +5,9 @@ Retieving wind drift factor from trajectory
 """
 
 from datetime import datetime, timedelta
+import numpy as np
 import matplotlib.pyplot as plt
+import cmocean
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.physics_methods import wind_drift_factor_from_trajectory
 
@@ -48,14 +50,14 @@ o.add_readers_from_list([o.test_data_folder() +
 t = o.get_variables_along_trajectory(variables=['x_sea_water_velocity', 'y_sea_water_velocity', 'x_wind', 'y_wind'],
         lons=drifter_lons, lats=drifter_lats, times=drifter_times)
 
-wind_drift_factor = wind_drift_factor_from_trajectory(t)
-print(wind_drift_factor)
+wind_drift_factor, azimuth = wind_drift_factor_from_trajectory(t)
 
 #%%
 # The mean retrieved wind_drift_factor is 0.036, slichtly higher than the value 0.033 used for the simulation.
 # The difference is due to the "noise" added by horizontal diffusion.
 # Note that the retieved wind_drift_factor is linked to the wind and current used for the retrieval,
 # other forcing datasets will yeld different value of the wind_drift_factor.
+
 print(wind_drift_factor.mean())
 
 plt.hist(wind_drift_factor, label='Retrieved wind_drift_factor')
@@ -63,5 +65,22 @@ plt.axvline(x=0.033, label='Actual wind_drift_factor of 0.033', color='k')
 plt.axvline(x=wind_drift_factor.mean(), label='Mean retieved wind_drift_factor of %.3f' % wind_drift_factor.mean(), color='r')
 plt.ylabel('Number')
 plt.xlabel('Wind drift factor  [fraction]')
-plt.legend()
+plt.legend(loc='lower left')
+plt.show()
+
+#%%
+# A polar 2D histogram showing also the azimuth offset direction of the retrieced wind drift factor
+wmax = wind_drift_factor.max()
+wbins = np.arange(0, wmax+.005, .005)
+abins = np.linspace(-180, 180, 30)
+hist, _, _ = np.histogram2d(azimuth, wind_drift_factor, bins=(abins, wbins))
+A, W = np.meshgrid(abins, wbins)
+fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
+ax.set_theta_zero_location('N', offset=0)
+ax.set_theta_direction(-1)
+pc = ax.pcolormesh(np.radians(A), W, hist.T, cmap=cmocean.cm.dense)
+plt.arrow(np.pi, wmax, 0, -wmax, width=.015, facecolor='k', zorder=100,
+          head_width=.8, lw=2, head_length=.005, length_includes_head=True)
+plt.text(np.pi, wmax*.5, ' Wind direction', fontsize=18)
+plt.grid()
 plt.show()
