@@ -60,16 +60,18 @@ import xarray as xr
 
 class Reader(BaseReader,UnstructuredReader):
 
-    def __init__(self, filename=None, name=None, proj4=None, use_3d = None):
+    def __init__(self, filename=None, name=None, proj4=None, use_3d = None , use_model_landmask = False):
         """Initialise reader_netCDF_CF_unstructured_SCHISM
 
         Args:
-            filename:  name of SCHISM netcdf file (can have wildcards)
-            name: name of reader - optional, taken as filename if not input
-                  o.readers['name']
-            proj4: proj4 string defining spatial reference system. 
-                   find string here : https://spatialreference.org/ref/epsg/
-            use_3d: switch to use 3d flows (if available)
+            filename    :   name of SCHISM netcdf file (can have wildcards)
+            name        :   name of reader - optional, taken as filename if not input
+                            o.readers['name']
+            proj4       :   proj4 string defining spatial reference system. 
+                            find string here : https://spatialreference.org/ref/epsg/
+            use_3d      :   switch to use 3d flows (if available)
+            use_model_landmask  : switch to use time-varying landmask from model wetdry_elem 
+                                  (False by default)
         """
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -95,8 +97,8 @@ class Reader(BaseReader,UnstructuredReader):
             'salt' : 'sea_water_salinity',
             'zcor' : 'vertical_levels', # time-varying vertical coordinates
             'sigma': 'ocean_s_coordinate',
-            'vertical_velocity' : 'upward_sea_water_velocity'}
-            # 'wetdry_elem': 'land_binary_mask' # disabled for now 
+            'vertical_velocity' : 'upward_sea_water_velocity',
+            'wetdry_elem': 'land_binary_mask' }
             # diffusivity
             # viscosity
 
@@ -418,7 +420,8 @@ class Reader(BaseReader,UnstructuredReader):
                     # (+ update variables dictionary with 3d coords if needed)
                     data,variables = self.convert_3d_to_array(indxTime,data,variables)
 
-            elif par in ['land_binary_mask'] :
+            elif (par in ['land_binary_mask']) & (self.use_model_landmask) :
+                import pdb;pdb.set_trace()
                 dry_elem = self.dataset.variables[self.variable_mapping[par]][indxTime,:] # dry_elem =1 if dry, 0 if wet
                 # find indices of nodes making up the dry elements
                 node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][indxTime,dry_elem.values.astype('bool'),:]) # id of nodes making up each elements
