@@ -421,7 +421,6 @@ class Reader(BaseReader,UnstructuredReader):
                     data,variables = self.convert_3d_to_array(indxTime,data,variables)
 
             elif (par in ['land_binary_mask']) & (self.use_model_landmask) :
-                import pdb;pdb.set_trace()
                 dry_elem = self.dataset.variables[self.variable_mapping[par]][indxTime,:] # dry_elem =1 if dry, 0 if wet
                 # find indices of nodes making up the dry elements
                 node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][indxTime,dry_elem.values.astype('bool'),:]) # id of nodes making up each elements
