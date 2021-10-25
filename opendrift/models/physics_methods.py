@@ -69,6 +69,9 @@ def wind_drift_factor_from_trajectory(trajectory_dict, min_period=None):
 
     wind_azimuth = np.degrees(np.arctan2(wu, wv))
     azimuth_offset = azimuth_forward - wind_azimuth[0:-1]  # 0 if downwind drift, positive if rightwards drift is needed towards end position
+    azimuth_offset = azimuth_offset % 360  # Make sure azimuth angle is between -180 and 180
+    azimuth_offset = (azimuth_offset + 360) % 360
+    azimuth_offset[azimuth_offset>180] -= 360
 
     return wind_drift_factor, azimuth_offset
 
