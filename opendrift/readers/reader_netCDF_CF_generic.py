@@ -243,7 +243,13 @@ class Reader(StructuredReader, BaseReader):
         #########################
         # Summary of geolocation
         #########################
-        if 'x' not in locals():  # No x/y-coordinates were detected
+        if 'x' in locals():
+            if x[1]-x[0] == 1 and y[1]-y[0] == 1:
+                logger.info('deltaX and deltaY are 1, interpreting dataset as unprojected')
+                projected = False
+            else:
+                projected = True
+        if 'x' not in locals() or projected is False:  # No x/y-coordinates were detected
             if lon_var_name is None:
                 raise ValueError('No geospatial coordinates were detected, cannot geolocate dataset')
             # We load lon and lat arrays into memory
