@@ -3032,9 +3032,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                 cd['index_of_last_deactivated_other'] < i],
                             cd['y_other_deactive'][
                                 cd['index_of_last_deactivated_other'] < i]])
-                    return points, cd['points_other']
+                    return points, cd['points_other'],
                 else:
-                    return points
+                    return points,
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
@@ -3210,8 +3210,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             cb = fig.colorbar(item, orientation='horizontal', pad=.05, aspect=30, shrink=.8, drawedges=False)
             cb.set_label(clabel)
 
+        if sys.platform == 'darwin':
+            blit = False  # Blitting does not work on mac
+        else:
+            blit = True
         anim = animation.FuncAnimation(
-            plt.gcf(), plot_timestep, blit=False,
+            plt.gcf(), plot_timestep, blit=blit,
             frames=x.shape[0], interval=50)
 
 
