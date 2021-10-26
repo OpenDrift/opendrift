@@ -3213,7 +3213,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if sys.platform == 'darwin':
             blit = False  # Blitting does not work on mac
         else:
-            blit = True
+            blit = False  # Must return artists before this is activated
         anim = animation.FuncAnimation(
             plt.gcf(), plot_timestep, blit=blit,
             frames=x.shape[0], interval=50)
