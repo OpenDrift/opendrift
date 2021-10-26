@@ -14,6 +14,7 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
 # Adding readers
+
 # Arome atmospheric model
 reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 # Norkyst ocean model
