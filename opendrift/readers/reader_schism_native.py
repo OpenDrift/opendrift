@@ -424,9 +424,10 @@ class Reader(BaseReader,UnstructuredReader):
                 dry_elem = self.dataset.variables[self.variable_mapping[par]][indxTime,:] # dry_elem =1 if dry, 0 if wet
                 # find indices of nodes making up the dry elements
                 if len(self.dataset['SCHISM_hgrid_face_nodes'].shape) == 3:
-                    node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][indxTime,dry_elem.values.astype('bool'),:]) # id of nodes making up each elements shape(nb_elem,4)
+                    # when using open_mfdataset, the variable is expanded along time dimension, hence use of indxTime shape = (nb_time,nb_elem,4)
+                    node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][indxTime,dry_elem.values.astype('bool'),:]) # id of nodes making up each elements 
                 else:
-                    node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][dry_elem.values.astype('bool'),:]) # id of nodes making up each elements shape(nb_elem,4)
+                    node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][dry_elem.values.astype('bool'),:]) # id of nodes making up each elements shape = (nb_elem,4)
                 # remove nans, and keep unique indices
                 node_id = np.unique(node_id[~np.isnan(node_id)])
                 data = 0.0*self.x # build array, same size as node
