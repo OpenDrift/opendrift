@@ -1,6 +1,14 @@
 History
 =======
 
+2021-10-27 / Release v1.7.2
+---------------------------
+* Fix bugs in selafin reader.
+* Several imporvements to the SCHISM reader.
+* Add method for tuning windrift factor from observed drift.
+* Fix dateline handling in readers.
+* Fix dateline bug in landmask.
+
 2021-09-01 / Release v1.7.1
 ---------------------------
 * Using OilLibrary v4+noaa1.1.3
