@@ -122,7 +122,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     max_speed = 1  # Assumed max average speed of any element
     required_profiles_z_range = None  # [min_depth, max_depth]
-    plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y']
+    plot_comparison_colors = ['k', 'r', 'g', 'b', 'm', 'c', 'y',
+        'crimson', 'indigo', 'lightcoral', 'grey', 'sandybrown', 'palegreen',
+        'gold', 'yellowgreen', 'lime', 'steelblue', 'navy', 'darkviolet']
+    plot_comparison_colors = plot_comparison_colors + plot_comparison_colors
 
     proj_latlon = pyproj.Proj('+proj=latlong')
 
@@ -2757,16 +2760,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.latmin = np.nanmin(self.ds.lat)
                 logger.debug('Finding max latitude...')
                 self.latmax = np.nanmax(self.ds.lat)
-            #if not hasattr(self, 'ads') and self.analysis_file is not None:
-            #    if os.path.exists(self.analysis_file):
-            #        self.ads = xr.open_dataset(self.analysis_file, mode='a')
-            #    else:
-            #        self.ads = xr.open_dataset(self.analysis_file, mode='w')
-            #    self.ads['lonmin'] = self.lonmin
-            #    self.ads['lonmax'] = self.lonmax
-            #    self.ads['latmin'] = self.latmin
-            #    self.ads['latmax'] = self.latmax
-            #    self.ads.close()
         else:
             lons, lats = self.get_lonlats()  # TODO: to be removed
 
@@ -2782,10 +2775,20 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             latmax = self.latmax + buffer
         else:
             lons, lats = self.get_lonlats()
-            lonmin = np.nanmin(lons) - buffer*2
-            lonmax = np.nanmax(lons) + buffer*2
-            latmin = np.nanmin(lats) - buffer
-            latmax = np.nanmax(lats) + buffer
+            if 'compare_lonmin' in kwargs:  # checking min/max lon/lat of other simulations
+                lonmin = np.minimum(kwargs['compare_lonmin'], np.nanmin(lons))
+                lonmax = np.maximum(kwargs['compare_lonmax'], np.nanmax(lons))
+                latmin = np.minimum(kwargs['compare_latmin'], np.nanmin(lats))
+                latmax = np.maximum(kwargs['compare_latmax'], np.nanmax(lats))
+            else:
+                lonmin = np.nanmin(lons)
+                lonmax = np.nanmax(lons)
+                latmin = np.nanmin(lats)
+                latmax = np.nanmax(lats)
+            lonmin = lonmin - buffer*2
+            lonmax = lonmax + buffer*2
+            latmin = latmin - buffer
+            latmax = latmax + buffer
 
         if fast is True:
             logger.warning('Plotting fast. This will make your plots less accurate.')
@@ -2924,6 +2927,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         if self.history is not None and self.num_elements_total() == 0 and not hasattr(self, 'ds'):
             raise ValueError('Please run simulation before animating')
+
+        if compare is not None:
+            compare_list, compare_args = self._get_comparison_xy_for_plots(compare)
+            kwargs.update(compare_args)
 
         markersizebymass = False
         if isinstance(markersize, str):
@@ -3136,8 +3143,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         x_deactive, y_deactive = (self.elements_deactivated.lon, self.elements_deactivated.lat)
 
         if compare is not None:
-            compare_list = self._get_comparison_xy_for_plots(compare)
-
             for cn, cd in enumerate(compare_list):
                 if legend != ['']:
                     legstr = legend[cn+1]
@@ -3369,6 +3374,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if not type(compare) is list:
             compare = [compare]
         compare_list = [{}]*len(compare)
+        lonmin = 1000
+        lonmax = -1000
+        latmin = 1000
+        latmax = -1000
         for cn, comp in enumerate(compare):
             compare_list[cn] = {}
             cd = compare_list[cn]  # pointer to dict with data
@@ -3379,6 +3388,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             else:
                 # Other is given as an OpenDrift object
                 other = comp
+
+            lonmin = np.minimum(lonmin, np.nanmin(other.history['lon']))
+            lonmax = np.maximum(lonmax, np.nanmax(other.history['lon']))
+            latmin = np.minimum(latmin, np.nanmin(other.history['lat']))
+            latmax = np.maximum(latmax, np.nanmax(other.history['lat']))
 
             # Find map coordinates of comparison simulations
             cd['x_other'], cd['y_other'] = \
@@ -3392,7 +3406,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             cd['index_of_last_deactivated_other'] = \
                 cd['index_of_last_other'][other.elements_deactivated.ID-1]
 
-        return compare_list
+        compare_args = {'compare_lonmin': lonmin, 'compare_lonmax': lonmax,
+                        'compare_latmin': latmin, 'compare_latmax': latmax}
+
+        return compare_list, compare_args
 
     def plot(self, background=None, buffer=.2, corners=None, linecolor=None, filename=None,
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
@@ -3448,6 +3465,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree()
+
+        if compare is not None:
+            cd, compare_args = self._get_comparison_xy_for_plots(compare)
+            kwargs.update(compare_args)
+
         fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 
@@ -3589,14 +3611,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                 transform = gcrs)
 
         if compare is not None:
-            cd = self._get_comparison_xy_for_plots(compare)
             for i, c in enumerate(cd):
                 if legend != None:
                     legstr = legend[i+1]
                 else:
                     legstr = None
-                ax.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], self.plot_comparison_colors[i+1] + '-', label=legstr, linewidth=linewidth, transform = gcrs)
-                ax.plot(c['x_other'].T, c['y_other'].T, self.plot_comparison_colors[i+1] + '-', label='_nolegend_', linewidth=linewidth, transform = gcrs)
+                ax.plot(c['x_other'].T[:,0], c['y_other'].T[:,0], color=self.plot_comparison_colors[i+1],
+                        linestyle='-', label=legstr, linewidth=linewidth, transform = gcrs)
+                ax.plot(c['x_other'].T, c['y_other'].T, color=self.plot_comparison_colors[i+1],
+                        linestyle='-', label='_nolegend_', linewidth=linewidth, transform = gcrs)
                 ax.scatter(c['x_other'][range(c['x_other'].shape[0]), c['index_of_last_other']],
                     c['y_other'][range(c['y_other'].shape[0]), c['index_of_last_other']],
                     s=markersize,
@@ -3725,10 +3748,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         i = np.where((time>=self.start_time) & (time<=self.time))[0]
         x, y = (np.atleast_1d(trajectory_dict['lon'])[i], np.atleast_1d(trajectory_dict['lat'])[i])
         ls = trajectory_dict['linestyle']
-
+        if 'label' in trajectory_dict:
+            label=trajectory_dict['label']
+        else:
+            label=None
         gcrs = ccrs.PlateCarree()
 
-        ax.plot(x, y, ls, linewidth=2, transform = gcrs)
+        ax.plot(x, y, ls, linewidth=2, transform = gcrs, label=label)
         ax.plot(x[0], y[0], 'ok', transform = gcrs)
         ax.plot(x[-1], y[-1], 'xk', transform = gcrs)
 
