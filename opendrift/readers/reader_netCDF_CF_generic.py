@@ -489,4 +489,21 @@ class Reader(StructuredReader, BaseReader):
             else:
                 self.rotate_variable_dict(variables)
 
+        if hasattr(self, 'shift_x'):
+            # "hidden feature": if reader.shift_x and reader.shift_y are defined,
+            # the returned fields are shifted this many meters in the x- and y directions
+            # E.g. reader.shift_x=10000 gives a shift 10 km eastwards (if x is east direction)
+            if self.proj.crs.is_geographic:  # meters to degrees
+                shift_y = (self.shift_y/111000)
+                shift_x = (self.shift_x/111000)*np.cos(np.radians(variables['y']))
+                logger.info('Shifting x between %s and %s' % (shift_x.min(), shift_x.max()))
+                logger.info('Shifting y with %s m' % shift_y)
+            else:
+                shift_x = self.shift_x
+                shift_y = self.shift_y
+                logger.info('Shifting x with %s m' % shift_x)
+                logger.info('Shifting y with %s m' % shift_y)
+            variables['x'] += shift_x
+            variables['y'] += shift_y
+
         return variables
