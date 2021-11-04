@@ -306,6 +306,10 @@ class SedimentDrift3D(OceanDrift): # based on OceanDrift base class
         General relationships obtained from :
         https://repository.tudelft.nl/islandora/object/uuid%3Aea12eb20-aee3-4f58-99fb-ebc216e98879
         Description of TRANSPOR2004 and Implementation in Delft3D-ONLINE
+
+        see also :
+        https://content.oss.deltares.nl/delft3d/manuals/D-Water_Quality_Processes_Technical_Reference_Manual.pdf
+        >> Section 13.10
         """
 
         rho_water = 1027 # kg/m3
