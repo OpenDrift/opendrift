@@ -2916,7 +2916,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def animation(self, buffer=.2, corners=None, filename=None, compare=None,
                   background=None, bgalpha=.5, vmin=None, vmax=None, drifter=None,
-                  skip=5, scale=10, color=False, clabel=None,
+                  skip=None, scale=None, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   show_trajectories=False, trajectory_alpha=.1, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
@@ -3413,7 +3413,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def plot(self, background=None, buffer=.2, corners=None, linecolor=None, filename=None,
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
-             lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
+             lvmin=None, lvmax=None, skip=None, scale=None, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
              linewidth=1, lcs=None, show_particles=True, show_initial=True,
              density_pixelsize_m=1000, bgalpha=1, clabel=None,
