@@ -30,6 +30,7 @@
 # Sources for the algorithm of orientation: 
 # 
 # Codling et al., 2004, Staaterman et al., 2012, and Fisher and Bellwood, 2003. See PhD dissertation R Chaput 2020
+# 
 # Chaput et al., 2021. Uncertainty propagation into numerical biophysical model of fish larval connectivity in the Florida Keys
 # submitted 
 # 
@@ -118,7 +119,7 @@ class FishLarvaeOrient(OceanDrift):
         self.set_config('general:coastline_action', 'previous')
 
         # resuspend larvae that reach seabed by default 
-        self.set_config('general:seafloor_action', 'lift_to_seafloor')
+        self.set_config('general:seafloor_action', 'previous')  #lift_to_seafloor
 
         ##add config spec
         self._add_config({ 'biology:orientation': {'type': 'enum', 'default': 'none',
@@ -200,38 +201,43 @@ class FishLarvaeOrient(OceanDrift):
     # Definition of habitat
     #####################################################################################################################
       
-    def habitat(self, shapefile_location):
-        """Suitable habitat in a shapefile"""
-        ## remove dependency to Fiona, and use cartopy instead
-        from cartopy import io
+    def add_settlement_habitat(self, shapefile_location):
+        """Suitable habitat polygons in a shapefile.shp , or nan-delimited polygons in textfile.txt """
+        # 
+        # remove dependency to Fiona, and use cartopy instead
+        # allow for input of nan-delimited polys from text file as well
+
         polyList = []
         self.centers_habitat = []
         rad_centers = []
-        shp = io.shapereader.Reader(shapefile_location)
-        for shape_i in shp.geometries() : 
-        	polyList.append(shape_i) # Compile polygon in a list
-        	self.centers_habitat.append(shape_i.centroid.coords[0]) # Compute centroid and return a [lon, lat] list
+        if '.shp' in shapefile_location :
+            from cartopy import io
+            shp = io.shapereader.Reader(shapefile_location)
+            for shape_i in shp.geometries() : 
+                polyList.append(shape_i) # Compile polygon in a list
+                self.centers_habitat.append(shape_i.centroid.coords[0]) # Compute centroid and return a [lon, lat] list
+        elif '.txt' in  shapefile_location:
+            from shapely.geometry import Polygon, MultiPolygon, asPolygon
+            polys = np.loadtxt(shapefile_location)  # nan-delimited closed polygons for land and islands
+            # make sure that start and end lines are [nan,nan] as well
+            if not np.isnan(polys[0, 0]):
+                polys = np.vstack(([np.nan, np.nan], polys))
+            if not np.isnan(polys[-1, 0]):
+                polys = np.vstack((polys, [np.nan, np.nan]))
+            id_nans = np.where(np.isnan(polys[:, 0]))[0]
+            for cnt, _id_i in enumerate(id_nans[:-1]):
+                # The shapely.geometry.asShape() family of functions can be used to wrap Numpy coordinate arrays
+                # https://shapely.readthedocs.io/en/latest/manual.html
+                shape_i = asPolygon(polys[id_nans[cnt] + 1:id_nans[cnt + 1] - 1, :])
+                polyList.append(shape_i)
+                self.centers_habitat.append(shape_i.centroid.coords[0]) # Compute centroid and return a [lon, lat] list
+
         for poly in range(len(self.centers_habitat)):
             rad_centers.append([np.deg2rad(self.centers_habitat[poly][1]),np.deg2rad(self.centers_habitat[poly][0])])
         self.multiShp = MultiPolygon(polyList).buffer(0) # Aggregate polygons in a MultiPolygon object and buffer to fuse polygons and remove errors
         self.ball_centers = BallTree(rad_centers, metric='haversine') # Create a Ball Tree with the centroids for faster computation
-        import pdb;pdb.set_trace()
 
         return self.multiShp, self.ball_centers, self.centers_habitat
-
-        # polyShp = fiona.open(shapefile_location) # import shapefile
-        # polyList = []
-        # self.centers_habitat = []
-        # rad_centers = []
-        # for poly in polyShp: # create individual polygons from shapefile
-        #      polyGeom = Polygon(poly['geometry']['coordinates'][0])
-        #      polyList.append(polyGeom) # Compile polygon in a list 
-        #      self.centers_habitat.append(polyGeom.centroid.coords[0]) # Compute centroid and return a [lon, lat] list
-        # for poly in range(len(self.centers_habitat)):
-        #     rad_centers.append([np.deg2rad(self.centers_habitat[poly][1]),np.deg2rad(self.centers_habitat[poly][0])])
-        # self.multiShp = MultiPolygon(polyList).buffer(0) # Aggregate polygons in a MultiPolygon object and buffer to fuse polygons and remove errors
-        # self.ball_centers = BallTree(rad_centers, metric='haversine') # Create a Ball Tree with the centroids for faster computation
-        # return self.multiShp, self.ball_centers, self.centers_habitat
 
     #####################################################################################################################
     # Interaction with environment
@@ -428,73 +434,92 @@ class FishLarvaeOrient(OceanDrift):
         
     def reset_horizontal_swimming(self):
             # Create a  vector for swimming movement
-            self.u_velocity = np.array([0.0]*len(self.elements.lat))
-            self.v_velocity = np.array([0.0]*len(self.elements.lon))
-            return self.u_velocity, self.v_velocity
+            self.u_swim = np.array([0.0]*len(self.elements.lat))
+            self.v_swim = np.array([0.0]*len(self.elements.lon))
+            return self.u_swim, self.v_swim
     
     
     def direct_orientation_habitat(self):
-           """"Biased correlated random walk toward the nearest habitat. 
-           Equations described in Codling et al., 2004 and Staaterman et al., 2012
-           """
-           # Check if the particles are old enough to orient
-           old_enough = np.where(self.elements.age_seconds >= self.get_config('biology:beginning_orientation'))[0]
-           if len(old_enough) > 0 :
-                    habitat_near, habitat_id = self.ball_centers.query(list(zip(np.deg2rad(self.elements.lat[old_enough]), np.deg2rad(self.elements.lon[old_enough]))), k=1)
-                    for i in range(len(self.elements.lat[old_enough])):
-                        if habitat_near[i][0]*6371 > self.get_config('biology:max_orient_distance'):
-                            pass
-                        else:
-                            pt_lon = self.elements.lon[old_enough][i]
-                            pt_lat = self.elements.lat[old_enough][i]
-                            pt_lon_old = self.previous_lon[old_enough][i]
-                            pt_lat_old = self.previous_lat[old_enough][i]
-                            # Case where particle close enough and old enough to orient
-                            # Strength of orientation (depend on distance to the habitat)
-                            d = 1 - (habitat_near[i][0]*6371/self.get_config('biology:max_orient_distance'))
-                            # Compute direction of nearest habitat. See Staaterman et al., 2012
-                            theta_pref = - self.haversine_angle(pt_lon, pt_lat, self.centers_habitat[habitat_id[i][0]][0], self.centers_habitat[habitat_id[i][0]][1]) 
-                            # Compute direction from previous timestep
-                            theta_current = self.haversine_angle(pt_lon_old, pt_lat_old, pt_lon, pt_lat)
-                            # Mean turning angle
-                            mu = -d * (theta_current - theta_pref)
-                            # New direction randomly selected in Von Mises distribution
-                            ti  = np.random.vonmises(0, 5) # First parameter: mu, second parameter: kappa (control the uncertainty of orientation) 
-                            theta = ti - theta_current - mu
-                        
-                            # Compute u and v velocity
-                            self.u_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
-                            self.v_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta) 
-                            #import pdb; pdb.set_trace()  
+            """"
+            Direct orientation, where the larvae swim toward the nearest reef. 
+            Biased correlated random walk toward the nearest habitat. 
+            Equations described in Codling et al., 2004 and Staaterman et al., 2012
+
+            ** algorithm could be vectorized to optimize speed (instead of looping through each particle)
+
+            """
+            # Check if the particles are old enough to orient
+            old_enough = np.where(self.elements.age_seconds >= self.get_config('biology:beginning_orientation'))[0]
+            logger.debug('Larvae : direct orientation - %s particles ready for orientation ' % (len(old_enough)))
+            if len(old_enough) > 0 :
+                habitat_near, habitat_id = self.ball_centers.query(list(zip(np.deg2rad(self.elements.lat[old_enough]), np.deg2rad(self.elements.lon[old_enough]))), k=1)
+                old_close_enough = np.where( (self.elements.age_seconds >= self.get_config('biology:beginning_orientation')) & \
+                                             (habitat_near.ravel()*6371. < self.get_config('biology:max_orient_distance')) )[0]
+                logger.debug('Larvae : direct orientation - moving %s particles towards nearest reef' % (len(old_close_enough)))
+                # looping through each particles - could be vectorized
+                for i in range(len(self.elements.lat[old_enough])):
+                    if habitat_near[i][0]*6371 > self.get_config('biology:max_orient_distance'):
+                        pass
+                    else:
+                        pt_lon = self.elements.lon[old_enough][i]
+                        pt_lat = self.elements.lat[old_enough][i]
+                        pt_lon_old = self.previous_lon[old_enough][i]
+                        pt_lat_old = self.previous_lat[old_enough][i]
+                        # Case where particle close enough and old enough to orient
+                        # Strength of orientation (depend on distance to the habitat)
+                        d = 1 - (habitat_near[i][0]*6371/self.get_config('biology:max_orient_distance'))
+                        # Compute direction of nearest habitat. See Staaterman et al., 2012
+                        theta_pref = - self.haversine_angle(pt_lon, pt_lat, self.centers_habitat[habitat_id[i][0]][0], self.centers_habitat[habitat_id[i][0]][1]) 
+                        # Compute direction from previous timestep
+                        theta_current = self.haversine_angle(pt_lon_old, pt_lat_old, pt_lon, pt_lat)
+                        # Mean turning angle
+                        mu = -d * (theta_current - theta_pref)
+                        # New direction randomly selected in Von Mises distribution
+                        ti  = np.random.vonmises(0, 5) # First parameter: mu, second parameter: kappa (control the uncertainty of orientation) 
+                        theta = ti - theta_current - mu
+                    
+                        # Compute u and v velocity
+                        self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
+                        self.v_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta) 
+                #         #import pdb; pdb.set_trace()  
                             
-           self.update_positions(self.u_velocity , self.v_velocity)
+            self.update_positions(self.u_swim , self.v_swim)
     
     
     def cardinal_orientation(self):
-            """"Orientation toward a fixed cardinal direction
+            """"
+            Cardinal orientation, where the larvae use a magnetic, internal compass to swim
+            toward a pre-determined heading
             """
             # Compute heading
             thetaCard = np.deg2rad(self.get_config('biology:cardinal_heading'))
             # Check if the particles are old enough to orient
             old_enough = np.where(self.elements.age_seconds >= self.get_config('biology:beginning_orientation'))[0]
+            logger.debug('Larvae : cardinal orientation - moving %s particles towards cardinal_heading' % (len(old_enough)))
+
             if len(old_enough) > 0 :
                 for i in range(len(self.elements.lat[old_enough])):
                     # Computing preferred direction
                     ti  = np.random.vonmises(0, 5)
-                    theta = thetaCard + ti
-                
+                    theta = thetaCard + ti                
                     # Compute u and v velocity
-                    self.u_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
-                    self.v_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
+                    self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
+                    self.v_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
             
-            self.update_positions(self.u_velocity , self.v_velocity)
+            self.update_positions(self.u_swim , self.v_swim)
         
-    
     def rheotaxis_orientation(self):
-            """"Orientation against the direction of the local currents
+            """"
+            Rheotaxis orientation, where the larvae swim against the local current at a
+            speed slower or equal to that of the currents. 
+
+            ** algorithm could be vectorized to optimize speed
+
             """            
             # Check if the particles are old enough to orient
             old_enough = np.where(self.elements.age_seconds >= self.get_config('biology:beginning_orientation'))[0]
+            logger.debug('Larvae : rheotaxis orientation - moving %s particles against current' % (len(old_enough)))
+
             if len(old_enough) > 0 :            
                 for i in range(len(self.elements.lat[old_enough])):
                     # Compute randomness of direction
@@ -511,21 +536,30 @@ class FishLarvaeOrient(OceanDrift):
                 
                     if norm_swim < uv:
                         # Compute u and v velocity
-                        self.u_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
-                        self.v_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
+                        self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
+                        self.v_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
                     else:
-                        self.u_velocity[old_enough[i]] = uv * np.cos(theta)
-                        self.v_velocity[old_enough[i]] = uv * np.sin(theta)
+                        self.u_swim[old_enough[i]] = uv * np.cos(theta)
+                        self.v_swim[old_enough[i]] = uv * np.sin(theta)
             
-            self.update_positions(self.u_velocity , self.v_velocity)
+            self.update_positions(self.u_swim , self.v_swim)
 
 
     def mix_orientation(self):
-            """Continuous orientation of the larvae using either rheotaxis orientation and direct orientation when getting closer to the reefs, 
+            """
+            Continuous orientation of the larvae using either rheotaxis orientation and direct orientation when getting closer to the reefs, 
             or cardinal orientation and direct orientation when getting closer to the reefs
+
+            continuous_1 :  the larvae swim first against the currents and switch to Direct Orientation when they approach the reefs
+            continuous_2 :  the larvae orient with Cardinal Orientation first and switch to Direct orientation when they approach the reefs
+
+            ** algorithm could be vectorized to optimize speed
+
                 """
             # Check if the particles are old enough to orient toward the reefs and settle
             old_enough = np.where(self.elements.age_seconds >= self.get_config('biology:beginning_orientation'))[0]
+            logger.debug('Larvae : mix orientation - moving %s particles according to option: %s' % (len(old_enough),self.get_config('biology:orientation')))
+
             if len(old_enough) > 0 :
                 for i in range(len(self.elements.lat[old_enough])):
                     if self.get_config('biology:orientation')=='continuous_1':
@@ -542,11 +576,11 @@ class FishLarvaeOrient(OceanDrift):
                 
                         if norm_swim < uv:
                                 # Compute u and v velocity
-                                self.u_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
-                                self.v_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
+                                self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
+                                self.v_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
                         else:
-                                self.u_velocity[old_enough[i]] = uv * np.cos(theta)
-                                self.v_velocity[old_enough[i]] = uv * np.sin(theta)
+                                self.u_swim[old_enough[i]] = uv * np.cos(theta)
+                                self.v_swim[old_enough[i]] = uv * np.sin(theta)
                                 
                     if self.get_config('biology:orientation')=='continuous_2':
                         # Computing preferred direction
@@ -555,8 +589,8 @@ class FishLarvaeOrient(OceanDrift):
                         theta = thetaCard + ti
                 
                         # Compute u and v velocity
-                        self.u_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
-                        self.v_velocity[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
+                        self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
+                        self.v_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
             
             # Check if larvae are old enough to go back to the reef to settle
             looking_for_reef = np.where(self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds'))[0]
@@ -583,10 +617,10 @@ class FishLarvaeOrient(OceanDrift):
                             theta = ti - theta_current - mu
                         
                             # Compute u and v velocity
-                            self.u_velocity[looking_for_reef[i]] = self.swimming_speed(self.elements.age_seconds[looking_for_reef][i])*np.cos(theta)
-                            self.v_velocity[looking_for_reef[i]] = self.swimming_speed(self.elements.age_seconds[looking_for_reef][i])*np.sin(theta)
+                            self.u_swim[looking_for_reef[i]] = self.swimming_speed(self.elements.age_seconds[looking_for_reef][i])*np.cos(theta)
+                            self.v_swim[looking_for_reef[i]] = self.swimming_speed(self.elements.age_seconds[looking_for_reef][i])*np.sin(theta)
                         
-            self.update_positions(self.u_velocity , self.v_velocity)
+            self.update_positions(self.u_swim , self.v_swim)
     
     
     def swimming_speed(self, age):
@@ -594,13 +628,18 @@ class FishLarvaeOrient(OceanDrift):
             Presented in Fisher and Bellwood (2003) and used in Staaterman et al. (2012)
             '''        
             hor_swimming_speed = (self.get_config('biology:hatch_swimming_speed') + (self.get_config('biology:settle_swimming_speed') - self.get_config('biology:hatch_swimming_speed'))    ** (np.log(age)/np.log(self.get_config('drift:max_age_seconds'))) )    / 100
+            logger.debug('Larvae - computing horizontal swimming speed :  %s cm/s < swimming speed < %s cm/s ' % (np.min(hor_swimming_speed),np.max(hor_swimming_speed)))
+
             return hor_swimming_speed
-    
-    
-    def vertical_swimming(self): # Not used for the moment
-            ''' Ontogenetic Vertical Migration. Modified from pelagicplankton_moana.py developed by Simon Weppe
+        
+    def vertical_swimming(self):
+            '''
+            Ontogenetic Vertical Migration.
+
+            Modified from pelagicplankton_moana.py developed by Simon Weppe
             Modifies the same variable as update_terminal_velocity(), self.elements.terminal_velocity = W, but using a different algorithm.
             Particles will simply go towards their preferred depth.
+
             '''
             vertical_velocity = np.abs(self.get_config('biology:vertical_migration_speed_constant'))  # magnitude in m/s 
             early_stage = np.where(self.elements.age_seconds < self.get_config('biology:pre_flexion'))[0]
@@ -618,7 +657,8 @@ class FishLarvaeOrient(OceanDrift):
             post_flexion = np.where(self.elements.age_seconds >= self.get_config('biology:post_flexion'))[0]
             if len(post_flexion) > 0 :
                 self.elements.terminal_velocity[post_flexion] = - np.sign(self.elements.z[post_flexion] - self.get_config('biology:depth_post_flexion')) * vertical_velocity
-                
+            
+            logger.debug('Larvae - computing vertical swimming speed :  %s cm/s < swimming speed < %s cm/s ' % (np.min(self.elements.terminal_velocity),np.max(self.elements.terminal_velocity)))
                 
     def maximum_depth(self):
             '''Turn around larvae that are going too deep'''
@@ -638,8 +678,6 @@ class FishLarvaeOrient(OceanDrift):
         '''
         pass
                 
-
-        
     def increase_age_and_retire(self):  # ##So that if max_age_seconds is exceeded particle is flagged as died
             """Increase age of elements, and retire if older than config setting.
                >essentially same as increase_age_and_retire() from basemodel.py, 
@@ -667,12 +705,10 @@ class FishLarvaeOrient(OceanDrift):
                 if N is not None:
                     self.deactivate_elements(self.elements.lat > N, reason='outside')
            
- 
 ###################################################################################################################
 # Update position of the larvae
 ###################################################################################################################    
- 
-    
+
     def update(self):
         """Update positions and properties of buoyant particles."""
 
