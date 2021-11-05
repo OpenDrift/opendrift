@@ -48,6 +48,7 @@ print(lw)
 # Animation with current as background.
 # Note that drift is also depending on wind, which is not shown.
 lw.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
+             skip=5,  # show every 5th vector
              cmap=cmocean.cm.speed, vmin=0, vmax=.8, bgalpha=.7, land_color='#666666', fast=True)
 
 #%%
