@@ -3475,6 +3475,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             # Extend map coverage to cover provided trajectory
             ttime = np.array(trajectory_dict['time'])
             i = np.where((ttime>=self.start_time) & (ttime<=self.time))[0]
+            trajectory_dict['lon'] = np.atleast_1d(trajectory_dict['lon'])
+            trajectory_dict['lat'] = np.atleast_1d(trajectory_dict['lat'])
             tlonmin = trajectory_dict['lon'][i].min()
             tlonmax = trajectory_dict['lon'][i].max()
             tlatmin = trajectory_dict['lat'][i].min()
