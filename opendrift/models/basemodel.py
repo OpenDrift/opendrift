@@ -3415,7 +3415,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
              lvmin=None, lvmax=None, skip=None, scale=None, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
-             linewidth=1, lcs=None, show_particles=True, show_initial=True,
+             linewidth=1, lcs=None, show_elements=True, show_initial=True,
              density_pixelsize_m=1000, bgalpha=1, clabel=None,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
@@ -3573,7 +3573,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             label_active = None
             color_initial = 'gray'
             color_active = 'gray'
-        if show_particles is True:
+        if show_elements is True:
             if show_initial is True:
                 ax.scatter(x[index_of_first, range(x.shape[1])],
                        y[index_of_first, range(x.shape[1])],
