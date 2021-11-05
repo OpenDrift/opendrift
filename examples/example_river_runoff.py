@@ -149,7 +149,7 @@ mas = mas.mean(dim='time').sum(dim='origin_marker')  # Mean time of both rivers
 #mas = mas.mean(dim='time').isel(origin_marker=1)  # Mean age of a single river
 mas.name='Mean age of water [hours]'
 
-o.plot(background=mas.where(mas>0), fast=True, show_particles=False)
+o.plot(background=mas.where(mas>0), fast=True, show_elements=False)
 
 
 # Cleaning up

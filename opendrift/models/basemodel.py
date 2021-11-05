@@ -2916,7 +2916,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def animation(self, buffer=.2, corners=None, filename=None, compare=None,
                   background=None, bgalpha=.5, vmin=None, vmax=None, drifter=None,
-                  skip=5, scale=10, color=False, clabel=None,
+                  skip=None, scale=None, color=False, clabel=None,
                   colorbar=True, cmap=None, density=False, show_elements=True,
                   show_trajectories=False, trajectory_alpha=.1, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
@@ -3413,9 +3413,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def plot(self, background=None, buffer=.2, corners=None, linecolor=None, filename=None,
              show=True, vmin=None, vmax=None, compare=None, cmap='jet',
-             lvmin=None, lvmax=None, skip=2, scale=10, show_scalar=True,
+             lvmin=None, lvmax=None, skip=None, scale=None, show_scalar=True,
              contourlines=False, trajectory_dict=None, colorbar=True,
-             linewidth=1, lcs=None, show_particles=True, show_initial=True,
+             linewidth=1, lcs=None, show_elements=True, show_initial=True,
              density_pixelsize_m=1000, bgalpha=1, clabel=None,
              surface_color=None, submerged_color=None, markersize=20,
              title='auto', legend=True, legend_loc='best', lscale=None,
@@ -3467,8 +3467,30 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         gcrs = ccrs.PlateCarree()
 
         if compare is not None:
+            # Extend map coverage to cover comparison simulations
             cd, compare_args = self._get_comparison_xy_for_plots(compare)
             kwargs.update(compare_args)
+
+        if trajectory_dict is not None:
+            # Extend map coverage to cover provided trajectory
+            ttime = np.array(trajectory_dict['time'])
+            i = np.where((ttime>=self.start_time) & (ttime<=self.time))[0]
+            trajectory_dict['lon'] = np.atleast_1d(trajectory_dict['lon'])
+            trajectory_dict['lat'] = np.atleast_1d(trajectory_dict['lat'])
+            tlonmin = trajectory_dict['lon'][i].min()
+            tlonmax = trajectory_dict['lon'][i].max()
+            tlatmin = trajectory_dict['lat'][i].min()
+            tlatmax = trajectory_dict['lat'][i].max()
+            if 'compare_lonmin' not in kwargs:
+                kwargs['compare_lonmin'] = tlonmin
+                kwargs['compare_lonmax'] = tlonmax
+                kwargs['compare_latmin'] = tlatmin
+                kwargs['compare_latmax'] = tlatmax
+            else:
+                kwargs['compare_lonmin'] = np.minimum(kwargs['compare_lonmin'], tlonmin)
+                kwargs['compare_lonmax'] = np.maximum(kwargs['compare_lonmax'], tlonmax)
+                kwargs['compare_latmin'] = np.minimum(kwargs['compare_latmin'], tlatmin)
+                kwargs['compare_latmax'] = np.maximum(kwargs['compare_latmax'], tlatmax)
 
         fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
@@ -3553,7 +3575,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             label_active = None
             color_initial = 'gray'
             color_active = 'gray'
-        if show_particles is True:
+        if show_elements is True:
             if show_initial is True:
                 ax.scatter(x[index_of_first, range(x.shape[1])],
                        y[index_of_first, range(x.shape[1])],
@@ -3625,14 +3647,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     s=markersize,
                     zorder=3, edgecolor=markercolor, linewidths=.2,
                     c=self.plot_comparison_colors[i+1], transform = gcrs)
-
-        try:
-            handles, labels = ax.get_legend_handles_labels()
-            if legend is not None and len(handles)>0:
-                plt.legend(loc=legend_loc, markerscale=2)
-        except Exception as e:
-            logger.warning('Cannot plot legend, due to bug in matplotlib:')
-            logger.warning(traceback.format_exc())
 
         if background is not None:
             if hasattr(self, 'time'):
@@ -3717,6 +3731,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         if trajectory_dict is not None:
             self._plot_trajectory_dict(ax, trajectory_dict)
+
+        try:
+            handles, labels = ax.get_legend_handles_labels()
+            if legend is not None and len(handles)>0:
+                plt.legend(loc=legend_loc, markerscale=2)
+        except Exception as e:
+            logger.warning('Cannot plot legend, due to bug in matplotlib:')
+            logger.warning(traceback.format_exc())
 
         #plt.gca().tick_params(labelsize=14)
 

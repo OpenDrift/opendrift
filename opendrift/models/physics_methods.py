@@ -75,6 +75,15 @@ def wind_drift_factor_from_trajectory(trajectory_dict, min_period=None):
 
     return wind_drift_factor, azimuth_offset
 
+def distance_between_trajectories(lon1, lat1, lon2, lat2):
+    '''Calculate the distances [m] between two trajectories'''
+
+    assert len(lon1) == len(lat1) == len(lat1) == len(lat2)
+    geod = pyproj.Geod(ellps='WGS84')
+    azimuth_forward, a2, distance = geod.inv(lon1, lat1, lon2, lat2)
+ 
+    return distance
+
 def plot_wind_drift_factor(wdf, azimuth, wmax_plot=None):
     '''Polar plot of array of wind drift factor, with associated azimuthal offset'''
 

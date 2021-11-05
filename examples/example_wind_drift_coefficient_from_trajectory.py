@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cmocean
 from opendrift.models.oceandrift import OceanDrift
-from opendrift.models.physics_methods import wind_drift_factor_from_trajectory
+from opendrift.models.physics_methods import wind_drift_factor_from_trajectory, distance_between_trajectories
 
 #%%
 # A very simple drift model is: current + wind_drift_factor*wind
@@ -35,8 +35,6 @@ ot.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].s
 ot.set_config('drift:horizontal_diffusivity', 10)
 ot.run(duration=timedelta(hours=12), time_step=600)
 
-ot.plot(fast=True, title='Synthetic drifter trajectory')
-
 #%%
 # Secondly, calculating the wind_drift_factor which reproduces the "observed" trajectory with minimal difference
 drifter_lons = ot.history['lon'][0]
@@ -51,6 +49,22 @@ t = o.get_variables_along_trajectory(variables=['x_sea_water_velocity', 'y_sea_w
         lons=drifter_lons, lats=drifter_lats, times=drifter_times)
 
 wind_drift_factor, azimuth = wind_drift_factor_from_trajectory(t)
+
+o.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].start_time,
+                wind_drift_factor=0.033)
+
+#%% 
+# New simulation, this time without diffusivity/noise
+o.run(duration=timedelta(hours=12), time_step=600)
+
+#%%
+# Calculate distances (meters) between simulation and synthetic drifter at each time step
+distances = distance_between_trajectories(o.history['lon'][0], o.history['lat'][0],
+                                          drifter_lons, drifter_lats)
+print(distances)
+
+o.plot(fast=True, legend=True, trajectory_dict={'lon': drifter_lons, 'lat': drifter_lats,
+        'time': drifter_times, 'linestyle': 'b--', 'label': 'Synthetic drifter'})
 
 #%%
 # The mean retrieved wind_drift_factor is 0.036, slichtly higher than the value 0.033 used for the simulation.
