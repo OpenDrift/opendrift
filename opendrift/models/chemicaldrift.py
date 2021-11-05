@@ -275,7 +275,7 @@ class ChemicalDrift(OceanDrift):
                 'min': None, 'max': None, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Vapour pressure ref temp'},
             'chemical:transformations:DeltaH_Vpress': {'type': 'float', 'default': 55925.,   # Naphthalene
-                'min': -100000., 'max': 100000., 'units': 'J/mol',
+                'min': -100000., 'max': 115000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Enthalpy of volatilization'},
             # solubility
             'chemical:transformations:Solub': {'type': 'float', 'default': 31.4,            # Naphthalene
