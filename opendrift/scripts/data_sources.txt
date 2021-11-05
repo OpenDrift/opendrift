@@ -16,5 +16,3 @@ https://nrt.cmems-du.eu/thredds/dodsC/global-analysis-forecast-wav-001-027
 https://nrt.cmems-du.eu/thredds/dodsC/global-analysis-forecast-phy-001-024-hourly-merged-uv
 https://tds.hycom.org/thredds/dodsC/GLBy0.08/latest
 https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z
-https://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z
-{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh", "cmems_user": null, "cmems_password": null}
