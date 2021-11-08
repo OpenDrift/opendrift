@@ -210,6 +210,8 @@ class ReaderDomain(Timeable):
 
         Arguments in native projection of reader.
         """
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
         z = np.atleast_1d(z)
 
         if self.global_coverage():
