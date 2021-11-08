@@ -122,6 +122,14 @@ class TestReaders(unittest.TestCase):
         self.assertTrue(isinstance(readers[3],
                                    reader_netCDF_CF_generic.Reader))
 
+    #def test_reader_from_url_online(self):
+    #    readers = reader_from_url(['https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
+    #        'https://thredds.met.no/thredds/dodsC/ecmwf/atmo/ec_atmo_0_1deg_20211108T000000Z_3h.nc',
+    #        'https://nrt.cmems-du.eu/thredds/dodsC/global-analysis-forecast-phy-001-024-hourly-merged-uv'])
+    #    self.assertTrue(isinstance(readers[0], reader_netCDF_CF_generic.Reader))
+    #    self.assertTrue(isinstance(readers[1], reader_netCDF_CF_generic.Reader))
+    #    self.assertTrue(isinstance(readers[2], reader_netCDF_CF_generic.Reader))
+
     def test_lazy_reader(self):
         o = OceanDrift(loglevel=20)
         lr = reader_lazy.Reader(o.test_data_folder() +
