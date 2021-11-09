@@ -221,12 +221,17 @@ class OceanDrift(OpenDriftSimulation):
             self.bottom_interaction(Zmin)
 
     def surface_stick(self):
-        '''To be overloaded by subclasses, e.g. downward mixing of oil'''
+        '''Keep particles just below the surface.
+           (overloads the OceanDrift version to allow for possibly time-varying
+           sea_surface_height)
+        '''
+        
+        sea_surface_height = self.sea_surface_height() # returns surface elevation at particle positions (>0 above msl, <0 below msl)
 
-        # keep particle just below the surface
-        surface = np.where(self.elements.z >= 0)
+        # keep particle just below sea_surface_height (self.elements.z depth are negative down)
+        surface = np.where(self.elements.z >= sea_surface_height)
         if len(surface[0]) > 0:
-            self.elements.z[surface] = -0.01
+            self.elements.z[surface] = sea_surface_height[surface] -0.01 # set particle z at 0.01m below sea_surface_height
 
     def bottom_interaction(self, Zmin=None):
         '''To be overloaded by subclasses, e.g. radionuclides in sediments'''
