@@ -46,7 +46,7 @@ o.seed_elements(lon=12.0, lat=68.3, z=-3.0,
 o.set_config('general:coastline_action', 'previous')
 o.set_config('drift:vertical_advection', True)
 o.set_config('drift:vertical_mixing', True)
-o.set_config('drift:min_settlement_age_seconds', 3600) # minimum age before settling can occur
+o.set_config('biology:min_settlement_age_seconds', 3600) # minimum age before settling can occur
 
 o.set_config('vertical_mixing:diffusivitymodel', 'constant') # use fallback value ocean_vertical_diffusivity
 o.set_config('vertical_mixing:timestep', 900.) # seconds - # Vertical mixing requires fast time step  (but for constant diffusivity, use same as model step)

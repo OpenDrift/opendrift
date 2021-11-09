@@ -1,18 +1,18 @@
 # This file has been adapted from pelagicegg.py but introduces a settlement competency period
 # added config setting for 'min_settlement_age_seconds' which defines the minimum age after which  settlement can occur.
 # Coastal settlement occurs after a competent particle interacts with the coastline i.e. after age>min_settlement_age_seconds
-# Benthic settlement occurs when a competent particle makes contact with the bottom i.e. after age>min_settlement_age_seconds
-# Habitat type is not considered in either coastal or benthic settlement
+# Seafloor settlement occurs when a competent particle makes contact with the bottom i.e. after age>min_settlement_age_seconds
 # 
-# The model overload the seabed and coastline interaction subfunction from basemodel.py :
-#    > lift_elements_to_seafloor
-#    > interact_with_coastline
+# The model overload the seabed and coastline interaction subfunctions from basemodel.py :
+#    > lift_elements_to_seafloor()
+#    > interact_with_coastline()
 # 
 #  Authors : Craig Norrie, Simon Weppe
 # 
 # 
-#  Under development - more testing to do
-# 
+#  11/2021 : 
+# Adding an option to specify appropriate habitat (as polygon(s)) where a particle can settle on the seafloor
+# Particle will not setlle to seafloor if outside of habitat even if age>min_settlement_age_seconds 
 # 
 
 
@@ -73,6 +73,8 @@ class BivalveLarvae(OceanDrift):
         'sea_water_temperature': {'fallback': 15, 'profiles': True},
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
         'sea_surface_height': {'fallback': 0.0},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
         'surface_downward_x_stress': {'fallback': 0},
         'surface_downward_y_stress': {'fallback': 0},
         'turbulent_kinetic_energy': {'fallback': 0},
@@ -115,36 +117,50 @@ class BivalveLarvae(OceanDrift):
         # resuspend larvae that reach seabed by default 
         self._set_config_default('general:seafloor_action', 'lift_to_seafloor') 
 
-        # set the defasult min_settlement_age_seconds to 0.0
-        # self.set_config('drift:min_settlement_age_seconds', '0.0')
-
-        ##add config spec
-        self._add_config({ 'drift:min_settlement_age_seconds': {'type': 'float', 'default': 0.0,'min': 0.0, 'max': 1.0e10, 'units': 'seconds',
+        # add config spec
+        self._add_config({ 'biology:min_settlement_age_seconds': {'type': 'float', 'default': 0.0,'min': 0.0, 'max': 1.0e10, 'units': 'seconds',
                            'description': 'minimum age in seconds at which larvae can start to settle on seabed or stick to shoreline)',
                            'level': self.CONFIG_LEVEL_BASIC}})
 
- 
-    def update(self):
-        """Update positions and properties of buoyant particles."""
+    def sea_surface_height(self):
+        '''fetches sea surface height for presently active elements
 
-        # Update element age
-        # self.elements.age_seconds += self.time_step.total_seconds()
-        # already taken care of in increase_age_and_retire() in basemodel.py
+           sea_surface_height > 0 above mean sea level
+           sea_surface_height < 0 below mean sea level
+        '''
+        if hasattr(self, 'environment') and \
+                hasattr(self.environment, 'sea_surface_height'):
+            if len(self.environment.sea_surface_height) == \
+                    self.num_elements_active():
+                sea_surface_height = \
+                    self.environment.sea_surface_height
+        if 'sea_surface_height' not in locals():
+            env, env_profiles, missing = \
+                self.get_environment(['sea_surface_height'],
+                                     time=self.time, lon=self.elements.lon,
+                                     lat=self.elements.lat,
+                                     z=0*self.elements.lon, profiles=None)
+            sea_surface_height = \
+                env['sea_surface_height'].astype('float32') 
+        return sea_surface_height  
 
-        # Horizontal advection
-        self.advect_ocean_current()
 
-        # Turbulent Mixing or settling-only 
-        if self.get_config('drift:vertical_mixing') is True:
-            self.update_terminal_velocity()  #compute vertical velocities, two cases possible - constant, or same as pelagic egg
-            self.vertical_mixing()
-        else:  # Buoyancy
-            self.update_terminal_velocity()
-            self.vertical_buoyancy()
+    def surface_stick(self):
+        '''Keep particles just below the surface.
+           (overloads the OceanDrift version to allow for possibly time-varying
+           sea_surface_height)
+        '''
+        
+        sea_surface_height = self.sea_surface_height() # returns surface elevation at particle positions (>0 above msl, <0 below msl)
+        
+        # keep particle just below sea_surface_height (self.elements.z depth are negative down)
+        surface = np.where(self.elements.z >= sea_surface_height)
+        if len(surface[0]) > 0:
+            self.elements.z[surface] = sea_surface_height[surface] -0.01 # set particle z at 0.01m below sea_surface_height
 
-        self.vertical_advection()     
-
-
+    #################################################################################################################################
+    # SEAFLOOR AND SEABED INTERACTION
+    #################################################################################################################################
     def interact_with_seafloor(self):
         """Seafloor interaction according to configuration setting"""
         # 
@@ -174,68 +190,8 @@ class BivalveLarvae(OceanDrift):
         logger.debug('%s elements hit seafloor, %s were older than %s sec. and deactivated, %s were lifted back to seafloor' \
             % (len(below),len(below_and_older),self.get_config('drift:min_settlement_age_seconds'),len(below_and_younger)))    
 
-    
-        # original code 
-        # 
-        # i = self.get_config('general:seafloor_action')
-        # if i == 'lift_to_seafloor': # always the case
-        #     self.elements.z[below] = -sea_floor_depth[below]
-        # elif i == 'deactivate':
-        #     self.deactivate_elements(self.elements.z < -sea_floor_depth, reason='seafloor')
-        # elif i == 'previous':  # Go back to previous position (in water)
-        #     logger.warning('%s elements hit seafloor, '
-        #                    'moving back ' % len(below))
-        #     below_ID = self.elements.ID[below]
-        #     self.elements.lon[below] = \
-        #         np.copy(self.previous_lon[below_ID - 1])
-        #     self.elements.lat[below] = \
-        #         np.copy(self.previous_lat[below_ID - 1])
-
-    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
-                                 z_index=None):
-        """Calculate terminal velocity due to bouyancy from own properties
-        and environmental variables. Sub-modules should overload
-        this method for particle-specific behaviour
-        """
-        # import pdb;pdb.set_trace()
-        pass
-
-        
-    def sea_surface_height(self):
-        '''fetches sea surface height for presently active elements
-
-           sea_surface_height > 0 above mean sea level
-           sea_surface_height < 0 below mean sea level
-        '''
-        if hasattr(self, 'environment') and \
-                hasattr(self.environment, 'sea_surface_height'):
-            if len(self.environment.sea_surface_height) == \
-                    self.num_elements_active():
-                sea_surface_height = \
-                    self.environment.sea_surface_height
-        if 'sea_surface_height' not in locals():
-            env, env_profiles, missing = \
-                self.get_environment(['sea_surface_height'],
-                                     time=self.time, lon=self.elements.lon,
-                                     lat=self.elements.lat,
-                                     z=0*self.elements.lon, profiles=None)
-            sea_surface_height = \
-                env['sea_surface_height'].astype('float32') 
-        return sea_surface_height  
-
-
-    def surface_stick(self):
-        '''Keep particles just below the surface.
-           (overloads the OpenDrift3DSimulation version to allow for possibly time-varying
-           sea_surface_height)
-        '''
-        
-        sea_surface_height = self.sea_surface_height() # returns surface elevation at particle positions (>0 above msl, <0 below msl)
-        
-        # keep particle just below sea_surface_height (self.elements.z depth are negative down)
-        surface = np.where(self.elements.z >= sea_surface_height)
-        if len(surface[0]) > 0:
-            self.elements.z[surface] = sea_surface_height[surface] -0.01 # set particle z at 0.01m below sea_surface_height
+        # original code
+        # https://github.com/OpenDrift/opendrift/blob/4dbd9a607fe23e64dcbf9fd05905af8713dc74d1/opendrift/models/basemodel.py#L613 
 
     def interact_with_coastline(self,final = False): 
         """Coastline interaction according to configuration setting
@@ -271,10 +227,10 @@ class BivalveLarvae(OceanDrift):
                 reason='seeded_on_land')
         on_land = np.where(self.environment.land_binary_mask == 1)[0]
 
-            # if previous_position_if is not None:
-            #     self.deactivate_elements((previous_position_if*1 == 1) & (
-            #                      self.environment.land_binary_mask == 0),
-            #                          reason='seeded_at_nodata_position')
+        # if previous_position_if is not None:
+        #     self.deactivate_elements((previous_position_if*1 == 1) & (
+        #                      self.environment.land_binary_mask == 0),
+        #                          reason='seeded_at_nodata_position')
 
         # if previous_position_if is None:
         #     on_land = np.where(self.environment.land_binary_mask == 1)[0]
@@ -326,71 +282,25 @@ class BivalveLarvae(OceanDrift):
                                          (self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds')),
                                          reason='settled_on_coast')
 
+    #
+    # >> can use the same update() as oceandrift
+    # 
+    # def update(self):
+    #     """Update positions and properties of buoyant particles."""
 
-    def increase_age_and_retire(self):  
-            # if max_age_seconds is exceeded, particle is flagged as 'died'
+    #     # Update element age
+    #     # self.elements.age_seconds += self.time_step.total_seconds()
+    #     # already taken care of in increase_age_and_retire() in basemodel.py
 
-            """Increase age of elements, and retire if older than config setting.
+    #     # Horizontal advection
+    #     self.advect_ocean_current()
 
-               >essentially same as increase_age_and_retire() from basemodel.py, 
-               only using a diffrent reason for retiring particles ('died' instead of 'retired')
-               .. could probably be removed...
-            """
-            # Increase age of elements
-            self.elements.age_seconds += self.time_step.total_seconds()
+    #     # Turbulent Mixing or settling-only 
+    #     if self.get_config('drift:vertical_mixing') is True:
+    #         self.update_terminal_velocity()  #compute vertical velocities, two cases possible - constant, or same as pelagic egg
+    #         self.vertical_mixing()
+    #     else:  # Buoyancy
+    #         self.update_terminal_velocity()
+    #         self.vertical_buoyancy()
 
-            # Deactivate elements that exceed a certain age
-            if self.get_config('drift:max_age_seconds') is not None:
-                self.deactivate_elements(self.elements.age_seconds >=
-                                         self.get_config('drift:max_age_seconds'),
-                                         reason='died')
-
-            # Deacticate any elements outside validity domain set by user
-            if self.validity_domain is not None:
-                W, E, S, N = self.validity_domain
-                if W is not None:
-                    self.deactivate_elements(self.elements.lon < W, reason='outside')
-                if E is not None:
-                    self.deactivate_elements(self.elements.lon > E, reason='outside')
-                if S is not None:
-                    self.deactivate_elements(self.elements.lat < S, reason='outside')
-                if N is not None:
-                    self.deactivate_elements(self.elements.lat > N, reason='outside')
-
-
-    # def lift_elements_to_seafloor(self):  
-    #   # 
-    #   # Initiate settlement if particles touch bottom during competence period
-    #     # 
-    #     '''Lift any elements which are below seafloor and check age
-    #       (overloads the lift_elements_to_seafloor() from basemodel.py)
-
-    #        The methods will check age of larvae that touched the seabed.
-    #          if age_particle < min_settlement_age_seconds : resuspend larvae
-    #          if age_particle > min_settlement_age_seconds : larvaes settle and will be deactivated.
-
-    #     '''
-            
-    #     if 'sea_floor_depth_below_sea_level' not in self.priority_list:
-    #         return
-        
-    #     sea_floor_depth = self.sea_floor_depth() # returns a positive down water depth
-    #     sea_surface_height = self.sea_surface_height() # returns surface elevation at particle positions (>0 above msl, <0 below msl)
-
-    #     below = self.elements.z < -sea_floor_depth
-        
-    #     if self.get_config('drift:lift_to_seafloor') is True: # always true
-    #         # self.elements.z[below] = -sea_floor_depth[below] - intial code
-
-    #         self.elements.z[below] = np.minimum(-sea_floor_depth[below], sea_surface_height[below])
-    #         # make sure particles dont get above water at this stage i.e. z>sea_surface_height
-    #         # this can happen when reader has negative values for sea_floor_depth
-    #         # e.g. : sea_floor_depth() returns e.g. -2.0 (i.e. wetting-drying points)
-    #         # 
-    #         # if sea_surface_height is not available from reader, fallback value is used (=0 by default).
-
-    #     # Deactivate elements that touched seabed and have age>min_settlement_age_seconds
-    #     if self.get_config('drift:min_settlement_age_seconds') != 0.0:
-    #         older = self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds')
-    #         if older.any():
-    #             self.deactivate_elements(older & below ,reason='settled_on_bottom')
+    #     self.vertical_advection()   

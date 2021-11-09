@@ -1,7 +1,7 @@
 # This file is intended for the orientation of fish larvae and developed from the models bivalvelarvae.py and larvalfish.py 
 # 
 # This code introduces different orientation behaviors for fish larvae:
-
+# 
 # 1. Direct orientation: Competent ('old enough to orient') larvae swim in the direction of the nearest habitat 
 #    (represented by polygons in a shapefile) if they are close enough to detect it (controlled by user input). 
 #    Based on Staaterman et al., 2012 and Codling et al., 2004.
@@ -44,11 +44,11 @@
 # 
 
 import numpy as np
-from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+from opendrift.models.oceandrift import OceanDrift, BivalveLarvae,Lagrangian3DArray
 import logging; logger = logging.getLogger(__name__)
 from datetime import timezone
-from shapely.geometry import Polygon, Point, MultiPolygon # added for settlement in polygon only
-import fiona # to import habitat
+from shapely.geometry import Polygon, Point, MultiPolygon, asPolygon # added for settlement in polygon only
+import shapely
 import random
 from sklearn.neighbors import BallTree
 
@@ -57,26 +57,15 @@ class FishLarvaeOrientObj(Lagrangian3DArray):
     """
 
     variables = Lagrangian3DArray.add_variables([
-        ('neutral_buoyancy_salinity', {'dtype': np.float32,
-                                       'units': '[]',
-                                       'default': 31.25}),
         ('age_seconds', {'dtype': np.float32,
                          'units': 's',
                          'default': 0.}),
-        ('density', {'dtype': np.float32,
-                     'units': 'kg/m^3',
-                     'default': 1028.}),
         ('terminal_velocity', {'dtype': np.float32,
                        'units': 'm/s',
-                       'default': 0.}),
-        ('light', {'dtype': np.float32,
-                     'units': 'ugEm2',
-                     'default': 0.})])
-
-
+                       'default': 0.})])
+    
 class FishLarvaeOrient(OceanDrift):
     """Buoyant particle trajectory model based on the OpenDrift framework.
-        Under construction.
     """
 
     ElementType = FishLarvaeOrientObj
@@ -135,7 +124,7 @@ class FishLarvaeOrient(OceanDrift):
                            'description': 'minimum age in seconds at which larvae can start to settle on habitat, or seabed or stick to shoreline',
                            'level': self.CONFIG_LEVEL_BASIC}})
         self._add_config({ 'biology:settlement_in_habitat': {'type': 'bool', 'default': False,
-                           'description': 'settlement restricted to suitable habitat only, specified by shapefile',
+                           'description': 'settlement restricted to suitable habitat only, specified by shapefile or txt file with nan-delimited polys',
                            'level': self.CONFIG_LEVEL_BASIC}})
         self._add_config({ 'biology:OVM': {'type': 'bool', 'default': False,
                            'description': 'Ontogenetic Vertical Migration',
@@ -206,7 +195,6 @@ class FishLarvaeOrient(OceanDrift):
         # 
         # remove dependency to Fiona, and use cartopy instead
         # allow for input of nan-delimited polys from text file as well
-
         polyList = []
         self.centers_habitat = []
         rad_centers = []
@@ -216,8 +204,7 @@ class FishLarvaeOrient(OceanDrift):
             for shape_i in shp.geometries() : 
                 polyList.append(shape_i) # Compile polygon in a list
                 self.centers_habitat.append(shape_i.centroid.coords[0]) # Compute centroid and return a [lon, lat] list
-        elif '.txt' in  shapefile_location:
-            from shapely.geometry import Polygon, MultiPolygon, asPolygon
+        elif '.txt' in  shapefile_location:            
             polys = np.loadtxt(shapefile_location)  # nan-delimited closed polygons for land and islands
             # make sure that start and end lines are [nan,nan] as well
             if not np.isnan(polys[0, 0]):
@@ -235,9 +222,9 @@ class FishLarvaeOrient(OceanDrift):
         for poly in range(len(self.centers_habitat)):
             rad_centers.append([np.deg2rad(self.centers_habitat[poly][1]),np.deg2rad(self.centers_habitat[poly][0])])
         self.multiShp = MultiPolygon(polyList).buffer(0) # Aggregate polygons in a MultiPolygon object and buffer to fuse polygons and remove errors
+        # save as shapely prepared geometry for efficient in-poly checks 
+        self.habitat_mask = shapely.prepared.prep(MultiPolygon(polyList).buffer(0)) # same as in landmask custom
         self.ball_centers = BallTree(rad_centers, metric='haversine') # Create a Ball Tree with the centroids for faster computation
-
-        return self.multiShp, self.ball_centers, self.centers_habitat
 
     #####################################################################################################################
     # Interaction with environment
@@ -279,9 +266,8 @@ class FishLarvaeOrient(OceanDrift):
 
     def interact_with_seafloor(self):
         """Seafloor interaction according to configuration setting
-           Same as used in bivalve.py 
+           Same as used in bivalve.py , but checking on habitat polygon
         """
-        # This function will overloads the version in basemodel.py
         if self.num_elements_active() == 0:
             return
         if 'sea_floor_depth_below_sea_level' not in self.priority_list:
@@ -313,8 +299,7 @@ class FishLarvaeOrient(OceanDrift):
 
     def interact_with_coastline(self,final = False): 
         """Coastline interaction according to configuration setting
-           (overloads the interact_with_coastline() from basemodel.py)
-           
+           Same as used in bivalve.py , but checking on habitat polygon           
            The method checks for age of particles that intersected coastlines:
              if age_particle < min_settlement_age_seconds : move larvaes back to previous wet position
              if age_particle > min_settlement_age_seconds : larvaes become stranded and will be deactivated.
@@ -381,7 +366,7 @@ class FishLarvaeOrient(OceanDrift):
                 # Minimum age before settling was input
                 # check age of particle versus min_settlement_age_seconds and strand or recirculate accordingly
                 on_land_and_younger = np.where((self.environment.land_binary_mask == 1) & (self.elements.age_seconds < self.get_config('biology:min_settlement_age_seconds')))[0]
-                #on_land_and_older = np.where((self.environment.land_binary_mask == 1) & (self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds')))[0]
+                #on_land_and_older = np.where((self.environment.land_binary_mask == 1) & (self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds')))[0]
 
                 # this step replicates what is done is original code, but accounting for particle age. It seems necessary 
                 # to have an array of ID, rather than directly indexing using the "np.where-type" index (in dint64)
@@ -412,21 +397,11 @@ class FishLarvaeOrient(OceanDrift):
             """Habitat interaction according to configuration setting
                The method checks if a particle is within the limit of an habitat to allow settlement
             """        
-            # Get age of particle
-            old_enough = np.where(self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds'))[0]
-            # Extract particles positions
-            if len(old_enough) > 0 :
-                pts_lon = self.elements.lon[old_enough]
-                pts_lat = self.elements.lat[old_enough]
-                for i in range(len(pts_lon)): # => faster version
-                    pt = Point(pts_lon[i], pts_lat[i])
-                    in_habitat = pt.within(self.multiShp)
-                    if in_habitat == True:
-                         self.environment.land_binary_mask[old_enough[i]] = 6
-                        
-            # Deactivate elements that are within a polygon and old enough to settle
-            # ** function expects an array of size consistent with self.elements.lon                
-            self.deactivate_elements((self.environment.land_binary_mask == 6), reason='settled_on_habitat')
+            # check if there are any particles old enough to settle and within habitat
+            old_and_in_habitat = np.logical_and(self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds'), 
+                                                shapely.vectorized.contains(self.habitat_mask, self.elements.lon, self.elements.lat))
+            if old_and_in_habitat.any():
+                self.deactivate_elements(old_and_in_habitat, reason='settled_on_habitat')
 
     #####################################################################################################################
     # IBM: horizontal and vertical movements
@@ -453,9 +428,10 @@ class FishLarvaeOrient(OceanDrift):
             logger.debug('Larvae : direct orientation - %s particles ready for orientation ' % (len(old_enough)))
             if len(old_enough) > 0 :
                 habitat_near, habitat_id = self.ball_centers.query(list(zip(np.deg2rad(self.elements.lat[old_enough]), np.deg2rad(self.elements.lon[old_enough]))), k=1)
-                old_close_enough = np.where( (self.elements.age_seconds >= self.get_config('biology:beginning_orientation')) & \
-                                             (habitat_near.ravel()*6371. < self.get_config('biology:max_orient_distance')) )[0]
-                logger.debug('Larvae : direct orientation - moving %s particles towards nearest reef' % (len(old_close_enough)))
+                # old_close_enough = np.where( (self.elements.age_seconds >= self.get_config('biology:beginning_orientation')) & \
+                #                              (habitat_near.ravel()*6371. < self.get_config('biology:max_orient_distance')) )[0]
+                close_enough = (habitat_near.ravel()*6371. < self.get_config('biology:max_orient_distance')) 
+                logger.debug('Larvae : direct orientation - moving %s particles towards nearest reef' % (close_enough.sum()))
                 # looping through each particles - could be vectorized
                 for i in range(len(self.elements.lat[old_enough])):
                     if habitat_near[i][0]*6371 > self.get_config('biology:max_orient_distance'):
@@ -678,32 +654,32 @@ class FishLarvaeOrient(OceanDrift):
         '''
         pass
                 
-    def increase_age_and_retire(self):  # ##So that if max_age_seconds is exceeded particle is flagged as died
-            """Increase age of elements, and retire if older than config setting.
-               >essentially same as increase_age_and_retire() from basemodel.py, 
-               only using a diffrent reason for retiring particles ('died' instead of 'retired')
-               .. could probably be removed...
-            """
-            # Increase age of elements
-            self.elements.age_seconds += self.time_step.total_seconds()
+    # def increase_age_and_retire(self):  # ##So that if max_age_seconds is exceeded particle is flagged as died
+    #         """Increase age of elements, and retire if older than config setting.
+    #            >essentially same as increase_age_and_retire() from basemodel.py, 
+    #            only using a diffrent reason for retiring particles ('died' instead of 'retired')
+    #            .. could probably be removed...
+    #         """
+    #         # Increase age of elements
+    #         self.elements.age_seconds += self.time_step.total_seconds()
 
-            # Deactivate elements that exceed a certain age
-            if self.get_config('drift:max_age_seconds') is not None:
-                self.deactivate_elements(self.elements.age_seconds >=
-                                         self.get_config('drift:max_age_seconds'),
-                                         reason='died')
+    #         # Deactivate elements that exceed a certain age
+    #         if self.get_config('drift:max_age_seconds') is not None:
+    #             self.deactivate_elements(self.elements.age_seconds >=
+    #                                      self.get_config('drift:max_age_seconds'),
+    #                                      reason='died')
 
-            # Deacticate any elements outside validity domain set by user
-            if self.validity_domain is not None:
-                W, E, S, N = self.validity_domain
-                if W is not None:
-                    self.deactivate_elements(self.elements.lon < W, reason='outside')
-                if E is not None:
-                    self.deactivate_elements(self.elements.lon > E, reason='outside')
-                if S is not None:
-                    self.deactivate_elements(self.elements.lat < S, reason='outside')
-                if N is not None:
-                    self.deactivate_elements(self.elements.lat > N, reason='outside')
+    #         # Deacticate any elements outside validity domain set by user
+    #         if self.validity_domain is not None:
+    #             W, E, S, N = self.validity_domain
+    #             if W is not None:
+    #                 self.deactivate_elements(self.elements.lon < W, reason='outside')
+    #             if E is not None:
+    #                 self.deactivate_elements(self.elements.lon > E, reason='outside')
+    #             if S is not None:
+    #                 self.deactivate_elements(self.elements.lat < S, reason='outside')
+    #             if N is not None:
+    #                 self.deactivate_elements(self.elements.lat > N, reason='outside')
            
 ###################################################################################################################
 # Update position of the larvae
