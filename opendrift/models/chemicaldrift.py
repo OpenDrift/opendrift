@@ -492,7 +492,8 @@ class ChemicalDrift(OceanDrift):
         super(ChemicalDrift, self).seed_elements(*args, **kwargs)
 
     def tempcorr(self,mode,DeltaH,T_C,Tref_C):
-
+        ''' Temperature correction using Arrhenius or Q10 method
+        '''
         if mode == 'Arrhenius':
             R = 8.3145 # J/(mol*K)
             T_K = T_C + 273.15
@@ -503,7 +504,8 @@ class ChemicalDrift(OceanDrift):
         return corr
 
     def salinitycorr(self,Setschenow,Temperature,Salinity):
-
+        ''' Salinity correction
+        '''
         # Setschenow constant for the given chemical (L/mol)
         # Salinity   (PSU =g/Kg)
         # Temperature (Celsius)
@@ -1931,24 +1933,40 @@ class ChemicalDrift(OceanDrift):
             #mass_element_ug=1e6     # 1e6 - 1 element is 1g chemical
 
             def emission_factors(scrubber_type, chemical_compound):
+                """Emission factors for heavy metals and PAHs in
+                    open loop and closed loop scrubbers
+
+                    Hermansson et al 2021
+                    https://doi.org/10.1016/j.trd.2021.102912
+                """
                 emission_factors_open_loop = {
-                    "Copper": 38.75,                # ug/L micrograms per liter
-                    "Nickel": 46.86,
-                    "Vanadium": 176.59,
-                    "Zinc": 110.84,
-                    "Naphthalene": 2.76,
-                    "Phenanthrene": 1.51,
-                    "Fluoranthene": 0.16,
-                    "Benzo(a)anthracene": 0.13,
-                    "Benzo(a)pyrene": 0.05,
-                    "Dibenzo(a,h)anthracene": 0.03
+                    #                           mean    +/-95%
+                    #                           ug/L    ug/L
+                    "Arsenic":                  [6.8,    3.4],
+                    "Cadmium":                  [0.8,    0.3],
+                    "Chromium":                 [15.,    6.5],
+                    "Copper":                   [36.,    12.],
+                    "Iron":                     [260.,   250.],
+                    "Lead":                     [8.8,    4.4],
+                    "Mercury":                  [0.09,   0.01],
+                    "Nickel":                   [48.,    12.],
+                    "Vanadium":                 [170.,   49.],
+                    "Zinc":                     [110.,   59.],
+                    #
+                    "Naphthalene":              [2.81,   0.77],
+                    "Phenanthrene":             [1.51,   0.29],
+                    "Fluoranthene":             [0.16,   0.04],
+                    "Benzo(a)anthracene":       [0.12,   0.05],
+                    "Benzo(a)pyrene":           [0.05,   0.02],
+                    "Dibenzo(a,h)anthracene":   [0.03,   0.01],
                     }
 
                 emission_factors_closed_loop = {
                     }
 
                 if scrubber_type=="open_loop":
-                    return emission_factors_open_loop.get(chemical_compound)
+                    return emission_factors_open_loop.get(chemical_compound)[0]
+                    # TODO: Add emission uncertainty based on 95% confidence interval
 
             sel=np.where((steam > lowerbound) & (steam < higherbound))
             t=steam.time[sel[0]].data
@@ -1978,6 +1996,15 @@ class ChemicalDrift(OceanDrift):
                                 mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z)
 
     def init_chemical_compound(self,chemical_compound):
+        ''' Chemical parameters for a selection of PAHs:
+            Naphthalene, Phenanthrene, Fluorene,
+            Benzo(a)anthracene, Benzo(a)pyrene, Dibenzo(a,h)anthracene
+
+            Data collected from literature by
+            Isabel Hanstein (University of Heidelberg / Norwegian Meteorological Insitute)
+            Mattia Boscherini, Loris Calgaro (University Ca' Foscari, Venezia)
+            Manuel Aghito (Norwegian Meteorological Institute / University of Bergen)
+        '''
 
         if  chemical_compound=="Naphthalene":
 
