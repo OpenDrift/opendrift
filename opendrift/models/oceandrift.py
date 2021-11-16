@@ -435,7 +435,7 @@ class OceanDrift(OpenDriftSimulation):
         else:
             return None
 
-    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None):
+    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1):
         """Function to animate vertical distribution of particles"""
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
@@ -467,20 +467,27 @@ class OceanDrift(OpenDriftSimulation):
         axk.set_ylabel('Depth [m]')
         axk.set_xlabel('Vertical diffusivity [$m^2/s$]')
 
+        subsamplingstep=max(1,subsamplingstep)
+        times=times[0:-1:subsamplingstep]
+        z=z[0:-1:subsamplingstep,:]
+
         hist_series = np.zeros((bins, len(times)))
         bin_series = np.zeros((bins+1, len(times)))
         for i in range(len(times)):
-            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins)
+            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(z[np.isfinite(z)].min(),z[np.isfinite(z)].max()))
         maxnum = hist_series.max()
 
+        axn.clear()
+        bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        axn.set_ylim([maxdepth, 0])
+        axn.set_xlim([0, maxnum])
+        title=axn.set_title('%s UTC' % times[i])
+        axn.set_xlabel('Number of particles')
+
         def update_histogram(i):
-            axn.clear()
-            axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
-            axn.set_ylim([maxdepth, 0])
-            axn.set_xlim([0, maxnum])
-            axn.set_title('%s UTC' % times[i])
-            axn.set_xlabel('Number of particles')
-            #axn.set_ylabel('Depth [m]')
+            for rect, y in zip(bc, hist_series[:,i]):
+                rect.set_width(y)
+            title.set_text('%s UTC' % times[i])
 
         animation = animation.FuncAnimation(fig, update_histogram, len(times))
         if filename is not None or 'sphinx_gallery' in sys.modules:
