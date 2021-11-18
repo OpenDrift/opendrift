@@ -495,17 +495,19 @@ class OceanDrift(OpenDriftSimulation):
         else:
             plt.show()
 
-    def plot_vertical_distribution(self):
-        """Function to plot vertical distribution of particles"""
+    def plot_vertical_distribution(self, maxdepth=None, bins=None, maxnum=None):
+        """Function to plot vertical distribution of particles
+
+            maxdepth: maximum depth considered for the profile
+            bins:     number of bins between surface and maxdepth
+            maxnum:   range of bars in histogram is [0,maxnum]
+        """
         import matplotlib.pyplot as plt
-        from matplotlib.widgets import Slider, Button, RadioButtons
-        from pylab import axes, draw
-        from matplotlib import dates
+        from matplotlib.widgets import Slider
 
         fig = plt.figure()
         mainplot = fig.add_axes([.15, .3, .8, .5])
         sliderax = fig.add_axes([.15, .08, .75, .05])
-        data = self.history['z'].T[1, :]
         tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
                          valinit=self.steps_output-1, valfmt='%0.0f')
         try:
@@ -514,13 +516,35 @@ class OceanDrift(OpenDriftSimulation):
             dz = 1.
         maxrange = -100
 
+        # overwrite default values if input arguments are provided
+        if maxdepth is not None:
+            maxrange = maxdepth
+        if maxrange > 0:
+            maxrange = -maxrange  # negative z
+
+        if bins is not None:
+            dz = -maxrange/bins
+
+        # using get_property instead of history to exclude elements thare are not yet seeded
+        z = self.get_property('z')[0]
+        z = np.ma.filled(z, np.nan)
+
+        if maxnum is None:
+            # Precalculatig histograms to find maxnum
+            hist_series = np.zeros((int(-maxrange/dz), self.steps_output-1))
+            bin_series = np.zeros((int(-maxrange/dz)+1, self.steps_output-1))
+            for i in range(self.steps_output-1):
+                hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=int(-maxrange/dz), range=[maxrange, 0])
+            maxnum = hist_series.max()
+
         def update(val):
             tindex = int(tslider.val)
             mainplot.cla()
             mainplot.grid()
-            mainplot.hist(self.history['z'].T[tindex, :], bins=int(-maxrange/dz),
+            mainplot.hist(z[tindex, :], bins=int(-maxrange/dz),
                           range=[maxrange, 0], orientation='horizontal')
             mainplot.set_ylim([maxrange, 0])
+            mainplot.set_xlim([0, maxnum])
             mainplot.set_xlabel('number of particles')
             mainplot.set_ylabel('depth [m]')
             x_wind = self.history['x_wind'].T[tindex, :]
@@ -529,11 +553,15 @@ class OceanDrift(OpenDriftSimulation):
             mainplot.set_title(str(self.get_time_array()[0][tindex]) +
                                #'   Percent at surface: %.1f %' % percent_at_surface)
                                '   Mean windspeed: %.1f m/s' % windspeed)
-            draw()
+            fig.canvas.draw_idle()
 
         update(0)  # Plot initial distribution
         tslider.on_changed(update)
         plt.show()
+
+        # returning objects prevents unresponsiveness when moving the Slider
+        # https://github.com/matplotlib/matplotlib/issues/3105#issuecomment-44855888
+        return fig,mainplot,sliderax,tslider
 
     def plotter_vertical_distribution_time(self, ax=None, mask=None,
             dz=1., maxrange=-100, bins=None, step=1):
