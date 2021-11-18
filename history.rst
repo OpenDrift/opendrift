@@ -1,6 +1,10 @@
 History
 =======
 
+Next release
+---------------------------
+* A new model :mod:`sealice <opendrift.models.sealice>` has been added, written by `Julien Moreau <https://github.com/Boorhin>`_.
+
 2021-11-08 / Release v1.7.3
 ---------------------------
 * reader_from_url is now using requests instead of urllib, fixing problem with add_readers_from_list and .netrc authentication.
