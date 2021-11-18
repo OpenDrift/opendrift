@@ -17,11 +17,9 @@ def test_sealice_larc():
         })
     o.add_reader(reader_light)
     lcts = timedelta(hours=1).total_seconds()  #seeding time-steps
-    length = timedelta(days=10)
     lat = 67.711251
     lon = 13.556971  # Lofoten
     o.set_config('lice:seeding_time_step', lcts)
-    o.set_config('general:duration', length.total_seconds())
     o.seed_elements(lon,
                     lat,
                     radius=5000,
@@ -29,5 +27,5 @@ def test_sealice_larc():
                     time=reader_arome.start_time,
                     particle_biomass=2000,
                     z=-5)
-    o.run(time_step=lcts, duration=length)
-    np.testing.assert_almost_equal(o.elements.lon.max(), 15.864, 2)
+    o.run(time_step=lcts, steps=2)
+    np.testing.assert_almost_equal(o.elements.lon.max(), 13.882, 2)
