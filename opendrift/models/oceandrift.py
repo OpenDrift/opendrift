@@ -435,11 +435,12 @@ class OceanDrift(OpenDriftSimulation):
         else:
             return None
 
-    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1):
+    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1, fastwriter=False):
         """Function to animate vertical distribution of particles
             bins:            number of bins in the histogram
             maxdepth:        maximum depth
             subsamplingstep: speed-up the generation of the animation reducing the number of output frames
+            fasterwriter:    speed-up the writing to outpute file
         """
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
@@ -573,7 +574,7 @@ class OceanDrift(OpenDriftSimulation):
         #print(end-start)
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(animation, filename, fps=10)
+            self._save_animation(animation, filename, fps=10, fastwriter=fastwriter)
         else:
             plt.show()
 
