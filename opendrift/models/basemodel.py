@@ -4501,7 +4501,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         self.add_readers_from_file(self.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
 
-    def _save_animation(self, anim, filename, fps, fastwriter=True):
+    def _save_animation(self, anim, filename, fps, fastwriter=False):
 
         from opendrift.export.punkrockwriters import PunkFFMpegWriter,PunkImageMagickWriter
         from timeit import default_timer as timer
