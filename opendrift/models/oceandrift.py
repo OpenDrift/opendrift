@@ -436,9 +436,16 @@ class OceanDrift(OpenDriftSimulation):
             return None
 
     def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1):
-        """Function to animate vertical distribution of particles"""
+        """Function to animate vertical distribution of particles
+            bins:            number of bins in the histogram
+            maxdepth:        maximum depth
+            subsamplingstep: speed-up the generation of the animation reducing the number of output frames
+        """
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
+
+        #from timeit import default_timer as timer
+        #start=timer()
 
         fig, (axk, axn) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
         if depths is not None:  # Debug mode, output from one cycle has been provided
@@ -474,8 +481,14 @@ class OceanDrift(OpenDriftSimulation):
         hist_series = np.zeros((bins, len(times)))
         bin_series = np.zeros((bins+1, len(times)))
         for i in range(len(times)):
-            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(z[np.isfinite(z)].min(),z[np.isfinite(z)].max()))
+            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(maxdepth,z[np.isfinite(z)].max()))
         maxnum = hist_series.max()
+
+        # 4 different methods for building the animation available for testing
+        # No significant differences observed so far. Can be useful to keep the
+        # alternative methods here for further testing
+
+        # Current method
 
         axn.clear()
         bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
@@ -490,6 +503,75 @@ class OceanDrift(OpenDriftSimulation):
             title.set_text('%s UTC' % times[i])
 
         animation = animation.FuncAnimation(fig, update_histogram, len(times))
+
+        # alternative methods tested
+        #
+        # alternative1
+        #
+        #     axn.clear()
+        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     title=axn.set_title('%s UTC' % times[i])
+        #     axn.set_xlabel('Number of particles')
+        #
+        #     for i in range(len(bc)):
+        #         axn.add_patch(bc[i])
+        #
+        #     def update2(i):
+        #         for j in range(len(bc)):
+        #             bc[j].set_width(hist_series[j,i])
+        #
+        #         title.set_text('%s UTC' % times[i])
+        #         return [bc[i] for i in range(len(bc))]
+        #
+        #
+        # alternative2
+        #
+        #     axn.clear()
+        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     title=axn.set_title('%s UTC' % times[i])
+        #     axn.set_xlabel('Number of particles')
+        #
+        #     def prepare_animation3(bc):
+        #         def animate(i):
+        #             for count, rect in zip(hist_series[:,i], bc.patches):
+        #                 rect.set_width(count)
+        #             title.set_text('%s UTC' % times[i])
+        #             return bc.patches
+        #         return animate
+        #
+        # alternative3
+        #
+        #     axn.cla()
+        #     axn.grid()
+        #     axn.hist(z[i, :], bins=bins,
+        #                   range=[maxdepth, 0], orientation='horizontal')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     axn.set_xlabel('number of particles')
+        #     axn.set_title('%s UTC' % times[i])
+        #
+        #     def update4(i):
+        #         axn.cla()
+        #         #axn.grid()
+        #         axn.hist(z[i, :], bins=bins,
+        #                       range=[maxdepth, 0], orientation='horizontal')
+        #         axn.set_ylim([maxdepth, 0])
+        #         axn.set_xlim([0, maxnum])
+        #         axn.set_xlabel('number of particles')
+        #         axn.set_title('%s UTC' % times[i])
+        #         #fig.canvas.draw_idle()
+        #
+        #     animation = animation.FuncAnimation(fig, update2, len(times), blit=True)
+        #     animation = animation.FuncAnimation(fig, prepare_animation3(bc), len(times), blit=True)
+        #     animation = animation.FuncAnimation(fig, update3, len(times))
+
+        #end=timer()
+        #print(end-start)
+
         if filename is not None or 'sphinx_gallery' in sys.modules:
             self._save_animation(animation, filename, fps=10)
         else:
