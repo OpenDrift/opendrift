@@ -100,7 +100,7 @@ class LopheliaLarvaeDrift(OceanDrift):
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
-                     'hatched': 'red', 'eaten': 'yellow', 'died': 'magenta'}
+                     'spawned': 'red', 'settled': 'yellow', 'died': 'magenta'}
 
 
     def __init__(self, *args, **kwargs):
@@ -172,7 +172,7 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         scenario = 'short' # Set scenario, 'short' or 'long' depending on length of pre-competency period
         sday = 24*60*60 # Seconds in one day
-        reftemp = 8 # degree C
+        self.reftemp = 8 # degree C
 
         if scenario == 'short':
             dup2dwn = 21
@@ -182,7 +182,7 @@ class LopheliaLarvaeDrift(OceanDrift):
         idd = np.arange(15, dtype=float)
         idd = np.insert(idd, [7, 8], [6.001, 7.001])
         idd = np.append(idd, [dup2dwn, dup2dwn+1])
-        idd = idd*sday*reftemp
+        idd = idd*sday*self.reftemp
 
         w_idd = np.array([0, 0, 0.00005, 0.00005, 0.00005, 0.0002, 0.00025, 0, 0, 0, 0.0003, 0.00035, 0.0004, 0.00045, 0.0005, 0.00055, 0.0006, 0.0006, -0.0006]) # Vertical velocities at specified stages
 
@@ -213,3 +213,11 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Vertical advection
         if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
+	
+	if seft.time_step.total_seconds() < 0:
+	    self.deactivate_elements(self.elements.competence <= 0., reason='spawned')
+	
+        if seft.time_step.total_seconds() > 0:
+	    self.deactivate_elements(self.elements.competence > 21.*24*3600*ref_temp & self.elements.z < -sea_floor_depth, reason='settled')
+	    self.deactivate_elements(self.elements.competence > 60.*24*3600* ref_temp , reason='died')
+	
