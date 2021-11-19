@@ -218,6 +218,6 @@ class LopheliaLarvaeDrift(OceanDrift):
 	    self.deactivate_elements(self.elements.competence <= 0., reason='spawned')
 	
         if seft.time_step.total_seconds() > 0:
-	    self.deactivate_elements(self.elements.competence > 21.*24*3600*ref_temp & self.elements.z < -sea_floor_depth, reason='settled')
-	    self.deactivate_elements(self.elements.competence > 60.*24*3600* ref_temp , reason='died')
+	    self.deactivate_elements(self.elements.competence > 21.*24*3600* self.reftemp & self.elements.z < -sea_floor_depth, reason='settled')
+	    self.deactivate_elements(self.elements.competence > 60.*24*3600* self.reftemp , reason='died')
 	
