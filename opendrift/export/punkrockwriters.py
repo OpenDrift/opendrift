@@ -10,6 +10,7 @@
 
 from matplotlib.animation import FFMpegWriter
 from matplotlib.animation import ImageMagickWriter
+import matplotlib
 
 class PunkImageMagickWriter(ImageMagickWriter):
     '''Faster ImageMagick-pipe writer bypassing figure.savefig.'''
@@ -31,8 +32,10 @@ class PunkImageMagickWriter(ImageMagickWriter):
             self.fig.set_dpi(self.dpi)
             # Draw and save the frame as an argb string to the pipe sink
             self.fig.canvas.draw()
-            #self._frame_sink().write(self.fig.canvas.tostring_argb()) 
-            self._proc.stdin.write(self.fig.canvas.tostring_rgb())
+            if matplotlib.__version__<'3.4':
+                self._frame_sink().write(self.fig.canvas.tostring_rgb())
+            else:
+                self._proc.stdin.write(self.fig.canvas.tostring_rgb())
         except (RuntimeError, IOError) as e:
             out, err = self._proc.communicate()
             raise IOError('Error saving animation to file (cause: {0}) '
@@ -59,8 +62,10 @@ class PunkFFMpegWriter(FFMpegWriter):
             self.fig.set_dpi(self.dpi)
             # Draw and save the frame as an argb string to the pipe sink
             self.fig.canvas.draw()
-            #self._frame_sink().write(self.fig.canvas.tostring_argb()) 
-            self._proc.stdin.write(self.fig.canvas.tostring_argb())
+            if matplotlib.__version__<'3.4':
+                self._frame_sink().write(self.fig.canvas.tostring_argb())
+            else:
+                self._proc.stdin.write(self.fig.canvas.tostring_argb())
         except (RuntimeError, IOError) as e:
             out, err = self._proc.communicate()
             raise IOError('Error saving animation to file (cause: {0}) '
