@@ -4571,7 +4571,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.debug(traceback.format_exc())
 
         end=timer()
-        logger.info("fastwriter="+str(fastwriter)+ ' , elapsed_time: ' +str(end-start)+'s')
+        logger.info("backend="+str(matplotlib.get_backend())+" , fastwriter="+str(fastwriter)+ ' , elapsed_time: ' +str(end-start)+'s')
 
         if 'sphinx_gallery' in sys.modules:
             plt.close()
