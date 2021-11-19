@@ -2921,7 +2921,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   show_trajectories=False, trajectory_alpha=.1, hide_landmask=False,
                   density_pixelsize_m=1000, unitfactor=1, lcs=None,
                   surface_only=False, markersize=20, origin_marker=None,
-                  legend=None, legend_loc='best', fps=8, lscale=None, fast=False, **kwargs):
+                  legend=None, legend_loc='best', fps=8, lscale=None, fast=False, fastwriter=False, **kwargs):
         """Animate last run."""
 
 
@@ -3225,7 +3225,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(anim, filename, fps)
+            self._save_animation(anim, filename, fps, fastwriter=fastwriter)
             logger.debug('Time to make animation: %s' %
                           (datetime.now()-start_time))
         else:
@@ -3237,7 +3237,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     def animation_profile(self, filename=None, compare=None,
                           legend=['', ''], markersize=5, fps=20,
                           color=None, cmap=None, vmin=None, vmax=None,
-                          legend_loc=None):
+                          legend_loc=None, fastwriter=False):
         """Animate vertical profile of the last run."""
 
 
@@ -3362,7 +3362,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                        frames=x.shape[1], interval=150)
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(anim, filename, fps)
+            self._save_animation(anim, filename, fps, fastwriter=fastwriter)
 
         else:
             try:
@@ -4501,7 +4501,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         self.add_readers_from_file(self.test_data_folder() +
             '../../opendrift/scripts/data_sources.txt')
 
-    def _save_animation(self, anim, filename, fps):
+    def _save_animation(self, anim, filename, fps, fastwriter=False):
+
+        from opendrift.export.punkrockwriters import PunkFFMpegWriter,PunkImageMagickWriter
+        from timeit import default_timer as timer
+
+        start=timer()
+
         if 'sphinx_gallery' in sys.modules:
             # This assumes that the calling script is two frames up in the stack. If
             # _save_animation is called through a more deeply nested method, it will
@@ -4534,12 +4540,23 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         try:
             if filename[-4:] == '.gif':  # GIF
                 logger.info('Making animated gif...')
-                anim.save(filename, fps=fps, writer='imagemagick')
+                if not fastwriter:
+                    anim.save(filename, fps=fps, writer='imagemagick')
+                elif fastwriter:
+                    writergif=PunkImageMagickWriter(fps=fps)
+                    anim.save(filename, writer=writergif)
             else:  # MP4
                 try:
-                    FFwriter=animation.FFMpegWriter(fps=fps,
-                        codec='libx264', bitrate=1800,
-                        extra_args=['-profile:v', 'baseline',
+                    if not fastwriter:
+                        FFwriter=animation.FFMpegWriter(fps=fps,
+                            codec='libx264', bitrate=1800,
+                            extra_args=['-profile:v', 'baseline',
+                                    '-vf', 'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
+                                    '-pix_fmt', 'yuv420p', '-an'])
+                    elif fastwriter:
+                        FFwriter=PunkFFMpegWriter(fps=fps,
+                            codec='libx264', bitrate=1800,
+                            extra_args=['-profile:v', 'baseline',
                                     '-vf', 'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
                                     '-pix_fmt', 'yuv420p', '-an'])
                     anim.save(filename, writer=FFwriter)
@@ -4552,6 +4569,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info('Could not save animation:')
             logger.info(e)
             logger.debug(traceback.format_exc())
+
+        end=timer()
+        logger.info("fastwriter="+str(fastwriter)+ ' , elapsed_time: ' +str(end-start)+'s')
 
         if 'sphinx_gallery' in sys.modules:
             plt.close()

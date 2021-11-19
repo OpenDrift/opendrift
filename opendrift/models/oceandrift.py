@@ -435,10 +435,18 @@ class OceanDrift(OpenDriftSimulation):
         else:
             return None
 
-    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1):
-        """Function to animate vertical distribution of particles"""
+    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1, fastwriter=False):
+        """Function to animate vertical distribution of particles
+            bins:            number of bins in the histogram
+            maxdepth:        maximum depth
+            subsamplingstep: speed-up the generation of the animation reducing the number of output frames
+            fasterwriter:    speed-up the writing to outpute file
+        """
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
+
+        #from timeit import default_timer as timer
+        #start=timer()
 
         fig, (axk, axn) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
         if depths is not None:  # Debug mode, output from one cycle has been provided
@@ -474,8 +482,14 @@ class OceanDrift(OpenDriftSimulation):
         hist_series = np.zeros((bins, len(times)))
         bin_series = np.zeros((bins+1, len(times)))
         for i in range(len(times)):
-            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(z[np.isfinite(z)].min(),z[np.isfinite(z)].max()))
+            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(maxdepth,z[np.isfinite(z)].max()))
         maxnum = hist_series.max()
+
+        # 4 different methods for building the animation available for testing
+        # No significant differences observed so far. Can be useful to keep the
+        # alternative methods here for further testing
+
+        # Current method
 
         axn.clear()
         bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
@@ -490,22 +504,93 @@ class OceanDrift(OpenDriftSimulation):
             title.set_text('%s UTC' % times[i])
 
         animation = animation.FuncAnimation(fig, update_histogram, len(times))
+
+        # alternative methods tested
+        #
+        # alternative1
+        #
+        #     axn.clear()
+        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     title=axn.set_title('%s UTC' % times[i])
+        #     axn.set_xlabel('Number of particles')
+        #
+        #     for i in range(len(bc)):
+        #         axn.add_patch(bc[i])
+        #
+        #     def update2(i):
+        #         for j in range(len(bc)):
+        #             bc[j].set_width(hist_series[j,i])
+        #
+        #         title.set_text('%s UTC' % times[i])
+        #         return [bc[i] for i in range(len(bc))]
+        #
+        #
+        # alternative2
+        #
+        #     axn.clear()
+        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     title=axn.set_title('%s UTC' % times[i])
+        #     axn.set_xlabel('Number of particles')
+        #
+        #     def prepare_animation3(bc):
+        #         def animate(i):
+        #             for count, rect in zip(hist_series[:,i], bc.patches):
+        #                 rect.set_width(count)
+        #             title.set_text('%s UTC' % times[i])
+        #             return bc.patches
+        #         return animate
+        #
+        # alternative3
+        #
+        #     axn.cla()
+        #     axn.grid()
+        #     axn.hist(z[i, :], bins=bins,
+        #                   range=[maxdepth, 0], orientation='horizontal')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     axn.set_xlabel('number of particles')
+        #     axn.set_title('%s UTC' % times[i])
+        #
+        #     def update4(i):
+        #         axn.cla()
+        #         #axn.grid()
+        #         axn.hist(z[i, :], bins=bins,
+        #                       range=[maxdepth, 0], orientation='horizontal')
+        #         axn.set_ylim([maxdepth, 0])
+        #         axn.set_xlim([0, maxnum])
+        #         axn.set_xlabel('number of particles')
+        #         axn.set_title('%s UTC' % times[i])
+        #         #fig.canvas.draw_idle()
+        #
+        #     animation = animation.FuncAnimation(fig, update2, len(times), blit=True)
+        #     animation = animation.FuncAnimation(fig, prepare_animation3(bc), len(times), blit=True)
+        #     animation = animation.FuncAnimation(fig, update3, len(times))
+
+        #end=timer()
+        #print(end-start)
+
         if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(animation, filename, fps=10)
+            self._save_animation(animation, filename, fps=10, fastwriter=fastwriter)
         else:
             plt.show()
 
-    def plot_vertical_distribution(self):
-        """Function to plot vertical distribution of particles"""
+    def plot_vertical_distribution(self, maxdepth=None, bins=None, maxnum=None):
+        """Function to plot vertical distribution of particles
+
+            maxdepth: maximum depth considered for the profile
+            bins:     number of bins between surface and maxdepth
+            maxnum:   range of bars in histogram is [0,maxnum]
+        """
         import matplotlib.pyplot as plt
-        from matplotlib.widgets import Slider, Button, RadioButtons
-        from pylab import axes, draw
-        from matplotlib import dates
+        from matplotlib.widgets import Slider
 
         fig = plt.figure()
         mainplot = fig.add_axes([.15, .3, .8, .5])
         sliderax = fig.add_axes([.15, .08, .75, .05])
-        data = self.history['z'].T[1, :]
         tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
                          valinit=self.steps_output-1, valfmt='%0.0f')
         try:
@@ -514,13 +599,35 @@ class OceanDrift(OpenDriftSimulation):
             dz = 1.
         maxrange = -100
 
+        # overwrite default values if input arguments are provided
+        if maxdepth is not None:
+            maxrange = maxdepth
+        if maxrange > 0:
+            maxrange = -maxrange  # negative z
+
+        if bins is not None:
+            dz = -maxrange/bins
+
+        # using get_property instead of history to exclude elements thare are not yet seeded
+        z = self.get_property('z')[0]
+        z = np.ma.filled(z, np.nan)
+
+        if maxnum is None:
+            # Precalculatig histograms to find maxnum
+            hist_series = np.zeros((int(-maxrange/dz), self.steps_output-1))
+            bin_series = np.zeros((int(-maxrange/dz)+1, self.steps_output-1))
+            for i in range(self.steps_output-1):
+                hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=int(-maxrange/dz), range=[maxrange, 0])
+            maxnum = hist_series.max()
+
         def update(val):
             tindex = int(tslider.val)
             mainplot.cla()
             mainplot.grid()
-            mainplot.hist(self.history['z'].T[tindex, :], bins=int(-maxrange/dz),
+            mainplot.hist(z[tindex, :], bins=int(-maxrange/dz),
                           range=[maxrange, 0], orientation='horizontal')
             mainplot.set_ylim([maxrange, 0])
+            mainplot.set_xlim([0, maxnum])
             mainplot.set_xlabel('number of particles')
             mainplot.set_ylabel('depth [m]')
             x_wind = self.history['x_wind'].T[tindex, :]
@@ -529,11 +636,15 @@ class OceanDrift(OpenDriftSimulation):
             mainplot.set_title(str(self.get_time_array()[0][tindex]) +
                                #'   Percent at surface: %.1f %' % percent_at_surface)
                                '   Mean windspeed: %.1f m/s' % windspeed)
-            draw()
+            fig.canvas.draw_idle()
 
         update(0)  # Plot initial distribution
         tslider.on_changed(update)
         plt.show()
+
+        # returning objects prevents unresponsiveness when moving the Slider
+        # https://github.com/matplotlib/matplotlib/issues/3105#issuecomment-44855888
+        return fig,mainplot,sliderax,tslider
 
     def plotter_vertical_distribution_time(self, ax=None, mask=None,
             dz=1., maxrange=-100, bins=None, step=1):

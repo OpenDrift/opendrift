@@ -39,11 +39,11 @@ o.run(duration=timedelta(hours=2), time_step=60, time_step_output=60)
 # Print and plot results
 print(o)
 
-o.animation_profile()
+o.animation_profile(fastwriter=True)
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_0.gif
 
-o.animate_vertical_distribution(bins=30,subsamplingstep=5)
+o.animate_vertical_distribution(bins=30,subsamplingstep=5,fastwriter=True)
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_1.gif
 
