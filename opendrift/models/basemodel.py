@@ -4509,7 +4509,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         start=timer()
 
         if 'sphinx_gallery' in sys.modules:
-
             # This assumes that the calling script is two frames up in the stack. If
             # _save_animation is called through a more deeply nested method, it will
             # not give the correct result.
