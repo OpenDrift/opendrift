@@ -200,22 +200,33 @@ class OceanDrift(OpenDriftSimulation):
         y_vel = np.ones(self.num_elements_active())*np.NaN
         st = datetime.now()
 
-        for n in range(self.num_elements_active()):
-            t = datetime.now()
-            dict_input = {s: getattr(self.environment, s)[n] for s in self.ml_predictors}
-            single_predictor_normalized = self.generate_one_normalized_predictor(
-                                            dict_input, self.dict_normalization_params)
-            # perform a prediction from normalized predictor to normalized label
-            predicted_residual_correction = self.trained_model.predict(single_predictor_normalized)
-            # get the "native units" residual correction
-            native_units_correction = self.generate_one_denormalized_prediction(
-                predicted_residual_correction, self.dict_normalization_params)
+        list_predictors_normalized = []
+        list_predictors_denormalized = []
 
+        # Prepare predictor dicts
+        for n in range(self.num_elements_active()):
+            dict_input = {s: getattr(self.environment, s)[n] for s in self.ml_predictors}
+            predictor_normalized = self.generate_one_normalized_predictor(
+                                            dict_input, self.dict_normalization_params)
+            list_predictors_normalized.append(predictor_normalized)
+
+        # Normalize
+        all_predictors_normalized = np.squeeze(np.array(list_predictors_normalized))
+        # perform a prediction from normalized predictor to normalized label
+        logger.warning('Calculating ML correction...')
+        predicted_normalized_residual_correction = self.trained_model.predict(all_predictors_normalized)
+        # get the "native units" residual correction
+        logger.warning('Denormalization...')
+        for n in range(self.num_elements_active()):
+            native_units_correction = self.generate_one_denormalized_prediction(
+                predicted_normalized_residual_correction[n, :], self.dict_normalization_params)
             x_vel[n] = native_units_correction['residual_displacement_x']*1000/3600
             y_vel[n] = native_units_correction['residual_displacement_y']*1000/3600
+
+        # Apply correction
         logger.warning('Applying ML correction: %s to %s m/s eastwards, %s to %s m/s northwards' %
                         (x_vel.min(), x_vel.max(), y_vel.min(), y_vel.max()))
-        logger.warning('%s particles, %s' % (self.num_elements_active(), datetime.now()-st))
+        #logger.warning('%s particles, %s' % (self.num_elements_active(), datetime.now()-st))
         self.update_positions(x_vel, y_vel)
 
     def disable_vertical_motion(self):
