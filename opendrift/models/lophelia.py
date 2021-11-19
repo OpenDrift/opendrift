@@ -114,18 +114,9 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Vertical mixing is enabled by default
         self.set_config('drift:vertical_mixing', True)
 
-    def update_terminal_velocity(self, Tprofiles=None,
-                                 Sprofiles=None, z_index=None):
+    def update_terminal_velocity(self, z_index=None):
         """Calculate terminal velocity for larvae
 
-        according to
-        S. Sundby (1983): A one-dimensional model for the vertical
-        distribution of pelagic fish eggs in the mixed layer
-        Deep Sea Research (30) pp. 645-661
-
-        Method copied from ibm.f90 module of LADIM:
-        Vikebo, F., S. Sundby, B. Aadlandsvik and O. Otteraa (2007),
-        Fish. Oceanogr. (16) pp. 216-228
         """
         g = 9.81  # ms-2
 
@@ -133,40 +124,6 @@ class LopheliaLarvaeDrift(OceanDrift):
         larvaesize = self.elements.diameter  # 0.0002 for Lophelia
         #eggsalinity = self.elements.neutral_buoyancy_salinity
 
-        # Prepare interpolation of temperature and salinity
-        # if not (Tprofiles is None and Sprofiles is None):
-        #     if z_index is None:
-        #         z_i = range(Tprofiles.shape[0])  # Evtl. move out of loop
-        #         z_index = interp1d(-self.environment_profiles['z'],
-        #                            z_i, bounds_error=False)
-        #     zi = z_index(-self.elements.z)
-        #     upper = np.maximum(np.floor(zi).astype(np.int), 0)
-        #     lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
-        #     weight_upper = 1 - (zi - upper)
-        #
-        # # Do interpolation of temp, salt if profiles were passed into
-        # # this function, if not, use reader by calling self.environment
-        # if Tprofiles is None:
-        #     T0 = self.environment.sea_water_temperature
-        # else:
-        #     T0 = Tprofiles[upper, range(Tprofiles.shape[1])] * \
-        #         weight_upper + \
-        #         Tprofiles[lower, range(Tprofiles.shape[1])] * \
-        #         (1-weight_upper)
-        # if Sprofiles is None:
-        #     S0 = self.environment.sea_water_salinity
-        # else:
-        #     S0 = Sprofiles[upper, range(Sprofiles.shape[1])] * \
-        #         weight_upper + \
-        #         Sprofiles[lower, range(Sprofiles.shape[1])] * \
-        #         (1-weight_upper)
-        #
-        # # The larvae have the same temperature and salinity as the ambient water (can be modified).
-        # DENSw = self.sea_water_density(T=T0, S=S0)
-        # DENSegg = self.sea_water_density(T=T0, S=S0)
-        # dr = DENSw-DENSegg  # density difference
-        #
-        # W = np.zeros(len(self.elements.ID))
 
 	    # Set vertical velocities depending on stage (age) in larval phase:
 
@@ -188,7 +145,7 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         W = np.interp(self.elements.competence, idd, w_idd)
 
-
+        print(w)
         self.elements.terminal_velocity = W
 
     def update(self):
@@ -206,6 +163,7 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Turbulent Mixing
         self.update_terminal_velocity()
         self.vertical_mixing()
+        #self.vertical_buoyancy()
 
         # Horizontal advection
         self.advect_ocean_current()
@@ -213,11 +171,10 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Vertical advection
         if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
-	
-	if seft.time_step.total_seconds() < 0:
-	    self.deactivate_elements(self.elements.competence <= 0., reason='spawned')
-	
-        if seft.time_step.total_seconds() > 0:
-	    self.deactivate_elements(self.elements.competence > 21.*24*3600* self.reftemp & self.elements.z < -sea_floor_depth, reason='settled')
-	    self.deactivate_elements(self.elements.competence > 60.*24*3600* self.reftemp , reason='died')
-	
+
+        if self.time_step.total_seconds() < 0:
+            self.deactivate_elements(self.elements.competence <= 0., reason='spawned')
+
+        if self.time_step.total_seconds() > 0:
+            self.deactivate_elements(self.elements.competence > 21.*24*3600* self.reftemp & self.elements.z < -sea_floor_depth, reason='settled')
+            self.deactivate_elements(self.elements.competence > 60.*24*3600* self.reftemp , reason='died')
