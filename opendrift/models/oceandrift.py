@@ -15,7 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta
 import numpy as np
 from scipy.interpolate import interp1d
 import logging; logger = logging.getLogger(__name__)
@@ -89,6 +89,21 @@ class OceanDrift(OpenDriftSimulation):
     required_profiles_z_range = [-20, 0]
 
     def __init__(self, *args, **kwargs):
+
+        if 'machine_learning_dict' in kwargs:
+            logger.debug('Machine learning correction supplied.')
+            mld = kwargs['machine_learning_dict']
+            del kwargs['machine_learning_dict']
+            import pickle
+            from tensorflow import keras
+            from tools.normalizations import generate_one_normalized_predictor, generate_one_denormalized_prediction
+            self.generate_one_normalized_predictor = generate_one_normalized_predictor
+            self.generate_one_denormalized_prediction = generate_one_denormalized_prediction
+            self.trained_model = keras.models.load_model(mld['trained_model'])
+            self.dict_normalization_params = pickle.load(open(mld['dict_normalization_params'], 'rb'))
+            self.ml_predictors = [self.dict_normalization_params['predictors'][i]['content'] for i in self.dict_normalization_params['predictors']]
+        else:
+            logger.debug('No machine learning correction available.')
 
         # Calling general constructor of parent class
         super(OceanDrift, self).__init__(*args, **kwargs)
@@ -164,6 +179,55 @@ class OceanDrift(OpenDriftSimulation):
 
         # Vertical advection
         self.vertical_advection()
+
+        # Optional machine learning correction
+        self.machine_learning_correction()
+
+    def machine_learning_correction(self):
+        if not hasattr(self, 'trained_model'):
+            return  # No machine learning correction available
+
+        # ML shall only be applied every 1 hour
+        if not hasattr(self, 'ml_timesteps'):
+            self.ml_timesteps = 3600/self.time_step.total_seconds()
+        if self.steps_calculation % self.ml_timesteps != 0:
+            logger.warning('ML not applied at time step %s' % self.steps_calculation)
+            return
+
+        # Only apply every 1 hour
+        logger.warning('Machine learning')
+        x_vel = np.ones(self.num_elements_active())*np.NaN
+        y_vel = np.ones(self.num_elements_active())*np.NaN
+        st = datetime.now()
+
+        list_predictors_normalized = []
+        list_predictors_denormalized = []
+
+        # Prepare predictor dicts
+        for n in range(self.num_elements_active()):
+            dict_input = {s: getattr(self.environment, s)[n] for s in self.ml_predictors}
+            predictor_normalized = self.generate_one_normalized_predictor(
+                                            dict_input, self.dict_normalization_params)
+            list_predictors_normalized.append(predictor_normalized)
+
+        # Normalize
+        all_predictors_normalized = np.squeeze(np.array(list_predictors_normalized))
+        # perform a prediction from normalized predictor to normalized label
+        logger.warning('Calculating ML correction...')
+        predicted_normalized_residual_correction = self.trained_model.predict(all_predictors_normalized)
+        # get the "native units" residual correction
+        logger.warning('Denormalization...')
+        for n in range(self.num_elements_active()):
+            native_units_correction = self.generate_one_denormalized_prediction(
+                predicted_normalized_residual_correction[n, :], self.dict_normalization_params)
+            x_vel[n] = native_units_correction['residual_displacement_x']*1000/3600
+            y_vel[n] = native_units_correction['residual_displacement_y']*1000/3600
+
+        # Apply correction
+        logger.warning('Applying ML correction: %s to %s m/s eastwards, %s to %s m/s northwards' %
+                        (x_vel.min(), x_vel.max(), y_vel.min(), y_vel.max()))
+        #logger.warning('%s particles, %s' % (self.num_elements_active(), datetime.now()-st))
+        self.update_positions(x_vel, y_vel)
 
     def disable_vertical_motion(self):
         """Deactivate any vertical processes/advection"""
