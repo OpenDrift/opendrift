@@ -435,15 +435,15 @@ class Reader(BaseReader,UnstructuredReader):
                     data,variables = self.convert_3d_to_array(indxTime,data,variables)
 
             elif (par in ['land_binary_mask']) & (self.use_model_landmask) :
-                dry_elem = self.dataset.variables[self.variable_mapping[par]][indxTime,:] # dry_elem =1 if dry, 0 if wet
+                dry_elem = self.dataset.variables[self.variable_mapping[par]][indxTime,:] # dry_elem =1 if dry, 0 if wet, for each element face
                 # find indices of nodes making up the dry elements
                 if len(self.dataset['SCHISM_hgrid_face_nodes'].shape) == 3:
                     # when using open_mfdataset, the variable is expanded along time dimension, hence use of indxTime shape = (nb_time,nb_elem,4)
-                    node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][indxTime,dry_elem.values.astype('bool'),:]) # id of nodes making up each elements 
+                    node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][indxTime,dry_elem.values.astype('bool'),:]) # id of nodes making up each element 
                 else:
                     node_id = np.ravel(self.dataset['SCHISM_hgrid_face_nodes'][dry_elem.values.astype('bool'),:]) # id of nodes making up each elements shape = (nb_elem,4)
                 # remove nans, and keep unique indices
-                node_id = np.unique(node_id[~np.isnan(node_id)])
+                node_id = np.unique(node_id[~np.isnan(node_id)]) - 1 # add <-1> to convert node index rather than absolute number
                 data = 0.0*self.x # build array, same size as node
                 data[node_id.astype(int)] = 1.0 # set dry nodes to one to be used as 'land_binary_mask'
 
@@ -875,10 +875,10 @@ class Reader(BaseReader,UnstructuredReader):
             on_shore_landmask = shapely.vectorized.contains(self.shore_landmask, lon_tmp, lat_tmp)
             # update the 'land_binary_mask' accounting for shoreline landmask
             env['land_binary_mask'] = np.maximum(env['land_binary_mask'],on_shore_landmask.astype(float))
-            
+
         # make sure dry points have zero velocities which is not always the case
         # we could also look at using depth and thresholds to flag other dry points ?
-        if 'land_binary_mask' in env.keys() :
+        if 'land_binary_mask' in env.keys():
             logger.debug('Setting [x_sea_water_velocity,y_sea_water_velocity] to zero at dry points')
             env['x_sea_water_velocity'][env['land_binary_mask'].astype('bool')] = 0
             env['y_sea_water_velocity'][env['land_binary_mask'].astype('bool')] = 0
