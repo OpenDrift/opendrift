@@ -4566,7 +4566,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.debug(traceback.format_exc())
 
         end=timer()
-        logger.info("MPLBACKEND="+str(matplotlib.get_backend())+"DISPLAY="+os.environ.get('DISPLAY')+" , fastwriter="+str(fastwriter)+ ' , time: ' +str(end-start)+'s')
+        logger.info("MPLBACKEND="+str(matplotlib.get_backend())+"DISPLAY="+os.environ.get('DISPLAY', 'None')+" , fastwriter="+str(fastwriter)+ ' , time: ' +str(end-start)+'s')
 
         if 'sphinx_gallery' in sys.modules:
             plt.close()
