@@ -34,7 +34,7 @@ o.run(steps=60*2, time_step=1800, time_step_output=1800)
 #%%
 # Print and plot results
 print(o)
-o.animation(fast=False, corners=[3.5, 5.5, 59.9, 61.2], fastwriter=True)
+o.animation(fast=False, corners=[3.5, 5.5, 59.9, 61.2],fastwriter=True)
 
 #%%
 # .. image:: /gallery/animations/example_grid_0.gif
