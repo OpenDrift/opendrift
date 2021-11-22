@@ -56,11 +56,12 @@ import pyproj
 from opendrift.readers.basereader import BaseReader, UnstructuredReader
 from opendrift.readers.basereader.consts import *
 import xarray as xr
+import shapely
 
 
 class Reader(BaseReader,UnstructuredReader):
 
-    def __init__(self, filename=None, name=None, proj4=None, use_3d = None , use_model_landmask = False):
+    def __init__(self, filename=None, name=None, proj4=None, use_3d = None , use_model_landmask = False,**kwargs):
         """Initialise reader_netCDF_CF_unstructured_SCHISM
 
         Args:
@@ -72,6 +73,10 @@ class Reader(BaseReader,UnstructuredReader):
             use_3d      :   switch to use 3d flows (if available)
             use_model_landmask  : switch to use time-varying landmask from model wetdry_elem 
                                   (False by default)
+            kwargs      : shoreline_file , allows adding a shoreline file that will be used alongside model 
+                          landmask to flag particles on land in _get_variables_interpolated_()
+                          Required in some cases to avoid particles going 
+                          on land
         """
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -146,6 +151,15 @@ class Reader(BaseReader,UnstructuredReader):
             else:
                 logger.debug('No vertical level information present in file ''zcor'' ... stopping')
                 raise ValueError('variable ''zcor'' must be present in netcdf file to be able to use 3D currents')
+        
+        # set options for particles on-land check, using model landmask or not 
+        self.use_model_landmask = use_model_landmask
+        if self.use_model_landmask : 
+            logger.debug('Using time-varying landmask from SCHISM for on-land particles checks (wetdry_elem variable) ')
+            if 'shore_file' in kwargs:
+                logger.debug('Also adding static shoreline file %s for additionnal on-land particles' %  kwargs['shore_file'])
+                self.shore_file = kwargs['shore_file']
+                self.shore_landmask = self.load_shoreline_landmask()
                         
         logger.debug('Finding coordinate variables.')
         # Find x, y and z coordinates
@@ -853,6 +867,21 @@ class Reader(BaseReader,UnstructuredReader):
         # not using for now
         if False :
             self.apply_logarithmic_current_profile(env,z)
+         
+        # additional on-land checks using shore_landmask (if present)
+        if 'land_binary_mask' in env.keys() and self.use_model_landmask:
+            logger.debug('Updating land_binary_mask using shoreline landmask <%s> ' % self.shore_file)
+            lon_tmp,lat_tmp = self.xy2lonlat(reader_x,reader_y)
+            on_shore_landmask = shapely.vectorized.contains(self.shore_landmask, lon_tmp, lat_tmp)
+            # update the 'land_binary_mask' accounting for shoreline landmask
+            env['land_binary_mask'] = np.maximum(env['land_binary_mask'],on_shore_landmask.astype(float))
+            
+        # make sure dry points have zero velocities which is not always the case
+        # we could also look at using depth and thresholds to flag other dry points ?
+        if 'land_binary_mask' in env.keys() :
+            logger.debug('Setting [x_sea_water_velocity,y_sea_water_velocity] to zero at dry points')
+            env['x_sea_water_velocity'][env['land_binary_mask'].astype('bool')] = 0
+            env['y_sea_water_velocity'][env['land_binary_mask'].astype('bool')] = 0
 
         return env, env_profiles
 
@@ -916,6 +945,38 @@ class Reader(BaseReader,UnstructuredReader):
         log_fac = ( np.log(part_z_above_seabed / self.z0) ) / ( np.log(np.abs(total_depth)/self.z0)-1 ) # total_depth must be positive, hence the abs()
         log_fac[np.where(part_z_above_seabed<=0)] = 1.0 # do not change velocity value
         return log_fac
+
+        shore = np.loadtxt(
+            polygon_file)  # nan-delimited closed polygons for land and islands
+    
+    def load_shoreline_landmask(self):
+        # load shoreline polygon is added by user,used for additional on-land checks
+        #  must be in wgs84
+        # see reader_landmask_custom.py
+        from shapely.geometry import Polygon, MultiPolygon, asPolygon
+        import shapely
+
+        shore = np.loadtxt(
+            self.shore_file)  # nan-delimited closed polygons for land and islands
+
+        # Loop through polygon to build MultiPolygon object
+        #
+        # make sure that start and end lines are [nan,nan] as well
+        if not np.isnan(shore[0, 0]):
+            shore = np.vstack(([np.nan, np.nan], shore))
+        if not np.isnan(shore[-1, 0]):
+            shore = np.vstack((shore, [np.nan, np.nan]))
+        id_nans = np.where(np.isnan(shore[:, 0]))[0]
+        poly = []
+        for cnt, _id_i in enumerate(id_nans[:-1]):
+            # The shapely.geometry.asShape() family of functions can be used to wrap Numpy coordinate arrays
+            # https://shapely.readthedocs.io/en/latest/manual.html
+            poly.append(
+                asPolygon(shore[id_nans[cnt] + 1:id_nans[cnt + 1] - 1, :]))
+        # We can pass multiple Polygon -objects into our MultiPolygon as a list
+        landmask = MultiPolygon(poly)
+        landmask = shapely.prepared.prep(landmask)
+        return landmask
 
     def plot_mesh(self, variable=None, vmin=None, vmax=None,
              filename=None, title=None, buffer=1, lscale='auto',plot_time = None):
