@@ -47,11 +47,6 @@ try:
             os.name != 'nt'):
         logger.info('No display found. Using non-interactive Agg backend')
         matplotlib.use('agg')
-    try:
-        matplotlib.use('Qt5agg',force=True)
-    except Exception as e:
-        logger.info('Could not use Qt5agg:')
-        logger.info(e)
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -61,6 +56,14 @@ try:
     import cartopy.feature as cfeature
 except ImportError:
     print('matplotlib and/or cartopy is not available, can not make plots')
+
+try:
+    matplotlib.use('Qt5agg',force=True)
+except Exception as e:
+    print('Could not use Qt5agg:')    
+    logger.info('Could not use Qt5agg:')
+    logger.info(e)
+
 
 import opendrift
 from opendrift.timer import Timeable
