@@ -55,6 +55,7 @@ try:
     import cartopy
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
+    print('Try block runned without exceptions')
 except ImportError as e:
     print('matplotlib and/or cartopy is not available, can not make plots')
     print(e)

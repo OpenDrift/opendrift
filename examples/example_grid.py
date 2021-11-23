@@ -7,6 +7,7 @@ Grid
 import numpy as np
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
+import matplotlib
 
 o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
 
@@ -34,6 +35,7 @@ o.run(steps=60*2, time_step=1800, time_step_output=1800)
 #%%
 # Print and plot results
 print(o)
+matplotlib.use('Qt5Agg',force=True)
 o.animation(fast=False, corners=[3.5, 5.5, 59.9, 61.2],fastwriter=True)
 
 #%%
