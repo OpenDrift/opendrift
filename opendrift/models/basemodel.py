@@ -58,10 +58,9 @@ except ImportError:
     print('matplotlib and/or cartopy is not available, can not make plots')
 
 try:
-    os.environ["DISPLAY"]=':1'
-    matplotlib.use('Qt5agg',force=True)
+    matplotlib.use('tkagg',force=True)
 except Exception as e:
-    print('Could not use Qt5agg:')    
+    print('Could not use tkagg:')    
     logger.info('Could not use Qt5agg:')
     logger.info(e)
 
