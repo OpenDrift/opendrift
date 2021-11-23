@@ -47,7 +47,7 @@ try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
     matplotlib.rcParams['legend.scatterpoints'] = 1
-    #matplotlib.use('Qt5Agg',force=True)
+    matplotlib.use('Qt5Agg',force=True)
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
