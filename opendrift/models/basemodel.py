@@ -42,11 +42,13 @@ try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
     matplotlib.rcParams['legend.scatterpoints'] = 1
-    if ('DISPLAY' not in os.environ and
-            'PYCHARM_HOSTED' not in os.environ and
-            os.name != 'nt'):
-        logger.info('No display found. Using non-interactive Agg backend')
-        matplotlib.use('agg')
+    matplotlib.use('tkagg',force=True)
+    # if ('DISPLAY' not in os.environ and
+    #         'PYCHARM_HOSTED' not in os.environ and
+    #         os.name != 'nt'):
+    #     print('No display found. Using non-interactive Agg backend')
+    #     matplotlib.use('agg')
+    matplotlib.use('tkagg',force=True)
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -56,14 +58,6 @@ try:
     import cartopy.feature as cfeature
 except ImportError:
     print('matplotlib and/or cartopy is not available, can not make plots')
-
-try:
-    matplotlib.use('tkagg',force=True)
-except Exception as e:
-    print('Could not use tkagg:')    
-    logger.info('Could not use Qt5agg:')
-    logger.info(e)
-
 
 import opendrift
 from opendrift.timer import Timeable
