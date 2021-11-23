@@ -43,12 +43,6 @@ try:
     matplotlib.rcParams['legend.numpoints'] = 1
     matplotlib.rcParams['legend.scatterpoints'] = 1
     matplotlib.use('tkagg',force=True)
-    # if ('DISPLAY' not in os.environ and
-    #         'PYCHARM_HOSTED' not in os.environ and
-    #         os.name != 'nt'):
-    #     print('No display found. Using non-interactive Agg backend')
-    #     matplotlib.use('agg')
-    matplotlib.use('tkagg',force=True)
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -56,8 +50,40 @@ try:
     import cartopy
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
-except ImportError:
+except ImportError as e:
     print('matplotlib and/or cartopy is not available, can not make plots')
+    print(e)
+else:
+    try:
+        import matplotlib
+        matplotlib.rcParams['legend.numpoints'] = 1
+        matplotlib.rcParams['legend.scatterpoints'] = 1
+        matplotlib.use('Qt5agg',force=True)
+        import matplotlib.pyplot as plt
+        from matplotlib import animation
+        from matplotlib.patches import Polygon
+        from matplotlib.path import Path
+        import cartopy
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+    except ImportError as e:
+        print('matplotlib and/or cartopy is not available, can not make plots')
+        print(e)    
+    else:
+        try:
+            import matplotlib
+            matplotlib.rcParams['legend.numpoints'] = 1
+            matplotlib.rcParams['legend.scatterpoints'] = 1
+            import matplotlib.pyplot as plt
+            from matplotlib import animation
+            from matplotlib.patches import Polygon
+            from matplotlib.path import Path
+            import cartopy
+            import cartopy.crs as ccrs
+            import cartopy.feature as cfeature
+        except ImportError as e:
+            print('matplotlib and/or cartopy is not available, can not make plots')
+            print(e)    
 
 import opendrift
 from opendrift.timer import Timeable
