@@ -67,7 +67,9 @@ commands:
 
       - run:
           name: Install packages
-          command: apt-get install -y xvfb xvfbwrapper
+          command: |
+            apt-get install -y xvfbwrapper
+            pip install xvfbwrapper
 
       - save_cache:
           key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
