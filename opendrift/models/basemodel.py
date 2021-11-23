@@ -47,6 +47,11 @@ try:
             os.name != 'nt'):
         logger.info('No display found. Using non-interactive Agg backend')
         matplotlib.use('agg')
+    try:
+        matplotlib.use('Qt5agg',force=True)
+    except Exception as e:
+        logger.info('Could not use Qt5agg:')
+        logger.info(e)
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
