@@ -66,9 +66,13 @@ commands:
           command: apt-get update
 
       - run:
-          name: Install packages
+          name: Install xvfb
+          command: apt-get install -y xvfb
+
+      - run:
+          name: Install xvfbwrapper
           command: |
-            apt-get install -y xvfb
+            source activate opendrift
             pip install xvfbwrapper
 
       - save_cache:
