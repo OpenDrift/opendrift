@@ -53,7 +53,7 @@ try:
 except ImportError as e:
     print('matplotlib and/or cartopy is not available, can not make plots')
     print(e)
-else:
+
     try:
         import matplotlib
         matplotlib.rcParams['legend.numpoints'] = 1
@@ -69,7 +69,7 @@ else:
     except ImportError as e:
         print('matplotlib and/or cartopy is not available, can not make plots')
         print(e)    
-    else:
+
         try:
             import matplotlib
             matplotlib.rcParams['legend.numpoints'] = 1
