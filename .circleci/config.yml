@@ -58,7 +58,7 @@ commands:
 
               source activate opendrift
 
-              pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov
+              pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov PyQt5
             fi
 
       - save_cache:
