@@ -102,7 +102,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     """Generic trajectory model class, to be extended (subclassed).
 
     This as an Abstract Base Class, meaning that only subclasses can
-    be initiated and used.
+    be ihnitiated and used.
     Any specific subclass ('model') must contain its own (or shared)
     specific type of particles (ElementType), whose properties are
     updated at each time_step using method update() on basis of model
@@ -3386,6 +3386,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   fastwriter=False,
                   **kwargs):
         """Animate last run."""
+
+        matplotlib.use('Qt5Agg',force=True)
 
         if self.history is not None and self.num_elements_total(
         ) == 0 and not hasattr(self, 'ds'):
