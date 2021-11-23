@@ -58,6 +58,9 @@ commands:
 
               source activate opendrift
 
+              sudo apt-get install xvfb
+              conda install -c conda-forge xvfbwrapper
+
               pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov PyQt5
             fi
 

@@ -38,6 +38,11 @@ from netCDF4 import Dataset, date2num
 import numpy as np
 import scipy
 import pyproj
+
+from xvfbwrapper import Xvfb
+vdisplay = Xvfb()
+vdisplay.start()
+
 try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
