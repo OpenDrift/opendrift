@@ -246,7 +246,7 @@ jobs:
           command: |
             source activate opendrift
             cd docs/
-            MPLBACKEND=Qt5Agg make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
+            make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
             ls -R source
           no_output_timeout: 40m
 
