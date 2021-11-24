@@ -31,8 +31,8 @@ o.run(steps=36*4, time_step=900, time_step_output=1800)
 #%%
 # Print and plot results
 print(o)
-o.animation()
 o.plot()
+o.animation()
 
 #%%
 # .. image:: /gallery/animations/example_coastline_options_0.gif
