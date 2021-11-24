@@ -59,9 +59,8 @@ commands:
               source activate opendrift
 
               pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov
-              
+
               conda install pyqt
-                
             fi
 
       - save_cache:
@@ -169,7 +168,7 @@ jobs:
   docs-build-examples:
     docker:
       - image: continuumio/miniconda3
-    resource_class: medium  
+    resource_class: medium
     parallelism: 20
     steps:
       - checkout

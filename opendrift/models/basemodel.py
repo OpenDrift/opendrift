@@ -58,41 +58,10 @@ try:
     print('Imported matplotlib and cartopy')
     print(f"MPLBACKEND = {matplotlib.get_backend()}")
     print(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
-    
+
 except ImportError as e:
     print('matplotlib and/or cartopy is not available, can not make plots')
     print(e)
-
-    # try:
-    #     import matplotlib
-    #     matplotlib.rcParams['legend.numpoints'] = 1
-    #     matplotlib.rcParams['legend.scatterpoints'] = 1
-    #     matplotlib.use('Qt5agg',force=True)
-    #     import matplotlib.pyplot as plt
-    #     from matplotlib import animation
-    #     from matplotlib.patches import Polygon
-    #     from matplotlib.path import Path
-    #     import cartopy
-    #     import cartopy.crs as ccrs
-    #     import cartopy.feature as cfeature
-    # except ImportError as e:
-    #     print('matplotlib and/or cartopy is not available, can not make plots')
-    #     print(e)    
-
-    #     try:
-    #         import matplotlib
-    #         matplotlib.rcParams['legend.numpoints'] = 1
-    #         matplotlib.rcParams['legend.scatterpoints'] = 1
-    #         import matplotlib.pyplot as plt
-    #         from matplotlib import animation
-    #         from matplotlib.patches import Polygon
-    #         from matplotlib.path import Path
-    #         import cartopy
-    #         import cartopy.crs as ccrs
-    #         import cartopy.feature as cfeature
-    #     except ImportError as e:
-    #         print('matplotlib and/or cartopy is not available, can not make plots')
-    #         print(e)    
 
 import opendrift
 from opendrift.timer import Timeable
@@ -105,7 +74,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     """Generic trajectory model class, to be extended (subclassed).
 
     This as an Abstract Base Class, meaning that only subclasses can
-    be ihnitiated and used.
+    be initiated and used.
     Any specific subclass ('model') must contain its own (or shared)
     specific type of particles (ElementType), whose properties are
     updated at each time_step using method update() on basis of model
@@ -3390,7 +3359,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   **kwargs):
         """Animate last run."""
 
-        matplotlib.use('Qt5Agg',force=True)
+        matplotlib.use('Qt5Agg')
 
         if self.history is not None and self.num_elements_total(
         ) == 0 and not hasattr(self, 'ds'):
@@ -3804,10 +3773,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                           fastwriter=False):
         """Animate vertical profile of the last run."""
 
-        matplotlib.use('Qt5Agg',force=True)
-        
+        matplotlib.use('Qt5Agg')
+
         start_time = datetime.now()
-        
+
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
@@ -5238,9 +5207,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def _save_animation(self, anim, filename, fps, fastwriter=False):
         from opendrift.export.punkrockwriters import PunkFFMpegWriter, PunkImageMagickWriter
-        
+
         fastwriter=True
-        
+
         if 'sphinx_gallery' in sys.modules:
             # This assumes that the calling script is two frames up in the stack. If
             # _save_animation is called through a more deeply nested method, it will
@@ -5272,7 +5241,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         logger.info('Saving animation to ' + filename + '...')
 
         start_time = datetime.now()
-        
+
         try:
             if filename[-4:] == '.gif':  # GIF
                 logger.info('Making animated gif...')

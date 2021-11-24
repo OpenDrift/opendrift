@@ -47,7 +47,7 @@ if reader_globcurrent is not None:
     print(o)
     o.plot(fast=True)
     o.plot_oil_budget()
-    o.animation( fast=True)
+    o.animation(fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_macondo_0.gif
