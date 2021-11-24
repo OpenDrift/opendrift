@@ -58,7 +58,7 @@ commands:
 
               source activate opendrift
 
-              pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov PyQt5 xvfbwrapper
+              pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov PyQt5# xvfbwrapper
             fi
 
       - run:
@@ -69,11 +69,11 @@ commands:
           name: Install xvfb
           command: apt-get install -y xvfb
 
-      - run:
-          name: Install xvfbwrapper
-          command: |
-            source activate opendrift
-            pip install xvfbwrapper
+      #- run:
+      #    name: Install xvfbwrapper
+      #    command: |
+      #      source activate opendrift
+      #      pip install xvfbwrapper
 
       - save_cache:
           key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
