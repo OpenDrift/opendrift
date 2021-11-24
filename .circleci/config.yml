@@ -64,21 +64,6 @@ commands:
                 
             fi
 
-      - run:
-          name: Update packages
-          command: apt-get update
-
-      - run:
-          name: Install xvfb libxcb-xinerama0
-          command: | 
-              apt-get install -y xvfb
-              apt-get install -y libxcb-xinerama0
-      #- run:
-      #    name: Install xvfbwrapper
-      #    command: |
-      #      source activate opendrift
-      #      pip install xvfbwrapper
-
       - save_cache:
           key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
           paths:
@@ -193,7 +178,7 @@ jobs:
           command: apt-get update
       - run:
           name: Install packages
-          command: apt-get install -y build-essential jq curl
+          command: apt-get install -y build-essential jq curl xvfb libxcb-xinerama0
 
       - run:
           name: Get PR title
