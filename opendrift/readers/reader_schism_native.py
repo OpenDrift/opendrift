@@ -869,7 +869,7 @@ class Reader(BaseReader,UnstructuredReader):
             self.apply_logarithmic_current_profile(env,z)
          
         # additional on-land checks using shore_landmask (if present)
-        if 'land_binary_mask' in env.keys() and self.use_model_landmask:
+        if 'land_binary_mask' in env.keys() and self.use_model_landmask and hasattr(self,'shore_file'):
             logger.debug('Updating land_binary_mask using shoreline landmask <%s> ' % self.shore_file)
             lon_tmp,lat_tmp = self.xy2lonlat(reader_x,reader_y)
             on_shore_landmask = shapely.vectorized.contains(self.shore_landmask, lon_tmp, lat_tmp)
