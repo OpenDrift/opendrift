@@ -511,7 +511,7 @@ class OceanDrift(OpenDriftSimulation):
         import matplotlib.animation as animation
 
         import matplotlib
-        matplotlib.matplotlib.use('Qt5Agg',force=True)
+        matplotlib.use('Qt5Agg',force=True)
 
 
 
