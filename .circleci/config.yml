@@ -180,6 +180,7 @@ jobs:
   docs-build-examples:
     docker:
       - image: continuumio/miniconda3
+    resource_class: medium+  
     parallelism: 20
     steps:
       - checkout
