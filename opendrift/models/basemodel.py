@@ -47,7 +47,7 @@ try:
     import matplotlib
     matplotlib.rcParams['legend.numpoints'] = 1
     matplotlib.rcParams['legend.scatterpoints'] = 1
-    #matplotlib.use('Qt5Agg',force=True)
+    matplotlib.use('Qt5Agg',force=True)
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Polygon
@@ -55,7 +55,10 @@ try:
     import cartopy
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
-    print('Try block runned without exceptions')
+    print('Imported matplotlib and cartopy')
+    print(f"MPLBACKEND = {matplotlib.get_backend()}")
+    print(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
+    
 except ImportError as e:
     print('matplotlib and/or cartopy is not available, can not make plots')
     print(e)
@@ -5314,9 +5317,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info(e)
             logger.debug(traceback.format_exc())
 
-        logger.debug(f"MPLBACKEND = {matplotlib.get_backend()}")
-        logger.debug(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
-        logger.debug(f"fastwriter: {fastwriter}")
+        logger.info(f"MPLBACKEND = {matplotlib.get_backend()}")
+        logger.info(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
+        logger.info(f"fastwriter: {fastwriter}")
 
         if 'sphinx_gallery' in sys.modules:
             plt.close()
