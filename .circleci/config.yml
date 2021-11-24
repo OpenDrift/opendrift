@@ -405,12 +405,12 @@ workflows:
   #        requires:
   #          - docs-build-examples
 
-      - docs-deploy:
-          requires:
-            - docs-build
-          filters:
-            branches:
-             only: master
+  #    - docs-deploy:
+  #        requires:
+  #          - docs-build
+  #        filters:
+  #          branches:
+  #           only: master
 
   # This workflow will deploy images on merge to master only
   build-and-publish-docker-image:
