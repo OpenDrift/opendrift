@@ -69,9 +69,10 @@ commands:
           command: apt-get update
 
       - run:
-          name: Install xvfb
-          command: apt-get install -y xvfb
-
+          name: Install xvfb libxcb-xinerama0
+          command: | 
+              apt-get install -y xvfb
+              apt-get install -y libxcb-xinerama0
       #- run:
       #    name: Install xvfbwrapper
       #    command: |
