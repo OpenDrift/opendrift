@@ -58,7 +58,10 @@ commands:
 
               source activate opendrift
 
-              pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov PyQt5<=5.13.1# xvfbwrapper
+              pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov
+              
+              conda install pyqt
+                
             fi
 
       - run:
