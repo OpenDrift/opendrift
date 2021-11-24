@@ -3800,6 +3800,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                           legend_loc=None,
                           fastwriter=False):
         """Animate vertical profile of the last run."""
+
+        matplotlib.use('Qt5Agg',force=True)
+
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
@@ -5229,7 +5232,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def _save_animation(self, anim, filename, fps, fastwriter=False):
         from opendrift.export.punkrockwriters import PunkFFMpegWriter, PunkImageMagickWriter
-
+        
+        fastwriter=True
+        
         if 'sphinx_gallery' in sys.modules:
             # This assumes that the calling script is two frames up in the stack. If
             # _save_animation is called through a more deeply nested method, it will

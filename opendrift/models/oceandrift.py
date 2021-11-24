@@ -506,8 +506,14 @@ class OceanDrift(OpenDriftSimulation):
             subsamplingstep: speed-up the generation of the animation reducing the number of output frames
             fasterwriter:    speed-up the writing to outpute file
         """
+
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
+
+        import matplotlib
+        matplotlib.matplotlib.use('Qt5Agg',force=True)
+
+
 
         #from timeit import default_timer as timer
         #start=timer()
