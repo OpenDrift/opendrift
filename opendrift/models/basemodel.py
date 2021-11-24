@@ -3782,7 +3782,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
             self._save_animation(anim, filename, fps, fastwriter=fastwriter)
-            logger.debug('Time to make animation: %s' %
+            logger.info('Time to make animation: %s' %
                          (datetime.now() - start_time))
         else:
             try:
@@ -3805,7 +3805,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         """Animate vertical profile of the last run."""
 
         matplotlib.use('Qt5Agg',force=True)
-
+        
+        start_time = datetime.now()
+        
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
             #plt.gcf().gca().set_title(str(i))
@@ -3950,7 +3952,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
             self._save_animation(anim, filename, fps, fastwriter=fastwriter)
-
+            logger.info('Time to make animation: %s' %
+                         (datetime.now() - start_time))
         else:
             try:
                 plt.show()

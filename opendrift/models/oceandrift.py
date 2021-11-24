@@ -513,7 +513,7 @@ class OceanDrift(OpenDriftSimulation):
         import matplotlib
         matplotlib.use('Qt5Agg',force=True)
 
-
+        start_time = datetime.now()
 
         #from timeit import default_timer as timer
         #start=timer()
@@ -645,6 +645,8 @@ class OceanDrift(OpenDriftSimulation):
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
             self._save_animation(animation, filename, fps=10, fastwriter=fastwriter)
+            logger.info('Time to make animation: %s' %
+                         (datetime.now() - start_time))
         else:
             plt.show()
 
