@@ -5322,7 +5322,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         logger.info(f"MPLBACKEND = {matplotlib.get_backend()}")
         logger.info(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
         logger.info(f"fastwriter: {fastwriter}")
-        logger.debug('Time to save animation: %s' %
+        logger.info('Time to save animation: %s' %
                          (datetime.now() - start_time))
 
         if 'sphinx_gallery' in sys.modules:
