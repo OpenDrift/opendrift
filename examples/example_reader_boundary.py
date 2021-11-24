@@ -5,7 +5,7 @@ Reader boundary
 
 Seeding elements around the border of a ocean model domain (NorKyst800)
 to demonstrate autmatic transition back and forth with another model
-covering a larger domain (Nordic).
+covering a larger domain (Topaz).
 """
 
 import numpy as np
@@ -17,10 +17,10 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
-# Nordic4
-reader_nordic4 = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be')
+# Topaz
+reader_topaz = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml')
 
-o.add_reader([reader_norkyst, reader_nordic4])
+o.add_reader([reader_norkyst, reader_topaz])
 o.set_config('environment:fallback:land_binary_mask', 0)
 
 #%%
@@ -32,7 +32,7 @@ lons, lats = np.meshgrid(lons, lats)
 #%%
 # Seed oil elements at defined position and time
 o.seed_elements(lons, lats, radius=0, number=2500,
-                time=reader_norkyst.start_time)
+                time=reader_topaz.start_time)
 
 o.set_config('drift:vertical_mixing', False)
 

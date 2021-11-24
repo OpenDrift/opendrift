@@ -20,12 +20,13 @@ Based on work by Simon Weppe, MetOcean Solutions Ltd.
 """
 
 import numpy as np
+import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
 
 class SedimentElement(Lagrangian3DArray):
     variables = Lagrangian3DArray.add_variables([
-        ('settled', {'dtype': np.int16,  # 0 is active, 1 is settled
+        ('settled', {'dtype': np.uint8,  # 0 is active, 1 is settled
                      'units': '1',
                      'default': 0}),
         ('terminal_velocity', {'dtype': np.float32,
@@ -52,6 +53,7 @@ class SedimentDrift(OceanDrift):
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
         'ocean_vertical_diffusivity': {'fallback': 0.02},
+        'ocean_mixed_layer_thickness': {'fallback': 50},
         'sea_floor_depth_below_sea_level': {'fallback': 0},
         }
 
@@ -72,7 +74,7 @@ class SedimentDrift(OceanDrift):
         """Update positions and properties of sediment particles.
         """
 
-        # Advecting here all elements, but want to soon add 
+        # Advecting here all elements, but want to soon add
         # possibility of not moving settled elements, until
         # they are resuspended. May then need to send a boolean
         # array to advection methods below
@@ -95,7 +97,7 @@ class SedimentDrift(OceanDrift):
         # These elements will not move until eventual later resuspension.
         settling = np.logical_and(self.elements.z <= seafloor_depth, self.elements.moving==1)
         if np.sum(settling) > 0:
-            self.logger.debug('Settling %s elements at seafloor' % np.sum(settling))
+            logger.debug('Settling %s elements at seafloor' % np.sum(settling))
             self.elements.moving[settling] = 0
 
     def resuspension(self):

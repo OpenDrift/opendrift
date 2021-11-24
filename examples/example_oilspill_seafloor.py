@@ -24,7 +24,7 @@ o.set_config('drift:vertical_mixing', True)
 time = [reader_norkyst.start_time,
         reader_norkyst.start_time + timedelta(hours=1)]
 o.seed_elements(lon=4.5, lat=62.0, z='seafloor', radius=0, number=3000,
-                time=time, oiltype='*GENERIC DIESEL')
+                time=time, oil_type='GENERIC DIESEL')
 
 #%%
 # Setting the range of droplet sizes for the seafloor release
@@ -43,7 +43,7 @@ o.animation_profile()
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_0.gif
 
-o.animate_vertical_distribution(bins=30)
+o.animate_vertical_distribution(bins=30,subsamplingstep=5)
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_1.gif
 

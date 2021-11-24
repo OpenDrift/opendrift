@@ -38,4 +38,4 @@ if __name__ == '__main__':
 
     o = opendrift.open(args.filename)
     print(o)
-    o.plot(buffer=np.float(args.buffer), filename=args.outfile)
+    o.plot(buffer=float(args.buffer), filename=args.outfile)

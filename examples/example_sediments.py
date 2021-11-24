@@ -34,7 +34,7 @@ o.set_config('drift:wind_uncertainty', 2)
 o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 #o.set_config('vertical_mixing:diffusivitymodel', 'environment')
 
-o.run(time_step=600, time_step_output=1800, duration=timedelta(hours=48))
+o.run(time_step=600, time_step_output=1800, duration=timedelta(hours=36))
 
 #%%
 # Plotting the depth vs time
@@ -43,7 +43,7 @@ o.plot_property('z')
 #%%
 # Animate sediment particles colored by their depth
 o.animation(color='z', fast=False, buffer=.01)
-o.animation(color='moving', fast=False, buffer=.01)
+#o.animation(color='moving', fast=False, buffer=.01, colorbar=False, legend=['Sedimented', 'Moving'])
 
 #%%
 # .. image:: /gallery/animations/example_sediments_0.gif

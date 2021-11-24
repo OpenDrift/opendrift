@@ -30,7 +30,7 @@ original_current = reader_norkyst.var_block_after[list(reader_norkyst.var_block_
 #%%
 # For the second run, the NorKyst currents are convolved with a kernel,
 # effectively lowering the spatial resolution.
-# <reader>.convolve may also be given as an array (kernel) directly
+# <reader>.set_convolution_kernel may also be given as an array (kernel) directly
 N = 10  # Convolusion kernel size
 reader_norkyst.set_convolution_kernel(N)  # Using convolution kernel for second run
 o2 = OceanDrift(loglevel=20)

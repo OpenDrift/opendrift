@@ -4,7 +4,7 @@ Opendrift module
 .. currentmodule:: opendrift
 
 """
-import logging
+import logging; logger = logging.getLogger(__name__)
 import unittest
 import importlib
 import platform
@@ -18,6 +18,8 @@ from .version import __version__
 _available_models = \
     ['leeway.Leeway',
      'openoil.OpenOil',
+     'larvalfish.LarvalFish',
+     'plastdrift.PlastDrift',
      'shipdrift.ShipDrift',
      'openberg.OpenBerg']
 
@@ -36,14 +38,14 @@ def get_model(model_name):
                 return model
 
 
-def open(filename, times=None, elements=None):
+def open(filename, times=None, elements=None, load_history=True):
     '''Import netCDF output file as OpenDrift object of correct class'''
 
     import os
     import pydoc
     from netCDF4 import Dataset
     if not os.path.exists(filename):
-        logging.info('File does not exist, trying to retrieve from URL')
+        logger.info('File does not exist, trying to retrieve from URL')
         import urllib
         try:
             urllib.urlretrieve(filename, 'opendrift_tmp.nc')
@@ -71,18 +73,18 @@ def open(filename, times=None, elements=None):
         from opendrift.models import oceandrift
         cls = oceandrift.OceanDrift
     o = cls()
-    o.io_import_file(filename, times=times, elements=elements)
-    logging.info('Returning ' + str(type(o)) + ' object')
+    o.io_import_file(filename, times=times, elements=elements, load_history=load_history)
+    logger.info('Returning ' + str(type(o)) + ' object')
     return o
 
-def open_xarray(filename, analysis_file=None, chunks={'trajectory': 50000, 'time': 1000}):
+def open_xarray(filename, chunks={'trajectory': 50000, 'time': 1000}):
     '''Import netCDF output file as OpenDrift object of correct class'''
 
     import os
     import pydoc
     import xarray as xr
     if not os.path.exists(filename):
-        logging.info('File does not exist, trying to retrieve from URL')
+        logger.info('File does not exist, trying to retrieve from URL')
         import urllib
         try:
             urllib.urlretrieve(filename, 'opendrift_tmp.nc')
@@ -110,13 +112,10 @@ def open_xarray(filename, analysis_file=None, chunks={'trajectory': 50000, 'time
         from opendrift.models import oceandrift
         cls = oceandrift.OceanDrift
     o = cls()
-    o.analysis_file = analysis_file
     o.io_import_file_xarray(filename, chunks=chunks)
 
-
-    logging.info('Returning ' + str(type(o)) + ' object')
+    logger.info('Returning ' + str(type(o)) + ' object')
     return o
-
 
 def versions():
     import multiprocessing
@@ -124,6 +123,8 @@ def versions():
     import scipy
     import matplotlib
     import netCDF4
+    import oil_library
+    import xarray
     import sys
     s = '\n------------------------------------------------------\n'
     s += 'Software and hardware:\n'
@@ -141,6 +142,8 @@ def versions():
     s += '  SciPy version %s\n' % scipy.__version__
     s += '  Matplotlib version %s\n' % matplotlib.__version__
     s += '  NetCDF4 version %s\n' % netCDF4.__version__
+    s += '  Xarray version %s\n' % xarray.__version__
+    s += '  OilLibrary version %s\n' % oil_library.__version__
     s += '  Python version %s\n' % sys.version.replace('\n', '')
     s += '------------------------------------------------------\n'
     return s

@@ -10,7 +10,7 @@ from opendrift.models.openoil import OpenOil
 
 #%%
 # Polygon
-#========
+#--------
 
 o = OpenOil(loglevel=50)
 o.seed_from_geojson("""{
@@ -27,7 +27,7 @@ o.seed_from_geojson("""{
       "properties": {
         "time": "2020-11-06T12:30:00Z",
         "number": 1000,
-        "oiltype": "*GENERIC DIESEL",
+        "oil_type": "DVALIN 2020",
         "m3_per_hour": 50
       }
     }""")
@@ -36,7 +36,7 @@ o.plot(fast=True)
 
 #%%
 # Point release at seafloor
-#==========================
+#--------------------------
 
 o = OpenOil(loglevel=50)
 o.set_config('environment:constant:sea_floor_depth_below_sea_level', 200)
@@ -64,7 +64,7 @@ o.animation_profile()
 
 #%%
 # Cone 
-#=====
+#-----
 # from (position1, radius1, time1) to (position2, radius2, time2)
 
 o = Leeway(loglevel=50)

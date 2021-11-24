@@ -173,9 +173,9 @@ class OpenDriftGUI(tk.Tk):
         self.lonvar = tk.StringVar()
         self.radiusvar = tk.StringVar()
         self.lat = tk.Entry(self.start, textvariable=self.latvar,
-                            width=6, justify=tk.RIGHT)
+                            width=10, justify=tk.RIGHT)
         self.lon = tk.Entry(self.start, textvariable=self.lonvar,
-                            width=6, justify=tk.RIGHT)
+                            width=10, justify=tk.RIGHT)
         self.radius = tk.Entry(self.start, width=6,
                                textvariable=self.radiusvar,
                                justify=tk.RIGHT)
@@ -188,6 +188,10 @@ class OpenDriftGUI(tk.Tk):
         self.lonvar.trace('w', self.copy_position)
         self.latvar.trace('w', self.copy_position)
         self.radiusvar.trace('w', self.copy_position)
+        conv=tk.Label(self.start, text='Convert from deg/min/sec', fg='blue')
+        conv.grid(row=11, column=0, columnspan=2)
+        conv.bind("<Button-1>", lambda e: self.convert_lonlat())
+
         ##########
         # Time
         ##########
@@ -245,8 +249,8 @@ class OpenDriftGUI(tk.Tk):
         tk.Label(self.end, text='Longitude', bg='gray').grid(row=0, column=1)
         tk.Label(self.end, text='Latitude', bg='gray').grid(row=0, column=0)
         tk.Label(self.end, text='Radius [m]', bg='gray').grid(row=0, column=2)
-        self.elat = tk.Entry(self.end, width=6, justify=tk.RIGHT)
-        self.elon = tk.Entry(self.end, width=6, justify=tk.RIGHT)
+        self.elat = tk.Entry(self.end, width=10, justify=tk.RIGHT)
+        self.elon = tk.Entry(self.end, width=10, justify=tk.RIGHT)
         self.eradius = tk.Entry(self.end, width=6, justify=tk.RIGHT)
         self.elon.grid(row=10, column=1)
         self.elon.insert(0, '4.5')
@@ -353,8 +357,8 @@ class OpenDriftGUI(tk.Tk):
         forcingfiles = open(self.o.test_data_folder() + '../../opendrift/scripts/data_sources.txt').readlines()
         print(forcingfiles)
         for i, ff in enumerate(forcingfiles):
-            tk.Label(self.forcing, text=ff.strip()).grid(
-                        row=i, column=0, sticky=tk.W)
+            tk.Label(self.forcing, text=ff.strip(), wraplength=650, font=('Courier', 8)).grid(
+                     row=i, column=0, sticky=tk.W)
 
         ##########################
         try:
@@ -605,27 +609,33 @@ class OpenDriftGUI(tk.Tk):
         import webbrowser
         webbrowser.open(help_url)
 
+    def convert_lonlat(self):
+        convert_url = 'https://www.rapidtables.com/convert/number/degrees-minutes-seconds-to-degrees.html'
+        print('Opening conversion website:\n' + convert_url)
+        import webbrowser
+        webbrowser.open(convert_url)
+
     def check_seeding(self):
         print('#'*50)
         print('Hang on, plot is comming in a few seconds...')
         print('#'*50)
-        month = np.int(self.months.index(self.monthvar.get()) + 1)
-        start_time = datetime(np.int(self.yearvar.get()), month,
-                              np.int(self.datevar.get()),
-                              np.int(self.hourvar.get()),
-                              np.int(self.minutevar.get()))
-        emonth = np.int(self.months.index(self.emonthvar.get()) + 1)
-        end_time = datetime(np.int(self.eyearvar.get()), emonth,
-                            np.int(self.edatevar.get()),
-                            np.int(self.ehourvar.get()),
-                            np.int(self.eminutevar.get()))
+        month = int(self.months.index(self.monthvar.get()) + 1)
+        start_time = datetime(int(self.yearvar.get()), month,
+                              int(self.datevar.get()),
+                              int(self.hourvar.get()),
+                              int(self.minutevar.get()))
+        emonth = int(self.months.index(self.emonthvar.get()) + 1)
+        end_time = datetime(int(self.eyearvar.get()), emonth,
+                            int(self.edatevar.get()),
+                            int(self.ehourvar.get()),
+                            int(self.eminutevar.get()))
         sys.stdout.flush()
-        lon = np.float(self.lon.get())
-        lat = np.float(self.lat.get())
-        radius = np.float(self.radius.get())
-        elon = np.float(self.elon.get())
-        elat = np.float(self.elat.get())
-        eradius = np.float(self.eradius.get())
+        lon = float(self.lon.get())
+        lat = float(self.lat.get())
+        radius = float(self.radius.get())
+        elon = float(self.elon.get())
+        elat = float(self.elat.get())
+        eradius = float(self.eradius.get())
         if lon != elon or lat != elat or start_time != end_time:
             lon = [lon, elon]
             lat = [lat, elat]
@@ -658,23 +668,23 @@ class OpenDriftGUI(tk.Tk):
         except Exception as e:
             print(e)
             pass
-        month = np.int(self.months.index(self.monthvar.get()) + 1)
-        start_time = datetime(np.int(self.yearvar.get()), month,
-                              np.int(self.datevar.get()),
-                              np.int(self.hourvar.get()),
-                              np.int(self.minutevar.get()))
-        emonth = np.int(self.months.index(self.emonthvar.get()) + 1)
-        end_time = datetime(np.int(self.eyearvar.get()), emonth,
-                            np.int(self.edatevar.get()),
-                            np.int(self.ehourvar.get()),
-                            np.int(self.eminutevar.get()))
+        month = int(self.months.index(self.monthvar.get()) + 1)
+        start_time = datetime(int(self.yearvar.get()), month,
+                              int(self.datevar.get()),
+                              int(self.hourvar.get()),
+                              int(self.minutevar.get()))
+        emonth = int(self.months.index(self.emonthvar.get()) + 1)
+        end_time = datetime(int(self.eyearvar.get()), emonth,
+                            int(self.edatevar.get()),
+                            int(self.ehourvar.get()),
+                            int(self.eminutevar.get()))
         sys.stdout.flush()
-        lon = np.float(self.lon.get())
-        lat = np.float(self.lat.get())
-        radius = np.float(self.radius.get())
-        elon = np.float(self.elon.get())
-        elat = np.float(self.elat.get())
-        eradius = np.float(self.eradius.get())
+        lon = float(self.lon.get())
+        lat = float(self.lat.get())
+        radius = float(self.radius.get())
+        elon = float(self.elon.get())
+        elat = float(self.elat.get())
+        eradius = float(self.eradius.get())
         if lon != elon or lat != elat or start_time != end_time:
             lon = [lon, elon]
             lat = [lat, elat]
@@ -687,7 +697,7 @@ class OpenDriftGUI(tk.Tk):
         for se in self.seed_input:
             val = self.seed_input_var[se].get()
             if self.o._config[se]['type'] in ['float', 'int']:
-                val = np.float(val)
+                val = float(val)
             elif self.o._config[se]['type'] == 'bool':
                 if val == 1:
                     val = True

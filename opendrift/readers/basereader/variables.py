@@ -1,7 +1,7 @@
+from datetime import timedelta
 import numpy as np
 import pyproj
 from bisect import bisect_left
-import copy
 from abc import abstractmethod
 import logging
 logger = logging.getLogger(__name__)
@@ -15,7 +15,6 @@ class ReaderDomain(Timeable):
     Projection, spatial and temporal domain of reader.
     """
     name = None
-    simulation_SRS = False
 
     proj4 = None
     proj = None
@@ -38,9 +37,26 @@ class ReaderDomain(Timeable):
     time_step = None
     times = None
 
+    """Setting this to `True` overrides temporal and spatial bounds checks.
+    Also useful for readers that are constant and do not have a temporal
+    dimension."""
+    always_valid = False
+
+    def center(self):
+        """
+        Returns center of reader (in lon, lat)
+        """
+
+        if any(xx is None for xx in [self.xmin, self.xmax, self.ymin, self.ymax]):
+            return None, None
+
+        x = self.xmin + (self.xmax - self.xmin) / 2
+        y = self.ymin + (self.ymax - self.ymin) / 2
+        return self.xy2lonlat(x, y)
+
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
-        """Rotate vectors from one srs to another."""
+        """Rotate vectors from one crs to another."""
 
         if type(proj_from) is str:
             proj_from = pyproj.Proj(proj_from)
@@ -81,7 +97,7 @@ class ReaderDomain(Timeable):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
         if self.proj.crs.is_geographic:
-            if 'ob_tran' in self.proj4:
+            if 'ob_tran' in str(self.proj4):
                 logger.debug('NB: Converting degrees to radians ' +
                              'due to ob_tran srs')
                 x = np.radians(np.array(x))
@@ -96,7 +112,7 @@ class ReaderDomain(Timeable):
         """
         Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        if 'ob_tran' in self.proj4:
+        if 'ob_tran' in str(self.proj4):
             x, y = self.proj(lon, lat, inverse=False)
             return np.degrees(x), np.degrees(y)
         elif self.proj.crs.is_geographic:
@@ -106,7 +122,7 @@ class ReaderDomain(Timeable):
             return x, y
 
     def y_azimuth(self, lon, lat):
-        """Calculate azimuth orientation of the y-axis of the reader SRS."""
+        """Calculate azimuth orientation of the y-axis of the reader CRS."""
         x0, y0 = self.lonlat2xy(lon, lat)
         distance = 1000.0  # Create points 1 km away to determine azimuth
         lon_2, lat_2 = self.xy2lonlat(x0, y0 + distance)
@@ -171,9 +187,10 @@ class ReaderDomain(Timeable):
                   '   step: ' + str(self.time_step) + '\n'
         if self.start_time is not None and self.time_step is not None:
             outStr += '    %i times (%i missing)\n' % (
-                      self.expected_time_steps, self.missing_time_steps)
-        if hasattr(self, 'realizations'):
-            outStr += 'Variables (%i ensemble members):\n' % len(self.realizations)
+                self.expected_time_steps, self.missing_time_steps)
+        if hasattr(self, 'realizations') and self.realizations is not None:
+            outStr += 'Variables (%i ensemble members):\n' % len(
+                self.realizations)
         else:
             outStr += 'Variables:\n'
         for variable in self.variables:
@@ -193,6 +210,8 @@ class ReaderDomain(Timeable):
 
         Arguments in native projection of reader.
         """
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
         z = np.atleast_1d(z)
 
         if self.global_coverage():
@@ -200,15 +219,43 @@ class ReaderDomain(Timeable):
             indices = np.where((y >= self.ymin) & (y <= self.ymax)
                                & (z >= self.zmin) & (z <= self.zmax))[0]
         else:
-            indices = np.where((x >= self.xmin) & (x <= self.xmax)
-                               & (y >= self.ymin) & (y <= self.ymax)
-                               & (z >= self.zmin) & (z <= self.zmax))[0]
+            xx = x
+
+            if self.proj.crs.is_geographic:
+                xx = self.modulate_longitude(x)
+
+            indices = np.where((xx >= self.xmin) & (xx <= self.xmax)
+                                & (y >= self.ymin) & (y <= self.ymax)
+                                & (z >= self.zmin) & (z <= self.zmax))[0]
 
         try:
             return indices, x[indices], y[indices]
         except Exception as ex:
             logger.exception(ex)
             return indices, x, y
+
+    def modulate_longitude(self, lons):
+        """
+        Modulate the input longitude to the domain supported by the reader.
+        """
+
+        yy = np.array([self.ymin, self.ymax, self.ymax, self.ymin])
+        xx = np.array([self.xmin, self.xmin, self.xmax, self.xmax])
+
+        exlons, _lats = self.xy2lonlat(xx, yy)
+
+        if np.min(exlons) < 0:
+            # Reader domain is from -180 to 180 or somewhere in between.
+            assert np.max(exlons) <= 180.1
+
+            lons = np.mod(lons+180, 360) - 180
+        else:
+            # Reader domain is from 0 to 360 or somewhere in between.
+            assert np.max(exlons) <= 360.1
+
+            lons = np.mod(lons, 360)
+
+        return lons
 
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
@@ -220,11 +267,12 @@ class ReaderDomain(Timeable):
     def global_coverage(self):
         """Return True if global coverage east-west"""
 
-        if self.proj.crs.is_geographic is True and self.delta_x is not None:
-            if (self.xmin - self.delta_x <= 0) and (self.xmax + self.delta_x >=
+        dx = self.delta_x if self.delta_x is not None else 0
+        if self.proj.crs.is_geographic is True:
+            if (self.xmin - 2*dx <= 0) and (self.xmax + 2*dx >=
                                                     360):
                 return True  # Global 0 to 360
-            if (self.xmin - self.delta_x <= -180) and (self.xmax + self.delta_x
+            if (self.xmin - 2*dx <= -180) and (self.xmax + 2*dx
                                                        >= 180):
                 return True  # Global -180 to 180
 
@@ -374,78 +422,135 @@ class ReaderDomain(Timeable):
         return nearest_time, time_before, time_after,\
             indx_nearest, indx_before, indx_after
 
+################################################################
+# Methods to derive environment variables from others available
+################################################################
+
+def land_binary_mask_from_ocean_depth(env):
+    env['land_binary_mask'] = np.float32(env['sea_floor_depth_below_sea_level'] <= 0)
+
+def wind_from_speed_and_direction(env):
+    if 'wind_from_direction' in env:
+        wfd = env['wind_from_direction']
+    else:
+        wfd = -env['wind_to_direction']
+    north_wind = -env['wind_speed']*np.cos(np.radians(wfd))
+    east_wind = -env['wind_speed']*np.sin(np.radians(wfd))
+    env['x_wind'] = east_wind
+    env['y_wind'] = north_wind
+    # Rotating might be necessary generally
+    #x,y = np.meshgrid(env['x'], env['y'])
+    #env['x_wind'], env['y_wind'] = self.rotate_vectors(
+    #    x, y,
+    #    east_wind, north_wind,
+    #    None, self.proj)
+
+################################################################
 
 class Variables(ReaderDomain):
     """
     Handles reading and interpolation of variables.
     """
+    variables = None
     derived_variables = None
     name = None
 
     buffer = 0
-    convolve = None  # Convolution kernel or kernel size
-
-    environment_mappers = []
-    environment_mappings = {
-        'wind_from_speed_and_direction': {
-            'input': ['wind_speed', 'wind_to_direction'],
-            'output': ['x_wind', 'y_wind'],
-            'method':
-            lambda reader, var: reader.wind_from_speed_and_direction(var)
-        },
-        'testvar': {
-            'input': ['sea_ice_thickness'],
-            'output': ['istjukkleik']
-        }
-    }
 
     def __init__(self):
-        self.derived_variables = {}
+        if self.derived_variables is None:
+            self.derived_variables = {}
+        if self.variables is None:
+            self.variables = []
 
-    def set_convolution_kernel(self, convolve):
-        """Set a convolution kernel or kernel size (of array of ones) used by `get_variables` on read variables."""
-        self.convolve = convolve
+        # Deriving environment variables from other available variables
+        self.environment_mappings = {
+            'wind_from_speed_and_direction': {
+                'input': ['wind_speed', 'wind_from_direction'],
+                'output': ['x_wind', 'y_wind'],
+                'method': wind_from_speed_and_direction,
+                #lambda reader, env: reader.wind_from_speed_and_direction(env)},
+                'active': True},
+            'wind_from_speed_and_direction_to': {
+                'input': ['wind_speed', 'wind_to_direction'],
+                'output': ['x_wind', 'y_wind'],
+                'method': wind_from_speed_and_direction,
+                #lambda reader, env: reader.wind_from_speed_and_direction(env)},
+                'active': True},
+            'land_binary_mask_from_ocean_depth': {
+                'input': ['sea_floor_depth_below_sea_level'],
+                'output': ['land_binary_mask'],
+                'method': land_binary_mask_from_ocean_depth,
+                'active': False}
+            }
 
-    def set_buffer_size(self, max_speed, max_vertical_speed=None):
-        '''Adjust buffer to minimise data block size needed to cover elements'''
+        super().__init__()
+
+    def activate_environment_mapping(self, mapping_name):
+        if mapping_name not in self.environment_mappings:
+            raise ValueError('Available environment mappings: ' + str(self.environment_mappings))
+
+        em = self.environment_mappings[mapping_name]
+        em['active'] = True
+        if not all(item in em['output'] for item in self.variables) and \
+                    all(item in self.variables for item in em['input']):
+            for v in em['output']:
+                logger.debug('Adding variable mapping: %s -> %s' % (em['input'], v))
+                self.variables.append(v)
+                self.derived_variables[v] = em['input']
+
+    def __calculate_derived_environment_variables__(self, env):
+        for m in self.environment_mappings:
+            em = self.environment_mappings[m]
+            if em['active'] is False:
+                continue
+            if not all(item in em['output'] for item in self.variables) and \
+                    all(item in self.variables for item in em['input']):
+                for v in em['output']:
+                    logger.debug('Calculating variable mapping: %s -> %s' % (em['input'], v))
+                    method = lambda env: em['method'](env)
+                    method(env)
+
+    def set_buffer_size(self, max_speed, time_coverage=None):
+        '''
+        Adjust buffer to minimise data block size needed to cover elements.
+
+        The buffer size is calculated from the maximum anticpated speed.
+        Seeding over a large area or over longer time can easily cause
+        particles to be located outside the block. This is not critical, but
+        causes interpolation to be one-sided in time for the relevant
+        particles.
+
+        Args:
+
+            max_speed (m/s): the maximum speed anticipated for particles.
+            time_coverage (timedelta): the time span to cover
+
+        '''
         self.buffer = 0
         pixelsize = self.pixel_size()
         if pixelsize is not None:
             if self.time_step is not None:
                 time_step_seconds = self.time_step.total_seconds()
             else:
-                time_step_seconds = 3600  # 1 hour if not given
-            self.buffer = np.int(
+                if time_coverage is None:
+                    logger.warning('Assuming time step of 1 hour for ' + self.name)
+                    time_step_seconds = 3600  # 1 hour if not given
+                else:
+                    time_step_seconds = time_coverage.total_seconds()
+            self.buffer = int(
                 np.ceil(max_speed * time_step_seconds / pixelsize)) + 2
             logger.debug('Setting buffer size %i for reader %s, assuming '
-                         'a maximum average speed of %g m/s.' %
-                         (self.buffer, self.name, max_speed))
-
-    def wind_from_speed_and_direction(self, env):
-        north_wind = env['wind_speed'] * np.cos(
-            np.radians(env['wind_to_direction']))
-        east_wind = env['wind_speed'] * np.sin(
-            np.radians(env['wind_to_direction']))
-        env['x_wind'] = east_wind
-        env['y_wind'] = north_wind
-        # Rotating might be necessary generally
-        #x,y = np.meshgrid(env['x'], env['y'])
-        #env['x_wind'], env['y_wind'] = self.rotate_vectors(
-        #    x, y,
-        #    east_wind, north_wind,
-        #    None, self.proj)
-
-    def __calculate_derived_environment_variables__(self, env):
-        if 'x_wind' in self.derived_variables and 'wind_speed' in env.keys():
-            self.wind_from_speed_and_direction(env)
+                         'a maximum average speed of %g m/s and time span of %s' %
+                         (self.buffer, self.name, max_speed, timedelta(seconds=time_step_seconds)))
 
     def __check_env_coordinates__(self, env):
         """
         Make sure x and y are floats (and not e.g. int64)
         """
         if 'x' in env.keys():
-            env['x'] = np.array(env['x'], dtype=np.float)
-            env['y'] = np.array(env['y'], dtype=np.float)
+            env['x'] = np.array(env['x'], dtype=np.float32)
+            env['y'] = np.array(env['y'], dtype=np.float32)
 
     @staticmethod
     def __check_variable_array__(name, variable):
@@ -459,25 +564,28 @@ class Variables(ReaderDomain):
 
         # Mask values outside valid_min, valid_max (self.standard_names)
         if name in standard_names.keys():
-            logger.debug("checking %s for invalid values" % name)
+            logger.debug("Checking %s for invalid values" % name)
             if isinstance(variable, list):
-                logger.warning(
-                    'Skipping min-max checking for ensemble data')
-                return variable
+                logger.debug(
+                    'Min-max checking for ensemble data (%i members)' %
+                    (len(variable)))
+                # Recursive
+                return [
+                    Variables.__check_variable_array__(name, v)
+                    for v in variable
+                ]
             # with np.errstate(invalid='ignore'):
             invalid_indices = np.logical_and(
                 np.isfinite(variable),
-                np.logical_or(
-                    variable < standard_names[name]['valid_min'],
-                    variable > standard_names[name]['valid_max']))
+                np.logical_or(variable < standard_names[name]['valid_min'],
+                              variable > standard_names[name]['valid_max']))
             if np.sum(invalid_indices) > 0:
                 invalid_values = variable[invalid_indices]
                 logger.warning(
                     'Invalid values (%s to %s) found for %s, replacing with NaN'
-                    %
-                    (invalid_values.min(), invalid_values.max(), variable))
+                    % (invalid_values.min(), invalid_values.max(), name))
                 logger.warning('(allowed range: [%s, %s])' %
-                                (standard_names[name]['valid_min'],
+                               (standard_names[name]['valid_min'],
                                 standard_names[name]['valid_max']))
                 variable[invalid_indices] = np.nan
 
@@ -495,39 +603,15 @@ class Variables(ReaderDomain):
 
             :meth:`.structured.StructuredReader.__check_env_arrays__`
         """
-        variables = [var for var in env.keys() if var not in ['x', 'y', 'time']]
+        variables = [
+            var for var in env.keys() if var not in ['x', 'y', 'time']
+        ]
 
         for variable in variables:
-            env[variable] = self.__check_variable_array__(variable, env[variable])
+            env[variable] = self.__check_variable_array__(
+                variable, env[variable])
 
         return env
-
-    def __convolve_env__(self, env):
-        """
-        Convolve arrays with a kernel, if reader.convolve is set
-        """
-        if self.convolve is not None:
-            from scipy import ndimage
-            N = self.convolve
-            if isinstance(N, (int, np.integer)):
-                kernel = np.ones((N, N))
-                kernel = kernel / kernel.sum()
-            else:
-                kernel = N
-            logger.debug('Convolving variables with kernel: %s' % kernel)
-            for variable in env.keys():
-                if variable in ['x', 'y', 'z', 'time']:
-                    pass
-                else:
-                    if env[variable].ndim == 2:
-                        env[variable] = ndimage.convolve(env[variable],
-                                                         kernel,
-                                                         mode='nearest')
-                    elif env[variable].ndim == 3:
-                        env[variable] = ndimage.convolve(env[variable],
-                                                         kernel[:, :, None],
-                                                         mode='nearest')
-
 
     @abstractmethod
     def _get_variables_interpolated_(self, variables, profiles, profiles_depth,
@@ -572,17 +656,23 @@ class Variables(ReaderDomain):
         self.timer_start('preparing')
 
         x = np.atleast_1d(x)
-        y = np.atleast_1d(y)
-
         numx = len(x)  # To check later if all points were covered
+
+        y = np.atleast_1d(y)
+        z = np.atleast_1d(z) if z is not None else np.zeros((1, ))
+
+        assert numx == len(y), "x, y, and z must have the same length"
+        assert len(z) == 1 or numx == len(
+            z), "x, y, and z must have the same length"
 
         ind_covered, xx, yy = self.covers_positions_xy(x, y, z)
         if len(ind_covered) == 0:
+            lon, lat = self.xy2lonlat(x, y)
             logger.error("All particles outside domain!")
             raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
                               'are outside domain of %s (%s)') %
-                             (len(x), x.min(), x.max(), y.min(), y.max(),
-                              self.name, self.coverage_string()))
+                             (len(x), lon.min(), lon.max(), lat.min(),
+                              lat.max(), self.name, self.coverage_string()))
         x = xx
         y = yy
 
@@ -598,14 +688,18 @@ class Variables(ReaderDomain):
 
         # Filter derived variables
         derived = []
+        derived_input = []
 
         for var in variables:
             if var in self.derived_variables:
-                logger.debug("Scheduling %s to be derived from %s" % (var, self.derived_variables[var]))
-                variables.extend(self.derived_variables[var])
-                variables.remove(var)
+                logger.debug("Scheduling %s to be derived from %s" %
+                             (var, self.derived_variables[var]))
+                derived_input.extend(self.derived_variables[var])
                 derived.append(var)
 
+        for v in derived:
+            variables.remove(v)
+        variables.extend(list(set(derived_input)))
 
         env, env_profiles = self._get_variables_interpolated_(
             variables, profiles, profiles_depth, time, x, y, z)
@@ -613,19 +707,19 @@ class Variables(ReaderDomain):
         # Calculate derived variables
         if len(derived) > 0:
             self.__calculate_derived_environment_variables__(env)
+            variables.extend(derived)
 
-        for e in [ env, env_profiles ]:
+        for e in [env, env_profiles]:
             if e is not None:
                 self.__check_env_coordinates__(e)
                 self.__check_env_arrays__(e)
-                self.__convolve_env__(e)
 
         self.timer_end('reading')
 
         # Rotating vectors fields
         if rotate_to_proj is not None:
-            if self.simulation_SRS is True:
-                logger.debug('Reader SRS is the same as calculation SRS - '
+            if self.proj.crs.is_geographic:
+                logger.debug('Reader projection is latlon - '
                              'rotation of vectors is not needed.')
             else:
                 vector_pairs = []
@@ -712,12 +806,12 @@ class Variables(ReaderDomain):
                 Can be None (default) if reader/variable has no time
                 dimension (e.g. climatology or landmask).
 
-            lon: N/A
+            lon: longitude, 1d array.
 
-            lat: N/A
+            lat: latitude, 1d array, same length as lon.
 
             z: float or ndarray; vertical position (in meters, positive up)
-                of requested points.
+                of requested points. either scalar or same length as lon, lat.
                 default: 0 m (unless otherwise documented by reader)
 
             block: bool, see return below
@@ -737,6 +831,7 @@ class Variables(ReaderDomain):
 
         """
 
+        lon = self.modulate_longitude(lon)
         x, y = self.lonlat2xy(lon, lat)
 
         env, env_profiles = self.get_variables_interpolated_xy(

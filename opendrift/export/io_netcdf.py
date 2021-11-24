@@ -1,6 +1,7 @@
 import sys
 import os
 from datetime import datetime, timedelta
+import logging; logging.captureWarnings(True); logger = logging.getLogger(__name__)
 import string
 from shutil import move
 
@@ -99,15 +100,16 @@ def write_buffer(self):
             date2num(times, self.timeStr)
 
     # Write status categories metadata
-    status_dtype = self.ElementType.variables['status']['dtype']
-    self.outfile.variables['status'].valid_range = np.array(
-        (0, len(self.status_categories) - 1)).astype(status_dtype)
-    self.outfile.variables['status'].flag_values = \
-        np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
-    self.outfile.variables['status'].flag_meanings = \
-        " ".join(self.status_categories)
+    # TODO: need not be written each output timestep, thus this could be deleted?
+    #status_dtype = self.ElementType.variables['status']['dtype']
+    #self.outfile.variables['status'].valid_range = np.array(
+    #    (0, len(self.status_categories) - 1)).astype(status_dtype)
+    #self.outfile.variables['status'].flag_values = \
+    #    np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
+    #self.outfile.variables['status'].flag_meanings = \
+    #    " ".join(self.status_categories)
 
-    self.logger.info('Wrote %s steps to file %s' % (num_steps_to_export,
+    logger.info('Wrote %s steps to file %s' % (num_steps_to_export,
                                                 self.outfile_name))
     self.history.mask = True  # Reset history array, for new data
     self.steps_exported = self.steps_exported + num_steps_to_export
@@ -125,11 +127,30 @@ def close(self):
         np.array(np.arange(len(self.status_categories)), dtype=status_dtype)
     self.outfile.variables['status'].flag_meanings = \
         " ".join(self.status_categories)
+
+    # Write origin_marker definitions
+    if 'origin_marker' in self.outfile.variables:
+        self.outfile.variables['origin_marker'].flag_values = \
+            np.array(np.arange(len(self.origin_marker)))
+        self.outfile.variables['origin_marker'].flag_meanings = \
+            " ".join(self.origin_marker.values())
+
     # Write final timesteps to file
     self.outfile.time_coverage_end = str(self.time)
 
     # Write performance data
     self.outfile.performance = self.performance()
+
+    # Write metadata items anew, if any are added during simulation
+    if hasattr(self, 'metadata_dict'):
+        for key, value in self.metadata_dict.items():
+            self.outfile.setncattr(key, str(value))
+
+    # Write min and max values as variable attributes
+    for var in self.history_metadata:
+        if var in self.outfile.variables:
+            self.outfile.variables[var].setncattr('minval', self.minvals[var])
+            self.outfile.variables[var].setncattr('maxval', self.maxvals[var])
 
     # Write bounds metadata
     self.outfile.geospatial_lat_min = self.history['lat'].min()
@@ -149,9 +170,9 @@ def close(self):
     # Fortunately this is quite fast.
     # https://www.unidata.ucar.edu/software/thredds/current/netcdf-java/reference/FeatureDatasets/CFpointImplement.html
     try:
-        self.logger.debug('Making netCDF file CDM compliant with fixed dimensions')
+        logger.debug('Making netCDF file CDM compliant with fixed dimensions')
         if self.num_elements_scheduled() > 0:
-            self.logger.info('Removing %i unseeded elements already written to file' % self.num_elements_scheduled())
+            logger.info('Removing %i unseeded elements already written to file' % self.num_elements_scheduled())
             mask = np.ones(self.history.shape[0], dtype=bool)
             mask[self.elements_scheduled.ID-1] = False
         with Dataset(self.outfile_name) as src, \
@@ -171,7 +192,7 @@ def close(self):
                 if 'trajectory' in variable.dimensions:
                     if self.num_elements_scheduled() > 0:
                         if len(variable.dimensions) == 2:
-                            dstVar[:] = srcVar[mask, :] 
+                            dstVar[:] = srcVar[mask, :]
                         else:
                             dstVar[:] = srcVar[mask]  # Copy data
                     else:
@@ -189,23 +210,25 @@ def close(self):
     except Exception as me:
         print(me)
         print('Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)')
-    
+
 def import_file_xarray(self, filename, chunks):
 
     import xarray as xr
-    self.logger.debug('Importing with Xarray from ' + filename)
+    logger.debug('Importing with Xarray from ' + filename)
     self.ds = xr.open_dataset(filename, chunks=chunks)
 
     self.steps_output = len(self.ds.time)
     ts0 = (self.ds.time[0] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-    self.start_time = datetime.utcfromtimestamp(np.float(ts0))
+    self.start_time = datetime.utcfromtimestamp(float(ts0))
     tse = (self.ds.time[-1] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-    self.end_time = datetime.utcfromtimestamp(np.float(tse))
+    self.end_time = datetime.utcfromtimestamp(float(tse))
     if len(self.ds.time) > 1:
         ts1 = (self.ds.time[1] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-        self.time_step_output = timedelta(seconds=np.float(ts1 - ts0))
+        self.time_step_output = timedelta(seconds=float(ts1 - ts0))
     self.time = self.end_time  # Using end time as default
     self.status_categories = self.ds.status.flag_meanings.split()
+    if 'flag_meanings' in self.ds.origin_marker.attrs:
+        self.origin_marker = [s.replace('_', ' ') for s in self.ds.origin_marker.flag_meanings.split()]
 
     num_elements = len(self.ds.trajectory)
     elements=np.arange(num_elements)
@@ -229,21 +252,19 @@ def import_file_xarray(self, filename, chunks):
     for da in ['lon', 'lat']:
         self.ds[da] = self.ds[da].where(self.ds.status>=0)
 
-    # Read some saved parameters
-    if os.path.exists(self.analysis_file):
-        self.af = xr.open_dataset(self.analysis_file)
-        self.lonmin = self.af.lonmin
-        self.lonmax = self.af.lonmax
-        self.latmin = self.af.latmin
-        self.latmax = self.af.latmax
+    if 'minval' in self.ds.lon.attrs:
+        self.lonmin = np.float32(self.ds.lon.minval)
+        self.latmin = np.float32(self.ds.lat.minval)
+        self.lonmax = np.float32(self.ds.lon.maxval)
+        self.latmax = np.float32(self.ds.lat.maxval)
 
-def import_file(self, filename, times=None, elements=None):
+def import_file(self, filename, times=None, elements=None, load_history=True):
     """Create OpenDrift object from imported file.
      times: indices of time steps to be imported, must be contineous range.
      elements: indices of elements to be imported
     """
 
-    self.logger.debug('Importing from ' + filename)
+    logger.debug('Importing from ' + filename)
     infile = Dataset(filename, 'r')
     # 'times' can be used to import subset. Not yet implemented.
     if times is None and hasattr(infile, 'steps_exported'):
@@ -252,7 +273,7 @@ def import_file(self, filename, times=None, elements=None):
     else:
         #self.steps_output = len(infile.dimensions['time'])
         self.steps_output = len(times)
-    
+
     filetime = infile.variables['time'][times]
     units = infile.variables['time'].units
     self.start_time = num2date(filetime[0], units)
@@ -286,29 +307,33 @@ def import_file(self, filename, times=None, elements=None):
     history_dtype = np.dtype(history_dtype_fields)
 
     # Import dataset (history)
-    self.history = np.ma.array(
-        np.zeros([num_elements, self.steps_output]),
-        dtype=history_dtype, mask=[True])
-    for var in infile.variables:
-        if var in ['time', 'trajectory']:
-            continue
-        try:
-            self.history[var] = infile.variables[var][elements, times]
-        except Exception as e:
-            self.logger.info(e)
-            pass
+    if load_history is True:
+        self.history = np.ma.array(
+            np.zeros([num_elements, self.steps_output]),
+            dtype=history_dtype, mask=[True])
+        for var in infile.variables:
+            if var in ['time', 'trajectory']:
+                continue
+            try:
+                self.history[var] = infile.variables[var][elements, times]
+            except Exception as e:
+                logger.info(e)
+                pass
 
-    # Initialise elements from given (or last) state/time
-    firstlast = np.ma.notmasked_edges(self.history['status'], axis=1)
-    index_of_last = firstlast[1][1]
-    kwargs = {}
-    for var in infile.variables:
-        if var in self.ElementType.variables:
-            kwargs[var] = self.history[var][
-                np.arange(len(index_of_last)), index_of_last]
-    kwargs['ID'] = elements + 1
-    self.elements = self.ElementType(**kwargs)
-    self.elements_deactivated = self.ElementType()
+        # Initialise elements from given (or last) state/time
+        firstlast = np.ma.notmasked_edges(self.history['status'], axis=1)
+        index_of_last = firstlast[1][1]
+        kwargs = {}
+        for var in infile.variables:
+            if var in self.ElementType.variables:
+                kwargs[var] = self.history[var][
+                    np.arange(len(index_of_last)), index_of_last]
+        kwargs['ID'] = np.arange(len(elements)) + 1
+        self.elements = self.ElementType(**kwargs)
+        self.elements_deactivated = self.ElementType()
+    else:
+        self.history = None
+        logger.warning('Not importing history')
 
     # Remove elements which are scheduled for deactivation
     self.remove_deactivated_elements()
@@ -327,10 +352,10 @@ def import_file(self, filename, times=None, elements=None):
                 value = None
             try:
                 self.set_config(conf_key, value)
-                self.logger.debug('Setting imported config: %s -> %s' %
+                logger.debug('Setting imported config: %s -> %s' %
                              (conf_key, value))
             except:
-                self.logger.warning('Could not set config: %s -> %s' %
+                logger.warning('Could not set config: %s -> %s' %
                                 (conf_key, value))
 
     # Import time steps from metadata
@@ -348,7 +373,7 @@ def import_file(self, filename, times=None, elements=None):
         self.time_step = timedelta_from_string(infile.time_step_calculation)
         self.time_step_output = timedelta_from_string(infile.time_step_output)
     except Exception as e:
-        self.logger.warning(e)
-        self.logger.warning('Could not parse time_steps from netCDF file')
+        logger.warning(e)
+        logger.warning('Could not parse time_steps from netCDF file')
 
     infile.close()

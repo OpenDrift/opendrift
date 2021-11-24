@@ -14,9 +14,95 @@
 #
 # Copyright 2016, Knut-Frode Dagestad, MET Norway
 
+import logging; logger = logging.getLogger(__name__)
 import numpy as np
 from math import sqrt
+import matplotlib.pyplot as plt
 import pyproj
+import cmocean
+
+def wind_drift_factor_from_trajectory(trajectory_dict, min_period=None):
+    '''Estimate wind_drift_fator based on wind and current along given trajectory
+
+    trajectory_dict: dictionary with arrays of same length of the following variables:
+    time, lon, lat, x_wind, y_wind, x_sea_water_velocity, y_sea_water_velocity
+
+    Returns array of same length minus one of the fitted wind_drift_factor
+    '''
+
+    geod = pyproj.Geod(ellps='WGS84')
+    time = trajectory_dict['time']
+    try:
+        import pandas as pd
+        time = pd.to_datetime(time)
+    except:
+        pass
+    if min_period is None:
+        ind = range(len(time))
+    else:
+        timestep = time[1] - time[0]
+        s = np.round(min_period.total_seconds()/(timestep).total_seconds()).astype(int)
+        ind = np.arange(0, len(time), s).astype(np.int)
+        print('Original timestep (%s) multiplied by %i: %s' % (timestep, s, timestep*s))
+        ind2 = ind.copy()
+        for i in range(1, s):
+            ind2 = np.concatenate((ind2, ind+i))
+        ind = ind2
+        ind = ind[ind<len(time)]
+        time = time[ind]
+    cu = trajectory_dict['x_sea_water_velocity'][ind]
+    cv = trajectory_dict['y_sea_water_velocity'][ind]
+    wu = trajectory_dict['x_wind'][ind]
+    wv = trajectory_dict['y_wind'][ind]
+    lon = trajectory_dict['lon'][ind]
+    lat = trajectory_dict['lat'][ind]
+    current_speed = np.sqrt(cu**2+cv**2)
+    current_azimuth = np.degrees(np.arctan2(cu, cv))
+    wind_speed = np.sqrt(wu**2+wv**2)
+    time_step = (time[1]-time[0]).total_seconds()
+    # Move forward from each position with current
+    lonf, latf, back_az = geod.fwd(lon[0:-1], lat[0:-1], current_azimuth[0:-1], current_speed[0:-1]*time_step)
+    # Find distance and azimuth to next observational position
+    azimuth_forward, a2, distance = geod.inv(lonf, latf, lon[1:], lat[1:])
+    # Find the wind_drift_factor needed to give the remaining distance
+    wind_drift_factor = distance / (time_step*wind_speed[0:-1])
+
+    wind_azimuth = np.degrees(np.arctan2(wu, wv))
+    azimuth_offset = azimuth_forward - wind_azimuth[0:-1]  # 0 if downwind drift, positive if rightwards drift is needed towards end position
+    azimuth_offset = azimuth_offset % 360  # Make sure azimuth angle is between -180 and 180
+    azimuth_offset = (azimuth_offset + 360) % 360
+    azimuth_offset[azimuth_offset>180] -= 360
+
+    return wind_drift_factor, azimuth_offset
+
+def distance_between_trajectories(lon1, lat1, lon2, lat2):
+    '''Calculate the distances [m] between two trajectories'''
+
+    assert len(lon1) == len(lat1) == len(lat1) == len(lat2)
+    geod = pyproj.Geod(ellps='WGS84')
+    azimuth_forward, a2, distance = geod.inv(lon1, lat1, lon2, lat2)
+ 
+    return distance
+
+def plot_wind_drift_factor(wdf, azimuth, wmax_plot=None):
+    '''Polar plot of array of wind drift factor, with associated azimuthal offset'''
+
+    wmax = wdf.max()
+    wbins = np.arange(0, wmax+.005, .005)
+    abins = np.linspace(-180, 180, 30)
+    hist, _, _ = np.histogram2d(azimuth, wdf, bins=(abins, wbins))
+    A, W = np.meshgrid(abins, wbins)
+    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
+    ax.set_theta_zero_location('N', offset=0)
+    ax.set_theta_direction(-1)
+    pc = ax.pcolormesh(np.radians(A), W, hist.T, cmap=cmocean.cm.dense)
+    plt.arrow(np.pi, wmax, 0, -wmax, width=.015, facecolor='k', zorder=100,
+              head_width=.8, lw=2, head_length=.005, length_includes_head=True)
+    plt.text(np.pi, wmax*.5, ' Wind direction', fontsize=18)
+    plt.grid()
+    if wmax_plot is not None:
+        plt.ylim([0, wmax_plot])
+    plt.show()
 
 
 def oil_wave_entrainment_rate_li2017(dynamic_viscosity, oil_density, interfacial_tension,
@@ -66,7 +152,7 @@ def wave_period_from_wind(wind_speed):
     omega[wind_speed>0] = 0.877*9.81/(1.17*wind_speed[wind_speed>0])
     return 2*np.pi/omega
 
-def verticaldiffusivity_Sundby1983(windspeed):
+def verticaldiffusivity_Sundby1983(windspeed, depth, mixedlayerdepth=50, background_diffusivity=0):
     ''' Vertical diffusivity from Sundby (1983)
 
     S. Sundby (1983): A one-dimensional model for the vertical
@@ -74,11 +160,13 @@ def verticaldiffusivity_Sundby1983(windspeed):
         Deep Sea Research (30) pp. 645-661
     '''
 
-    K = 76.1e-4 + 2.26e-4 * windspeed*windspeed
+    K = 76.1e-4 + 2.26e-4 * windspeed*windspeed * np.ones(np.atleast_1d(depth.shape))
+    K[depth>mixedlayerdepth-1] = (K[depth>mixedlayerdepth-1]+background_diffusivity)/2  # Transition
+    K[depth>=mixedlayerdepth] = background_diffusivity  # Cutoff below mixed layer
     # valid = windspeed_squared < 13**2
     return K
 
-def verticaldiffusivity_Large1994(windspeed, depth, mixedlayerdepth=50):
+def verticaldiffusivity_Large1994(windspeed, depth, mixedlayerdepth=50, background_diffusivity=0):
     ''' Vertical diffusivity from Large et al. (1994)
 
     Depending on windspeed, depth and mixed layer depth (default 50m).'''
@@ -108,7 +196,7 @@ def verticaldiffusivity_Large1994(windspeed, depth, mixedlayerdepth=50):
     windstress = windspeed*windspeed * cd * rhoa
 
     K = MLD * stabilityfunction(depth/MLD) * 0.4 * G(depth/MLD) * windstress
-    K[depth>=MLD] = 0.001  # background diffusivity
+    K[depth>=MLD] = background_diffusivity
 
     return K
 
@@ -193,8 +281,8 @@ def ftle(X, Y, delta, duration):
     # From Johannes Rohrs
     nx = X.shape[0]
     ny = X.shape[1]
-    J = np.empty([nx,ny,2,2],np.float)
-    FTLE = np.empty([nx,ny],np.float)
+    J = np.empty([nx,ny,2,2], np.float32)
+    FTLE = np.empty([nx,ny], np.float32)
 
     # gradient
     dx = np.gradient(X)
@@ -288,7 +376,7 @@ class PhysicsMethods:
 
     def advect_ocean_current(self, factor=1):
         # Runge-Kutta scheme
-        if self.get_config('drift:scheme')[0:11] == 'runge-kutta':
+        if self.get_config('drift:advection_scheme')[0:11] == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity
             y_vel = self.environment.y_sea_water_velocity
 
@@ -301,13 +389,13 @@ class PhysicsMethods:
                                                self.elements.lat,
                                                az, dist, radians=False)
             # Find current at midpoint, a half timestep later
-            self.logger.debug('Runge-kutta, fetching half time-step later...')
+            logger.debug('Runge-kutta, fetching half time-step later...')
             mid_env, profiles, missing = self.get_environment(
                 ['x_sea_water_velocity', 'y_sea_water_velocity'],
                 self.time + self.time_step/2,
                 mid_lon, mid_lat, self.elements.z, profiles=None)
-            if self.get_config('drift:scheme') == 'runge-kutta4':
-                self.logger.debug('Runge-kutta 4th order...')
+            if self.get_config('drift:advection_scheme') == 'runge-kutta4':
+                logger.debug('Runge-kutta 4th order...')
                 x_vel2 = mid_env['x_sea_water_velocity']
                 y_vel2 = mid_env['y_sea_water_velocity']
                 az2 = np.degrees(np.arctan2(x_vel2, y_vel2))
@@ -348,14 +436,14 @@ class PhysicsMethods:
                 self.update_positions(
                         factor*mid_env['x_sea_water_velocity'],
                         factor*mid_env['y_sea_water_velocity'])
-        elif self.get_config('drift:scheme') == 'euler':
+        elif self.get_config('drift:advection_scheme') == 'euler':
             # Euler scheme
             self.update_positions(
                     factor*self.environment.x_sea_water_velocity,
                     factor*self.environment.y_sea_water_velocity)
         else:
             raise ValueError('Drift scheme not recognised: ' +
-                             self.get_config('drift:scheme'))
+                             self.get_config('drift:advection_scheme'))
 
     def advect_with_sea_ice(self, factor=1):
         if hasattr(self.environment, 'sea_ice_x_velocity'):
@@ -364,7 +452,7 @@ class PhysicsMethods:
                     factor*self.environment.sea_ice_y_velocity)
         else:
             if not hasattr(self.environment, 'x_sea_water_velocity'):
-                self.logger.info('No sea ice velocity available')
+                logger.info('No sea ice velocity available')
                 return
             # Sea ice velocity, rule-of-thumb from Nordam,
             # doi:10.1016/j.marpolbul.2019.01.019
@@ -407,9 +495,9 @@ class PhysicsMethods:
         surface = self.elements.z >= -wind_drift_depth
         if surface.sum() == 0:
             if surface_only is True:
-                self.logger.debug('All elements are below surface, no wind-induced shear drift')
+                logger.debug('All elements are below surface, no wind-induced shear drift')
             else:
-                self.logger.debug('All elements are below %fm, no wind-induced shear drift' % wind_drift_depth[0])
+                logger.debug('All elements are below %fm, no wind-induced shear drift' % wind_drift_depth[0])
             return
 
         wdf = wind_drift_factor.copy()
@@ -433,20 +521,20 @@ class PhysicsMethods:
 
         speed = np.sqrt(x_wind[surface]*x_wind[surface] + y_wind[surface]*y_wind[surface])
         if wdf[surface].max() == 0:
-            self.logger.debug('Wind drift factor is 0')
+            logger.debug('Wind drift factor is 0')
             return
         if speed.max() == 0:
-            self.logger.debug('No wind for wind-sheared ocean drift')
+            logger.debug('No wind for wind-sheared ocean drift')
             return
 
         speed = speed*wdf[surface]
         if surface_only is True:
-            self.logger.debug('Advecting %s of %i elements at surface with '
+            logger.debug('Advecting %s of %i elements at surface with '
                           'wind-sheared ocean current (%f m/s - %f m/s)'
                           % (np.sum(surface), self.num_elements_active(),
                              speed.min(), speed.max()))
         else:
-            self.logger.debug('Advecting %s of %i elements above %.3fm with '
+            logger.debug('Advecting %s of %i elements above %.3fm with '
                           'wind-sheared ocean current (%f m/s - %f m/s)'
                           % (np.sum(surface), self.num_elements_active(),
                              wind_drift_depth[0],
@@ -457,23 +545,23 @@ class PhysicsMethods:
     def stokes_drift(self, factor=1):
 
         if self.get_config('drift:stokes_drift') is False:
-            self.logger.debug('Stokes drift not activated')
+            logger.debug('Stokes drift not activated')
             return
 
         if np.max(np.array(
             self.environment.sea_surface_wave_stokes_drift_x_velocity+
             self.environment.sea_surface_wave_stokes_drift_y_velocity)) \
                 == 0:
-            self.logger.debug('No Stokes drift velocity available')
+            logger.debug('No Stokes drift velocity available')
             return
 
         wave_height = self.significant_wave_height()
         wave_period = self.wave_period()
         if np.max(np.array(wave_height)) == 0:
-            self.logger.debug('Stokes drift is available, but not Hs: using Hs=1 for Stokes profile')
+            logger.debug('Stokes drift is available, but not Hs: using Hs=1 for Stokes profile')
             wave_height = 1
         if np.max(np.array(wave_period)) == 0:
-            self.logger.debug('Stokes drift is available, but not Tp: using Tp=8 for Stokes profile')
+            logger.debug('Stokes drift is available, but not Tp: using Tp=8 for Stokes profile')
             wave_period = 8
 
         stokes_u, stokes_v, s = stokes_drift_profile_breivik(
@@ -483,9 +571,9 @@ class PhysicsMethods:
 
         self.update_positions(stokes_u*factor, stokes_v*factor)
         if s.min() == s.max():
-            self.logger.debug('Advecting with Stokes drift (%s m/s)' % s.min())
+            logger.debug('Advecting with Stokes drift (%s m/s)' % s.min())
         else:
-            self.logger.debug('Advecting with Stokes drift (%s to %s m/s)' %
+            logger.debug('Advecting with Stokes drift (%s to %s m/s)' %
                       (s.min(), s.max()))
 
     def wave_stokes_drift_parameterised(self, wind, fetch):
@@ -577,7 +665,7 @@ class PhysicsMethods:
                    'sea_surface_wave_significant_height') and \
                 self.environment.sea_surface_wave_significant_height.max() == 0:
             Hs = self.significant_wave_height()
-            self.logger.debug('Calculating Hs from wind, min: %f, mean: %f, max: %f' %
+            logger.debug('Calculating Hs from wind, min: %f, mean: %f, max: %f' %
                           (Hs.min(), Hs.mean(), Hs.max()))
 
         # Missing wave periode
@@ -585,7 +673,7 @@ class PhysicsMethods:
                    'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment') and \
                 self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() == 0:
             wave_period = self.wave_period()
-            self.logger.debug('Calculating wave period from wind, min: %f, mean: %f, max: %f' %
+            logger.debug('Calculating wave period from wind, min: %f, mean: %f, max: %f' %
                           (wave_period.min(), wave_period.mean(), wave_period.max()))
 
 
@@ -627,25 +715,25 @@ class PhysicsMethods:
                 ) and self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() > 0:
             # prefer using Tm02:
             T = self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.copy()
-            self.logger.debug('Using mean period Tm02 as wave period')
+            logger.debug('Using mean period Tm02 as wave period')
         elif hasattr(self.environment, 'sea_surface_wave_period_at_variance_spectral_density_maximum'
                 ) and self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.max() > 0:
             # alternatively use Tp
             T = self.environment.sea_surface_wave_period_at_variance_spectral_density_maximum.copy()
-            self.logger.debug('Using peak period Tp as wave period')
+            logger.debug('Using peak period Tp as wave period')
         else:
             # calculate Tp from wind speed:
-            self.logger.debug('Calculating wave period Tm02 from wind')
+            logger.debug('Calculating wave period Tm02 from wind')
             T = (2*np.pi)/self._wave_frequency()
             self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment = T
 
         #print '\n T %s \n' % str(T.mean())
         if T.min() == 0:
-            self.logger.warning('Zero wave period found - '
+            logger.warning('Zero wave period found - '
                             'replacing with mean')
             T[T==0] = np.mean(T[T>0])
 
-        self.logger.debug('   min: %f, mean: %f, max: %f' % (T.min(), T.mean(), T.max()))
+        logger.debug('   min: %f, mean: %f, max: %f' % (T.min(), T.mean(), T.max()))
 
         return T
 
@@ -704,24 +792,12 @@ class PhysicsMethods:
                 env['sea_floor_depth_below_sea_level'].astype('float32')
         return sea_floor_depth
 
-    def lift_elements_to_seafloor(self):
-        '''Lift any elements which are below seafloor'''
-
-        if 'sea_floor_depth_below_sea_level' not in self.priority_list:
-            return
-        sea_floor_depth = self.sea_floor_depth()
-        below = self.elements.z < -sea_floor_depth
-        if self.get_config('drift:lift_to_seafloor') is True:
-            self.elements.z[below] = -sea_floor_depth[below]
-        else:
-            self.deactivate_elements(below, reason='seafloor')
 
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''
     Cd = 0.0012*np.ones(len(windspeed))
     Cd[windspeed > 11] = 0.001*(0.49 + 0.065*windspeed[windspeed > 11])
     return Cd
-
 
 def windspeed_from_stress_polyfit(wind_stress):
     '''Inverting Large and Pond (1981) using polyfit'''

@@ -64,7 +64,7 @@ class Reader(BaseReader, ContinuousReader):
 
         variables = {}
         # Construct cyclonic current field
-        size = np.int(np.int(self.xmax-self.xmin) / self.pixelsize + 1)
+        size = int(int(self.xmax-self.xmin) / self.pixelsize + 1)
         X = x - self.x0
         Y = y - self.y0
         radius = np.sqrt(X*X + Y*Y)

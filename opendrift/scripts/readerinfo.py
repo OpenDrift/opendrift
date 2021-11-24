@@ -97,7 +97,12 @@ if __name__ == '__main__':
                      var not in ('time') and 'time' not in var]
         data = r.get_variables(variables, time, x, y, z=0)
         for var in variables:
-            print('%s : %s' % (var, data[var][i,j]))
+            if data[var].ndim == 2:
+                print('%s : %s' % (var, data[var][i,j]))
+            elif data[var].ndim == 3:
+                print('%s : %s' % (var, data[var][0, i,j]))
+            else:
+                pass
         if 'x_wind' in variables and 'y_wind' in variables:
             print('windspeed : %s' % np.sqrt(
                 data['x_wind'][i,j]**2 + data['y_wind'][i,j]**2))
@@ -109,10 +114,10 @@ if __name__ == '__main__':
             if args.vmin is None:
                 vmin = None
             else:
-                vmin = np.float(args.vmin)
+                vmin = float(args.vmin)
             if args.vmax is None:
                 vmax = None
             else:
-                vmax = np.float(args.vmax)
+                vmax = float(args.vmax)
 
             r.plot(args.variable, vmin=vmin, vmax=vmax)

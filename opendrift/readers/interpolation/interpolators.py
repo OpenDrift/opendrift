@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 from scipy.ndimage import map_coordinates
+import logging; logging.captureWarnings(True); logger = logging.getLogger(__name__)
 import scipy.ndimage as ndimage
 from scipy.interpolate import interp1d, LinearNDInterpolator
 
@@ -30,8 +31,8 @@ class Nearest2DInterpolator():
         self.y = y
         self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
         self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
-        self.xi = np.round(self.xi).astype(np.int)
-        self.yi = np.round(self.yi).astype(np.int)
+        self.xi = np.round(self.xi).astype(np.uint32)
+        self.yi = np.round(self.yi).astype(np.uint32)
         self.xi[self.xi >= len(xgrid)] = len(xgrid)-1
         self.yi[self.yi >= len(ygrid)] = len(ygrid)-1
 
@@ -82,7 +83,7 @@ class LinearND2DInterpolator():
 
         if hasattr(self, 'interpolator'):
             if not np.array_equal(valid, self.interpolator.valid):
-                self.logger.debug('Cannot reuse interpolator - validity of '
+                logger.debug('Cannot reuse interpolator - validity of '
                               'array is different from original.')
         if hasattr(self, 'interpolator') and (np.array_equal(
                  valid, self.interpolator.valid)):
@@ -111,16 +112,15 @@ class Linear2DInterpolator():
     def __init__(self, xgrid, ygrid, x, y):
         self.x = x
         self.y = y
-        self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
-        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
-
+        self.xi = (x - xgrid[0])/(xgrid[-1]-xgrid[0])*(len(xgrid)-1)
+        self.yi = (y - ygrid[0])/(ygrid[-1]-ygrid[0])*(len(ygrid)-1)
 
     def __call__(self, array2d):
         if isinstance(array2d,np.ma.MaskedArray):
-            self.logger.debug('Converting masked array to numpy array for interpolation')
+            logger.debug('Converting masked array to numpy array for interpolation')
             array2d = np.ma.filled(array2d, fill_value=np.nan)
         if not np.isfinite(array2d).any():
-            self.logger.warning('Only NaNs input to linearNDFast - returning')
+            logger.warning('Only NaNs input to linearNDFast - returning')
             return np.nan*np.ones(len(self.xi))
 
         # Fill NaN-values with nearby real values
@@ -131,9 +131,9 @@ class Linear2DInterpolator():
         while len(missing) > 0:
             i += 1
             if i > 10:
-                self.logger.warning('Still NaN-values after 10 iterations, exiting!')
+                logger.warning('Still NaN-values after 10 iterations, exiting!')
                 return interp
-            self.logger.debug('NaN values for %i elements, expanding data %i' %
+            logger.debug('NaN values for %i elements, expanding data %i' %
                           (len(missing), i))
             expand_numpy_array(array2d)
             interp[missing] = map_coordinates(
@@ -168,7 +168,7 @@ class Nearest1DInterpolator():
         else:  # decreasing values, must flip for interpolator
             z_interpolator = interp1d(zgrid[::-1], range(len(zgrid))[::-1])
         # Indices corresponding to nearest value in zgrid
-        self.zi = np.round(z_interpolator(z)).astype(np.int)
+        self.zi = np.round(z_interpolator(z)).astype(np.uint8)
         self.zi[self.zi < 0] = 0
         self.zi[self.zi >= len(zgrid)] = len(zgrid) - 1
 
@@ -191,7 +191,7 @@ class Linear1DInterpolator():
         z_interpolator(z[0])  # to prevent threading issues
         # Indices corresponding to layers above and below
         interp_zi = z_interpolator(z)
-        self.index_above = np.floor(interp_zi).astype(np.int)
+        self.index_above = np.floor(interp_zi).astype(np.int8)
         self.index_above[self.index_above < 0] = 0
         self.index_below = np.minimum(self.index_above + 1, len(zgrid) - 1)
         self.weight_above = 1 - (interp_zi - self.index_above)

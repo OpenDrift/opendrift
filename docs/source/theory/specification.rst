@@ -28,23 +28,23 @@ Some design criteria are:
     * rigid objects (based on Leeway)
     * plankton, fish eggs, larvae (based on Ladim)
   * Generic methods for **seeding of particles** (point source, line, cone, shapefile, satellite image initialisation etc)
-|
+ 
 * **Robust**
 
   * using priority list of driver data in case a source is missing, or if the particles leaves the domain in space or time. Using climatology or constant values as last option.
 
   * gracious error handling (try-except)
-|
+ 
 * **Fast** (enough)
 
   * Using vectorized code (performance similar to c and fortran)
-|
+ 
 * **Flexible**
 
   * Can be run for at any location worldwide where driver data are available
   * Option to run both forwards and backwards in time
   * Modules and functions/parameterisations can be modified easily by the user, e.g. for sensitivity tests and scientific studies
-|
+ 
 * **Stochastic**
 
   * Take into account uncertainty:
@@ -54,7 +54,7 @@ Some design criteria are:
     * error, standard deviation
 
   * Yet reproducible, using pseudo-random numbers, allowing sensitivity tests (various parameterisations, driver data sources etc)
-|
+ 
 * **Programmed in Python**
 
   * with optional possibility to implement specific modules og bottlenecks in other laguages, e.g. c or fortran

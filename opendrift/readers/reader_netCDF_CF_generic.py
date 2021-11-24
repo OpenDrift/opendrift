@@ -32,11 +32,11 @@ def proj_from_CF_dict(c):
         raise ValueError('grid_mapping not given in dictionary')
     gm = c['grid_mapping_name']
 
+    if 'earth_radius' in c:
+        earth_radius = c['earth_radius']
+    else:
+        earth_radius = 6371000.
     if gm == 'polar_stereographic':
-        if 'earth_radius' in c:
-            earth_radius = c['earth_radius']
-        else:
-            earth_radius = 6371000.
         lon_0 = 0  # default, but dangerous
         for l0 in ['longitude_of_projection_origin',
                    'longitude_of_central_meridian',
@@ -66,12 +66,16 @@ def proj_from_CF_dict(c):
                                    lon_0, lat_ts, k0, x0, y0, earth_radius)
                  )
 
+    elif gm == 'rotated_latitude_longitude':
+        proj4 = '+proj=ob_tran +o_proj=longlat +lon_0=%s +o_lat_p=%s +R=%s +no_defs' % (
+                c['grid_north_pole_longitude']-180, c['grid_north_pole_latitude'], earth_radius)
+
     proj = pyproj.Proj(proj4)
 
     return proj4, proj
 
 
-class Reader(BaseReader, StructuredReader):
+class Reader(StructuredReader, BaseReader):
     """
     A reader for `CF-compliant <https://cfconventions.org/>`_ netCDF files. It can take a single file, or a file pattern.
 
@@ -126,10 +130,9 @@ class Reader(BaseReader, StructuredReader):
             logger.info('Opening dataset: ' + filestr)
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logger.info('Opening files with MFDataset')
-                self.Dataset = xr.open_mfdataset(filename, concat_dim='time', combine='nested',
-                                                 decode_times=False)
+                self.Dataset = xr.open_mfdataset(filename, data_vars='minimal', coords='minimal',
+                                                 chunks={'time': 1}, decode_times=False)
             else:
-                logger.info('Opening file with Dataset')
                 self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
             raise ValueError(e)
@@ -138,93 +141,68 @@ class Reader(BaseReader, StructuredReader):
         if proj4 is not None:  # If user has provided a projection apriori
             self.proj4 = proj4
         # Find x, y and z coordinates
+        lon_var_name = None
+        lat_var_name = None
+        self.unitfactor = 1
+        self.realizations = None
         for var_name in self.Dataset.variables:
-            logger.debug('Parsing variable: ' +  var_name)
             var = self.Dataset.variables[var_name]
-            #if var.ndim > 1:
-            #    continue  # Coordinates must be 1D-array
-            attributes = var.attrs
-            att_dict = var.attrs
-            standard_name = ''
-            long_name = ''
-            axis = ''
-            units = ''
-            CoordinateAxisType = ''
-            if self.proj4 is None:
-                for att in attributes:
-                    if 'proj4' in att:
-                        self.proj4 = str(att_dict[att])
-                    else:
-                        if 'grid_mapping_name' in att:
-                            mapping_dict = att_dict
-                            logger.debug(
-                                ('Parsing CF grid mapping dictionary:'
-                                ' ' + str(mapping_dict)))
-                            try:
-                                self.proj4, proj =\
-                                    proj_from_CF_dict(mapping_dict)
-                            except:
-                                logger.info('Could not parse CF grid_mapping')
 
-            if 'standard_name' in attributes:
-                standard_name = att_dict['standard_name']
-            if 'long_name' in attributes:
-                long_name = att_dict['long_name']
-            if 'axis' in attributes:
-                axis = att_dict['axis']
-            if 'units' in attributes:
-                units = att_dict['units']
-            if '_CoordinateAxisType' in attributes:
-                CoordinateAxisType = att_dict['_CoordinateAxisType']
-            # has_xarray checks in each case below to avoid loading
-            # data if it isn't a coord
-            # is there a better way??
+            if self.proj4 is None:
+                if 'proj4' in var.attrs:
+                    self.proj4 = str(var.attrs['proj4'])
+                elif 'proj4_string' in var.attrs:
+                    self.proj4 = str(var.attrs['proj4_string'])
+                elif 'grid_mapping_name' in var.attrs:
+                    logger.debug(
+                        ('Parsing CF grid mapping dictionary:'
+                        ' ' + str(var.attrs)))
+                    try:
+                        self.proj4, proj =\
+                            proj_from_CF_dict(var.attrs)
+                    except:
+                        logger.info('Could not parse CF grid_mapping')
+
+            standard_name = var.attrs['standard_name'] if 'standard_name' in var.attrs else ''
+            long_name = var.attrs['long_name'] if 'long_name' in var.attrs else ''
+            axis = var.attrs['axis'] if 'axis' in var.attrs else ''
+            units = var.attrs['units'] if 'units' in var.attrs else ''
+            CoordinateAxisType = var.attrs['CoordinateAxisType'] if 'CoordinateAxisType' in var.attrs else ''
             if standard_name == 'longitude' or \
-                    CoordinateAxisType == 'Lon' or \
+                    CoordinateAxisType.lower() == 'lon' or \
                     long_name.lower() == 'longitude' or \
-                    var_name == 'longitude':
-                var_data = var.values
-                self.lon = var_data
+                    var_name.lower() in ['longitude', 'lon']:
                 lon_var_name = var_name
             if standard_name == 'latitude' or \
-                    CoordinateAxisType == 'Lat' or \
+                    CoordinateAxisType.lower() == 'lat' or \
                     long_name.lower() == 'latitude' or \
-                    var_name == 'latitude':
-                var_data = var.values
-                self.lat = var_data
+                    var_name.lower() in ['latitude', 'lat']:
                 lat_var_name = var_name
             if axis == 'X' or \
                     standard_name == 'projection_x_coordinate':
                 self.xname = var_name
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
-                    unitfactor = 1000
+                    self.unitfactor = 1000
                 elif units == '100  km':
-                    unitfactor = 100000
-                else:
-                    unitfactor = 1
+                    self.unitfactor = 100000
                 var_data = var.values
-                x = var_data*unitfactor
-                self.numx = var_data.shape[0]
+                x = var_data*self.unitfactor
             if axis == 'Y' or \
                     standard_name == 'projection_y_coordinate':
                 self.yname = var_name
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
-                    unitfactor = 1000
+                    self.unitfactor = 1000
                 elif units == '100  km':
-                    unitfactor = 100000
-                else:
-                    unitfactor = 1
-                self.unitfactor = unitfactor
+                    self.unitfactor = 100000
                 var_data = var.values
-                y = var_data*unitfactor
-                self.numy = var_data.shape[0]
+                y = var_data*self.unitfactor
             if standard_name == 'depth' or axis == 'Z':
                 var_data = var.values
                 if var_data.ndim == 1:
-                    if 'positive' not in attributes or \
-                            att_dict['positive'] == 'up':
+                    if 'positive' not in var.attrs or \
+                            var.attrs['positive'] == 'up':
                         self.z = var_data
                     else:
                         self.z = -var_data
@@ -241,13 +219,11 @@ class Reader(BaseReader, StructuredReader):
                 elif time.ndim == 2:
                     self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
                 else:
-                    self.times = num2date(time, time_units)
-                #if has_xarray:
-                #    self.times = [datetime.utcfromtimestamp((OT -
-                #        np.datetime64('1970-01-01T00:00:00Z')
-                #            ) / np.timedelta64(1, 's')) for OT in time]
-                #else:
-                #    self.times = num2date(time, time_units)
+                    if 'calendar' in var.attrs:
+                        calendar = var.attrs['calendar']
+                    else:
+                        calendar = 'standard'
+                    self.times = num2date(time, time_units, calendar=calendar)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
@@ -260,24 +236,51 @@ class Reader(BaseReader, StructuredReader):
                 logger.debug('%i ensemble members available'
                               % len(self.realizations))
 
-        if 'x' not in locals():
-            if self.lon.ndim == 1:
-                x = self.lon[:]
-                self.xname = lon_var_name
-                self.numx = len(x)
-            #else:
-            #    raise ValueError('Did not find x-coordinate variable')
-        if 'y' not in locals():
-            if self.lat.ndim == 1:
-                y = self.lat[:]
-                self.yname = lat_var_name
-                self.numy = len(y)
-            #else:
-            #    raise ValueError('Did not find y-coordinate variable')
+        # Temporary workaround for Barents EPS model
+        if self.realizations is None and 'ensemble_member' in self.Dataset.dims:
+            self.realizations = np.arange(self.Dataset.dims['ensemble_member'])
 
-        if not hasattr(self, 'unitfactor'):
-            self.unitfactor = 1
+        #########################
+        # Summary of geolocation
+        #########################
+        if 'x' in locals():
+            if x[1]-x[0] == 1 and y[1]-y[0] == 1:
+                logger.info('deltaX and deltaY are 1, interpreting dataset as unprojected')
+                projected = False
+            else:
+                projected = True
+        if 'x' not in locals() or projected is False:  # No x/y-coordinates were detected
+            if lon_var_name is None:
+                raise ValueError('No geospatial coordinates were detected, cannot geolocate dataset')
+            # We load lon and lat arrays into memory
+            lon_var = self.Dataset.variables[lon_var_name]
+            lat_var = self.Dataset.variables[lat_var_name]
+            if lon_var.ndim == 1:
+                logger.debug('Lon and lat are 1D arrays - using as projection coordinates')
+                x = lon_var.data
+                y = lat_var.data
+                self.xname = lon_var_name
+                self.yname = lat_var_name
+                if self.proj4 is None:
+                    self.proj4 = '+proj=latlong'
+            elif lon_var.ndim == 2:
+                logger.debug('Lon and lat are 2D arrays - dataset is unprojected')
+                self.lon = lon_var.data
+                self.lat = lat_var.data
+                self.projected = False
+            elif lon_var.ndim == 3:
+                logger.debug('Lon lat are 3D arrays, reading first time')
+                self.lon = lon_var[0,:,:].data
+                self.lat = lat_var[0,:,:].data
+                self.projected = False
+        else:
+            if self.proj4 is None:
+                logger.info('Grid coordinates are detected, but proj4 string not given: assuming latlong')
+                self.proj4 = '+proj=latlong'
+
         if 'x' in locals() and 'y' in locals():
+            self.numx = len(x)
+            self.numy = len(y)
             self.xmin, self.xmax = x.min(), x.max()
             self.ymin, self.ymax = y.min(), y.max()
             self.delta_x = np.abs(x[1] - x[0])
@@ -298,27 +301,6 @@ class Reader(BaseReader, StructuredReader):
                 raise ValueError('delta_y is not constant!')
             self.x = x  # Store coordinate vectors
             self.y = y
-        else:
-            if self.lon is not None and self.lat is not None:
-                logger.info('No projection found, using lon/lat arrays')
-                self.xname = lon_var_name
-                self.yname = lat_var_name
-            else:
-                raise ValueError('Neither x/y-coordinates or lon/lat arrays found')
-
-        if self.proj4 is None:
-            if self.lon.ndim == 1:
-                logger.debug('Lon and lat are 1D arrays, assuming latong projection')
-                self.proj4 = '+proj=latlong'
-            elif self.lon.ndim == 2:
-                logger.debug('Reading lon lat 2D arrays, since projection is not given')
-                self.lon = self.lon[:]
-                self.lat = self.lat[:]
-                self.projected = False
-            elif self.lon.ndim == 3:
-                logger.debug('lon lat are 3D arrays, reading first time')
-                self.lon = self.lon[0,:,:]
-                self.lat = self.lat[0,:,:]
 
         if self.proj4 is not None and 'latlong' in self.proj4 and self.xmax is not None and self.xmax > 360:
             logger.info('Longitudes > 360 degrees, subtracting 360')
@@ -327,23 +309,29 @@ class Reader(BaseReader, StructuredReader):
             self.x -= 360
             self.x -= 360
 
+        ##########################################
         # Find all variables having standard_name
+        ##########################################
         self.variable_mapping = {}
+        skipvars = []
         for var_name in self.Dataset.variables:
-            if var_name in [self.xname, self.yname, 'depth']:
-                continue  # Skip coordinate variables
             var = self.Dataset.variables[var_name]
-            attributes = var.attrs
-            att_dict = var.attrs
-            if 'standard_name' in attributes:
-                standard_name = str(att_dict['standard_name'])
+            if var.ndim < 2:
+                continue
+            if var_name in standard_name_mapping:
+                # User may specify mapping if standard_name is missing, or to override existing
+                standard_name = standard_name_mapping[var_name]
+                self.variable_mapping[standard_name] = str(var_name)
+            elif 'standard_name' in var.attrs:
+                standard_name = str(var.attrs['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
                 self.variable_mapping[standard_name] = str(var_name)
-            elif var_name in standard_name_mapping:
-                # User may specify mapping if standard_name is missing
-                standard_name = standard_name_mapping[var_name]
-                self.variable_mapping[standard_name] = str(var_name)
+            else:
+                skipvars.append(var_name)
+
+        if len(skipvars) > 0:
+            logger.debug('Skipped variables without standard_name: %s' % skipvars)
 
         self.variables = list(self.variable_mapping.keys())
 
@@ -353,6 +341,7 @@ class Reader(BaseReader, StructuredReader):
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None,
                       indrealization=None):
+
         requested_variables, time, x, y, z, _outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
@@ -373,7 +362,7 @@ class Reader(BaseReader, StructuredReader):
             indz = 0
 
         if indrealization == None:
-            if hasattr(self, 'realizations'):
+            if self.realizations is not None:
                 indrealization = range(len(self.realizations))
             else:
                 indrealization = None
@@ -382,42 +371,34 @@ class Reader(BaseReader, StructuredReader):
         if hasattr(self, 'clipped'):
             clipped = self.clipped
         else: clipped = 0
-        indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
-        indy = np.floor((y-self.ymin)/self.delta_y).astype(int) + clipped
-        ## If x or y coordinates are decreasing, we need to flip
-        # Disabled 15 Dec 2020 by KFD, may be obsolete
-        #if hasattr(self, 'x'):
-        #    print(self.x, 'X')
-        #    if self.x[0] > self.x[-1]:
-        #        indx = len(self.x) - indx
-        #    if self.y[0] > self.y[-1]:
-        #        indy = len(self.y) - indy
-        # Adding buffer, to cover also future positions of elements
-        buffer = self.buffer
+
         if self.global_coverage():
-            #indx = np.arange(indx.min()-buffer, indx.max()+buffer)
-            if indx.min() < 0:  # Primitive fix for crossing 0-meridian
-                indx = indx + self.numx
-            indx = np.arange(np.max([0, indx.min()-buffer]),
-                                np.min([indx.max()+buffer, self.numx]))
-        else:
-            indx = np.arange(np.max([0, indx.min()-buffer]),
-                                np.min([indx.max()+buffer, self.numx]))
+            if self.lon_range() == '0to360':
+                x = np.mod(x, 360)  # Shift x/lons to 0-360 
+            elif self.lon_range() == '-180to180':
+                x = np.mod(x + 180, 360) - 180 # Shift x/lons to -180-180
+        indx = np.floor(np.abs(x-self.x[0])/self.delta_x-clipped).astype(int) + clipped
+        indy = np.floor(np.abs(y-self.y[0])/self.delta_y-clipped).astype(int) + clipped
+        buffer = self.buffer  # Adding buffer, to cover also future positions of elements
         indy = np.arange(np.max([0, indy.min()-buffer]),
-                            np.min([indy.max()+buffer, self.numy]))
-        if indx.min() <= 0 and indx.max() >= self.numx:
-            indx = np.arange(0, self.numx)
+                         np.min([indy.max()+buffer, self.numy]))
+        indx = np.arange(indx.min()-buffer, indx.max()+buffer+1)
 
-        variables = {}
-
-        if indx.min() < 0 and indx.max() > 0:
-            logger.debug('Requested data block is not continous in file'+
+        if self.global_coverage() and indx.min() < 0 and indx.max() > 0 and indx.max() < self.numx:
+            logger.debug('Requested data block is not continuous in file'+
                           ', must read two blocks and concatenate.')
             indx_left = indx[indx<0] + self.numx  # Shift to positive indices
             indx_right = indx[indx>=0]
-            continous = False
+            if indx_right.max() >= indx_left.min():  # Avoid overlap
+                indx_right = np.arange(indx_right.min(), indx_left.min())
+            continuous = False
         else:
-            continous = True
+            continuous = True
+            indx = np.arange(np.max([0, indx.min()]),
+                             np.min([indx.max(), self.numx]))
+
+        variables = {}
+
         for par in requested_variables:
             if hasattr(self, 'rotate_mapping') and par in self.rotate_mapping:
                 logger.debug('Using %s to retrieve %s' %
@@ -429,7 +410,7 @@ class Reader(BaseReader, StructuredReader):
             var = self.Dataset.variables[self.variable_mapping[par]]
 
             ensemble_dim = None
-            if continous is True:
+            if continuous is True:
                 if var.ndim == 2:
                     variables[par] = var[indy, indx]
                 elif var.ndim == 3:
@@ -498,10 +479,6 @@ class Reader(BaseReader, StructuredReader):
             variables['y'] = indy
         variables['x'] = np.asarray(variables['x'])
         variables['y'] = np.asarray(variables['y'])
-        if self.global_coverage():
-            # TODO: this should be checked
-            if self.xmax + self.delta_x >= 360 and variables['x'].max() > 180:
-                variables['x'] -= 360
 
         variables['time'] = nearestTime
 
@@ -511,5 +488,22 @@ class Reader(BaseReader, StructuredReader):
                 logger.debug('North is up, no rotation necessary')
             else:
                 self.rotate_variable_dict(variables)
+
+        if hasattr(self, 'shift_x'):
+            # "hidden feature": if reader.shift_x and reader.shift_y are defined,
+            # the returned fields are shifted this many meters in the x- and y directions
+            # E.g. reader.shift_x=10000 gives a shift 10 km eastwards (if x is east direction)
+            if self.proj.crs.is_geographic:  # meters to degrees
+                shift_y = (self.shift_y/111000)
+                shift_x = (self.shift_x/111000)*np.cos(np.radians(variables['y']))
+                logger.info('Shifting x between %s and %s' % (shift_x.min(), shift_x.max()))
+                logger.info('Shifting y with %s m' % shift_y)
+            else:
+                shift_x = self.shift_x
+                shift_y = self.shift_y
+                logger.info('Shifting x with %s m' % shift_x)
+                logger.info('Shifting y with %s m' % shift_y)
+            variables['x'] += shift_x
+            variables['y'] += shift_y
 
         return variables

@@ -7,7 +7,7 @@ Example plot (for front page)
 from datetime import datetime, timedelta
 from opendrift.models.oceandrift import OceanDrift
 
-o = OceanDrift()
+o = OceanDrift(loglevel=30)
 o.add_readers_from_list(
     ['https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
 o.disable_vertical_motion()

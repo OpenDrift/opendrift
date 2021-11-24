@@ -15,6 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import numpy as np
+import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 #from opendrift.elements import LagrangianArray
@@ -65,6 +66,7 @@ class PelagicEggDrift(OceanDrift):
         'land_binary_mask': {'fallback': None},
         'sea_floor_depth_below_sea_level': {'fallback': 100},
         'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True},
+        'ocean_mixed_layer_thickness': {'fallback': 50},
         'sea_water_temperature': {'fallback': 10, 'profiles': True},
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
         'surface_downward_x_stress': {'fallback': 0},
@@ -121,7 +123,7 @@ class PelagicEggDrift(OceanDrift):
                 z_index = interp1d(-self.environment_profiles['z'],
                                    z_i, bounds_error=False)
             zi = z_index(-self.elements.z)
-            upper = np.maximum(np.floor(zi).astype(np.int), 0)
+            upper = np.maximum(np.floor(zi).astype(np.uint8), 0)
             lower = np.minimum(upper+1, Tprofiles.shape[0]-1)
             weight_upper = 1 - (zi - upper)
 

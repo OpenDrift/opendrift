@@ -75,12 +75,12 @@ o.plot(buffer=.2, fast=True)
 
 
 #%%
-# Seeding 100 elements between two points specifying keyword "cone=True" (achieving the same as previous example)
+# Seeding 100 elements between two points with seed_cone() (achieving the same as previous example)
 print('\n' + '='*70)
-print('Seeding 100 elements between two points specifying keyword "cone=True"\n (achieving the same as previous example):')
-print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=100, cone=True, time=time)')
+print('Seeding 100 elements between two points with seed_cone() (achieving the same as previous example):')
+print('o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=100, time=time)')
 print('='*70)
-o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=100, cone=True, time=time)
+o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=100, time=time)
 o.run(steps=1)
 o.plot(buffer=.2, fast=True)
 
@@ -88,9 +88,9 @@ o.plot(buffer=.2, fast=True)
 # Seeding 1000 elements along cone with radius/uncertainty increasing linearly from 0 to 5000 m
 print('\n' + '='*70)
 print('Seeding 1000 elements along cone with radius/uncertainty\n increasing linearly from 0 to 5000 m:')
-print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=time)')
+print('o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], time=time)')
 print('='*70)
-o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=time)
+o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], time=time)
 o.run(steps=1)
 o.plot(buffer=.2, fast=True)
 
@@ -98,9 +98,9 @@ o.plot(buffer=.2, fast=True)
 # If specifying time as a two element list (start and end, here +5 hours), elements are seeded linearly in time
 print('\n' + '='*70)
 print('If specifying time as a two element list (start and end,\n here +5 hours), elements are seeded linearly in time:')
-print('o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=[time, time+timedelta(hours=5)])')
+print('o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], time=[time, time+timedelta(hours=5)])')
 print('='*70)
-o.seed_elements(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], cone=True, time=[time, time+timedelta(hours=5)])
+o.seed_cone(lon=[4, 4.8], lat=[60, 61], number=1000, radius=[0, 5000], time=[time, time+timedelta(hours=5)])
 o.run(steps=5*4, time_step=900)
 o.animation(fast=True)
 

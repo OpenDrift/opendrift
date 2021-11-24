@@ -115,10 +115,15 @@ plt.quiver(x[::5,::5], y[::5,::5], stretch[::5,::5,0], stretch[::5,::5,1])
 
 plt.title('stretch lines')
 
+<<<<<<< HEAD
 plt.figure()
 '''
+
 gcrs = ccrs.PlateCarree()
 ax.plot(str_lon.T, str_lat.T, '-r', ms=0.5, transform=gcrs)
 plt.show()
+
+o.plot(lcs=lcs, vmin=1e-7, vmax=1e-4, colorbar=True, show_elements=True)
+
 
 #o.animation(buffer=0, lcs=ftle, hide_landmask=True)
