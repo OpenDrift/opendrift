@@ -2338,8 +2338,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         """Seed elements within text polygons"""
         from matplotlib.font_manager import FontProperties
         fp = FontProperties(family='Bitstream Vera Sans', weight='bold')
-        pol = matplotlib.textpath.TextPath((lon, lat), text, size=1, prop=fp)
-        pol._vertices *= np.array([scale, scale])
+        pol = matplotlib.textpath.TextPath((lon, lat),
+                                           text,
+                                           size=1 * scale,
+                                           prop=fp)
         patch = matplotlib.patches.PathPatch(pol,
                                              facecolor='none',
                                              edgecolor='black',
