@@ -11,6 +11,7 @@ Addtitional packages
 
 Some optional packages might increase performance for your use case:
 
+  * roaring-landmask (`pip install roaring-landmask`), will save you disk-space and startup-time. Especially if you run many small simulations this can make a big difference.
   * pykdtree (among other areas this might speed up cartopy and the unstructured readers)
   * imagemagick (might yield faster gif generation)
 
