@@ -1,6 +1,11 @@
 Performance in OpenDrift
 ========================
 
+Generic settings
+----------------
+
+* Check if `OMP_NUM_THREADS` is set in a way that restricts the number of cores that can be used.
+
 Addtitional packages
 --------------------
 
