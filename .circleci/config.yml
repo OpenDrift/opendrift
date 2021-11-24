@@ -390,20 +390,20 @@ jobs:
 workflows:
   version: 2.1
 
-  test:
-    jobs:
-      - python_latest
-      - python_38_numpy_119
-      - python_37_numpy_117
-      - python_latest_roaring
+  #test:
+  #  jobs:
+  #    - python_latest
+  #    - python_38_numpy_119
+  #    - python_37_numpy_117
+  #    - python_latest_roaring
 
   docs:
     jobs:
       - docs-build-examples
 
-      - docs-build:
-          requires:
-            - docs-build-examples
+  #    - docs-build:
+  #        requires:
+  #          - docs-build-examples
 
       - docs-deploy:
           requires:

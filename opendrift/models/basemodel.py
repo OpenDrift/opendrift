@@ -5236,7 +5236,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     def _save_animation(self, anim, filename, fps, fastwriter=False):
         from opendrift.export.punkrockwriters import PunkFFMpegWriter, PunkImageMagickWriter
         
-        fastwriter=True
+        fastwriter=False
         
         if 'sphinx_gallery' in sys.modules:
             # This assumes that the calling script is two frames up in the stack. If
