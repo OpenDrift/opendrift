@@ -509,10 +509,11 @@ class OceanDrift(OpenDriftSimulation):
 
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
-
+        import os
+        
         import matplotlib
-        matplotlib.use('Qt5Agg')
-
+        #matplotlib.use('Qt5Agg')
+        
         start_time = datetime.now()
 
         #from timeit import default_timer as timer
@@ -573,7 +574,7 @@ class OceanDrift(OpenDriftSimulation):
                 rect.set_width(y)
             title.set_text('%s UTC' % times[i])
 
-        animation = animation.FuncAnimation(fig, update_histogram, len(times))
+        # animation = animation.FuncAnimation(fig, update_histogram, len(times))
 
         # alternative methods tested
         #
@@ -644,7 +645,20 @@ class OceanDrift(OpenDriftSimulation):
         #print(end-start)
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(animation, filename, fps=10, fastwriter=fastwriter)
+            #self._save_animation(animation, filename, fps=10, fastwriter=fastwriter)
+            
+            writer=animation.ImageMagickWriter(fps=60)
+    
+            with writer.saving(plt.gcf(), filename, 100):
+                for i in range(len(times)):
+                    update_histogram(i)
+                    writer.grab_frame()
+                
+            logger.info(f"MPLBACKEND = {matplotlib.get_backend()}")
+            logger.info(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
+            logger.info(f"fastwriter: {fastwriter}")
+            
+            
             logger.info('Time to make animation: %s' %
                          (datetime.now() - start_time))
         else:

@@ -3359,7 +3359,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   **kwargs):
         """Animate last run."""
 
-        matplotlib.use('Qt5Agg')
+        #from opendrift.export.punkrockwriters import PunkFFMpegWriter, PunkImageMagickWriter
+
+        #matplotlib.use('Qt5Agg')
 
         if self.history is not None and self.num_elements_total(
         ) == 0 and not hasattr(self, 'ds'):
@@ -3743,16 +3745,31 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             blit = False  # Blitting does not work on mac
         else:
             blit = False  # Must return artists before this is activated
-        anim = animation.FuncAnimation(plt.gcf(),
-                                       plot_timestep,
-                                       blit=blit,
-                                       frames=x.shape[0],
-                                       interval=50)
+        
+        # anim = animation.FuncAnimation(plt.gcf(),
+        #                                 plot_timestep,
+        #                                 blit=blit,
+        #                                 frames=x.shape[0],
+        #                                 interval=50)
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(anim, filename, fps, fastwriter=fastwriter)
+            # self._save_animation(anim, filename, fps=60, fastwriter=fastwriter)
+
+            writer=animation.ImageMagickWriter(fps=60)
+            #writer=PunkImageMagickWriter(fps=60)
+    
+            with writer.saving(plt.gcf(), filename, 100):
+                for i in range(x.shape[0]):
+                    plot_timestep(i)
+                    writer.grab_frame()
+                
+            logger.info(f"MPLBACKEND = {matplotlib.get_backend()}")
+            logger.info(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
+            logger.info(f"fastwriter: {fastwriter}")
+
             logger.info('Time to make animation: %s' %
                          (datetime.now() - start_time))
+
         else:
             try:
                 plt.show()
@@ -3773,7 +3790,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                           fastwriter=False):
         """Animate vertical profile of the last run."""
 
-        matplotlib.use('Qt5Agg')
+        #from opendrift.export.punkrockwriters import PunkFFMpegWriter, PunkImageMagickWriter
+        
+        #matplotlib.use('Qt5Agg')
 
         start_time = datetime.now()
 
@@ -3913,14 +3932,28 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if legend != ['', ''] and PlotColors is False:
             plt.legend(loc=4)
 
-        anim = animation.FuncAnimation(plt.gcf(),
-                                       plot_timestep,
-                                       blit=False,
-                                       frames=x.shape[1],
-                                       interval=150)
+        # anim = animation.FuncAnimation(plt.gcf(),
+        #                                plot_timestep,
+        #                                blit=False,
+        #                                frames=x.shape[1],
+        #                                interval=150)
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(anim, filename, fps, fastwriter=fastwriter)
+            # self._save_animation(anim, filename, fps, fastwriter=fastwriter)
+
+            writer=animation.ImageMagickWriter(fps=60)
+            #writer=PunkImageMagickWriter(fps=60)
+    
+            with writer.saving(plt.gcf(), filename, 100):
+                for i in range(x.shape[1]):
+                    plot_timestep(i)
+                    writer.grab_frame()
+                
+            logger.info(f"MPLBACKEND = {matplotlib.get_backend()}")
+            logger.info(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
+            logger.info(f"fastwriter: {fastwriter}")
+
+
             logger.info('Time to make animation: %s' %
                          (datetime.now() - start_time))
         else:
@@ -5207,7 +5240,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
     def _save_animation(self, anim, filename, fps, fastwriter=False):
         from opendrift.export.punkrockwriters import PunkFFMpegWriter, PunkImageMagickWriter
-
+        
         fastwriter=True
 
         if 'sphinx_gallery' in sys.modules:
@@ -5249,6 +5282,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     anim.save(filename, fps=fps, writer='imagemagick')
                 elif fastwriter:
                     writergif = PunkImageMagickWriter(fps=fps)
+                    #writergif = animation.ImageMagickFileWriter()
+                    
                     anim.save(filename, writer=writergif)
             else:  # MP4
                 try:

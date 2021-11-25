@@ -60,7 +60,7 @@ commands:
 
               pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov
 
-              conda install pyqt
+              #conda install pyqt
             fi
 
       - save_cache:
@@ -177,7 +177,7 @@ jobs:
           command: apt-get update
       - run:
           name: Install packages
-          command: apt-get install -y build-essential jq curl xvfb libxcb-xinerama0
+          command: apt-get install -y build-essential jq curl #xvfb libxcb-xinerama0
 
       - run:
           name: Get PR title
@@ -194,17 +194,17 @@ jobs:
 
       - install_cartopy_shapes
 
-      - run:
-          name: Install roaring-landmask
-          command: |
-            source activate opendrift
-            pip install -v roaring_landmask
+      # - run:
+      #     name: Install roaring-landmask
+      #     command: |
+      #       source activate opendrift
+      #       pip install -v roaring_landmask
 
-      - run:
-          name: Remove Opendrift Landmask Data
-          command: |
-            source activate opendrift
-            conda remove --force -y opendrift-landmask-data
+      # - run:
+      #     name: Remove Opendrift Landmask Data
+      #     command: |
+      #       source activate opendrift
+      #       conda remove --force -y opendrift-landmask-data
 
       - run:
           name: Install sphinx and friends
@@ -261,8 +261,9 @@ jobs:
           command: |
             source activate opendrift
             cd docs/
-            Xvfb :99 &
-            MPLBACKEND=Qt5Agg DISPLAY=:99 make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
+            # Xvfb :99 &
+            # MPLBACKEND=Qt5Agg DISPLAY=:99 make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
+            make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
             ls -R source
           no_output_timeout: 40m
 
