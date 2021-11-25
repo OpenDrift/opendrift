@@ -3745,60 +3745,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             blit = False  # Blitting does not work on mac
         else:
             blit = False  # Must return artists before this is activated
-        
+            
+        frames=x.shape[0]
+        if compare is not None:
+            frames=min(x.shape[0],cd['x_other'].shape[1])
+
         # anim = animation.FuncAnimation(plt.gcf(),
         #                                 plot_timestep,
         #                                 blit=blit,
-        #                                 frames=x.shape[0],
+        #                                 frames=frames,
         #                                 interval=50)
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
             # self._save_animation(anim, filename, fps=60, fastwriter=fastwriter)
-
-            if 'sphinx_gallery' in sys.modules:
-                # This assumes that the calling script is two frames up in the stack. If
-                # _save_animation is called through a more deeply nested method, it will
-                # not give the correct result.
-                caller = inspect.stack()[1]
-                caller = os.path.splitext(os.path.basename(caller.filename))[0]
-    
-                # Calling script is string input (e.g. from ..plot::)
-                if caller == '<string>':
-                    caller = 'plot_directive'
-                    adir = os.path.realpath('../source/gallery/animations')
-                else:
-                    adir = os.path.realpath('../docs/source/gallery/animations')
-    
-                if not hasattr(OpenDriftSimulation, '__anim_no__'):
-                    OpenDriftSimulation.__anim_no__ = {}
-    
-                if caller not in OpenDriftSimulation.__anim_no__:
-                    OpenDriftSimulation.__anim_no__[caller] = 0
-    
-                os.makedirs(adir, exist_ok=True)
-    
-                filename = '%s_%d.gif' % (caller,
-                                          OpenDriftSimulation.__anim_no__[caller])
-                OpenDriftSimulation.__anim_no__[caller] += 1
-    
-                filename = os.path.join(adir, filename)
-
-            writer=animation.ImageMagickWriter(fps=60)
-            #writer=PunkImageMagickWriter(fps=60)
-
-            frames=x.shape[0]
-            if compare is not None:
-                frames=min(x.shape[0],cd['x_other'].shape[1])
-
-            with writer.saving(plt.gcf(), filename, 100):
-                for i in range(frames):
-                    plot_timestep(i)
-                    writer.grab_frame()
-                
-            logger.info(f"MPLBACKEND = {matplotlib.get_backend()}")
-            logger.info(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
-            logger.info(f"fastwriter: {fastwriter}")
-
+            self._grab_animation(plt.gcf(), plot_timestep, filename, frames=frames, fps=fps)
+            
             logger.info('Time to make animation: %s' %
                          (datetime.now() - start_time))
 
@@ -3972,50 +3933,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
             # self._save_animation(anim, filename, fps, fastwriter=fastwriter)
-
-            if 'sphinx_gallery' in sys.modules:
-                # This assumes that the calling script is two frames up in the stack. If
-                # _save_animation is called through a more deeply nested method, it will
-                # not give the correct result.
-                caller = inspect.stack()[1]
-                caller = os.path.splitext(os.path.basename(caller.filename))[0]
-    
-                # Calling script is string input (e.g. from ..plot::)
-                if caller == '<string>':
-                    caller = 'plot_directive'
-                    adir = os.path.realpath('../source/gallery/animations')
-                else:
-                    adir = os.path.realpath('../docs/source/gallery/animations')
-    
-                if not hasattr(OpenDriftSimulation, '__anim_no__'):
-                    OpenDriftSimulation.__anim_no__ = {}
-    
-                if caller not in OpenDriftSimulation.__anim_no__:
-                    OpenDriftSimulation.__anim_no__[caller] = 0
-    
-                os.makedirs(adir, exist_ok=True)
-    
-                filename = '%s_%d.gif' % (caller,
-                                          OpenDriftSimulation.__anim_no__[caller])
-                OpenDriftSimulation.__anim_no__[caller] += 1
-    
-                filename = os.path.join(adir, filename)
-
-
-
-            writer=animation.ImageMagickWriter(fps=60)
-            #writer=PunkImageMagickWriter(fps=60)
-    
-            with writer.saving(plt.gcf(), filename, 100):
-                for i in range(x.shape[1]):
-                    plot_timestep(i)
-                    writer.grab_frame()
-                
-            logger.info(f"MPLBACKEND = {matplotlib.get_backend()}")
-            logger.info(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
-            logger.info(f"fastwriter: {fastwriter}")
-
-
+            self._grab_animation(plt.gcf(), plot_timestep, filename, frames=x.shape[1], fps=fps)
+            
             logger.info('Time to make animation: %s' %
                          (datetime.now() - start_time))
         else:
@@ -5300,39 +5219,64 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         self.add_readers_from_file(self.test_data_folder() +
                                    '../../opendrift/scripts/data_sources.txt')
 
+    def _sphinx_gallery_filename(self,stack_offset=3):
+        # This assumes that the calling script is three frames up in the stack. If
+        # _save_animation is called through a more deeply nested method,
+        # stack_offset has to be chenged accordingly.
+
+        caller = inspect.stack()[stack_offset]
+        caller = os.path.splitext(os.path.basename(caller.filename))[0]
+
+        # Calling script is string input (e.g. from ..plot::)
+        if caller == '<string>':
+            caller = 'plot_directive'
+            adir = os.path.realpath('../source/gallery/animations')
+        else:
+            adir = os.path.realpath('../docs/source/gallery/animations')
+
+        if not hasattr(OpenDriftSimulation, '__anim_no__'):
+            OpenDriftSimulation.__anim_no__ = {}
+
+        if caller not in OpenDriftSimulation.__anim_no__:
+            OpenDriftSimulation.__anim_no__[caller] = 0
+
+        os.makedirs(adir, exist_ok=True)
+
+        filename = '%s_%d.gif' % (caller,
+                                  OpenDriftSimulation.__anim_no__[caller])
+        OpenDriftSimulation.__anim_no__[caller] += 1
+
+        filename = os.path.join(adir, filename)
+        
+        return filename
+
+    def _grab_animation(self, fig, plot_timestep, filename, frames, fps):
+
+        if 'sphinx_gallery' in sys.modules:
+            filename = self._sphinx_gallery_filename(3)
+    
+        #writer=animation.ImageMagickWriter(fps=fps)
+        writer=animation.PillowWriter(fps=fps)
+        #writer=PunkImageMagickWriter(fps=60)
+    
+        with writer.saving(plt.gcf(), filename, 100):
+            for i in range(frames):
+                plot_timestep(i)
+                writer.grab_frame()
+            
+        logger.info(f"MPLBACKEND = {matplotlib.get_backend()}")
+        logger.info(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
+        #logger.info(f"fastwriter: {fastwriter}")
+
+    
     def _save_animation(self, anim, filename, fps, fastwriter=False):
         from opendrift.export.punkrockwriters import PunkFFMpegWriter, PunkImageMagickWriter
         
         fastwriter=True
 
         if 'sphinx_gallery' in sys.modules:
-            # This assumes that the calling script is two frames up in the stack. If
-            # _save_animation is called through a more deeply nested method, it will
-            # not give the correct result.
-            caller = inspect.stack()[2]
-            caller = os.path.splitext(os.path.basename(caller.filename))[0]
-
-            # Calling script is string input (e.g. from ..plot::)
-            if caller == '<string>':
-                caller = 'plot_directive'
-                adir = os.path.realpath('../source/gallery/animations')
-            else:
-                adir = os.path.realpath('../docs/source/gallery/animations')
-
-            if not hasattr(OpenDriftSimulation, '__anim_no__'):
-                OpenDriftSimulation.__anim_no__ = {}
-
-            if caller not in OpenDriftSimulation.__anim_no__:
-                OpenDriftSimulation.__anim_no__[caller] = 0
-
-            os.makedirs(adir, exist_ok=True)
-
-            filename = '%s_%d.gif' % (caller,
-                                      OpenDriftSimulation.__anim_no__[caller])
-            OpenDriftSimulation.__anim_no__[caller] += 1
-
-            filename = os.path.join(adir, filename)
-
+            filename = self._sphinx_gallery_filename()
+ 
         logger.info('Saving animation to ' + filename + '...')
 
         start_time = datetime.now()
