@@ -3785,9 +3785,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             writer=animation.ImageMagickWriter(fps=60)
             #writer=PunkImageMagickWriter(fps=60)
-    
+
+            frames=x.shape[0]
+            if compare is not None:
+                frames=min(x.shape[0],cd['x_other'].shape[1])
+
             with writer.saving(plt.gcf(), filename, 100):
-                for i in range(x.shape[0]):
+                for i in range(frames):
                     plot_timestep(i)
                     writer.grab_frame()
                 
