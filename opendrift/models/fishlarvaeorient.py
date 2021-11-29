@@ -44,7 +44,8 @@
 # 
 
 import numpy as np
-from opendrift.models.oceandrift import OceanDrift, BivalveLarvae,Lagrangian3DArray
+from opendrift.models.oceandrift import OceanDrift,Lagrangian3DArray
+
 import logging; logger = logging.getLogger(__name__)
 from datetime import timezone
 from shapely.geometry import Polygon, Point, MultiPolygon, asPolygon # added for settlement in polygon only
@@ -499,27 +500,25 @@ class FishLarvaeOrient(OceanDrift):
             if len(old_enough) > 0 :            
                 for i in range(len(self.elements.lat[old_enough])):
                     # Compute randomness of direction
-                    ti  = np.random.vonmises(0, 5)
-                    #Compute rheotaxis heading
-                    #import pdb; pdb.set_trace()  
-                    thetaRheo = -np.arctan2(self.environment.y_sea_water_velocity[old_enough[i]], self.environment.x_sea_water_velocity[old_enough[i]])
-                    theta = thetaRheo + ti
-                
+                    ti  = 0.1*np.random.vonmises(0, 5) # Samples from a von Mises distribution on the interval 0.1*[-pi, pi].
+                    #Compute rheotaxis heading i.e. against the current speed at particle position (180deg difference)
+                    current_dir = np.arctan2(self.environment.y_sea_water_velocity[old_enough[i]], self.environment.x_sea_water_velocity[old_enough[i]])  # Direction of current
+                    thetaRheo = np.mod(current_dir+np.pi,2*np.pi) # against current direction
+                    theta = thetaRheo + ti  # add some uncertainty                  
                     # Compute current speed absolute value
                     uv = np.sqrt(self.environment.x_sea_water_velocity[old_enough[i]]**2 + self.environment.y_sea_water_velocity[old_enough[i]]**2)
                     # Compute norm of swimming speed
                     norm_swim = np.abs(self.swimming_speed(self.elements.age_seconds[old_enough][i]))
-                
+
                     if norm_swim < uv:
                         # Compute u and v velocity
                         self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
                         self.v_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
                     else:
+                        # Note that if particle swim against current at same speed they will become static
                         self.u_swim[old_enough[i]] = uv * np.cos(theta)
                         self.v_swim[old_enough[i]] = uv * np.sin(theta)
-            
             self.update_positions(self.u_swim , self.v_swim)
-
 
     def mix_orientation(self):
             """
@@ -600,11 +599,11 @@ class FishLarvaeOrient(OceanDrift):
     
     
     def swimming_speed(self, age):
-            ''' Compute horizontal swimming speed of the larvae
+            ''' Compute horizontal swimming speed of the larvae [m/s]
             Presented in Fisher and Bellwood (2003) and used in Staaterman et al. (2012)
             '''        
             hor_swimming_speed = (self.get_config('biology:hatch_swimming_speed') + (self.get_config('biology:settle_swimming_speed') - self.get_config('biology:hatch_swimming_speed'))    ** (np.log(age)/np.log(self.get_config('drift:max_age_seconds'))) )    / 100
-            logger.debug('Larvae - computing horizontal swimming speed :  %s cm/s < swimming speed < %s cm/s ' % (np.min(hor_swimming_speed),np.max(hor_swimming_speed)))
+            logger.debug('Larvae - computing horizontal swimming speed :  %s m/s < swimming speed < %s m/s ' % (np.min(hor_swimming_speed),np.max(hor_swimming_speed)))
 
             return hor_swimming_speed
         
