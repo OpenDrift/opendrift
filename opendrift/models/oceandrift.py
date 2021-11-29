@@ -509,6 +509,8 @@ class OceanDrift(OpenDriftSimulation):
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
 
+        start_time = datetime.now()
+
         #from timeit import default_timer as timer
         #start=timer()
 
@@ -567,80 +569,48 @@ class OceanDrift(OpenDriftSimulation):
                 rect.set_width(y)
             title.set_text('%s UTC' % times[i])
 
-        animation = animation.FuncAnimation(fig, update_histogram, len(times))
+        mp4=False
+        if filename is not None: mp4 = filename[-4:]=='.mp4'
 
-        # alternative methods tested
-        #
-        # alternative1
-        #
-        #     axn.clear()
-        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
-        #     axn.set_ylim([maxdepth, 0])
-        #     axn.set_xlim([0, maxnum])
-        #     title=axn.set_title('%s UTC' % times[i])
-        #     axn.set_xlabel('Number of particles')
-        #
-        #     for i in range(len(bc)):
-        #         axn.add_patch(bc[i])
-        #
-        #     def update2(i):
-        #         for j in range(len(bc)):
-        #             bc[j].set_width(hist_series[j,i])
-        #
-        #         title.set_text('%s UTC' % times[i])
-        #         return [bc[i] for i in range(len(bc))]
-        #
-        #
-        # alternative2
-        #
-        #     axn.clear()
-        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
-        #     axn.set_ylim([maxdepth, 0])
-        #     axn.set_xlim([0, maxnum])
-        #     title=axn.set_title('%s UTC' % times[i])
-        #     axn.set_xlabel('Number of particles')
-        #
-        #     def prepare_animation3(bc):
-        #         def animate(i):
-        #             for count, rect in zip(hist_series[:,i], bc.patches):
-        #                 rect.set_width(count)
-        #             title.set_text('%s UTC' % times[i])
-        #             return bc.patches
-        #         return animate
-        #
-        # alternative3
-        #
-        #     axn.cla()
-        #     axn.grid()
-        #     axn.hist(z[i, :], bins=bins,
-        #                   range=[maxdepth, 0], orientation='horizontal')
-        #     axn.set_ylim([maxdepth, 0])
-        #     axn.set_xlim([0, maxnum])
-        #     axn.set_xlabel('number of particles')
-        #     axn.set_title('%s UTC' % times[i])
-        #
-        #     def update4(i):
-        #         axn.cla()
-        #         #axn.grid()
-        #         axn.hist(z[i, :], bins=bins,
-        #                       range=[maxdepth, 0], orientation='horizontal')
-        #         axn.set_ylim([maxdepth, 0])
-        #         axn.set_xlim([0, maxnum])
-        #         axn.set_xlabel('number of particles')
-        #         axn.set_title('%s UTC' % times[i])
-        #         #fig.canvas.draw_idle()
-        #
-        #     animation = animation.FuncAnimation(fig, update2, len(times), blit=True)
-        #     animation = animation.FuncAnimation(fig, prepare_animation3(bc), len(times), blit=True)
-        #     animation = animation.FuncAnimation(fig, update3, len(times))
+        gif=False
+        if filename is not None: gif = filename[-4:]=='.gif'
 
-        #end=timer()
-        #print(end-start)
+        nofilename = filename is None
 
-        if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(animation, filename, fps=10, fastwriter=fastwriter)
-        else:
-            plt.show()
+        sphinx = 'sphinx_gallery' in sys.modules
+
+
+        force_FuncAnimation=False       # Hardcoded switch available for forcing use
+                                        # of previous method for saving animations
+
+        if (not sphinx and nofilename) or force_FuncAnimation:
+
+            anim = animation.FuncAnimation(plt.gcf(),
+                                            update_histogram,
+                                            frames=len(times),
+                                            interval=50)
+
+            if mp4 or gif:
+                self._save_animation(anim, filename, fps=10, fastwriter=fastwriter)
+
+            try:
+                plt.show()
+            except AttributeError:
+                pass
+
+        elif sphinx or gif or mp4:
+
+            self._saving_animation(plt.gcf(),
+                                 update_histogram,
+                                 filename,
+                                 frames=len(times),
+                                 fps=10)
+
+            logger.info('Time to make animation: %s' %
+                        (datetime.now() - start_time))
+
+
+
 
     def plot_vertical_distribution(self, maxdepth=None, bins=None, maxnum=None):
         """Function to plot vertical distribution of particles
@@ -714,8 +684,8 @@ class OceanDrift(OpenDriftSimulation):
             dz=1., maxrange=-100, bins=None, step=1):
         """Function to plot vertical distribution of particles.
 
-	Use mask to plot any selection of particles.
-	"""
+        Use mask to plot any selection of particles.
+        """
         from pylab import axes, draw
         from matplotlib import dates, pyplot
 
