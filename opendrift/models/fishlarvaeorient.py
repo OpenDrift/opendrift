@@ -53,23 +53,23 @@ import shapely
 import random
 from sklearn.neighbors import BallTree
 
-class FishLarvaeOrientObj(Lagrangian3DArray):
-    """Extending Lagrangian3DArray with specific properties for pelagic larvae and orientation
+
+# Defining the  element properties from Pelagicegg model
+class FishLarvaeObj(Lagrangian3DArray):
+    """Extending Lagrangian3DArray with specific properties for pelagic eggs/larvae
     """
 
     variables = Lagrangian3DArray.add_variables([
-        ('age_seconds', {'dtype': np.float32,
-                         'units': 's',
-                         'default': 0.}),
-        ('terminal_velocity', {'dtype': np.float32,
-                       'units': 'm/s',
-                       'default': 0.})])
+                ('flexion_stage', {'dtype': np.int64,
+                             'units': '',
+                             'default': 0})]) # pre_flexion,flexion,post_flexion 0,1,2 
+                                              # to implement
     
 class FishLarvaeOrient(OceanDrift):
     """Buoyant particle trajectory model based on the OpenDrift framework.
     """
 
-    ElementType = FishLarvaeOrientObj
+    ElementType = FishLarvaeObj # consider adding a specific element where life stages are saved such as hatched, swimming, etc...
 
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
@@ -97,7 +97,8 @@ class FishLarvaeOrient(OceanDrift):
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
                      'settled_on_coast': 'red', 'died': 'yellow', 
-                     'settled_on_bottom': 'magenta', 'home_sweet_home': 'orange'}
+                     'settled_on_bottom': 'magenta', 
+                     'settled_on_habitat': 'orange'}
 
     def __init__(self, *args, **kwargs):
         
@@ -114,7 +115,7 @@ class FishLarvaeOrient(OceanDrift):
         ##add config spec
         self._add_config({ 'biology:orientation': {'type': 'enum', 'default': 'none',
                            'enum': ['none', 'direct', 'rheotaxis', 'cardinal','continuous_1','continuous_2'],
-                            'description': '"direct": biased correlated random walk toward the nearest habitat; \
+                           'description':  '"direct": biased correlated random walk toward the nearest habitat; \
                                             "rheotaxis": swim against the currents; \
                                             "cardinal": swim in a pre-determined direction; \
                                             "continuous_1": mix of rheotaxis and direct orientation; \
@@ -130,8 +131,8 @@ class FishLarvaeOrient(OceanDrift):
         self._add_config({ 'biology:OVM': {'type': 'bool', 'default': False,
                            'description': 'Ontogenetic Vertical Migration',
                            'level': self.CONFIG_LEVEL_BASIC}})
-        self._add_config({ 'biology:cardinal_heading': {'type': 'float', 'default': 0.0,'min': -180.0, 'max': 180.0, 'units': 'degrees East',
-                           'description': 'cardinal orientation of the larvae during dispersal (0.0 degree = East)',
+        self._add_config({ 'biology:cardinal_heading': {'type': 'float', 'default': 0.0,'min': 0.0, 'max': 360.0, 'units': 'degrees North',
+                           'description': 'cardinal orientation of the larvae during dispersal, nautical convention (0.0 degree = North, positive clockwise)',
                            'level': self.CONFIG_LEVEL_BASIC}})
         self._add_config({ 'biology:max_orient_distance': {'type': 'float', 'default': 0.0,'min': 0.0, 'max': 1.0e10, 'units': 'meters',
                            'description': 'maximum detection distance of the habitat for orientation',
@@ -145,7 +146,7 @@ class FishLarvaeOrient(OceanDrift):
         self._add_config({ 'biology:vertical_migration_speed_constant': {'type': 'float', 'default': None,'min': 0.0, 'max': 100.0, 'units': 'm/s',
                            'description': 'Constant vertical migration rate (m/s), if None, uses values from update_terminal_velocity()',
                            'level': self.CONFIG_LEVEL_BASIC}})            
-        self._add_config({ 'drift:maximum_depth': {'type': 'float', 'default': None,'min': -10000.0, 'max': -1.0, 'units': 'm',
+        self._add_config({ 'biology:maximum_depth': {'type': 'float', 'default': None,'min': -10000.0, 'max': -1.0, 'units': 'm',
                            'description': 'maximum depth of the larvae',
                            'level': self.CONFIG_LEVEL_BASIC}})
         self._add_config({ 'biology:beginning_orientation': {'type': 'float', 'default': 0.0,'min': 0.0, 'max': 1.0e10, 'units': 'seconds',
@@ -458,7 +459,6 @@ class FishLarvaeOrient(OceanDrift):
                         # Compute u and v velocity
                         self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
                         self.v_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta) 
-                #         #import pdb; pdb.set_trace()  
                             
             self.update_positions(self.u_swim , self.v_swim)
     
@@ -468,13 +468,14 @@ class FishLarvaeOrient(OceanDrift):
             Cardinal orientation, where the larvae use a magnetic, internal compass to swim
             toward a pre-determined heading
             """
-            # Compute heading
-            thetaCard = np.deg2rad(self.get_config('biology:cardinal_heading'))
             # Check if the particles are old enough to orient
             old_enough = np.where(self.elements.age_seconds >= self.get_config('biology:beginning_orientation'))[0]
             logger.debug('Larvae : cardinal orientation - moving %s particles towards cardinal_heading' % (len(old_enough)))
 
             if len(old_enough) > 0 :
+                # Compute heading
+                cardinal_heading_cartesian = (90 - self.get_config('biology:cardinal_heading')) # convert cardinal_heading to cartesian
+                thetaCard = np.deg2rad(cardinal_heading_cartesian) 
                 for i in range(len(self.elements.lat[old_enough])):
                     # Computing preferred direction
                     ti  = np.random.vonmises(0, 5)
@@ -500,7 +501,7 @@ class FishLarvaeOrient(OceanDrift):
             if len(old_enough) > 0 :            
                 for i in range(len(self.elements.lat[old_enough])):
                     # Compute randomness of direction
-                    ti  = 0.1*np.random.vonmises(0, 5) # Samples from a von Mises distribution on the interval 0.1*[-pi, pi].
+                    ti  = np.random.vonmises(0, 5) # Samples from a von Mises distribution on the interval [-pi, pi].
                     #Compute rheotaxis heading i.e. against the current speed at particle position (180deg difference)
                     current_dir = np.arctan2(self.environment.y_sea_water_velocity[old_enough[i]], self.environment.x_sea_water_velocity[old_enough[i]])  # Direction of current
                     thetaRheo = np.mod(current_dir+np.pi,2*np.pi) # against current direction
@@ -509,7 +510,6 @@ class FishLarvaeOrient(OceanDrift):
                     uv = np.sqrt(self.environment.x_sea_water_velocity[old_enough[i]]**2 + self.environment.y_sea_water_velocity[old_enough[i]]**2)
                     # Compute norm of swimming speed
                     norm_swim = np.abs(self.swimming_speed(self.elements.age_seconds[old_enough][i]))
-
                     if norm_swim < uv:
                         # Compute u and v velocity
                         self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
@@ -541,7 +541,9 @@ class FishLarvaeOrient(OceanDrift):
                         # Compute randomness of direction
                         ti  = np.random.vonmises(0, 5)
                         #Compute rheotaxis heading
-                        thetaRheo = -np.arctan2(self.environment.y_sea_water_velocity[old_enough[i]], self.environment.x_sea_water_velocity[old_enough[i]])
+                        current_dir = np.arctan2(self.environment.y_sea_water_velocity[old_enough[i]], self.environment.x_sea_water_velocity[old_enough[i]])  # Direction of current
+                        thetaRheo = np.mod(current_dir+np.pi,2*np.pi) # against current direction
+                        # thetaRheo = -np.arctan2(self.environment.y_sea_water_velocity[old_enough[i]], self.environment.x_sea_water_velocity[old_enough[i]])
                         theta = thetaRheo + ti
                 
                         # Compute current speed absolute value
@@ -559,14 +561,14 @@ class FishLarvaeOrient(OceanDrift):
                                 
                     if self.get_config('biology:orientation')=='continuous_2':
                         # Computing preferred direction
-                        thetaCard = np.deg2rad(self.get_config('biology:cardinal_heading'))
+                        cardinal_heading_cartesian = (90 - self.get_config('biology:cardinal_heading')) # convert cardinal_heading to cartesian
+                        thetaCard = np.deg2rad(cardinal_heading_cartesian)
+                        # thetaCard = np.deg2rad(self.get_config('biology:cardinal_heading'))
                         ti  = np.random.vonmises(0, 5)
-                        theta = thetaCard + ti
-                
+                        theta = thetaCard + ti  
                         # Compute u and v velocity
                         self.u_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.cos(theta)
                         self.v_swim[old_enough[i]] = self.swimming_speed(self.elements.age_seconds[old_enough][i])*np.sin(theta)
-            
             # Check if larvae are old enough to go back to the reef to settle
             looking_for_reef = np.where(self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds'))[0]
             if len(looking_for_reef) > 0:
@@ -601,10 +603,15 @@ class FishLarvaeOrient(OceanDrift):
     def swimming_speed(self, age):
             ''' Compute horizontal swimming speed of the larvae [m/s]
             Presented in Fisher and Bellwood (2003) and used in Staaterman et al. (2012)
-            '''        
-            hor_swimming_speed = (self.get_config('biology:hatch_swimming_speed') + (self.get_config('biology:settle_swimming_speed') - self.get_config('biology:hatch_swimming_speed'))    ** (np.log(age)/np.log(self.get_config('drift:max_age_seconds'))) )    / 100
-            logger.debug('Larvae - computing horizontal swimming speed :  %s m/s < swimming speed < %s m/s ' % (np.min(hor_swimming_speed),np.max(hor_swimming_speed)))
 
+            age in seconds
+            ''' 
+            S_hatch = self.get_config('biology:hatch_swimming_speed') # m/s
+            S_settle = self.get_config('biology:settle_swimming_speed') # m/s
+            PLD = self.get_config('drift:max_age_seconds') # average pelagic larval duration
+            hor_swimming_speed = ( S_hatch + (S_settle - S_hatch) ** (np.log10(age) / np.log10(PLD)) ) / 100 # note x^ab = (x^a)^b to reduce Staaterman equation
+            # hor_swimming_speed = (self.get_config('biology:hatch_swimming_speed') + (self.get_config('biology:settle_swimming_speed') - self.get_config('biology:hatch_swimming_speed'))    ** (np.log(age)/np.log(self.get_config('drift:max_age_seconds'))) )    / 100
+            logger.debug('Larvae - computing horizontal swimming speed :  %s m/s < swimming speed < %s m/s ' % (np.min(hor_swimming_speed),np.max(hor_swimming_speed)))
             return hor_swimming_speed
         
     def vertical_swimming(self):
@@ -637,10 +644,10 @@ class FishLarvaeOrient(OceanDrift):
                 
     def maximum_depth(self):
             '''Turn around larvae that are going too deep'''
-            if self.get_config('drift:maximum_depth') is not None:
-                too_deep = np.where(self.elements.z < self.get_config('drift:maximum_depth'))[0]
+            if self.get_config('biology:maximum_depth') is not None:
+                too_deep = np.where(self.elements.z < self.get_config('biology:maximum_depth'))[0]
                 if len(too_deep) > 0:
-                    self.elements.z[too_deep] = self.get_config('drift:maximum_depth')    
+                    self.elements.z[too_deep] = self.get_config('biology:maximum_depth')    
                 
 
 ###################################################################################################################
