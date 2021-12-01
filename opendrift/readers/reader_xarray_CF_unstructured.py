@@ -143,7 +143,6 @@ class Reader(BaseReader, UnstructuredReader):
         # ref_time = datetime(1858, 11, 17, 00, 00,
         #                     00)  # TODO: include , tzinfo=timezone.utc)
         self.times = self.dataset['time'].values
-        ])
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
         # time steps are not constant
