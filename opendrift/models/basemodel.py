@@ -3738,10 +3738,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             frames=min(x.shape[0],cd['x_other'].shape[1])
 
         mp4=False
-        if filename is not None: mp4 = filename[-4:]=='.mp4'
+        if filename is not None: mp4 = str(filename)[-4:]=='.mp4'
 
         gif=False
-        if filename is not None: gif = filename[-4:]=='.gif'
+        if filename is not None: gif = str(filename)[-4:]=='.gif'
 
         nofilename = filename is None
 
@@ -5350,14 +5350,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if filename is None or 'sphinx_gallery' in sys.modules:
             filename = self._sphinx_gallery_filename(stack_offset=3)
 
-        logger.info('Saving animation to ' + filename + '...')
+        logger.info('Saving animation to ' + str(filename) + '...')
 
         start_time = datetime.now()
 
-        if filename[-4:] == '.gif':
+        if str(filename)[-4:] == '.gif':
             writer=animation.PillowWriter(fps=fps)
             # writer=animation.ImageMagickWriter(fps=fps)
-        elif filename[-4:] == '.mp4':
+        elif str(filename)[-4:] == '.mp4':
             writer=animation.FFMpegWriter(
                                 fps=fps,
                                 codec='libx264',
