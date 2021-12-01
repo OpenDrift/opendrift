@@ -3350,6 +3350,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   **kwargs):
         """Animate last run."""
 
+        filename = str(filename) if filename is not None else None
+
         if self.history is not None and self.num_elements_total(
         ) == 0 and not hasattr(self, 'ds'):
             raise ValueError('Please run simulation before animating')
