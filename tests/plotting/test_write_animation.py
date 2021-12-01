@@ -18,3 +18,6 @@ def simulation():
 
 def test_write_mp4(simulation, tmpdir):
     simulation.animation(filename = tmpdir / 'test.mp4')
+
+def test_write_gif(simulation, tmpdir):
+    simulation.animation(filename = tmpdir / 'test.gif')
