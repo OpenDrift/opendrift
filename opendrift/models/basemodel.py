@@ -5293,7 +5293,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                     '-an'
                             ])
 
-        with writer.saving(fig, filename, 100):
+        with writer.saving(fig, filename, None):
             for i in range(frames):
                 plot_timestep(i)
                 writer.grab_frame()
