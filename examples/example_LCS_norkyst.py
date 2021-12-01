@@ -34,5 +34,5 @@ o.seed_elements(lon=4.4, lat=60.2, number=1000, radius=1000,
 o.run(end_time=reader_norkyst.start_time+timedelta(hours=20),
       time_step=timedelta(minutes=30))
 
-o.plot(lcs=lcs, vmin=1e-7, vmax=1e-4, colorbar=True, show_particles=True)
+o.plot(lcs=lcs, vmin=1e-7, vmax=1e-4, colorbar=True, show_elements=True)
 

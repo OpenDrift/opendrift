@@ -1,5 +1,22 @@
-Improving performance
-=====================
+Performance in OpenDrift
+========================
+
+Generic settings
+----------------
+
+* Check if `OMP_NUM_THREADS` is set in a way that restricts the number of cores that can be used.
+
+Addtitional packages
+--------------------
+
+Some optional packages might increase performance for your use case:
+
+  * roaring-landmask (`pip install roaring-landmask`), will save you disk-space and startup-time. Especially if you run many small simulations this can make a big difference.
+  * pykdtree (among other areas this might speed up cartopy and the unstructured readers)
+  * imagemagick (might yield faster gif generation)
+
+Tuning the simulation
+---------------------
 
 OpenDrift is fairly optimised Python code, but simulations may take long time (even several days) if many elements (~millions) and many time steps (~thousands).
 We hope to parallelise OpenDrift in the near future, to improve performance on machines with many cores. In the meantime, the following can be done to increase performance or decrease memory and disk usage:
@@ -24,7 +41,4 @@ Some notes about performance
 
 Each OpenDrift module has an attribute ``max_speed`` which indicates the maximum velocity that elements will likely encounter. This is accessible as ``o.max_speed`` for an OpenDrift object ``o``. Typical values are 2 m/s for ocean drift models, but as large as 12 m/s for the WindBlow module where elements move at the speed of the wind. It might be overriden by the user at any time, simply by writing ``o.max_speed = 3`` before starting a run. This parameter is not an absolute bound for instantaneous velocity, but rather for the average velocity in a particular direction over a time period. It serves two purposes:
 
-* If a reader providing landmask (``land_binary_mask``) has not been added to an OpenDrift object before a run is started, a GSHHG vector landmask is created based on an estimated bound of where elements might move. This landmask will cover a rectangle around the positions at which elements have been seeded, with a spatial buffer to east/west/north/south equal to ``o.max_speed
-  * simulation_duration_seconds``. It is of interest to keep this buffer as small as possible, as checking land encounter for many particles versus a large area of coastline and islands may be costly.
-
-* During the run, all readers are called to return data (2D or 3D "blocks") covering all the elements. This block of data should not only cover elements at their present position, but also the area over which elements might move within the next timestep of the reader (e.g. typically 1, 3, 6 or 24 hours for an ocean model). As with the landmask above, this buffer around present positions is calculated as ``o.max_speed * timestep_of_reader``. Again, it of interest to keep the buffer as small as possible to save time reading data from file (or from Thredds), but still avoiding that elements will leave the reader-block coverage within the timestep.  
+* During the run, all readers are called to return data (2D or 3D "blocks") covering all the elements. This block of data should not only cover elements at their present position, but also the area over which elements might move within the next timestep of the reader (e.g. typically 1, 3, 6 or 24 hours for an ocean model). As with the landmask above, this buffer around present positions is calculated as ``o.max_speed * timestep_of_reader``. Again, it of interest to keep the buffer as small as possible to save time reading data from file (or from Thredds), but still avoiding that elements will leave the reader-block coverage within the timestep.

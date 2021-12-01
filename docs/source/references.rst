@@ -3,6 +3,8 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Blanken H, Valeo C, Hannah C, Khan UT and Juhász T (2021) A Fuzzy-Based Framework for Assessing Uncertainty in Drift Prediction Using Observed Currents and Winds. Front. Mar. Sci. 8:618094. http://doi.org/10.3389/fmars.2021.618094
+
 Cristiani J, Rubidge E, Forbes C, Moore-Maley B and O’Connor MI (2021) A Biophysical Model and Network Analysis of Invertebrate Community Dispersal Reveals Regional Patterns of Seagrass Habitat Connectivity. Front. Mar. Sci. 8:717469. https://doi.org/10.3389/fmars.2021.717469
 
 Tinker J and Hermanson L (2021) Towards Winter Seasonal Predictability of the North West European Shelf Seas. Front. Mar. Sci. 8:698997. https://doi.org/10.3389/fmars.2021.698997

@@ -114,7 +114,7 @@ class Leeway(OpenDriftSimulation):
                      'missing_data': 'gray', 'stranded': 'red',
                      'evaporated': 'yellow', 'dispersed': 'magenta'}
 
-    max_speed = 1.5  # Assumed max average speed of any element
+    max_speed = 5  # Assumed max average speed of any element
 
     # Configuration
     def __init__(self, d=None, *args, **kwargs):

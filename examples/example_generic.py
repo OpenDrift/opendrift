@@ -61,4 +61,3 @@ o.animation(fast=True)
 
 #%%
 # .. image:: /gallery/animations/example_generic_0.gif
-

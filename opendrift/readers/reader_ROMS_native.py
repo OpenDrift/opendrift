@@ -87,13 +87,10 @@ class Reader(BaseReader, StructuredReader):
                                 ['ocean_time', 's_rho', 'Cs_r', 'hc', 'angle']
                                 and v[0:3] not in ['lon', 'lat', 'mas']]
                     logger.debug('Dropping variables: %s' % dropvars)
-                    ds = ds.drop(dropvars)
+                    ds = ds.drop_vars(dropvars)
                     return ds
                 self.Dataset = xr.open_mfdataset(filename,
-                    chunks={'ocean_time': 1}, concat_dim='ocean_time',
-                    combine='by_coords',
-                    compat='override',
-                    decode_times=False,
+                    chunks={'ocean_time': 1}, compat='override', decode_times=False,
                     preprocess=drop_non_essential_vars_pop,
                     data_vars='minimal', coords='minimal')
             else:

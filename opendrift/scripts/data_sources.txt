@@ -12,7 +12,7 @@ https://thredds.met.no/thredds/dodsC/cmems/mywavewam3km/dataset-wam-arctic-1hr3k
 https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml
 https://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc
 https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd
+https://nrt.cmems-du.eu/thredds/dodsC/global-analysis-forecast-wav-001-027
+https://nrt.cmems-du.eu/thredds/dodsC/global-analysis-forecast-phy-001-024-hourly-merged-uv
 https://tds.hycom.org/thredds/dodsC/GLBy0.08/latest
 https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z
-https://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z
-{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh", "cmems_user": null, "cmems_password": null}

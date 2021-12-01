@@ -26,7 +26,7 @@ o.seed_elements(lon=12.0, lat=68.3, radius=0, number=10,
 o.run(time_step=3600)
 
 #%%
-# Print and plot results, with lines colord by particle depth
+# Print and plot results, with lines colored by particle depth
 print(o)
 o.plot(linecolor='z', fast=True)
 #o.animation()

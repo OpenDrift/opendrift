@@ -15,7 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta
 import numpy as np
 from scipy.interpolate import interp1d
 import logging; logger = logging.getLogger(__name__)
@@ -89,6 +89,21 @@ class OceanDrift(OpenDriftSimulation):
     required_profiles_z_range = [-20, 0]
 
     def __init__(self, *args, **kwargs):
+
+        if 'machine_learning_dict' in kwargs:
+            logger.debug('Machine learning correction supplied.')
+            mld = kwargs['machine_learning_dict']
+            del kwargs['machine_learning_dict']
+            import pickle
+            from tensorflow import keras
+            from tools.normalizations import generate_one_normalized_predictor, generate_one_denormalized_prediction
+            self.generate_one_normalized_predictor = generate_one_normalized_predictor
+            self.generate_one_denormalized_prediction = generate_one_denormalized_prediction
+            self.trained_model = keras.models.load_model(mld['trained_model'])
+            self.dict_normalization_params = pickle.load(open(mld['dict_normalization_params'], 'rb'))
+            self.ml_predictors = [self.dict_normalization_params['predictors'][i]['content'] for i in self.dict_normalization_params['predictors']]
+        else:
+            logger.debug('No machine learning correction available.')
 
         # Calling general constructor of parent class
         super(OceanDrift, self).__init__(*args, **kwargs)
@@ -164,6 +179,55 @@ class OceanDrift(OpenDriftSimulation):
 
         # Vertical advection
         self.vertical_advection()
+
+        # Optional machine learning correction
+        self.machine_learning_correction()
+
+    def machine_learning_correction(self):
+        if not hasattr(self, 'trained_model'):
+            return  # No machine learning correction available
+
+        # ML shall only be applied every 1 hour
+        if not hasattr(self, 'ml_timesteps'):
+            self.ml_timesteps = 3600/self.time_step.total_seconds()
+        if self.steps_calculation % self.ml_timesteps != 0:
+            logger.warning('ML not applied at time step %s' % self.steps_calculation)
+            return
+
+        # Only apply every 1 hour
+        logger.warning('Machine learning')
+        x_vel = np.ones(self.num_elements_active())*np.NaN
+        y_vel = np.ones(self.num_elements_active())*np.NaN
+        st = datetime.now()
+
+        list_predictors_normalized = []
+        list_predictors_denormalized = []
+
+        # Prepare predictor dicts
+        for n in range(self.num_elements_active()):
+            dict_input = {s: getattr(self.environment, s)[n] for s in self.ml_predictors}
+            predictor_normalized = self.generate_one_normalized_predictor(
+                                            dict_input, self.dict_normalization_params)
+            list_predictors_normalized.append(predictor_normalized)
+
+        # Normalize
+        all_predictors_normalized = np.squeeze(np.array(list_predictors_normalized))
+        # perform a prediction from normalized predictor to normalized label
+        logger.warning('Calculating ML correction...')
+        predicted_normalized_residual_correction = self.trained_model.predict(all_predictors_normalized)
+        # get the "native units" residual correction
+        logger.warning('Denormalization...')
+        for n in range(self.num_elements_active()):
+            native_units_correction = self.generate_one_denormalized_prediction(
+                predicted_normalized_residual_correction[n, :], self.dict_normalization_params)
+            x_vel[n] = native_units_correction['residual_displacement_x']*1000/3600
+            y_vel[n] = native_units_correction['residual_displacement_y']*1000/3600
+
+        # Apply correction
+        logger.warning('Applying ML correction: %s to %s m/s eastwards, %s to %s m/s northwards' %
+                        (x_vel.min(), x_vel.max(), y_vel.min(), y_vel.max()))
+        #logger.warning('%s particles, %s' % (self.num_elements_active(), datetime.now()-st))
+        self.update_positions(x_vel, y_vel)
 
     def disable_vertical_motion(self):
         """Deactivate any vertical processes/advection"""
@@ -435,10 +499,18 @@ class OceanDrift(OpenDriftSimulation):
         else:
             return None
 
-    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None):
-        """Function to animate vertical distribution of particles"""
+    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1, fastwriter=False):
+        """Function to animate vertical distribution of particles
+            bins:            number of bins in the histogram
+            maxdepth:        maximum depth
+            subsamplingstep: speed-up the generation of the animation reducing the number of output frames
+            fasterwriter:    speed-up the writing to outpute file
+        """
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
+
+        #from timeit import default_timer as timer
+        #start=timer()
 
         fig, (axk, axn) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
         if depths is not None:  # Debug mode, output from one cycle has been provided
@@ -467,38 +539,122 @@ class OceanDrift(OpenDriftSimulation):
         axk.set_ylabel('Depth [m]')
         axk.set_xlabel('Vertical diffusivity [$m^2/s$]')
 
+        subsamplingstep=max(1,subsamplingstep)
+        times=times[0:-1:subsamplingstep]
+        z=z[0:-1:subsamplingstep,:]
+
         hist_series = np.zeros((bins, len(times)))
         bin_series = np.zeros((bins+1, len(times)))
         for i in range(len(times)):
-            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins)
+            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(maxdepth,z[np.isfinite(z)].max()))
         maxnum = hist_series.max()
 
+        # 4 different methods for building the animation available for testing
+        # No significant differences observed so far. Can be useful to keep the
+        # alternative methods here for further testing
+
+        # Current method
+
+        axn.clear()
+        bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        axn.set_ylim([maxdepth, 0])
+        axn.set_xlim([0, maxnum])
+        title=axn.set_title('%s UTC' % times[i])
+        axn.set_xlabel('Number of particles')
+
         def update_histogram(i):
-            axn.clear()
-            axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
-            axn.set_ylim([maxdepth, 0])
-            axn.set_xlim([0, maxnum])
-            axn.set_title('%s UTC' % times[i])
-            axn.set_xlabel('Number of particles')
-            #axn.set_ylabel('Depth [m]')
+            for rect, y in zip(bc, hist_series[:,i]):
+                rect.set_width(y)
+            title.set_text('%s UTC' % times[i])
 
         animation = animation.FuncAnimation(fig, update_histogram, len(times))
+
+        # alternative methods tested
+        #
+        # alternative1
+        #
+        #     axn.clear()
+        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     title=axn.set_title('%s UTC' % times[i])
+        #     axn.set_xlabel('Number of particles')
+        #
+        #     for i in range(len(bc)):
+        #         axn.add_patch(bc[i])
+        #
+        #     def update2(i):
+        #         for j in range(len(bc)):
+        #             bc[j].set_width(hist_series[j,i])
+        #
+        #         title.set_text('%s UTC' % times[i])
+        #         return [bc[i] for i in range(len(bc))]
+        #
+        #
+        # alternative2
+        #
+        #     axn.clear()
+        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     title=axn.set_title('%s UTC' % times[i])
+        #     axn.set_xlabel('Number of particles')
+        #
+        #     def prepare_animation3(bc):
+        #         def animate(i):
+        #             for count, rect in zip(hist_series[:,i], bc.patches):
+        #                 rect.set_width(count)
+        #             title.set_text('%s UTC' % times[i])
+        #             return bc.patches
+        #         return animate
+        #
+        # alternative3
+        #
+        #     axn.cla()
+        #     axn.grid()
+        #     axn.hist(z[i, :], bins=bins,
+        #                   range=[maxdepth, 0], orientation='horizontal')
+        #     axn.set_ylim([maxdepth, 0])
+        #     axn.set_xlim([0, maxnum])
+        #     axn.set_xlabel('number of particles')
+        #     axn.set_title('%s UTC' % times[i])
+        #
+        #     def update4(i):
+        #         axn.cla()
+        #         #axn.grid()
+        #         axn.hist(z[i, :], bins=bins,
+        #                       range=[maxdepth, 0], orientation='horizontal')
+        #         axn.set_ylim([maxdepth, 0])
+        #         axn.set_xlim([0, maxnum])
+        #         axn.set_xlabel('number of particles')
+        #         axn.set_title('%s UTC' % times[i])
+        #         #fig.canvas.draw_idle()
+        #
+        #     animation = animation.FuncAnimation(fig, update2, len(times), blit=True)
+        #     animation = animation.FuncAnimation(fig, prepare_animation3(bc), len(times), blit=True)
+        #     animation = animation.FuncAnimation(fig, update3, len(times))
+
+        #end=timer()
+        #print(end-start)
+
         if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(animation, filename, fps=10)
+            self._save_animation(animation, filename, fps=10, fastwriter=fastwriter)
         else:
             plt.show()
 
-    def plot_vertical_distribution(self):
-        """Function to plot vertical distribution of particles"""
+    def plot_vertical_distribution(self, maxdepth=None, bins=None, maxnum=None):
+        """Function to plot vertical distribution of particles
+
+            maxdepth: maximum depth considered for the profile
+            bins:     number of bins between surface and maxdepth
+            maxnum:   range of bars in histogram is [0,maxnum]
+        """
         import matplotlib.pyplot as plt
-        from matplotlib.widgets import Slider, Button, RadioButtons
-        from pylab import axes, draw
-        from matplotlib import dates
+        from matplotlib.widgets import Slider
 
         fig = plt.figure()
         mainplot = fig.add_axes([.15, .3, .8, .5])
         sliderax = fig.add_axes([.15, .08, .75, .05])
-        data = self.history['z'].T[1, :]
         tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
                          valinit=self.steps_output-1, valfmt='%0.0f')
         try:
@@ -507,13 +663,35 @@ class OceanDrift(OpenDriftSimulation):
             dz = 1.
         maxrange = -100
 
+        # overwrite default values if input arguments are provided
+        if maxdepth is not None:
+            maxrange = maxdepth
+        if maxrange > 0:
+            maxrange = -maxrange  # negative z
+
+        if bins is not None:
+            dz = -maxrange/bins
+
+        # using get_property instead of history to exclude elements thare are not yet seeded
+        z = self.get_property('z')[0]
+        z = np.ma.filled(z, np.nan)
+
+        if maxnum is None:
+            # Precalculatig histograms to find maxnum
+            hist_series = np.zeros((int(-maxrange/dz), self.steps_output-1))
+            bin_series = np.zeros((int(-maxrange/dz)+1, self.steps_output-1))
+            for i in range(self.steps_output-1):
+                hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=int(-maxrange/dz), range=[maxrange, 0])
+            maxnum = hist_series.max()
+
         def update(val):
             tindex = int(tslider.val)
             mainplot.cla()
             mainplot.grid()
-            mainplot.hist(self.history['z'].T[tindex, :], bins=int(-maxrange/dz),
+            mainplot.hist(z[tindex, :], bins=int(-maxrange/dz),
                           range=[maxrange, 0], orientation='horizontal')
             mainplot.set_ylim([maxrange, 0])
+            mainplot.set_xlim([0, maxnum])
             mainplot.set_xlabel('number of particles')
             mainplot.set_ylabel('depth [m]')
             x_wind = self.history['x_wind'].T[tindex, :]
@@ -522,11 +700,15 @@ class OceanDrift(OpenDriftSimulation):
             mainplot.set_title(str(self.get_time_array()[0][tindex]) +
                                #'   Percent at surface: %.1f %' % percent_at_surface)
                                '   Mean windspeed: %.1f m/s' % windspeed)
-            draw()
+            fig.canvas.draw_idle()
 
         update(0)  # Plot initial distribution
         tslider.on_changed(update)
         plt.show()
+
+        # returning objects prevents unresponsiveness when moving the Slider
+        # https://github.com/matplotlib/matplotlib/issues/3105#issuecomment-44855888
+        return fig,mainplot,sliderax,tslider
 
     def plotter_vertical_distribution_time(self, ax=None, mask=None,
             dz=1., maxrange=-100, bins=None, step=1):

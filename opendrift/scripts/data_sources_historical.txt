@@ -1,0 +1,7 @@
+# Historical data sources (Thredds and local files) - not covering present or future
+https://thredds.met.no/thredds/dodsC/sea/norkyst800mv0_1h_be
+https://thredds.met.no/thredds/dodsC/sea/nordic4km/zdepths1h/aggregate_be
+https://thredds.met.no/thredds/dodsC/topaz/dataset-topaz4-arc-unmasked-be
+https://thredds.met.no/thredds/dodsC/nansen-legacy-ocean/svim_daily_agg
+https://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_91.2/uv3z
+{"reader": "reader_cmems", "dataset": "global-analysis-forecast-phy-001-024-hourly-t-u-v-ssh", "cmems_user": null, "cmems_password": null}

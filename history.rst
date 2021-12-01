@@ -1,6 +1,38 @@
 History
 =======
 
+Next release
+---------------------------
+* A new model :mod:`sealice <opendrift.models.sealice>` has been added, written by `Julien Moreau <https://github.com/Boorhin>`_.
+
+2021-11-08 / Release v1.7.3
+---------------------------
+* reader_from_url is now using requests instead of urllib, fixing problem with add_readers_from_list and .netrc authentication.
+* Hidden feature for ``reader_netCDF_CF_generic``: if attributes ``shift_x`` and ``shift_y`` are defined, the returned fields are shifted this many meters in the x/y (or east/north) directions
+* parameter ``show_particles`` to plot() is now renamed to ``show_elements``, as for animation()
+* Map bounds are now extended to cover also comparison simulations and any trajectory_dicts.
+* ``skip`` and ``scale`` as input to plot() and animation() are now None, so that density and length and arrows are determined by matplotlib/quiver, unless overridden by user.
+* New method (``distance_between_trajectories``) to calculate distances between two trajectories, position by position.
+* Updates to ``ChemicalDrift`` model
+
+2021-10-27 / Release v1.7.2
+---------------------------
+* Fix bugs in selafin reader.
+* Several improvements to the SCHISM reader.
+* Add method for tuning windrift factor from observed drift.
+* Add method to retrieve environment variables (from given readers) along a given trajectory (e.g. a drifter).
+* Improved dateline handling in readers.
+* Fix dateline bug in landmask.
+* ``reader_netCDF_CF_generic``: if x, and y-coordinates are integer sequences, these are not anymore interpreted as projection coordinates.
+* ``reader_netCDF_CF_generic``: taking calendar name into acount when decoding time.
+* Leeway model: max_speed is increased to 5 m/s, avoiding obtaining too small data-blocks readers.
+* Leeway model ASCII export: if all elements are deactivated, write previous mean position, instead of NaN.
+* Improved Xarray-postprocessing (based on `opendrift.open_xarray`), as demonstrated in ``example_river_runoff.py``. Aotomatic ``analysis_file`` is omitted.
+* Fixed problem related to mutating dictionary of readers when discarding.
+* Added ``mixed_layer_depth`` (default 50m) as environment variable of OceanDrift (and subclasses). This is used if ``Sundby`` or ``Large`` parameterizations of vertical turbulence is activated. A new config setting defines background diffusivity (default: ``1.2e-5 m2-s``)
+* ``origin_marker_name`` can now be specified when seeding, and is stored as attributes ``flag_meanings`` to output variable ``origin_marker``.
+* Quiver plots are now centered on pixels/grid, instead of at corner.
+
 2021-09-01 / Release v1.7.1
 ---------------------------
 * Using OilLibrary v4+noaa1.1.3
