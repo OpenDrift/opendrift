@@ -106,9 +106,9 @@ class Reader(BaseReader, UnstructuredReader):
         logger.info('Opening dataset: ' + filestr)
         if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
             logger.info('Opening files with MFDataset')
-            self.dataset = xr.open_mfdataset(filename, engine= engine, concat_dim="time",
-                    combine="nested", data_vars='minimal', coords='minimal',
-                    compat='override', chunks='auto')
+            self.dataset = xr.open_mfdataset(filename, engine= engine,
+                    concat_dim="time", combine="nested", data_vars='minimal',
+                    coords='minimal', compat='override', chunks='auto')
         else:
             logger.info('Opening file with Dataset')
             self.dataset = xr.open_dataset(filename, engine= engine,
@@ -123,11 +123,12 @@ class Reader(BaseReader, UnstructuredReader):
             if self.proj4 == 'none':
                 self.proj4 = None
             logger.info('Reading projection..: %s', self.proj4)
-            assert self.proj4 is not None and len(self.proj4) > 0,
-                    "No projection in data-file, please supply to reader"
+            assert self.proj4 is not None and len(self.proj4) > 0, \
+                         "No projection in data-file, please supply to reader"
 
         logger.info('Reading grid and coordinate variables..')
-        assert self.dataset.CoordinateSystem == "Cartesian", "Only cartesian coordinate systems supported"
+        assert self.dataset.CoordinateSystem == "Cartesian", \
+                        "Only cartesian coordinate systems supported"
 
         self.x = self.dataset['x'].values
         self.y = self.dataset['y'].values
