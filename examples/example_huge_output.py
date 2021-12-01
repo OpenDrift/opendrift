@@ -47,7 +47,7 @@ h = oa.get_histogram(pixelsize_m=500)
 #%%
 # Plot the cumulative coverage of first seeding (origin_marker=0)
 b=h.isel(origin_marker=0).sum(dim='time')
-oa.plot(background=b.where(b>0), fast=True, show_particles=False, vmin=0, vmax=1000, clabel='First seeding')
+oa.plot(background=b.where(b>0), fast=True, show_elements=False, vmin=0, vmax=1000, clabel='First seeding')
 
 #%%
 # Making two animations, for each of the two seedings / origin_markers.

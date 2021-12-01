@@ -174,9 +174,9 @@ class BaseReader(Variables):
         else:
             return False
 
-    def prepare(self, extent, start_time, end_time):
+    def prepare(self, extent, start_time, end_time, max_speed):
         """Prepare reader for given simulation coverage in time and space."""
-        logger.debug('Nothing to prepare for ' + self.name)
+        logger.debug('Nothing more to prepare for ' + self.name)
         pass  # to be overriden by specific readers
 
     def rotate_variable_dict(self, variables, proj_from='+proj=latlong', proj_to=None):
@@ -402,7 +402,7 @@ class BaseReader(Variables):
             for var in variables:
                 data[var][i] = d[var][0]
 
-        return(data)
+        return data 
 
     def shift_start_time(self, start_time):
         """Shift the time coverage of reader to match given start_time"""

@@ -1,3 +1,4 @@
+from datetime import timedelta
 import numpy as np
 import pyproj
 from bisect import bisect_left
@@ -209,6 +210,8 @@ class ReaderDomain(Timeable):
 
         Arguments in native projection of reader.
         """
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
         z = np.atleast_1d(z)
 
         if self.global_coverage():
@@ -266,10 +269,10 @@ class ReaderDomain(Timeable):
 
         dx = self.delta_x if self.delta_x is not None else 0
         if self.proj.crs.is_geographic is True:
-            if (self.xmin - dx <= 0) and (self.xmax + dx >=
+            if (self.xmin - 2*dx <= 0) and (self.xmax + 2*dx >=
                                                     360):
                 return True  # Global 0 to 360
-            if (self.xmin - dx <= -180) and (self.xmax + dx
+            if (self.xmin - 2*dx <= -180) and (self.xmax + 2*dx
                                                        >= 180):
                 return True  # Global -180 to 180
 
@@ -508,7 +511,7 @@ class Variables(ReaderDomain):
                     method = lambda env: em['method'](env)
                     method(env)
 
-    def set_buffer_size(self, max_speed):
+    def set_buffer_size(self, max_speed, time_coverage=None):
         '''
         Adjust buffer to minimise data block size needed to cover elements.
 
@@ -520,7 +523,8 @@ class Variables(ReaderDomain):
 
         Args:
 
-            max_speed: the maximum speed anticipated for particles.
+            max_speed (m/s): the maximum speed anticipated for particles.
+            time_coverage (timedelta): the time span to cover
 
         '''
         self.buffer = 0
@@ -529,12 +533,16 @@ class Variables(ReaderDomain):
             if self.time_step is not None:
                 time_step_seconds = self.time_step.total_seconds()
             else:
-                time_step_seconds = 3600  # 1 hour if not given
+                if time_coverage is None:
+                    logger.warning('Assuming time step of 1 hour for ' + self.name)
+                    time_step_seconds = 3600  # 1 hour if not given
+                else:
+                    time_step_seconds = time_coverage.total_seconds()
             self.buffer = int(
                 np.ceil(max_speed * time_step_seconds / pixelsize)) + 2
             logger.debug('Setting buffer size %i for reader %s, assuming '
-                         'a maximum average speed of %g m/s.' %
-                         (self.buffer, self.name, max_speed))
+                         'a maximum average speed of %g m/s and time span of %s' %
+                         (self.buffer, self.name, max_speed, timedelta(seconds=time_step_seconds)))
 
     def __check_env_coordinates__(self, env):
         """

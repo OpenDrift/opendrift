@@ -122,7 +122,7 @@ o.animation(color='specie',
 #%%
 # .. image:: /gallery/animations/example_radionuclides_0.gif
 
-#o.plot_vertical_distribution()
+o.plot_vertical_distribution()
 #o.plot_property('specie')
 o.animation_profile(color='specie',
             vmin=0,vmax=o.nspecies-1,

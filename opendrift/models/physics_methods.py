@@ -17,7 +17,92 @@
 import logging; logger = logging.getLogger(__name__)
 import numpy as np
 from math import sqrt
+import matplotlib.pyplot as plt
 import pyproj
+import cmocean
+
+def wind_drift_factor_from_trajectory(trajectory_dict, min_period=None):
+    '''Estimate wind_drift_fator based on wind and current along given trajectory
+
+    trajectory_dict: dictionary with arrays of same length of the following variables:
+    time, lon, lat, x_wind, y_wind, x_sea_water_velocity, y_sea_water_velocity
+
+    Returns array of same length minus one of the fitted wind_drift_factor
+    '''
+
+    geod = pyproj.Geod(ellps='WGS84')
+    time = trajectory_dict['time']
+    try:
+        import pandas as pd
+        time = pd.to_datetime(time)
+    except:
+        pass
+    if min_period is None:
+        ind = range(len(time))
+    else:
+        timestep = time[1] - time[0]
+        s = np.round(min_period.total_seconds()/(timestep).total_seconds()).astype(int)
+        ind = np.arange(0, len(time), s).astype(np.int)
+        print('Original timestep (%s) multiplied by %i: %s' % (timestep, s, timestep*s))
+        ind2 = ind.copy()
+        for i in range(1, s):
+            ind2 = np.concatenate((ind2, ind+i))
+        ind = ind2
+        ind = ind[ind<len(time)]
+        time = time[ind]
+    cu = trajectory_dict['x_sea_water_velocity'][ind]
+    cv = trajectory_dict['y_sea_water_velocity'][ind]
+    wu = trajectory_dict['x_wind'][ind]
+    wv = trajectory_dict['y_wind'][ind]
+    lon = trajectory_dict['lon'][ind]
+    lat = trajectory_dict['lat'][ind]
+    current_speed = np.sqrt(cu**2+cv**2)
+    current_azimuth = np.degrees(np.arctan2(cu, cv))
+    wind_speed = np.sqrt(wu**2+wv**2)
+    time_step = (time[1]-time[0]).total_seconds()
+    # Move forward from each position with current
+    lonf, latf, back_az = geod.fwd(lon[0:-1], lat[0:-1], current_azimuth[0:-1], current_speed[0:-1]*time_step)
+    # Find distance and azimuth to next observational position
+    azimuth_forward, a2, distance = geod.inv(lonf, latf, lon[1:], lat[1:])
+    # Find the wind_drift_factor needed to give the remaining distance
+    wind_drift_factor = distance / (time_step*wind_speed[0:-1])
+
+    wind_azimuth = np.degrees(np.arctan2(wu, wv))
+    azimuth_offset = azimuth_forward - wind_azimuth[0:-1]  # 0 if downwind drift, positive if rightwards drift is needed towards end position
+    azimuth_offset = azimuth_offset % 360  # Make sure azimuth angle is between -180 and 180
+    azimuth_offset = (azimuth_offset + 360) % 360
+    azimuth_offset[azimuth_offset>180] -= 360
+
+    return wind_drift_factor, azimuth_offset
+
+def distance_between_trajectories(lon1, lat1, lon2, lat2):
+    '''Calculate the distances [m] between two trajectories'''
+
+    assert len(lon1) == len(lat1) == len(lat1) == len(lat2)
+    geod = pyproj.Geod(ellps='WGS84')
+    azimuth_forward, a2, distance = geod.inv(lon1, lat1, lon2, lat2)
+ 
+    return distance
+
+def plot_wind_drift_factor(wdf, azimuth, wmax_plot=None):
+    '''Polar plot of array of wind drift factor, with associated azimuthal offset'''
+
+    wmax = wdf.max()
+    wbins = np.arange(0, wmax+.005, .005)
+    abins = np.linspace(-180, 180, 30)
+    hist, _, _ = np.histogram2d(azimuth, wdf, bins=(abins, wbins))
+    A, W = np.meshgrid(abins, wbins)
+    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
+    ax.set_theta_zero_location('N', offset=0)
+    ax.set_theta_direction(-1)
+    pc = ax.pcolormesh(np.radians(A), W, hist.T, cmap=cmocean.cm.dense)
+    plt.arrow(np.pi, wmax, 0, -wmax, width=.015, facecolor='k', zorder=100,
+              head_width=.8, lw=2, head_length=.005, length_includes_head=True)
+    plt.text(np.pi, wmax*.5, ' Wind direction', fontsize=18)
+    plt.grid()
+    if wmax_plot is not None:
+        plt.ylim([0, wmax_plot])
+    plt.show()
 
 
 def oil_wave_entrainment_rate_li2017(dynamic_viscosity, oil_density, interfacial_tension,

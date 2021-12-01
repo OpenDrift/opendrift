@@ -24,9 +24,13 @@ import importlib
 import logging; logger = logging.getLogger(__name__)
 import glob
 import json
+import opendrift
 
 def reader_from_url(url, timeout=10):
     '''Make readers from URLs or paths to datasets'''
+
+    if isinstance(url, list):
+        return [reader_from_url(u) for u in url]
 
     try:  # Initialise reader from JSON string
         j = json.loads(url)
@@ -43,78 +47,27 @@ def reader_from_url(url, timeout=10):
     except:
         pass
 
-    from opendrift.readers import reader_netCDF_CF_generic
-
-    if isinstance(url, list):
-        return [reader_from_url(u) for u in url]
-
-    files = glob.glob(url)
-    for f in files:  # Regular file
+    if len(glob.glob(url)) == 0:  # Check if this is a URL, and not giving timeout
+        import requests
         try:
-            r = reader_netCDF_CF_generic.Reader(f)
-            return r
-
+            resp = requests.get(url, timeout=timeout)
+        except requests.exceptions.MissingSchema:
+            logger.info('Neither a file or a URL: ' + url)
+            return None
         except:
-            logger.warning('%s is not a netCDF CF file recognised by '
-                            'OpenDrift' % f)
-            try:
-                from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
-                r = Reader_ROMS_native(f)
-                return r
-            except:
-                logger.warning('%s is also not a ROMS netCDF file recognised by '
-                                'OpenDrift' % f)
-                try:
-                    from opendrift.readers.reader_grib import Reader as Reader_grib
-                    r = Reader_grib(f)
-                    return r
-                except:
-                    logger.warning('%s is also not a GRIB file recognised by '
-                                    'OpenDrift' % f)
+            logger.info('Connection error for ' + url)
+            return None
 
-    if files == []:  # Try with OPeNDAP URL
-        try:  # Check URL accessibility/timeout
-            import urllib.request as urllib_request
-            request = urllib_request.Request(url)
-            try:  # netrc
-                import netrc
-                import base64
-                parts = urllib_request.urlparse.urlparse(url)
-                login, account, password = netrc.netrc().authenticators(parts.netloc)
-                creds = base64.encodestring('%s:%s' % (login, password)).strip()
-                request.add_header("Authorization", "Basic %s" % creds)
-                logger.debug('Applied NETRC credentials')
-            except:
-                logger.debug('Could not apply NETRC credentials')
-            urllib_request.urlopen(request, timeout=timeout)
+    reader_modules = ['reader_netCDF_CF_generic',
+                      'reader_ROMS_native',
+                      'reader_grib']
+
+    for rm in reader_modules:
+        reader_module = importlib.import_module('opendrift.readers.' + rm)
+        try:
+            r = reader_module.Reader(url)
+            return r
         except Exception as e:
-            # Error code 400 is expected!
-            if not isinstance(e, urllib_request.HTTPError) or e.code != 400:
-                status_code = None
-                try:  # Trying with requests library (should be default)
-                    import requests
-                    resp = requests.get(url + '.das')
-                    status_code = resp.status_code
-                except Exception as e:
-                    logger.warning('ULR %s not accessible: ' % url + str(e))
-                    return None
+            print('Could not open %s with %s' % (url, rm))
 
-                if status_code >= 400:
-                    logger.warning('ULR %s not accessible: ' % url + str(e))
-                    return None
-            try:
-                from opendrift.readers import reader_netCDF_CF_generic
-                r = reader_netCDF_CF_generic.Reader(url)
-                return r
-            except Exception as e:
-                logger.warning('%s is not a netCDF file recognised '
-                                'by OpenDrift: %s' % (url, str(e)))
-                try:
-                    from opendrift.readers.reader_ROMS_native import Reader as Reader_ROMS_native
-                    r = Reader_ROMS_native(url)
-                    return r
-                except Exception as e:
-                    logger.warning('%s is also not a ROMS netCDF file recognised by '
-                                    'OpenDrift: %s' % (url, str(e)))
-
-                return None
+    return None  # No readers worked

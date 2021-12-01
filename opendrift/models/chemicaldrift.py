@@ -219,19 +219,19 @@ class ChemicalDrift(OceanDrift):
             'chemical:transformations:dissociation': {'type': 'enum',
                 'enum': ['nondiss','acid', 'base', 'amphoter'], 'default': 'nondiss',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:LogKOW': {'type': 'float', 'default': 4.46,               # Phenanthrene
+            'chemical:transformations:LogKOW': {'type': 'float', 'default': 3.361,          # Naphthalene
                 'min': -3, 'max': 10, 'units': 'Log L/Kg',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:TrefKOW': {'type': 'float', 'default': 25.,               # Phenanthrene
+            'chemical:transformations:TrefKOW': {'type': 'float', 'default': 25.,           # Naphthalene
                 'min': -3, 'max': 30, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:DeltaH_KOC_Sed': {'type': 'float', 'default': -2.49e4,    # Phenanthrene
+            'chemical:transformations:DeltaH_KOC_Sed': {'type': 'float', 'default': -21036., # Naphthalene
                 'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:DeltaH_KOC_DOM': {'type': 'float', 'default': -2.59e4,    # Phenanthrene
+            'chemical:transformations:DeltaH_KOC_DOM': {'type': 'float', 'default': -25900., # Naphthalene
                 'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:Setchenow': {'type': 'float', 'default': 0.2724,          # Phenanthrene
+            'chemical:transformations:Setchenow': {'type': 'float', 'default': 0.2503,      # Naphthalene
                 'min': 0, 'max': 1, 'units': 'L/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:transformations:pKa_acid': {'type': 'float', 'default': -1,
@@ -241,50 +241,50 @@ class ChemicalDrift(OceanDrift):
                 'min': 0, 'max': 14, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Degradation in water column
-            'chemical:transformations:k_W_tot': {'type': 'float', 'default': 1.12e3,            # Phenanthrene
+            'chemical:transformations:t12_W_tot': {'type': 'float', 'default': 224.08,      # Naphthalene
                 'min': 1, 'max': None, 'units': 'hours',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'half life in water, total'},
-            'chemical:transformations:Tref_kWt': {'type': 'float', 'default': 25.,
+            'chemical:transformations:Tref_kWt': {'type': 'float', 'default': 25.,          # Naphthalene
                 'min': -3, 'max': 30, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:DeltaH_kWt': {'type': 'float', 'default': 50000.,         # generic
+            'chemical:transformations:DeltaH_kWt': {'type': 'float', 'default': 50000.,     # generic
                 'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             # Degradation in sediment layer
-            'chemical:transformations:k_S_tot': {'type': 'float', 'default': 687,               # Phenanthrene(check)
+            'chemical:transformations:t12_S_tot': {'type': 'float', 'default': 5012.4,      # Naphthalene
                 'min': 1, 'max': None, 'units': 'hours',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'half life in sediments, total'},
-            'chemical:transformations:Tref_kSt': {'type': 'float', 'default': 4.,               # Phenanthrene(check)
+            'chemical:transformations:Tref_kSt': {'type': 'float', 'default': 25.,          # Naphthalene
                 'min': -3, 'max': 30, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:DeltaH_kSt': {'type': 'float', 'default': 50000.,         # generic
+            'chemical:transformations:DeltaH_kSt': {'type': 'float', 'default': 50000.,     # generic
                 'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             # Volatilization
-            'chemical:transformations:MolWt': {'type': 'float', 'default': 178.226,             # Phenanthrene
+            'chemical:transformations:MolWt': {'type': 'float', 'default': 128.1705,         # Naphthalene
                 'min': 50, 'max': 1000, 'units': 'amu',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'molecular weight'},
-            'chemical:transformations:Henry': {'type': 'float', 'default': 4.4e-4,              # Napththalene (25C) PubChem
+            'chemical:transformations:Henry': {'type': 'float', 'default': 4.551e-4,        # Napththalene
                 'min': None, 'max': None, 'units': 'atm m3 mol-1',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Henry constant'},
             # vapour pressure
-            'chemical:transformations:Vpress': {'type': 'float', 'default': 0.0222,             # Phenanthrene
+            'chemical:transformations:Vpress': {'type': 'float', 'default': 11.2,           # Naphthalene
                 'min': None, 'max': None, 'units': 'Pa',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Vapour pressure'},
-            'chemical:transformations:Tref_Vpress': {'type': 'float', 'default': 25,            # Phenanthrene
+            'chemical:transformations:Tref_Vpress': {'type': 'float', 'default': 25.,        # Naphthalene
                 'min': None, 'max': None, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Vapour pressure ref temp'},
-            'chemical:transformations:DeltaH_Vpress': {'type': 'float', 'default': 66840,       # Phenanthrene
-                'min': -100000., 'max': 100000., 'units': 'J/mol',
+            'chemical:transformations:DeltaH_Vpress': {'type': 'float', 'default': 55925.,   # Naphthalene
+                'min': -100000., 'max': 115000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Enthalpy of volatilization'},
             # solubility
-            'chemical:transformations:Solub': {'type': 'float', 'default': 1.09,                # Phenanthrene
+            'chemical:transformations:Solub': {'type': 'float', 'default': 31.4,            # Naphthalene
                 'min': None, 'max': None, 'units': 'g/m3',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Solubility'},
-            'chemical:transformations:Tref_Solub': {'type': 'float', 'default': 25,             # Phenanthrene
+            'chemical:transformations:Tref_Solub': {'type': 'float', 'default': 25.,         # Naphthalene
                 'min': None, 'max': None, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Solubility ref temp'},
-            'chemical:transformations:DeltaH_Solub': {'type': 'float', 'default': 34800,        # Phenanthrene
+            'chemical:transformations:DeltaH_Solub': {'type': 'float', 'default': 25300.,    # Naphthalene
                 'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Enthalpy of solubilization'},
             # Sedimentation/Resuspension
@@ -492,7 +492,8 @@ class ChemicalDrift(OceanDrift):
         super(ChemicalDrift, self).seed_elements(*args, **kwargs)
 
     def tempcorr(self,mode,DeltaH,T_C,Tref_C):
-
+        ''' Temperature correction using Arrhenius or Q10 method
+        '''
         if mode == 'Arrhenius':
             R = 8.3145 # J/(mol*K)
             T_K = T_C + 273.15
@@ -503,7 +504,8 @@ class ChemicalDrift(OceanDrift):
         return corr
 
     def salinitycorr(self,Setschenow,Temperature,Salinity):
-
+        ''' Salinity correction
+        '''
         # Setschenow constant for the given chemical (L/mol)
         # Salinity   (PSU =g/Kg)
         # Temperature (Celsius)
@@ -1263,7 +1265,7 @@ class ChemicalDrift(OceanDrift):
                 degraded_now = np.zeros(self.num_elements_active())
 
                 # Degradation in the water
-                k_W_tot = -np.log(0.5)/(self.get_config('chemical:transformations:k_W_tot')*(60*60)) # (1/s)
+                k_W_tot = -np.log(0.5)/(self.get_config('chemical:transformations:t12_W_tot')*(60*60)) # (1/s)
                 Tref_kWt = self.get_config('chemical:transformations:Tref_kWt')
                 DH_kWt = self.get_config('chemical:transformations:DeltaH_kWt')
 
@@ -1279,7 +1281,7 @@ class ChemicalDrift(OceanDrift):
 
                 # Degradation in the sediments
 
-                k_S_tot = -np.log(0.5)/(self.get_config('chemical:transformations:k_S_tot')*(60*60)) # (1/s)
+                k_S_tot = -np.log(0.5)/(self.get_config('chemical:transformations:t12_S_tot')*(60*60)) # (1/s)
                 Tref_kSt = self.get_config('chemical:transformations:Tref_kSt')
                 DH_kSt = self.get_config('chemical:transformations:DeltaH_kSt')
 
@@ -1931,24 +1933,40 @@ class ChemicalDrift(OceanDrift):
             #mass_element_ug=1e6     # 1e6 - 1 element is 1g chemical
 
             def emission_factors(scrubber_type, chemical_compound):
+                """Emission factors for heavy metals and PAHs in
+                    open loop and closed loop scrubbers
+
+                    Hermansson et al 2021
+                    https://doi.org/10.1016/j.trd.2021.102912
+                """
                 emission_factors_open_loop = {
-                    "Copper": 38.75,                # ug/L micrograms per liter
-                    "Nickel": 46.86,
-                    "Vanadium": 176.59,
-                    "Zinc": 110.84,
-                    "Naphthalene": 2.76,
-                    "Phenanthrene": 1.51,
-                    "Fluoranthene": 0.16,
-                    "Benzo(a)anthracene": 0.13,
-                    "Benzo(a)pyrene": 0.05,
-                    "Dibenzo(a,h)anthracene": 0.03
+                    #                           mean    +/-95%
+                    #                           ug/L    ug/L
+                    "Arsenic":                  [6.8,    3.4],
+                    "Cadmium":                  [0.8,    0.3],
+                    "Chromium":                 [15.,    6.5],
+                    "Copper":                   [36.,    12.],
+                    "Iron":                     [260.,   250.],
+                    "Lead":                     [8.8,    4.4],
+                    "Mercury":                  [0.09,   0.01],
+                    "Nickel":                   [48.,    12.],
+                    "Vanadium":                 [170.,   49.],
+                    "Zinc":                     [110.,   59.],
+                    #
+                    "Naphthalene":              [2.81,   0.77],
+                    "Phenanthrene":             [1.51,   0.29],
+                    "Fluoranthene":             [0.16,   0.04],
+                    "Benzo(a)anthracene":       [0.12,   0.05],
+                    "Benzo(a)pyrene":           [0.05,   0.02],
+                    "Dibenzo(a,h)anthracene":   [0.03,   0.01],
                     }
 
                 emission_factors_closed_loop = {
                     }
 
                 if scrubber_type=="open_loop":
-                    return emission_factors_open_loop.get(chemical_compound)
+                    return emission_factors_open_loop.get(chemical_compound)[0]
+                    # TODO: Add emission uncertainty based on 95% confidence interval
 
             sel=np.where((steam > lowerbound) & (steam < higherbound))
             t=steam.time[sel[0]].data
@@ -1976,3 +1994,201 @@ class ChemicalDrift(OceanDrift):
                     self.seed_elements(lon=lo[i], lat=la[i],
                                 radius=radius, number=1, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
                                 mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z)
+
+    def init_chemical_compound(self,chemical_compound):
+        ''' Chemical parameters for a selection of PAHs:
+            Naphthalene, Phenanthrene, Fluorene,
+            Benzo(a)anthracene, Benzo(a)pyrene, Dibenzo(a,h)anthracene
+
+            Data collected from literature by
+            Isabel Hanstein (University of Heidelberg / Norwegian Meteorological Insitute)
+            Mattia Boscherini, Loris Calgaro (University Ca' Foscari, Venezia)
+            Manuel Aghito (Norwegian Meteorological Institute / University of Bergen)
+        '''
+
+        if  chemical_compound=="Naphthalene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW',3.361)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed',-21036)
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM',-25900)                 ### Phenanthrene value
+            self.set_config('chemical:transformations:Setchenow', 0.2503)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 224.08)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 5012.4)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 128.1705)
+            self.set_config('chemical:transformations:Henry', 4.551e-4)
+
+            self.set_config('chemical:transformations:Vpress', 11.2)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 55925)
+
+            self.set_config('chemical:transformations:Solub', 31.4)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 25300)
+
+        elif  chemical_compound=="Phenanthrene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW',4.505)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed',-24900)
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM',-25900)
+            self.set_config('chemical:transformations:Setchenow', 0.3026)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1125.79)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 29124.96)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 178.226)
+            self.set_config('chemical:transformations:Henry', 4.294e-5)
+
+            self.set_config('chemical:transformations:Vpress', 0.0222)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 71733)
+
+            self.set_config('chemical:transformations:Solub', 1.09)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 34800)
+
+        elif  chemical_compound=="Fluoranthene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW',5.089)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed',-47413)
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM',-27900)
+            self.set_config('chemical:transformations:Setchenow', 0.2885)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1705.02)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 55000)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 202.26)
+            self.set_config('chemical:transformations:Henry', 1.439e-5)
+
+            self.set_config('chemical:transformations:Vpress', 0.00167)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 79581)
+
+            self.set_config('chemical:transformations:Solub', 0.231)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 30315)
+
+        elif  chemical_compound=="Benzo(a)anthracene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW',5.724)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed', -38000)                ### Pyrene value
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM', -25400)                ### Pyrene value
+            self.set_config('chemical:transformations:Setchenow', 0.3605)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1467.62)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 46600)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 228.29)
+            self.set_config('chemical:transformations:Henry', 6.149e-6)
+
+            self.set_config('chemical:transformations:Vpress', 0.0000204)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 100680)
+
+            self.set_config('chemical:transformations:Solub', 0.011)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 46200)
+
+        elif  chemical_compound=="Benzo(a)pyrene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW', 6.124)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed', -43700)                ### mean value 16 PAHs
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM', -31280)
+            self.set_config('chemical:transformations:Setchenow', 0.171)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1491.42)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 44934.76)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 252.32)
+            self.set_config('chemical:transformations:Henry', 6.634e-7)
+
+            self.set_config('chemical:transformations:Vpress', 0.00000136)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 107887)
+
+            self.set_config('chemical:transformations:Solub', 0.00229)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 38000)
+
+        elif  chemical_compound=="Dibenzo(a,h)anthracene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW', 6.618)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed', -43700)                ### mean value 16 PAHs
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM', -30900)
+            self.set_config('chemical:transformations:Setchenow', 0.338)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1464.67)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 40890.08)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 278.35)
+            self.set_config('chemical:transformations:Henry', 4.894e-8)
+
+            self.set_config('chemical:transformations:Vpress', 0.0000000427)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 112220)
+
+            self.set_config('chemical:transformations:Solub', 0.00142)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 38000)                   ### Benzo(a)pyrene value
+

@@ -21,7 +21,7 @@ o.add_reader(r)
 o.seed_elements(lat=60, lon=4.9, time=r.start_time,
                 radius=1000, number=10000)
 
-o.run(duration=timedelta(hours=50), time_step=1800, time_step_output=3600)
+o.run(duration=timedelta(hours=50), time_step=600, time_step_output=3600)
 
 #%%
 # Ensemble members are recycled among the 10000 particles
