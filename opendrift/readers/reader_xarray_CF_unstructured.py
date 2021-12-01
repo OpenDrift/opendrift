@@ -88,9 +88,9 @@ class Reader(BaseReader, UnstructuredReader):
     ocean_depth_nele = None
     ocean_depth_node = None
 
-    def __init__(self, filename=None, name=None, proj4=None, engine):
+    def __init__(self, filename=None, name=None, proj4=None, engine="netcdf4"):
 ### if variable and dimension similar name, xarray crashes
-## implement engine? engine (
+
         if filename is None:
             raise ValueError('Filename is missing')
         filestr = str(filename)
