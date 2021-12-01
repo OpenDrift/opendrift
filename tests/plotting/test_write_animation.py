@@ -16,8 +16,8 @@ def simulation():
     o.run(steps=5)
     return o
 
-def test_write_mp4(simulation, tmpdir):
-    simulation.animation(filename = tmpdir / 'test.mp4')
+def test_write_mp4(simulation, tmpdir, benchmark):
+    benchmark(simulation.animation, filename = tmpdir / 'test.mp4')
 
-def test_write_gif(simulation, tmpdir):
-    simulation.animation(filename = tmpdir / 'test.gif')
+def test_write_gif(simulation, tmpdir, benchmark):
+    benchmark(simulation.animation, filename = tmpdir / 'test.gif')
