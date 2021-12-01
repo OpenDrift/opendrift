@@ -499,7 +499,7 @@ class OceanDrift(OpenDriftSimulation):
         else:
             return None
 
-    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1, fastwriter=False):
+    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1):
         """Function to animate vertical distribution of particles
             bins:            number of bins in the histogram
             maxdepth:        maximum depth
@@ -551,12 +551,6 @@ class OceanDrift(OpenDriftSimulation):
             hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(maxdepth,z[np.isfinite(z)].max()))
         maxnum = hist_series.max()
 
-        # 4 different methods for building the animation available for testing
-        # No significant differences observed so far. Can be useful to keep the
-        # alternative methods here for further testing
-
-        # Current method
-
         axn.clear()
         bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
         axn.set_ylim([maxdepth, 0])
@@ -579,19 +573,12 @@ class OceanDrift(OpenDriftSimulation):
 
         sphinx = 'sphinx_gallery' in sys.modules
 
-
-        force_FuncAnimation=False       # Hardcoded switch available for forcing use
-                                        # of previous method for saving animations
-
-        if (not sphinx and nofilename) or force_FuncAnimation:
+        if not sphinx and nofilename:
 
             anim = animation.FuncAnimation(plt.gcf(),
                                             update_histogram,
                                             frames=len(times),
                                             interval=50)
-
-            if mp4 or gif:
-                self._save_animation(anim, filename, fps=10, fastwriter=fastwriter)
 
             try:
                 plt.show()
