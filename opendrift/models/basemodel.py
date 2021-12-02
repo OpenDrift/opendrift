@@ -17,7 +17,6 @@
 
 import sys
 import os
-import glob
 import types
 import traceback
 import inspect
@@ -25,15 +24,11 @@ import logging
 
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
-import warnings
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
 import geojson
-import netCDF4
-import nc_time_axis
 import xarray as xr
-from netCDF4 import Dataset, date2num
 
 import numpy as np
 import scipy
@@ -54,7 +49,7 @@ except ImportError:
 
 import opendrift
 from opendrift.timer import Timeable
-from opendrift.readers.basereader import BaseReader, vector_pairs_xy, standard_names
+from opendrift.readers.basereader import BaseReader, standard_names
 from opendrift.readers import reader_from_url, reader_global_landmask
 from opendrift.models.physics_methods import PhysicsMethods
 
@@ -2339,9 +2334,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         from matplotlib.font_manager import FontProperties
         fp = FontProperties(family='Bitstream Vera Sans', weight='bold')
         pol = matplotlib.textpath.TextPath((lon, lat),
-                                            text,
-                                            size=1 * scale,
-                                            prop=fp)
+                                           text,
+                                           size=1 * scale,
+                                           prop=fp)
         patch = matplotlib.patches.PathPatch(pol,
                                              facecolor='none',
                                              edgecolor='black',
@@ -3734,15 +3729,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             blit = False  # Must return artists before this is activated
 
-        frames=x.shape[0]
+        frames = x.shape[0]
         if compare is not None:
-            frames=min(x.shape[0],cd['x_other'].shape[1])
+            frames = min(x.shape[0], cd['x_other'].shape[1])
 
-        mp4=False
-        if filename is not None: mp4 = str(filename)[-4:]=='.mp4'
+        mp4 = False
+        if filename is not None: mp4 = str(filename)[-4:] == '.mp4'
 
-        gif=False
-        if filename is not None: gif = str(filename)[-4:]=='.gif'
+        gif = False
+        if filename is not None: gif = str(filename)[-4:] == '.gif'
 
         nofilename = filename is None
 
@@ -3751,10 +3746,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if not sphinx and nofilename:
 
             anim = animation.FuncAnimation(plt.gcf(),
-                                            plot_timestep,
-                                            blit=blit,
-                                            frames=frames,
-                                            interval=50)
+                                           plot_timestep,
+                                           blit=blit,
+                                           frames=frames,
+                                           interval=50)
             try:
                 plt.show()
             except AttributeError:
@@ -3763,13 +3758,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         elif sphinx or gif or mp4:
 
             self._saving_animation(plt.gcf(),
-                                 plot_timestep,
-                                 filename,
-                                 frames=frames,
-                                 fps=fps)
+                                   plot_timestep,
+                                   filename,
+                                   frames=frames,
+                                   fps=fps)
 
             logger.info('Time to make animation: %s' %
-                    (datetime.now() - start_time))
+                        (datetime.now() - start_time))
 
     def animation_profile(self,
                           filename=None,
@@ -3922,13 +3917,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if legend != ['', ''] and PlotColors is False:
             plt.legend(loc=4)
 
+        mp4 = False
+        if filename is not None: mp4 = filename[-4:] == '.mp4'
 
-
-        mp4=False
-        if filename is not None: mp4 = filename[-4:]=='.mp4'
-
-        gif=False
-        if filename is not None: gif = filename[-4:]=='.gif'
+        gif = False
+        if filename is not None: gif = filename[-4:] == '.gif'
 
         nofilename = filename is None
 
@@ -3937,10 +3930,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if not sphinx and nofilename:
 
             anim = animation.FuncAnimation(plt.gcf(),
-                                            plot_timestep,
-                                            blit=False,
-                                            frames=x.shape[1],
-                                            interval=150)
+                                           plot_timestep,
+                                           blit=False,
+                                           frames=x.shape[1],
+                                           interval=150)
 
             try:
                 plt.show()
@@ -3950,15 +3943,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         elif sphinx or gif or mp4:
 
             self._saving_animation(plt.gcf(),
-                                 plot_timestep,
-                                 filename,
-                                 frames=x.shape[1],
-                                 fps=fps)
+                                   plot_timestep,
+                                   filename,
+                                   frames=x.shape[1],
+                                   fps=fps)
 
             logger.info('Time to make animation: %s' %
-                    (datetime.now() - start_time))
-
-
+                        (datetime.now() - start_time))
 
     def _get_comparison_xy_for_plots(self, compare):
         if not type(compare) is list:
@@ -5236,7 +5227,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         self.add_readers_from_file(self.test_data_folder() +
                                    '../../opendrift/scripts/data_sources.txt')
 
-    def _sphinx_gallery_filename(self,stack_offset=3):
+    def _sphinx_gallery_filename(self, stack_offset=3):
         # This assumes that the calling script is three frames up in the stack.
         # called through a more deeply nested method stack_offset has to be changed.
 
@@ -5276,22 +5267,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         start_time = datetime.now()
 
         if str(filename)[-4:] == '.gif':
-            writer=animation.PillowWriter(fps=fps)
+            writer = animation.PillowWriter(fps=fps)
             # writer=animation.ImageMagickWriter(fps=fps)
         elif str(filename)[-4:] == '.mp4':
-            writer=animation.FFMpegWriter(
-                                fps=fps,
-                                codec='libx264',
-                                bitrate=1800,
-                                extra_args=[
-                                    '-profile:v',
-                                    'baseline',
-                                    '-vf',
-                                    'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
-                                    '-pix_fmt',
-                                    'yuv420p',
-                                    '-an'
-                            ])
+            writer = animation.FFMpegWriter(
+                fps=fps,
+                codec='libx264',
+                bitrate=1800,
+                extra_args=[
+                    '-profile:v',
+                    'baseline',
+                    '-vf',
+                    'crop=trunc(iw/2)*2:trunc(ih/2)*2',  # cropping 1 pixel if not even
+                    '-pix_fmt',
+                    'yuv420p',
+                    '-an'
+                ])
 
         with writer.saving(fig, filename, None):
             for i in range(frames):
@@ -5301,7 +5292,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         logger.debug(f"MPLBACKEND = {matplotlib.get_backend()}")
         logger.debug(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
         logger.debug('Time to save animation: %s' %
-                    (datetime.now() - start_time))
+                     (datetime.now() - start_time))
 
         plt.close()
 
