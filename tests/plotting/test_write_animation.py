@@ -6,7 +6,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
 @pytest.fixture
-@lru_cache
+@lru_cache(maxsize = None)
 def simulation():
     o = OceanDrift(loglevel=30)
     rn = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
