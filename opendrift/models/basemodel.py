@@ -3746,10 +3746,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if filename is not None or 'sphinx_gallery' in sys.modules:
             logger.debug("Saving animation..")
             self.__save_animation__(figure,
-                                   plot_timestep,
-                                   filename,
-                                   frames=frames,
-                                   fps=fps)
+                                    plot_timestep,
+                                    filename,
+                                    frames=frames,
+                                    fps=fps,
+                                    blit=blit,
+                                    interval=interval)
 
         else:
             logger.debug("Showing animation..")
@@ -5231,14 +5233,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return filename
 
-    def __save_animation__(self, fig, plot_timestep, filename, frames, fps):
-
+    def __save_animation__(self, fig, plot_timestep, filename, frames, fps,
+                           blit, interval):
         if filename is None or 'sphinx_gallery' in sys.modules:
             filename = self._sphinx_gallery_filename(stack_offset=3)
 
         logger.info('Saving animation to ' + str(filename) + '...')
 
         start_time = datetime.now()
+
+        writer = None
 
         if str(filename)[-4:] == '.gif':
             writer = animation.PillowWriter(fps=fps)
@@ -5257,11 +5261,20 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     'yuv420p',
                     '-an'
                 ])
+        else:
+            # fallback to using funcwriter
+            anim = animation.FuncAnimation(fig,
+                                           plot_timestep,
+                                           blit=blit,
+                                           frames=frames,
+                                           interval=interval)
+            anim.save(filename)
 
-        with writer.saving(fig, filename, None):
-            for i in range(frames):
-                plot_timestep(i)
-                writer.grab_frame()
+        if writer is not None:
+            with writer.saving(fig, filename, None):
+                for i in range(frames):
+                    plot_timestep(i)
+                    writer.grab_frame()
 
         logger.debug(f"MPLBACKEND = {matplotlib.get_backend()}")
         logger.debug(f"DISPLAY = {os.environ.get('DISPLAY', 'None')}")
