@@ -3724,47 +3724,45 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                               drawedges=False)
             cb.set_label(clabel)
 
-        if sys.platform == 'darwin':
-            blit = False  # Blitting does not work on mac
-        else:
-            blit = False  # Must return artists before this is activated
-
         frames = x.shape[0]
+
         if compare is not None:
             frames = min(x.shape[0], cd['x_other'].shape[1])
 
-        mp4 = False
-        if filename is not None: mp4 = str(filename)[-4:] == '.mp4'
+        self.__save_or_plot_animation__(plt.gcf(),
+                                        plot_timestep,
+                                        filename,
+                                        frames,
+                                        fps,
+                                        interval=50)
 
-        gif = False
-        if filename is not None: gif = str(filename)[-4:] == '.gif'
+        logger.info('Time to make animation: %s' %
+                    (datetime.now() - start_time))
 
-        nofilename = filename is None
+    def __save_or_plot_animation__(self, figure, plot_timestep, filename,
+                                   frames, fps, interval):
+        blit = sys.platform != 'darwin'  # blitting does not work on mac os
 
-        sphinx = 'sphinx_gallery' in sys.modules
-
-        if not sphinx and nofilename:
-
-            anim = animation.FuncAnimation(plt.gcf(),
-                                           plot_timestep,
-                                           blit=blit,
-                                           frames=frames,
-                                           interval=50)
-            try:
-                plt.show()
-            except AttributeError:
-                pass
-
-        elif sphinx or gif or mp4:
-
-            self._saving_animation(plt.gcf(),
+        if filename is not None or 'sphinx_gallery' in sys.modules:
+            logger.debug("Saving animation..")
+            self.__save_animation__(figure,
                                    plot_timestep,
                                    filename,
                                    frames=frames,
                                    fps=fps)
 
-            logger.info('Time to make animation: %s' %
-                        (datetime.now() - start_time))
+        else:
+            logger.debug("Showing animation..")
+            animation.FuncAnimation(figure,
+                                    plot_timestep,
+                                    blit=blit,
+                                    frames=frames,
+                                    interval=interval)
+            try:
+                plt.show()
+            except AttributeError as e:
+                logger.exception(e)
+                pass
 
     def animation_profile(self,
                           filename=None,
@@ -3917,39 +3915,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if legend != ['', ''] and PlotColors is False:
             plt.legend(loc=4)
 
-        mp4 = False
-        if filename is not None: mp4 = filename[-4:] == '.mp4'
+        self.__save_or_plot_animation__(plt.gcf(),
+                                        plot_timestep,
+                                        filename,
+                                        x.shape[0],
+                                        fps,
+                                        interval=150)
 
-        gif = False
-        if filename is not None: gif = filename[-4:] == '.gif'
-
-        nofilename = filename is None
-
-        sphinx = 'sphinx_gallery' in sys.modules
-
-        if not sphinx and nofilename:
-
-            anim = animation.FuncAnimation(plt.gcf(),
-                                           plot_timestep,
-                                           blit=False,
-                                           frames=x.shape[1],
-                                           interval=150)
-
-            try:
-                plt.show()
-            except AttributeError:
-                pass
-
-        elif sphinx or gif or mp4:
-
-            self._saving_animation(plt.gcf(),
-                                   plot_timestep,
-                                   filename,
-                                   frames=x.shape[1],
-                                   fps=fps)
-
-            logger.info('Time to make animation: %s' %
-                        (datetime.now() - start_time))
+        logger.info('Time to make animation: %s' %
+                    (datetime.now() - start_time))
 
     def _get_comparison_xy_for_plots(self, compare):
         if not type(compare) is list:
@@ -5257,7 +5231,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         return filename
 
-    def _saving_animation(self, fig, plot_timestep, filename, frames, fps):
+    def __save_animation__(self, fig, plot_timestep, filename, frames, fps):
 
         if filename is None or 'sphinx_gallery' in sys.modules:
             filename = self._sphinx_gallery_filename(stack_offset=3)

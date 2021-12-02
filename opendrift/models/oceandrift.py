@@ -563,38 +563,15 @@ class OceanDrift(OpenDriftSimulation):
                 rect.set_width(y)
             title.set_text('%s UTC' % times[i])
 
-        mp4=False
-        if filename is not None: mp4 = filename[-4:]=='.mp4'
+        self.__save_or_plot_animation__(plt.gcf(),
+                                        update_histogram,
+                                        filename,
+                                        frames = len(times),
+                                        fps = 10,
+                                        interval=50)
 
-        gif=False
-        if filename is not None: gif = filename[-4:]=='.gif'
-
-        nofilename = filename is None
-
-        sphinx = 'sphinx_gallery' in sys.modules
-
-        if not sphinx and nofilename:
-
-            anim = animation.FuncAnimation(plt.gcf(),
-                                            update_histogram,
-                                            frames=len(times),
-                                            interval=50)
-
-            try:
-                plt.show()
-            except AttributeError:
-                pass
-
-        elif sphinx or gif or mp4:
-
-            self._saving_animation(plt.gcf(),
-                                 update_histogram,
-                                 filename,
-                                 frames=len(times),
-                                 fps=10)
-
-            logger.info('Time to make animation: %s' %
-                        (datetime.now() - start_time))
+        logger.info('Time to make animation: %s' %
+                    (datetime.now() - start_time))
 
 
 
