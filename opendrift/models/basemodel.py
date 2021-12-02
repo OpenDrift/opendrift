@@ -3920,7 +3920,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         self.__save_or_plot_animation__(plt.gcf(),
                                         plot_timestep,
                                         filename,
-                                        x.shape[0],
+                                        x.shape[1],
                                         fps,
                                         interval=150)
 
