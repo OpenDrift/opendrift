@@ -5236,7 +5236,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     def __save_animation__(self, fig, plot_timestep, filename, frames, fps,
                            blit, interval):
         if filename is None or 'sphinx_gallery' in sys.modules:
-            filename = self._sphinx_gallery_filename(stack_offset=3)
+            filename = self._sphinx_gallery_filename(stack_offset=4)
 
         logger.info('Saving animation to ' + str(filename) + '...')
 
