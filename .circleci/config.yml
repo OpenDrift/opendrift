@@ -191,6 +191,18 @@ jobs:
 
       - install_cartopy_shapes
 
+    - run:
+        name: Install roaring-landmask
+        command: |
+            source activate opendrift
+            pip install -v roaring_landmask
+
+    - run:
+        name: Remove Opendrift Landmask Data
+        command: |
+            source activate opendrift
+            conda remove --force -y opendrift-landmask-data
+
       - run:
           name: Install sphinx and friends
           command: |
