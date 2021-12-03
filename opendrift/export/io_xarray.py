@@ -37,16 +37,16 @@ def init(self, filename, method="zarr"):
     self.xr_dataset = xr.Dataset(
                 coords={
                     'trajectory':
-                        (['trajectory'], np.arange(self.num_elements_total(),
+                        ('trajectory', np.arange(self.num_elements_total(),
                         dtype=np.int32),
                         {'cf_role':'trajectory_id', 'units':'1'}),
                     'time':
-                        (['time'], self.times),
+                        ('time', self.times,
                             {
                             'units':'seconds since 1970-01-01 00:00:00',
                             'standard_name': 'time',
                             'long_name': 'time',
-                            # 'axis': 'T'?
+                            # 'axis': 'T',
                             }
                         ),
                     'lon': (['trajectory', 'time']),
@@ -95,7 +95,7 @@ def init(self, filename, method="zarr"):
                 (self.num_elements_total(),len(self.times)),
                 dtype= dtype,
                 chunks={'time':1}),
-            {'coordinates':'lat lon time'})
+            )
         for subprop in self.history_metadata[prop].items():
             if subprop[0] not in ['dtype', 'constant', 'default', 'seed']:
                 # Apparently axis attribute shall not be given for lon and lat:
