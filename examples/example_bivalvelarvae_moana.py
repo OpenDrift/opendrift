@@ -62,6 +62,12 @@ o.set_config('vertical_mixing:timestep', 900.) # seconds - # Vertical mixing req
 if use_habitat ==1 :
     o.set_config('biology:settlement_in_habitat', True) # settlement restricted to suitable habitat only, specified by shapefile or txt file with nan-delimited polys
     o.add_settlement_habitat('/media/simon/Seagate Backup Plus Drive/metocean/0000_MoanaDispersionModelling/Life_Stages/tests/habitat/poly_habitat_taranaki_bivalve.txt') # Location of the shapefile with the habitat
+    # habitat can be text file with simple nan-delimited polygon(s) (see below), or shape files 
+    # 174.4000  -40.1000
+    # 174.4000  -40.0000
+    # 174.6000  -40.0000
+    # 174.6000  -40.1000
+    # 174.4000  -40.1000
 else:
     o.set_config('biology:settlement_in_habitat', False) # settlement restricted to suitable habitat only, specified by shapefile or txt file with nan-delimited polys
 
@@ -86,11 +92,6 @@ if use_habitat ==1 :
     plt.plot(o.multiShp.exterior.xy[0][:],o.multiShp.exterior.xy[1][:], transform = gcrs)
 
 import pdb;pdb.set_trace()
-o.animation(fast=True, color='status') #corners=[163, 180, -52, -31])
-o.animation_profile()
-o.plot(fast=True)
-
-o.animation(fast=True, color='z')
-
-# Interactive slider (not working in browser)
-o.plot_vertical_distribution()
+# o.animation(fast=True, color='status') #corners=[163, 180, -52, -31])
+# o.animation_profile()
+# o.plot(fast=True)
