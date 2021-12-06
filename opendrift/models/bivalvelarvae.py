@@ -1,47 +1,36 @@
-# This file has been adapted from pelagicegg.py but introduces a settlement competency period
-# added config setting for 'min_settlement_age_seconds' which defines the minimum age after which  settlement can occur.
-# Coastal settlement occurs after a competent particle interacts with the coastline i.e. after age>min_settlement_age_seconds
-# Seafloor settlement occurs when a competent particle makes contact with the bottom i.e. after age>min_settlement_age_seconds
+# This file has been adapted from pelagicegg.py but introduces a settlement competency period, after which the particle
+# can settle on the seafloor, the shoreline or user-defined habitat polygons
 # 
-# The model overload the seabed and coastline interaction subfunctions from basemodel.py :
+#       Added config setting for 'min_settlement_age_seconds' which defines the minimum age after which  settlement can occur.
+#       Added config setting for 'settlement_in_habitat'
+# 
+# Settlement behaviour : 
+# 
+# Coastal settlement occurs after a competent particle interacts with the coastline i.e. after age>min_settlement_age_seconds
+# If 'settlement_in_habitat' is False:
+#       'seafloor settlement occurs when a competent particle makes contact with the bottom i.e. after age>min_settlement_age_seconds
+# If 'settlement_in_habitat' is True:
+#       'seafloor settlement occurs when a competent particle makes contact with habitat polygon i.e. after age>min_settlement_age_seconds          
+# 
+# The model overloads the seabed and coastline interaction subfunctions from basemodel.py :
 #    > lift_elements_to_seafloor()
 #    > interact_with_coastline()
 # 
 #  Authors : Craig Norrie, Simon Weppe
 # 
-# 
 #  11/2021 : 
-# Adding an option to specify appropriate habitat (as polygon(s)) where a particle can settle on the seafloor
-# Particle will not setlle to seafloor if outside of habitat even if age>min_settlement_age_seconds 
+# Adding an option to specify appropriate habitat (as polygon(s)) where a particle can settle (can be ocean or shore polygons)
+# Particle will not setlle to seafloor, nor coastline if outside of habitat even if age>min_settlement_age_seconds 
 # 
-
 
 import numpy as np
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+from shapely.geometry import Polygon, Point, MultiPolygon,asPolygon # added for settlement in polygon only
+import shapely
+import shapely.vectorized
+import random
+from sklearn.neighbors import BallTree
 import logging; logger = logging.getLogger(__name__)
-
-
-# Defining the  element properties from Pelagicegg model
-class BivalveLarvaeObj(Lagrangian3DArray):
-    """Extending Lagrangian3DArray with specific properties for pelagic eggs/larvae
-    """
-
-    variables = Lagrangian3DArray.add_variables([
-        ('diameter', {'dtype': np.float32,
-                      'units': 'm',
-                      'default': 0.0014}),  # for NEA Cod
-        ('neutral_buoyancy_salinity', {'dtype': np.float32,
-                                       'units': '[]',
-                                       'default': 31.25}),  # for NEA Cod
-        ('density', {'dtype': np.float32,
-                     'units': 'kg/m^3',
-                     'default': 1028.}),
-        ('hatched', {'dtype': np.float32,
-                     'units': '',
-                     'default': 0.}),
-        ('terminal_velocity', {'dtype': np.float32,
-                       'units': 'm/s',
-                       'default': 0.})])
 
 
 class BivalveLarvae(OceanDrift):
@@ -57,8 +46,7 @@ class BivalveLarvae(OceanDrift):
         Under construction.
     """
 
-    ElementType = BivalveLarvaeObj
-    # ElementType = BuoyantTracer 
+    ElementType = Lagrangian3DArray
 
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
@@ -100,11 +88,12 @@ class BivalveLarvae(OceanDrift):
     # required_profiles = ['ocean_vertical_diffusivity']
 
     # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-120, 0]
+    required_profiles_z_range = [-200, 0]
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
-                     'settled_on_coast': 'red', 'died': 'yellow', 'settled_on_bottom': 'magenta'}
+                     'settled_on_coast': 'red','settled_on_bottom': 'magenta',
+                     'died': 'yellow'}
 
     def __init__(self, *args, **kwargs):
         
@@ -120,6 +109,9 @@ class BivalveLarvae(OceanDrift):
         # add config spec
         self._add_config({ 'biology:min_settlement_age_seconds': {'type': 'float', 'default': 0.0,'min': 0.0, 'max': 1.0e10, 'units': 'seconds',
                            'description': 'minimum age in seconds at which larvae can start to settle on seabed or stick to shoreline)',
+                           'level': self.CONFIG_LEVEL_BASIC}})
+        self._add_config({ 'biology:settlement_in_habitat': {'type': 'bool', 'default': False,
+                           'description': 'settlement restricted to suitable user-defined habitat only ',
                            'level': self.CONFIG_LEVEL_BASIC}})
 
     def sea_surface_height(self):
@@ -158,40 +150,125 @@ class BivalveLarvae(OceanDrift):
         if len(surface[0]) > 0:
             self.elements.z[surface] = sea_surface_height[surface] -0.01 # set particle z at 0.01m below sea_surface_height
 
+    #####################################################################################################################
+    # Definition of habitat
+    #####################################################################################################################
+      
+    def add_settlement_habitat(self, shapefile_location):
+        """Suitable habitat polygons in a shapefile.shp , or nan-delimited polygons in textfile.txt """
+        # 
+        # remove dependency to Fiona, and use cartopy instead
+        # allow for input of nan-delimited polys from text file as well
+        polyList = []
+        self.centers_habitat = []
+        rad_centers = []
+        if '.shp' in shapefile_location :
+            from cartopy import io
+            shp = io.shapereader.Reader(shapefile_location)
+            for shape_i in shp.geometries() : 
+                polyList.append(shape_i) # Compile polygon in a list
+                self.centers_habitat.append(shape_i.centroid.coords[0]) # Compute centroid and return a [lon, lat] list
+        elif '.txt' in  shapefile_location:            
+            polys = np.loadtxt(shapefile_location)  # nan-delimited closed polygons for land and islands
+            # make sure that start and end lines are [nan,nan] as well
+            if not np.isnan(polys[0, 0]):
+                polys = np.vstack(([np.nan, np.nan], polys))
+            if not np.isnan(polys[-1, 0]):
+                polys = np.vstack((polys, [np.nan, np.nan]))
+            id_nans = np.where(np.isnan(polys[:, 0]))[0]
+            for cnt, _id_i in enumerate(id_nans[:-1]):
+                # The shapely.geometry.asShape() family of functions can be used to wrap Numpy coordinate arrays
+                # https://shapely.readthedocs.io/en/latest/manual.html
+                shape_i = asPolygon(polys[id_nans[cnt] + 1:id_nans[cnt + 1] - 1, :])
+                polyList.append(shape_i)
+                self.centers_habitat.append(shape_i.centroid.coords[0]) # Compute centroid and return a [lon, lat] list
+
+        for poly in range(len(self.centers_habitat)):
+            rad_centers.append([np.deg2rad(self.centers_habitat[poly][1]),np.deg2rad(self.centers_habitat[poly][0])])
+        self.multiShp = MultiPolygon(polyList).buffer(0) # Aggregate polygons in a MultiPolygon object and buffer to fuse polygons and remove errors
+        # save as shapely prepared geometry for efficient in-poly checks 
+        self.habitat_mask = shapely.prepared.prep(MultiPolygon(polyList).buffer(0)) # same as in landmask custom
+        self.ball_centers = BallTree(rad_centers, metric='haversine') # Create a Ball Tree with the centroids for faster computation
+
     #################################################################################################################################
     # SEAFLOOR AND SEABED INTERACTION
     #################################################################################################################################
-    def interact_with_seafloor(self):
-        """Seafloor interaction according to configuration setting"""
+    def interact_with_seafloor(self): 
+        """
+        Seafloor interaction according to configuration setting
+            Method interaction_with_seafloor() called in vertical_buoyancy(), which is called in update() function       
+        """
         # 
         # This function will overloads the version in basemodel.py
-        if self.num_elements_active() == 0:
-            return
-        if 'sea_floor_depth_below_sea_level' not in self.priority_list:
-            return
-        sea_floor_depth = self.sea_floor_depth()
-        below = np.where(self.elements.z < -sea_floor_depth)[0]
-        if len(below) == 0:
-                logger.debug('No elements hit seafloor.')
-                return
 
-        below_and_older = np.logical_and(self.elements.z < -sea_floor_depth, 
-            self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds'))
-        below_and_younger = np.logical_and(self.elements.z < -sea_floor_depth, 
-            self.elements.age_seconds < self.get_config('drift:min_settlement_age_seconds'))
-        
-        # Move all elements younger back to seafloor 
-        # (could rather be moved back to previous if relevant? )
-        self.elements.z[np.where(below_and_younger)] = -sea_floor_depth[np.where(below_and_younger)]
-
-        # deactivate elements that were both below and older
-        self.deactivate_elements(below_and_older ,reason='settled_on_bottom')
-
-        logger.debug('%s elements hit seafloor, %s were older than %s sec. and deactivated, %s were lifted back to seafloor' \
-            % (len(below),len(below_and_older),self.get_config('drift:min_settlement_age_seconds'),len(below_and_younger)))    
+        if self.get_config('biology:settlement_in_habitat') is False : 
+            # if no specific user-defined habitat, deactivate particles below seabed and older than min_settlement_age_seconds
+            self.interact_with_seafloor_bivalve()
+        else :
+            # if specific user-defined habitat, checks if particles are within habitat polygons             
+            self.interact_with_habitat()
 
         # original code
         # https://github.com/OpenDrift/opendrift/blob/4dbd9a607fe23e64dcbf9fd05905af8713dc74d1/opendrift/models/basemodel.py#L613 
+    
+    def interact_with_seafloor_bivalve(self):
+            '''
+            Upon touching the seafloor, the bivalve particle settles only if older than min_settlement_age_seconds
+            '''
+
+            if self.num_elements_active() == 0:
+                return
+            if 'sea_floor_depth_below_sea_level' not in self.priority_list:
+                return
+            sea_floor_depth = self.sea_floor_depth()
+            below = np.where(self.elements.z < -sea_floor_depth)[0]
+            if len(below) == 0:
+                    logger.debug('No elements hit seafloor.')
+                    return 
+            below_and_older = np.logical_and(self.elements.z < -sea_floor_depth, 
+                self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds'))
+            below_and_younger = np.logical_and(self.elements.z < -sea_floor_depth, 
+                self.elements.age_seconds < self.get_config('biology:min_settlement_age_seconds'))
+            
+            # Move all elements younger back to seafloor 
+            # (could rather be moved back to previous if relevant? )
+            self.elements.z[np.where(below_and_younger)] = -sea_floor_depth[np.where(below_and_younger)]
+            
+            if (below_and_older.any()) & (self.get_config('biology:settlement_in_habitat') is False) :
+                # deactivate elements that were both below and older
+                self.deactivate_elements(below_and_older ,reason='settled_on_bottom')
+                logger.debug('%s elements hit seafloor, %s were older than %s sec. and were deactivated, %s were lifted back to seafloor' \
+                    % (below.sum(),below_and_older.sum(),self.get_config('biology:min_settlement_age_seconds'),below_and_younger.sum()) )
+
+    def interact_with_habitat(self):
+            '''
+            The bivalve particle settles only if older than min_settlement_age_seconds and within user-defined habitat polygon
+ 
+            To be defined : do we need the particle to be touching seabed AND within habitat or within habitat only?
+            '''
+  
+            if self.num_elements_active() == 0:
+                return
+            if 'sea_floor_depth_below_sea_level' not in self.priority_list:
+                return
+            sea_floor_depth = self.sea_floor_depth()
+            below = np.where(self.elements.z < -sea_floor_depth)[0]
+            if len(below) == 0:
+                    logger.debug('No elements hit seafloor.')
+                    return 
+            # check if there are any particles old enough to settle and within habitat
+            #
+            # ** NOTE ** vertical position of particle not taken into account (can be updated)
+            old_and_in_habitat = np.logical_and(self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds'), 
+                                                shapely.vectorized.contains(self.habitat_mask, self.elements.lon, self.elements.lat))
+            # Move all other elements back to seafloor 
+            self.elements.z[np.where(~old_and_in_habitat)] = -sea_floor_depth[np.where(~old_and_in_habitat)]
+
+            if old_and_in_habitat.any():
+                self.deactivate_elements(old_and_in_habitat, reason='settled_on_habitat')
+                logger.debug('%s elements reached habitat and were older than %s sec. and were deactivated' \
+                             % (old_and_in_habitat.sum(),self.get_config('biology:min_settlement_age_seconds')))
+
 
     def interact_with_coastline(self,final = False): 
         """Coastline interaction according to configuration setting
@@ -240,7 +317,7 @@ class BivalveLarvae(OceanDrift):
         if len(on_land) == 0:
             logger.debug('No elements hit coastline.')
         else:                
-            if self.get_config('drift:min_settlement_age_seconds') == 0.0 :
+            if self.get_config('biology:min_settlement_age_seconds') == 0.0 :
                 # No minimum age input, set back to previous position (same as in interact_with_coastline() from basemodel.py)
                 logger.debug('%s elements hit coastline, '
                           'moving back to water' % len(on_land))
@@ -254,8 +331,8 @@ class BivalveLarvae(OceanDrift):
                 #################################
                 # Minimum age before settling was input; check age of particle versus min_settlement_age_seconds
                 # and strand or recirculate accordingly
-                on_land_and_younger = np.where((self.environment.land_binary_mask == 1) & (self.elements.age_seconds < self.get_config('drift:min_settlement_age_seconds')))[0]
-                on_land_and_older = np.where((self.environment.land_binary_mask == 1) & (self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds')))[0]
+                on_land_and_younger = np.where((self.environment.land_binary_mask == 1) & (self.elements.age_seconds < self.get_config('biology:min_settlement_age_seconds')))[0]
+                on_land_and_older = np.where((self.environment.land_binary_mask == 1) & (self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds')))[0]
 
                 # this step replicates what is done is original code, but accounting for particle age. It seems necessary 
                 # to have an array of ID, rather than directly indexing using the "np.where-type" index (in dint64)
@@ -279,28 +356,5 @@ class BivalveLarvae(OceanDrift):
                 # deactivate elements older than min_settlement_age & save position
                 # ** function expects an array of size consistent with self.elements.lon
                 self.deactivate_elements((self.environment.land_binary_mask == 1) & \
-                                         (self.elements.age_seconds >= self.get_config('drift:min_settlement_age_seconds')),
+                                         (self.elements.age_seconds >= self.get_config('biology:min_settlement_age_seconds')),
                                          reason='settled_on_coast')
-
-    #
-    # >> can use the same update() as oceandrift
-    # 
-    # def update(self):
-    #     """Update positions and properties of buoyant particles."""
-
-    #     # Update element age
-    #     # self.elements.age_seconds += self.time_step.total_seconds()
-    #     # already taken care of in increase_age_and_retire() in basemodel.py
-
-    #     # Horizontal advection
-    #     self.advect_ocean_current()
-
-    #     # Turbulent Mixing or settling-only 
-    #     if self.get_config('drift:vertical_mixing') is True:
-    #         self.update_terminal_velocity()  #compute vertical velocities, two cases possible - constant, or same as pelagic egg
-    #         self.vertical_mixing()
-    #     else:  # Buoyancy
-    #         self.update_terminal_velocity()
-    #         self.vertical_buoyancy()
-
-    #     self.vertical_advection()   
