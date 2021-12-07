@@ -31,7 +31,6 @@ import shapely
 import random
 from sklearn.neighbors import BallTree
 
-
 # Defining the  element properties from Pelagicegg model
 class LobsterLarvaeObj(Lagrangian3DArray):
     """Extending Lagrangian3DArray with specific properties for pelagic eggs/larvae
@@ -93,7 +92,8 @@ class LobsterLarvae(BivalveLarvae):
     status_colors = {'initial': 'green', 'active': 'blue',
                      'settled_on_coast': 'red', 'died': 'yellow', 
                      'settled_on_bottom': 'magenta',
-                     'settled_on_habitat': 'orange'}
+                     'settled_on_habitat': 'orange',
+                     'swam_too_close_to_shore' : 'black'}
 
     def __init__(self, *args, **kwargs):
         
@@ -222,7 +222,7 @@ class LobsterLarvae(BivalveLarvae):
             logger.debug('Larvae : direct orientation - %s particles ready for orientation ' % (len(old_enough)))
             if len(old_enough) > 0 :
                 # find closest habitat distance, and its index
-                habitat_near, habitat_id = self.ball_centers.query(list(zip(np.deg2rad(self.elements.lat[old_enough]), np.deg2rad(self.elements.lon[old_enough]))), k=1)
+                habitat_near, habitat_id = self.find_nearest_habitat(self.elements.lon[old_enough],self.elements.lat[old_enough])
                 # old_close_enough = np.where( (self.elements.age_seconds >= self.get_config('biology:age_beginning_orientation')) & \
                 #                              (habitat_near.ravel()*6371. < self.get_config('biology:max_orient_distance')) )[0]
                 close_enough = (habitat_near.ravel()*6371. < self.get_config('biology:max_orient_distance')) # 6371km is earth radius 
@@ -240,18 +240,20 @@ class LobsterLarvae(BivalveLarvae):
                         pt_lon_old = self.previous_lon[old_enough][i]
                         pt_lat_old = self.previous_lat[old_enough][i]
                         # Case where particle is old enough and close enough from habitat to orient
-                        # Strength of orientation (depend on distance to the habitat)
-                        d = 1 - (habitat_near[i][0]*6371/self.get_config('biology:max_orient_distance'))
+                        # Strength of orientation (depend on distance to the habitat). Eq. 3 Staaterman et al., 2012
+                        d = 1 - (habitat_near[i][0]*6371/self.get_config('biology:max_orient_distance')) # 
                         # Compute direction of nearest habitat. See Staaterman et al., 2012
                         theta_pref = - self.haversine_angle(pt_lon, pt_lat, self.centers_habitat[habitat_id[i][0]][0], self.centers_habitat[habitat_id[i][0]][1]) 
                         # Compute current direction from previous timestep
-                        # ** note this will include the swimming-induced motion as well, should this be the actual current direction ?
-                        theta_current = self.haversine_angle(pt_lon_old, pt_lat_old, pt_lon, pt_lat) # from previous positions (includes swimming)
-                        # theta_current = cur_dir_rad[old_enough[i]] # ambient current direction
-                        # Mean turning angle
+                        # ** note this will include the swimming-induced motions from past timestep as well
+                        theta_current = self.haversine_angle(pt_lon_old, pt_lat_old, pt_lon, pt_lat) # from previous positions 
+                        # theta_current = cur_dir_rad[old_enough[i]] # from ambient current direction
+                        # Mean turning angle, Eq. 2 Staaterman et al., 2012
                         mu = -d * (theta_current - theta_pref)
-                        # New direction randomly selected in Von Mises distribution
-                        ti  = np.random.vonmises(0, 5) # First parameter: mu, second parameter: kappa (control the uncertainty of orientation) 
+                        # Define larvae swimming direction
+                        # direction uncertainity drawn from Von Mises distribution : First parameter: mu, second parameter: kappa
+                        ti  = np.random.vonmises(0, 5) #  (control the uncertainty of orientation)
+                        # final larvae swimming direction
                         theta = ti - theta_current - mu
                         # Compute u and v swim velocity component
                         self.elements.u_swim[old_enough[i]] = self.swimming_speed()*np.cos(theta)
@@ -260,6 +262,10 @@ class LobsterLarvae(BivalveLarvae):
             logger.debug('    %.5f [m/s] =< u_swim <=  %.5f [m/s]' % (np.min(self.elements.u_swim),np.max(self.elements.u_swim))) 
             logger.debug('    %.5f [m/s] =< v_swim <=  %.5f [m/s]' % (np.min(self.elements.u_swim),np.max(self.elements.u_swim))) 
             self.update_positions(self.elements.u_swim , self.elements.v_swim)
+    
+    def find_nearest_habitat(self,lon,lat):
+        # self.ball_centers.query(list(zip(np.deg2rad(self.elements.lat[old_enough]), np.deg2rad(self.elements.lon[old_enough]))), k=1)
+        return self.ball_centers.query(list(zip(np.deg2rad(lat), np.deg2rad(lon))), k=1)
 
     def swimming_speed(self):
             # Compute swimming speed of larvae - no dependence on age 
@@ -333,43 +339,6 @@ class LobsterLarvae(BivalveLarvae):
 # Pelagic larval duration and mortality
 ###################################################################################################################
 
-    def phyllosoma_mortality_original(self):
-        ''' Phyllosoma are not found inshore between 4 and 12 months of dispersal (i.e between mid and late Phyllosoma stages)
-        This could be due to an increased in predatory pressure closer to the coast,
-        therefore, we remove all the phyllosoma larvae that are found within 20km of the coast
-        '''
-        mid_stage_phyllosoma =  np.where( (self.elements.age_seconds >= self.get_config('biology:mid_stage_phyllosoma')) & \
-                                          (self.elements.age_seconds <= self.get_config('biology:late_stage_phyllosoma')) )[0]
-        # mid_stage_phyllosoma =  np.where(self.elements.age_seconds[mid_stage_phyllosoma] >= self.get_config('biology:mid_stage_phyllosoma'))[0]
-        logger.debug('Larvae : checking phyllosoma distance to habitat - %s particles in mid to late_stage_phyllosoma' % (len(mid_stage_phyllosoma)))
-        if len(mid_stage_phyllosoma) > 0:
-            import pdb;pdb.set_trace()
-            # find nearest habitat for each particles between mid and late phyllosoma
-            habitat_near, habitat_id = self.ball_centers.query(list(zip(np.deg2rad(self.elements.lat[mid_stage_phyllosoma]), np.deg2rad(self.elements.lon[mid_stage_phyllosoma]))), k=1)
-            for i in range(len(self.elements.lon[mid_stage_phyllosoma])):
-                pt_lon = self.elements.lon[mid_stage_phyllosoma][i]
-                pt_lat = self.elements.lat[mid_stage_phyllosoma][i]    
-                if habitat_near[i]*6371 < 20: # Remove phyllosoma found 20km inshore, or any other habitats defined by user (habitat_near[i]*6371 = distance in km)
-                    self.environment.land_binary_mask[mid_stage_phyllosoma][i] = 8
-        if (self.environment.land_binary_mask == 8).any():
-            logger.debug('Larvae : removing %s phyllosoma that swam too close to habitat' % (self.environment.land_binary_mask == 8).sum() )
-            self.deactivate_elements((self.environment.land_binary_mask == 8), reason='swam_too_close_to_habitat')
- 
-        # ''' Phyllosoma are not found inshore between 4 and 12 months of dispersal. 
-        # This could be due to an increased in predatory pressure closer to the coast,
-        # therefore, we remove all the phyllosoma larvae that are found within 20km of the coast
-        # '''
-        # mid_stage_phyllosoma =  np.where(self.elements.age_seconds <= self.get_config('biology:late_stage_phyllosoma'))[0]
-        # mid_stage_phyllosoma =  np.where(self.elements.age_seconds[mid_stage_phyllosoma] >= self.get_config('biology:mid_stage_phyllosoma'))[0]
-        # if len(mid_stage_phyllosoma) > 0:
-        #     for i in range(len(self.elements.lon[mid_stage_phyllosoma])):
-        #         pt_lon = self.elements.lon[mid_stage_phyllosoma][i]
-        #         pt_lat = self.elements.lat[mid_stage_phyllosoma][i]
-        #         habitat_near = self.nearest_habitat(pt_lon, pt_lat, self.centers)
-        #         if habitat_near[1] < 20000: # Remove phyllosoma found 20km inshore
-        #             self.environment.land_binary_mask[mid_stage_phyllosoma][i] = 8
-        # self.deactivate_elements((self.environment.land_binary_mask == 8), reason='swam_too_close_to_shore')
-
     def phyllosoma_mortality(self):
         ''' Phyllosoma are not found inshore between 4 and 12 months of dispersal (i.e between mid and late Phyllosoma stages)
         This could be due to an increased in predatory pressure closer to the coast,
@@ -377,8 +346,7 @@ class LobsterLarvae(BivalveLarvae):
         '''
         mid_stage_phyllosoma =  np.where( (self.elements.age_seconds >= self.get_config('biology:mid_stage_phyllosoma')) & \
                                           (self.elements.age_seconds <= self.get_config('biology:late_stage_phyllosoma')) )[0]
-        # mid_stage_phyllosoma =  np.where(self.elements.age_seconds[mid_stage_phyllosoma] >= self.get_config('biology:mid_stage_phyllosoma'))[0]
-        logger.debug('Larvae : checking phyllosoma distance to habitat - %s particles in mid to late_stage_phyllosoma' % (len(mid_stage_phyllosoma)))
+        logger.debug('Larvae : checking phyllosoma distance to shore - %s particles in mid to late_stage_phyllosoma' % (len(mid_stage_phyllosoma)))
         if len(mid_stage_phyllosoma) > 0:
             for i in range(len(self.elements.lon[mid_stage_phyllosoma])):
                 pt_lon = self.elements.lon[mid_stage_phyllosoma][i]
@@ -386,32 +354,48 @@ class LobsterLarvae(BivalveLarvae):
                 # Remove phyllosoma found 20km inshore, or any other habitats defined by user (habitat_near[i]*6371 = distance in km)
                 lon_circle ,lat_circle = self.get_circle(pt_lon, pt_lat, 20e3) 
                 # check if any land points within the 20km radius
-                >> get land_binary_mask for the circle points and check if any is "land"
-                >> remove these ones
-
-                if habitat_near[i]*6371 < 20: 
-                    self.environment.land_binary_mask[mid_stage_phyllosoma][i] = 8
+                on_land, prof, missing = self.get_environment(['land_binary_mask'], self.time, \
+                                                            np.array(lon_circle), np.array(lat_circle), \
+                                                            0.0*np.array(lat_circle), None)
+                if np.array(on_land.view('f')).any():
+                    self.environment.land_binary_mask[mid_stage_phyllosoma[i]] = 8
         if (self.environment.land_binary_mask == 8).any():
-            logger.debug('Larvae : removing %s phyllosoma that swam too close to habitat' % (self.environment.land_binary_mask == 8).sum() )
-            self.deactivate_elements((self.environment.land_binary_mask == 8), reason='swam_too_close_to_habitat')
-    
-    def get_circle(self,centerLon, centerLat, radius_meters):
-        # https://gis.stackexchange.com/questions/289044/creating-buffer-circle-x-kilometers-from-point-using-python/289923
-        proj_wgs84 = pyproj.Proj('+proj=longlat +datum=WGS84')
-        # Azimuthal equidistant projection
-        aeqd_proj = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
-        project = partial(pyproj.transform,
-                          pyproj.Proj(aeqd_proj.format(lat=centerLat, lon=centerLon)),
-                          proj_wgs84)
-        buf = Point(0, 0).buffer(radius_meters)  # distance in metres
-        circle = transform(project, buf).exterior.xy
-        lon_circle = circle[0]
-        lat_circle = circle[1]
-        return lon_circle ,lat_circle
+            logger.debug('Larvae : removing %s phyllosoma that swam too close to shore' % (self.environment.land_binary_mask == 8).sum() )
+            self.deactivate_elements((self.environment.land_binary_mask == 8), reason='swam_too_close_to_shore')
+
+
+    def get_circle(self,centerLon,centerLat,radius_meters):
+        # https://stackoverflow.com/questions/15886846/python-elegant-way-of-finding-the-gps-coordinates-of-a-circle-around-a-certain
+        radius_earth_meters = 6378137 
+        angle = np.linspace(0,2*np.pi,36)
+        dx = radius_meters * np.cos(angle)
+        dy = radius_meters * np.sin(angle)
+        lat_circle = centerLat + (180 / np.pi) * (dy / radius_earth_meters)
+        lon_circle = centerLon + (180 / np.pi) * (dx / radius_earth_meters) / np.cos(centerLat * np.pi / 180)
         # import matplotlib.pyplot as plt
         # plt.ion()
         # plt.plot(centerLon,centerLat,'r.')
-        # plt.plot(circle[0],circle[1],'g.')
+        # plt.plot(lon_circle,lat_circle,'g.')
+        # import pdb;pdb.set_trace()
+        return lon_circle ,lat_circle
+
+        # see also..but slower
+        # https://gis.stackexchange.com/questions/289044/creating-buffer-circle-x-kilometers-from-point-using-python/289923
+        # 
+        # from functools import partial
+        # import pyproj
+        # from shapely.ops import transform
+        # from shapely.geometry import Point
+        #  proj_wgs84 = pyproj.Proj('+proj=longlat +datum=WGS84')
+        # # Azimuthal equidistant projection
+        # local_azimuthal_projection = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
+        # project = partial(pyproj.transform,
+        #                   pyproj.Proj(local_azimuthal_projection.format(lat=centerLat, lon=centerLon)),
+        #                   proj_wgs84)
+        # buf = Point(0, 0).buffer(radius_meters)  # distance in metres
+        # circle = transform(project, buf).exterior.xy
+        # lon_circle = circle[0]
+        # lat_circle = circle[1]   
 
 ###################################################################################################################
 # Update position of the larvae
@@ -446,32 +430,8 @@ class LobsterLarvae(BivalveLarvae):
         # Vertical advection
         self.vertical_advection()
 
-        ## Mortality
-        self.phyllosoma_mortality()
-    
-    # def update(self): from OceanDrift
-    #     """Update positions and properties of buoyant particles."""
-
-    #     ## Horizontal advection
-    #     self.advect_ocean_current() # Independent from age
-    #     # Horizontal swimming: Puerulus stage swimming to shore
-    #     if self.get_config('biology:direct_orientation_habitat') is True:
-    #         self.reset_horizontal_swimming()
-    #         self.direct_orientation_habitat() # self.update_positions in the function direct_orientation_habitat
-        
-    #     ## Update vertical position
-    #     self.vertical_advection()     
-    #     # Turbulent Mixing or settling-only 
-    #     if self.get_config('drift:vertical_mixing') is True:
-    #         self.update_terminal_velocity()  #compute vertical velocities with diel vertical migration for late stage phyllosoma and puerulus
-    #         self.vertical_mixing()
-    #     else:  # Buoyancy
-    #         self.update_terminal_velocity()
-    #         self.vertical_buoyancy()
-        
-    #     ## Settlement in habitat
-    #     if self.get_config('biology:settlement_in_habitat') is True:
-    #         self.interact_with_habitat()
-            
-
+        # Mortality due to shore proximity
+        # slow, may be more relevant to apply in post-processing 
+        if False: 
+            self.phyllosoma_mortality()
             
