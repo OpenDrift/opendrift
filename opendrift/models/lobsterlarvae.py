@@ -16,9 +16,7 @@
 #                       if close enough to the coast will swim to their settlement habitat. The pueruli have poorly 
 #                       developed mouth and rely on stored energy for the final stretch of their dispersal.
 # 
-#  Authors : Romain Chaput, 
-#  Edits/Adaptation   : Simon Weppe Nov 2021 
-# 
+#  Authors : Romain Chaput, University of Auckland, Simon Weppe MetOcean Solutions/MetService New Zealand
 # 
 
 import numpy as np
@@ -146,7 +144,7 @@ class LobsterLarvae(BivalveLarvae):
         self._add_config({ 'biology:vertical_position_nighttime': {'type': 'float', 'default': -1.00,'min': -100.0, 'max':0.0, 'units': 'meters negative down',
                            'description': 'the depth a species is expected to inhabit during the night time, in meters, negative down',
                            'level': self.CONFIG_LEVEL_BASIC}})
-        self._add_config({ 'biology:vertical_migration_speed_constant': {'type': 'float', 'default': None,'min': 0.0, 'max': 1.0e-3, 'units': 'm/s',
+        self._add_config({ 'biology:vertical_migration_speed_constant': {'type': 'float', 'default': 1.0e-4,'min': 0.0, 'max': 1.0e-3, 'units': 'm/s',
                            'description': 'Constant vertical migration rate (m/s), if None, use values from update_terminal_velocity()',
                            'level': self.CONFIG_LEVEL_BASIC}})
         self._add_config({ 'biology:maximum_larvae_depth': {'type': 'float', 'default': -100.0,'min': -10000.0, 'max': -1.0, 'units': 'm',
@@ -430,7 +428,7 @@ class LobsterLarvae(BivalveLarvae):
         # Vertical advection
         self.vertical_advection()
 
-        # Mortality due to shore proximity
+        # Mortality due to shore proximity (<20km)
         # slow, may be more relevant to apply in post-processing 
         if False: 
             self.phyllosoma_mortality()

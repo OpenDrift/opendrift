@@ -39,7 +39,6 @@ o.seed_elements( lon = 174.949513895-.1, lat = -40.029317969-.1,
                  radius = 1000,
                  terminal_velocity = -1.0, # setting a large settling velocity on purpose to make seafloor contacts
                  time = reader_moana_v19.start_time)
-
 ###############################
 # PHYSICS & CONFIG
 ###############################
@@ -47,29 +46,22 @@ o.seed_elements( lon = 174.949513895-.1, lat = -40.029317969-.1,
 Kxy = 0.1 # m2/s-1
 Kz = 0.001 # m2/s-1 - setting a large 
 o.set_config('environment:fallback:ocean_vertical_diffusivity', Kz) # specify constant ocean_vertical_diffusivity in m2.s-1
-o.set_config('vertical_mixing:diffusivitymodel', 'constant') # constant >> use fall back values (can be environment (i.e. from reader), windspeed_Large1994 ,windspeed_Sundby1983)
-o.set_config('drift:horizontal_diffusivity',Kxy) # using new config rather than current uncertainty
-# Adjusting some configuration
-o.set_config('general:coastline_action', 'previous')
-o.set_config('drift:vertical_advection', True)
 o.set_config('drift:vertical_mixing', True)
-o.set_config('biology:min_settlement_age_seconds', 2*24*3600) # minimum age before settling can occur
-o.set_config('drift:max_age_seconds', 10*24*3600) # max age before dying
+o.set_config('vertical_mixing:diffusivitymodel', 'constant') # constant >> use fall back values (can be environment (i.e. from reader), windspeed_Large1994 ,windspeed_Sundby1983)
 o.set_config('vertical_mixing:timestep', 900.) # seconds - # Vertical mixing requires fast time step  (but for constant diffusivity, use same as model step)
+o.set_config('drift:horizontal_diffusivity',Kxy) # using new config rather than current uncertainty
+o.set_config('drift:max_age_seconds', 10*24*3600) # max age before dying
 ###############################
-# habitat settlement
+# bivalve specific
 ###############################
+o.set_config('biology:min_settlement_age_seconds', 2*24*3600) # minimum age before settling can occur, on seafloor, coast or habitat
+
 if use_habitat ==1 :
     o.set_config('biology:settlement_in_habitat', True) # settlement restricted to suitable habitat only, specified by shapefile or txt file with nan-delimited polys
-    o.add_settlement_habitat('/media/simon/Seagate Backup Plus Drive/metocean/0000_MoanaDispersionModelling/Life_Stages/tests/habitat/poly_habitat_taranaki_bivalve.txt') # Location of the shapefile with the habitat
-    # habitat can be text file with simple nan-delimited polygon(s) (see below), or shape files 
-    # 174.4000  -40.1000
-    # 174.4000  -40.0000
-    # 174.6000  -40.0000
-    # 174.6000  -40.1000
-    # 174.4000  -40.1000
+    o.add_settlement_habitat('./habitat_moana/poly_habitat_taranaki_bivalve.txt') # Location of the files with the user-defined habitat polygons
+                                                                                  # habitat files can be text file with simple nan-delimited polygon(s) 
 else:
-    o.set_config('biology:settlement_in_habitat', False) # settlement restricted to suitable habitat only, specified by shapefile or txt file with nan-delimited polys
+    o.set_config('biology:settlement_in_habitat', False) # particle will settle on coast or seafloor after it reached 'min_settlement_age_seconds'
 
 o.list_config()
 
@@ -78,7 +70,7 @@ o.list_config()
 ###############################
 # Running model (until end of driver data)
 o.run(stop_on_error=False,
-      time_step=timedelta(seconds = 900), # requires a small time-step to compute the orientation
+      time_step=timedelta(seconds = 900),
       end_time = reader_moana_v19.start_time + timedelta(days = 4.0),
       time_step_output=timedelta(seconds = 3600 * 3))
 
