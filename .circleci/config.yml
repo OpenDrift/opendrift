@@ -220,11 +220,11 @@ jobs:
 
       # saved in docs-build
       - restore_cache:
-          key: gallery-v8-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v9-{{ checksum "/tmp/gallery-checksum.txt" }}
 
       # saved in docs-build
       - restore_cache:
-          key: plots-v3-{{ checksum "/tmp/plots-checksum.txt" }}
+          key: plots-v4-{{ checksum "/tmp/plots-checksum.txt" }}
 
       - run:
           name: Check if examples should be re-built
@@ -357,12 +357,12 @@ jobs:
           no_output_timeout: 40m
 
       - save_cache:
-          key: gallery-v8-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v9-{{ checksum "/tmp/gallery-checksum.txt" }}
           paths:
             - "docs/source/gallery"
 
       - save_cache:
-          key: plots-v3-{{ checksum "/tmp/plots-checksum.txt" }}
+          key: plots-v4-{{ checksum "/tmp/plots-checksum.txt" }}
           paths:
             - "docs/build/plot_directive"
 
