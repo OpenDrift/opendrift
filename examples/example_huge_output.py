@@ -36,24 +36,33 @@ o.run(duration=timedelta(hours=24),
 # This will work even if the file is too large to fit in memory, as it
 # will read and process data chuck-by-chunk directly from file using Dask.
 # (See also `example_river_runoff.py <https://opendrift.github.io/gallery/example_river_runoff.html>`_)
-# Note that the analysis file will be re-used if existing. Thus this file should be deleted after making any changes to the simulation above.
-o = opendrift.open_xarray(outfile, analysis_file='simulation_density.nc')
+oa = opendrift.open_xarray(outfile)
+
+#%%
+# Calculating histogram
+# The histogram may be stored/cached to a netCDF file for later re-use,
+# as the calculation may be time consuming for huge output files.
+h = oa.get_histogram(pixelsize_m=500)
+
+#%%
+# Plot the cumulative coverage of first seeding (origin_marker=0)
+b=h.isel(origin_marker=0).sum(dim='time')
+oa.plot(background=b.where(b>0), fast=True, show_elements=False, vmin=0, vmax=1000, clabel='First seeding')
 
 #%%
 # Making two animations, for each of the two seedings / origin_markers.
-# The calculated density fields will be stored/cached in the analysis file
+# The calculated density fields may be stored/cached to a netCDF file
 # for later re-use, as their calculation may be time consuming
 # for huge output files.
 # Note that other analysis/plotting methods are not yet adapted
 # to datasets opened lazily with open_xarray
 for om in [0, 1]:
-    o.animation(density=True, density_pixelsize_m=500, fast=False,
-                corners=[4.0, 6, 59.5, 61],
-                origin_marker=om, show_elements=False, vmin=0, vmax=200)
+    background=h.isel(origin_marker=om)
+    oa.animation(background=background.where(background>0), bgalpha=1,
+                corners=[4.0, 6, 59.5, 61], fast=False, show_elements=False, vmin=0, vmax=200)
 
 # Cleaning up
-os.remove('simulation.nc')
-os.remove('simulation_density.nc')
+os.remove(outfile)
 
 #%%
 # First seeding

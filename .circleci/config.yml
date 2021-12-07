@@ -1,7 +1,93 @@
 version: 2.1
 
 orbs:
-  docker-publish: circleci/docker-publish@0.1.3
+  docker-publish: circleci/docker@1.7.0
+
+commands:
+  run_tests:
+    steps:
+      - run:
+          name: Run tests
+          command: |
+            source activate opendrift
+            pytest --circleci-parallelize --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
+
+      - store_test_results:
+          path: test-results
+
+      - store_artifacts:
+          path: test-results
+
+      # - run:
+      #     name: Upload to coveralls
+      #     command: |
+      #       source activate opendrift
+      #       if [ -v COVERALLS_UPLOAD ]; then
+      #         COVERALLS_REPO_TOKEN=nEzcGcepz6KeM8OpvG2WoxbGjMGwivyAQ coveralls
+      #       fi
+
+
+  install_conda_environment:
+    steps:
+      - run:
+          name: Checksum environment
+          command: |
+            echo "python=${PYTHON_VERSION}" > envconfig
+            echo "numpy=${NUMPY_VERSION}" >> envconfig
+            cat envconfig
+
+      - restore_cache:
+          key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+
+      - run:
+          name: Install requirements
+          no_output_timeout: 30m
+          command: |
+            if [ ! -e /opt/conda/envs/opendrift ]; then
+              if [ -v PYTHON_VERSION ]; then
+                # pin python and numpy
+                conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
+
+                echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
+                echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
+
+                conda env update -n opendrift -q -f environment.yml
+              else
+                conda env create -q --file environment.yml
+              fi
+
+              source activate opendrift
+
+              pip install pyyaml coveralls pytest-circleci-parallelized pytest-cov
+            fi
+
+      - save_cache:
+          key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          paths:
+            - "/opt/conda/envs"
+      - run:
+          name: List environment
+          command: |
+            source activate opendrift
+            conda list
+
+  install_cartopy_shapes:
+    steps:
+      - restore_cache:
+          key: v1-cartopy-shapes
+
+      - run:
+          name: Download cartopy shapes
+          command: |
+            source activate opendrift
+            python -c "import cartopy;list(map(cartopy.io.shapereader.gshhs, ('c', 'l', 'i', 'h', 'f')))"
+            python -c "import cartopy; cartopy.io.shapereader.natural_earth(resolution='110m', category='cultural', name='admin_0_countries')"
+
+      - save_cache:
+          key: v1-cartopy-shapes
+          paths:
+            - "/root/.local/share/cartopy"
+
 
 test-template: &test-template
   docker:
@@ -9,47 +95,8 @@ test-template: &test-template
   resource_class: medium+
   steps:
     - checkout
-    - run:
-        name: Checksum environment
-        command: |
-          echo "python=${PYTHON_VERSION}" > envconfig
-          echo "numpy=${NUMPY_VERSION}" >> envconfig
-          cat envconfig
 
-    - restore_cache:
-        key: v14-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
-    - run:
-        name: Install requirements
-        no_output_timeout: 30m
-        command: |
-          if [ ! -e /opt/conda/envs/opendrift ]; then
-            if [ -v PYTHON_VERSION ]; then
-              # pin python and numpy
-              conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
-
-              echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
-              echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
-
-              conda env update -n opendrift -q -f environment.yml
-            else
-              conda env create -q --file environment.yml
-            fi
-
-            source activate opendrift
-
-            pip install pyyaml coveralls
-          fi
-
-    - save_cache:
-        key: v14-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
-        paths:
-          - "/opt/conda/envs"
-
-    - run:
-        name: List environment
-        command: |
-          source activate opendrift
-          conda list
+    - install_conda_environment
 
     - restore_cache:
         key: v1-landmask
@@ -60,52 +107,180 @@ test-template: &test-template
           source activate opendrift
           python -c 'import opendrift_landmask_data as old; old.Landmask()'
 
+    - install_cartopy_shapes
+
     - save_cache:
         key: v1-landmask
         paths:
           - "/tmp/landmask"
 
-    - run:
-        name: Run tests
-        command: |
-          source activate opendrift
-          pytest --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --runslow --durations=50 --benchmark-disable -v --log-cli-level=debug
-
-    - store_test_results:
-        path: test-results
-
-    - store_artifacts:
-        path: test-results
-
-    - run:
-        name: Upload to coveralls
-        command: |
-          source activate opendrift
-          if [ ! -v PYTHON_VERSION ]; then
-            COVERALLS_REPO_TOKEN=nEzcGcepz6KeM8OpvG2WoxbGjMGwivyAQ coveralls
-          fi
+    - run_tests
 
 jobs:
   python_latest:
     <<: *test-template
+    parallelism: 5
+    environment:
+      - COVERALLS_UPLOAD=1
 
   python_38_numpy_119:
     <<: *test-template
+    parallelism: 5
     environment:
       - PYTHON_VERSION=3.8
       - NUMPY_VERSION=1.19
 
   python_37_numpy_117:
     <<: *test-template
+    parallelism: 5
     environment:
       - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.17
+
+  python_latest_roaring:
+    docker:
+      - image: continuumio/miniconda3
+    resource_class: medium+
+    parallelism: 5
+    steps:
+    - checkout
+
+    - install_conda_environment
+
+    - install_cartopy_shapes
+
+    - run:
+        name: Install roaring-landmask
+        command: |
+            source activate opendrift
+            pip install -v roaring_landmask
+
+    - run:
+        name: Remove Opendrift Landmask Data
+        command: |
+            source activate opendrift
+            conda remove --force -y opendrift-landmask-data
+
+    - run_tests
+
+  docs-build-examples:
+    docker:
+      - image: continuumio/miniconda3
+    parallelism: 20
+    steps:
+      - checkout
+      - run:
+          name: Update packages
+          command: apt-get update
+      - run:
+          name: Install packages
+          command: apt-get install -y build-essential jq curl
+
+      - run:
+          name: Get PR title
+          command: |
+            if [[ -v CIRCLE_PULL_REQUEST ]]; then
+              PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
+              GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq -e '.title')
+              echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
+              echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
+              echo "PR: ${GITHUB_PR_TITLE}"
+            fi
+
+      - install_conda_environment
+
+      - install_cartopy_shapes
+
+      - run:
+          name: Install roaring-landmask
+          command: |
+                source activate opendrift
+                pip install -v roaring_landmask
+
+      - run:
+          name: Remove Opendrift Landmask Data
+          command: |
+                source activate opendrift
+                conda remove --force -y opendrift-landmask-data
+
+      - run:
+          name: Install sphinx and friends
+          command: |
+            source activate opendrift
+            conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            pip install sphinx-rtd-theme
+
+      - run:
+          name: Checksum gallery
+          command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
+
+      - run:
+          name: Checksum plots
+          command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
+
+      # saved in docs-build
+      - restore_cache:
+          key: gallery-v9-{{ checksum "/tmp/gallery-checksum.txt" }}
+
+      # saved in docs-build
+      - restore_cache:
+          key: plots-v4-{{ checksum "/tmp/plots-checksum.txt" }}
+
+      - run:
+          name: Check if examples should be re-built
+          command: |
+            if git log --oneline --pretty=format:%s "master^1..${CIRCLE_SHA1}" | grep '\[run-ex\]' ; then
+              BUILD_EXAMPLES=1
+            else
+              BUILD_EXAMPLES=0
+            fi
+            echo "export BUILD_EXAMPLES=${BUILD_EXAMPLES}" >> ${BASH_ENV}
+            echo "Build examples: ${BUILD_EXAMPLES}"
+
+      - run:
+          name: Clean cache if docs should be re-built
+          command: |
+            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${BUILD_EXAMPLES}" -eq 1 ]]; then
+              echo "Clearing out examples.."
+              source activate opendrift
+              cd docs/
+              make clean
+            fi
+
+      - run:
+          name: Wake-up Thredds-servers
+          command: |
+              source activate opendrift
+              python .circleci/wake-up-thredds.py
+
+      - run:
+          name: Build docs
+          command: |
+            source activate opendrift
+            cd docs/
+            make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
+            ls -R source
+          no_output_timeout: 40m
+
+      - store_test_results:
+          path: docs/test-results
+
+      - store_artifacts:
+          path: docs/test-results
+
+      - persist_to_workspace:
+          root: docs/source
+          paths: gallery
 
   docs-build:
     docker:
       - image: continuumio/miniconda3
     steps:
       - checkout
+
+      - attach_workspace:
+          at: docs/source
+
       - run:
           name: Update packages
           command: apt-get update
@@ -138,25 +313,23 @@ jobs:
       - restore_cache:
           key: v7-docs-deps1-{{ checksum "environment.yml" }}
 
+      - install_conda_environment
+
+      - install_cartopy_shapes
+
       - run:
-          name: Install requirements
+          name: Install sphinx and friends
           command: |
-            if [ ! -e /opt/conda/envs/opendrift ]; then
-              conda env create --file environment.yml
-              source activate opendrift
-              conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
-              pip install sphinx-rtd-theme
-            fi
+            source activate opendrift
+            conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            pip install sphinx-rtd-theme
 
       - save_cache:
           key: v7-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
-      # the gallery cache is not perfect because it will not detect changes to the opendrift code,
-      # only the examples.
-      #
-      # the plot cache is not perfect, because it will only detect plot directive changes
+      # the plot and gallery cache is not perfect, because it will only detect plot directive changes
       # in the docs/source and not inline plot directives in the opendrift module. these
       # should be re-generated anyway though, but won't be cached until the docs change.
 
@@ -168,22 +341,6 @@ jobs:
           name: Checksum plots
           command: cd docs && make checksum-plots | tee /tmp/plots-checksum.txt
 
-      - restore_cache:
-          key: gallery-v4-{{ checksum "/tmp/gallery-checksum.txt" }}
-
-      - restore_cache:
-          key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
-
-      - run:
-          name: Check if docs should be re-built
-          command: |
-            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${BUILD_EXAMPLES}" -eq 1 ]]; then
-              echo "Clearing out examples.."
-              source activate opendrift
-              cd docs/
-              make clean
-            fi
-
       - run:
           name: Wake-up Thredds-servers
           command: |
@@ -192,16 +349,20 @@ jobs:
 
       - run:
           name: Build docs
-          command: source activate opendrift && cd docs/ && make html
+          command: |
+            source activate opendrift
+            cd docs/
+            ls -R source/gallery
+            make html
           no_output_timeout: 40m
 
       - save_cache:
-          key: gallery-v4-{{ checksum "/tmp/gallery-checksum.txt" }}
+          key: gallery-v9-{{ checksum "/tmp/gallery-checksum.txt" }}
           paths:
             - "docs/source/gallery"
 
       - save_cache:
-          key: plots-v2-{{ checksum "/tmp/plots-checksum.txt" }}
+          key: plots-v4-{{ checksum "/tmp/plots-checksum.txt" }}
           paths:
             - "docs/build/plot_directive"
 
@@ -241,10 +402,15 @@ workflows:
       - python_latest
       - python_38_numpy_119
       - python_37_numpy_117
+      - python_latest_roaring
 
-  build:
+  docs:
     jobs:
-      - docs-build
+      - docs-build-examples
+
+      - docs-build:
+          requires:
+            - docs-build-examples
 
       - docs-deploy:
           requires:
@@ -253,39 +419,8 @@ workflows:
             branches:
              only: master
 
-  # This workflow will be run on all branches but master (to test)
-  build_without_publishing_job:
-    jobs:
-
-      # This first job is for opendrift, Python 3
-      - docker-publish/publish:
-          image: opendrift/opendrift
-          dockerfile: Dockerfile
-          deploy: false
-          tag: latest
-          filters:
-            branches:
-              ignore:
-                - master
-          after_build:
-            - run:
-                name: Preview Containers that will be Deployed
-                command: |
-                   # Here we preview the Docker Tag
-                   pushd opendrift
-                   DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
-                   popd
-
-                   echo "Version for Docker tag is ${DOCKER_TAG}"
-                   echo "This build will deploy the following containers:"
-                   echo "opendrift/opendrift:latest"
-                   echo "opendrift/opendrift:py3"
-                   echo "opendrift/opendrift:v${DOCKER_TAG}"
-                   echo "opendrift/opendrift:py3-v${DOCKER_TAG}"
-
-
   # This workflow will deploy images on merge to master only
-  docker_with_lifecycle:
+  build-and-publish-docker-image:
     jobs:
 
       - docker-publish/publish:
@@ -306,6 +441,4 @@ workflows:
 
                    echo "Version for Docker tag is ${DOCKER_TAG}"
                    docker tag opendrift/opendrift:latest opendrift/opendrift:v${DOCKER_TAG}
-                   docker tag opendrift/opendrift:latest opendrift/opendrift:py3-v${DOCKER_TAG}
-                   docker tag opendrift/opendrift:latest opendrift/opendrift:py3
 

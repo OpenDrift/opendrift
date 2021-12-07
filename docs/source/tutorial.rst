@@ -199,10 +199,12 @@ These methods are robust regarding nonexisting files or URLs, which will then be
 
 Before starting a model run, some elements must be seeded (released).
 The simplest case is to seed a single element at a given position and time::
+
     o.seed_elements(lon=4.3, lat=60, time=datetime(2016,2,25,18,0,0))
 
 The time may be defined explicitly as in the above example, or one may e.g. use the starting time of one of the available readers (e.g. time=reader_norkyst.start_time).
 To seed 100 elements within a radius of 1000 m::
+
     o.seed_elements(lon=4.3, lat=60, number=100, radius=1000,
                     time=reader_norkyst.start_time)
 
@@ -387,6 +389,6 @@ The quality of mp4-files is quite low with older versions of Matplotlib, as bitr
 When exporting animation to mp4, an additional parameter ``fps`` may be provided to specify the number of frames per seconds (speed of animation), default is 20 frames/second.
 
 Specific models may define specific plotting functions. One example is ``OpenOil.plot_oil_budget()`` which plots the oil mass budget of a simulation.
-The examples :doc:`gallery/example_codegg` and :doc:`gallery/example_oil3d_verticalmixing` demonstrate the function plot_vertical_distribution() to show a histogram of the element depths, with an interactive time slider.
+The examples :doc:`gallery/example_codegg` and :doc:`gallery/example_oil_verticalmixing` demonstrate the function plot_vertical_distribution() to show a histogram of the element depths, with an interactive time slider.
 
 See the :doc:`gallery <gallery/index>` for some examples of output figures and animations.

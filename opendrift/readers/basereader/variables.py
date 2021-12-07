@@ -1,3 +1,4 @@
+from datetime import timedelta
 import numpy as np
 import pyproj
 from bisect import bisect_left
@@ -209,6 +210,8 @@ class ReaderDomain(Timeable):
 
         Arguments in native projection of reader.
         """
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
         z = np.atleast_1d(z)
 
         if self.global_coverage():
@@ -216,15 +219,43 @@ class ReaderDomain(Timeable):
             indices = np.where((y >= self.ymin) & (y <= self.ymax)
                                & (z >= self.zmin) & (z <= self.zmax))[0]
         else:
-            indices = np.where((x >= self.xmin) & (x <= self.xmax)
-                               & (y >= self.ymin) & (y <= self.ymax)
-                               & (z >= self.zmin) & (z <= self.zmax))[0]
+            xx = x
+
+            if self.proj.crs.is_geographic:
+                xx = self.modulate_longitude(x)
+
+            indices = np.where((xx >= self.xmin) & (xx <= self.xmax)
+                                & (y >= self.ymin) & (y <= self.ymax)
+                                & (z >= self.zmin) & (z <= self.zmax))[0]
 
         try:
             return indices, x[indices], y[indices]
         except Exception as ex:
             logger.exception(ex)
             return indices, x, y
+
+    def modulate_longitude(self, lons):
+        """
+        Modulate the input longitude to the domain supported by the reader.
+        """
+
+        yy = np.array([self.ymin, self.ymax, self.ymax, self.ymin])
+        xx = np.array([self.xmin, self.xmin, self.xmax, self.xmax])
+
+        exlons, _lats = self.xy2lonlat(xx, yy)
+
+        if np.min(exlons) < 0:
+            # Reader domain is from -180 to 180 or somewhere in between.
+            assert np.max(exlons) <= 180.1
+
+            lons = np.mod(lons+180, 360) - 180
+        else:
+            # Reader domain is from 0 to 360 or somewhere in between.
+            assert np.max(exlons) <= 360.1
+
+            lons = np.mod(lons, 360)
+
+        return lons
 
     def covers_positions(self, lon, lat, z=0):
         """Return indices of input points covered by reader."""
@@ -236,11 +267,12 @@ class ReaderDomain(Timeable):
     def global_coverage(self):
         """Return True if global coverage east-west"""
 
-        if self.proj.crs.is_geographic is True and self.delta_x is not None:
-            if (self.xmin - self.delta_x <= 0) and (self.xmax + self.delta_x >=
+        dx = self.delta_x if self.delta_x is not None else 0
+        if self.proj.crs.is_geographic is True:
+            if (self.xmin - 2*dx <= 0) and (self.xmax + 2*dx >=
                                                     360):
                 return True  # Global 0 to 360
-            if (self.xmin - self.delta_x <= -180) and (self.xmax + self.delta_x
+            if (self.xmin - 2*dx <= -180) and (self.xmax + 2*dx
                                                        >= 180):
                 return True  # Global -180 to 180
 
@@ -479,7 +511,7 @@ class Variables(ReaderDomain):
                     method = lambda env: em['method'](env)
                     method(env)
 
-    def set_buffer_size(self, max_speed):
+    def set_buffer_size(self, max_speed, time_coverage=None):
         '''
         Adjust buffer to minimise data block size needed to cover elements.
 
@@ -491,7 +523,8 @@ class Variables(ReaderDomain):
 
         Args:
 
-            max_speed: the maximum speed anticipated for particles.
+            max_speed (m/s): the maximum speed anticipated for particles.
+            time_coverage (timedelta): the time span to cover
 
         '''
         self.buffer = 0
@@ -500,12 +533,16 @@ class Variables(ReaderDomain):
             if self.time_step is not None:
                 time_step_seconds = self.time_step.total_seconds()
             else:
-                time_step_seconds = 3600  # 1 hour if not given
+                if time_coverage is None:
+                    logger.warning('Assuming time step of 1 hour for ' + self.name)
+                    time_step_seconds = 3600  # 1 hour if not given
+                else:
+                    time_step_seconds = time_coverage.total_seconds()
             self.buffer = int(
                 np.ceil(max_speed * time_step_seconds / pixelsize)) + 2
             logger.debug('Setting buffer size %i for reader %s, assuming '
-                         'a maximum average speed of %g m/s.' %
-                         (self.buffer, self.name, max_speed))
+                         'a maximum average speed of %g m/s and time span of %s' %
+                         (self.buffer, self.name, max_speed, timedelta(seconds=time_step_seconds)))
 
     def __check_env_coordinates__(self, env):
         """
@@ -794,6 +831,7 @@ class Variables(ReaderDomain):
 
         """
 
+        lon = self.modulate_longitude(lon)
         x, y = self.lonlat2xy(lon, lat)
 
         env, env_profiles = self.get_variables_interpolated_xy(

@@ -1,11 +1,5 @@
-import numpy as np
-import pytest
-import matplotlib.pyplot as plt
 import os.path
-from tests import *
 from opendrift.readers.reader_grib2 import Reader as Grib
-from opendrift.readers.reader_netCDF_CF_generic import Reader as Generic
-from opendrift.models.oceandrift import OceanDrift
 
 caps1 = 'CMC_caps_HGT_ISBL_0050_ps3km_2018090900_P005.grib2'
 proj4 = '+proj=stere +lat_0=90 +lat_ts=60 +lon_0=264 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs +a=6371229 +b=6371229'

@@ -22,11 +22,11 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-benchmark
-  - cartopy
+  - cartopy<0.20
   - nc-time-axis
   - geojson
   - opendrift-landmask-data
-  - oil_library-opendrift>=2+noaa1.1.3
+  - oil_library-opendrift>=4+noaa1.1.3
   - isodate
   - coloredlogs
   - cmocean

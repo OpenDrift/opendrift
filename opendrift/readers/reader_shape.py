@@ -15,11 +15,11 @@
 # Copyright 2020, Gaute Hope, MET Norway
 
 from opendrift.readers.basereader import BaseReader, ContinuousReader
-from opendrift_landmask_data import Landmask
 
 import pyproj
 import shapely
 import shapely.ops
+import shapely.vectorized
 import cartopy
 import itertools
 import logging

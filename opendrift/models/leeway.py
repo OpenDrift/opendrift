@@ -114,7 +114,7 @@ class Leeway(OpenDriftSimulation):
                      'missing_data': 'gray', 'stranded': 'red',
                      'evaporated': 'yellow', 'dispersed': 'magenta'}
 
-    max_speed = 1.5  # Assumed max average speed of any element
+    max_speed = 5  # Assumed max average speed of any element
 
     # Configuration
     def __init__(self, d=None, *args, **kwargs):
@@ -395,6 +395,11 @@ class Leeway(OpenDriftSimulation):
             lat = lats[step,:]
             orientation = orientations[step,:]
             status = statuss[step,:]
+            if sum(status==0) == 0:  # All elements deactivated: using last position
+                lon = lons[step-1,:]
+                lat = lats[step-1,:]
+                orientation = orientations[step-1,:]
+                status = statuss[step-1,:]
             num_active = np.sum(~status.mask)
             status[status.mask] = 41  # seeded on land
             lon[status.mask] = 0

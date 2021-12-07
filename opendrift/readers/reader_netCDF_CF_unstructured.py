@@ -62,6 +62,7 @@ class Reader(BaseReader, UnstructuredReader):
         'salinity',
         'temperature',
         'sea_floor_depth_below_sea_level',
+        'sea_floor_depth_below_geoid',
         'sea_surface_height_above_geoid',
     ]
 
@@ -286,18 +287,21 @@ class Reader(BaseReader, UnstructuredReader):
                 dvar = self.dataset[dvar]
 
                 # sigma ind depends on whether variable is defined on sigma layer og sigma level
-                sigma_ind = self.__nearest_node_sigma__(dvar, nodes, z)
-                assert len(sigma_ind) == len(z)
+                if 'siglev' in dvar.dimensions:
+                    sigma_ind = self.__nearest_node_sigma__(dvar, nodes, z)
+                    assert len(sigma_ind) == len(z)
 
-                # Reading the smallest block covering the actual data
-                block = dvar[indx_nearest,
-                             slice(sigma_ind.min(),
-                                   sigma_ind.max() + 1),
-                             slice(nodes.min(),
-                                   nodes.max() + 1)]
-                # Picking the nearest value
-                variables[var] = block[sigma_ind - sigma_ind.min(),
-                                       nodes - nodes.min()]
+                    # Reading the smallest block covering the actual data
+                    block = dvar[indx_nearest,
+                                 slice(sigma_ind.min(),
+                                       sigma_ind.max() + 1),
+                                 slice(nodes.min(),
+                                       nodes.max() + 1)]
+                    # Picking the nearest value
+                    variables[var] = block[sigma_ind - sigma_ind.min(),
+                                           nodes - nodes.min()]
+                else:  # no depth dimension
+                    variables[var] = dvar[slice(nodes.min(), nodes.max() + 1)]
 
         if face_variables:
             logger.debug("Interpolating face-variables..")
@@ -311,18 +315,21 @@ class Reader(BaseReader, UnstructuredReader):
                 dvar = self.dataset[dvar]
 
                 # sigma ind depends on whether variable is defined on sigma layer og sigma level
-                sigma_ind = self.__nearest_face_sigma__(dvar, fcs, z)
-                assert len(sigma_ind) == len(z)
+                if 'siglay' in dvar.dimensions:
+                    sigma_ind = self.__nearest_face_sigma__(dvar, fcs, z)
+                    assert len(sigma_ind) == len(z)
 
-                # Reading the smallest profile slice covering the actual data
-                block = dvar[indx_nearest,
-                             slice(sigma_ind.min(),
-                                   sigma_ind.max() + 1),
-                             slice(fcs.min(),
-                                   fcs.max() + 1)]
-                # Picking the nearest value
-                variables[var] = block[sigma_ind - sigma_ind.min(),
-                                       fcs - fcs.min()]
+                    # Reading the smallest profile slice covering the actual data
+                    block = dvar[indx_nearest,
+                                 slice(sigma_ind.min(),
+                                       sigma_ind.max() + 1),
+                                 slice(fcs.min(),
+                                       fcs.max() + 1)]
+                    # Picking the nearest value
+                    variables[var] = block[sigma_ind - sigma_ind.min(),
+                                           fcs - fcs.min()]
+                else:  # no depth dimension
+                    variables[var] = dvar[slice(fcs.min(), fcs.max() + 1)]
 
         return variables
 

@@ -15,7 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta
 import numpy as np
 from scipy.interpolate import interp1d
 import logging; logger = logging.getLogger(__name__)
@@ -80,6 +80,7 @@ class OceanDrift(OpenDriftSimulation):
         'surface_downward_y_stress': {'fallback': 0},
         'turbulent_kinetic_energy': {'fallback': 0},
         'turbulent_generic_length_scale': {'fallback': 0},
+        'ocean_mixed_layer_thickness': {'fallback': 50},
         'sea_floor_depth_below_sea_level': {'fallback': 10000},
         'land_binary_mask': {'fallback': None},
         }
@@ -88,6 +89,21 @@ class OceanDrift(OpenDriftSimulation):
     required_profiles_z_range = [-20, 0]
 
     def __init__(self, *args, **kwargs):
+
+        if 'machine_learning_dict' in kwargs:
+            logger.debug('Machine learning correction supplied.')
+            mld = kwargs['machine_learning_dict']
+            del kwargs['machine_learning_dict']
+            import pickle
+            from tensorflow import keras
+            from tools.normalizations import generate_one_normalized_predictor, generate_one_denormalized_prediction
+            self.generate_one_normalized_predictor = generate_one_normalized_predictor
+            self.generate_one_denormalized_prediction = generate_one_denormalized_prediction
+            self.trained_model = keras.models.load_model(mld['trained_model'])
+            self.dict_normalization_params = pickle.load(open(mld['dict_normalization_params'], 'rb'))
+            self.ml_predictors = [self.dict_normalization_params['predictors'][i]['content'] for i in self.dict_normalization_params['predictors']]
+        else:
+            logger.debug('No machine learning correction available.')
 
         # Calling general constructor of parent class
         super(OceanDrift, self).__init__(*args, **kwargs)
@@ -105,6 +121,9 @@ class OceanDrift(OpenDriftSimulation):
                 'enum': ['environment', 'stepfunction', 'windspeed_Sundby1983',
                  'windspeed_Large1994', 'gls_tke','constant'], 'level': self.CONFIG_LEVEL_ADVANCED,
                  'units': 'seconds', 'description': 'Algorithm/source used for profile of vertical diffusivity. Environment means that diffusivity is aquired from readers or environment constants/fallback.'},
+            'vertical_mixing:background_diffusivity': {'type': 'float', 'min': 0, 'max': 1, 'default': 1.2e-5,
+                'level': self.CONFIG_LEVEL_ADVANCED, 'units': 'm2s-1', 'description':
+                'Background diffusivity used below mixed layer for wind parameterisations.'},
             'vertical_mixing:TSprofiles': {'type': 'bool', 'default': False, 'level':
                 self.CONFIG_LEVEL_ADVANCED,
                 'description': 'Update T and S profiles within inner loop of vertical mixing. This takes more time, but may be slightly more accurate.'},
@@ -160,6 +179,55 @@ class OceanDrift(OpenDriftSimulation):
 
         # Vertical advection
         self.vertical_advection()
+
+        # Optional machine learning correction
+        self.machine_learning_correction()
+
+    def machine_learning_correction(self):
+        if not hasattr(self, 'trained_model'):
+            return  # No machine learning correction available
+
+        # ML shall only be applied every 1 hour
+        if not hasattr(self, 'ml_timesteps'):
+            self.ml_timesteps = 3600/self.time_step.total_seconds()
+        if self.steps_calculation % self.ml_timesteps != 0:
+            logger.warning('ML not applied at time step %s' % self.steps_calculation)
+            return
+
+        # Only apply every 1 hour
+        logger.warning('Machine learning')
+        x_vel = np.ones(self.num_elements_active())*np.NaN
+        y_vel = np.ones(self.num_elements_active())*np.NaN
+        st = datetime.now()
+
+        list_predictors_normalized = []
+        list_predictors_denormalized = []
+
+        # Prepare predictor dicts
+        for n in range(self.num_elements_active()):
+            dict_input = {s: getattr(self.environment, s)[n] for s in self.ml_predictors}
+            predictor_normalized = self.generate_one_normalized_predictor(
+                                            dict_input, self.dict_normalization_params)
+            list_predictors_normalized.append(predictor_normalized)
+
+        # Normalize
+        all_predictors_normalized = np.squeeze(np.array(list_predictors_normalized))
+        # perform a prediction from normalized predictor to normalized label
+        logger.warning('Calculating ML correction...')
+        predicted_normalized_residual_correction = self.trained_model.predict(all_predictors_normalized)
+        # get the "native units" residual correction
+        logger.warning('Denormalization...')
+        for n in range(self.num_elements_active()):
+            native_units_correction = self.generate_one_denormalized_prediction(
+                predicted_normalized_residual_correction[n, :], self.dict_normalization_params)
+            x_vel[n] = native_units_correction['residual_displacement_x']*1000/3600
+            y_vel[n] = native_units_correction['residual_displacement_y']*1000/3600
+
+        # Apply correction
+        logger.warning('Applying ML correction: %s to %s m/s eastwards, %s to %s m/s northwards' %
+                        (x_vel.min(), x_vel.max(), y_vel.min(), y_vel.max()))
+        #logger.warning('%s particles, %s' % (self.num_elements_active(), datetime.now()-st))
+        self.update_positions(x_vel, y_vel)
 
     def disable_vertical_motion(self):
         """Deactivate any vertical processes/advection"""
@@ -234,13 +302,15 @@ class OceanDrift(OpenDriftSimulation):
         pass
 
     def get_diffusivity_profile(self, model):
-        depths = self.environment_profiles['z']
+        depths = np.abs(self.environment_profiles['z'])
         wind, depth = np.meshgrid(self.wind_speed(), depths)
+        MLD = self.environment.ocean_mixed_layer_thickness
+        background_diffusivity = self.get_config('vertical_mixing:background_diffusivity')
 
         if model == 'windspeed_Large1994':
-            return verticaldiffusivity_Large1994(wind, depth)
+            return verticaldiffusivity_Large1994(wind, depth, MLD, background_diffusivity)
         elif model == 'windspeed_Sundby1983':
-            return verticaldiffusivity_Sundby1983(wind, depth)
+            return verticaldiffusivity_Sundby1983(wind, depth, MLD, background_diffusivity)
         elif model == 'gls_tke':
             if not hasattr(self, 'gls_parameters'):
                 logger.info('Searching readers for GLS parameters...')
@@ -301,7 +371,8 @@ class OceanDrift(OpenDriftSimulation):
             else:
                 logger.debug('Using diffusivity from Large1994 since model diffusivities not available')
                 # Using higher vertical resolution when analytical
-                self.environment_profiles['z'] = -np.arange(0, 50)
+                self.environment_profiles['z'] = \
+                        -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
                 Kprofiles = self.get_diffusivity_profile('windspeed_Large1994')
         elif diffusivity_model == 'constant':
             logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (self.fallback_values['ocean_vertical_diffusivity']))
@@ -312,7 +383,8 @@ class OceanDrift(OpenDriftSimulation):
             # Using higher vertical resolution when analytical
             if self.environment_profiles is None:
                 self.environment_profiles = {}
-            self.environment_profiles['z'] = -np.arange(0, 50)
+            self.environment_profiles['z'] = \
+                    -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
             # Note: although analytical functions, z is discretised
             Kprofiles = self.get_diffusivity_profile(diffusivity_model)
 
@@ -427,10 +499,20 @@ class OceanDrift(OpenDriftSimulation):
         else:
             return None
 
-    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None):
-        """Function to animate vertical distribution of particles"""
+    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1):
+        """Function to animate vertical distribution of particles
+            bins:            number of bins in the histogram
+            maxdepth:        maximum depth
+            subsamplingstep: speed-up the generation of the animation reducing the number of output frames
+            fasterwriter:    speed-up the writing to outpute file
+        """
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
+
+        start_time = datetime.now()
+
+        #from timeit import default_timer as timer
+        #start=timer()
 
         fig, (axk, axn) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 3]})
         if depths is not None:  # Debug mode, output from one cycle has been provided
@@ -459,38 +541,54 @@ class OceanDrift(OpenDriftSimulation):
         axk.set_ylabel('Depth [m]')
         axk.set_xlabel('Vertical diffusivity [$m^2/s$]')
 
+        subsamplingstep=max(1,subsamplingstep)
+        times=times[0:-1:subsamplingstep]
+        z=z[0:-1:subsamplingstep,:]
+
         hist_series = np.zeros((bins, len(times)))
         bin_series = np.zeros((bins+1, len(times)))
         for i in range(len(times)):
-            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins)
+            hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(maxdepth,z[np.isfinite(z)].max()))
         maxnum = hist_series.max()
 
+        axn.clear()
+        bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
+        axn.set_ylim([maxdepth, 0])
+        axn.set_xlim([0, maxnum])
+        title=axn.set_title('%s UTC' % times[i])
+        axn.set_xlabel('Number of particles')
+
         def update_histogram(i):
-            axn.clear()
-            axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
-            axn.set_ylim([maxdepth, 0])
-            axn.set_xlim([0, maxnum])
-            axn.set_title('%s UTC' % times[i])
-            axn.set_xlabel('Number of particles')
-            #axn.set_ylabel('Depth [m]')
+            for rect, y in zip(bc, hist_series[:,i]):
+                rect.set_width(y)
+            title.set_text('%s UTC' % times[i])
 
-        animation = animation.FuncAnimation(fig, update_histogram, len(times))
-        if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(animation, filename, fps=10)
-        else:
-            plt.show()
+        self.__save_or_plot_animation__(plt.gcf(),
+                                        update_histogram,
+                                        filename,
+                                        frames = len(times),
+                                        fps = 10,
+                                        interval=50)
 
-    def plot_vertical_distribution(self):
-        """Function to plot vertical distribution of particles"""
+        logger.info('Time to make animation: %s' %
+                    (datetime.now() - start_time))
+
+
+
+
+    def plot_vertical_distribution(self, maxdepth=None, bins=None, maxnum=None):
+        """Function to plot vertical distribution of particles
+
+            maxdepth: maximum depth considered for the profile
+            bins:     number of bins between surface and maxdepth
+            maxnum:   range of bars in histogram is [0,maxnum]
+        """
         import matplotlib.pyplot as plt
-        from matplotlib.widgets import Slider, Button, RadioButtons
-        from pylab import axes, draw
-        from matplotlib import dates
+        from matplotlib.widgets import Slider
 
         fig = plt.figure()
         mainplot = fig.add_axes([.15, .3, .8, .5])
         sliderax = fig.add_axes([.15, .08, .75, .05])
-        data = self.history['z'].T[1, :]
         tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
                          valinit=self.steps_output-1, valfmt='%0.0f')
         try:
@@ -499,13 +597,35 @@ class OceanDrift(OpenDriftSimulation):
             dz = 1.
         maxrange = -100
 
+        # overwrite default values if input arguments are provided
+        if maxdepth is not None:
+            maxrange = maxdepth
+        if maxrange > 0:
+            maxrange = -maxrange  # negative z
+
+        if bins is not None:
+            dz = -maxrange/bins
+
+        # using get_property instead of history to exclude elements thare are not yet seeded
+        z = self.get_property('z')[0]
+        z = np.ma.filled(z, np.nan)
+
+        if maxnum is None:
+            # Precalculatig histograms to find maxnum
+            hist_series = np.zeros((int(-maxrange/dz), self.steps_output-1))
+            bin_series = np.zeros((int(-maxrange/dz)+1, self.steps_output-1))
+            for i in range(self.steps_output-1):
+                hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=int(-maxrange/dz), range=[maxrange, 0])
+            maxnum = hist_series.max()
+
         def update(val):
             tindex = int(tslider.val)
             mainplot.cla()
             mainplot.grid()
-            mainplot.hist(self.history['z'].T[tindex, :], bins=int(-maxrange/dz),
+            mainplot.hist(z[tindex, :], bins=int(-maxrange/dz),
                           range=[maxrange, 0], orientation='horizontal')
             mainplot.set_ylim([maxrange, 0])
+            mainplot.set_xlim([0, maxnum])
             mainplot.set_xlabel('number of particles')
             mainplot.set_ylabel('depth [m]')
             x_wind = self.history['x_wind'].T[tindex, :]
@@ -514,18 +634,22 @@ class OceanDrift(OpenDriftSimulation):
             mainplot.set_title(str(self.get_time_array()[0][tindex]) +
                                #'   Percent at surface: %.1f %' % percent_at_surface)
                                '   Mean windspeed: %.1f m/s' % windspeed)
-            draw()
+            fig.canvas.draw_idle()
 
         update(0)  # Plot initial distribution
         tslider.on_changed(update)
         plt.show()
 
+        # returning objects prevents unresponsiveness when moving the Slider
+        # https://github.com/matplotlib/matplotlib/issues/3105#issuecomment-44855888
+        return fig,mainplot,sliderax,tslider
+
     def plotter_vertical_distribution_time(self, ax=None, mask=None,
             dz=1., maxrange=-100, bins=None, step=1):
         """Function to plot vertical distribution of particles.
 
-	Use mask to plot any selection of particles.
-	"""
+        Use mask to plot any selection of particles.
+        """
         from pylab import axes, draw
         from matplotlib import dates, pyplot
 

@@ -61,10 +61,23 @@ class Chemical(Lagrangian3DArray):
                       'units': 'ug',
                       'seed': True,
                       'default': 1e3}),
-        ('mass_biodegraded', {'dtype': np.float32,
+        ('mass_degraded', {'dtype': np.float32,
+                             'units': 'ug',
+                             'seed': True,
+                             'default': 0}),
+        ('mass_degraded_water', {'dtype': np.float32,
+                             'units': 'ug',
+                             'seed': True,
+                             'default': 0}),
+        ('mass_degraded_sediment', {'dtype': np.float32,
+                             'units': 'ug',
+                             'seed': True,
+                             'default': 0}),
+        ('mass_volatilized', {'dtype': np.float32,
                              'units': 'ug',
                              'seed': True,
                              'default': 0})#,
+
         # ('terminal_velocity', {'dtype': np.float32,
         #                        'units': 'm/s',
         #                        'default': -0.001})  # 1 mm/s negative buoyancy
@@ -108,6 +121,7 @@ class ChemicalDrift(OceanDrift):
         'upward_sea_water_velocity': {'fallback': 0},
         'conc3': {'fallback': 1.e-3},
         'spm': {'fallback': 50},
+        'ocean_mixed_layer_thickness': {'fallback': 50},
 #        'mass_concentration_of_suspended_matter_in_sea_water': {'fallback': 0},
         }
 
@@ -183,41 +197,42 @@ class ChemicalDrift(OceanDrift):
             'chemical:transformations:Kd': {'type': 'float', 'default': 2.0,
                 'min': 0, 'max': 1e9, 'units': '',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:Dc': {'type': 'float', 'default': 1.16e-5,
+            'chemical:transformations:Dc': {'type': 'float', 'default': 1.16e-5,                # Simonsen 2019
                 'min': 0, 'max': 1e6, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:transformations:slow_coeff': {'type': 'float', 'default': 1.2e-7,
+            'chemical:transformations:slow_coeff': {'type': 'float', 'default': 0, #1.2e-7,         # Simonsen 2019
                 'min': 0, 'max': 1e6, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:transformations:evaporation': {'type': 'bool', 'default': False,
+            'chemical:transformations:volatilization': {'type': 'bool', 'default': False,
                 'description': 'Chemical is evaporated.',
                 'level': self.CONFIG_LEVEL_BASIC},
-            'chemical:transformations:biodegradation': {'type': 'bool', 'default': False,
-                'description': 'Chemical mass is biodegraded.',
+            'chemical:transformations:degradation': {'type': 'bool', 'default': False,
+                'description': 'Chemical mass is degraded.',
                 'level': self.CONFIG_LEVEL_BASIC},
-            'chemical:transformations:biodegradation_mode': {'type': 'enum',
+            'chemical:transformations:degradation_mode': {'type': 'enum',
                 'enum': ['Test1','Test2','OverallRateConstants'], 'default': 'Test1',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:transformations:photodegradation': {'type': 'bool', 'default': False,
                 'description': 'Chemical mass is photodegraded.',
                 'level': self.CONFIG_LEVEL_BASIC},
+            # sorption/desorption
             'chemical:transformations:dissociation': {'type': 'enum',
                 'enum': ['nondiss','acid', 'base', 'amphoter'], 'default': 'nondiss',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:LogKOW': {'type': 'float', 'default': 4.46,
-                'min': -3, 'max': 10, 'units': '',
+            'chemical:transformations:LogKOW': {'type': 'float', 'default': 3.361,          # Naphthalene
+                'min': -3, 'max': 10, 'units': 'Log L/Kg',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:TrefKOW': {'type': 'float', 'default': 25.,
-                'min': -3, 'max': 30, 'units': '',
+            'chemical:transformations:TrefKOW': {'type': 'float', 'default': 25.,           # Naphthalene
+                'min': -3, 'max': 30, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:DeltaH_KOC_Sed': {'type': 'float', 'default': -34750.,
-                'min': -100000., 'max': 100000., 'units': '',
+            'chemical:transformations:DeltaH_KOC_Sed': {'type': 'float', 'default': -21036., # Naphthalene
+                'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:DeltaH_KOC_DOM': {'type': 'float', 'default': -25950.,
-                'min': -100000., 'max': 100000., 'units': '',
+            'chemical:transformations:DeltaH_KOC_DOM': {'type': 'float', 'default': -25900., # Naphthalene
+                'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:Setchenow': {'type': 'float', 'default': 0.2724,
-                'min': 0, 'max': 1, 'units': '',
+            'chemical:transformations:Setchenow': {'type': 'float', 'default': 0.2503,      # Naphthalene
+                'min': 0, 'max': 1, 'units': 'L/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:transformations:pKa_acid': {'type': 'float', 'default': -1,
                 'min': 0, 'max': 14, 'units': '',
@@ -225,27 +240,54 @@ class ChemicalDrift(OceanDrift):
             'chemical:transformations:pKa_base': {'type': 'float', 'default': -1,
                 'min': 0, 'max': 14, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            #
-            'chemical:transformations:k_W_tot': {'type': 'float', 'default': 952,
+            # Degradation in water column
+            'chemical:transformations:t12_W_tot': {'type': 'float', 'default': 224.08,      # Naphthalene
                 'min': 1, 'max': None, 'units': 'hours',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'half life in water, total'},
-            'chemical:transformations:Tref_kWt': {'type': 'float', 'default': 25.,
-                'min': -3, 'max': 30, 'units': '',
+            'chemical:transformations:Tref_kWt': {'type': 'float', 'default': 25.,          # Naphthalene
+                'min': -3, 'max': 30, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:DeltaH_kWt': {'type': 'float', 'default': 50000.,
-                'min': -100000., 'max': 100000., 'units': '',
+            'chemical:transformations:DeltaH_kWt': {'type': 'float', 'default': 50000.,     # generic
+                'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            #
-            'chemical:transformations:k_S_tot': {'type': 'float', 'default': 687,
+            # Degradation in sediment layer
+            'chemical:transformations:t12_S_tot': {'type': 'float', 'default': 5012.4,      # Naphthalene
                 'min': 1, 'max': None, 'units': 'hours',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'half life in sediments, total'},
-            'chemical:transformations:Tref_kSt': {'type': 'float', 'default': 4.,
-                'min': -3, 'max': 30, 'units': '',
+            'chemical:transformations:Tref_kSt': {'type': 'float', 'default': 25.,          # Naphthalene
+                'min': -3, 'max': 30, 'units': 'C',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:DeltaH_kSt': {'type': 'float', 'default': 50000.,
-                'min': -100000., 'max': 100000., 'units': '',
+            'chemical:transformations:DeltaH_kSt': {'type': 'float', 'default': 50000.,     # generic
+                'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            # Sediment
+            # Volatilization
+            'chemical:transformations:MolWt': {'type': 'float', 'default': 128.1705,         # Naphthalene
+                'min': 50, 'max': 1000, 'units': 'amu',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'molecular weight'},
+            'chemical:transformations:Henry': {'type': 'float', 'default': 4.551e-4,        # Napththalene
+                'min': None, 'max': None, 'units': 'atm m3 mol-1',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Henry constant'},
+            # vapour pressure
+            'chemical:transformations:Vpress': {'type': 'float', 'default': 11.2,           # Naphthalene
+                'min': None, 'max': None, 'units': 'Pa',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Vapour pressure'},
+            'chemical:transformations:Tref_Vpress': {'type': 'float', 'default': 25.,        # Naphthalene
+                'min': None, 'max': None, 'units': 'C',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Vapour pressure ref temp'},
+            'chemical:transformations:DeltaH_Vpress': {'type': 'float', 'default': 55925.,   # Naphthalene
+                'min': -100000., 'max': 115000., 'units': 'J/mol',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Enthalpy of volatilization'},
+            # solubility
+            'chemical:transformations:Solub': {'type': 'float', 'default': 31.4,            # Naphthalene
+                'min': None, 'max': None, 'units': 'g/m3',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Solubility'},
+            'chemical:transformations:Tref_Solub': {'type': 'float', 'default': 25.,         # Naphthalene
+                'min': None, 'max': None, 'units': 'C',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Solubility ref temp'},
+            'chemical:transformations:DeltaH_Solub': {'type': 'float', 'default': 25300.,    # Naphthalene
+                'min': -100000., 'max': 100000., 'units': 'J/mol',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Enthalpy of solubilization'},
+            # Sedimentation/Resuspension
             'chemical:sediment:mixing_depth': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
@@ -450,7 +492,8 @@ class ChemicalDrift(OceanDrift):
         super(ChemicalDrift, self).seed_elements(*args, **kwargs)
 
     def tempcorr(self,mode,DeltaH,T_C,Tref_C):
-
+        ''' Temperature correction using Arrhenius or Q10 method
+        '''
         if mode == 'Arrhenius':
             R = 8.3145 # J/(mol*K)
             T_K = T_C + 273.15
@@ -461,7 +504,8 @@ class ChemicalDrift(OceanDrift):
         return corr
 
     def salinitycorr(self,Setschenow,Temperature,Salinity):
-
+        ''' Salinity correction
+        '''
         # Setschenow constant for the given chemical (L/mol)
         # Salinity   (PSU =g/Kg)
         # Temperature (Celsius)
@@ -481,9 +525,9 @@ class ChemicalDrift(OceanDrift):
 
         corr=10**(Setschenow*ConcSalt)
 
-        logger.debug('ConcSalt: %s' % ConcSalt)
-        logger.debug('Dsw: %s' % Dens_sw)
-        logger.debug('corr: %s' % corr)
+        #logger.debug('ConcSalt: %s' % ConcSalt)
+        #logger.debug('Dsw: %s' % Dens_sw)
+        #logger.debug('corr: %s' % corr)
 
         return corr
 
@@ -564,10 +608,10 @@ class ChemicalDrift(OceanDrift):
 
                 #TODO: calculation of KOC for ionic chemicals
 
-            logger.info('Partitioning coefficients (Tref,freshwater)')
-            logger.info('KOC_sed: %s L/KgOC' % KOC_sed)
-            logger.info('KOC_SPM: %s L/KgOC' % KOC_SPM)
-            logger.info('KOC_DOM: %s L/KgOC' % KOC_DOM)
+            logger.debug('Partitioning coefficients (Tref,freshwater)')
+            logger.debug('KOC_sed: %s L/KgOC' % KOC_sed)
+            logger.debug('KOC_SPM: %s L/KgOC' % KOC_SPM)
+            logger.debug('KOC_DOM: %s L/KgOC' % KOC_DOM)
 
             #KOM_sed = KOC_sed * Org2C #  L/KgOC * KgOC/KgOM = L/KgOM
             #KOM_SPM = KOC_sed * Org2C #  L/KgOC * KgOC/KgOM = L/KgOM
@@ -579,9 +623,9 @@ class ChemicalDrift(OceanDrift):
             self.Kd_DOM = Kd_DOM = KOC_DOM * Org2C      # L/KgOC * KgOC/KgOM * 1KgOM/Kg = L/Kg (=KOM_DOM)
             # TODO Use setconfig() to store these?
 
-            logger.info('Kd_sed: %s L/Kg' % Kd_sed)
-            logger.info('Kd_SPM: %s L/Kg' % Kd_SPM)
-            logger.info('Kd_DOM: %s L/Kg' % Kd_DOM)
+            logger.debug('Kd_sed: %s L/Kg' % Kd_sed)
+            logger.debug('Kd_SPM: %s L/Kg' % Kd_SPM)
+            logger.debug('Kd_DOM: %s L/Kg' % Kd_DOM)
 
             # From Karickhoff and Morris 1985
             k_ads = 33.3 / (60*60) # L/(Kg*s) = 33 L/(kgOM*h)
@@ -792,8 +836,8 @@ class ChemicalDrift(OceanDrift):
 #         self.transfer_rates[:] = 0.
 #         print ('\n ###### \n IMPORTANT:: \n transfer rates have been hacked! \n#### \n ')
 
-        logger.info('nspecies: %s' % self.nspecies)
-        logger.info('Transfer rates:\n %s' % self.transfer_rates)
+        logger.debug('nspecies: %s' % self.nspecies)
+        logger.debug('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -858,6 +902,8 @@ class ChemicalDrift(OceanDrift):
 
         # terminal velocity for low Reynolds numbers
         W = (1.0/my_w)*(1.0/18.0)*g*partsize**2 * dr
+
+        #W=np.zeros_like(W) #Setting to zero for debugging
 
         self.elements.terminal_velocity = W
 
@@ -1177,11 +1223,11 @@ class ChemicalDrift(OceanDrift):
         specie_out = self.elements.specie.copy()
         self.update_chemical_diameter(specie_in, specie_out)
 
-    def biodegradation(self):
-        '''Biodegradation. Test implementations'''
+    def degradation(self):
+        '''degradation. Test implementations'''
 
-        def biodegradation_factors():
-            '''Factors for specie dependent biodegradation'''    
+        def degradation_factors(): # NB Only used for testing
+            '''Factors for specie dependent degradation'''
 
             # self.num_lmm    = self.specie_name2num('LMM')
             # self.num_prev   = self.specie_name2num('Particle reversible')
@@ -1197,29 +1243,29 @@ class ChemicalDrift(OceanDrift):
             factors[self.elements.specie==self.num_ssrev]=.125
             return factors
         
-        if self.get_config('chemical:transformations:biodegradation') is True:
-            if self.get_config('chemical:transformations:biodegradation_mode')=='Test1':
-                logger.debug('Calculating: biodegradation - mode Test1')
+        if self.get_config('chemical:transformations:degradation') is True:
+            if self.get_config('chemical:transformations:degradation_mode')=='Test1':
+                logger.debug('Calculating: degradation - mode Test1')
                 
-                fraction_biodegraded = .1
-                biodegraded_now = self.elements.mass*fraction_biodegraded
+                fraction_degraded = .1
+                degraded_now = self.elements.mass*fraction_degraded
     
-            elif self.get_config('chemical:transformations:biodegradation_mode')=='Test2':
-                logger.debug('Calculating: biodegradation - Mode Test2')
+            elif self.get_config('chemical:transformations:degradation_mode')=='Test2':
+                logger.debug('Calculating: degradation - Mode Test2')
 
-                fraction_biodegraded = .01*biodegradation_factors()
-                biodegraded_now = self.elements.mass*fraction_biodegraded
+                fraction_degraded = .01*degradation_factors()
+                degraded_now = self.elements.mass*fraction_degraded
     
-            elif self.get_config('chemical:transformations:biodegradation_mode')=='OverallRateConstants':
+            elif self.get_config('chemical:transformations:degradation_mode')=='OverallRateConstants':
                 # TODO: Rearrange code. Calculations here are for overall degradation including
-                # biodegradation, photodegradation, and hydrolysys
+                # degradation, photodegradation, and hydrolysys
 
                 logger.debug('Calculating overall degradation using overall rate constants')
 
-                biodegraded_now = np.zeros(self.num_elements_active())
+                degraded_now = np.zeros(self.num_elements_active())
 
                 # Degradation in the water
-                k_W_tot = -np.log(0.5)/(self.get_config('chemical:transformations:k_W_tot')*(60*60)) # (1/s)
+                k_W_tot = -np.log(0.5)/(self.get_config('chemical:transformations:t12_W_tot')*(60*60)) # (1/s)
                 Tref_kWt = self.get_config('chemical:transformations:Tref_kWt')
                 DH_kWt = self.get_config('chemical:transformations:DeltaH_kWt')
 
@@ -1231,11 +1277,11 @@ class ChemicalDrift(OceanDrift):
 
                 k_W_fin = k_W_tot * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
 
-                biodegraded_now[W] = self.elements.mass[W] * (1-np.exp(-k_W_fin * self.time_step.seconds))
+                degraded_now[W] = self.elements.mass[W] * (1-np.exp(-k_W_fin * self.time_step.seconds))
 
                 # Degradation in the sediments
 
-                k_S_tot = -np.log(0.5)/(self.get_config('chemical:transformations:k_S_tot')*(60*60)) # (1/s)
+                k_S_tot = -np.log(0.5)/(self.get_config('chemical:transformations:t12_S_tot')*(60*60)) # (1/s)
                 Tref_kSt = self.get_config('chemical:transformations:Tref_kSt')
                 DH_kSt = self.get_config('chemical:transformations:DeltaH_kSt')
 
@@ -1247,11 +1293,21 @@ class ChemicalDrift(OceanDrift):
 
                 k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
 
-                biodegraded_now[S] = self.elements.mass[S] * (1-np.exp(-k_S_fin * self.time_step.seconds))
+                degraded_now[S] = self.elements.mass[S] * (1-np.exp(-k_S_fin * self.time_step.seconds))
 
-            self.elements.mass_biodegraded = self.elements.mass_biodegraded + biodegraded_now
-            self.elements.mass = self.elements.mass - biodegraded_now
-            self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_biodegraded)/100, reason='biodegraded')
+            self.elements.mass_degraded_water[W] = self.elements.mass_degraded_water[W] + degraded_now[W]
+            self.elements.mass_degraded_sediment[S] = self.elements.mass_degraded_sediment[S] + degraded_now[S]
+
+            self.elements.mass_degraded = self.elements.mass_degraded + degraded_now
+            self.elements.mass = self.elements.mass - degraded_now
+            self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100, 
+                                     reason='removed')
+
+            #to_deactivate = self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100
+            #vol_morethan_degr = self.elements.mass_degraded >= self.elements.mass_volatilized
+            #
+            #self.deactivate_elements(to_deactivate +  vol_morethan_degr, reason='volatilized')
+            #self.deactivate_elements(to_deactivate + ~vol_morethan_degr, reason='degraded')
 
         else:
 
@@ -1277,10 +1333,118 @@ class ChemicalDrift(OceanDrift):
                 #AvailableCorr=1/(1+Kd_Sed_fin*(sed_dens/1000)*(1-sed_poro)/sed_poro)
             pass
     
-    def evaporation(self):
-        if self.get_config('chemical:transformations:evaporation') is True:
-            logger.debug('Calculating: evaporation')        
-        else:    
+    def volatilization(self):
+        if self.get_config('chemical:transformations:volatilization') is True:
+            logger.debug('Calculating: volatilization')
+            volatilized_now = np.zeros(self.num_elements_active())
+
+            MolWtCO2=44
+            MolWtH2O=18
+            MolWt=self.get_config('chemical:transformations:MolWt')
+            wind=5                  # (m/s) (to read from atmosferic forcing)
+            mixedlayerdepth=50      # m     (to read from ocean forcing)
+            Undiss_n=1              # 1 for PAHs
+
+            Henry=self.get_config('chemical:transformations:Henry') # (atm m3/mol)
+
+            Vp=self.get_config('chemical:transformations:Vpress')
+            Tref_Vp=self.get_config('chemical:transformations:Tref_Vpress')
+            DH_Vp=self.get_config('chemical:transformations:DeltaH_Vpress')
+
+            Slb=self.get_config('chemical:transformations:Solub')
+            Tref_Slb=self.get_config('chemical:transformations:Tref_Solub')
+            DH_Slb=self.get_config('chemical:transformations:DeltaH_Solub')
+
+            R=8.206e-05 #(atm m3)/(mol K)
+
+            mixedlayerdepth = self.environment.ocean_mixed_layer_thickness
+
+            # mask of dissolved elements within mixed layer
+            W =     (self.elements.specie == self.num_lmm) \
+                  * (-self.elements.z <= mixedlayerdepth)
+                    # does volatilization apply only to num_lmm?
+                    # check
+
+            mixedlayerdepth = mixedlayerdepth[W]
+
+            T=self.environment.sea_water_temperature[W]
+            T[T==0]=np.median(T)                            # temporary fix for missing values
+
+            S=self.environment.sea_water_salinity[W]
+
+            wind=(self.environment.x_wind[W]**2 + self.environment.y_wind[W]**2)**.5
+
+            Henry=(      (Vp * self.tempcorr("Arrhenius",DH_Vp,T,Tref_Vp)))   \
+                       / (Slb *  self.tempcorr("Arrhenius",DH_Slb,T,Tref_Slb))  \
+                       * MolWt / 101325.    # atm m3 mol-1
+
+            #k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
+
+            # Calculate mass transfer coefficient water side
+            # Schwarzenbach et al., 2016 Eq.(19-20)
+
+            MTCw = ((9e-4)+(7.2e-6*wind**3)) * (MolWtCO2/MolWt)**0.25 / Undiss_n
+
+            # Calculate mass transfer coefficient air side
+            # Schwarzenbach et al., 2016 Eq.(19-17)(19-18)(19-19)
+
+            # Simple
+            #MTCaH2O = 0.1 + 0.11 * wind
+
+            # More complex
+            Sca_H2O = 0.62                                  # 0.6 in the book. check
+            MTCaH2O = 0.1 + wind*(6.1+0.63*wind)**0.5 \
+                /(13.3*(Sca_H2O)**0.5 + (6.1e-4+(6.3e-5)*wind)**-0.5 -5 + 1.25*np.log(Sca_H2O) )
+
+            MTCa = MTCaH2O * (MolWtH2O/MolWt)**(1/3)
+
+            # Calculate overall volatilization mass tansfer coefficient
+
+            HenryLaw = Henry * (1 + 0.01143 * S) / ( R * (T+273.15) )
+
+            MTCvol = 1 / ( 1/MTCw + 1/(MTCa * HenryLaw))     # (cm/s)
+            #mixedlayerdepth = self.environment.ocean_mixed_layer_thickness[W]
+            #Thick = np.clip(self.environment.sea_floor_depth_below_sea_level[W],0,mixedlayerdepth) # (m)
+            Thick = mixedlayerdepth
+
+            # Degubbing information to screen
+            #print('################### Volatilization-info ##################')
+            #print('Mixed Layer   ',len(mixedlayerdepth),min(mixedlayerdepth),max(mixedlayerdepth),'m')
+            #print('Temperature   ',len(T),min(T),max(T),'C')
+            #print('Salinity      ',len(S),min(S),max(S))
+            #print('Henry         ',len(Henry),min(Henry),max(Henry),'atm m3 / mol')
+            #print('HenryLaw      ',len(HenryLaw),min(HenryLaw),max(HenryLaw))
+            #print('wind          ',len(wind),min(wind),max(wind), 'm/s')
+            #print('MTCa          ',len(MTCa),min(MTCa),max(MTCa),'cm/s')
+            #print('MTCw          ',len(MTCw),min(MTCw),max(MTCw),'cm/s')
+            #print('MTCa*HenryLaw ',len(MTCa*HenryLaw),min(MTCa*HenryLaw),max(MTCa*HenryLaw),'cm/s')
+            #print('MTCvol        ',len(MTCvol),min(MTCvol),max(MTCvol),'cm/s')
+
+            K_volatilization = 0.01 * MTCvol / Thick # (1/s)
+
+            #logger.debug('MTCa: %s cm/s' % MTCa)
+            #logger.debug('MTCw: %s cm/s' % MTCw)
+            #logger.debug('Henry: %s ' % HenryLaw)
+            #logger.debug('MTCvol: %s cm/s' % MTCvol)
+            #logger.debug('T: %s C' % T)
+            #logger.debug('S: %s ' % S)
+            #logger.debug('Thick: %s ' % Thick)
+
+            volatilized_now[W] = self.elements.mass[W] * (1-np.exp(-K_volatilization * self.time_step.seconds))
+
+            self.elements.mass_volatilized = self.elements.mass_volatilized + volatilized_now
+            self.elements.mass = self.elements.mass - volatilized_now
+            self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100, 
+                                     reason='removed')
+
+            #to_deactivate = self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100
+            #vol_morethan_degr = self.elements.mass_degraded >= self.elements.mass_volatilized
+            #
+            #self.deactivate_elements(to_deactivate +  vol_morethan_degr, reason='volatilized')
+            #self.deactivate_elements(to_deactivate + ~vol_morethan_degr, reason='degraded')
+
+
+        else:
             pass
 
     def update(self):
@@ -1289,10 +1453,10 @@ class ChemicalDrift(OceanDrift):
         # Workaround due to conversion of datatype
         self.elements.specie = self.elements.specie.astype(np.int32)
 
-        # Degradation and evaporation
-        self.biodegradation()
+        # Degradation and volatilization
+        self.degradation()
         self.photodegradation()
-        self.evaporation()
+        self.volatilization()
 
         # Chemical speciation
         self.update_transfer_rates()
@@ -1749,7 +1913,7 @@ class ChemicalDrift(OceanDrift):
 
         return num_coarse
     
-    def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", **kwargs):
+    def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", mass_element_ug=100e3, **kwargs):
             """Seed elements based on a dataarray with STEAM emission data
     
             Arguments:
@@ -1763,35 +1927,268 @@ class ChemicalDrift(OceanDrift):
                 lowerbound:  scalar, elements with lower values are discarded
             """
 
-            mass_element_ug=1e3      # 1e3 - 1 element is 1mg chemical
-            #ug_per_element=1e6     # 1e6 - 1 element is 1g chemical
+            #mass_element_ug=1e3      # 1e3 - 1 element is 1mg chemical
+            #mass_element_ug=20e3      # 100e3 - 1 element is 100mg chemical
+            #mass_element_ug=100e3      # 100e3 - 1 element is 100mg chemical
+            #mass_element_ug=1e6     # 1e6 - 1 element is 1g chemical
 
             def emission_factors(scrubber_type, chemical_compound):
+                """Emission factors for heavy metals and PAHs in
+                    open loop and closed loop scrubbers
+
+                    Hermansson et al 2021
+                    https://doi.org/10.1016/j.trd.2021.102912
+                """
                 emission_factors_open_loop = {
-                    "Copper": 38.75,                # ug/L micrograms per liter
-                    "Nickel": 46.86,
-                    "Vanadium": 176.59,
-                    "Zinc": 110.84,
-                    "Naphthalene": 2.76,
-                    "Phenanthrene": 1.51
+                    #                           mean    +/-95%
+                    #                           ug/L    ug/L
+                    "Arsenic":                  [6.8,    3.4],
+                    "Cadmium":                  [0.8,    0.3],
+                    "Chromium":                 [15.,    6.5],
+                    "Copper":                   [36.,    12.],
+                    "Iron":                     [260.,   250.],
+                    "Lead":                     [8.8,    4.4],
+                    "Mercury":                  [0.09,   0.01],
+                    "Nickel":                   [48.,    12.],
+                    "Vanadium":                 [170.,   49.],
+                    "Zinc":                     [110.,   59.],
+                    #
+                    "Naphthalene":              [2.81,   0.77],
+                    "Phenanthrene":             [1.51,   0.29],
+                    "Fluoranthene":             [0.16,   0.04],
+                    "Benzo(a)anthracene":       [0.12,   0.05],
+                    "Benzo(a)pyrene":           [0.05,   0.02],
+                    "Dibenzo(a,h)anthracene":   [0.03,   0.01],
                     }
 
                 emission_factors_closed_loop = {
                     }
 
                 if scrubber_type=="open_loop":
-                    return emission_factors_open_loop.get(chemical_compound)
+                    return emission_factors_open_loop.get(chemical_compound)[0]
+                    # TODO: Add emission uncertainty based on 95% confidence interval
 
             sel=np.where((steam > lowerbound) & (steam < higherbound))
             t=steam.time[sel[0]].data
             la=steam.latitude[sel[1]].data
             lo=steam.longitude[sel[2]].data
+
+            data=np.array(steam.data)
+
             for i in range(0,t.size):
-                scrubberwater_vol_l=steam.data[sel][i]
+                scrubberwater_vol_l=data[sel][i]
                 mass_ug=scrubberwater_vol_l * emission_factors(scrubber_type, chemical_compound)
 
                 number=np.array(mass_ug / mass_element_ug).astype('int')
+
                 if number>0:
+                    z = -1*np.random.uniform(0, 1, number)
                     self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
                                 radius=radius, number=number, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
-                                mass=mass_element_ug,mass_biodegraded=0)
+                                mass=mass_element_ug,mass_degraded=0,mass_volatilized=0, z=z)
+
+                mass_residual = mass_ug - number*mass_element_ug
+
+                if mass_residual>0:
+                    z = -1*np.random.uniform(0, 1, 1)
+                    self.seed_elements(lon=lo[i], lat=la[i],
+                                radius=radius, number=1, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
+                                mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z)
+
+    def init_chemical_compound(self,chemical_compound):
+        ''' Chemical parameters for a selection of PAHs:
+            Naphthalene, Phenanthrene, Fluorene,
+            Benzo(a)anthracene, Benzo(a)pyrene, Dibenzo(a,h)anthracene
+
+            Data collected from literature by
+            Isabel Hanstein (University of Heidelberg / Norwegian Meteorological Insitute)
+            Mattia Boscherini, Loris Calgaro (University Ca' Foscari, Venezia)
+            Manuel Aghito (Norwegian Meteorological Institute / University of Bergen)
+        '''
+
+        if  chemical_compound=="Naphthalene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW',3.361)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed',-21036)
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM',-25900)                 ### Phenanthrene value
+            self.set_config('chemical:transformations:Setchenow', 0.2503)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 224.08)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 5012.4)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 128.1705)
+            self.set_config('chemical:transformations:Henry', 4.551e-4)
+
+            self.set_config('chemical:transformations:Vpress', 11.2)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 55925)
+
+            self.set_config('chemical:transformations:Solub', 31.4)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 25300)
+
+        elif  chemical_compound=="Phenanthrene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW',4.505)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed',-24900)
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM',-25900)
+            self.set_config('chemical:transformations:Setchenow', 0.3026)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1125.79)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 29124.96)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 178.226)
+            self.set_config('chemical:transformations:Henry', 4.294e-5)
+
+            self.set_config('chemical:transformations:Vpress', 0.0222)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 71733)
+
+            self.set_config('chemical:transformations:Solub', 1.09)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 34800)
+
+        elif  chemical_compound=="Fluoranthene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW',5.089)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed',-47413)
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM',-27900)
+            self.set_config('chemical:transformations:Setchenow', 0.2885)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1705.02)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 55000)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 202.26)
+            self.set_config('chemical:transformations:Henry', 1.439e-5)
+
+            self.set_config('chemical:transformations:Vpress', 0.00167)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 79581)
+
+            self.set_config('chemical:transformations:Solub', 0.231)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 30315)
+
+        elif  chemical_compound=="Benzo(a)anthracene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW',5.724)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed', -38000)                ### Pyrene value
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM', -25400)                ### Pyrene value
+            self.set_config('chemical:transformations:Setchenow', 0.3605)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1467.62)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 46600)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 228.29)
+            self.set_config('chemical:transformations:Henry', 6.149e-6)
+
+            self.set_config('chemical:transformations:Vpress', 0.0000204)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 100680)
+
+            self.set_config('chemical:transformations:Solub', 0.011)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 46200)
+
+        elif  chemical_compound=="Benzo(a)pyrene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW', 6.124)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed', -43700)                ### mean value 16 PAHs
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM', -31280)
+            self.set_config('chemical:transformations:Setchenow', 0.171)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1491.42)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 44934.76)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 252.32)
+            self.set_config('chemical:transformations:Henry', 6.634e-7)
+
+            self.set_config('chemical:transformations:Vpress', 0.00000136)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 107887)
+
+            self.set_config('chemical:transformations:Solub', 0.00229)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 38000)
+
+        elif  chemical_compound=="Dibenzo(a,h)anthracene":
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')
+            self.set_config('chemical:transformations:LogKOW', 6.618)
+            self.set_config('chemical:transformations:TrefKOW',25)
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed', -43700)                ### mean value 16 PAHs
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM', -30900)
+            self.set_config('chemical:transformations:Setchenow', 0.338)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 1464.67)
+            self.set_config('chemical:transformations:Tref_kWt', 25)
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)                     ### generic
+            self.set_config('chemical:transformations:t12_S_tot', 40890.08)
+            self.set_config('chemical:transformations:Tref_kSt', 25)
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)                     ### generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 278.35)
+            self.set_config('chemical:transformations:Henry', 4.894e-8)
+
+            self.set_config('chemical:transformations:Vpress', 0.0000000427)
+            self.set_config('chemical:transformations:Tref_Vpress', 25)
+            self.set_config('chemical:transformations:DeltaH_Vpress', 112220)
+
+            self.set_config('chemical:transformations:Solub', 0.00142)
+            self.set_config('chemical:transformations:Tref_Solub', 25)
+            self.set_config('chemical:transformations:DeltaH_Solub', 38000)                   ### Benzo(a)pyrene value
+

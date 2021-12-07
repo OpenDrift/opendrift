@@ -45,7 +45,8 @@ sphinx_gallery_conf = {
      'backreferences_dir': None,
      'capture_repr': ('_repr_html_', '__repr__'),
      'abort_on_example_error': False,
-     'thumbnail_size': (300, 300)
+     'thumbnail_size': (300, 300),
+     'junit': '../../test-results/sphinx-gallery/junit.xml',
 }
 
 # Remove matplotlib agg warnings from generated doc when using plt.show
@@ -85,10 +86,7 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # override wide tables in RTD theme
-        ],
-     }
-
+html_css_files = [
+        'theme_overrides.css'
+        ]
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 SHYFEM: Using model input from unstructured grid
-===============================================
+================================================
 """
 
 from datetime import timedelta
@@ -41,3 +41,4 @@ o.animation_profile(color='z', markersize=5)
 #%%
 # .. image:: /gallery/animations/example_shyfem_0.gif
 o.plot(fast=True, buffer = 1., corners=[12.2, 12.6, 45.1, 45.5])
+

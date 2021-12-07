@@ -3,6 +3,12 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Blanken H, Valeo C, Hannah C, Khan UT and Juhász T (2021) A Fuzzy-Based Framework for Assessing Uncertainty in Drift Prediction Using Observed Currents and Winds. Front. Mar. Sci. 8:618094. http://doi.org/10.3389/fmars.2021.618094
+
+Cristiani J, Rubidge E, Forbes C, Moore-Maley B and O’Connor MI (2021) A Biophysical Model and Network Analysis of Invertebrate Community Dispersal Reveals Regional Patterns of Seagrass Habitat Connectivity. Front. Mar. Sci. 8:717469. https://doi.org/10.3389/fmars.2021.717469
+
+Tinker J and Hermanson L (2021) Towards Winter Seasonal Predictability of the North West European Shelf Seas. Front. Mar. Sci. 8:698997. https://doi.org/10.3389/fmars.2021.698997
+
 Kotzakoulakis, K., & George, S. (2021). Advanced oil spill modeling and simulation techniques. In M. R. Riazi (Ed.), Oil spill occurrence, simulation and behavior (pp. 225-264). CRC Press, Taylor & Francis Group. https://doi.org/10.1201/9780429432156
 
 Reche P., Artal O., Pinilla E., Ruiz C., Venegas O., Arriagada A., Falvey M., CHONOS: Oceanographic information website for Chilean Patagonia, Ocean & Coastal Management, Volume 208, 1 July 2021, https://doi.org/10.1016/j.ocecoaman.2021.105634
@@ -36,7 +42,7 @@ Brekke, C., Espeseth, M. M., Dagestad, K.-F., Röhrs, J., Hole, L. R., & Reigber
 
 Devis-Morales, A., Rodríguez-Rubio, E. & Montoya-Sánchez, R.A. Modelling the transport of sediment discharged by Colombian rivers to the southern Caribbean Sea. Ocean Dynamics (2021). https://doi.org/10.1007/s10236-020-01431-y
 
-Gancheva I., Peneva E., Remote Sensing and Modelling of the Mopang Oil Pollution near the Bulgarian Black Sea Coast, https://www.researchgate.net/publication/349177048_Remote_Sensing_and_Modelling_of_the_Mopang_Oil_Pollution_near_the_Bulgarian_Black_Sea_Coast
+Gancheva I., Peneva E. (2021) Remote Sensing and Modelling of the Mopang Oil Pollution Near the Bulgarian Black Sea Coast. In: Dobrinkova N., Gadzhev G. (eds) Environmental Protection and Disaster Risks. EnviroRISK 2020. Studies in Systems, Decision and Control, vol 361. Springer, Cham. https://doi.org/10.1007/978-3-030-70190-1_26
 
 El Rahi, J., Weeber M.P., El Serafya, G., Modelling the effect of behavior on the distribution of the jellyfish Mauve stinger (Pelagianoctiluca) in the Balearic Sea using an individual-based model, Ecological Modelling, Volume 433, Oct. 2020, https://doi.org/10.1016/j.ecolmodel.2020.109230
 

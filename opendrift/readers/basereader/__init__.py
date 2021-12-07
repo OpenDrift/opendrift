@@ -69,6 +69,7 @@ class BaseReader(Variables):
         'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
         'barotropic_sea_water_y_velocity': 'sea_ice_y_velocity',
         'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity',
+        'ocean_mixed_layer_thickness_defined_by_sigma_theta': 'ocean_mixed_layer_thickness',
         'sea_floor_depth_below_sea_surface' : 'sea_floor_depth_below_sea_level',
         'sea_floor_depth_below_geoid' : 'sea_floor_depth_below_sea_level',
         'mass_concentration_of_suspended_matter_in_sea_water' : 'spm'
@@ -173,9 +174,9 @@ class BaseReader(Variables):
         else:
             return False
 
-    def prepare(self, extent, start_time, end_time):
+    def prepare(self, extent, start_time, end_time, max_speed):
         """Prepare reader for given simulation coverage in time and space."""
-        logger.debug('Nothing to prepare for ' + self.name)
+        logger.debug('Nothing more to prepare for ' + self.name)
         pass  # to be overriden by specific readers
 
     def rotate_variable_dict(self, variables, proj_from='+proj=latlong', proj_to=None):
@@ -401,7 +402,7 @@ class BaseReader(Variables):
             for var in variables:
                 data[var][i] = d[var][0]
 
-        return(data)
+        return data 
 
     def shift_start_time(self, start_time):
         """Shift the time coverage of reader to match given start_time"""

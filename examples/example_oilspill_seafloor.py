@@ -43,7 +43,7 @@ o.animation_profile()
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_0.gif
 
-o.animate_vertical_distribution(bins=30)
+o.animate_vertical_distribution(bins=30, subsamplingstep=5)
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_1.gif
 

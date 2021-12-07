@@ -18,12 +18,31 @@
 # Copyright 2019, Knut-Frode Dagestad, MET Norway
 
 import os
-import time
 import pytest
 
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
+@pytest.mark.slow
+def test_fast_plot(show_plot, tmpdir):
+    o = OceanDrift(loglevel=30)
+    rn = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+    o.add_reader(rn)
+    o.seed_elements(lon=4.8, lat=60.0, number=10, radius=1000,
+                    time=rn.start_time)
+    o.run(steps=5)
+
+    o.plot(fast=True, filename=None if show_plot else tmpdir / 'test.png')
+
+@pytest.mark.slow
+def test_slow_plot(show_plot, tmpdir):
+    o = OceanDrift(loglevel=30)
+    rn = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+    o.add_reader(rn)
+    o.seed_elements(lon=4.8, lat=60.0, number=10, radius=1000,
+                    time=rn.start_time)
+    o.run(steps=5)
+    o.plot(fast=False, filename=None if show_plot else tmpdir / 'test.png')
 
 @pytest.mark.veryslow
 def test_plot(tmpdir):
@@ -54,7 +73,7 @@ def test_plot(tmpdir):
     # Second run for comparison
     o2 = OceanDrift(loglevel=30)
     o2.add_reader(rn)
-    o2.set_config('environment:fallback:x_wind', 15) # Adding wind 
+    o2.set_config('environment:fallback:x_wind', 15) # Adding wind
     o2.set_config('environment:fallback:y_wind', 0)
     o2.seed_elements(lon=4.8, lat=60.0, number=10, radius=1000,
                     time=rn.start_time)

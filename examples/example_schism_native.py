@@ -38,7 +38,6 @@ schism_native = reader_schism_native.Reader(filename = 'https://thredds.met.no/t
 o.add_reader([reader_custom,schism_native])
 o.set_config('general:use_auto_landmask', False) # prevent opendrift from making a new dynamical landmask with global_landmask
 
-
 # Seed elements at defined positions, depth and time
 o.seed_elements(lon=174.046669, lat=-40.928116, radius=20, number=100,
                 z=np.linspace(0,-10, 100), time=schism_native.start_time)
@@ -55,10 +54,6 @@ o.disable_vertical_motion()  #Deactivate any vertical processes/advection"""
 o.run(time_step=900, 
 	  end_time = schism_native.start_time+timedelta(days=1.0))
 	  # outfile='schism_native_output.nc')
-
-#
-# import pdb;pdb.set_trace()
-
 # Print and plot results
 print(o)
 o.plot(fast=True)
