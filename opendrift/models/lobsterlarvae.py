@@ -430,6 +430,6 @@ class LobsterLarvae(BivalveLarvae):
 
         # Mortality due to shore proximity (<20km)
         # slow, may be more relevant to apply in post-processing 
-        if False: 
+        if True: 
             self.phyllosoma_mortality()
             
