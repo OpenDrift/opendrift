@@ -3755,7 +3755,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         else:
             logger.debug("Showing animation..")
-            animation.FuncAnimation(figure,
+            anim=animation.FuncAnimation(figure,
                                     plot_timestep,
                                     blit=blit,
                                     frames=frames,
