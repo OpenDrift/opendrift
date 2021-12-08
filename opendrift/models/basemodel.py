@@ -3476,9 +3476,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                 cd['index_of_last_deactivated_other'] < i],
                             cd['y_other_deactive'][
                                 cd['index_of_last_deactivated_other'] < i]])
-                    return points, cd['points_other'],
+                    return points, points_deactivated, cd['points_other'],
                 else:
-                    return points,
+                    return points, points_deactivated,
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
@@ -3807,9 +3807,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 points_other_deactivated.set_data(
                     x_other_deactive[index_of_last_deactivated_other < i],
                     z_other_deactive[index_of_last_deactivated_other < i])
-                return points, points_other
+                return points, points_deactivated, points_other,
             else:
-                return points
+                return points, points_deactivated,
 
         PlotColors = (compare is None) and (legend != ['', ''])
         if PlotColors:
