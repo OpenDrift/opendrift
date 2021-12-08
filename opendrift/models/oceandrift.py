@@ -568,7 +568,8 @@ class OceanDrift(OpenDriftSimulation):
                                         filename,
                                         frames = len(times),
                                         fps = 10,
-                                        interval=50)
+                                        interval=50,
+                                        blit=False)
 
         logger.info('Time to make animation: %s' %
                     (datetime.now() - start_time))

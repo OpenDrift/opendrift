@@ -3729,19 +3729,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if compare is not None:
             frames = min(x.shape[0], cd['x_other'].shape[1])
 
+        blit = sys.platform != 'darwin'  # blitting does not work on mac os
+
         self.__save_or_plot_animation__(plt.gcf(),
                                         plot_timestep,
                                         filename,
                                         frames,
                                         fps,
-                                        interval=50)
+                                        interval=50,
+                                        blit = blit)
 
         logger.info('Time to make animation: %s' %
                     (datetime.now() - start_time))
 
     def __save_or_plot_animation__(self, figure, plot_timestep, filename,
-                                   frames, fps, interval):
-        blit = sys.platform != 'darwin'  # blitting does not work on mac os
+                                   frames, fps, interval, blit):
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
             logger.debug("Saving animation..")
@@ -3922,7 +3924,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                         filename,
                                         x.shape[1],
                                         fps,
-                                        interval=150)
+                                        interval=150,
+                                        blit=False)
 
         logger.info('Time to make animation: %s' %
                     (datetime.now() - start_time))
