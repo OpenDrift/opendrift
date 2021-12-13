@@ -446,7 +446,7 @@ class OceanDrift(OpenDriftSimulation):
             w = self.elements.terminal_velocity
 
             # Diffusivity and its gradient at z
-            zi = np.round(z_index(-self.elements.z)).astype(np.uint8)
+            zi = np.round(z_index(-self.elements.z)).astype(np.uint16)
             Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
             dKdz = gradK[zi, range(Kprofiles.shape[1])]
 
