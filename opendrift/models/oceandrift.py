@@ -450,9 +450,13 @@ class OceanDrift(OpenDriftSimulation):
             Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
             dKdz = gradK[zi, range(Kprofiles.shape[1])]
 
-            # Visser et al. 1996 random walk mixing
+            # Visser et al. 1997 random walk mixing
             # requires an inner loop time step dt such that
             # dt << (d2K/dz2)^-1, e.g. typically dt << 15min
+            #
+            # NB: In the last term Kz is evaluated in zi, while
+            # it should be evaluated in (self.elements.z - dKdz*dt_mix)
+            # This is not expected have large impact on the result
             R = 2*np.random.random(self.num_elements_active()) - 1
             r = 1.0/3
             # New position  =  old position   - up_K_flux   + random walk
