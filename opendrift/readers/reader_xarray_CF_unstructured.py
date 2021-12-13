@@ -37,7 +37,7 @@ class Reader(BaseReader, UnstructuredReader):
     Args:
         :param filename: A single netCDF file, or a pattern of files. The
                          netCDF file can also be an URL to an OPeNDAP server.
-        :type filename: string, requiered.
+        :type filename: string, required.
 
         :param name: Name of reader
         :type name: string, optional
@@ -70,6 +70,7 @@ class Reader(BaseReader, UnstructuredReader):
         'sea_floor_depth_below_sea_level',
         'sea_floor_depth_below_geoid',
         'sea_surface_height_above_geoid',
+        'altitude'
     ]
 
     face_variables = [
@@ -130,46 +131,41 @@ class Reader(BaseReader, UnstructuredReader):
         assert self.dataset.CoordinateSystem == "Cartesian", \
                         "Only cartesian coordinate systems supported"
 
-        self.x = self.dataset['x'].values
-        self.y = self.dataset['y'].values
-        self.xc = self.dataset['xc'].values
-        self.yc = self.dataset['yc'].values
-
-        # Times in FVCOM files are 'Modified Julian Day (MJD)', or fractional days since
-        # 1858-11-17 00:00:00 UTC
-        # assert self.dataset['time'].time_zone == 'UTC'
-        # assert self.dataset['time'].units == 'days since 1858-11-17 00:00:00'
-        # assert self.dataset['time'].format == 'modified julian day (MJD)'
-        # ref_time = datetime(1858, 11, 17, 00, 00,
-        #                     00)  # TODO: include , tzinfo=timezone.utc)
+        self.x = self.dataset.coords['node_x'].values
+        self.y = self.dataset.coords['node_y'].values
+        # test if finite volume
+        if 'xc' in self.dataset:
+            self.FV_flag=True # grid is a finite volume
+            self.xc = self.dataset['xc'].values
+            self.yc = self.dataset['yc'].values
         self.times = self.dataset['time'].values
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
-        # time steps are not constant
 
-        self.xmin = np.min(self.x)
-        self.xmax = np.max(self.x)
-        self.ymin = np.min(self.y)
-        self.ymax = np.max(self.y)
+        self.xmin = self.x.min()
+        self.xmax = self.x.max()
+        self.ymin = self.y.min()
+        self.ymax = self.y.max()
 
         self.variable_mapping = {}
-        for var_name in self.dataset.variables:
-            # skipping coordinate variables
-            if var_name in [
-                    'x', 'y', 'time', 'lon', 'lat', 'lonc', 'latc', 'siglay',
-                    'siglev', 'siglay_center', 'siglev_center'
-            ]:
-                continue
-
-            # We only use sea_floor at nodes
-            if var_name in ['h_center']:
-                continue
+        for var_name in self.dataset.data_vars.keys():
+            # # skipping coordinate variables
+            # if var_name in [
+            #         'x', 'y', 'time', 'lon', 'lat', 'lonc', 'latc', 'siglay',
+            #         'siglev', 'siglay_center', 'siglev_center'
+            # ]:
+            #     continue
+            #
+            # # We only use sea_floor at nodes
+            # if var_name in ['h_center']:
+            #     continue
 
             var = self.dataset[var_name]
             if 'standard_name' in var.attrs:
                 std_name = var.attr['standard_name']
                 # remapping for mispelling probably better to do upstream
-                std_name = self.variable_aliases.get(std_name, std_name)
+                if std_name in variable_aliases.keys():
+                    std_name = variable_aliases[std_name]
                 self.variable_mapping[std_name] = var_name
 
         self.variables = list(self.variable_mapping.keys())
@@ -184,11 +180,11 @@ class Reader(BaseReader, UnstructuredReader):
         logger.debug("building index of nodes..")
         self.nodes_idx = self._build_ckdtree_(self.x, self.y)
 
-        logger.debug("building index of faces..")
-        self.faces_idx = self._build_ckdtree_(self.xc, self.yc)
+        if self.FV_flag:
+            logger.debug("building index of faces..")
+            self.faces_idx = self._build_ckdtree_(self.xc, self.yc)
 
         self.timer_end("build index")
-
         self.timer_end("open dataset")
 
     def plot_mesh(self):
@@ -198,11 +194,12 @@ class Reader(BaseReader, UnstructuredReader):
         import matplotlib.pyplot as plt
         plt.figure()
         plt.scatter(self.x, self.y, marker='x', color='blue', label='nodes')
-        plt.scatter(self.xc,
-                    self.yc,
-                    marker='o',
-                    color='red',
-                    label='centroids')
+        if self.FV_flag:
+            plt.scatter(self.xc,
+                        self.yc,
+                        marker='o',
+                        color='red',
+                        label='centroids')
 
         x, y = getattr(self.boundary, 'context').exterior.xy
         plt.plot(x, y, color='green', label='boundary')
@@ -269,8 +266,8 @@ class Reader(BaseReader, UnstructuredReader):
         requested_variables, time, x, y, z, _outside = \
             self.check_arguments(requested_variables, time, x, y, z)
 
-        nearest_time, _time_before, _time_after, indx_nearest, _indx_before, _indx_after = self.nearest_time(
-            time)
+        nearest_time, _time_before, _time_after, indx_nearest, _indx_before, \
+            _indx_after = self.nearest_time(time)
 
         logger.debug("Nearest time: %s" % nearest_time)
 
