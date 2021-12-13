@@ -128,19 +128,21 @@ class Reader(BaseReader, UnstructuredReader):
                          "No projection in data-file, please supply to reader"
 
         logger.info('Reading grid and coordinate variables..')
-        assert self.dataset.CoordinateSystem == "Cartesian", \
+        assert self.dataset.attrs['CoordinateSystem'] == "Cartesian", \
                         "Only cartesian coordinate systems supported"
 
         self.x = self.dataset.coords['node_x'].values
         self.y = self.dataset.coords['node_y'].values
         # test if finite volume
+        self.FV_flag=False
         if 'xc' in self.dataset:
             self.FV_flag=True # grid is a finite volume
             self.xc = self.dataset['xc'].values
             self.yc = self.dataset['yc'].values
         self.times = self.dataset['time'].values
-        self.start_time = self.times[0]
-        self.end_time = self.times[-1]
+        # convert np.datetime to datetime objects
+        self.start_time = self.times[0].astype('M8[ms]').astype('O')
+        self.end_time = self.times[-1].astype('M8[ms]').astype('O')
 
         self.xmin = self.x.min()
         self.xmax = self.x.max()
@@ -159,7 +161,11 @@ class Reader(BaseReader, UnstructuredReader):
             # # We only use sea_floor at nodes
             # if var_name in ['h_center']:
             #     continue
-
+            # test for preparing a lazy reader of mesh with altitude data instead of bathymetry
+            if var_name == 'altitude':
+                self.dataset['sea_floor_depth_below_sea_level']= \
+                    self.dataset['altitude'][:,-1,:] -  \
+                    self.dataset['altitude'][:,0,:]
             var = self.dataset[var_name]
             if 'standard_name' in var.attrs:
                 std_name = var.attr['standard_name']
@@ -172,9 +178,9 @@ class Reader(BaseReader, UnstructuredReader):
 
         # Run constructor of parent Reader class
         super().__init__()
-
-        self.boundary = self._build_boundary_polygon_(self.x.compressed(),
-                                                      self.y.compressed())
+        # removed compressed as meaningless outside masked arrays
+        self.boundary = self._build_boundary_polygon_(self.x,
+                                                      self.y)
 
         self.timer_start("build index")
         logger.debug("building index of nodes..")
