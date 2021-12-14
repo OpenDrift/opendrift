@@ -4759,6 +4759,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         lon_array = (lon_array[0:-1] + lon_array[1::]) / 2
         lat_array = (lat_array[0:-1] + lat_array[1::]) / 2
 
+        from netCDF4 import Dataset, date2num
         nc = Dataset(filename, 'w')
         nc.createDimension('lon', len(lon_array))
         nc.createDimension('lat', len(lat_array))
