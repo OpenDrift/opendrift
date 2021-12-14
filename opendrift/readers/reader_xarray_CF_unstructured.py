@@ -70,13 +70,19 @@ class Reader(BaseReader, UnstructuredReader):
         'sea_floor_depth_below_sea_level',
         'sea_floor_depth_below_geoid',
         'sea_surface_height_above_geoid',
-        'altitude'
-    ]
-
-    face_variables = [
+        'altitude',
+        'ocean_vertical_diffusivity',
+        'turbulent_kinetic_energy',
+        'upward_sea_water_velocity',
         'x_sea_water_velocity',
         'y_sea_water_velocity',
         'upward_sea_water_velocity',
+    ]
+    # This is bad coding we cannot assume which is which there is a world outside FVCOM
+    face_variables = [
+        # 'x_sea_water_velocity',
+        # 'y_sea_water_velocity',
+        # 'upward_sea_water_velocity',
     ]
 
     dataset = None
@@ -139,10 +145,10 @@ class Reader(BaseReader, UnstructuredReader):
             self.FV_flag=True # grid is a finite volume
             self.xc = self.dataset['xc'].values
             self.yc = self.dataset['yc'].values
-        self.times = self.dataset['time'].values
-        # convert np.datetime to datetime objects
-        self.start_time = self.times[0].astype('M8[ms]').astype('O')
-        self.end_time = self.times[-1].astype('M8[ms]').astype('O')
+        # here it would be better to switch entirely to numpy format
+        self.times = self.dataset['time'].values.astype('M8[ms]').astype('O').tolist()
+        self.start_time = self.times[0]
+        self.end_time = self.times[-1]
 
         self.xmin = self.x.min()
         self.xmax = self.x.max()
@@ -163,15 +169,17 @@ class Reader(BaseReader, UnstructuredReader):
             #     continue
             # test for preparing a lazy reader of mesh with altitude data instead of bathymetry
             if var_name == 'altitude':
-                self.dataset['sea_floor_depth_below_sea_level']= \
-                    self.dataset['altitude'][:,-1,:] -  \
-                    self.dataset['altitude'][:,0,:]
+                depth='sea_floor_depth_below_sea_level'
+                self.dataset[depth]= self.dataset['altitude'][:,0,:] - \
+                    self.dataset['altitude'][:,-1,:]
+                self.dataset[depth].attrs['standard_name']=depth
+
             var = self.dataset[var_name]
             if 'standard_name' in var.attrs:
-                std_name = var.attr['standard_name']
+                std_name = var.attrs['standard_name']
                 # remapping for mispelling probably better to do upstream
-                if std_name in variable_aliases.keys():
-                    std_name = variable_aliases[std_name]
+                if std_name in self.variable_aliases.keys():
+                    std_name = self.variable_aliases[std_name]
                 self.variable_mapping[std_name] = var_name
 
         self.variables = list(self.variable_mapping.keys())
@@ -185,6 +193,9 @@ class Reader(BaseReader, UnstructuredReader):
         self.timer_start("build index")
         logger.debug("building index of nodes..")
         self.nodes_idx = self._build_ckdtree_(self.x, self.y)
+        # prepare for 3D indexing of variables
+        self.meshID=(np.arange(self.dataset.dims['layer'])[:,None] \
+                     *self.dataset.dims['node']).astype(int)
 
         if self.FV_flag:
             logger.debug("building index of faces..")
@@ -272,10 +283,11 @@ class Reader(BaseReader, UnstructuredReader):
         requested_variables, time, x, y, z, _outside = \
             self.check_arguments(requested_variables, time, x, y, z)
 
-        nearest_time, _time_before, _time_after, indx_nearest, _indx_before, \
-            _indx_after = self.nearest_time(time)
-
-        logger.debug("Nearest time: %s" % nearest_time)
+        # no need, xarray can calculate exactly between times if needed
+        # nearest_time, _time_before, _time_after, indx_nearest, _indx_before, \
+        #     _indx_after = self.nearest_time(time)
+        #
+        # logger.debug("Nearest time: %s" % nearest_time)
 
         node_variables = [
             var for var in requested_variables if var in self.node_variables
@@ -289,19 +301,29 @@ class Reader(BaseReader, UnstructuredReader):
 
         variables = {}
 
-        if node_variables:
-            logger.debug("Interpolating node-variables..")
+        logger.debug('Prepare dataset interpolation')
+        nodes = self._nearest_node_(x, y)
+        # create index of all potential points along fibre
+        idx_3D = self.meshID + nodes
+        #extract fibres, needs generalisation to siglay etc
+        sub_ds= self.dataset.interp(time=time)
+        fibres= sub_ds.sel(node=nodes)['altitude'].values
+        idx_layer = np.abs(fibres - z).argmin(axis=0)
 
-            nodes = self._nearest_node_(x, y)
-            assert len(nodes) == len(x)
+        # print(sub_ds)
+        # logger.debug("subdataset extracted")
+
+        if node_variables:
+
+            # assert len(nodes) == len(x)
 
             for var in node_variables:
                 dvar = self.variable_mapping.get(var)
-                logger.debug("Interpolating: %s (%s)" % (var, dvar))
-                dvar = self.dataset[dvar]
+                logger.debug("extracting: %s (%s)" % (var, dvar))
+                dvar = sub_ds.sel(layer=idx_layer, node=nodes)[dvar]
 
                 # sigma ind depends on whether variable is defined on sigma layer og sigma level
-                if 'siglev' in dvar.dimensions:
+                if 'siglev' in dvar.dims:
                     sigma_ind = self.__nearest_node_sigma__(dvar, nodes, z)
                     assert len(sigma_ind) == len(z)
 
@@ -314,8 +336,8 @@ class Reader(BaseReader, UnstructuredReader):
                     # Picking the nearest value
                     variables[var] = block[sigma_ind - sigma_ind.min(),
                                            nodes - nodes.min()]
-                else:  # no depth dimension
-                    variables[var] = dvar[slice(nodes.min(), nodes.max() + 1)]
+                else:
+                    variables[var] = dvar.values[0]
 
         if face_variables:
             logger.debug("Interpolating face-variables..")
@@ -329,7 +351,7 @@ class Reader(BaseReader, UnstructuredReader):
                 dvar = self.dataset[dvar]
 
                 # sigma ind depends on whether variable is defined on sigma layer og sigma level
-                if 'siglay' in dvar.dimensions:
+                if 'siglay' in dvar.dims:
                     sigma_ind = self.__nearest_face_sigma__(dvar, fcs, z)
                     assert len(sigma_ind) == len(z)
 
@@ -343,7 +365,7 @@ class Reader(BaseReader, UnstructuredReader):
                     variables[var] = block[sigma_ind - sigma_ind.min(),
                                            fcs - fcs.min()]
                 else:  # no depth dimension
-                    variables[var] = dvar[slice(fcs.min(), fcs.max() + 1)]
+                    variables[var] = dvar[slice(fcs.min(), fcs.max() + 1)].values
 
         return variables
 
