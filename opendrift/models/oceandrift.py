@@ -446,13 +446,17 @@ class OceanDrift(OpenDriftSimulation):
             w = self.elements.terminal_velocity
 
             # Diffusivity and its gradient at z
-            zi = np.round(z_index(-self.elements.z)).astype(np.uint8)
+            zi = np.round(z_index(-self.elements.z)).astype(np.uint16)
             Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
             dKdz = gradK[zi, range(Kprofiles.shape[1])]
 
-            # Visser et al. 1996 random walk mixing
+            # Visser et al. 1997 random walk mixing
             # requires an inner loop time step dt such that
             # dt << (d2K/dz2)^-1, e.g. typically dt << 15min
+            #
+            # NB: In the last term Kz is evaluated in zi, while
+            # it should be evaluated in (self.elements.z - dKdz*dt_mix)
+            # This is not expected have large impact on the result
             R = 2*np.random.random(self.num_elements_active()) - 1
             r = 1.0/3
             # New position  =  old position   - up_K_flux   + random walk
@@ -499,7 +503,7 @@ class OceanDrift(OpenDriftSimulation):
         else:
             return None
 
-    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1, fastwriter=False):
+    def animate_vertical_distribution(self, depths=None, maxdepth=None, bins=50, filename=None, subsamplingstep=1):
         """Function to animate vertical distribution of particles
             bins:            number of bins in the histogram
             maxdepth:        maximum depth
@@ -508,6 +512,8 @@ class OceanDrift(OpenDriftSimulation):
         """
         import matplotlib.pyplot as plt
         import matplotlib.animation as animation
+
+        start_time = datetime.now()
 
         #from timeit import default_timer as timer
         #start=timer()
@@ -549,12 +555,6 @@ class OceanDrift(OpenDriftSimulation):
             hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=bins, range=(maxdepth,z[np.isfinite(z)].max()))
         maxnum = hist_series.max()
 
-        # 4 different methods for building the animation available for testing
-        # No significant differences observed so far. Can be useful to keep the
-        # alternative methods here for further testing
-
-        # Current method
-
         axn.clear()
         bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
         axn.set_ylim([maxdepth, 0])
@@ -567,80 +567,19 @@ class OceanDrift(OpenDriftSimulation):
                 rect.set_width(y)
             title.set_text('%s UTC' % times[i])
 
-        animation = animation.FuncAnimation(fig, update_histogram, len(times))
+        self.__save_or_plot_animation__(plt.gcf(),
+                                        update_histogram,
+                                        filename,
+                                        frames = len(times),
+                                        fps = 10,
+                                        interval=50,
+                                        blit=False)
 
-        # alternative methods tested
-        #
-        # alternative1
-        #
-        #     axn.clear()
-        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
-        #     axn.set_ylim([maxdepth, 0])
-        #     axn.set_xlim([0, maxnum])
-        #     title=axn.set_title('%s UTC' % times[i])
-        #     axn.set_xlabel('Number of particles')
-        #
-        #     for i in range(len(bc)):
-        #         axn.add_patch(bc[i])
-        #
-        #     def update2(i):
-        #         for j in range(len(bc)):
-        #             bc[j].set_width(hist_series[j,i])
-        #
-        #         title.set_text('%s UTC' % times[i])
-        #         return [bc[i] for i in range(len(bc))]
-        #
-        #
-        # alternative2
-        #
-        #     axn.clear()
-        #     bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
-        #     axn.set_ylim([maxdepth, 0])
-        #     axn.set_xlim([0, maxnum])
-        #     title=axn.set_title('%s UTC' % times[i])
-        #     axn.set_xlabel('Number of particles')
-        #
-        #     def prepare_animation3(bc):
-        #         def animate(i):
-        #             for count, rect in zip(hist_series[:,i], bc.patches):
-        #                 rect.set_width(count)
-        #             title.set_text('%s UTC' % times[i])
-        #             return bc.patches
-        #         return animate
-        #
-        # alternative3
-        #
-        #     axn.cla()
-        #     axn.grid()
-        #     axn.hist(z[i, :], bins=bins,
-        #                   range=[maxdepth, 0], orientation='horizontal')
-        #     axn.set_ylim([maxdepth, 0])
-        #     axn.set_xlim([0, maxnum])
-        #     axn.set_xlabel('number of particles')
-        #     axn.set_title('%s UTC' % times[i])
-        #
-        #     def update4(i):
-        #         axn.cla()
-        #         #axn.grid()
-        #         axn.hist(z[i, :], bins=bins,
-        #                       range=[maxdepth, 0], orientation='horizontal')
-        #         axn.set_ylim([maxdepth, 0])
-        #         axn.set_xlim([0, maxnum])
-        #         axn.set_xlabel('number of particles')
-        #         axn.set_title('%s UTC' % times[i])
-        #         #fig.canvas.draw_idle()
-        #
-        #     animation = animation.FuncAnimation(fig, update2, len(times), blit=True)
-        #     animation = animation.FuncAnimation(fig, prepare_animation3(bc), len(times), blit=True)
-        #     animation = animation.FuncAnimation(fig, update3, len(times))
+        logger.info('Time to make animation: %s' %
+                    (datetime.now() - start_time))
 
-        #end=timer()
-        #print(end-start)
 
-        if filename is not None or 'sphinx_gallery' in sys.modules:
-            self._save_animation(animation, filename, fps=10, fastwriter=fastwriter)
-        else:
-            plt.show()
+
 
     def plot_vertical_distribution(self, maxdepth=None, bins=None, maxnum=None):
         """Function to plot vertical distribution of particles
@@ -714,8 +653,8 @@ class OceanDrift(OpenDriftSimulation):
             dz=1., maxrange=-100, bins=None, step=1):
         """Function to plot vertical distribution of particles.
 
-	Use mask to plot any selection of particles.
-	"""
+        Use mask to plot any selection of particles.
+        """
         from pylab import axes, draw
         from matplotlib import dates, pyplot
 

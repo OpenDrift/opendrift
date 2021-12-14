@@ -74,7 +74,6 @@ def init(self, filename):
         except:
             dtype = 'f4'
         var = self.outfile.createVariable(prop, dtype, ('trajectory', 'time'))
-        var.setncattr('coordinates', 'lat lon time')
         for subprop in self.history_metadata[prop].items():
             if subprop[0] not in ['dtype', 'constant', 'default', 'seed']:
                 # Apparently axis attribute shall not be given for lon and lat:

@@ -18,7 +18,6 @@
 # Copyright 2019, Knut-Frode Dagestad, MET Norway
 
 import os
-import time
 import pytest
 
 from opendrift.readers import reader_netCDF_CF_generic
