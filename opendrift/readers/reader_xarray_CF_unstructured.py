@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
+# Copyright 2021, Dr Julien Moreau, Plastic@Bay CIC, UK
 # Copyright 2020, Gaute Hope, MET Norway
 # Copyright 2020, Simon Weppe, MetOcean Solution, MetService New Zealand
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
