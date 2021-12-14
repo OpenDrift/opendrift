@@ -446,13 +446,17 @@ class OceanDrift(OpenDriftSimulation):
             w = self.elements.terminal_velocity
 
             # Diffusivity and its gradient at z
-            zi = np.round(z_index(-self.elements.z)).astype(np.uint8)
+            zi = np.round(z_index(-self.elements.z)).astype(np.uint16)
             Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
             dKdz = gradK[zi, range(Kprofiles.shape[1])]
 
-            # Visser et al. 1996 random walk mixing
+            # Visser et al. 1997 random walk mixing
             # requires an inner loop time step dt such that
             # dt << (d2K/dz2)^-1, e.g. typically dt << 15min
+            #
+            # NB: In the last term Kz is evaluated in zi, while
+            # it should be evaluated in (self.elements.z - dKdz*dt_mix)
+            # This is not expected have large impact on the result
             R = 2*np.random.random(self.num_elements_active()) - 1
             r = 1.0/3
             # New position  =  old position   - up_K_flux   + random walk
