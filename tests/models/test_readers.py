@@ -194,7 +194,7 @@ class TestReaders(unittest.TestCase):
                         wind_drift_factor=.02,
                         number=10, radius=1000)
         o.run(steps=8)
-        self.assertEqual(o.num_elements_deactivated(), 2)
+        self.assertEqual(o.num_elements_deactivated(), 4)
 
     #def test_lazy_readers_and_corrupt_data(self):
     #    o = OceanDrift(loglevel=0)
