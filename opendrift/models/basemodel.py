@@ -826,6 +826,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         elif i == 'deactivate':
             self.deactivate_elements(self.elements.z < -sea_floor_depth,
                                      reason='seafloor')
+            self.elements.z[below] = -sea_floor_depth[below]
         elif i == 'previous':  # Go back to previous position (in water)
             logger.warning('%s elements hit seafloor, '
                            'moving back ' % len(below))
@@ -2406,6 +2407,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # Deactivate elements, if they have not already been deactivated
         self.elements.status[indices & (self.elements.status ==0)] = \
             reason_number
+        self.elements.moving[indices] = 0
         logger.debug('%s elements scheduled for deactivation (%s)' %
                      (np.sum(indices), reason))
         logger.debug(
