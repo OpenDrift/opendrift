@@ -469,7 +469,7 @@ class OceanDrift(OpenDriftSimulation):
                 self.elements.z[reflect] = -self.elements.z[reflect]
 
             # Reflect elements going below seafloor
-            bottom = np.where(self.elements.z < Zmin)
+            bottom = np.where(np.logical_and(self.elements.z < Zmin, self.elements.moving == 1))
             if len(bottom[0]) > 0:
                 logger.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
                 self.elements.z[bottom] = 2*Zmin[bottom] - self.elements.z[bottom]
