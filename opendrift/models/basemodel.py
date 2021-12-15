@@ -2959,7 +2959,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.io_close()
 
         # Remove any elements scheduled for deactivation during last step
-        #self.remove_deactivated_elements()
+        self.remove_deactivated_elements()
 
         if export_buffer_length is None:
             # Remove columns for unseeded elements in history array

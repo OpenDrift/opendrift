@@ -50,9 +50,9 @@ class TestStranding(unittest.TestCase):
         self.assertEqual(o.elements_deactivated.status.min(), 1)
         self.assertEqual(o.elements_deactivated.status.max(), 1)
         self.assertEqual(o.num_elements_scheduled(), 0)
-        self.assertEqual(o.num_elements_active(), 81)
+        self.assertEqual(o.num_elements_active(), 77)
         self.assertEqual(o.num_elements_activated(), 100)
-        self.assertEqual(o.num_elements_deactivated(), 19)
+        self.assertEqual(o.num_elements_deactivated(), 23)
         self.assertEqual(o.num_elements_total(), 100)
 
         # Check calculated trajectory lengths and speeds
