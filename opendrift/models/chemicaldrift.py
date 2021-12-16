@@ -483,8 +483,10 @@ class ChemicalDrift(OceanDrift):
         else:
             diameter = self.get_config('chemical:particle_diameter')
 
-        init_diam =np.zeros(num_elements,float)
-        init_diam[init_specie==self.num_prev] = diameter
+        std = self.get_config('chemical:particle_diameter_uncertainty')
+
+        init_diam = np.zeros(num_elements,float)
+        init_diam[init_specie==self.num_prev] = diameter + np.random.normal(0, std, sum(init_specie==self.num_prev))
         kwargs['diameter'] = init_diam
 
 
@@ -1461,7 +1463,6 @@ class ChemicalDrift(OceanDrift):
         # Chemical speciation
         self.update_transfer_rates()
         self.update_speciation()
-
 
         # Turbulent Mixing
         if self.get_config('drift:vertical_mixing') is True:
