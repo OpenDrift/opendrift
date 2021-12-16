@@ -46,17 +46,6 @@ class Chemical(Lagrangian3DArray):
         ('specie', {'dtype': np.int32,
                     'units': '',
                     'default': 0}),
-#         ('transfer_rates1D', {'dtype':np.array(3, dtype=np.float32),
-#                     'units': '1/s',
-#                     'default': 0.})
-#        ('LMM_fraction', {'dtype':np.float32,
-#                          'units':'',
-#                          'default':0,
-#                          'seed':False}),
-#        ('particle_fraction', {'dtype':np.float32,
-#                          'units':'',
-#                          'default':0,
-#                          'seed':False}),
         ('mass', {'dtype': np.float32,
                       'units': 'ug',
                       'seed': True,
@@ -76,12 +65,8 @@ class Chemical(Lagrangian3DArray):
         ('mass_volatilized', {'dtype': np.float32,
                              'units': 'ug',
                              'seed': True,
-                             'default': 0})#,
+                             'default': 0})
 
-        # ('terminal_velocity', {'dtype': np.float32,
-        #                        'units': 'm/s',
-        #                        'default': -0.001})  # 1 mm/s negative buoyancy
-        
         ])
 
 
@@ -97,7 +82,7 @@ class ChemicalDrift(OceanDrift):
 
         Chemical functionality include interactions with solid matter
         (particles and sediments) through transformation processes, implemented
-        with stochastic approach for speciation.
+        with stochastic approach for dynamic partitioning.
 
         Under construction.
     """
@@ -114,15 +99,10 @@ class ChemicalDrift(OceanDrift):
         'ocean_vertical_diffusivity': {'fallback': 0.0001, 'profiles': True},
         'sea_water_temperature': {'fallback': 10, 'profiles': True},
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
-#        'surface_downward_x_stress': {'fallback': 0},
-#        'surface_downward_y_stress': {'fallback': 0},
-#        'turbulent_kinetic_energy': {'fallback': 0},
-#        'turbulent_generic_length_scale': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0},
         'conc3': {'fallback': 1.e-3},
         'spm': {'fallback': 50},
         'ocean_mixed_layer_thickness': {'fallback': 50},
-#        'mass_concentration_of_suspended_matter_in_sea_water': {'fallback': 0},
         }
 
     # The depth range (in m) which profiles shall cover
@@ -146,6 +126,8 @@ class ChemicalDrift(OceanDrift):
             'chemical:transfer_setup': {'type': 'enum',
                 'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom', 'organics'], 'default': 'custom',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:dynamic_partitioning': {'type': 'bool', 'default': True,
+                'level': self.CONFIG_LEVEL_BASIC, 'description': 'Toggle dynamic partitioning'},
             'chemical:slowly_fraction': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:irreversible_fraction': {'type': 'bool', 'default': False,
@@ -445,7 +427,7 @@ class ChemicalDrift(OceanDrift):
 
         else:
 
-            # Set initial speciation
+            # Set initial partitioning
             if 'particle_fraction' in kwargs:
                 particle_frac = kwargs['particle_fraction']
             else:
@@ -473,18 +455,20 @@ class ChemicalDrift(OceanDrift):
             kwargs['specie'] = init_specie
 
 
-        logger.info('Initial speciation:')
+        logger.info('Initial partitioning:')
         for i,sp in enumerate(self.name_species):
             logger.info( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
 
-        # Set initial particle size according to speciation
+        # Set initial particle size
         if 'diameter' in kwargs:
             diameter = kwargs['diameter']
         else:
             diameter = self.get_config('chemical:particle_diameter')
 
-        init_diam =np.zeros(num_elements,float)
-        init_diam[init_specie==self.num_prev] = diameter
+        std = self.get_config('chemical:particle_diameter_uncertainty')
+
+        init_diam = np.zeros(num_elements,float)
+        init_diam[init_specie==self.num_prev] = diameter + np.random.normal(0, std, sum(init_specie==self.num_prev))
         kwargs['diameter'] = init_diam
 
 
@@ -510,24 +494,20 @@ class ChemicalDrift(OceanDrift):
         # Salinity   (PSU =g/Kg)
         # Temperature (Celsius)
 
-        MWsalt=68.35 # average mass of sea water salt (g/mol) Schwarzenbach Gschwend Imboden Environmental Organic Chemistry
+        MWsalt = 68.35 # average mass of sea water salt (g/mol) Schwarzenbach Gschwend Imboden Environmental Organic Chemistry
 
-        Dens_sw=self.sea_water_density(T=Temperature, S=Salinity)*1e-3 # (Kg/L)
+        Dens_sw = self.sea_water_density(T=Temperature, S=Salinity)*1e-3 # (Kg/L)
 
         # ConcSalt= (Salinitypsu/MWsalt)∙Dens_sw
         #         = (     g/Kg    /    g/mol  )∙  Kg/L
         #         = mol/Kg ∙ Kg/L = mol/L
 
-        ConcSalt=(Salinity/MWsalt)*Dens_sw
+        ConcSalt = (Salinity/MWsalt)*Dens_sw
 
         # Log(Kd_fin)=(Setschenow ∙ ConcSalt)+Log(Kd_T)
         # Kd_fin = 10^(Setschenow ∙ ConcSalt) * Kd_T
 
-        corr=10**(Setschenow*ConcSalt)
-
-        #logger.debug('ConcSalt: %s' % ConcSalt)
-        #logger.debug('Dsw: %s' % Dens_sw)
-        #logger.debug('corr: %s' % corr)
+        corr = 10**(Setschenow*ConcSalt)
 
         return corr
 
@@ -983,14 +963,14 @@ class ChemicalDrift(OceanDrift):
 
 
 
-    def update_speciation(self):
+    def update_partitioning(self):
         '''Check if transformation processes shall occur
         Do transformation (change value of self.elements.specie)
         Update element properties for the transformed elements
         '''
 
-        specie_in  = self.elements.specie.copy()    # for storage of the out speciation
-        specie_out = self.elements.specie.copy()    # for storage of the out speciation
+        specie_in  = self.elements.specie.copy()    # for storage of the initial partitioning
+        specie_out = self.elements.specie.copy()    # for storage of the final partitioning
         deltat = self.time_step.seconds             # length of a time step
         phaseshift = np.array(self.num_elements_active()*[False])  # Denotes which trajectory that shall be transformed
 
@@ -1016,8 +996,8 @@ class ChemicalDrift(OceanDrift):
         specie_out[phaseshift] = np.array(ttmp)
 
 
-        # Set the new speciation
-        self.elements.specie=specie_out
+        # Set the new partitioning
+        self.elements.specie = specie_out
 
         logger.debug('old species: %s' % specie_in[phaseshift])
         logger.debug('new species: %s' % specie_out[phaseshift])
@@ -1149,7 +1129,7 @@ class ChemicalDrift(OceanDrift):
 
 
     def bottom_interaction(self,Zmin=None):
-        ''' Change speciation of chemicals that reach bottom due to settling.
+        ''' Change partitioning of chemicals that reach bottom due to settling.
         particle specie -> sediment specie '''
         if not  ((self.get_config('chemical:species:Particle_reversible')) &
                   (self.get_config('chemical:species:Sediment_reversible')) or
@@ -1310,27 +1290,12 @@ class ChemicalDrift(OceanDrift):
             #self.deactivate_elements(to_deactivate + ~vol_morethan_degr, reason='degraded')
 
         else:
-
             pass
         
     def photodegradation(self):
         if self.get_config('chemical:transformations:photodegradation') is True:
             logger.debug('Calculating: photodegradation')        
         else:    
-                #TS=self.environment.sea_water_temperature[S]
-                #TS[TS==0]=np.median(TS)
-                #
-                #SS=self.environment.sea_water_salinity[S]
-                #SS[SS==0]=np.median(SS)
-                #
-                #KOWTref    = self.get_config('chemical:transformations:TrefKOW')
-                #DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
-                #Setchenow  = self.get_config('chemical:transformations:Setchenow')
-                #sed_dens   = self.get_config('chemical:sediment:density')          # default particle density (kg/m3)
-                #sed_poro   = self.get_config('chemical:sediment:porosity')         # sediment porosity
-                #Kd_Sed_fin = self.Kd_sed    * self.tempcorr("Arrhenius",DH_KOC_Sed,TS,KOWTref) \
-                #                            * self.salinitycorr(Setchenow,KOWTref,SS)
-                #AvailableCorr=1/(1+Kd_Sed_fin*(sed_dens/1000)*(1-sed_poro)/sed_poro)
             pass
     
     def volatilization(self):
@@ -1453,15 +1418,14 @@ class ChemicalDrift(OceanDrift):
         # Workaround due to conversion of datatype
         self.elements.specie = self.elements.specie.astype(np.int32)
 
-        # Degradation and volatilization
+        # Degradation and Volatilization
         self.degradation()
-        self.photodegradation()
         self.volatilization()
 
-        # Chemical speciation
-        self.update_transfer_rates()
-        self.update_speciation()
-
+        # Dynamic Partitioning
+        if self.get_config('chemical:dynamic_partitioning') is True:
+            self.update_transfer_rates()
+            self.update_partitioning()
 
         # Turbulent Mixing
         if self.get_config('drift:vertical_mixing') is True:
@@ -1474,12 +1438,11 @@ class ChemicalDrift(OceanDrift):
 
         # Resuspension
         self.resuspension()
-        logger.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
+        logger.info('partitioning: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
 
 
 
         # Horizontal advection
-        lon, lat = self.elements.lon, self.elements.lat
         self.advect_ocean_current()
 
         # Vertical advection
