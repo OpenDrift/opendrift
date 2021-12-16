@@ -146,6 +146,8 @@ class ChemicalDrift(OceanDrift):
             'chemical:transfer_setup': {'type': 'enum',
                 'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom', 'organics'], 'default': 'custom',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:dynamic_partitioning': {'type': 'bool', 'default': True,
+                'level': self.CONFIG_LEVEL_BASIC, 'description': 'Toggle dynamic partitioning'},
             'chemical:slowly_fraction': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:irreversible_fraction': {'type': 'bool', 'default': False,
@@ -1461,8 +1463,9 @@ class ChemicalDrift(OceanDrift):
         self.volatilization()
 
         # Chemical speciation
-        self.update_transfer_rates()
-        self.update_speciation()
+        if self.get_config('chemical:dynamic_partitioning') is True:
+            self.update_transfer_rates()
+            self.update_speciation()
 
         # Turbulent Mixing
         if self.get_config('drift:vertical_mixing') is True:
