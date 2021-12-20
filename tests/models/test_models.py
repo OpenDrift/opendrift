@@ -27,6 +27,7 @@ from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
 from opendrift.models.plastdrift import PlastDrift
+from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
@@ -38,6 +39,28 @@ print(opendrift.versions())
 
 class TestModels(unittest.TestCase):
     """Tests for OpenDrift models"""
+
+    def test_wind_and_current_drift_factor(self):
+        lat=60
+        lon=4
+        o = OceanDrift(loglevel=50)
+        o.seed_elements(lon=lon, lat=lat, time=datetime.now(), wind_drift_factor=0, current_drift_factor=1)
+        o.set_config('general:use_auto_landmask', False)
+        o.set_config('environment:constant:land_binary_mask', 0)
+        o.set_config('environment:constant:x_wind', 5)
+        o.set_config('environment:constant:y_sea_water_velocity', 1)
+        o.run(duration=timedelta(hours=2))
+        o2 = OceanDrift()
+        o2.seed_elements(lon=lon, lat=lat, time=datetime.now(), wind_drift_factor=0.02, current_drift_factor=.3)
+        o2.set_config('general:use_auto_landmask', False)
+        o2.set_config('environment:constant:land_binary_mask', 0)
+        o2.set_config('environment:constant:x_wind', 5)
+        o2.set_config('environment:constant:y_sea_water_velocity', 1)
+        o2.run(duration=timedelta(hours=2))
+        self.assertAlmostEqual(o.elements.lat[0], lat + 0.0646, 3)
+        self.assertAlmostEqual(o.elements.lon[0], lon)
+        self.assertAlmostEqual(o2.elements.lat[0], lat + 0.0646*.3, 3)
+        self.assertAlmostEqual(o2.elements.lon[0], lon + 0.0129, 3)
 
     def test_seed(self):
         """Test seeding"""

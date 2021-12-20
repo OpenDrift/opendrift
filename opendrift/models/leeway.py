@@ -86,7 +86,13 @@ class LeewayObj(LagrangianArray):
         ('crosswind_eps', {'dtype': np.float32,
                           'units': 'cm/s',
                            'seed': False,
-                          'default': 0})
+                          'default': 0}),
+        ('current_drift_factor', {'dtype': np.float32,
+                                  'units': '1',
+                'description': 'Elements are moved with this fraction of the '
+                            'current vector, in addition to currents '
+                            'and Stokes drift',
+                               'default': 1})
         ])
 
 

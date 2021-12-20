@@ -37,6 +37,12 @@ class Lagrangian3DArray(LagrangianArray):
                 'fraction of the vind vector, in addition to currents '
                 'and Stokes drift',
                                'default': 0.02}),
+        ('current_drift_factor', {'dtype': np.float32,
+                                  'units': '1',
+            'description': 'Elements are moved with this fraction of the '
+                            'current vector, in addition to currents '
+                            'and Stokes drift',
+                               'default': 1}),
         ('terminal_velocity', {'dtype': np.float32,
                                'units': 'm/s',
             'description': 'Terminal rise/sinking velocity (buoyancy) '

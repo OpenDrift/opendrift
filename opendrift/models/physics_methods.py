@@ -343,6 +343,17 @@ class PhysicsMethods:
         return Dens0
 
     def advect_ocean_current(self, factor=1):
+
+        cdf = self.elements.current_drift_factor
+        cdfmin = cdf.min()
+        cdfmax = cdf.max()
+        if cdfmin != 1 or cdfmax != 1:
+            if cdfmin == cdfmax:
+                logger.debug('Using currrent drift factor of %s' % cdf)
+            else:
+                logger.debug('Using currrent drift factor between %s and %s'
+                             % (cdfmin, cdfmax))
+        factor = factor*cdf
         # Runge-Kutta scheme
         if self.get_config('drift:advection_scheme')[0:11] == 'runge-kutta':
             x_vel = self.environment.x_sea_water_velocity

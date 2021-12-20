@@ -70,8 +70,7 @@ import matplotlib.pyplot as plt
 import nc_time_axis
 import logging; logger = logging.getLogger(__name__)
 
-from opendrift.models.oceandrift import OceanDrift
-from opendrift.elements import LagrangianArray
+from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 import opendrift.models.noaa_oil_weathering as noaa
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
 
@@ -82,10 +81,10 @@ except ImportError:
     pass
 
 # Defining the oil element properties
-class Oil(LagrangianArray):
+class Oil(Lagrangian3DArray):
     """Extending LagrangianArray with variables relevant for oil particles."""
 
-    variables = LagrangianArray.add_variables([
+    variables = Lagrangian3DArray.add_variables([
         ('mass_oil', {'dtype': np.float32,
                       'units': 'kg',
                       'seed': False,

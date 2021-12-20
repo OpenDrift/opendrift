@@ -16,19 +16,16 @@
 
 import numpy as np
 import logging; logger = logging.getLogger(__name__)
-from opendrift.models.oceandrift import OceanDrift
-from opendrift.elements.passivetracer import PassiveTracer
+from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 
-# We add the property 'wind_drift_factor' to the element class
-PassiveTracer.variables = PassiveTracer.add_variables([
-    ('wind_drift_factor', {'dtype': np.float32,
-                           'units': '1',
-                           'default': 0.02}),
-    ('terminal_velocity', {'dtype': np.float32,
-                           'units': 'm/s',
-                           'level': OceanDrift.CONFIG_LEVEL_ESSENTIAL,
-        'description': 'Positive value means rising particles (positive buoyancy)',
-                           'default': 0.01})])
+
+class PlastElement(Lagrangian3DArray):
+    variables = Lagrangian3DArray.add_variables([
+        ('terminal_velocity', {'dtype': np.float32,
+                               'units': 'm/s',
+                               'level': OceanDrift.CONFIG_LEVEL_ESSENTIAL,
+            'description': 'Positive value means rising particles (positive buoyancy)',
+                               'default': 0.01})])
 
 
 class PlastDrift(OceanDrift):
@@ -41,7 +38,7 @@ class PlastDrift(OceanDrift):
 
     """
 
-    ElementType = PassiveTracer
+    ElementType = PlastElement
 
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
