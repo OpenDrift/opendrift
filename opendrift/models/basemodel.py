@@ -4381,6 +4381,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                           alpha=1,
                           vmin=vmin,
                           vmax=vmax,
+                          zorder=0,
                           cmap=cmap,
                           transform=gcrs)
 
