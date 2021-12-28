@@ -3,6 +3,8 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Pavlov, V.; Aguiar, V.C.M.d.; Hole, L.R.; Pongrácz, E. A 30-Year Probability Map for Oil Spill Trajectories in the Barents Sea to Assess Potential Environmental and Socio-Economic Threats. Resources 2022, 11, 1. https://doi.org/10.3390/resources11010001
+
 Bruciaferri, D.; Tonani, M.; Lewis, H. W.; Siddorn, J. R. ; Saulter, A.; Castillo Sanchez, J. M.; Valiente, N. G.; Conley, D.; Sykes, P.; Ascione, I.; McConnell, N.. 2021 The impact of ocean‐wave coupling on the upper ocean circulation during storm events. Journal of Geophysical Research: Oceans, 126 (6). https://doi.org/10.1029/2021JC017343
 
 Blanken H, Valeo C, Hannah C, Khan UT and Juhász T (2021) A Fuzzy-Based Framework for Assessing Uncertainty in Drift Prediction Using Observed Currents and Winds. Front. Mar. Sci. 8:618094. http://doi.org/10.3389/fmars.2021.618094
