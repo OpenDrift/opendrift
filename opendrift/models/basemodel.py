@@ -3316,6 +3316,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   corners=None,
                   filename=None,
                   compare=None,
+                  compare_marker='o',
                   background=None,
                   bgalpha=.5,
                   vmin=None,
@@ -3457,6 +3458,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
+                    if compare is not None:
+                        for cd in compare_list:
+                            cd['points_other'].set_array(colorarray[:, i])
                     if isinstance(color, str) or hasattr(color, '__len__'):
                         points_deactivated.set_array(colorarray_deactivated[
                             index_of_last_deactivated < i])
@@ -3636,14 +3640,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     legstr = legend[cn + 1]
                 else:
                     legstr = None
+                if color is False:
+                    c = self.plot_comparison_colors[cn+1]
+                else:
+                    c = []
                 cd['points_other'] = \
-                    ax.scatter([], [], c=self.plot_comparison_colors[cn+1],
+                    ax.scatter([], [], c=c, marker=compare_marker, cmap=cmap,
                                s=markersize, label=legstr, zorder=10, transform = gcrs)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    ax.scatter([], [], alpha=.3, zorder=9,
-                               c=self.plot_comparison_colors[cn+1],
-                               s=markersize, transform = gcrs)
+                    ax.scatter([], [], alpha=.3, zorder=9, marker=compare_marker, cmap=cmap,
+                               c=c, s=markersize, transform = gcrs)
 
             if legend != ['', '']:
                 plt.legend(markerscale=2, loc=legend_loc)
