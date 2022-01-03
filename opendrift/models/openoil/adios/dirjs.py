@@ -38,13 +38,13 @@ def __get_archive__():
             oils = json.load(c)
 
     # Add additional oils
-    for f in resources.files('opendrift.models.openoil.adios.extra_oils').iterdir():
-        if Path(f.name).suffix == '.json':
-            o = json.loads(f.read_text())
+    for f in resources.contents('opendrift.models.openoil.adios.extra_oils'):
+        if Path(f).suffix == '.json':
+            o = json.loads(resources.read_text('opendrift.models.openoil.adios.extra_oils', f))
             o = { 'data': { 'attributes' : o } }
             o['data']['_id'] = o['data']['attributes']['oil_id']
             o['data']['attributes']['metadata']['location'] = 'NORWAY'
-            logger.debug(f"Adding additional oil: {f.name}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
+            logger.debug(f"Adding additional oil: {f}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
             oils.append(o)
 
     return oils
