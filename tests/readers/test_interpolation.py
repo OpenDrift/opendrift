@@ -95,7 +95,7 @@ class TestInterpolation(unittest.TestCase):
         o.seed_elements(lon=[-2, 2], lat=[60, 60], time=start_time, wind_drift_factor=.1)
         o.run(steps=2)
         # Check that current give divergence, and that
-        # wind is northwards east of 0 and southwards to the east 
+        # wind is northwards east of 0 and southwards to the east
         np.testing.assert_array_almost_equal(o.elements.lon, [-2.129,  2.129], decimal=3)
         np.testing.assert_array_almost_equal(o.elements.lat, [60.006, 59.994], decimal=3)
 
@@ -106,7 +106,7 @@ class TestInterpolation(unittest.TestCase):
         o.run(steps=2)
         #o.plot(fast=True)
         # Check that current give convergence, and that
-        # wind is northwards east of 180 and southwards to the west 
+        # wind is northwards east of 180 and southwards to the west
         np.testing.assert_array_almost_equal(o.elements.lon, [-175.129,  175.129], decimal=3)
         np.testing.assert_array_almost_equal(o.elements.lat, [60.006, 59.994], decimal=3)
 
@@ -117,7 +117,7 @@ class TestInterpolation(unittest.TestCase):
         o.run(steps=2)
         #o.plot(fast=True)
         # Check that current give convergence, and that
-        # wind is northwards east of 180 and southwards to the west 
+        # wind is northwards east of 180 and southwards to the west
         np.testing.assert_array_almost_equal(o.elements.lon, [-175.129,  175.129], decimal=3)
         np.testing.assert_array_almost_equal(o.elements.lat, [60.006, 59.994], decimal=3)
 
@@ -189,7 +189,7 @@ class TestInterpolation(unittest.TestCase):
         interpolator2d = b.Interpolator2DClass(b.x, b.y, x, y)
         values = interpolator2d(data_dict['var2d'])
         # Checking output is as expected
-        self.assertEqual(values[10], 1.6487979858538129)
+        self.assertAlmostEqual(values[10], 1.6487979858538129)
         self.assertEqual(sum(values.mask), 15)
 
     def test_flipped(self):
@@ -203,7 +203,7 @@ class TestInterpolation(unittest.TestCase):
         y0 = np.array([5, 5, 8, 8.2, 5])
         bi = b.Interpolator2DClass(b.x, b.y, x0, y0)
         bi_flipped = b_flipped.Interpolator2DClass(b_flipped.x, b_flipped.y, x0, y0)
-        
+
         np.testing.assert_array_almost_equal(bi(d), bi_flipped(np.flip(d, axis=1)))
         np.testing.assert_array_almost_equal(bi(d), 5*x0)
 
