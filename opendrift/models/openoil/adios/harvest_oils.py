@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import sys
 import requests
 from opendrift.models.openoil.adios.oil import OpendriftOil
@@ -15,7 +16,7 @@ def get_full_oil_from_id(_id):
     o.raise_for_status()
     return OpendriftOil(o.json())
 
-def oils(limit=50, query=''):
+def oils(limit=9999, query=''):
     """
     Get all oils.
 
@@ -29,35 +30,20 @@ def oils(limit=50, query=''):
 
         List of `class:ThinOil`s.
     """
-    # The batch size seems to be maximum 205 at the moment.
-    MAX_BATCH_SZ = 205
 
-    batch = min(MAX_BATCH_SZ, limit if limit is not None else MAX_BATCH_SZ)
+    o = requests.get(ADIOS, {
+        'dir': 'asc',
+        'limit': limit,
+        'page': 0,
+        'sort': 'metadata.name',
+        'q': query
+    })
+    o.raise_for_status()
+    o = o.json()
 
-    oils = []
+    oils = o['data']
 
-    # XXX: This may fail when batch size is less or unequal to `batch`.
-    while limit is None or len(oils) < limit:
-        p = int(len(oils) / batch)  # next page, XXX: check for off-by-one?
-        logging.debug(
-            f"Requesting list of oils from ADIOS, oils: {len(oils)}, page: {p}"
-        )
-
-        o = requests.get(ADIOS, {
-            'dir': 'asc',
-            'limit': batch,
-            'page': p,
-            'sort': 'metadata.name',
-            'q': query
-        })
-        o.raise_for_status()
-        o = o.json()
-
-        oils.extend(o['data'])
-
-        if len(oils) >= int(o['meta']['total']) or (limit is not None and len(oils) >= limit):
-            break
-
+    logging.debug(f"Total oils: {o['meta']['total']}, download limit: {limit}")
     logger.info(f"Fetched {len(oils)} oils from ADIOS")
 
     limit = len(oils) if limit is None else limit
@@ -69,7 +55,10 @@ def oils(limit=50, query=''):
 def download(dst):
     logger.info('downloading all oils..')
 
-    for o in oils(None):
+    ols = oils()
+    logger.info(f'downloaded list of oils: {len(ols)}, fetching full oil..')
+
+    for o in ols:
         logger.info(f"fetching oil: {o}..")
         o = get_full_oil_from_id(o)
         if o.valid():
@@ -104,7 +93,7 @@ if __name__ == '__main__':
     dst = Path('oils')
 
     if not dst.exists():
-        raise Exception(f"destination path does not exist: {dst}")
+        os.makedirs(dst)
 
     if not '--skip-download' in sys.argv:
         download(dst)
