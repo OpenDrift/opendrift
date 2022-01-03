@@ -131,7 +131,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', 0)
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now())
+                        density=865, time=datetime.now(), oil_type='AASGARD A 2003')
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_property('z')
@@ -151,7 +151,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', 0)
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now())
+                        density=865, time=datetime.now(), oil_type='AASGARD A 2003')
 
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
@@ -171,7 +171,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', 0)
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now())
+                        density=865, time=datetime.now(), oil_type='AASGARD A 2003')
 
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2),
@@ -192,7 +192,7 @@ class TestPhysics(unittest.TestCase):
             o.set_config('environment:fallback:y_sea_water_velocity', 0)
             o.set_config('environment:fallback:ocean_vertical_diffusivity', 0)
             o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                            density=865, time=datetime.now())
+                            density=865, time=datetime.now(), oil_type='AASGARD A 2003')
 
             #o.set_config('vertical_mixing:timestep', 4)
             o.set_config('vertical_mixing:diffusivitymodel', scheme)
