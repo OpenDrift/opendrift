@@ -70,19 +70,20 @@ from datetime import datetime
 import pyproj
 import matplotlib.pyplot as plt
 import logging
+
 logger = logging.getLogger(__name__)
 
-from opendrift.models.oceandrift import OceanDrift
-from opendrift.elements import LagrangianArray
+from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 from . import noaa_oil_weathering as noaa
 from . import adios
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
 
+
 # Defining the oil element properties
-class Oil(LagrangianArray):
+class Oil(Lagrangian3DArray):
     """Extending LagrangianArray with variables relevant for oil particles."""
 
-    variables = LagrangianArray.add_variables([
+    variables = Lagrangian3DArray.add_variables([
         ('mass_oil', {
             'dtype': np.float32,
             'units': 'kg',
@@ -256,7 +257,11 @@ class OpenOil(OceanDrift):
         },
         'land_binary_mask': {
             'fallback': None
-        }
+        },
+        'ocean_mixed_layer_thickness': {
+            'fallback': 50,
+            'important': False
+        },
     }
 
     # The depth range (in m) which profiles shall cover
@@ -298,7 +303,8 @@ class OpenOil(OceanDrift):
         self.oil_weathering_model = weathering_model
 
         if self.oil_weathering_model == 'noaa':  # Currently the only option
-            self.oiltypes = adios.get_oil_names(location = kwargs.get('location', None))
+            self.oiltypes = adios.get_oil_names(
+                location=kwargs.get('location', None))
 
             # Update config with oiltypes
             self.oiltypes.extend(adios.oil_name_alias.keys())
@@ -1404,7 +1410,9 @@ class OpenOil(OceanDrift):
         if self.oil_weathering_model == 'noaa':
             self.oiltype = adios.find_full_oil_from_name(self.oil_name)
             if not self.oiltype.valid():
-                logger.error(f"{self.oiltype} is not a valid oil for Opendrift simulations")
+                logger.error(
+                    f"{self.oiltype} is not a valid oil for Opendrift simulations"
+                )
                 raise ValueError()
         else:
             raise ValueError("unsupported oil weathering model")
@@ -1414,7 +1422,9 @@ class OpenOil(OceanDrift):
             self.oiltype = adios.get_full_oil_from_id(oiltypeid)
             self.oil_name = self.oiltype.name
             if not self.oiltype.valid():
-                logger.error(f"{self.oiltype} is not a valid oil for Opendrift simulations")
+                logger.error(
+                    f"{self.oiltype} is not a valid oil for Opendrift simulations"
+                )
                 raise ValueError()
         else:
             raise ValueError("unsupported oil weathering model")
@@ -1424,7 +1434,9 @@ class OpenOil(OceanDrift):
             self.oiltype = adios.oil.OpendriftOil(json)
             self.oil_name = self.oiltype.name
             if not self.oiltype.valid():
-                logger.error(f"{self.oiltype} is not a valid oil for Opendrift simulations")
+                logger.error(
+                    f"{self.oiltype} is not a valid oil for Opendrift simulations"
+                )
                 raise ValueError()
         else:
             raise ValueError("unsupported oil weathering model")
@@ -1438,7 +1450,9 @@ class OpenOil(OceanDrift):
             self.oiltype = adios.oil.OpendriftOil(j)
             self.oil_name = self.oiltype.name
             if not self.oiltype.valid():
-                logger.error(f"{self.oiltype} is not a valid oil for Opendrift simulations")
+                logger.error(
+                    f"{self.oiltype} is not a valid oil for Opendrift simulations"
+                )
                 raise ValueError()
         else:
             raise ValueError("unsupported oil weathering model")
@@ -1761,5 +1775,6 @@ class OpenOil(OceanDrift):
                                      time=time,
                                      *args,
                                      **kwargs)
+
     def _substance_name(self):
         return self.get_oil_name()
