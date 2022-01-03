@@ -15,6 +15,7 @@
 # Copyright 2021, Gaute Hope, MET Norway
 
 from importlib import resources
+from pathlib import Path
 import logging
 import json
 import itertools
@@ -28,12 +29,25 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=None)
 def __get_archive__():
     import lzma
+
+    oils = []
+
     with resources.open_binary('opendrift.models.openoil.adios',
                                'oils.xz') as archive:
         with lzma.open(archive, 'rt') as c:
             oils = json.load(c)
-            return oils
 
+    # Add additional oils
+    for f in resources.files('opendrift.models.openoil.adios.extra_oils').iterdir():
+        if Path(f.name).suffix == '.json':
+            o = json.loads(f.read_text())
+            o = { 'data': { 'attributes' : o } }
+            o['data']['_id'] = o['data']['attributes']['oil_id']
+            o['data']['attributes']['metadata']['location'] = 'NORWAY'
+            logger.debug(f"Adding additional oil: {f.name}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
+            oils.append(o)
+
+    return oils
 
 def get_oil_names(location=None):
     a = __get_archive__()

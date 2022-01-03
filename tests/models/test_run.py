@@ -599,7 +599,7 @@ class TestRun(unittest.TestCase):
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -122.57, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -122.52, 1)  # After some rising
 
     def test_seed_above_seafloor(self):
         o = OpenOil(loglevel=30)

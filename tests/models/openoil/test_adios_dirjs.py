@@ -20,7 +20,7 @@ def test_get_all_oil_names(benchmark):
 
 def test_get_all_oil_names_location(benchmark):
     oils = benchmark(adios.dirjs.get_oil_names, location='NORWAY')
-    assert len(oils) >= 150 and len(oils) <= 180
+    assert len(oils) >= 150 and len(oils) <= 190
 
 
 def test_bunker_c_1987():
@@ -40,3 +40,11 @@ def test_get_oil_by_id(benchmark):
     oil = benchmark(adios.dirjs.get_full_oil_from_id, 'NO00108')
     assert oil.name == 'AASGARD A 2003'
     assert oil.valid()
+
+def test_extra_oils_no():
+    oil = adios.dirjs.find_full_oil_from_name('VEGA CONDENSATE 2015')
+    print(oil)
+
+def test_extra_oils_generic():
+    oil = adios.dirjs.find_full_oil_from_name('GENERIC HEAVY FUEL OIL')
+    print(oil)
