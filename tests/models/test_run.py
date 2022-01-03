@@ -615,7 +615,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_max_subsea', 0.0010)  # s
         # Seed elements 50 meters above seafloor:
         o.seed_elements(lon, lat, z='seafloor+50', time=reader_norkyst.start_time,
-                        density=1000)
+                        density=1000, oil_type='AASGARD A 2003')
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
@@ -636,7 +636,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.005)
         o.seed_elements(lon, lat, z=-350, time=reader_norkyst.start_time,
-                        density=1000)
+                        density=1000, oil_type='AASGARD A 2003')
         #o.set_config('vertical_mixing:TSprofiles', True)
         o.set_config('drift:vertical_mixing', True)
 
@@ -680,7 +680,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.001)
         o.seed_elements(lon, lat, z=[-5000, -100], time=reader_norkyst.start_time,
-                        density=1000, number=2)
+                        density=1000, number=2, oil_type='AASGARD A 2003')
         o.set_config('general:seafloor_action', 'deactivate')  # This time we deactivate
         o.set_config('drift:vertical_mixing', True)
 

@@ -279,19 +279,6 @@ class OpenOil(OceanDrift):
         'dispersed': 'magenta'
     }
 
-    duplicate_oils = [
-        'ALVHEIM BLEND, STATOIL', 'DRAUGEN, STATOIL', 'EKOFISK BLEND 2000',
-        'EKOFISK BLEND, STATOIL', 'EKOFISK, CITGO', 'EKOFISK, EXXON',
-        'EKOFISK, PHILLIPS', 'EKOFISK, STATOIL', 'ELDFISK', 'ELDFISK B',
-        'GLITNE, STATOIL', 'GOLIAT BLEND, STATOIL', 'GRANE BLEND, STATOIL',
-        'GUDRUN BLEND, STATOIL', 'GULLFAKS A, STATOIL', 'GULLFAKS C, STATOIL',
-        'GULLFAKS, SHELL OIL', 'GULLFAKS SOR', 'GULLFAKS, STATOIL',
-        'HEIDRUN, STATOIL', 'NJORD, STATOIL', 'NORNE, STATOIL',
-        'OSEBERG BLEND, STATOIL', 'OSEBERG EXXON', 'OSEBERG, PHILLIPS',
-        'OSEBERG, SHELL OIL', 'SLEIPNER CONDENSATE, STATOIL',
-        'STATFJORD BLEND, STATOIL', 'VARG, STATOIL'
-    ]
-
     # Workaround as ADIOS oil library uses
     # max water fraction of 0.9 for all crude oils
     max_water_fraction = {
@@ -308,6 +295,11 @@ class OpenOil(OceanDrift):
 
             # Update config with oiltypes
             self.oiltypes.extend(adios.oil_name_alias.keys())
+
+            # Sort alphabetically, but put GENERIC oils first
+            generic_oiltypes = [o for o in self.oiltypes if o[0:7] == 'GENERIC']
+            other_oiltypes = [o for o in self.oiltypes if o[0:7] != 'GENERIC']
+            self.oiltypes = sorted([o for o in generic_oiltypes]) + sorted([o for o in other_oiltypes])
         else:
             raise ValueError('Weathering model unknown: ' + weathering_model)
 
@@ -408,7 +400,7 @@ class OpenOil(OceanDrift):
                 'enum':
                 self.oiltypes,
                 'default':
-                'AASGARD A 2003',
+                self.oiltypes[0],
                 'level':
                 self.CONFIG_LEVEL_ESSENTIAL,
                 'description':

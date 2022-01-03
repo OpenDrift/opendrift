@@ -80,7 +80,7 @@ def test_default_oil_type():
     o = OpenOil(loglevel=50)
     print('Default oil_type', o.get_config('seed:oil_type'))
 
-    assert o.get_config('seed:oil_type') == 'AASGARD A 2003'
+    assert o.get_config('seed:oil_type') == 'GENERIC BUNKER C'
 
 def test_set_oil_type():
     o = OpenOil(loglevel=50)
