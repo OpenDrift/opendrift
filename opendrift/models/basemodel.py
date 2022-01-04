@@ -677,6 +677,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 value = int(value)
         elif i['type'] == 'enum':
             if value not in i['enum']:
+                suggestion = ''
                 if len(i['enum']) > 5:
                     import difflib
                     matches = difflib.get_close_matches(value,
@@ -689,11 +690,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         matches.sort()
                         suggestion = '\nDid you mean any of these?\n%s' % str(
                             matches)
-                else:
-                    suggestion = ''
                 raise ValueError(
-                    'Wrong configuration, possible values are:\n\t%s\n%s' %
-                    (i['enum'], suggestion))
+                    'Wrong configuration (%s=%s), possible values are:\n\t%s\n%s' %
+                    (key, value, i['enum'], suggestion))
 
         self._config[key]['value'] = value
 
