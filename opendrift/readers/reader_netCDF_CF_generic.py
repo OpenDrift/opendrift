@@ -307,7 +307,6 @@ class Reader(StructuredReader, BaseReader):
             self.xmin -= 360
             self.xmax -= 360
             self.x -= 360
-            self.x -= 360
 
         ##########################################
         # Find all variables having standard_name
