@@ -109,7 +109,7 @@ class RadionuclideDrift(OceanDrift):
         # TODO: descriptions and units must be added in config setting below
         self._add_config({
             'radionuclide:transfer_setup': {'type': 'enum',
-                'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom'], 'default': 'custom',
+                'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom'], 'default': '137Cs_rev',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:slowly_fraction': {'type': 'bool', 'default': False,
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
@@ -120,19 +120,22 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:particle_diameter': {'type': 'float', 'default': 5e-6,
                 'min': 0, 'max': 100e-6, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Mean particle diameter. Determines the settling velocity.'},
             'radionuclide:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'radionuclide:activity_per_element': {'type': 'float', 'default': 1,
-                'min': 0, 'max': 1e18, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Standard deviation of particle size distribution.'},
+#            'radionuclide:activity_per_element': {'type': 'float', 'default': 1,
+#                'min': 0, 'max': 1e18, 'units': 'Bq',
+#                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'seed:LMM_fraction': {'type': 'float','default': .1,
-                'min': 0, 'max': 1, 'units': '',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'min': 0, 'max': 1, 'units': '1',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of initial discharge released as LMM species'},
             'seed:particle_fraction': {'type': 'float','default': 0.9,
-                'min': 0, 'max': 1, 'units': '',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'min': 0, 'max': 1, 'units': '1',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of initial discharge released as particle species'},
+            'seed:total_release': {'type': 'float','default': 100.e9,
+                'min': 0, 'max': 1e36, 'units': 'Bq',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Total release (Bq)'},
             # Species
             'radionuclide:species:LMM': {'type': 'bool', 'default': True,
                 'level': self.CONFIG_LEVEL_BASIC, 'description': 'Toggle LMM species'},
@@ -160,8 +163,8 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Transformations
             'radionuclide:transformations:Kd': {'type': 'float', 'default': 2.0,
-                'min': 0, 'max': 1e9, 'units': '',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'min': 0, 'max': 1e9, 'units': 'm3/kg',
+                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:transformations:Dc': {'type': 'float', 'default': 1.16e-5,
                 'min': 0, 'max': 1e6, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
@@ -987,8 +990,8 @@ class RadionuclideDrift(OceanDrift):
         if activity_unit==None:
             activity_unit='Bq'  # default unit for radionuclides
 
-        activity_per_element = self.get_config('radionuclide:activity_per_element')
-
+        activity_per_element = self.get_config('seed:total_release') / self.num_elements_total()
+        
 
         z = self.get_property('z')[0]
         if not zlevels==None:
@@ -1356,4 +1359,260 @@ class RadionuclideDrift(OceanDrift):
 #        num_coarse = num_coarse*msk
 
         return num_coarse
+
+
+
+
+
+
+
+    def gui_postproc(self):
+        from os.path import expanduser
+        
+        print('Postprocessing radionuclides')
+        homefolder = expanduser("~")
+        filename = homefolder+'/conc_radio.nc'
+        
+        
+        self.guipp_saveconcfile(filename)
+        
+        zlayer   = [-1,-2]
+        self.guipp_plotandsaveconc(filename=filename, 
+                                         outfilename=homefolder+'/RadioConc', 
+                                         zlayers=zlayer,
+                                         specie= ['Total', 'LMM', 'Particle reversible'],
+
+                                         )
+        
+#         self.animation_profile(color='specie',
+#             vmin=0,vmax=self.nspecies-1,
+#             legend=[self.specie_num2name(i) for i in range(self.nspecies)],
+#             legend_loc =3,
+# #            markersize=10
+#             )
+        
+        
+#         tk.Button(self.results, text='Show animation specie',
+#                   command=lambda: self.handle_result(
+#                       'showanimationspecie')).grid(row=50, column=1) 
+#         tk.Button(self.results, text='Save animation specie',
+#                   command=lambda: self.handle_result(
+#                       'saveanimationspecie')).grid(row=60, column=1) 
+#         tk.Button(self.results, text='Save conc file',
+#                   command=lambda: self.handle_result(
+#                       'saveconcfile')).grid(row=70, column=2) 
+#         tk.Button(self.results, text='Animation profile',
+#                   command=lambda: self.handle_result(
+#                       'saveconcfile')).grid(row=70, column=2) 
+
+
+    def guipp_saveconcfile(self,filename='none'):
+
+        
+        for readerName in self.readers:
+            reader = self.readers[readerName]
+            if 'sea_floor_depth_below_sea_level' in reader.variables:
+                break
+        
+        
+        self.conc_lon  = reader.get_variables('longitude',
+                                       x=[reader.xmin,reader.xmax],
+                                       y=[reader.ymin,reader.ymax])['longitude'][:]
+
+        self.conc_lat  = reader.get_variables('latitude',
+                                       x=[reader.xmin,reader.xmax],
+                                       y=[reader.ymin,reader.ymax])['latitude'][:]
+
+        self.conc_topo  = reader.get_variables('sea_floor_depth_below_sea_level',
+                                       x=[reader.xmin,reader.xmax],
+                                       y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
+
+        
+        self.write_netcdf_radionuclide_density_map(filename, pixelsize_m=200.,
+                                        zlevels=[-25, -2.],
+                                        activity_unit='Bq',
+                                        horizontal_smoothing=True,
+                                        smoothing_cells=1,
+                                        )
+
+
+    def guipp_showanimationprofile(self):
+        self.animation_profile(color='specie',
+            vmin=0,vmax=self.nspecies-1,
+            legend=[self.specie_num2name(i) for i in range(self.nspecies)],
+            legend_loc =3,
+#            markersize=10
+            )
+    
+
+
+
+
+
+    def guipp_plotandsaveconc(self, filename=None, outfilename=None, zlayers=None, time=None, specie=None):
+        import netCDF4
+        from datetime import timedelta, datetime
+        import cartopy.crs as ccrs
+        import matplotlib.pyplot as plt
+
+        print('Plotting concentration for {} at layer {} at time {}'.format(specie, zlayers, time))
+        
+        timeIn   = time
+        specieIn = specie
+        
+        outdir = '/home/magnes'
+        vcmin  = 0
+#        vcmaxt = 1.e-4
+        vcmaxt = self.get_config('seed:total_release') * 1.e-8
+        cblabel= 'Bq/m$^3$'
+
+        proj_pp=ccrs.PlateCarree()
+        cmap = 'CMRmap_r'
+
+
+        if specie==None:
+            specie_arr = ['Total', 'LMM', 'Particle reversible', 'Sediment reversible']
+        else:
+            specie_arr = specie 
+        
+        for readerName in self.readers:
+            reader = self.readers[readerName]
+            if 'sea_floor_depth_below_sea_level' in reader.variables:
+                break
+
+        gtopo  = reader.get_variables('sea_floor_depth_below_sea_level',
+                                       x=[reader.xmin,reader.xmax],
+                                       y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
+
+        
+        
+        print (' READ DATA FILE')
+        print (filename)
+        nc=netCDF4.Dataset(filename,'r')
+        time       = nc.variables['time'][:]; print('time')
+        t_units    = nc.variables['time'].units
+        #conc       = nc.variables['concentration_smooth'][:]; print('concentration_smooth')
+        specie     = nc.variables['specie'][:]; print('specie', specie)
+        sp_names   = nc.variables['specie'].names; print('sp_names',sp_names)
+        lat        = nc.variables['lat'][:]
+        lon        = nc.variables['lon'][:]
+        depth      = nc.variables['depth'][:]
+        topo       = nc.variables['topo'][:]; print('topo',topo.shape)
+        #nc.close()
+
+        
+        
+        Nspecies = len(specie[:])
+        print ('Nspecies', Nspecies)
+        if Nspecies>1:
+            specie_names = [i.split(':')[1] for i in sp_names]
+        else:
+            specie_names = [sp_names.split(':')[1]]
+        print(specie_names)
+
+
+
+
+        Ndepths = len(depth)
+        print ('Ndepths', Ndepths)
+        [print(item) for item in depth]
+        if Ndepths==1:
+            figsize=[5,6]
+        elif Ndepths==2:
+            figsize=[10,8]
+        elif Ndepths==3:
+            figsize=[13,8]
+        
+        
+        ntime=len(time)
+        print('ntime', ntime)
+        time = netCDF4.num2date(time,units=t_units,only_use_cftime_datetimes=False,only_use_python_datetimes=True)
+        print ('time[0]:',time[0])
+        print ('time[-1]:',time[-1])
+        print('type(time[0])',type(time[0]))
+#         deltat = (time[1]-time[0]).seconds / 3600.
+#         print('delta t: ',deltat, ' hours')
+#         if plot_int=='all' or plot_int<deltat:
+#             print(' WARNING: Too short plot intervals: ',plot_int, deltat)
+#             print(' set plot interval to deltat:', deltat)
+#             plot_int = deltat
+        
+        
+        for sp in specie_arr:
+        
+            fig, ax, crs, x, y, index_of_first, index_of_last = \
+                self.set_up_map()
+    #            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
+            
+            cb=False
+
+            if not sp=='Total':
+                try:
+                    spi = specie_names.index(sp)
+                    print(sp, spi)
+                except Exception:
+                    print(sp)
+                    break 
+                
+            
+            for date_idx in np.arange(0,len(time)):
+     
+    #             if timeIn:
+    #                 date_idx = netCDF4.date2index(timeIn, nc.variables['time'], calendar=None, select='nearest')
+    #             else:
+    #                 date_idx=-1
+                idx1=date_idx
+                t1 = time[idx1]
+#                print ('timeIn', timeIn, date_idx)
+            
+            
+                for zlayer in zlayers:
+
+
+            #        fig=plt.figure(figsize=figsize)
+            #        ax=plt.subplot(projection=ccrs.Orthographic(9,59))
+                    
+            #        tmp = np.nanmean(np.sum(nc.variables['concentration_smooth'][idx0:idx1,:,di,:,:],axis=1),axis=0)
+                    if sp=='Total':
+                        tmp = np.sum(nc.variables['concentration_smooth'][idx1,:,zlayer,:,:],axis=0)
+                    else:
+                        tmp = nc.variables['concentration_smooth'][idx1,spi,zlayer,:,:]
+                 #   vcmaxt = np.max(tmp)
+                    pcm=ax.pcolormesh(lon,lat,tmp,
+                                      vmin=vcmin,vmax=vcmaxt,
+                                      #norm=colors.LogNorm(vmin=vcmin,vmax=vcmax),
+                                      cmap=cmap, zorder=-1,
+                                      transform=proj_pp
+                                      )
+                    c1 = ax.contour(lon,lat,tmp,
+                                   [1.e-6,1.e-5,1.e-4,1.e-3,1.e-2,1.e-1,1.e0,1.e1,1.e2,1.e3,1.e4],
+            #                        [1.e-1,1.e0,1.e1,1.e2],
+            #                        [1.e4,5.e4,1.e5,2.e5,3.e5,4.e5],
+                                        colors='darkgrey',linewidths=.6,zorder=4, 
+                                         transform=proj_pp)
+                    
+                    if not cb:
+                        plt.colorbar(pcm,extend='both',label=cblabel)
+                        cb=True
+                    title=sp+' concentration, layer '+str(zlayer)+' '+t1.strftime('%Y%m%d %H:%M')
+                    #title = exp_nm+'\n'+'Mean concentration ' + 'Total' +'\n'+ t0.strftime('%Y%m%d %H:%M')+' - '+t1.strftime('%Y%m%d %H:%M')
+                    fig.suptitle(title)
+                    title = title.replace(' ','').replace('\n','_').replace(':','')
+                    
+                    if outfilename:
+                        ofn = outfilename+'_'+sp.replace(' ','')+'L'+str(zlayer)+'_'+t1.strftime('%Y%m%dT%H%M')+'.png'
+                    else:
+                        ofn = outdir+'/'+title+'_'+'.png'
+                    plt.savefig(ofn, dpi=300,bbox_inches='tight')
+                    #plt.close()
+                    
+                    # remove contour lines and shading
+                    for level in c1.collections:
+                        level.remove()
+                    pcm.remove()
+                    print(ofn)
+            plt.close()
+        print('DONE',)
+
+
 
