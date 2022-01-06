@@ -3,7 +3,15 @@ History
 
 Next release / 1.8.0
 ---------------------------
-* Using new ADIOS library, replacing old OilLibrary.
+* The oil-library has been replaced with the new ADIOS database. Oils are
+  retrieved from `adios.orr.noaa.gov <https://adios.orr.noaa.gov/>`_, but
+  shipped with OpenDrift. They will be updated occasionally. Additional oils
+  not yet included in ADIOS are also supplied with OpenDrift.
+* A custom oil can be specified to OpenOil as a JSON string in the format of
+  ADIOS. This means that if you want to use a new or updated oil from the ADIOS
+  database, you can download it as JSON and specify it manually.
+* The dependency on the oillibrary is now removed, and we should no longer have
+  any conda-specific package dependencies.
 * Faster writig of animations to mp4 file.
 * New element property `current_drift_factor` (default 1) to OceanDrift and submodels - allowing to move particles with a fraction of ocean current.
 * OpenOil and PlastDrift now inherits ElementType class from OceanDrift, instead of from Elements.PassiveTracer
