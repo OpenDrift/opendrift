@@ -12,7 +12,7 @@ Next release / 1.8.0
   database, you can download it as JSON and specify it manually.
 * The dependency on the oillibrary is now removed, and we should no longer have
   any conda-specific package dependencies.
-* Faster writig of animations to mp4 file.
+* Faster writing of animations to file (mp4 and gif) using grab_frame and saving methods in matplotlib.animation writers
 * New element property `current_drift_factor` (default 1) to OceanDrift and submodels - allowing to move particles with a fraction of ocean current.
 * OpenOil and PlastDrift now inherits ElementType class from OceanDrift, instead of from Elements.PassiveTracer
 * Fixed `bug <https://github.com/OpenDrift/opendrift/commit/7c49edaea55a65f3781363457b504c5dd86f55b2>`__ for vertical mixing with depths below 255m
