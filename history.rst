@@ -1,7 +1,7 @@
 History
 =======
 
-Next release / 1.8.0
+2022-01-06 / Release v1.8.0
 ---------------------------
 * The oil-library has been replaced with the new ADIOS database. Oils are
   retrieved from `adios.orr.noaa.gov <https://adios.orr.noaa.gov/>`_, but
