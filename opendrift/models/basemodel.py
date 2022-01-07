@@ -3415,17 +3415,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
+
+            ret = [points, points_deactivated]  # list of elements to return for blitting
             ax.set_title('%s\n%s UTC' % (self._figure_title(), times[i]))
             if background is not None:
+                ret.append(bg)
                 if isinstance(background, xr.DataArray):
                     scalar = background[i, :, :].values
                 else:
-                    map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
+                    map_x, map_y, scalar, u_component, v_component = \
                         self.get_map_background(ax, background,
                                                 time=times[i])
                 # https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data
                 bg.set_array(scalar[:-1, :-1].ravel())
                 if type(background) is list:
+                    ret.append(bg_quiv)
                     bg_quiv.set_UVC(u_component[::skip, ::skip],
                                     v_component[::skip, ::skip])
 
@@ -3442,6 +3446,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if density is True:
                 # Update density plot
                 pm.set_array(H[i, :, :].ravel())
+                ret.append(pm)
 
             # Move points
             if show_elements is True:
@@ -3470,6 +3475,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if drifter is not None:
                 drifter_pos.set_offsets(np.c_[drifter['x'][i],
                                               drifter['y'][i]])
+                ret.append(drifter_pos)
 
             if show_elements is True:
                 if compare is not None:
@@ -3484,9 +3490,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                 cd['index_of_last_deactivated_other'] < i],
                             cd['y_other_deactive'][
                                 cd['index_of_last_deactivated_other'] < i]])
-                    return points, points_deactivated, cd['points_other'],
-                else:
-                    return points, points_deactivated,
+                        ret.append(cd['points_other'])
+                        ret.append(cd['points_other_deactivated'])
+
+            return ret
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
@@ -3527,7 +3534,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 scalar = background[0, :, :]
                 map_y, map_x = np.meshgrid(map_y, map_x)
             else:
-                map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
+                map_x, map_y, scalar, u_component, v_component = \
                     self.get_map_background(ax, background,
                                             time=self.start_time)
             bg = ax.pcolormesh(map_x,
@@ -3542,8 +3549,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                cmap=cmap,
                                transform=gcrs)
             if type(background) is list:
-                bg_quiv = ax.quiver(qmap_x[::skip, ::skip],
-                                    qmap_y[::skip, ::skip],
+                bg_quiv = ax.quiver(map_x[::skip, ::skip],
+                                    map_y[::skip, ::skip],
                                     u_component[::skip, ::skip],
                                     v_component[::skip, ::skip],
                                     scale=scale,
@@ -4322,7 +4329,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 lat_res = lat_res.T
                 map_x, map_y = (lon_res, lat_res)
             else:
-                map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y = \
+                map_x, map_y, scalar, u_component, v_component = \
                     self.get_map_background(ax, background, time=time)
                 #self.time_step_output)
 
@@ -4373,10 +4380,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     cb.set_label(str(background))
 
         if type(background) is list:
-            delta_x = (map_x[1, 2] - map_x[1, 1]) / 2.
-            delta_y = (map_y[2, 1] - map_y[1, 1]) / 2.
-            ax.quiver(qmap_x[::skip, ::skip] + delta_x,
-                      qmap_y[::skip, ::skip] + delta_y,
+            ax.quiver(map_x[::skip, ::skip],
+                      map_y[::skip, ::skip],
                       u_component[::skip, ::skip],
                       v_component[::skip, ::skip],
                       scale=scale,
@@ -4518,25 +4523,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 scalar = scalar[0]
             u_component = v_component = None
 
-        # Shift one pixel for correct plotting
-        reader_x = reader_x - reader.delta_x
-        reader_y = reader_y - reader.delta_y
         if reader.projected is False:
             reader_y[reader_y < 0] = 0
             reader_x[reader_x < 0] = 0
 
         rlons, rlats = reader.xy2lonlat(reader_x, reader_y)
-        qrlons, qrlats = reader.xy2lonlat(reader_x + reader.delta_x / 2,
-                                          reader_y + reader.delta_y / 2)
         if rlons.max() > 360:
             rlons = rlons - 360
-            qrlons = qrlons - 360
         map_x, map_y = (rlons, rlats)
-        qmap_x, qmap_y = (qrlons, qrlats)
 
         scalar = np.ma.masked_invalid(scalar)
 
-        return map_x, map_y, scalar, u_component, v_component, qmap_x, qmap_y
+        return map_x, map_y, scalar, u_component, v_component
 
     def get_lonlat_bins(self, pixelsize_m):
         latmin = self.latmin
