@@ -3446,6 +3446,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if density is True:
                 # Update density plot
                 pm.set_array(H[i, :, :].ravel())
+                ret.append(pm)
 
             # Move points
             if show_elements is True:
@@ -3474,6 +3475,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if drifter is not None:
                 drifter_pos.set_offsets(np.c_[drifter['x'][i],
                                               drifter['y'][i]])
+                ret.append(drifter_pos)
 
             if show_elements is True:
                 if compare is not None:
