@@ -25,6 +25,7 @@ o.seed_elements(lon=19.1909, lat=79.5986, radius=50,
 o.set_config('processes:dispersion',  False)
 o.set_config('processes:evaporation',  False)
 o.set_config('processes:emulsification',  False)
+o.set_config('drift:horizontal_diffusivity', 10)
 o.set_config('drift:truncate_ocean_model_below_m', 3)
 
 #%%

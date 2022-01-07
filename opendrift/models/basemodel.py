@@ -3249,6 +3249,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                                      width=lonmx - lonmn,
                                                      height=latmx - latmn,
                                                      transform=ccrs.Geodetic(),
+                                                     zorder=10,
                                                      **bx)
                 ax.add_patch(patch)
 
@@ -3346,6 +3347,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   fps=8,
                   lscale=None,
                   fast=False,
+                  blit=False,
                   **kwargs):
         """Animate last run."""
 
@@ -3541,6 +3543,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                map_y,
                                scalar[:-1, :-1],
                                alpha=bgalpha,
+                               zorder=1,
                                antialiased=True,
                                linewidth=0.0,
                                rasterized=True,
@@ -3554,6 +3557,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                     u_component[::skip, ::skip],
                                     v_component[::skip, ::skip],
                                     scale=scale,
+                                    zorder=1,
                                     transform=gcrs)
 
         if lcs is not None:
@@ -3747,7 +3751,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if compare is not None:
             frames = min(x.shape[0], cd['x_other'].shape[1])
 
-        blit = sys.platform != 'darwin'  # blitting does not work on mac os
+        # blit is now provided to animation()
+        #blit = sys.platform != 'darwin'  # blitting does not work on mac os
 
         self.__save_or_plot_animation__(plt.gcf(),
                                         plot_timestep,
@@ -4340,6 +4345,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                              map_y,
                                              scalar,
                                              alpha=bgalpha,
+                                             zorder=1,
                                              vmin=vmin,
                                              vmax=vmax,
                                              cmap=cmap,
@@ -4385,7 +4391,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                       u_component[::skip, ::skip],
                       v_component[::skip, ::skip],
                       scale=scale,
-                      transform=gcrs)
+                      transform=gcrs, zorder=1)
 
         if lcs is not None:
             map_x_lcs, map_y_lcs = (lcs['lon'], lcs['lat'])
