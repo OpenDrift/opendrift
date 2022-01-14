@@ -63,6 +63,8 @@ class StructuredReader(Variables):
             self.ymax = self.lon.shape[0] - 1
             self.numx = self.xmax
             self.numy = self.ymax
+            self.x = np.arange(0, self.xmax+1)
+            self.y = np.arange(0, self.ymax+1)
 
             block_x, block_y = np.mgrid[self.xmin:self.xmax + 1,
                                         self.ymin:self.ymax + 1]
@@ -376,8 +378,8 @@ class StructuredReader(Variables):
             return super().xy2lonlat(x, y)
         else:
             np.seterr(invalid='ignore')  # Disable warnings for nan-values
-            y = np.atleast_1d(np.array(y))
-            x = np.atleast_1d(np.array(x))
+            y = np.atleast_1d(y)
+            x = np.atleast_1d(x)
 
             # NB: mask coordinates outside domain
             x[x < self.xmin] = np.nan
