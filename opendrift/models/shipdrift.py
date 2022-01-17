@@ -145,7 +145,8 @@ class ShipDrift(OpenDriftSimulation):
         self._add_config({'seed:orientation': {'type': 'enum',
             'enum':['left', 'right', 'random'], 'default': 'random',
             'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
-            'description': 'If ships are oriented to the left or right of the downwind direction, or whether this is unknown.'}})
+            'description': 'If ships are oriented to the left or right of the downwind direction,'
+                'or whether this is unknown. Left/right means that wind will hit ship from backboard/steerboard'}})
 
         self._set_config_default('drift:current_uncertainty', .05)
         self._set_config_default('drift:wind_uncertainty', .5)
