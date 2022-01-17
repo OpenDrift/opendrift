@@ -561,6 +561,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         for c, i in self._config.items():
             if c.startswith(prefix):
                 val = i['value'] if 'value' in i else None
+
+                val = val(self) if callable(val) else val
+
                 if i['type'] == 'bool':
                     rang = ''
                 elif i['type'] in ['float', 'int']:
@@ -680,6 +683,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 value = int(value)
         elif i['type'] == 'enum':
             if value not in i['enum']:
+                suggestion = ''
                 if len(i['enum']) > 5:
                     import difflib
                     matches = difflib.get_close_matches(value,
@@ -692,11 +696,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         matches.sort()
                         suggestion = '\nDid you mean any of these?\n%s' % str(
                             matches)
-                else:
-                    suggestion = ''
                 raise ValueError(
-                    'Wrong configuration, possible values are:\n\t%s\n%s' %
-                    (i['enum'], suggestion))
+                    'Wrong configuration (%s=%s), possible values are:\n\t%s\n%s' %
+                    (key, value, i['enum'], suggestion))
 
         self._config[key]['value'] = value
 
@@ -832,6 +834,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         elif i == 'deactivate':
             self.deactivate_elements(self.elements.z < -sea_floor_depth,
                                      reason='seafloor')
+            self.elements.z[below] = -sea_floor_depth[below]
         elif i == 'previous':  # Go back to previous position (in water)
             logger.warning('%s elements hit seafloor, '
                            'moving back ' % len(below))
@@ -2430,6 +2433,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # Deactivate elements, if they have not already been deactivated
         self.elements.status[indices & (self.elements.status ==0)] = \
             reason_number
+        self.elements.moving[indices] = 0
         logger.debug('%s elements scheduled for deactivation (%s)' %
                      (np.sum(indices), reason))
         logger.debug(
@@ -2983,7 +2987,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.io_close()
 
         # Remove any elements scheduled for deactivation during last step
-        #self.remove_deactivated_elements()
+        self.remove_deactivated_elements()
 
         if export_buffer_length is None:
             # Remove columns for unseeded elements in history array
@@ -3338,6 +3342,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   corners=None,
                   filename=None,
                   compare=None,
+                  compare_marker='o',
                   background=None,
                   bgalpha=.5,
                   vmin=None,
@@ -3479,6 +3484,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
+                    if compare is not None:
+                        for cd in compare_list:
+                            cd['points_other'].set_array(colorarray[:, i])
                     if isinstance(color, str) or hasattr(color, '__len__'):
                         points_deactivated.set_array(colorarray_deactivated[
                             index_of_last_deactivated < i])
@@ -3500,9 +3508,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                 cd['index_of_last_deactivated_other'] < i],
                             cd['y_other_deactive'][
                                 cd['index_of_last_deactivated_other'] < i]])
-                    return points, cd['points_other'],
+                    return points, points_deactivated, cd['points_other'],
                 else:
-                    return points,
+                    return points, points_deactivated,
 
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
@@ -3658,14 +3666,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     legstr = legend[cn + 1]
                 else:
                     legstr = None
+                if color is False:
+                    c = self.plot_comparison_colors[cn+1]
+                else:
+                    c = []
                 cd['points_other'] = \
-                    ax.scatter([], [], c=self.plot_comparison_colors[cn+1],
+                    ax.scatter([], [], c=c, marker=compare_marker, cmap=cmap,
                                s=markersize, label=legstr, zorder=10, transform = gcrs)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    ax.scatter([], [], alpha=.3, zorder=9,
-                               c=self.plot_comparison_colors[cn+1],
-                               s=markersize, transform = gcrs)
+                    ax.scatter([], [], alpha=.3, zorder=9, marker=compare_marker, cmap=cmap,
+                               c=c, s=markersize, transform = gcrs)
 
             if legend != ['', '']:
                 plt.legend(markerscale=2, loc=legend_loc)
@@ -3753,19 +3764,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if compare is not None:
             frames = min(x.shape[0], cd['x_other'].shape[1])
 
+        blit = sys.platform != 'darwin'  # blitting does not work on mac os
+
         self.__save_or_plot_animation__(plt.gcf(),
                                         plot_timestep,
                                         filename,
                                         frames,
                                         fps,
-                                        interval=50)
+                                        interval=50,
+                                        blit = blit)
 
         logger.info('Time to make animation: %s' %
                     (datetime.now() - start_time))
 
     def __save_or_plot_animation__(self, figure, plot_timestep, filename,
-                                   frames, fps, interval):
-        blit = sys.platform != 'darwin'  # blitting does not work on mac os
+                                   frames, fps, interval, blit):
 
         if filename is not None or 'sphinx_gallery' in sys.modules:
             logger.debug("Saving animation..")
@@ -3779,7 +3792,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         else:
             logger.debug("Showing animation..")
-            animation.FuncAnimation(figure,
+            anim=animation.FuncAnimation(figure,
                                     plot_timestep,
                                     blit=blit,
                                     frames=frames,
@@ -3829,9 +3842,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 points_other_deactivated.set_data(
                     x_other_deactive[index_of_last_deactivated_other < i],
                     z_other_deactive[index_of_last_deactivated_other < i])
-                return points, points_other
+                return points, points_deactivated, points_other,
             else:
-                return points
+                return points, points_deactivated,
 
         PlotColors = (compare is None) and (legend != ['', ''])
         if PlotColors:
@@ -3946,7 +3959,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                         filename,
                                         x.shape[1],
                                         fps,
-                                        interval=150)
+                                        interval=150,
+                                        blit=False)
 
         logger.info('Time to make animation: %s' %
                     (datetime.now() - start_time))
@@ -4400,6 +4414,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                           alpha=1,
                           vmin=vmin,
                           vmax=vmax,
+                          zorder=0,
                           cmap=cmap,
                           transform=gcrs)
 
@@ -4780,6 +4795,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         lon_array = (lon_array[0:-1] + lon_array[1::]) / 2
         lat_array = (lat_array[0:-1] + lat_array[1::]) / 2
 
+        from netCDF4 import Dataset, date2num
         nc = Dataset(filename, 'w')
         nc.createDimension('lon', len(lon_array))
         nc.createDimension('lat', len(lat_array))

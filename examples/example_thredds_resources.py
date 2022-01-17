@@ -16,7 +16,7 @@ times = {}
 #%%
 # Open each thredds dataset to check contents and spatial coverage
 for t in thredds_resources:
-    if t.startswith('http') and 'cmems' not in t:
+    if t.startswith('http'):
         start = datetime.now()
         print('\n#%%\n%s\n' % t)
         r = Reader(t)
@@ -24,7 +24,11 @@ for t in thredds_resources:
         ts = str(datetime.now() - start)
         times[t] = ts
         print('Time to open reader: ', ts)
-        r.plot(lscale='intermediate')
+        if r.global_coverage():
+            lscale = 'coarse'
+        else:
+            lscale = 'intermediate'
+        r.plot(lscale=lscale)
 
 #%%
 # Summary of times to open each dataset:

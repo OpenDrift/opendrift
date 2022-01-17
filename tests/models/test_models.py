@@ -27,6 +27,7 @@ from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
 from opendrift.models.plastdrift import PlastDrift
+from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
@@ -39,17 +40,27 @@ print(opendrift.versions())
 class TestModels(unittest.TestCase):
     """Tests for OpenDrift models"""
 
-    def test_seed(self):
-        """Test seeding"""
-        self.o = OpenOil()
-        self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
-        self.fake_eddy.start_time = datetime(2015, 1, 1)
-        self.o.add_reader([self.fake_eddy])
-        self.o.seed_elements(lon=4, lat=60, number=100,
-                             time=self.fake_eddy.start_time)
-        self.assertEqual(len(self.o.elements), 0)
-        self.assertEqual(len(self.o.elements_deactivated), 0)
-        self.assertEqual(len(self.o.elements_scheduled), 100)
+    def test_wind_and_current_drift_factor(self):
+        lat=60
+        lon=4
+        o = OceanDrift(loglevel=50)
+        o.seed_elements(lon=lon, lat=lat, time=datetime.now(), wind_drift_factor=0, current_drift_factor=1)
+        o.set_config('general:use_auto_landmask', False)
+        o.set_config('environment:constant:land_binary_mask', 0)
+        o.set_config('environment:constant:x_wind', 5)
+        o.set_config('environment:constant:y_sea_water_velocity', 1)
+        o.run(duration=timedelta(hours=2))
+        o2 = OceanDrift()
+        o2.seed_elements(lon=lon, lat=lat, time=datetime.now(), wind_drift_factor=0.02, current_drift_factor=.3)
+        o2.set_config('general:use_auto_landmask', False)
+        o2.set_config('environment:constant:land_binary_mask', 0)
+        o2.set_config('environment:constant:x_wind', 5)
+        o2.set_config('environment:constant:y_sea_water_velocity', 1)
+        o2.run(duration=timedelta(hours=2))
+        self.assertAlmostEqual(o.elements.lat[0], lat + 0.0646, 3)
+        self.assertAlmostEqual(o.elements.lon[0], lon)
+        self.assertAlmostEqual(o2.elements.lat[0], lat + 0.0646*.3, 3)
+        self.assertAlmostEqual(o2.elements.lon[0], lon + 0.0129, 3)
 
     def test_windblow(self):
         o = WindBlow(loglevel=30)
@@ -163,51 +174,6 @@ class TestModels(unittest.TestCase):
         self.assertAlmostEqual(o.history['lon'].data[0][1],3.991, 3)
         self.assertAlmostEqual(o.history['lat'].data[0][1],62.011, 3)
 
-    def test_oil_in_ice(self):
-        """ Testing ice-in-oil transport with
-        different values of sea ice concentration as defined by Nordam et al. 2019"""
-
-        c = [0.2, 0.5, 0.8]
-        lon = 24; lat = 81
-
-        # Distances calculated with fallback_values and Nordam's equation
-        distances = {'0.2': 21.2914, '0.5': 15.1405, '0.8': 7.2}
-
-        geod = pyproj.Geod(ellps='WGS84')
-
-        for i in c:
-            o = OpenOil(loglevel=50)
-            o.set_config('environment:fallback:x_wind', 0)  # zonal wind
-            o.set_config('environment:fallback:y_wind', 4)  # meridional wind
-
-            o.set_config('environment:fallback:x_sea_water_velocity', 0)  # eastward current
-            o.set_config('environment:fallback:y_sea_water_velocity', .4)  # meridional current
-
-            o.set_config('environment:fallback:sea_ice_x_velocity', 0)  # zonal ice velocity
-            o.set_config('environment:fallback:sea_ice_y_velocity', .2)  # meridional ice velocity
-
-            o.set_config('environment:fallback:sea_surface_wave_stokes_drift_y_velocity', 0.1) # meridional Stokes drif
-
-            o.set_config('processes:dispersion',  False)
-            o.set_config('processes:evaporation',  False)
-            o.set_config('processes:emulsification',  False)
-            o.set_config('drift:stokes_drift',  True)
-            o.set_config('processes:update_oilfilm_thickness',  False)
-            o.set_config('drift:current_uncertainty',  0)
-            o.set_config('drift:wind_uncertainty',  0)
-
-            o.set_config('environment:fallback:sea_ice_area_fraction', i)
-
-            o.seed_elements(lon, lat, radius=1, number=10, time=datetime.now(), wind_drift_factor=0.03)
-
-            o.run(duration=timedelta(hours=10))
-
-            latf = o.history['lat'][0][-1]
-            lonf = o.history['lon'][0][-1]
-
-            azimuth1, azimuth2, dist = geod.inv(lon, lat, lonf, latf)
-
-            self.assertAlmostEqual(distances[str(i)], dist/1000, 2)
 
 
     def test_larvalfish(self):

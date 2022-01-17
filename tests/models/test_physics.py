@@ -131,14 +131,14 @@ class TestPhysics(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', 0)
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now())
+                        density=865, time=datetime.now(), oil_type='AASGARD A 2003')
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_property('z')
         #o.plot_vertical_distribution()
         #o.animation_profile()
         # Check minimum depth
-        self.assertAlmostEqual(o.elements.z.min(), -49.6, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -49.56, 1)
         #######################################################
 
     def test_vertical_mixing_plantoil_windonly(self):
@@ -151,12 +151,12 @@ class TestPhysics(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', 0)
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now())
+                        density=865, time=datetime.now(), oil_type='AASGARD A 2003')
 
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -48.9, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -49.4, 1)
         #######################################################
 
 
@@ -171,13 +171,13 @@ class TestPhysics(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', 0)
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                        density=865, time=datetime.now())
+                        density=865, time=datetime.now(), oil_type='AASGARD A 2003')
 
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -49.1, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -49.6, 1)
         ########################################################
 
     def test_verticalmixing_schemes(self):
@@ -192,18 +192,18 @@ class TestPhysics(unittest.TestCase):
             o.set_config('environment:fallback:y_sea_water_velocity', 0)
             o.set_config('environment:fallback:ocean_vertical_diffusivity', 0)
             o.seed_elements(4, 60, number=1000, diameter=0.00002,  # r = 10 micron
-                            density=865, time=datetime.now())
+                            density=865, time=datetime.now(), oil_type='AASGARD A 2003')
 
             #o.set_config('vertical_mixing:timestep', 4)
             o.set_config('vertical_mixing:diffusivitymodel', scheme)
             o.run(duration=timedelta(hours=2), time_step=900)
 
             if scheme == 'environment':  # presently this is fallback
-                self.assertAlmostEqual(o.elements.z.min(), -48.7, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -48.8, 1)
             elif scheme == 'windspeed_Large1994':
-                self.assertAlmostEqual(o.elements.z.min(), -48.7, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -48.8, 1)
             elif scheme == 'windspeed_Sundby1983':
-                self.assertAlmostEqual(o.elements.z.min(), -51.4, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -51.75, 1)
             elif scheme == 'constant':
                 self.assertAlmostEqual(o.elements.z.min(), -3.62, 1)
 

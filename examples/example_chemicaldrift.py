@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 ChemicalDrift - Transport and fate of organic compounds
-=============
+========================================================
 """
 
 from opendrift.readers import reader_netCDF_CF_generic, reader_ROMS_native

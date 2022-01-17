@@ -599,7 +599,7 @@ class TestRun(unittest.TestCase):
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -122.5, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -122.52, 1)  # After some rising
 
     def test_seed_above_seafloor(self):
         o = OpenOil(loglevel=30)
@@ -615,7 +615,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_max_subsea', 0.0010)  # s
         # Seed elements 50 meters above seafloor:
         o.seed_elements(lon, lat, z='seafloor+50', time=reader_norkyst.start_time,
-                        density=1000)
+                        density=1000, oil_type='AASGARD A 2003')
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
@@ -636,14 +636,14 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.005)
         o.seed_elements(lon, lat, z=-350, time=reader_norkyst.start_time,
-                        density=1000)
+                        density=1000, oil_type='AASGARD A 2003')
         #o.set_config('vertical_mixing:TSprofiles', True)
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0], -134.2, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -134.0, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
@@ -658,14 +658,14 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.001)
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
-                        density=1000, oiltype='GENERIC BUNKER C')
+                        density=1000, oil_type='GENERIC BUNKER C')
         o.set_config('drift:vertical_mixing', True)
 
         o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -132.4, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -132.45, 1)  # After some rising
 
     def test_seed_below_seafloor_deactivating(self):
         o = OpenOil(loglevel=50)
@@ -680,7 +680,7 @@ class TestRun(unittest.TestCase):
         o.set_config('seed:droplet_diameter_min_subsea', 0.0005)
         o.set_config('seed:droplet_diameter_max_subsea', 0.001)
         o.seed_elements(lon, lat, z=[-5000, -100], time=reader_norkyst.start_time,
-                        density=1000, number=2)
+                        density=1000, number=2, oil_type='AASGARD A 2003')
         o.set_config('general:seafloor_action', 'deactivate')  # This time we deactivate
         o.set_config('drift:vertical_mixing', True)
 
