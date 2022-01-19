@@ -323,6 +323,9 @@ class RadionuclideDrift(OceanDrift):
 
             init_specie = np.ones(num_elements,dtype=int)
             init_specie[:] = kwargs['specie']
+            kwargs['specie'] = init_specie[:]
+            
+                
 
 
         else:
@@ -1460,7 +1463,7 @@ class RadionuclideDrift(OceanDrift):
         timeIn   = time
         specieIn = specie
         
-        outdir = '/home/magnes'
+        outdir = '/home/magnes/radio_plots'
         vcmin  = 0
 #        vcmaxt = 1.e-4
         vcmaxt = self.get_config('seed:total_release') * 1.e-8
