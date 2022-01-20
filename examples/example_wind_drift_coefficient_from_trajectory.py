@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cmocean
 from opendrift.models.oceandrift import OceanDrift
-from opendrift.models.physics_methods import wind_drift_factor_from_trajectory, distance_between_trajectories
+from opendrift.models.physics_methods import wind_drift_factor_from_trajectory, distance_between_trajectories, skillscore_liu_weissberg
 
 #%%
 # A very simple drift model is: current + wind_drift_factor*wind
@@ -58,10 +58,10 @@ o.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].st
 o.run(duration=timedelta(hours=12), time_step=600)
 
 #%%
-# Calculate distances (meters) between simulation and synthetic drifter at each time step
-distances = distance_between_trajectories(o.history['lon'][0], o.history['lat'][0],
-                                          drifter_lons, drifter_lats)
-print(distances)
+# Calculate Liu-Weissberg skillscore
+skillscore = skillscore_liu_weissberg(drifter_lons, drifter_lats,
+                                      o.history['lon'][0], o.history['lat'][0])
+print('Liu Weissberg skillscore: %f' % skillscore)
 
 o.plot(fast=True, legend=True, trajectory_dict={'lon': drifter_lons, 'lat': drifter_lats,
         'time': drifter_times, 'linestyle': 'b--', 'label': 'Synthetic drifter'})
