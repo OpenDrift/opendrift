@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import pyproj
 import cmocean
 
+
 def wind_drift_factor_from_trajectory(trajectory_dict, min_period=None):
     '''Estimate wind_drift_fator based on wind and current along given trajectory
 
@@ -83,6 +84,76 @@ def distance_between_trajectories(lon1, lat1, lon2, lat2):
     azimuth_forward, a2, distance = geod.inv(lon1, lat1, lon2, lat2)
  
     return distance
+
+def distance_along_trajectory(lon, lat):
+    '''Calculate the distances [m] between points along a trajectory'''
+
+    geod = pyproj.Geod(ellps='WGS84')
+    azimuth_forward, a2, distance = geod.inv(lon[1:], lat[1:], lon[0:-1], lat[0:-1])
+
+    return distance
+
+
+def skillscore_darpa(lon1, lat1, lon2, lat2):
+    '''Scoring algorithm used for DARPA float challenge 2021.
+
+    Copied from implementation made by Jean Rabault.
+    Assuming 6 positions, separated by 2 days, where first pos (start) are identical.
+    '''
+
+    assert len(lon1) == 6
+    distances = distance_between_trajectories(lon1, lat1, lon2, lat2)/1000
+    if distances[0] != 0:
+        logger.warning('DARPA score: first position is not identical '
+                       '(distance: %s km)' % distances[0])
+    distances = distances[1:]  # For the remaining, we ignore starting position
+
+    dict_DARPA_points = {
+        4: 5,
+        8: 2,
+        16: 1,
+        32: 0.25 }
+    distance_thresholds = sorted(list(dict_DARPA_points.keys()))
+
+    dict_DARPA_scoring_multiplicator = {
+        0: 1,
+        1: 2,
+        2: 5,
+        3: 10,
+        4: 20 }
+
+    DARPA_points = 0
+    for crrt_ind, crrt_distance in enumerate(distances):
+        if crrt_distance >= distance_thresholds[-1]:
+            break
+
+        for crrt_threshold in distance_thresholds:
+            if crrt_distance < crrt_threshold:
+                crrt_points = dict_DARPA_points[crrt_threshold]
+                break
+
+        crrt_multiplicator = dict_DARPA_scoring_multiplicator[crrt_ind]
+
+        DARPA_points += int(crrt_points * crrt_multiplicator)
+
+    return DARPA_points
+
+def skillscore_liu_weissberg(lon_obs, lat_obs, lon_model, lat_model, tolerance_threshold=1):
+    ''' calculate skill score from normalized cumulative seperation
+    distance. Liu and Weisberg 2011.
+
+    Returns the skill score bewteen 0. and 1.
+    '''
+
+    d = distance_between_trajectories(lon_obs, lat_obs, lon_model, lat_model)
+    l = distance_along_trajectory(lon_obs, lat_obs)
+    s = d.sum() / l.cumsum().sum()
+    if tolerance_threshold==0:
+        skillscore = 0
+    else:
+        skillscore = max(0, 1 - s/tolerance_threshold)
+
+    return skillscore
 
 def plot_wind_drift_factor(wdf, azimuth, wmax_plot=None):
     '''Polar plot of array of wind drift factor, with associated azimuthal offset'''
