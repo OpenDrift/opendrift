@@ -15,6 +15,7 @@
 # Copyright 2016, Knut-Frode Dagestad, MET Norway
 
 import logging; logger = logging.getLogger(__name__)
+from datetime import timedelta
 import numpy as np
 from math import sqrt
 import matplotlib.pyplot as plt
@@ -93,7 +94,6 @@ def distance_along_trajectory(lon, lat):
 
     return distance
 
-
 def skillscore_darpa(lon1, lat1, lon2, lat2):
     '''Scoring algorithm used for DARPA float challenge 2021.
 
@@ -145,6 +145,10 @@ def skillscore_liu_weissberg(lon_obs, lat_obs, lon_model, lat_model, tolerance_t
     Returns the skill score bewteen 0. and 1.
     '''
 
+    lon_obs = np.array(lon_obs)
+    lat_obs = np.array(lat_obs)
+    lon_model = np.array(lon_model)
+    lat_model = np.array(lat_model)
     d = distance_between_trajectories(lon_obs, lat_obs, lon_model, lat_model)
     l = distance_along_trajectory(lon_obs, lat_obs)
     s = d.sum() / l.cumsum().sum()
@@ -412,6 +416,78 @@ class PhysicsMethods:
         SIG = R1 + (R4*S + R3*np.sqrt(S) + R2)*S
         Dens0 = SIG + DR350 + 1000.
         return Dens0
+
+
+    def skillscore_trajectory(self, lon_obs, lat_obs, time_obs, duration=None,
+                              max_time_offset=timedelta(seconds=60), method='liu-weissberg',
+                              **kwargs):
+        '''Calculate skill-score comparing simulated and observed trajectories
+
+        A skill score is calculated for each of the modelled trajectories,
+        starting from the closest time/obs of the given modelled trajectory
+
+        Parameters
+        ----------
+        lon_obs : array_like
+        lat_obs : array_like
+            The longitude and latitudes of the observed trajectory
+        time_obs : array of datetime
+            The time corresponding to the observed positions
+        duration : timedelta
+            If None, skill score is calculated for the full trajectory, from the start
+            Otherwise, only this sub-part of the trajectory is used.
+        max_time_offset : timedelta
+            The maximum allowed time difference between observed and modelled time
+            Default: 1 minute
+        method : string 
+            Currently available: 'liu-wessberg'
+            To be implemented: 'darpa'
+        **kwargs : further arguments for skillscore method (e.g. tolerance_threshold)
+
+        Returns
+        -------
+        skillscore : array_like
+            One value for each trajectory
+        '''
+
+        time_obs = np.array(time_obs)
+        timesteps_obs = time_obs[1:] - time_obs[0:-1]
+        if timesteps_obs.min() != timesteps_obs.max():
+            raise ValueError('Time step of trajectory is variable: %s to %s' %
+                             (timesteps_obs.min(), timesteps_obs.max()))
+        if timesteps_obs.min() != self.time_step_output:
+            raise ValueError('Time step of trajectory is %s, but time step of simulation is %s.'
+                    % (timesteps_obs.min(), self.time_step_output))
+
+        from bisect import bisect_left
+        times = np.array(self.get_time_array()[0])
+        skillscore = np.zeros(self.num_elements_total())
+        for i in range(self.num_elements_total()):
+            lon = self.history['lon'][i]
+            lat = self.history['lat'][i]
+            status = self.history['status'][i]
+            lon_model = lon[status==0]
+            lat_model = lat[status==0]
+            time_model = times[status==0]
+
+            indo = bisect_left(time_obs, time_model[0], hi=len(time_obs)-1)
+            if time_obs[indo+1] - time_model[0] < time_obs[indo] - time_model[0]:
+                indo = indo + 1
+            # Check that modeled and observed (sub)trajectories start at same position
+            np.testing.assert_almost_equal(lon_model[0], lon_obs[indo], 3)
+            np.testing.assert_almost_equal(lat_model[0], lat_obs[indo], 3)
+
+            time_offset = np.abs((time_model[0] - time_obs[indo]).total_seconds())
+            if time_offset > max_time_offset.total_seconds():
+                raise ValueError('Too large offset: %s' % time_offset)
+            length = len(time_obs) - indo
+            indo = slice(indo, indo+length)
+            skillscore[i] = skillscore_liu_weissberg(lon_obs[indo], lat_obs[indo],
+                    lon_model[0:length], lat_model[0:length], **kwargs)
+
+        return skillscore
+
+        
 
     def advect_ocean_current(self, factor=1):
 
