@@ -108,14 +108,15 @@ o.add_readers_from_list([o.test_data_folder() +
     o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
 
 #%%
-# We test 100 different wind_drift_factors between 0 and 0.05
+# Calulating trajectories for 100 different wind_drift_factors between 0 and 0.05
 wdf = np.linspace(0.0, 0.05, 100)
-
 o.seed_elements(lon=4, lat=60, time=ot.readers[list(ot.readers)[0]].start_time,
                 wind_drift_factor=wdf, number=len(wdf))
 o.run(duration=timedelta(hours=12), time_step=600)
-
 o.plot(linecolor='wind_drift_factor', trajectory_dict=trajectory_dict)
+
+#%%
+# Plotting and finding the wind_drift_factor which maximises the skillscore
 skillscore = o.skillscore_trajectory(drifter_lons, drifter_lats, drifter_times, tolerance_threshold=1)
 ind = np.argmax(skillscore)
 plt.plot(wdf, skillscore)
@@ -123,4 +124,3 @@ plt.xlabel('Wind drift factor  [fraction]')
 plt.ylabel('Liu-Weissberg skillscore')
 plt.title('Maximum skillscore %.3f for wdf=%.3f' % (skillscore[ind], wdf[ind]))
 plt.show()
-
