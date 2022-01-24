@@ -14,9 +14,9 @@ from opendrift.models.physics_methods import wind_drift_factor_from_trajectory, 
 #%%
 # A very simple drift model is: current + wind_drift_factor*wind
 # where wind_drift_factor for surface drift is typically
-# 0.035 if Stokes drift included, and 0.02 in addition to Stokes drift.
+# 0.033 if Stokes drift included, and 0.02 in addition to Stokes drift.
 # This example illustrates how a best-fit wind_drift_factor
-# can be calculated from an observed trajectory.
+# can be calculated from an observed trajectory, using two different methods.
 
 #%%
 # First we simulate a synthetic drifter trajectory
@@ -124,3 +124,11 @@ plt.xlabel('Wind drift factor  [fraction]')
 plt.ylabel('Liu-Weissberg skillscore')
 plt.title('Maximum skillscore %.3f for wdf=%.3f' % (skillscore[ind], wdf[ind]))
 plt.show()
+
+#%%
+# We see that using skillscore from the full trajectories gives a better estimate
+# than calculating the average of the wind_drift_factor from 
+# one position to the next (i.e. polar histogram above).
+# This is even more clear if increasing the diffusivity (i.e. noise) above from 10 m2/s to 200 m2/s:
+# The histogram method then gives 0.071, which is much to high (true is 0.033), and the histogram is noisy.
+# The skillscore method is still robust, and gives a `wind_drift_factor` of 0.036, only slightly too high.
