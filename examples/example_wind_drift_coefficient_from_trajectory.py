@@ -32,7 +32,7 @@ ot.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].s
 
 #%%
 # Adding some horizontal diffusivity as "noise"
-ot.set_config('drift:horizontal_diffusivity', 200)
+ot.set_config('drift:horizontal_diffusivity', 10)
 ot.run(duration=timedelta(hours=12), time_step=600)
 
 #%%
