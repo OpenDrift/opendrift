@@ -2671,11 +2671,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                        self.elements_scheduled.lon.min() - deltalon),
             np.maximum(-89,
                        self.elements_scheduled.lat.min() - deltalat),
-            np.minimum(720,
+            np.minimum(360,
                        self.elements_scheduled.lon.max() + deltalon),
             np.minimum(89,
                        self.elements_scheduled.lat.max() + deltalat)
         ]
+        if simulation_extent[2] == 360 and simulation_extent[0] < 0:
+            simulation_extent[0] = 0
         logger.debug(
             'Preparing readers for simulation coverage (%s) and time (%s to %s)'
             % (simulation_extent, self.start_time, self.expected_end_time))
