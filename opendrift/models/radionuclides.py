@@ -119,11 +119,15 @@ class RadionuclideDrift(OceanDrift):
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:particle_diameter': {'type': 'float', 'default': 5e-6,
-                'min': 0, 'max': 100e-6, 'units': 'm',
+                'min': .45e-6, 'max': 63.e-6, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Mean particle diameter. Determines the settling velocity.'},
             'radionuclide:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Standard deviation of particle size distribution.'},
+            'radionuclide:particlesize_distribution': {'type':'enum',
+                'enum': ['normal','lognormal'], 'default':'normal',
+                'level':self.CONFIG_LEVEL_ESSENTIAL, 
+                'description':'Distribution of particle diameter around a mean value at seeding, NB: not at sorption!'},
 #            'radionuclide:activity_per_element': {'type': 'float', 'default': 1,
 #                'min': 0, 'max': 1e18, 'units': 'Bq',
 #                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
@@ -369,7 +373,32 @@ class RadionuclideDrift(OceanDrift):
             diameter = self.get_config('radionuclide:particle_diameter')
 
         init_diam =np.zeros(num_elements,float)
-        init_diam[init_specie==self.num_prev] = diameter
+        if self.get_config('radionuclide:particlesize_distribution')=='normal':
+            uncert  = self.get_config('radionuclide:particle_diameter_uncertainty')
+            init_diam[init_specie==self.num_prev] = diameter
+            init_diam[init_specie==self.num_prev] += np.random.normal(
+                            0, uncert, sum(init_specie==self.num_prev))
+        elif self.get_config('radionuclide:particlesize_distribution')=='lognormal':
+            std = 0.5
+            mu  = 0.
+            if self.get_config('radionuclide:species:Particle_reversible'):
+                init_diam[init_specie==self.num_prev] = \
+                        np.random.lognormal(mu, std, size=sum(init_specie==self.num_prev) ) * diameter
+            if self.get_config('radionuclide:species:Particle_slowly_reversible'):
+                init_diam[init_specie==self.num_psrev] = \
+                        np.random.lognormal(mu, std, size=sum(init_specie==self.num_psrev) ) * diameter
+            if self.get_config('radionuclide:species:Particle_irreversible'):
+                init_diam[init_specie==self.num_pirrev] = \
+                        np.random.lognormal(mu, std, size=sum(init_specie==self.num_pirrev) ) * diameter
+    
+
+        init_diam[(init_specie==self.num_prev) & (init_diam<0.45e-6)] = 0.45e-6
+        init_diam[(init_specie==self.num_prev) & (init_diam>63.5e-6)] = 63.5e-6
+        
+        logger.info('Min: {:.2e}, Max: {:.2e}, Numer of particles seeded: {}, at {} distribution'.format(
+            np.min(init_diam[init_diam>0.]), np.max(init_diam[init_diam>0.]), sum(init_diam>0.), 
+             self.get_config('radionuclide:particlesize_distribution')))
+
         kwargs['diameter'] = init_diam
 
 
