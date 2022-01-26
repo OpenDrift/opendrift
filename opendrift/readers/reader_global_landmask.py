@@ -106,6 +106,8 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
         xm, ym = landmask.invtransform * (x, y)
         xm = xm.astype(np.int32)
         ym = ym.astype(np.int32)
+        # TODO:
+        # this may fail for small maps if xm[0]==xm[1] or ym[0]==ym[1]
 
         img = landmask.mask[ym[0]:ym[1]:ndy, xm[0]:xm[1]:ndx]
 
