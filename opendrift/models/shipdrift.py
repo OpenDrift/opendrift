@@ -296,15 +296,15 @@ class ShipDrift(OpenDriftSimulation):
         # Wave direction is taken as wind direction plus offset +/- 20 degrees
         offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
         if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and
-            self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0):
+            self.environment.sea_surface_wave_stokes_drift_y_velocity.max() == 0):
                 logger.info('Using wind direction as wave direction')
                 wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
                                                            self.environment.x_wind)
         else:
             logger.info('Using Stokes drift direction as wave direction')
             wave_dir = np.radians(offset) + np.arctan2(
-                self.environment.sea_surface_wave_stokes_drift_x_velocity,
-                self.environment.sea_surface_wave_stokes_drift_y_velocity)
+                self.environment.sea_surface_wave_stokes_drift_y_velocity,
+                self.environment.sea_surface_wave_stokes_drift_x_velocity)
         F_wave_x = F_wave*np.cos(wave_dir)
         F_wave_y = F_wave*np.sin(wave_dir)
         F_total = np.sqrt(np.power(F_wind_x + F_wave_x, 2) +
