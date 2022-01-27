@@ -1,6 +1,12 @@
 History
 =======
 
+2022-01-27 / Release v1.8.1
+---------------------------
+* Fixed bug in ShipDrift: erroneous direction used for wave forcing when Stokes drift was provided as forcing.
+* New methods to calculate Liu-Weissberg and DARPA skillscores
+* Blit is now an input parameter to animation, defaulting to False, as blitting destroys zorder (background field is always overlaid landmask)
+
 2022-01-06 / Release v1.8.0
 ---------------------------
 * The oil-library has been replaced with the new ADIOS database. Oils are
