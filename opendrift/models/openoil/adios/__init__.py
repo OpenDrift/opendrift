@@ -25,4 +25,4 @@ from . import dirjs
 from . import oil
 from .dirjs import get_oil_names, oils, find_full_oil_from_name, get_full_oil_from_id
 
-oil_name_alias = {}
+oil_name_alias = {'EKOFISK BLEND 2002': 'EKOFISK BLEND 2000'}
