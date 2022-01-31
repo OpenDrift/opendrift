@@ -1,6 +1,10 @@
 History
 =======
 
+2022-01-31 / Release v1.8.2
+---------------------------
+* Re-inserted missing oil UTGARD CONDENSATE 2021, and added mapping from EKOFISK BLEND 2002 to 2000
+
 2022-01-27 / Release v1.8.1
 ---------------------------
 * Fixed bug in ShipDrift: erroneous direction used for wave forcing when Stokes drift was provided as forcing.
