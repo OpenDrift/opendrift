@@ -68,7 +68,7 @@ def get_mask(skippoly = False, extent = None):
 
     return mask_type, mask
 
-def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', land_color = cfeature.COLORS['land'], lscale = 'auto'):
+def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', land_color = cfeature.COLORS['land'], lscale = 'auto', globe=None):
     """
     Plot the landmask or the shapes from GSHHG.
     """
@@ -89,7 +89,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
         cmap = colors.ListedColormap([ocean_color, land_color])
         ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
                   zorder=0,
-                    transform=ccrs.PlateCarree(), cmap=cmap)
+                    transform=ccrs.PlateCarree(globe=globe), cmap=cmap)
 
     def show_landmask_old(landmask):
         maxn = 512.
@@ -115,7 +115,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
         cmap = colors.ListedColormap([ocean_color, land_color])
         ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
                   zorder=0,
-                    transform=ccrs.PlateCarree(), cmap=cmap)
+                    transform=ccrs.PlateCarree(globe=globe), cmap=cmap)
 
     extent = [lonmin, latmin, lonmax, latmax]
 
@@ -134,7 +134,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
             polys = [p for p in mask.polys.geoms if extent.intersects(p)]
 
             ax.add_geometries(polys,
-                    ccrs.PlateCarree(),
+                    ccrs.PlateCarree(globe=globe),
                     zorder=2,
                     facecolor=land_color,
                     edgecolor='black')
@@ -144,7 +144,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
                     facecolor=land_color)
             ax.add_geometries(
                     f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
-                    ccrs.PlateCarree(),
+                    ccrs.PlateCarree(globe=globe),
                     facecolor=land_color,
                     edgecolor='black')
 

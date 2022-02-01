@@ -3204,6 +3204,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             latmin = latmin - buffer
             latmax = latmax + buffer
 
+        globe = None
+
         if fast is True:
             logger.warning(
                 'Plotting fast. This will make your plots less accurate.')
@@ -3234,7 +3236,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             fig = plt.figure(figsize=(11., 11. * aspect_ratio))
 
         ax = fig.add_subplot(111, projection=crs)  # need '111' for Python 2
-        ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree())
+        ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree(globe=globe))
 
         if 'ocean_color' in kwargs:
             ax.patch.set_facecolor(kwargs['ocean_color'])
@@ -3288,19 +3290,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     'land_binary_mask'][0] == 'shape':
                 logger.debug('Using custom shapes for plotting land..')
                 ax.add_geometries(self.readers['shape'].polys,
-                                  ccrs.PlateCarree(),
+                                  ccrs.PlateCarree(globe=globe),
                                   facecolor=land_color,
                                   edgecolor='black')
             else:
                 reader_global_landmask.plot_land(ax, lonmin, latmin, lonmax,
                                                  latmax, fast, ocean_color,
-                                                 land_color, lscale)
+                                                 land_color, lscale, globe)
 
-        gl = ax.gridlines(ccrs.PlateCarree(), draw_labels=True)
-        if cartopy.__version__ < '0.18.0':
-            gl.xlabels_top = False  # Cartopy < 0.18
-        else:
-            gl.top_labels = None  # Cartopy >= 0.18
+        gl = ax.gridlines(ccrs.PlateCarree(globe=globe), draw_labels=True)
+        gl.top_labels = None
 
         fig.canvas.draw()
         fig.set_tight_layout(True)

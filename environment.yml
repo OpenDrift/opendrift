@@ -21,7 +21,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-benchmark
-  - cartopy<0.20
+  - cartopy
   - nc-time-axis
   - geojson
   - pynucos>=2.12
