@@ -126,11 +126,8 @@ class RadionuclideDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Standard deviation of particle size distribution.'},
             'radionuclide:particlesize_distribution': {'type':'enum',
                 'enum': ['normal','lognormal'], 'default':'normal',
-                'level':self.CONFIG_LEVEL_ESSENTIAL, 
+                'level':self.CONFIG_LEVEL_ADVANCED, 
                 'description':'Distribution of particle diameter around a mean value at seeding, NB: not at sorption!'},
-#            'radionuclide:activity_per_element': {'type': 'float', 'default': 1,
-#                'min': 0, 'max': 1e18, 'units': 'Bq',
-#                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'seed:LMM_fraction': {'type': 'float','default': .1,
                 'min': 0, 'max': 1, 'units': '1',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of initial discharge released as LMM species'},
@@ -394,6 +391,12 @@ class RadionuclideDrift(OceanDrift):
 
         init_diam[(init_specie==self.num_prev) & (init_diam<0.45e-6)] = 0.45e-6
         init_diam[(init_specie==self.num_prev) & (init_diam>63.5e-6)] = 63.5e-6
+        if self.get_config('radionuclide:species:Particle_slowly_reversible'):
+            init_diam[(init_specie==self.num_psrev) & (init_diam<0.45e-6)] = 0.45e-6
+            init_diam[(init_specie==self.num_psrev) & (init_diam>63.5e-6)] = 63.5e-6
+        if self.get_config('radionuclide:species:Particle_irreversible'):
+            init_diam[(init_specie==self.num_pirrev) & (init_diam<0.45e-6)] = 0.45e-6
+            init_diam[(init_specie==self.num_pirrev) & (init_diam>63.5e-6)] = 63.5e-6
         
         logger.info('Min: {:.2e}, Max: {:.2e}, Numer of particles seeded: {}, at {} distribution'.format(
             np.min(init_diam[init_diam>0.]), np.max(init_diam[init_diam>0.]), sum(init_diam>0.), 
@@ -585,12 +588,9 @@ class RadionuclideDrift(OceanDrift):
         else:
             np.fill_diagonal(self.transfer_rates,0.)
 
-#         # HACK :
 #         self.transfer_rates[:] = 0.
-#         print ('\n ###### \n IMPORTANT:: \n transfer rates have been hacked! \n#### \n ')
+#         print ('\n ###### \n IMPORTANT:: \n transfer rates are all set to zero for testing purposes! \n#### \n ')
 
-#         logger.info('nspecies: %s' % self.nspecies)
-#         logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
 
 
@@ -1401,6 +1401,11 @@ class RadionuclideDrift(OceanDrift):
     def gui_postproc(self):
         from os.path import expanduser
         
+        print('Final speciation:')
+        for isp,sp in enumerate(self.name_species):
+            print ('{:32}: {:>6}'.format(sp,sum(self.elements.specie==isp)))
+
+        
         print('Postprocessing radionuclides')
         homefolder = expanduser("~")
         filename = homefolder+'/conc_radio.nc'
@@ -1410,7 +1415,7 @@ class RadionuclideDrift(OceanDrift):
         
         zlayer   = [-1,-2]
         self.guipp_plotandsaveconc(filename=filename, 
-                                         outfilename=homefolder+'/RadioConc', 
+                                         outfilename=homefolder+'/radio_plots/RadioConc', 
                                          zlayers=zlayer,
                                          specie= ['Total', 'LMM', 'Particle reversible'],
 
@@ -1424,18 +1429,6 @@ class RadionuclideDrift(OceanDrift):
 #             )
         
         
-#         tk.Button(self.results, text='Show animation specie',
-#                   command=lambda: self.handle_result(
-#                       'showanimationspecie')).grid(row=50, column=1) 
-#         tk.Button(self.results, text='Save animation specie',
-#                   command=lambda: self.handle_result(
-#                       'saveanimationspecie')).grid(row=60, column=1) 
-#         tk.Button(self.results, text='Save conc file',
-#                   command=lambda: self.handle_result(
-#                       'saveconcfile')).grid(row=70, column=2) 
-#         tk.Button(self.results, text='Animation profile',
-#                   command=lambda: self.handle_result(
-#                       'saveconcfile')).grid(row=70, column=2) 
 
 
     def guipp_saveconcfile(self,filename='none'):
@@ -1494,7 +1487,6 @@ class RadionuclideDrift(OceanDrift):
         
         outdir = '/home/magnes/radio_plots'
         vcmin  = 0
-#        vcmaxt = 1.e-4
         vcmaxt = self.get_config('seed:total_release') * 1.e-8
         cblabel= 'Bq/m$^3$'
 
@@ -1562,19 +1554,12 @@ class RadionuclideDrift(OceanDrift):
         print ('time[0]:',time[0])
         print ('time[-1]:',time[-1])
         print('type(time[0])',type(time[0]))
-#         deltat = (time[1]-time[0]).seconds / 3600.
-#         print('delta t: ',deltat, ' hours')
-#         if plot_int=='all' or plot_int<deltat:
-#             print(' WARNING: Too short plot intervals: ',plot_int, deltat)
-#             print(' set plot interval to deltat:', deltat)
-#             plot_int = deltat
         
         
         for sp in specie_arr:
         
             fig, ax, crs, x, y, index_of_first, index_of_last = \
                 self.set_up_map()
-    #            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
             
             cb=False
 
@@ -1589,27 +1574,14 @@ class RadionuclideDrift(OceanDrift):
             
             for date_idx in np.arange(0,len(time)):
      
-    #             if timeIn:
-    #                 date_idx = netCDF4.date2index(timeIn, nc.variables['time'], calendar=None, select='nearest')
-    #             else:
-    #                 date_idx=-1
                 idx1=date_idx
                 t1 = time[idx1]
-#                print ('timeIn', timeIn, date_idx)
-            
-            
+
                 for zlayer in zlayers:
-
-
-            #        fig=plt.figure(figsize=figsize)
-            #        ax=plt.subplot(projection=ccrs.Orthographic(9,59))
-                    
-            #        tmp = np.nanmean(np.sum(nc.variables['concentration_smooth'][idx0:idx1,:,di,:,:],axis=1),axis=0)
                     if sp=='Total':
                         tmp = np.sum(nc.variables['concentration_smooth'][idx1,:,zlayer,:,:],axis=0)
                     else:
                         tmp = nc.variables['concentration_smooth'][idx1,spi,zlayer,:,:]
-                 #   vcmaxt = np.max(tmp)
                     pcm=ax.pcolormesh(lon,lat,tmp,
                                       vmin=vcmin,vmax=vcmaxt,
                                       #norm=colors.LogNorm(vmin=vcmin,vmax=vcmax),
@@ -1618,16 +1590,12 @@ class RadionuclideDrift(OceanDrift):
                                       )
                     c1 = ax.contour(lon,lat,tmp,
                                    [1.e-6,1.e-5,1.e-4,1.e-3,1.e-2,1.e-1,1.e0,1.e1,1.e2,1.e3,1.e4],
-            #                        [1.e-1,1.e0,1.e1,1.e2],
-            #                        [1.e4,5.e4,1.e5,2.e5,3.e5,4.e5],
                                         colors='darkgrey',linewidths=.6,zorder=4, 
                                          transform=proj_pp)
-                    
                     if not cb:
                         plt.colorbar(pcm,extend='both',label=cblabel)
                         cb=True
                     title=sp+' concentration, layer '+str(zlayer)+' '+t1.strftime('%Y%m%d %H:%M')
-                    #title = exp_nm+'\n'+'Mean concentration ' + 'Total' +'\n'+ t0.strftime('%Y%m%d %H:%M')+' - '+t1.strftime('%Y%m%d %H:%M')
                     fig.suptitle(title)
                     title = title.replace(' ','').replace('\n','_').replace(':','')
                     
@@ -1636,7 +1604,6 @@ class RadionuclideDrift(OceanDrift):
                     else:
                         ofn = outdir+'/'+title+'_'+'.png'
                     plt.savefig(ofn, dpi=300,bbox_inches='tight')
-                    #plt.close()
                     
                     # remove contour lines and shading
                     for level in c1.collections:

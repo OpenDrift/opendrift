@@ -85,7 +85,7 @@ class OpenDriftGUI(tk.Tk):
 
     # Supported models as dictionary {model_name:model_class}
     opendrift_models = {m.__name__:m for m in
-        [RadionuclideDrift, Leeway, OpenOil, ShipDrift, OpenBerg, OceanDrift, PlastDrift, RadionuclideDrift]}
+        [Leeway, OpenOil, ShipDrift, OpenBerg, OceanDrift, PlastDrift, RadionuclideDrift]}
 
     extra_args = {'OpenOil': {'location': 'NORWAY'}}
 
@@ -315,7 +315,7 @@ class OpenDriftGUI(tk.Tk):
         self.durationhours = tk.Entry(self.duration, width=3,
                                       justify=tk.RIGHT)
         self.durationhours.grid(row=50, column=1)
-        self.durationhours.insert(0, 2)
+        self.durationhours.insert(0, 12)
         tk.Label(self.duration, text=' hours ').grid(row=50, column=2)
 
         self.directionvar = tk.StringVar()
@@ -441,12 +441,12 @@ class OpenDriftGUI(tk.Tk):
         elif command == 'saveconcfile':
             self.o.guipp_saveconcfile(filename=homefolder+'/conc_radio.nc')
         elif command == 'plotconc':
-            zlayer = -1
+            zlayer = [-1]
             time   = None
-            specie = 'LMM'
+            specie = ['LMM']
             self.o.guipp_plotandsaveconc(filename=homefolder+'/conc_radio.nc', 
                                          outfilename=homefolder+'/RadioConc', 
-                                         zlayer=zlayer, time=time, specie=specie )
+                                         zlayers=zlayer, time=time, specie=specie )
         elif command == 'showanimationprofile':
             self.o.guipp_showanimationprofile()
 
@@ -792,19 +792,19 @@ class OpenDriftGUI(tk.Tk):
         if self.model.get() =='RadionuclideDrift':
             tk.Button(self.results, text='Show animation specie',
                       command=lambda: self.handle_result(
-                          'showanimationspecie')).grid(row=50, column=1) 
+                          'showanimationspecie')).grid(row=30, column=2) 
             tk.Button(self.results, text='Save animation specie',
                       command=lambda: self.handle_result(
-                          'saveanimationspecie')).grid(row=60, column=1) 
+                          'saveanimationspecie')).grid(row=40, column=2) 
             tk.Button(self.results, text='Animation profile',
                       command=lambda: self.handle_result(
                           'showanimationprofile')).grid(row=10, column=2) 
-            tk.Button(self.results, text='Save conc file',
-                      command=lambda: self.handle_result(
-                          'saveconcfile')).grid(row=20, column=2) 
+#             tk.Button(self.results, text='Save conc file',
+#                       command=lambda: self.handle_result(
+#                           'saveconcfile')).grid(row=20, column=2) 
             tk.Button(self.results, text='Plot conc',
                       command=lambda: self.handle_result(
-                          'plotconc')).grid(row=30, column=2) 
+                          'plotconc')).grid(row=20, column=2) 
 
         
         
