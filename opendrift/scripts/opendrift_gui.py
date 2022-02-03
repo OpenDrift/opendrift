@@ -445,7 +445,7 @@ class OpenDriftGUI(tk.Tk):
             time   = None
             specie = ['LMM']
             self.o.guipp_plotandsaveconc(filename=homefolder+'/conc_radio.nc', 
-                                         outfilename=homefolder+'/RadioConc', 
+                                         outfilename=homefolder+'/radio_plots/RadioConc', 
                                          zlayers=zlayer, time=time, specie=specie )
         elif command == 'showanimationprofile':
             self.o.guipp_showanimationprofile()
@@ -815,9 +815,6 @@ class OpenDriftGUI(tk.Tk):
                       command=lambda: os.system('diana &')
                       ).grid(row=80, column=1)
                       
-    def gui_postproc(self):
-        '''To be overloaded by subclasses'''
-        pass
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()
