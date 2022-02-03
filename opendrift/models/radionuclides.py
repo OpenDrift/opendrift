@@ -1401,12 +1401,12 @@ class RadionuclideDrift(OceanDrift):
     def gui_postproc(self):
         from os.path import expanduser
         
-        print('Final speciation:')
-        for isp,sp in enumerate(self.name_species):
-            print ('{:32}: {:>6}'.format(sp,sum(self.elements.specie==isp)))
+        logger.info('Postprocessing radionuclides')
 
-        
-        print('Postprocessing radionuclides')
+        logger.info('Final speciation:')
+        for isp,sp in enumerate(self.name_species):
+            logger.info ('{:32}: {:>6}'.format(sp,sum(self.elements.specie==isp)))
+
         homefolder = expanduser("~")
         filename = homefolder+'/conc_radio.nc'
         
@@ -1418,15 +1418,8 @@ class RadionuclideDrift(OceanDrift):
                                          outfilename=homefolder+'/radio_plots/RadioConc', 
                                          zlayers=zlayer,
                                          specie= ['Total', 'LMM', 'Particle reversible'],
-
                                          )
         
-#         self.animation_profile(color='specie',
-#             vmin=0,vmax=self.nspecies-1,
-#             legend=[self.specie_num2name(i) for i in range(self.nspecies)],
-#             legend_loc =3,
-# #            markersize=10
-#             )
         
         
 
@@ -1479,13 +1472,17 @@ class RadionuclideDrift(OceanDrift):
         from datetime import timedelta, datetime
         import cartopy.crs as ccrs
         import matplotlib.pyplot as plt
+        from os.path import expanduser
 
-        print('Plotting concentration for {} at layer {} at time {}'.format(specie, zlayers, time))
         
-        timeIn   = time
-        specieIn = specie
+        if zlayers==None:
+            zlayers=[-1]
         
-        outdir = '/home/magnes/radio_plots'
+        
+        logger.info('Plotting concentration for {} at layer {} at time {}'.format(specie, zlayers, time))
+        
+        homefolder = expanduser("~")
+        outdir = homefolder+'/radio_plots'
         vcmin  = 0
         vcmaxt = self.get_config('seed:total_release') * 1.e-8
         cblabel= 'Bq/m$^3$'
@@ -1510,50 +1507,45 @@ class RadionuclideDrift(OceanDrift):
 
         
         
-        print (' READ DATA FILE')
-        print (filename)
+        logger.info (' READ DATA FILE: {}'.format(filename))
         nc=netCDF4.Dataset(filename,'r')
-        time       = nc.variables['time'][:]; print('time')
+        time       = nc.variables['time'][:]
         t_units    = nc.variables['time'].units
         #conc       = nc.variables['concentration_smooth'][:]; print('concentration_smooth')
-        specie     = nc.variables['specie'][:]; print('specie', specie)
-        sp_names   = nc.variables['specie'].names; print('sp_names',sp_names)
+        specie     = nc.variables['specie'][:]
+        sp_names   = nc.variables['specie'].names
         lat        = nc.variables['lat'][:]
         lon        = nc.variables['lon'][:]
         depth      = nc.variables['depth'][:]
-        topo       = nc.variables['topo'][:]; print('topo',topo.shape)
+        topo       = nc.variables['topo'][:]
         #nc.close()
 
         
         
         Nspecies = len(specie[:])
-        print ('Nspecies', Nspecies)
+        logger.info ('Nspecies: {}'.format(Nspecies))
         if Nspecies>1:
             specie_names = [i.split(':')[1] for i in sp_names]
         else:
             specie_names = [sp_names.split(':')[1]]
-        print(specie_names)
+        logger.info(specie_names)
 
 
 
 
-        Ndepths = len(depth)
-        print ('Ndepths', Ndepths)
-        [print(item) for item in depth]
-        if Ndepths==1:
-            figsize=[5,6]
-        elif Ndepths==2:
-            figsize=[10,8]
-        elif Ndepths==3:
-            figsize=[13,8]
+#        Ndepths = len(depth)
+#        logger.info ('Ndepths: {}'.format(Ndepths) )
+#        [print(item) for item in depth]
+#         if Ndepths==1:
+#             figsize=[5,6]
+#         elif Ndepths==2:
+#             figsize=[10,8]
+#         elif Ndepths==3:
+#             figsize=[13,8]
         
         
         ntime=len(time)
-        print('ntime', ntime)
         time = netCDF4.num2date(time,units=t_units,only_use_cftime_datetimes=False,only_use_python_datetimes=True)
-        print ('time[0]:',time[0])
-        print ('time[-1]:',time[-1])
-        print('type(time[0])',type(time[0]))
         
         
         for sp in specie_arr:
@@ -1566,9 +1558,9 @@ class RadionuclideDrift(OceanDrift):
             if not sp=='Total':
                 try:
                     spi = specie_names.index(sp)
-                    print(sp, spi)
+                    logger.debug('{} {}'.format(sp, spi))
                 except Exception:
-                    print(sp)
+                    logger.debug(sp)
                     break 
                 
             
@@ -1595,12 +1587,12 @@ class RadionuclideDrift(OceanDrift):
                     if not cb:
                         plt.colorbar(pcm,extend='both',label=cblabel)
                         cb=True
-                    title=sp+' concentration, layer '+str(zlayer)+' '+t1.strftime('%Y%m%d %H:%M')
+                    title=sp+' concentration, layer '+str(depth[zlayer])+' '+t1.strftime('%Y%m%d %H:%M')
                     fig.suptitle(title)
                     title = title.replace(' ','').replace('\n','_').replace(':','')
                     
                     if outfilename:
-                        ofn = outfilename+'_'+sp.replace(' ','')+'L'+str(zlayer)+'_'+t1.strftime('%Y%m%dT%H%M')+'.png'
+                        ofn = outfilename+'_'+sp.replace(' ','')+'L'+str(depth[zlayer])+'_'+t1.strftime('%Y%m%dT%H%M')+'.png'
                     else:
                         ofn = outdir+'/'+title+'_'+'.png'
                     plt.savefig(ofn, dpi=300,bbox_inches='tight')
@@ -1609,9 +1601,9 @@ class RadionuclideDrift(OceanDrift):
                     for level in c1.collections:
                         level.remove()
                     pcm.remove()
-                    print(ofn)
+                    logger.info(ofn)
             plt.close()
-        print('DONE',)
+        logger.info('DONE')
 
 
 
