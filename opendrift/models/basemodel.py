@@ -5418,3 +5418,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         #del self.elements
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
+
+
+    def gui_postproc(self):
+        '''To be overloaded by subclasses'''
+        pass

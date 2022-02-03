@@ -425,6 +425,33 @@ class OpenDriftGUI(tk.Tk):
             print('='*30 + '\nPlot saved to file: '
                   + filename + '\n' + '='*30)
 
+        elif command == 'showanimationspecie':
+            self.o.animation(
+                color='specie',vmin=0,vmax=self.o.nspecies-1,
+                colorbar=False,
+                legend=[self.o.specie_num2name(i) for i in range(self.o.nspecies)]
+                )
+        elif command == 'saveanimationspecie':
+            filename = filename + '.mp4'
+            self.o.animation(filename=filename,
+                color='specie',vmin=0,vmax=self.o.nspecies-1,
+                                colorbar=False,
+                legend=[self.o.specie_num2name(i) for i in range(self.o.nspecies)]
+                )
+        elif command == 'saveconcfile':
+            self.o.guipp_saveconcfile(filename=homefolder+'/conc_radio.nc')
+        elif command == 'plotconc':
+            zlayer = [-1]
+            time   = None
+            specie = ['LMM']
+            self.o.guipp_plotandsaveconc(filename=homefolder+'/conc_radio.nc', 
+                                         outfilename=homefolder+'/radio_plots/RadioConc', 
+                                         zlayers=zlayer, time=time, specie=specie )
+        elif command == 'showanimationprofile':
+            self.o.guipp_showanimationprofile()
+
+
+
     def validate_config(self, value_if_allowed, prior_value, key):
         """From config menu selection."""
         print('Input: %s -> %s', (key, value_if_allowed))
@@ -508,7 +535,7 @@ class OpenDriftGUI(tk.Tk):
                 self.config_input[i] = tk.Entry(
                     tab, textvariable=self.config_input_var[i],
                     validate='key', validatecommand=vcmd,
-                    width=6, justify=tk.RIGHT)
+                    width=12, justify=tk.RIGHT)
                 self.config_input[i].insert(0, str(sc[key]['default']))
                 self.config_input[i].grid(row=i, column=2, rowspan=1)
                 tk.Label(tab, text='[%s]  min: %s, max: %s' % (
@@ -584,7 +611,7 @@ class OpenDriftGUI(tk.Tk):
                 self.seed_input_var[i] = tk.StringVar()
                 self.seed_input[i] = tk.Entry(
                     self.seed_frame, textvariable=self.seed_input_var[i],
-                    width=6, justify=tk.RIGHT)
+                    width=12, justify=tk.RIGHT)
                 self.seed_input[i].insert(0, actual_val)
             self.seed_input[i].grid(row=num, column=1)
 
@@ -731,6 +758,11 @@ class OpenDriftGUI(tk.Tk):
         # Starting simulation run
         self.o.run(steps=duration, **extra_args)
         print(self.o)
+        
+        
+        # Model-specific post processing
+        self.o.gui_postproc()
+        
 
         self.results.destroy()
         self.results = tk.Frame(self.seed, bd=2,
@@ -756,12 +788,33 @@ class OpenDriftGUI(tk.Tk):
                       command=lambda: self.handle_result(
                         'showoilbudget')).grid(row=60, column=1)
 
+        
+        if self.model.get() =='RadionuclideDrift':
+            tk.Button(self.results, text='Show animation specie',
+                      command=lambda: self.handle_result(
+                          'showanimationspecie')).grid(row=30, column=2) 
+            tk.Button(self.results, text='Save animation specie',
+                      command=lambda: self.handle_result(
+                          'saveanimationspecie')).grid(row=40, column=2) 
+            tk.Button(self.results, text='Animation profile',
+                      command=lambda: self.handle_result(
+                          'showanimationprofile')).grid(row=10, column=2) 
+#             tk.Button(self.results, text='Save conc file',
+#                       command=lambda: self.handle_result(
+#                           'saveconcfile')).grid(row=20, column=2) 
+            tk.Button(self.results, text='Plot conc',
+                      command=lambda: self.handle_result(
+                          'plotconc')).grid(row=20, column=2) 
+
+        
+        
         if self.has_diana is True:
             diana_filename = self.dianadir + self.simulationname + '.nc'
             self.o.write_netcdf_density_map(diana_filename)
             tk.Button(self.results, text='Show in Diana',
                       command=lambda: os.system('diana &')
                       ).grid(row=80, column=1)
+                      
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()
