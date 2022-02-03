@@ -1,5 +1,18 @@
 # Data sources (Thredds and local files) for the OpenDrift GUI
-https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
+/vol/vvfelles/opendrift/forcing_data/norkyst/norkyst_aggregate.nc
+/vol/vvfelles/opendrift/forcing_data/meps/meps_aggregate.nc
+/vol/vvfelles/opendrift/forcing_data/ecmwf/ecmwf_aggregate.nc
 /lustre/storeB/project/metproduction/products/norkyst/NorKyst-800m_ZDEPTHS_his_00.nc
+/lustre/storeB/project/metproduction/products/meps/thredds/latest/meps_lagged_6_h_latest_2_5km_latest.nc
+/lustre/storeB/project/copernicus/sea/mywavewam4/*fc*.nc
+https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be
+https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc
 https://thredds.met.no/thredds/dodsC/barents25km_agg
+https://thredds.met.no/thredds/dodsC/cmems/mywavewam3km/dataset-wam-arctic-1hr3km-be.ncml
 https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml
+https://thredds.met.no/thredds/dodsC/aromearcticlatest/arome_arctic_extracted_2_5km_latest.nc
+https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd
+https://nrt.cmems-du.eu/thredds/dodsC/global-analysis-forecast-wav-001-027
+https://nrt.cmems-du.eu/thredds/dodsC/global-analysis-forecast-phy-001-024-hourly-merged-uv
+https://tds.hycom.org/thredds/dodsC/GLBy0.08/latest
+https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z
