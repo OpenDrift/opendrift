@@ -759,6 +759,10 @@ class OpenDriftGUI(tk.Tk):
         self.o.run(steps=duration, **extra_args)
         print(self.o)
         
+        try:
+            os.chmod(extra_args['outfile'], 0o666)
+        except:
+            pass
         
         # Model-specific post processing
         self.o.gui_postproc()
@@ -815,6 +819,10 @@ class OpenDriftGUI(tk.Tk):
                       command=lambda: os.system('diana &')
                       ).grid(row=80, column=1)
                       
+            try:
+                os.chmod(diana_filename, 0o666)
+            except:
+                pass
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()
