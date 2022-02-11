@@ -325,7 +325,7 @@ class TestRun(unittest.TestCase):
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -36.9, 1)
+        self.assertAlmostEqual(o1.history['z'].min(), -44.4, 1)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0, 1)
         os.remove('verticalmixing.nc')
 
@@ -419,6 +419,17 @@ class TestRun(unittest.TestCase):
             o3.history['lon'].compressed(),
             o4.history['lon'].compressed()))
         os.remove('export_step_interval.nc')
+
+    def test_export_final_timestep(self):
+        o = OceanDrift()
+        o.set_config('environment:constant:land_binary_mask', 0)
+        o.set_config('general:use_auto_landmask', False)
+        o.seed_elements(lon=0, lat=0, radius=500, number=100,
+                        time=[datetime(2010,1,1), datetime(2010,1,3)])
+        o.run(duration=timedelta(hours=20), time_step=3600, time_step_output=3600*3)
+        index_of_first, index_of_last = \
+            o.index_of_activation_and_deactivation()
+        assert o.num_elements_active() == len(index_of_first)
 
     def test_buffer_length_stranding(self):
         o1 = OceanDrift(loglevel=30)

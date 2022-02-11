@@ -3029,9 +3029,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         ID_ind = self.elements.ID - 1
         time_ind = self.steps_output - 1 - self.steps_exported
+        if self.steps_calculation == self.expected_steps_calculation:
+            final_time_step = True
+        else:
+            final_time_step = False
 
         if steps_calculation_float.is_integer() or self.time_step < timedelta(
-                seconds=1):
+                seconds=1) or final_time_step is True:
             element_ind = range(len(ID_ind))  # We write all elements
         else:
             deactivated = np.where(self.elements.status != 0)[0]
