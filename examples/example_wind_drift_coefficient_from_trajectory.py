@@ -78,7 +78,8 @@ plt.legend(loc='lower left')
 plt.show()
 
 #%%
-# A polar 2D histogram showing also the azimuth offset direction of the retrieced wind drift factor
+# A polar 2D histogram showing also the azimuth offset direction of the retrieved wind drift factor.
+# See Sutherland et al. (2020), https://doi.org/10.1175/JTECH-D-20-0013.1
 wmax = wind_drift_factor.max()
 wbins = np.arange(0, wmax+.005, .005)
 abins = np.linspace(-180, 180, 30)
