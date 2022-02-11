@@ -148,8 +148,10 @@ class ShipDrift(OpenDriftSimulation):
             'description': 'If ships are oriented to the left or right of the downwind direction,'
                 'or whether this is unknown. Left/right means that wind will hit ship from backboard/steerboard'}})
 
-        self._set_config_default('drift:current_uncertainty', .05)
-        self._set_config_default('drift:wind_uncertainty', .5)
+        # Since the ShipDrift model is deterministic for given ship size,
+        # (in contrast to the Leeway model), we use a default diffusivity
+        # to yield some variability.
+        self._set_config_default('drift:horizontal_diffusivity', 100)
 
     def seed_elements(self, *args, **kwargs):
 
@@ -296,7 +298,8 @@ class ShipDrift(OpenDriftSimulation):
         beta1 = 0.5*rho_water*self.elements.water_drag_coeff*area_wet
 
         # Wave direction is taken as wind direction plus offset +/- 20 degrees
-        offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
+        # Using minus, since angles are here defined counter-clockwise from x-axis
+        offset = -self.winwav_angle*2*(self.elements.orientation - 0.5)
         if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and
             self.environment.sea_surface_wave_stokes_drift_y_velocity.max() == 0):
                 logger.info('Using wind direction as wave direction')
