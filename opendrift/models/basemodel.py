@@ -376,7 +376,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'max': 100000,
                 'units': 'm2/s',
                 'description': 'Add horizontal diffusivity (random walk)',
-                'level': self.CONFIG_LEVEL_ADVANCED
+                'level': self.CONFIG_LEVEL_BASIC
             },
             'drift:wind_uncertainty': {
                 'type': 'float',
