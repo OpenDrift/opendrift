@@ -1094,12 +1094,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 if not hasattr(self, 'simulation_extent'):
                     logger.warning('Simulation has no simulation_extent, cannot check reader coverage')
                     return False
+                # TODO
+                # need a better coverage/overlap check below
                 corners = reader.xy2lonlat([reader.xmin, reader.xmin, reader.xmax, reader.xmax],
                                            [reader.ymax, reader.ymin, reader.ymax, reader.ymin])
                 rlonmin = np.min(corners[0])
                 rlonmax = np.max(corners[0])
                 rlatmin = np.min(corners[1])
                 rlatmax = np.max(corners[1])
+                if hasattr(reader, 'proj4') and 'stere' in reader.proj4 and 'lat_0=90' in reader.proj4:
+                    rlatmax = 90
+                if hasattr(reader, 'proj4') and 'stere' in reader.proj4 and 'lat_0=-90' in reader.proj4:
+                    rlatmin = -90
                 if rlatmin > self.simulation_extent[3]:
                     self.discard_reader(reader, reason='too far north')
                     return True
