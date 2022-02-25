@@ -8,8 +8,9 @@ with current data from CMEMS
 To run this example, you need a CMEMS account created at
 https://marine.copernicus.eu
 with username and password stored in a .netrc file with contents:
+
 ```
-machine cmems
+machine nrt.cmems-du.eu
     login <your username>
     password <your password>
 ```
