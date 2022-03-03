@@ -101,12 +101,6 @@ test-template: &test-template
     - restore_cache:
         key: v1-landmask
 
-    - run:
-        name: Generate landmask
-        command: |
-          source activate opendrift
-          python -c 'import opendrift_landmask_data as old; old.Landmask()'
-
     - install_cartopy_shapes
 
     - save_cache:
@@ -137,7 +131,7 @@ jobs:
       - PYTHON_VERSION=3.7
       - NUMPY_VERSION=1.17
 
-  python_latest_roaring:
+  python_latest_o_l_d:
     docker:
       - image: continuumio/miniconda3
     resource_class: medium+
@@ -147,19 +141,20 @@ jobs:
 
     - install_conda_environment
 
+    - run:
+        name: Install opendrift-landmask-data and remove roaring-landmask
+        command: |
+          source activate opendrift
+          conda install opendrift-landmask-data
+          pip uninstall roaring-landmask
+
+    - run:
+        name: Generate landmask
+        command: |
+          source activate opendrift
+          python -c 'import opendrift_landmask_data as old; old.Landmask()'
+
     - install_cartopy_shapes
-
-    - run:
-        name: Install roaring-landmask
-        command: |
-            source activate opendrift
-            pip install -v roaring_landmask
-
-    - run:
-        name: Remove Opendrift Landmask Data
-        command: |
-            source activate opendrift
-            conda remove --force -y opendrift-landmask-data
 
     - run_tests
 
@@ -190,18 +185,6 @@ jobs:
       - install_conda_environment
 
       - install_cartopy_shapes
-
-      - run:
-          name: Install roaring-landmask
-          command: |
-                source activate opendrift
-                pip install -v roaring_landmask
-
-      - run:
-          name: Remove Opendrift Landmask Data
-          command: |
-                source activate opendrift
-                conda remove --force -y opendrift-landmask-data
 
       - run:
           name: Install sphinx and friends
@@ -402,7 +385,7 @@ workflows:
       - python_latest
       - python_38_numpy_119
       - python_37_numpy_117
-      - python_latest_roaring
+      - python_latest_o_l_d
 
   docs:
     jobs:
