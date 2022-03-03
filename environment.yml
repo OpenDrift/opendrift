@@ -24,7 +24,6 @@ dependencies:
   - cartopy<0.20
   - nc-time-axis
   - geojson
-  - opendrift-landmask-data
   - pynucos>=2.12
   - isodate
   - coloredlogs
@@ -32,3 +31,4 @@ dependencies:
   - pip
   - pip:
     - motuclient
+    - roaring-landmask
