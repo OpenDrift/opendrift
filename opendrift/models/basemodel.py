@@ -49,6 +49,7 @@ except ImportError:
 
 import opendrift
 from opendrift.timer import Timeable
+from opendrift.errors import NotCoveredError
 from opendrift.readers.basereader import BaseReader, standard_names
 from opendrift.readers import reader_from_url, reader_global_landmask
 from opendrift.models.physics_methods import PhysicsMethods
@@ -1259,10 +1260,26 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                             lon[missing_indices], lat[missing_indices],
                             z[missing_indices], self.proj_latlon)
 
-                except Exception as e:
-                    logger.info('========================')
-                    logger.info('Exception:')
+                except NotCoveredError as e:
                     logger.info(e)
+                    self.timer_end('main loop:readers:' +
+                                   reader_name.replace(':', '<colon>'))
+                    if reader_name == reader_group[-1]:
+                        if self._initialise_next_lazy_reader() is not None:
+                            logger.debug(
+                                'Missing variables: calling get_environment recursively'
+                            )
+                            return self.get_environment(
+                                variables, time, lon, lat, z, profiles)
+                    continue
+
+                except Exception as e:  # Unknown error
+                    # TODO:
+                    # This could e.g. be due to corrupted files or
+                    # hangig thredds-servers. A reader could be discarded
+                    # after e.g. 3 such failed attempts
+                    logger.info('========================')
+                    logger.warning(e)
                     logger.debug(traceback.format_exc())
                     logger.info('========================')
                     self.timer_end('main loop:readers:' +

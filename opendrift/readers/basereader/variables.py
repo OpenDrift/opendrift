@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from opendrift.timer import Timeable
+from opendrift.errors import OutsideSpatialCoverageError, OutsideTemporalCoverageError, VariableNotCoveredError
 from .consts import standard_names, vector_pairs_xy
 
 
@@ -340,19 +341,17 @@ class ReaderDomain(Timeable):
 
         for variable in variables:
             if variable not in self.variables:
-                raise ValueError('Variable not available: ' + variable +
+                raise VariableNotCoveredError('Variable not available: ' + variable +
                                  '\nAvailable parameters are: ' +
                                  str(self.variables))
         if (self.start_time is not None
                 and time < self.start_time) and self.always_valid is False:
-            raise ValueError('Requested time (%s) is before first available '
-                             'time (%s) of %s' %
-                             (time, self.start_time, self.name))
+            raise OutsideTemporalCoverageError('Requested time (%s) is before first available '
+                             'time (%s) of %s' % (time, self.start_time, self.name))
         if (self.end_time is not None
                 and time > self.end_time) and self.always_valid is False:
-            raise ValueError('Requested time (%s) is after last available '
-                             'time (%s) of %s' %
-                             (time, self.end_time, self.name))
+            raise OutsideTemporalCoverageError('Requested time (%s) is after last available '
+                             'time (%s) of %s' % (time, self.end_time, self.name))
         if self.global_coverage():
             outside = np.where(~np.isfinite(x + y) | (y < self.ymin)
                                | (y > self.ymax))[0]
@@ -362,10 +361,10 @@ class ReaderDomain(Timeable):
                                | (y > self.ymax))[0]
         if np.size(outside) == np.size(x):
             lon, lat = self.xy2lonlat(x, y)
-            raise ValueError(('Argcheck: all %s particles (%.2f-%.2fE, ' +
-                              '%.2f-%.2fN) are outside domain of %s (%s)') %
-                             (len(lon), lon.min(), lon.max(), lat.min(),
-                              lat.max(), self.name, self.coverage_string()))
+            raise OutsideSpatialCoverageError(('Argcheck: all %s particles (%.2f-%.2fE, ' +
+                    '%.2f-%.2fN) are outside domain of %s (%s)') %
+                    (len(lon), lon.min(), lon.max(), lat.min(),
+                     lat.max(), self.name, self.coverage_string()))
 
         return variables, time, x, y, z, outside
 
@@ -650,7 +649,7 @@ class Variables(ReaderDomain):
         self.timer_start('total')
         # Raise error if time not not within coverage of reader
         if not self.covers_time(time):
-            raise ValueError('%s is outside time coverage (%s - %s) of %s' %
+            raise OutsideTemporalCoverageError('%s is outside time coverage (%s - %s) of %s' %
                              (time, self.start_time, self.end_time, self.name))
 
         self.timer_start('preparing')
@@ -668,11 +667,11 @@ class Variables(ReaderDomain):
         ind_covered, xx, yy = self.covers_positions_xy(x, y, z)
         if len(ind_covered) == 0:
             lon, lat = self.xy2lonlat(x, y)
-            logger.error("All particles outside domain!")
-            raise ValueError(('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
-                              'are outside domain of %s (%s)') %
-                             (len(x), lon.min(), lon.max(), lat.min(),
-                              lat.max(), self.name, self.coverage_string()))
+            raise OutsideSpatialCoverageError(
+                ('All %s particles (%.2f-%.2fE, %.2f-%.2fN) ' +
+                 'are outside domain of %s (%s)') %
+                 (len(x), lon.min(), lon.max(), lat.min(),
+                 lat.max(), self.name, self.coverage_string()))
         x = xx
         y = yy
 
