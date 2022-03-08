@@ -9,6 +9,3 @@ class OutsideTemporalCoverageError(NotCoveredError):
 
 class VariableNotCoveredError(NotCoveredError):
     pass
-
-class CouldNotInitializeReaderError(Exception):
-    pass
