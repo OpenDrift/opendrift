@@ -20,7 +20,7 @@ def test_get_all_oil_names(benchmark):
 
 def test_get_all_oil_names_location(benchmark):
     oils = benchmark(adios.dirjs.get_oil_names, location='NORWAY')
-    assert len(oils) >= 150 and len(oils) <= 190
+    assert len(oils) >= 150 and len(oils) <= 196
 
 
 def test_bunker_c_1987():
