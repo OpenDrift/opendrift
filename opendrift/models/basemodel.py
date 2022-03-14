@@ -3441,8 +3441,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                            weight=density_weight)
                 H = H + H_submerged + H_stranded
 
-        # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
-        gcrs = ccrs.PlateCarree()
+        # Find map coordinates and plot points with empty data
+        fig, ax, crs, x, y, index_of_first, index_of_last = \
+            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
+                            fast=fast, hide_landmask=hide_landmask, **kwargs)
+
+        gcrs = ccrs.PlateCarree(globe=crs.globe)
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
@@ -3455,7 +3459,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     scalar = background[i, :, :].values
                 else:
                     map_x, map_y, scalar, u_component, v_component = \
-                        self.get_map_background(ax, background,
+                        self.get_map_background(ax, background, crs,
                                                 time=times[i])
                 # https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data
                 bg.set_array(scalar[:-1, :-1].ravel())
@@ -3526,11 +3530,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             return ret
 
-        # Find map coordinates and plot points with empty data
-        fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
-                            fast=fast, hide_landmask=hide_landmask, **kwargs)
-
         if surface_only is True:
             z = self.get_property('z')[0]
             x[z < 0] = np.nan
@@ -3566,7 +3565,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 map_y, map_x = np.meshgrid(map_y, map_x)
             else:
                 map_x, map_y, scalar, u_component, v_component = \
-                    self.get_map_background(ax, background,
+                    self.get_map_background(ax, background, crs,
                                             time=self.start_time)
             bg = ax.pcolormesh(map_x,
                                map_y,
@@ -4105,9 +4104,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         start_time = datetime.now()
 
-        # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
-        gcrs = ccrs.PlateCarree()
-
         if compare is not None:
             # Extend map coverage to cover comparison simulations
             cd, compare_args = self._get_comparison_xy_for_plots(compare)
@@ -4140,6 +4136,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
+
+        # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
+        gcrs = ccrs.PlateCarree(globe=crs.globe)
 
         markercolor = self.plot_comparison_colors[0]
 
@@ -4364,7 +4363,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 map_x, map_y = (lon_res, lat_res)
             else:
                 map_x, map_y, scalar, u_component, v_component = \
-                    self.get_map_background(ax, background, time=time)
+                    self.get_map_background(ax, background, crs, time=time)
                 #self.time_step_output)
 
             if show_scalar is True:
@@ -4504,7 +4503,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         ax.plot(x[0], y[0], 'ok', transform=gcrs)
         ax.plot(x[-1], y[-1], 'xk', transform=gcrs)
 
-    def get_map_background(self, ax, background, time=None):
+    def get_map_background(self, ax, background, crs, time=None):
         # Get background field for plotting on map or animation
         # TODO: this method should be made more robust
         if type(background) is list:
@@ -4525,7 +4524,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         # Get reader coordinates covering given map area
         axisproj = pyproj.Proj(ax.projection.proj4_params)
-        xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree())
+        xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree(globe=crs.globe))
         cornerlons = np.array([xmin, xmin, xmax, xmax])
         cornerlats = np.array([ymin, ymax, ymin, ymax])
         reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
