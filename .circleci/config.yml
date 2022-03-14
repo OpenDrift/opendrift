@@ -145,8 +145,8 @@ jobs:
         name: Install opendrift-landmask-data and remove roaring-landmask
         command: |
           source activate opendrift
-          conda install opendrift-landmask-data
-          pip uninstall roaring-landmask
+          conda install -y -c conda-forge -c opendrift opendrift-landmask-data
+          pip uninstall -y roaring-landmask
 
     - run:
         name: Generate landmask
