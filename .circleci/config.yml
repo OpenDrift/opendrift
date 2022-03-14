@@ -44,6 +44,7 @@ commands:
           command: |
             if [ ! -e /opt/conda/envs/opendrift ]; then
               if [ -v PYTHON_VERSION ]; then
+                echo "Pinning python: ${PYTHON_VERSION}."
                 # pin python
                 conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}"
 
