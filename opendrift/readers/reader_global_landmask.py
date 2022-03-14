@@ -52,14 +52,10 @@ def get_mask(skippoly = False, extent = None):
     try:
         if __roaring_mask__ is None:
             from roaring_landmask import RoaringLandmask
-            logger.warning("using the experimental RoaringLandmask")
             __roaring_mask__ = RoaringLandmask.new()
 
         mask = __roaring_mask__
         mask_type = 1
-        if skippoly or extent:
-            logger.warning(
-                'skippoly and extent is not supported with RoaringLandmask')
 
     except ImportError:
         from opendrift_landmask_data import Landmask

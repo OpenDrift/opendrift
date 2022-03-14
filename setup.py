@@ -21,7 +21,6 @@ setuptools.setup(
         'netCDF4',
         'pyproj',
         'cartopy',
-        'opendrift-landmask-data'
     ],
     packages = setuptools.find_packages(),
     include_package_data = True,
