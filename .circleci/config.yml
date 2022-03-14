@@ -33,7 +33,6 @@ commands:
           name: Checksum environment
           command: |
             echo "python=${PYTHON_VERSION}" > envconfig
-            echo "numpy=${NUMPY_VERSION}" >> envconfig
             cat envconfig
 
       - restore_cache:
@@ -45,11 +44,10 @@ commands:
           command: |
             if [ ! -e /opt/conda/envs/opendrift ]; then
               if [ -v PYTHON_VERSION ]; then
-                # pin python and numpy
-                conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
+                # pin python
+                conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}"
 
                 echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
-                echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
 
                 conda env update -n opendrift -q -f environment.yml
               else
