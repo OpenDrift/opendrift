@@ -1,6 +1,11 @@
 History
 =======
 
+Next release
+------------
+* Dropped support for Python 3.7 and 3.8 due to dependency requirements following cartopy update.
+* Now using cartopy 0.20.
+
 2022-02-28 / Release v1.8.4
 ---------------------------
 * Fixed discarding of irrelevant readers, which was not working properly. Readers are now discarded if they do not cover simuation temporal or spatial coverage, or do not contain relevant variables
