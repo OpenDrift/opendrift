@@ -3,7 +3,6 @@ History
 
 Next release
 ------------
-* Dropped support for Python 3.7 and 3.8 due to dependency requirements following cartopy update.
 * Now using cartopy 0.20.
 
 2022-02-28 / Release v1.8.4
