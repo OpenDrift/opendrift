@@ -3237,7 +3237,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             fig = plt.figure(figsize=(11., 11. * aspect_ratio))
 
-        ax = fig.add_subplot(111, projection=crs)  # need '111' for Python 2
+        ax = fig.add_subplot(111, projection=crs)
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree(globe=globe))
 
         if 'ocean_color' in kwargs:
@@ -3448,7 +3448,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
                             fast=fast, hide_landmask=hide_landmask, **kwargs)
 
-        gcrs = ccrs.PlateCarree(globe=crs.globe)
+        gcrs = ccrs.PlateCarree(globe=None)
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
@@ -4141,7 +4141,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
-        gcrs = ccrs.PlateCarree(globe=crs.globe)
+        gcrs = ccrs.PlateCarree(globe=None)
 
         markercolor = self.plot_comparison_colors[0]
 
@@ -4525,7 +4525,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         # Get reader coordinates covering given map area
         axisproj = pyproj.Proj(ax.projection.proj4_params)
-        xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree(globe=crs.globe))
+        xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree(globe=None))
         cornerlons = np.array([xmin, xmin, xmax, xmax])
         cornerlats = np.array([ymin, ymax, ymin, ymax])
         reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
