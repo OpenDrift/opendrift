@@ -98,15 +98,7 @@ test-template: &test-template
 
     - install_conda_environment
 
-    - restore_cache:
-        key: v1-landmask
-
     - install_cartopy_shapes
-
-    - save_cache:
-        key: v1-landmask
-        paths:
-          - "/tmp/landmask"
 
     - run_tests
 
@@ -143,11 +135,19 @@ jobs:
           conda install -y -c conda-forge -c opendrift opendrift-landmask-data
           pip uninstall -y roaring-landmask
 
+    - restore_cache:
+        key: v1-landmask
+
     - run:
         name: Generate landmask
         command: |
           source activate opendrift
           python -c 'import opendrift_landmask_data as old; old.Landmask()'
+
+    - save_cache:
+        key: v1-landmask
+        paths:
+          - "/tmp/landmask"
 
     - install_cartopy_shapes
 
