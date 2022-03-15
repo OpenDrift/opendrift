@@ -36,7 +36,7 @@ commands:
             cat envconfig
 
       - restore_cache:
-          key: v17-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v18-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
 
       - run:
           name: Install requirements
@@ -46,7 +46,7 @@ commands:
               if [ -v PYTHON_VERSION ]; then
                 echo "Pinning python: ${PYTHON_VERSION}."
                 # pin python
-                conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}"
+                conda create -c conda-forge -n opendrift -q -y "python=${PYTHON_VERSION}"
 
                 echo "python ${PYTHON_VERSION}.*" > /opt/conda/envs/opendrift/conda-meta/pinned
                 cat /opt/conda/envs/opendrift/conda-meta/pinned
@@ -62,7 +62,7 @@ commands:
             fi
 
       - save_cache:
-          key: v17-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v18-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
           paths:
             - "/opt/conda/envs"
       - run:
