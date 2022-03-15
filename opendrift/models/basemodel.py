@@ -4138,7 +4138,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
-        gcrs = ccrs.PlateCarree(globe=None)
+        gcrs = ccrs.PlateCarree()
 
         markercolor = self.plot_comparison_colors[0]
 
