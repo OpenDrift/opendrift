@@ -114,8 +114,19 @@ jobs:
     <<: *test-template
     parallelism: 5
     environment:
-      - COVERALLS_UPLOAD=1
       - PYTHON_VERSION=3.9
+
+  python_38:
+    <<: *test-template
+    parallelism: 5
+    environment:
+      - PYTHON_VERSION=3.8
+
+  python_37:
+    <<: *test-template
+    parallelism: 5
+    environment:
+      - PYTHON_VERSION=3.7
 
   python_310_o_l_d:
     docker:
@@ -379,6 +390,8 @@ workflows:
     jobs:
       - python_310
       - python_39
+      - python_38
+      - python_37
       - python_310_o_l_d
 
   docs:
