@@ -3,7 +3,7 @@ History
 
 Next release
 ------------
-* Now using cartopy 0.20.
+* Now using cartopy 0.20. Cartopy <= 0.20 is longer supported.
 
 2022-02-28 / Release v1.8.4
 ---------------------------
