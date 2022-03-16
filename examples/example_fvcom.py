@@ -13,7 +13,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
-proj = "+proj=utm +zone=33W, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+proj = "+proj=utm +zone=33 +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 fvcom = reader_netCDF_CF_unstructured.Reader(filename = 'https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc', proj4 = proj)
 o.add_reader(fvcom)
 print(fvcom)
