@@ -3204,7 +3204,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             latmin = latmin - buffer
             latmax = latmax + buffer
 
-        globe = None
 
         if fast is True:
             logger.warning(
@@ -3226,6 +3225,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             crs = ccrs.Mercator()
             if lscale is None:
                 lscale = 'auto'
+
+        globe = crs.globe
 
         meanlat = (latmin + latmax) / 2
         aspect_ratio = float(latmax - latmin) / (float(lonmax - lonmin))
@@ -3257,7 +3258,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             else:
                 text = kwargs['text']
             for te in text:
-                plt.text(transform=ccrs.Geodetic(), **te)
+                plt.text(transform=ccrs.Geodetic(globe=globe), **te)
 
         if 'box' in kwargs:
             if not isinstance(kwargs['box'], list):
@@ -3275,12 +3276,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     plt.text(x=lonmn,
                              y=latmx,
                              s=bx['text'],
-                             transform=ccrs.Geodetic())
+                             transform=ccrs.Geodetic(globe=globe))
                     del bx['text']
                 patch = matplotlib.patches.Rectangle(xy=[lonmn, latmn],
                                                      width=lonmx - lonmn,
                                                      height=latmx - latmn,
-                                                     transform=ccrs.Geodetic(),
+                                                     transform=ccrs.Geodetic(globe=globe),
                                                      zorder=10,
                                                      **bx)
                 ax.add_patch(patch)
@@ -4451,7 +4452,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 plt.title(title)
 
         if trajectory_dict is not None:
-            self._plot_trajectory_dict(ax, trajectory_dict)
+            self._plot_trajectory_dict(ax, gcrs, trajectory_dict)
 
         try:
             handles, labels = ax.get_legend_handles_labels()
@@ -4485,7 +4486,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             return 'OpenDrift - ' + type(
                 self).__name__ + ' (%s)' % self._substance_name()
 
-    def _plot_trajectory_dict(self, ax, trajectory_dict):
+    def _plot_trajectory_dict(self, ax, gcrs, trajectory_dict):
         '''Plot provided trajectory along with simulated'''
         time = trajectory_dict['time']
         time = np.array(time)
@@ -4497,7 +4498,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             label = trajectory_dict['label']
         else:
             label = None
-        gcrs = ccrs.PlateCarree()
 
         ax.plot(x, y, ls, linewidth=2, transform=gcrs, label=label)
         ax.plot(x[0], y[0], 'ok', transform=gcrs)
