@@ -5,12 +5,20 @@ orbs:
 
 commands:
   run_tests:
+    parameters:
+      mpl:
+        description: "Enable plot comparison tests"
+        type: boolean
+        default: true
+
     steps:
       - run:
           name: Run tests
           command: |
+            [[ "<<parameters.mpl>>" == "true" ]] && export MPL="--mpl"
+
             source activate opendrift
-            pytest --circleci-parallelize --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --mpl --durations=50 --benchmark-disable -v --log-cli-level=debug
+            pytest --circleci-parallelize --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow $MPL --durations=50 --benchmark-disable -v --log-cli-level=debug
 
       - store_test_results:
           path: test-results
@@ -80,7 +88,7 @@ commands:
           name: Download cartopy shapes
           command: |
             source activate opendrift
-            python -c "import cartopy;list(map(cartopy.io.shapereader.gshhs, ('c', 'l', 'i', 'h', 'f')))"
+            python -c "import cartopy; list(map(cartopy.io.shapereader.gshhs, ('c', 'l', 'i', 'h', 'f')))"
             python -c "import cartopy; cartopy.io.shapereader.natural_earth(resolution='110m', category='cultural', name='admin_0_countries')"
 
       - save_cache:
@@ -100,7 +108,8 @@ test-template: &test-template
 
     - install_cartopy_shapes
 
-    - run_tests
+    - run_tests:
+        mpl: true
 
 jobs:
   python_310:
@@ -147,7 +156,7 @@ jobs:
           pip uninstall -y roaring-landmask
 
     - restore_cache:
-        key: v1-landmask
+        key: v2-landmask
 
     - run:
         name: Generate landmask
@@ -156,13 +165,14 @@ jobs:
           python -c 'import opendrift_landmask_data as old; old.Landmask()'
 
     - save_cache:
-        key: v1-landmask
+        key: v2-landmask
         paths:
           - "/tmp/landmask"
 
     - install_cartopy_shapes
 
-    - run_tests
+    - run_tests:
+        mpl: false
 
   docs-build-examples:
     docker:
