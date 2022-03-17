@@ -97,6 +97,8 @@ class ReaderDomain(Timeable):
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
         if self.proj.crs.is_geographic:
             if 'ob_tran' in str(self.proj4):
                 logger.debug('NB: Converting degrees to radians ' +
@@ -113,6 +115,8 @@ class ReaderDomain(Timeable):
         """
         Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
         if 'ob_tran' in str(self.proj4):
             x, y = self.proj(lon, lat, inverse=False)
             return np.degrees(x), np.degrees(y)
