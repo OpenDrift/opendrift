@@ -257,6 +257,8 @@ class BaseReader(Variables):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
+            lon0 = lon0[0]
+            lat0 = lat0[0]
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
             latmax = np.maximum(latmax, lat0)
             latmin = np.minimum(latmin, lat0)
