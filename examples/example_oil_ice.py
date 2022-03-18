@@ -13,7 +13,7 @@ o = OpenOil(loglevel=20)
 
 #%%
 # Using live data from Barents 2.5 km ocean model
-o.add_readers_from_list(['https://thredds.met.no/thredds/dodsC/barents25km_agg'])
+o.add_readers_from_list(['https://thredds.met.no/thredds/dodsC/fou-hi/barents_eps_zdepth_be'])
 
 #%%
 # Imaginary oil spill in Hinlopen strait
