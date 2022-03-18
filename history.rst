@@ -1,9 +1,15 @@
 History
 =======
 
-Next release
-------------
-* Now using cartopy 0.20. Cartopy <= 0.20 is longer supported.
+2022-03-18 / Release v1.8.5
+---------------------------
+* Now using Cartopy >= 0.20. Cartopy < 0.20 is longer supported.
+* Updated thredds URL to Barents2.5 ocean model
+* ROMS native reader now detects variables having standard_name attribute
+* Using more explicit exceptions internally, e.g. OutsideSpatialCoverageError, CouldNotInitializeReaderError etc.
+* Added 7 Norwegian oils
+* roaring_landmask (written in Rust) is now installed as default (faster landmask checking)
+
 
 2022-02-28 / Release v1.8.4
 ---------------------------
