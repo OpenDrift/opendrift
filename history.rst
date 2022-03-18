@@ -1,7 +1,7 @@
 History
 =======
 
-2022-03-18 / Release v1.8.5
+2022-03-18 / Release v1.9.0
 ---------------------------
 * Now using Cartopy >= 0.20. Cartopy < 0.20 is longer supported.
 * Updated thredds URL to Barents2.5 ocean model
