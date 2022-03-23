@@ -135,7 +135,6 @@ class Reader(StructuredReader, BaseReader):
                 self.Dataset = xr.open_dataset(filename, decode_times=False).isel(ensemble_member=ensemble_member)
             else:
                 self.Dataset = xr.open_dataset(filename, decode_times=False)
-
         except Exception as e:
             raise ValueError(e)
 
