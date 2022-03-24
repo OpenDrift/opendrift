@@ -29,6 +29,7 @@ dependencies:
   - coloredlogs
   - cmocean
   - pip
+  - pygeos
   - pip:
     - motuclient
     - roaring-landmask

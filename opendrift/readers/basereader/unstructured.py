@@ -159,12 +159,23 @@ class UnstructuredReader(Variables):
         P = np.vstack((x, y)).T
         return cKDTree(P)
 
+    def _build_strtree_(self, x, y):
+        from pygeos import STRtree, points
+        return STRtree(points(x, y))
+
     def __nearest_ckdtree__(self, idx, x, y):
         """
         Return index of nearest point in cKDTree
         """
         q = np.vstack((x, y)).T
         return idx.query(q, k = 1, workers = self.PARALLEL_WORKERS)[1]
+
+    def __nearest_strtree__(self, idx, x, y):
+        """
+        Return index of nearest point in STRtree
+        """
+        from pygeos import points
+        return idx.nearest(points(x, y))[1]
 
     @staticmethod
     def __nearest_rtree__(idx, x, y):
@@ -177,10 +188,10 @@ class UnstructuredReader(Variables):
         """
         Return nearest node (id) for x and y
         """
-        return self.__nearest_ckdtree__(self.nodes_idx, x, y)
+        return self.__nearest_strtree__(self.nodes_idx, x, y)
 
     def _nearest_face_(self, xc, yc):
         """
         Return nearest element or face (id) for xc and yc
         """
-        return self.__nearest_ckdtree__(self.faces_idx, xc, yc)
+        return self.__nearest_strtree__(self.faces_idx, xc, yc)
