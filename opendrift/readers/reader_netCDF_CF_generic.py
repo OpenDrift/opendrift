@@ -114,8 +114,7 @@ class Reader(StructuredReader, BaseReader):
 
     """
 
-    def __init__(self, filename=None, name=None, proj4=None, standard_name_mapping={}):
-
+    def __init__(self, filename=None, name=None, proj4=None, standard_name_mapping={}, ensemble_member=None):
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
 
@@ -132,6 +131,8 @@ class Reader(StructuredReader, BaseReader):
                 logger.info('Opening files with MFDataset')
                 self.Dataset = xr.open_mfdataset(filename, data_vars='minimal', coords='minimal',
                                                  chunks={'time': 1}, decode_times=False)
+            elif ensemble_member is not None:
+                self.Dataset = xr.open_dataset(filename, decode_times=False).isel(ensemble_member=ensemble_member)
             else:
                 self.Dataset = xr.open_dataset(filename, decode_times=False)
         except Exception as e:
@@ -231,10 +232,11 @@ class Reader(StructuredReader, BaseReader):
                 else:
                     self.time_step = None
             if standard_name == 'realization':
-                var_data = var.values
-                self.realizations = var_data
-                logger.debug('%i ensemble members available'
-                              % len(self.realizations))
+                if ensemble_member == None:
+                    var_data = var.values
+                    self.realizations = var_data
+                    logger.debug('%i ensemble members available'
+                                % len(self.realizations))
 
         # Temporary workaround for Barents EPS model
         if self.realizations is None and 'ensemble_member' in self.Dataset.dims:
