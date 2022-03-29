@@ -29,7 +29,7 @@ from opendrift.readers.roppy import depth
 
 class Reader(BaseReader, StructuredReader):
 
-    def __init__(self, filename=None, name=None, gridfile=None):
+    def __init__(self, filename=None, name=None, gridfile=None, standard_name_mapping={}):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -60,6 +60,9 @@ class Reader(BaseReader, StructuredReader):
             'svstr': 'surface_downward_y_stress',
             'Uwind': 'x_wind',
             'Vwind': 'y_wind'}
+
+        # Add user provided variable mappings
+        self.ROMS_variable_mapping.update(standard_name_mapping)
 
         # z-levels to which sigma-layers may be interpolated
         self.zlevels = np.array([
@@ -162,9 +165,22 @@ class Reader(BaseReader, StructuredReader):
                                  'arrays, please supply a grid-file '
                                  '"gridfile=<grid_file>"')
             else:
-                gf = Dataset(gridfile)
-                self.lat = gf.variables['lat_rho'][:]
-                self.lon = gf.variables['lon_rho'][:]
+                gf = xr.open_dataset(gridfile)
+                gridvars = ['lat_rho', 'notvar', 'lon_rho', 'mask_rho', 'mask_u', 'mask_v', 'angle', 'h']
+                for gv in gridvars:
+                    if gv in gf.variables:
+                        if gv in ['lat_rho', 'lon_rho']:
+                            setname = gv[0:3]
+                            setattr(self, setname, gf.variables[gv][:].data)
+                        elif gv in ['angle']:
+                            setname = 'angle_xi_east'
+                            setattr(self, setname, gf.variables[gv][:])
+                        else:
+                            setname = gv
+                            setattr(self, gv, gf.variables[gv][:])
+                if self.lat.ndim == 1:
+                    self.lon, self.lat = np.meshgrid(self.lon, self.lat)
+                    self.angle_xi_east = 0
 
         try:  # Check for GLS parameters (diffusivity)
             self.gls_parameters = {}
@@ -202,7 +218,7 @@ class Reader(BaseReader, StructuredReader):
         self.variables = []
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
-            if 'standard_name' in var.attrs:
+            if 'standard_name' in var.attrs and var_name not in self.ROMS_variable_mapping.keys():
                 self.ROMS_variable_mapping[var_name] = var.attrs['standard_name']
             if var_name in self.ROMS_variable_mapping.keys():
                 self.variables.append(self.ROMS_variable_mapping[var_name])
@@ -325,7 +341,8 @@ class Reader(BaseReader, StructuredReader):
             if par not in mask_values:
                 indxgrid = indx
                 indygrid = indy
-                if par == 'x_sea_water_velocity':
+                if par in ['x_sea_water_velocity', 'sea_water_x_velocity',
+                           'east_sea_water_velocity']:
                     if not hasattr(self, 'mask_u'):
                         if 'mask_u' in self.Dataset.variables:
                             self.mask_u = self.Dataset.variables['mask_u'][:]
@@ -334,7 +351,8 @@ class Reader(BaseReader, StructuredReader):
                         else:
                             continue
                     mask = self.mask_u[indygrid, indxgrid]
-                elif par == 'y_sea_water_velocity':
+                elif par in ['y_sea_water_velocity', 'sea_water_y_velocity',
+                             'north_sea_water_velocity']:
                     if not hasattr(self, 'mask_v'):
                         if 'mask_v' in self.Dataset.variables:
                             self.mask_v = self.Dataset.variables['mask_v'][:]
