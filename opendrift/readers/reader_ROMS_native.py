@@ -223,6 +223,17 @@ class Reader(BaseReader, StructuredReader):
             if var_name in self.ROMS_variable_mapping.keys():
                 self.variables.append(self.ROMS_variable_mapping[var_name])
 
+        # A bit hackish solution:
+        # If variable names or their standard_name contain "east" or "north", 
+        # these should not be rotated from xi-direction to east-direction
+        self.do_not_rotate = []
+        for var, stdname in self.ROMS_variable_mapping.items():
+            if 'east' in var.lower() or 'east' in stdname.lower() or \
+                    'north' in var.lower() or 'north' in stdname.lower():
+                self.do_not_rotate.append(stdname)
+        if len(self.do_not_rotate)>0:
+            logger.debug('The following ROMS vectors are considered east-north, and will not be rotated %s' % self.do_not_rotate)
+
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
 
@@ -342,7 +353,7 @@ class Reader(BaseReader, StructuredReader):
                 indxgrid = indx
                 indygrid = indy
                 if par in ['x_sea_water_velocity', 'sea_water_x_velocity',
-                           'east_sea_water_velocity']:
+                           'eastward_sea_water_velocity']:
                     if not hasattr(self, 'mask_u'):
                         if 'mask_u' in self.Dataset.variables:
                             self.mask_u = self.Dataset.variables['mask_u'][:]
@@ -352,7 +363,7 @@ class Reader(BaseReader, StructuredReader):
                             continue
                     mask = self.mask_u[indygrid, indxgrid]
                 elif par in ['y_sea_water_velocity', 'sea_water_y_velocity',
-                             'north_sea_water_velocity']:
+                             'northward_sea_water_velocity']:
                     if not hasattr(self, 'mask_v'):
                         if 'mask_v' in self.Dataset.variables:
                             self.mask_v = self.Dataset.variables['mask_v'][:]
@@ -513,17 +524,20 @@ class Reader(BaseReader, StructuredReader):
             else:
                 rad = self.angle_xi_east[indy, indx]
                 rad = np.ma.asarray(rad)
-            if 'x_sea_water_velocity' in variables.keys():
+            if 'x_sea_water_velocity' in variables.keys() and \
+                    'x_sea_water_velocity' not in self.do_not_rotate:
                 variables['x_sea_water_velocity'], \
                     variables['y_sea_water_velocity'] = rotate_vectors_angle(
                         variables['x_sea_water_velocity'],
                         variables['y_sea_water_velocity'], rad)
-            if 'sea_ice_x_velocity' in variables.keys():
+            if 'sea_ice_x_velocity' in variables.keys() and \
+                    'sea_ice_x_velocity' not in self.do_not_rotate:
                 variables['sea_ice_x_velocity'], \
                     variables['sea_ice_y_velocity'] = rotate_vectors_angle(
                         variables['sea_ice_x_velocity'],
                         variables['sea_ice_y_velocity'], rad)
-            if 'x_wind' in variables.keys():
+            if 'x_wind' in variables.keys() and \
+                    'x_wind' not in self.do_not_rotate:
                 variables['x_wind'], \
                     variables['y_wind'] = rotate_vectors_angle(
                         variables['x_wind'],
