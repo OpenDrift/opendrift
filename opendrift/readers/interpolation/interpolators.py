@@ -1,8 +1,7 @@
 import logging
 import numpy as np
-from scipy.ndimage import map_coordinates
+from scipy.ndimage import map_coordinates, grey_dilation
 import logging; logging.captureWarnings(True); logger = logging.getLogger(__name__)
-import scipy.ndimage as ndimage
 from scipy.interpolate import interp1d, LinearNDInterpolator
 
 logger = logging.getLogger('opendrift')  # using common logger
@@ -16,7 +15,7 @@ def expand_numpy_array(data):
         return
     mask = ~np.isfinite(data)
     data[mask] = np.finfo(np.float64).min
-    data[mask] = ndimage.morphology.grey_dilation(data, size=3)[mask]
+    data[mask] = grey_dilation(data, size=3)[mask]
     data[data==np.finfo(np.float64).min] = np.nan
 
 

@@ -1113,12 +1113,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 if rlatmax < self.simulation_extent[1]:
                     self.discard_reader(reader, reason='too far south')
                     return True
-                if rlonmax < self.simulation_extent[0]:
-                    self.discard_reader(reader, reason='too far west')
-                    return True
-                if rlonmin > self.simulation_extent[2]:
-                    self.discard_reader(reader, reason='too far east')
-                    return True
+                # Disabling below checks, as +/-360 deg is not considered
+                #if rlonmax < self.simulation_extent[0]:
+                #    self.discard_reader(reader, reason='too far west')
+                #    return True
+                #if rlonmin > self.simulation_extent[2]:
+                #    self.discard_reader(reader, reason='too far east')
+                #    return True
             reader.checked_for_overlap = True
 
         return False  # Reader is not discarded
