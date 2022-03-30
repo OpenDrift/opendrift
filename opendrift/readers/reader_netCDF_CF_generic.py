@@ -138,6 +138,11 @@ class Reader(StructuredReader, BaseReader):
         except Exception as e:
             raise ValueError(e)
 
+        # NB: check below might not be waterproof
+        if 'ocean_time' in self.Dataset.dims and 'eta_u' in self.Dataset.dims and \
+                'eta_rho' in self.Dataset.dims:
+            raise ValueError('This seems to be a ROMS native file, should use ROMS native reader instead')
+
         logger.debug('Finding coordinate variables.')
         if proj4 is not None:  # If user has provided a projection apriori
             self.proj4 = proj4
