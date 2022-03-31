@@ -445,6 +445,30 @@ class StructuredReader(Variables):
             pixelsize = dist / self.shape[0]
             return pixelsize
 
+    def get_ocean_depth_area_volume(self, lonmin, lonmax, latmin, latmax):
+        """Get depth, area and volume of ocean basin within given coordinates"""
+
+        # Extract ocean depth within given boundaries
+        background = 'sea_floor_depth_below_sea_level'
+        rx, ry = self.lonlat2xy([lonmin, lonmax, lonmax, lonmin], [latmin, latmin, latmax, latmax])
+        rx = np.linspace(rx.min(), rx.max(), 10)
+        ry = np.linspace(ry.min(), ry.max(), 10)
+        data = self.get_variables(background, time=None, x=rx, y=ry)
+
+        x, y = np.meshgrid(data['x'], data['y'])
+        lon, lat = self.xy2lonlat(x, y)
+
+        depth = data[background]
+        depth = np.ma.masked_where(lon<lonmin, depth)
+        depth = np.ma.masked_where(lon>lonmax, depth)
+        depth = np.ma.masked_where(lat<latmin, depth)
+        depth = np.ma.masked_where(lat>latmax, depth)
+
+        volume = np.nansum(depth*self.pixel_size()*self.pixel_size())
+        area = volume/np.nanmean(depth)
+
+        return np.nanmin(depth), np.nanmax(depth), np.nanmean(depth), area, volume
+
     def _coverage_unit_(self):
         if self.projected:
             return super()._coverage_unit_()
