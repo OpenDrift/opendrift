@@ -3730,11 +3730,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
             dcolor = drifter['color'] if 'color' in drifter else 'r'
             dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
+            dzorder = drifter['zorder'] if 'zorder' in drifter else 10
             dmarkersize = drifter[
                 'markersize'] if 'markersize' in drifter else 20
             drifter_pos = ax.scatter([], [],
                                      c=dcolor,
-                                     zorder=15,
+                                     zorder=dzorder+1,
                                      s=dmarkersize,
                                      label=dlabel,
                                      transform=gcrs)
@@ -3742,7 +3743,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     drifter['y'],
                     color=dcolor,
                     linewidth=dlinewidth,
-                    zorder=14,
+                    zorder=dzorder,
                     transform=gcrs)
             plt.legend()
 
@@ -4046,7 +4047,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              scale=None,
              show_scalar=True,
              contourlines=False,
-             trajectory_dict=None,
+             drifter=None,
              colorbar=True,
              linewidth=1,
              lcs=None,
@@ -4113,16 +4114,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             cd, compare_args = self._get_comparison_xy_for_plots(compare)
             kwargs.update(compare_args)
 
-        if trajectory_dict is not None:
+        if drifter is not None:
             # Extend map coverage to cover provided trajectory
-            ttime = np.array(trajectory_dict['time'])
+            ttime = np.array(drifter['time'])
             i = np.where((ttime >= self.start_time) & (ttime <= self.time))[0]
-            trajectory_dict['lon'] = np.atleast_1d(trajectory_dict['lon'])
-            trajectory_dict['lat'] = np.atleast_1d(trajectory_dict['lat'])
-            tlonmin = trajectory_dict['lon'][i].min()
-            tlonmax = trajectory_dict['lon'][i].max()
-            tlatmin = trajectory_dict['lat'][i].min()
-            tlatmax = trajectory_dict['lat'][i].max()
+            drifter['lon'] = np.atleast_1d(drifter['lon'])
+            drifter['lat'] = np.atleast_1d(drifter['lat'])
+            tlonmin = drifter['lon'][i].min()
+            tlonmax = drifter['lon'][i].max()
+            tlatmin = drifter['lat'][i].min()
+            tlatmax = drifter['lat'][i].max()
             if 'compare_lonmin' not in kwargs:
                 kwargs['compare_lonmin'] = tlonmin
                 kwargs['compare_lonmax'] = tlonmax
@@ -4454,8 +4455,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             else:
                 plt.title(title)
 
-        if trajectory_dict is not None:
-            self._plot_trajectory_dict(ax, gcrs, trajectory_dict)
+        if drifter is not None:
+            self._plot_drifter(ax, gcrs, drifter)
 
         try:
             handles, labels = ax.get_legend_handles_labels()
@@ -4489,20 +4490,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             return 'OpenDrift - ' + type(
                 self).__name__ + ' (%s)' % self._substance_name()
 
-    def _plot_trajectory_dict(self, ax, gcrs, trajectory_dict):
+    def _plot_drifter(self, ax, gcrs, drifter):
         '''Plot provided trajectory along with simulated'''
-        time = trajectory_dict['time']
+        time = drifter['time']
         time = np.array(time)
         i = np.where((time >= self.start_time) & (time <= self.time))[0]
-        x, y = (np.atleast_1d(trajectory_dict['lon'])[i],
-                np.atleast_1d(trajectory_dict['lat'])[i])
-        ls = trajectory_dict['linestyle']
-        if 'label' in trajectory_dict:
-            label = trajectory_dict['label']
-        else:
-            label = None
+        x, y = (np.atleast_1d(drifter['lon'])[i],
+                np.atleast_1d(drifter['lat'])[i])
+        dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
+        dcolor = drifter['color'] if 'color' in drifter else 'r'
+        dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
+        dzorder = drifter['zorder'] if 'zorder' in drifter else 10
 
-        ax.plot(x, y, ls, linewidth=2, transform=gcrs, label=label)
+        ax.plot(x, y, linewidth=dlinewidth, color=dcolor, transform=gcrs, label=dlabel, zorder=dzorder)
         ax.plot(x[0], y[0], 'ok', transform=gcrs)
         ax.plot(x[-1], y[-1], 'xk', transform=gcrs)
 
