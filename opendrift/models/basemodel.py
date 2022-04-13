@@ -3450,7 +3450,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
                             fast=fast, hide_landmask=hide_landmask, **kwargs)
 
-        gcrs = ccrs.PlateCarree(globe=None)
+        gcrs = ccrs.PlateCarree(globe=crs.globe)
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
@@ -4143,7 +4143,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
 
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
-        gcrs = ccrs.PlateCarree()
+        gcrs = ccrs.PlateCarree(globe=crs.globe)
 
         markercolor = self.plot_comparison_colors[0]
 
@@ -4527,7 +4527,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         # Get reader coordinates covering given map area
         axisproj = pyproj.Proj(ax.projection.proj4_params)
-        xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree(globe=None))
+        xmin, xmax, ymin, ymax = ax.get_extent(ccrs.PlateCarree(globe=crs.globe))
         cornerlons = np.array([xmin, xmin, xmax, xmax])
         cornerlats = np.array([ymin, ymax, ymin, ymax])
         reader_x, reader_y = reader.lonlat2xy(cornerlons, cornerlats)
