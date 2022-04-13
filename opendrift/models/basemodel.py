@@ -1686,7 +1686,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 np.minimum(89,
                            self.elements_scheduled.lat.max() + deltalat)
             ])
+            seed_state = np.random.get_state()  # Do not alter current random number generator
             o = OceanDrift(loglevel='custom')
+            np.random.set_state(seed_state)
             if hasattr(self, 'simulation_extent'):
                 o.simulation_extent = self.simulation_extent
             o.add_reader(reader_landmask)

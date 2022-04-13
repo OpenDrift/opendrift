@@ -325,7 +325,7 @@ class TestRun(unittest.TestCase):
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -44.4, 1)
+        self.assertAlmostEqual(o1.history['z'].min(), -43.67, 1)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0, 1)
         os.remove('verticalmixing.nc')
 
@@ -610,7 +610,7 @@ class TestRun(unittest.TestCase):
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -122.52, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -122.44, 1)  # After some rising
 
     def test_seed_above_seafloor(self):
         o = OpenOil(loglevel=30)
@@ -634,7 +634,7 @@ class TestRun(unittest.TestCase):
         #o.plot_property('z')
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -97.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -72.0, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -71.9, 1)  # After some rising
 
     def test_seed_below_reader_coverage(self):
         o = OpenOil(loglevel=20)
@@ -654,7 +654,7 @@ class TestRun(unittest.TestCase):
         o.set_config('vertical_mixing:timestep', 1)  # s
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0], -134.0, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -133.9, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
@@ -676,7 +676,7 @@ class TestRun(unittest.TestCase):
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
         self.assertAlmostEqual(z[0,0], -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -132.45, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0], -132.35, 1)  # After some rising
 
     def test_seed_below_seafloor_deactivating(self):
         o = OpenOil(loglevel=50)
@@ -702,7 +702,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
         self.assertAlmostEqual(z[0,1], -100, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,1], -81.4, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,1], -81.3, 1)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast

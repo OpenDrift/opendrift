@@ -59,8 +59,8 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertAlmostEqual(o.elements.lat[0], 71.16, 1)
         #self.assertAlmostEqual(o.elements.z.min(), -41.92, 1)  # With past ROMS-masking
-        self.assertAlmostEqual(o.elements.z.min(), -46.4, 1)
-        self.assertAlmostEqual(o.elements.z.max(), -0.2, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -46.75, 1)
+        self.assertAlmostEqual(o.elements.z.max(), -0.28, 1)
         #self.assertAlmostEqual(o.elements.lon.max(), 14.949, 2)
         self.assertAlmostEqual(o.elements.lon.max(), 14.915, 2)
 
