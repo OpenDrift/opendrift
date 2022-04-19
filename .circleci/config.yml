@@ -424,6 +424,7 @@ workflows:
     jobs:
 
       - docker-publish/publish:
+          no_output_timeout: 40m
           image: opendrift/opendrift
           dockerfile: Dockerfile
           tag: latest
