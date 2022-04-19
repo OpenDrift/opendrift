@@ -1686,7 +1686,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 np.minimum(89,
                            self.elements_scheduled.lat.max() + deltalat)
             ])
+            seed_state = np.random.get_state()  # Do not alter current random number generator
             o = OceanDrift(loglevel='custom')
+            np.random.set_state(seed_state)
             if hasattr(self, 'simulation_extent'):
                 o.simulation_extent = self.simulation_extent
             o.add_reader(reader_landmask)
@@ -3240,7 +3242,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         else:
             fig = plt.figure(figsize=(11., 11. * aspect_ratio))
 
-        ax = fig.add_subplot(111, projection=crs)  # need '111' for Python 2
+        ax = fig.add_subplot(111, projection=crs)
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree(globe=globe))
 
         if 'ocean_color' in kwargs:
