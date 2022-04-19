@@ -2969,7 +2969,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         for var in self.required_variables:
             keyword = 'reader_' + var
             if var not in self.priority_list:
-                self.add_metadata(keyword, self.fallback_values[var])
+                if var in self.fallback_values:
+                    self.add_metadata(keyword, self.fallback_values[var])
+                else:
+                    self.add_metadata(keyword, None)
             else:
                 readers = self.priority_list[var]
                 if readers[0].startswith(
