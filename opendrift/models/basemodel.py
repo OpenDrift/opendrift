@@ -3512,9 +3512,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                             index_of_last_deactivated < i])
 
             if drifter is not None:
-                drifter_pos.set_offsets(np.c_[drifter['x'][i],
-                                              drifter['y'][i]])
-                ret.append(drifter_pos)
+                for drnum, dr in enumerate(drifter):
+                    drifter_pos[drnum].set_offsets(np.c_[dr['x'][i],
+                                                         dr['y'][i]])
+                    ret.append(drifter_pos[drnum])
 
             if show_elements is True:
                 if compare is not None:
@@ -3715,36 +3716,40 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                transform=gcrs)
 
         if drifter is not None:
-            # Interpolate drifter time series onto simulation times
-            sts = np.array(
-                [t.total_seconds() for t in np.array(times) - times[0]])
-            dts = np.array([
-                t.total_seconds() for t in np.array(drifter['time']) - times[0]
-            ])
-            drifter['x'] = np.interp(sts, dts, drifter['lon'])
-            drifter['y'] = np.interp(sts, dts, drifter['lat'])
-            drifter['x'][sts < dts[0]] = np.nan
-            drifter['x'][sts > dts[-1]] = np.nan
-            drifter['y'][sts < dts[0]] = np.nan
-            drifter['y'][sts > dts[-1]] = np.nan
-            dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
-            dcolor = drifter['color'] if 'color' in drifter else 'r'
-            dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
-            dzorder = drifter['zorder'] if 'zorder' in drifter else 10
-            dmarkersize = drifter[
-                'markersize'] if 'markersize' in drifter else 20
-            drifter_pos = ax.scatter([], [],
-                                     c=dcolor,
-                                     zorder=dzorder+1,
-                                     s=dmarkersize,
-                                     label=dlabel,
-                                     transform=gcrs)
-            ax.plot(drifter['x'],
-                    drifter['y'],
-                    color=dcolor,
-                    linewidth=dlinewidth,
-                    zorder=dzorder,
-                    transform=gcrs)
+            if not isinstance(drifter, list):
+                drifter = [drifter]
+            drifter_pos = [None]*len(drifter)
+            for drnum, dr in enumerate(drifter):
+                # Interpolate drifter time series onto simulation times
+                sts = np.array(
+                    [t.total_seconds() for t in np.array(times) - times[0]])
+                dts = np.array([
+                    t.total_seconds() for t in np.array(dr['time']) - times[0]
+                ])
+                dr['x'] = np.interp(sts, dts, dr['lon'])
+                dr['y'] = np.interp(sts, dts, dr['lat'])
+                dr['x'][sts < dts[0]] = np.nan
+                dr['x'][sts > dts[-1]] = np.nan
+                dr['y'][sts < dts[0]] = np.nan
+                dr['y'][sts > dts[-1]] = np.nan
+                dlabel = dr['label'] if 'label' in dr else 'Drifter'
+                dcolor = dr['color'] if 'color' in dr else 'r'
+                dlinewidth = dr['linewidth'] if 'linewidth' in dr else 2
+                dzorder = dr['zorder'] if 'zorder' in dr else 10
+                dmarkersize = dr[
+                    'markersize'] if 'markersize' in dr else 20
+                drifter_pos[drnum] = ax.scatter([], [],
+                                                c=dcolor,
+                                                zorder=dzorder+1,
+                                                s=dmarkersize,
+                                                label=dlabel,
+                                                transform=gcrs)
+                ax.plot(dr['x'],
+                        dr['y'],
+                        color=dcolor,
+                        linewidth=dlinewidth,
+                        zorder=dzorder,
+                        transform=gcrs)
             plt.legend()
 
         fig.canvas.draw()
