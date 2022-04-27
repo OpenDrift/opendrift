@@ -37,9 +37,9 @@ class Chemical(Lagrangian3DArray):
         ('diameter', {'dtype': np.float32,
                       'units': 'm',
                       'default': 0.}),
-        ('neutral_buoyancy_salinity', {'dtype': np.float32,
-                                       'units': '[]',
-                                       'default': 31.25}),  # for NEA Cod
+        #('neutral_buoyancy_salinity', {'dtype': np.float32,
+        #                               'units': '[]',
+        #                               'default': 31.25}),  # for NEA Cod
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 2650.}),  # Mineral particles
@@ -100,9 +100,10 @@ class ChemicalDrift(OceanDrift):
         'sea_water_temperature': {'fallback': 10, 'profiles': True},
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
         'upward_sea_water_velocity': {'fallback': 0},
-        'conc3': {'fallback': 1.e-3},
+        #'conc3': {'fallback': 1.e-3},
         'spm': {'fallback': 50},
         'ocean_mixed_layer_thickness': {'fallback': 50},
+        'active_sediment_layer_thickness': {'fallback': 0.03}
         }
 
     # The depth range (in m) which profiles shall cover
@@ -141,9 +142,6 @@ class ChemicalDrift(OceanDrift):
             'chemical:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:activity_per_element': {'type': 'float', 'default': 1,
-                'min': 0, 'max': 1e18, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'seed:LMM_fraction': {'type': 'float','default': .1,
                 'min': 0, 'max': 1, 'units': '',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
@@ -945,16 +943,6 @@ class ChemicalDrift(OceanDrift):
                 dist_to_seabed = self.elements.z - Zmin
                 self.elements.transfer_rates1D[(self.elements.specie == self.num_lmm) &
                                  (dist_to_seabed > interaction_thick), self.num_srev] = 0.
-
-
-            if self.get_config('chemical:species:Particle_reversible'):
-                # Modify particle adsorption according to local particle concentration
-                # (LMM -> reversible particles)
-                kktmp = self.elements.specie == self.num_lmm
-                self.elements.transfer_rates1D[kktmp, self.num_prev] = \
-                            self.elements.transfer_rates1D[kktmp, self.num_prev] * \
-                            self.environment.conc3[kktmp] / 1.e-3
-        #                    self.environment.particle_conc[kktmp] / 1.e-3
 
         elif transfer_setup=='Sandnesfj_Al':
             sal = self.environment.sea_water_salinity
