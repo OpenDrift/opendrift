@@ -1451,22 +1451,39 @@ class ChemicalDrift(OceanDrift):
 # ################
 # POSTPROCESSING
 
-
     def write_netcdf_chemical_density_map(self, filename, pixelsize_m='auto', zlevels=None,
                                               deltat=None,
                                               density_proj=None,
                                               llcrnrlon=None, llcrnrlat=None,
                                               urcrnrlon=None, urcrnrlat=None,
-                                              activity_unit=None,
+                                              mass_unit=None,
                                               time_avg_conc=False,
                                               horizontal_smoothing=False,
                                               smoothing_cells=0,
+                                              reader_sea_depth=None,
                                               ):
         '''Write netCDF file with map of Chemical species densities and concentrations'''
 
         from netCDF4 import Dataset, date2num #, stringtochar
 
         logger.info('Postprocessing: Write density and concentration to netcdf file')
+
+
+        self.conc_lon=reader_sea_depth.x
+        self.conc_lat=reader_sea_depth.y
+        self.conc_topo=reader_sea_depth.get_variables('sea_floor_depth_below_sea_level', x=[reader_sea_depth.xmin,reader_sea_depth.xmax], y=[reader_sea_depth.ymin,reader_sea_depth.ymax])['sea_floor_depth_below_sea_level'][:,:].transpose()
+        self.conc_topo=self.conc_topo[(self.conc_lon>llcrnrlon) & (self.conc_lon<urcrnrlon),:]
+        self.conc_topo=self.conc_topo[:,(self.conc_lat>llcrnrlat) & (self.conc_lat<urcrnrlat)]
+
+        self.conc_lon=self.conc_lon[(self.conc_lon>llcrnrlon) & (self.conc_lon<urcrnrlon)]
+        self.conc_lat=self.conc_lat[(self.conc_lat>llcrnrlat) & (self.conc_lat<urcrnrlat)]
+        self.conc_lat,self.conc_lon=np.meshgrid(self.conc_lat,self.conc_lon)
+
+        #Downsample if bathymetry file very large
+        #self.conc_topo=self.conc_topo[::10,::10]
+        #self.conc_lat=self.conc_lat[::10,::10]
+        #self.conc_lon=self.conc_lon[::10,::10]
+
 
         if pixelsize_m == 'auto':
             lon, lat = self.get_lonlats()
@@ -1491,11 +1508,8 @@ class ChemicalDrift(OceanDrift):
 
 
 
-        if activity_unit==None:
-            activity_unit='Bq'  # default unit for chemicals
-
-        activity_per_element = self.get_config('chemical:activity_per_element')
-
+        if mass_unit==None:
+            mass_unit='microgram'  # default unit for chemicals
 
         z = self.get_property('z')[0]
         if not zlevels==None:
@@ -1505,9 +1519,6 @@ class ChemicalDrift(OceanDrift):
             z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
         logger.info('z_array: {}'.format(  [str(item) for item in z_array] ) )
 
-
-
-
         #
         # H is array containing number of elements within each box defined by lon_array, lat_array and z_array
 
@@ -1515,13 +1526,21 @@ class ChemicalDrift(OceanDrift):
             self.get_chemical_density_array(pixelsize_m, z_array,
                                                 density_proj=density_proj,
                                                 llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat,
-                                                urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat
-                                                )
+                                                urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat,
+                                                weight='mass')
 
+        # calculating center point for eacxh pixel
         lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2
         lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
 
-
+        landmask = np.zeros_like(H[0,0,0,:,:])
+        #landmask = self.readers['shape'].__on_land__(lon_array,lat_array)
+        landmask = self.readers['global_landmask'].__on_land__(lon_array,lat_array)
+        Landmask=np.zeros_like(H)
+        for zi in range(len(z_array)-1):
+            for sp in range(self.nspecies):
+                for ti in range(H.shape[0]):
+                        Landmask[ti,sp,zi,:,:] = landmask
 
         if horizontal_smoothing:
             # Compute horizontally smoother field
@@ -1531,11 +1550,6 @@ class ChemicalDrift(OceanDrift):
                 for sp in range(self.nspecies):
                     for ti in range(H.shape[0]):
                         Hsm[ti,sp,zi,:,:] = self.horizontal_smooth(H[ti,sp,zi,:,:],n=smoothing_cells)
-
-
-
-        # Convert from density to concentration
-        logger.info('Activity: '+str(activity_per_element)+' '+ activity_unit+ ' per unit')
 
         # Compute mean depth and volume in each pixel grid cell
         pixel_mean_depth  =  self.get_pixel_mean_depth(lon_array, lat_array)
@@ -1553,25 +1567,18 @@ class ChemicalDrift(OceanDrift):
 
         pixel_volume[np.where(pixel_volume==0.)] = np.nan
 
-
-
-
-
-        conc = np.zeros_like(H)
-        if horizontal_smoothing:
-            conc_sm = np.zeros_like(Hsm)
+        #conc = np.zeros_like(H)
+        #if horizontal_smoothing:
+        #    conc_sm = np.zeros_like(Hsm)
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
-                conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * activity_per_element
+                H[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume
                 if horizontal_smoothing:
-                    conc_sm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume * activity_per_element
-
-
-
+                    Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume
 
         times = np.array( self.get_time_array()[0] )
         if time_avg_conc:
-            conctmp = conc[:-1,:,:,:,:]
+            conctmp = H[:-1,:,:,:,:]
             cshape = conctmp.shape
             mdt =    np.mean(times[1:] - times[:-1])    # output frequency in opendrift output file
             if deltat==None:
@@ -1590,11 +1597,6 @@ class ChemicalDrift(OceanDrift):
             for ii in range(odt):
                 meantmp  = np.mean(conctmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
                 mean_conc[ii,:,:,:,:] = meantmp
-
-
-
-
-
 
         nc = Dataset(filename, 'w')
         nc.createDimension('x', lon_array.shape[0])
@@ -1619,12 +1621,6 @@ class ChemicalDrift(OceanDrift):
         # Projection
         nc.createVariable('projection', 'i8')
         nc.variables['projection'].proj4 = density_proj.definition_string()
-
-        #
-        nc.createVariable('concfactor','f8')
-        nc.variables['concfactor'][:] = activity_per_element
-        nc.variables['concfactor'].long_name = 'Activity per unit element'
-        nc.variables['concfactor'].unit = activity_unit
 
         # Cell size
         nc.createVariable('cell_size','f8')
@@ -1658,62 +1654,63 @@ class ChemicalDrift(OceanDrift):
 
 
         # Density
-        nc.createVariable('density', 'i4',
-                          ('time','specie','depth','y', 'x'),fill_value=-999)
-        H = np.swapaxes(H, 3, 4).astype('i4')
-        H = np.ma.masked_where(H==0, H)
-        nc.variables['density'][:] = H
-        nc.variables['density'].long_name = 'Number of elements in grid cell'
-        nc.variables['density'].grid_mapping = 'projection'
-        nc.variables['density'].units = '1'
+        #nc.createVariable('density', 'i4',
+        #                  ('time','specie','depth','y', 'x'),fill_value=99999)
+        #H = np.swapaxes(H, 3, 4).astype('i4')
+        ##H = np.ma.masked_where(H==0, H)
+        #nc.variables['density'][:] = H
+        #nc.variables['density'].long_name = 'Number of elements in grid cell'
+        #nc.variables['density'].grid_mapping = 'projection'
+        #nc.variables['density'].units = '1'
 
 
-        if horizontal_smoothing:
-            nc.createVariable('density_smooth', 'f8',
-                              ('time','specie','depth','y', 'x'),fill_value=1.e36)
-            Hsm = np.swapaxes(Hsm, 3, 4).astype('f8')
-            #Hsm = np.ma.masked_where(Hsm==0, Hsm)
-            nc.variables['density_smooth'][:] = Hsm
-            nc.variables['density_smooth'].long_name = 'Horizontally smoothed number of elements in grid cell'
-            nc.variables['density_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
+        #if horizontal_smoothing:
+        #    nc.createVariable('density_smooth', 'f8',
+        #                      ('time','specie','depth','y', 'x'),fill_value=1.e36)
+        #    Hsm = np.swapaxes(Hsm, 3, 4).astype('f8')
+        #    #Hsm = np.ma.masked_where(Hsm==0, Hsm)
+        #    nc.variables['density_smooth'][:] = Hsm
+        #    nc.variables['density_smooth'].long_name = 'Horizontally smoothed number of elements in grid cell'
+        #    nc.variables['density_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
 
+
+
+        # Chemical concentration
+        if 0:
+            nc.createVariable('concentration', 'f8',
+                          ('time','specie','depth','y', 'x'),fill_value=1.e36)
+            H = np.ma.masked_where(Landmask==1,H)
+            H = np.swapaxes(H, 3, 4) #.astype('i4')
+            nc.variables['concentration'][:] = H
+            nc.variables['concentration'].long_name = 'Chemical concentration'
+            nc.variables['concentration'].grid_mapping = 'projection_lonlat'
+            nc.variables['concentration'].units = mass_unit+'/m3'
 
 
         # Chemical concentration, horizontally smoothed
-        nc.createVariable('concentration', 'f8',
-                          ('time','specie','depth','y', 'x'),fill_value=1.e36)
-        conc = np.swapaxes(conc, 3, 4) #.astype('i4')
-        #conc = np.ma.masked_where(conc==0, conc)
-        nc.variables['concentration'][:] = conc
-        nc.variables['concentration'].long_name = 'Chemical concentration'
-        nc.variables['concentration'].grid_mapping = 'projection_lonlat'
-        nc.variables['concentration'].units = activity_unit+'/m3'
-
-
-
         if horizontal_smoothing:
-            # Chemical concentration, horizontally smoothed
             nc.createVariable('concentration_smooth', 'f8',
                               ('time','specie','depth','y', 'x'),fill_value=1.e36)
-            conc_sm = np.swapaxes(conc_sm, 3, 4) #.astype('i4')
-          #  conc_sm = np.ma.masked_where(conc_sm==0, conc_sm)
-            nc.variables['concentration_smooth'][:] = conc_sm
+            Hsm = np.ma.masked_where(Landmask==1, Hsm)
+            Hsm = np.swapaxes(Hsm, 3, 4) #.astype('i4')
+            nc.variables['concentration_smooth'][:] = Hsm
             nc.variables['concentration_smooth'].long_name = 'Horizontally smoothed Chemical concentration'
             nc.variables['concentration_smooth'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration_smooth'].units = activity_unit+'/m3'
+            nc.variables['concentration_smooth'].units = mass_unit+'/m3'
             nc.variables['concentration_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
 
 
-
+        # Chemical concentration, time averaged
         if time_avg_conc:
             nc.createVariable('concentration_avg', 'f8',
-                              ('avg_time','specie','depth','y', 'x'),fill_value=0)
+                              ('avg_time','specie','depth','y', 'x'),fill_value=+1.e36)
+            mean_conc = np.ma.masked_where(Landmask[0:odt,:,:,:,:]==1, mean_conc)
             conc2 = np.swapaxes(mean_conc, 3, 4) #.astype('i4')
-            conc2 = np.ma.masked_where(conc2==0, conc2)
+            #conc2 = np.ma.masked_where(landmask==1, conc2)
             nc.variables['concentration_avg'][:] = conc2
             nc.variables['concentration_avg'].long_name = 'Time averaged Chemical concentration'
             nc.variables['concentration_avg'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration_avg'].units = activity_unit+'/m3'
+            nc.variables['concentration_avg'].units = mass_unit+'/m3'
 
 
         # Volume of boxes
@@ -1729,13 +1726,23 @@ class ChemicalDrift(OceanDrift):
 
         # Topography
         nc.createVariable('topo', 'f8', ('y', 'x'),fill_value=0)
-        pixel_mean_depth = np.ma.masked_where(pixel_mean_depth==0, pixel_mean_depth)
+        pixel_mean_depth = np.ma.masked_where(landmask==1, pixel_mean_depth)
         nc.variables['topo'][:] = pixel_mean_depth.T
         nc.variables['topo'].long_name = 'Depth of grid point'
         nc.variables['topo'].grid_mapping = 'projection_lonlat'
         nc.variables['topo'].units = 'm'
 
+        # Binary mask
+        nc.createVariable('land', 'i4', ('y', 'x'),fill_value=-1)
+        #landmask = np.ma.masked_where(landmask==0, landmask)
+        nc.variables['land'][:] = np.swapaxes(landmask,0,1).astype('i4')
+        nc.variables['land'].long_name = 'Dinary land mask'
+        nc.variables['land'].grid_mapping = 'projection_lonlat'
+        nc.variables['land'].units = 'm'
 
+        print(type(landmask))
+        print(landmask.data)
+        #print(landmask.mask)
         nc.close()
         logger.info('Wrote to '+filename)
 
@@ -1798,7 +1805,7 @@ class ChemicalDrift(OceanDrift):
                     kktmp = ( (specie[i,:]==sp) & (z[i,:]>z_array[zi]) & (z[i,:]<=z_array[zi+1]) )
                     H[i,sp,zi,:,:], dummy, dummy = \
                         np.histogram2d(x[i,kktmp], y[i,kktmp],
-                                   weights=weights, bins=bins)
+                                   weights=weight_array[i,kktmp], bins=bins)
 
         if density_proj is not None:
             Y,X = np.meshgrid(y_array, x_array)
@@ -1812,7 +1819,6 @@ class ChemicalDrift(OceanDrift):
 
     def get_pixel_mean_depth(self,lons,lats):
         from scipy import interpolate
-
         # Ocean model depth and lat/lon
         h_grd = self.conc_topo
         h_grd[np.isnan(h_grd)] = 0.
@@ -1936,7 +1942,7 @@ class ChemicalDrift(OceanDrift):
                     z = -1*np.random.uniform(0, 1, number)
                     self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
                                 radius=radius, number=number, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
-                                mass=mass_element_ug,mass_degraded=0,mass_volatilized=0, z=z)
+                                mass=mass_element_ug,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
 
                 mass_residual = mass_ug - number*mass_element_ug
 
@@ -1944,7 +1950,7 @@ class ChemicalDrift(OceanDrift):
                     z = -1*np.random.uniform(0, 1, 1)
                     self.seed_elements(lon=lo[i], lat=la[i],
                                 radius=radius, number=1, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
-                                mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z)
+                                mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
 
     def init_chemical_compound(self,chemical_compound):
         ''' Chemical parameters for a selection of PAHs:
