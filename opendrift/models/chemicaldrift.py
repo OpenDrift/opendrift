@@ -268,7 +268,7 @@ class ChemicalDrift(OceanDrift):
                 'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Enthalpy of solubilization'},
             # Sedimentation/Resuspension
-            'chemical:sediment:mixing_depth': {'type': 'float', 'default': 1,
+            'chemical:sediment:mixing_depth': {'type': 'float', 'default': 0.03,
                 'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:sediment:density': {'type': 'float', 'default': 2600,
@@ -1567,14 +1567,30 @@ class ChemicalDrift(OceanDrift):
 
         pixel_volume[np.where(pixel_volume==0.)] = np.nan
 
+        # Compute mass of dry sediment in each pixel grid cell
+        sed_L       = self.get_config('chemical:sediment:mixing_depth')
+        sed_dens    = self.get_config('chemical:sediment:density')
+        sed_poro    = self.get_config('chemical:sediment:porosity')
+        pixel_sed_mass = (pixelsize_m**2 *sed_L)*(1-sed_poro)*sed_dens      # mass in kg
+
+        # TODO this should be multiplied for the fraction og grid cell are that is not on land
+
         #conc = np.zeros_like(H)
         #if horizontal_smoothing:
         #    conc_sm = np.zeros_like(Hsm)
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
-                H[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume
-                if horizontal_smoothing:
-                    Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume
+                if not self.name_species[sp].startswith('Sed'):
+                    print('divide by volume')
+                    H[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume
+                    if horizontal_smoothing:
+                        Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume
+                elif self.name_species[sp].startswith('Sed'):
+                    print('divide by mass')
+                    print(pixel_sed_mass)
+                    H[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_sed_mass
+                    if horizontal_smoothing:
+                        Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_sed_mass
 
         times = np.array( self.get_time_array()[0] )
         if time_avg_conc:
@@ -1710,7 +1726,7 @@ class ChemicalDrift(OceanDrift):
             nc.variables['concentration_avg'][:] = conc2
             nc.variables['concentration_avg'].long_name = 'Time averaged Chemical concentration'
             nc.variables['concentration_avg'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration_avg'].units = mass_unit+'/m3'
+            nc.variables['concentration_avg'].units = mass_unit+'/m3'+' ('+mass_unit+'/Kg)'
 
 
         # Volume of boxes
@@ -1736,7 +1752,7 @@ class ChemicalDrift(OceanDrift):
         nc.createVariable('land', 'i4', ('y', 'x'),fill_value=-1)
         #landmask = np.ma.masked_where(landmask==0, landmask)
         nc.variables['land'][:] = np.swapaxes(landmask,0,1).astype('i4')
-        nc.variables['land'].long_name = 'Dinary land mask'
+        nc.variables['land'].long_name = 'Binary land mask'
         nc.variables['land'].grid_mapping = 'projection_lonlat'
         nc.variables['land'].units = 'm'
 
