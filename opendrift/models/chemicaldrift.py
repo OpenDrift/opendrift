@@ -139,6 +139,9 @@ class ChemicalDrift(OceanDrift):
             'chemical:particle_diameter': {'type': 'float', 'default': 5e-6,
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:particle_concentration_half_depth': {'type': 'float', 'default': 20,
+                'min': 0, 'max': 100, 'units': 'm',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
@@ -322,7 +325,11 @@ class ChemicalDrift(OceanDrift):
         logger.info('nspecies: %s' % self.nspecies)
         logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
-
+        self.SPM_vertical_levels_given = False
+        for key, value in self.readers.items():
+            if 'spm' in value.variables:
+                if (hasattr(value,'sigma') or hasattr(value,'z') ):
+                    self.SPM_vertical_levels_given = True
 
 
     def init_species(self):
@@ -939,9 +946,21 @@ class ChemicalDrift(OceanDrift):
                 # Updating sorption rates according to local SPM concentration
 
                 concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3) 
+
+                # Apply SPM concentration profile if SPM reader has not depth coordinate
+                # SPM concentration is kept constant to surface value in the mixed layer
+                # Exponentially decreasing with depth below the mixed layers
+
+                if not self.SPM_vertical_levels_given:
+                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                    #concSPM[lowerMLD] = concSPM[lowerMLD]/2
+                    concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
+                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                        *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
+                        )
+
                 self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
                     self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
-
 
             if self.get_config('chemical:species:Sediment_reversible'):
                 # Only LMM chemicals close to seabed are allowed to interact with sediments
