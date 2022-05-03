@@ -311,6 +311,9 @@ class ChemicalDrift(OceanDrift):
             'chemical:sediment:burial_rate': {'type': 'float', 'default': .00003,   # MacKay
                 'min': 0, 'max': 10, 'units': 'm/year',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:sediment:buried_leaking_rate': {'type': 'float', 'default': 1e-6,   #test
+                'min': 0, 'max': 10, 'units': 'm/year',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             })
 
 
@@ -586,6 +589,7 @@ class ChemicalDrift(OceanDrift):
             sed_poro    = self.get_config('chemical:sediment:porosity')         # sediment porosity
             sed_H       = self.get_config('chemical:sediment:layer_thickness')  # thickness of seabed interaction layer (m)
             sed_burial  = self.get_config('chemical:sediment:burial_rate')      # sediment burial rate (m/y)
+            sed_leaking_rate = self.get_config( 'chemical:sediment:buried_leaking_rate')
 
             if diss=='nondiss':
                 KOC_DOM    = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014
@@ -666,7 +670,7 @@ class ChemicalDrift(OceanDrift):
 
             # Using slowly reversible specie for burial - TODO buried sediment should be a new specie
             self.transfer_rates[self.num_srev,self.num_ssrev] = sed_burial / sed_L / 31556926 # k46 (m/y) / m / (s/y) = s-1
-            self.transfer_rates[self.num_ssrev,self.num_srev] = 0                             # k64
+            self.transfer_rates[self.num_ssrev,self.num_srev] = sed_leaking_rate                # k64
 
 
             self.transfer_rates[self.num_humcol,self.num_prev] = 1.e-5      # k23, Salinity interval >20 psu
