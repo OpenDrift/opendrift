@@ -3,6 +3,16 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Kotnik, J.; Žagar, D.; Novak, G.; Ličer, M.; Horvat, M. Dissolved Gaseous Mercury (DGM) in the Gulf of Trieste, Northern Adriatic Sea. J. Mar. Sci. Eng. 2022, 10, 587. https://doi.org/10.3390/jmse10050587
+
+Keramea P, Kokkos N, Gikas GD, Sylaios G. Operational Modeling of North Aegean Oil Spills Forced by Real-Time Met-Ocean Forecasts. Journal of Marine Science and Engineering. 2022; 10(3):411. https://doi.org/10.3390/jmse10030411
+
+Gérigny O., M.-L. Pedrotti, M. El Rakwe, M. Brun, M. Pavec, M. Henry, F. Mazeas, J. Maury, P. Garreau, F. Galgani,
+Characterization of floating microplastic contamination in the bay of Marseille (French Mediterranean Sea) and its impact on zooplankton and mussels,
+Marine Pollution Bulletin, vol 175, 2022, 113353, ISSN 0025-326X, https://doi.org/10.1016/j.marpolbul.2022.113353
+
+Orel N, Fadeev E, Klun K, Licer M, Tinta T and Turk V (2022) Bacterial Indicators Are Ubiquitous Membersof Pelagic Microbiomein Anthropogenically ImpactedCoastal Ecosystem.Front. Microbiol. 12:765091 https://doi.org/10.3389/fmicb.2021.765091
+
 Pavlov, V.; Aguiar, V.C.M.d.; Hole, L.R.; Pongrácz, E. A 30-Year Probability Map for Oil Spill Trajectories in the Barents Sea to Assess Potential Environmental and Socio-Economic Threats. Resources 2022, 11, 1. https://doi.org/10.3390/resources11010001
 
 Bruciaferri, D.; Tonani, M.; Lewis, H. W.; Siddorn, J. R. ; Saulter, A.; Castillo Sanchez, J. M.; Valiente, N. G.; Conley, D.; Sykes, P.; Ascione, I.; McConnell, N.. 2021 The impact of ocean‐wave coupling on the upper ocean circulation during storm events. Journal of Geophysical Research: Oceans, 126 (6). https://doi.org/10.1029/2021JC017343
@@ -61,7 +71,7 @@ Norrie, C.R., Dunphy, B.J., Roughan, M., Weppe, S., & Lundquist, C. (2020). Spil
 Ricker, M., Stanev, E. V., Badewien, T. H., Freund, H., Meyerjurgens, J., Wolff, J.-O., & Zielinski, O. (2020). Drifter observations and Lagrangian tracking of the 2018 easterly wind event in the North Sea. In Copernicus Marine Service Ocean State Report, Issue 4. Journal of Operational Oceanography, 13(sup1), s155–s160,
 https://doi.org/10.1080/1755876X.2020.1785097
 
-Romagnoni G., Kvile K.Oe., Dagestad K.F., Eikeset A.M., Kristiansen T., Stenseth N.C., Langangen Oe.: Influence of larval transport and temperature on recruitment dynamics of North Sea cod (Gadus morhua ) across spatial scales of observation, Fisheries and Oceanography, 2020, https://doi.org/10.1111/fog.12474
+Romagnoni G., Kvile K.Oe., Dagestad K.F., Eikeset A.M., Kristiansen T., Stenseth N.C., Langangen Oe.: Influence of larval transport and temperature on recruitment dynamics of North Sea cod (Gadus morhua) across spatial scales of observation, Fisheries and Oceanography, 2020, https://doi.org/10.1111/fog.12474
 
 Ličer, M., Estival, S., Reyes-Suarez, C., Deponte, D., and Fettich, A.: Lagrangian Trajectory Modelling of a Person lost at Sea during the Adriatic Scirocco Storm of 29 October 2018, Nat. Nat. Hazards Earth Syst. Sci., 20, 2335–2349, 2020, https://doi.org/10.5194/nhess-20-2335-2020
 
