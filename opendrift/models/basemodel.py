@@ -961,7 +961,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if variable not in self.required_variables:
                 del self.priority_list[variable]
 
-    def add_readers_from_list(self, urls, timeout=10, lazy=True):
+    def add_readers_from_list(self, urls, timeout=10, lazy=True, variables=None):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
         if isinstance(urls, str):
@@ -969,11 +969,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if lazy is True:
             from opendrift.readers.reader_lazy import Reader
             readers = [Reader(u) for u in urls]
-            self.add_reader(readers)
+            self.add_reader(readers, variables=variables)
             return
 
         readers = [reader_from_url(u, timeout) for u in urls]
-        self.add_reader([r for r in readers if r is not None])
+        self.add_reader([r for r in readers if r is not None], variables=variables)
 
     def add_readers_from_file(self, filename, timeout=10, lazy=True):
         fp = open(filename, 'r')
