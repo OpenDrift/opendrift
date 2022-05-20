@@ -189,6 +189,70 @@ class OceanDrift(OpenDriftSimulation):
         # Optional machine learning correction
         self.machine_learning_correction()
 
+    def wind_drift_factor_from_trajectory_lw(self, lon, lat, time, wind_drift_factors,
+                                             simulation_length, simulation_interval):
+        """Perform simulations and use skillscore to optimize wind_drift_factor"""
+        time = np.array(time)
+        trajectory_interval = time[1] - time[0]
+        for i in range(len(time)-1):
+            if time[i+1] - time[i] != trajectory_interval:
+                raise ValueError('Trajectory time step is not constant')
+        index_interval = simulation_interval.total_seconds()/trajectory_interval.total_seconds()
+        if not index_interval.is_integer():
+            raise ValueError('Simulation interval must be a multiple of trajectory time step')
+        last_index = (time[-1]-time[0]-simulation_length).total_seconds()/trajectory_interval.total_seconds()
+        seed_indices = np.arange(0, last_index, index_interval).astype(int)
+        lon_seed = lon[seed_indices]
+        lat_seed = lat[seed_indices]
+        time_seed = time[seed_indices]
+        seed_times, wdf = np.meshgrid(time_seed, wind_drift_factors)
+        seed_lon, wdf = np.meshgrid(lon_seed, wind_drift_factors)
+        seed_lat, wdf = np.meshgrid(lat_seed, wind_drift_factors)
+        print(seed_times, seed_lon, seed_lat, wdf)
+        print(seed_times.shape, seed_lon.shape, seed_lat.shape, wdf.shape)
+        seed_times = seed_times.ravel()
+        wdf = wdf.ravel()
+        self.seed_elements(lon=seed_lon.ravel(), lat=seed_lat.ravel(),
+                           time=seed_times.ravel(), wind_drift_factor=wdf)
+        print(self)
+        self.set_config('drift:max_age_seconds', simulation_length.total_seconds())
+        self.run(end_time=time[-1])
+        print(len(lon), len(lat), len(time), 'LENS')
+        print(self)
+
+        index_of_first, index_of_last = \
+            self.index_of_activation_and_deactivation()
+        print(index_of_first, index_of_first.shape)
+        print(index_of_last, index_of_last.shape)
+        times_model = np.array(self.get_time_array()[0])
+        print(self.steps_output, 'STE')
+        lon = lon[0:self.steps_output]
+        lat = lat[0:self.steps_output]
+        time = time[0:self.steps_output]
+        for i in range(self.num_elements_total()):
+            lon_model = self.history['lon'][i, index_of_first[i], index_of_last[i]]
+            print(lon_model, 'LOMO')
+            jalla
+            lat_model = self.history['lat'][i]
+            status = self.history['status'][i]
+            print(lon.shape, status.shape)
+            lon_model = lon[status==0]
+            lat_model = lat[status==0]
+            times_model = times_mode[status==0]
+
+        #import xarray as xr
+        #da = xr.DataArray(
+        #    data=skillscore,
+        #    dims=["wind_drift_factor", "time"],
+        #    coords=dict(
+        #        wind_drift_factor=wind_drift_factors,
+        #        time=time
+        #    ),
+        #    attrs=dict(
+        #        description="Liu Weissberg skillscore",
+        #    ),
+        #)
+
     def machine_learning_correction(self):
         if not hasattr(self, 'trained_model'):
             return  # No machine learning correction available
