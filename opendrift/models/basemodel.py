@@ -3646,14 +3646,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         if (compare is None) and (legend != ['']):
             markers = []
             for legend_index in np.arange(len(legend)):
-                markers.append(
-                    matplotlib.lines.Line2D(
-                        [0], [0],
-                        marker='o',
-                        color='w',
-                        markerfacecolor=cmap(legend_index / (len(legend) - 1)),
-                        markersize=10,
-                        label=legend[legend_index]))
+                if legend[legend_index] != '':
+                    markers.append(
+                        matplotlib.lines.Line2D(
+                            [0], [0],
+                            marker='o',
+                            color='w',
+                            linewidth=0,
+                            markeredgewidth=0,
+                            markerfacecolor=cmap(legend_index / (len(legend) - 1)),
+                            markersize=10,
+                            label=legend[legend_index]))
+            legend=list(filter(None, legend))
             ax.legend(markers, legend, loc=legend_loc)
 
         # Plot deactivated elements, with transparency
@@ -3913,15 +3917,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             markers = []
             for legend_index in np.arange(len(legend)):
-                markers.append(
-                    matplotlib.lines.Line2D(
-                        [0], [0],
-                        marker='o',
-                        linewidth=0,
-                        markeredgewidth=0,
-                        markerfacecolor=cmap(legend_index / (len(legend) - 1)),
-                        markersize=10,
-                        label=legend[legend_index]))
+                if legend[legend_index] != '':
+                    markers.append(
+                        matplotlib.lines.Line2D(
+                            [0], [0],
+                            marker='o',
+                            linewidth=0,
+                            markeredgewidth=0,
+                            markerfacecolor=cmap(legend_index / (len(legend) - 1)),
+                            markersize=10,
+                            label=legend[legend_index]))
+            legend=list(filter(None, legend))
             leg = ax.legend(markers, legend, loc=legend_loc)
             leg.set_zorder(20)
         else:
