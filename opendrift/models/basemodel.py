@@ -3651,6 +3651,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         [0], [0],
                         marker='o',
                         color='w',
+                        linewidth=0,
+                        markeredgewidth=0,
                         markerfacecolor=cmap(legend_index / (len(legend) - 1)),
                         markersize=10,
                         label=legend[legend_index]))
