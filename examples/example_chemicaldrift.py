@@ -86,7 +86,7 @@ print('mass degraded        : {:.3f}'.format(m_deg * 1e-6),' g   {:.3f}'.format(
 print('mass volatilized     : {:.3f}'.format(m_vol * 1e-6),' g   {:.3f}'.format(m_vol/m_tot*100),'%')
 
 
-legend=['dissolved', 'DOC', 'POC', 'sediment', 'sediment SR']
+legend=['dissolved', '', 'POC', 'sediment', '']
 
 o.animation_profile(color='specie',
             markersize=5,
@@ -113,30 +113,6 @@ o.animation(color='specie',
 
 #%%
 
-fig, ax = plt.subplots()
-
-fig.suptitle('Mass budget for target chemical')
-
-sp=o.get_property('specie')
-n=sp[0].shape[0]
-
-bars=np.zeros((n,5))
-
-for i in range(n):
-    
-    bars[i]=[np.sum(mass[0][i,:]*(sp[0][i,:]==0))*1e-6,
-             np.sum(mass[0][i,:]*(sp[0][i,:]==1))*1e-6,
-             np.sum(mass[0][i,:]*(sp[0][i,:]==2))*1e-6,
-             np.sum(mass[0][i,:]*(sp[0][i,:]==3))*1e-6,
-             np.sum(mass[0][i,:]*(sp[0][i,:]==4))*1e-6]
-
-ax.bar(np.arange(n),bars[:,0],width=1.0,color='midnightblue')
-ax.bar(np.arange(n),bars[:,1],bottom=bars[:,0],width=1.0,color='royalblue')
-ax.bar(np.arange(n),bars[:,2],bottom=bars[:,0]+bars[:,1],width=1.0,color='palegreen')
-ax.bar(np.arange(n),bars[:,3],bottom=bars[:,0]+bars[:,1]+bars[:,2],width=1.0,color='orange')
-
-ax.legend(legend)
-ax.set_ylabel('[g]')
-ax.axes.get_xaxis().set_ticks([])
-
-fig.show()
+o.plot_mass(legend = legend,
+            time_unit = 'hours',
+            title = 'Chemical mass budget')

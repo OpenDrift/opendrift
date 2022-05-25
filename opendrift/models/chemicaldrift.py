@@ -2194,3 +2194,74 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 38000)                   ### Benzo(a)pyrene value
 
+    def plot_mass(self,
+                  legend=['dissolved','POC','sediment'],
+                  mass_unit='g',
+                  time_unit='hours',
+                  title=[]):
+        """Plot chemical mass distribution between the different species
+            legend      list of specie labels, for example ['dissolved','POC','sediment']
+            mass_unit   'g','mg','ug'
+            time_unit   'seconds', 'minutes', 'hours' , 'days'
+            title       figure title string
+        """
+
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+
+        if not title == []:
+            fig.suptitle(title)
+
+        mass=self.get_property('mass')
+        sp=self.get_property('specie')
+
+        steps=self.steps_output
+
+        bars=np.zeros((steps,5))
+
+        mass_conversion_factor=1e-6
+        if mass_unit=='g' and self.elements.variables['mass']['units']=='ug':
+            mass_conversion_factor=1e-6
+        if mass_unit=='mg' and self.elements.variables['mass']['units']=='ug':
+            mass_conversion_factor=1e-3
+        if mass_unit=='ug' and self.elements.variables['mass']['units']=='ug':
+            mass_conversion_factor=1
+
+        time_conversion_factor = self.time_step.seconds / (60*60)
+        if time_unit=='seconds':
+            time_conversion_factor = self.time_step.seconds
+        if time_unit=='minutes':
+            time_conversion_factor = self.time_step.seconds / 60
+        if time_unit=='hours':
+            time_conversion_factor = self.time_step.seconds / (60*60)
+        if time_unit=='days':
+            time_conversion_factor = self.time_step.seconds / (24*60*60)
+
+        for i in range(steps):
+
+            bars[i]=[np.sum(mass[0][i,:]*(sp[0][i,:]==0))*mass_conversion_factor,
+                     np.sum(mass[0][i,:]*(sp[0][i,:]==1))*mass_conversion_factor,
+                     np.sum(mass[0][i,:]*(sp[0][i,:]==2))*mass_conversion_factor,
+                     np.sum(mass[0][i,:]*(sp[0][i,:]==3))*mass_conversion_factor,
+                     np.sum(mass[0][i,:]*(sp[0][i,:]==4))*mass_conversion_factor]
+
+        bottom=np.zeros_like(bars[:,0])
+        if 'dissolved' in legend:
+            ax.bar(np.arange(steps),bars[:,0],width=1.0,color='midnightblue')
+            bottom=bars[:,0]
+        if 'DOC' in legend:
+            ax.bar(np.arange(steps),bars[:,1],bottom=bottom,width=1.0,color='royalblue')
+            bottom=bottom+bars[:,1]
+        if 'POC' in legend:
+            ax.bar(np.arange(steps),bars[:,2],bottom=bottom,width=1.0,color='palegreen')
+            bottom=bottom+bars[:,2]
+        if 'sediment' in legend:
+            ax.bar(np.arange(steps),bars[:,3],bottom=bottom,width=1.0,color='orange')
+            bottom=bottom+bars[:,3]
+
+        ax.legend(list(filter(None, legend)))
+        ax.set_ylabel('mass [' + mass_unit + ']')
+        ax.axes.get_xaxis().set_ticklabels(ax.axes.get_xticks() * time_conversion_factor)
+        ax.set_xlabel('time [' + time_unit + ']')
+        fig.show()
