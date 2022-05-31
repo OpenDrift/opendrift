@@ -1,18 +1,18 @@
 import numpy as np
-import advent
+from opendrift.models import eulerdrift
 
 def test_init():
-  s = advent.Simulation.new()
+  s = eulerdrift.Simulation.new()
   s.grid.grid[0:10,0:10] = 1.
 
 def test_source():
-  s = advent.Simulation.new()
+  s = eulerdrift.Simulation.new()
   s.source(s.grid.lon0, s.grid.lat0, np.ones((10, 10)))
   assert s.grid.grid[0,0] == 1.
 
 def test_source_gaussian():
-  s = advent.ExplSimulation.new()
-  s.readers.append(advent.ConstantReader.new_xy())
+  s = eulerdrift.ExplSimulation.new()
+  s.readers.append(eulerdrift.ConstantReader.new_xy())
 
   loc, lac = s.grid.center()
 
