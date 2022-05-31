@@ -1,13 +1,15 @@
 """
-Gaussian blob
-==================================
+Euler simulation / Finite differnce of Gaussian blob
+=====================================================
 """
 import matplotlib.pyplot as plt
-import advent; advent.install_logs()
+from opendrift.models import eulerdrift
 
-s = advent.ExplSimulation.new(shape = (200, 200))
+eulerdrift.install_logs() #remove
+
+s = eulerdrift.ExplSimulation.new(shape = (200, 200))
 s.readers.append(
-    advent.readers.ConstantReader.new_xy(5, 5))
+    eulerdrift.readers.ConstantReader.new_xy(5, 5))
 
 #%%
 # Set the diffusion, greater diffusion increases stability of simulation.
