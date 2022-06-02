@@ -210,6 +210,12 @@ jobs:
             pip install sphinx-rtd-theme
 
       - run:
+          name: Install sfy-processing
+          command: |
+            source activate opendrift
+            pip install "git+https://github.com/gauteh/sfy#egg=sfy-processing&subdirectory=sfy-processing"
+
+      - run:
           name: Checksum gallery
           command: cd docs && make checksum-gallery | tee /tmp/gallery-checksum.txt
 
