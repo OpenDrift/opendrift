@@ -456,7 +456,6 @@ class ChemicalDrift(OceanDrift):
             else:
                 lmm_frac = self.get_config('seed:LMM_fraction')
 
-            shift = int(num_elements * (1-particle_frac))
             if not lmm_frac + particle_frac == 1.:
                 logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
                 logger.error('LMM fraction: %s ' % str(lmm_frac))
@@ -464,18 +463,21 @@ class ChemicalDrift(OceanDrift):
                 raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
 
             init_specie = np.ones(num_elements, int)
+
+            dissolved=np.random.rand(num_elements)<lmm_frac
             if self.get_config('chemical:transfer_setup')=='Sandnesfj_Al':
-                init_specie[:shift] = self.num_lmmcation
+                init_specie[dissolved]=self.num_lmmcation
             else:
-                init_specie[:shift] = self.num_lmm
-            init_specie[shift:] = self.num_prev
+                init_specie[dissolved]=self.num_lmm
+            init_specie[~dissolved]=self.num_prev
+
 
             kwargs['specie'] = init_specie
 
 
-        logger.info('Initial partitioning:')
+        logger.debug('Initial partitioning:')
         for i,sp in enumerate(self.name_species):
-            logger.info( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
+            logger.debug( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
 
         # Set initial particle size
         if 'diameter' in kwargs:
