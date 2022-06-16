@@ -103,7 +103,8 @@ class ChemicalDrift(OceanDrift):
         #'conc3': {'fallback': 1.e-3},
         'spm': {'fallback': 50},
         'ocean_mixed_layer_thickness': {'fallback': 50},
-        'active_sediment_layer_thickness': {'fallback': 0.03}
+        'active_sediment_layer_thickness': {'fallback': 0.03}, # TODO - currently not used, redundant with 'chemical:sediment:mixing_depth'
+        'doc': {'fallback': 0.0}
         }
 
     # The depth range (in m) which profiles shall cover
@@ -140,6 +141,9 @@ class ChemicalDrift(OceanDrift):
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:particle_concentration_half_depth': {'type': 'float', 'default': 20,
+                'min': 0, 'max': 100, 'units': 'm',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:doc_concentration_half_depth': {'type': 'float', 'default': 20,
                 'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
@@ -331,6 +335,12 @@ class ChemicalDrift(OceanDrift):
                 if (hasattr(value,'sigma') or hasattr(value,'z') ):
                     self.SPM_vertical_levels_given = True
 
+        self.DOC_vertical_levels_given = False
+        for key, value in self.readers.items():
+            if 'doc' in value.variables:
+                if (hasattr(value,'sigma') or hasattr(value,'z') ):
+                    self.DOC_vertical_levels_given = True
+
 
     def init_species(self):
         # Initialize specie types
@@ -446,7 +456,6 @@ class ChemicalDrift(OceanDrift):
             else:
                 lmm_frac = self.get_config('seed:LMM_fraction')
 
-            shift = int(num_elements * (1-particle_frac))
             if not lmm_frac + particle_frac == 1.:
                 logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
                 logger.error('LMM fraction: %s ' % str(lmm_frac))
@@ -454,18 +463,21 @@ class ChemicalDrift(OceanDrift):
                 raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
 
             init_specie = np.ones(num_elements, int)
+
+            dissolved=np.random.rand(num_elements)<lmm_frac
             if self.get_config('chemical:transfer_setup')=='Sandnesfj_Al':
-                init_specie[:shift] = self.num_lmmcation
+                init_specie[dissolved]=self.num_lmmcation
             else:
-                init_specie[:shift] = self.num_lmm
-            init_specie[shift:] = self.num_prev
+                init_specie[dissolved]=self.num_lmm
+            init_specie[~dissolved]=self.num_prev
+
 
             kwargs['specie'] = init_specie
 
 
-        logger.info('Initial partitioning:')
+        logger.debug('Initial partitioning:')
         for i,sp in enumerate(self.name_species):
-            logger.info( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
+            logger.debug( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
 
         # Set initial particle size
         if 'diameter' in kwargs:
@@ -961,6 +973,24 @@ class ChemicalDrift(OceanDrift):
 
                 self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
                     self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+
+                concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
+
+                # Apply DOC concentration profile if DOC reader has not depth coordinate
+                # DOC concentration is kept constant to surface value in the mixed layer
+                # Exponentially decreasing with depth below the mixed layers
+
+                if not self.DOC_vertical_levels_given:
+                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                    #concDOM[lowerMLD] = concDOM[lowerMLD]/2
+                    concDOM[lowerMLD] = concDOM[lowerMLD] * np.exp(
+                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                        *np.log(0.5)/self.get_config('chemical:doc_concentration_half_depth')
+                        )
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
+                    self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k14
+
 
             if self.get_config('chemical:species:Sediment_reversible'):
                 # Only LMM chemicals close to seabed are allowed to interact with sediments
@@ -2198,7 +2228,8 @@ class ChemicalDrift(OceanDrift):
                   legend=['dissolved','POC','sediment'],
                   mass_unit='g',
                   time_unit='hours',
-                  title=[]):
+                  title=None,
+                  filename=None):
         """Plot chemical mass distribution between the different species
             legend      list of specie labels, for example ['dissolved','POC','sediment']
             mass_unit   'g','mg','ug'
@@ -2248,16 +2279,16 @@ class ChemicalDrift(OceanDrift):
 
         bottom=np.zeros_like(bars[:,0])
         if 'dissolved' in legend:
-            ax.bar(np.arange(steps),bars[:,0],width=1.0,color='midnightblue')
+            ax.bar(np.arange(steps),bars[:,0],width=1.25,color='midnightblue')
             bottom=bars[:,0]
         if 'DOC' in legend:
-            ax.bar(np.arange(steps),bars[:,1],bottom=bottom,width=1.0,color='royalblue')
+            ax.bar(np.arange(steps),bars[:,1],bottom=bottom,width=1.25,color='royalblue')
             bottom=bottom+bars[:,1]
         if 'POC' in legend:
-            ax.bar(np.arange(steps),bars[:,2],bottom=bottom,width=1.0,color='palegreen')
+            ax.bar(np.arange(steps),bars[:,2],bottom=bottom,width=1.25,color='palegreen')
             bottom=bottom+bars[:,2]
         if 'sediment' in legend:
-            ax.bar(np.arange(steps),bars[:,3],bottom=bottom,width=1.0,color='orange')
+            ax.bar(np.arange(steps),bars[:,3],bottom=bottom,width=1.25,color='orange')
             bottom=bottom+bars[:,3]
 
         ax.legend(list(filter(None, legend)))
@@ -2265,3 +2296,6 @@ class ChemicalDrift(OceanDrift):
         ax.axes.get_xaxis().set_ticklabels(ax.axes.get_xticks() * time_conversion_factor)
         ax.set_xlabel('time [' + time_unit + ']')
         fig.show()
+
+        if filename is not None:
+            plt.savefig(filename, format=filename[-3:], transparent=True)
