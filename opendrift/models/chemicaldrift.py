@@ -2027,7 +2027,7 @@ class ChemicalDrift(OceanDrift):
                 if mass_residual>0:
                     z = -1*np.random.uniform(0, 1, 1)
                     self.seed_elements(lon=lo[i], lat=la[i],
-                            radius=radius, number=1, time=time,
+                                radius=radius, number=1, time=time,
                                 mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
 
     def init_chemical_compound(self,chemical_compound):
