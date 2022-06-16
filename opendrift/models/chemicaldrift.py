@@ -2013,10 +2013,13 @@ class ChemicalDrift(OceanDrift):
 
                 number=np.array(mass_ug / mass_element_ug).astype('int')
 
+                number=np.array(mass_ug / mass_element_ug).astype('int')
+                time = datetime.utcfromtimestamp((t[i] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's'))
+
                 if number>0:
                     z = -1*np.random.uniform(0, 1, number)
                     self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
-                                radius=radius, number=number, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
+                                radius=radius, number=number, time=time,
                                 mass=mass_element_ug,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
 
                 mass_residual = mass_ug - number*mass_element_ug
@@ -2024,7 +2027,7 @@ class ChemicalDrift(OceanDrift):
                 if mass_residual>0:
                     z = -1*np.random.uniform(0, 1, 1)
                     self.seed_elements(lon=lo[i], lat=la[i],
-                                radius=radius, number=1, time=datetime.utcfromtimestamp(t[i].astype(int) * 1e-9),
+                                radius=radius, number=1, time=time,
                                 mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
 
     def init_chemical_compound(self,chemical_compound):
