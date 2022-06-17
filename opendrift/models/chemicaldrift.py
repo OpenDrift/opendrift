@@ -233,6 +233,12 @@ class ChemicalDrift(OceanDrift):
             'chemical:transformations:KOC_sed': {'type': 'float', 'default': -1,
                 'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:fOC_SPM': {'type': 'float', 'default': 0.05,
+                'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:fOC_sed': {'type': 'float', 'default': 0.05,
+                'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Degradation in water column
             'chemical:transformations:t12_W_tot': {'type': 'float', 'default': 224.08,      # Naphthalene
                 'min': 1, 'max': None, 'units': 'hours',
@@ -578,8 +584,8 @@ class ChemicalDrift(OceanDrift):
             pKa_base   = self.get_config('chemical:transformations:pKa_base')
             pH_water   = 8.1
             pH_sed     = 6.9
-            fOC_SPM    = 0.05       # typical values from 0.01 to 0.1 gOC/g
-            fOC_sed    = 0.05       # typical values from 0.01 to 0.1 gOC/g
+            fOC_SPM    = self.get_config('chemical:transformations:fOC_SPM')
+            fOC_sed    = self.get_config('chemical:transformations:fOC_sed')
                                     # Question
                                     # Do we need separate fOC for SPM and Sed
             concDOM   = 1.e-3 / Org2C    # concentration of available dissolved organic matter (kg/m3)
