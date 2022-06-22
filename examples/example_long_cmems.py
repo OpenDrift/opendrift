@@ -9,11 +9,17 @@ To run this example, you need a CMEMS account created at
 https://marine.copernicus.eu
 with username and password stored in a .netrc file with contents:
 
-```
-machine nrt.cmems-du.eu
-    login <your username>
-    password <your password>
-```
+#%%
+# .. code-block:: default
+    machine nrt.cmems-du.eu login <your username> password <your password>
+
+This file must be made unreadable by others with `chmod 700 .netrc`
+Additionally, a file `.dodrsc` must also be stored in your home folder, containing the following line:
+
+#%%
+# .. code-block:: default
+    HTTP.NETRC=<path to your .netrc file>
+
 """
 
 from datetime import datetime, timedelta
