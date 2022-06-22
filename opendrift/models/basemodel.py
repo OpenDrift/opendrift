@@ -3518,6 +3518,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 for drnum, dr in enumerate(drifter):
                     drifter_pos[drnum].set_offsets(np.c_[dr['x'][i],
                                                          dr['y'][i]])
+                    drifter_line[drnum].set_data(dr['x'][0:i], dr['y'][0:i])
+                    ret.append(drifter_line[drnum])
                     ret.append(drifter_pos[drnum])
 
             if show_elements is True:
@@ -3726,6 +3728,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if not isinstance(drifter, list):
                 drifter = [drifter]
             drifter_pos = [None]*len(drifter)
+            drifter_line = [None]*len(drifter)
             for drnum, dr in enumerate(drifter):
                 # Interpolate drifter time series onto simulation times
                 sts = np.array(
@@ -3751,12 +3754,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                                 s=dmarkersize,
                                                 label=dlabel,
                                                 transform=gcrs)
-                ax.plot(dr['x'],
-                        dr['y'],
-                        color=dcolor,
-                        linewidth=dlinewidth,
-                        zorder=dzorder,
-                        transform=gcrs)
+                drifter_line[drnum] = ax.plot([], [],
+                    color=dcolor, linewidth=dlinewidth,
+                    zorder=dzorder, transform=gcrs)[0]
+                #ax.plot(dr['x'],
+                #        dr['y'],
+                #        color=dcolor,
+                #        linewidth=dlinewidth,
+                #        zorder=dzorder,
+                #        transform=gcrs)
             plt.legend()
 
         fig.canvas.draw()
