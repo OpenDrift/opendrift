@@ -184,8 +184,8 @@ class Reader(StructuredReader, BaseReader):
                     long_name.lower() == 'latitude' or \
                     var_name.lower() in ['latitude', 'lat']:
                 lat_var_name = var_name
-            if axis == 'X' or \
-                    standard_name == 'projection_x_coordinate':
+            if (axis == 'X' or standard_name == 'projection_x_coordinate') \
+                    and var.ndim == 1:
                 self.xname = var_name
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
@@ -194,8 +194,8 @@ class Reader(StructuredReader, BaseReader):
                     self.unitfactor = 100000
                 var_data = var.values
                 x = var_data*self.unitfactor
-            if axis == 'Y' or \
-                    standard_name == 'projection_y_coordinate':
+            if (axis == 'Y' or standard_name == 'projection_y_coordinate') \
+                    and var.ndim == 1:
                 self.yname = var_name
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
