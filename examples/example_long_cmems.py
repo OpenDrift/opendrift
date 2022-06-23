@@ -7,27 +7,20 @@ This example runs an OceanDrift simulation
 with current data from CMEMS
 To run this example, you need a CMEMS account created at
 https://marine.copernicus.eu
-with username and password stored in a .netrc file with contents:
+with username and password stored in a ``.netrc`` file with contents::
 
-#%%
-# .. code-block:: default
     machine nrt.cmems-du.eu login <your username> password <your password>
 
-This file must be made unreadable by others with `chmod 700 .netrc`
-Additionally, a file `.dodrsc` must also be stored in your home folder, containing the following line:
+This file must be stored in your home folder and made unreadable by others with ``chmod 700 .netrc``
+Additionally, a file ``.dodrsc`` must also be stored in your home folder, containing the following line::
 
-#%%
-# .. code-block:: default
     HTTP.NETRC=<path to your .netrc file>
 
 """
 
 from datetime import datetime, timedelta
-
 from opendrift.models.oceandrift import OceanDrift
 
-#%%
-# Seed information
 lon = 4.8; lat = 60  # Bergen, Norway
 lon = -89; lat = 29.8  # New Orleans
 lon = 107; lat = 10  # Ho Chi Minh
