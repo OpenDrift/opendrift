@@ -3,6 +3,9 @@ import os
 import numpy as np
 import pandas as pd
 import zipfile
+import adios_db.scripting as ads
+from adios_db.models.oil.physical_properties import DynamicViscosityPoint
+
 
 np.set_printoptions(suppress=True)
 
@@ -32,11 +35,11 @@ template = {
             },
         'pour_point': {
             'names': ['Pour point', 'Pour Point'],
-            'add_to': 273,
+            'add_to': 273.15,
             },
         'flash_point': {
             'names': ['Flash point', 'Flash Point'],
-            'add_to': 273,
+            'add_to': 273.15,
             },
         },
     'columns': {
@@ -49,19 +52,75 @@ b = f.split('.')[0]
 
 if not os.path.exists(b+'.zip'):
     print('Parsing ' + f)
-    import camelot
+    import camelot.io as camelot
     tables = camelot.read_pdf(f, pages='all')
     print("Total tables extracted:", tables.n)
     tables.export(b+'.csv', f='csv', compress=True)
+
+def parse_weathering_table(df, oil):
+    max_water_cont = None
+    viscosity_of_max_water_cont = None
+    for i, row in df.iterrows():
+        print(row, 'ROW')
+        if 'weight residue' in row[0].lower():
+            for c in range(1, 5):
+                mo = ads.MassFraction(value=100-float(row[c]), unit="%")
+                oil.sub_samples[c-1].metadata.fraction_evaporated = mo
+        if 'density' in row[0].lower():
+            for c in range(1, 5):
+                dp = ads.DensityPoint(
+                        density=ads.Density(value=float(row[c]), unit="g/ml"),
+                        ref_temp=ads.Temperature(value=13, unit='C'))
+                oil.sub_samples[c-1].physical_properties.densities.append(dp)
+        if 'viscosity' in row[0].lower() and 'free' in row[0].lower():
+            for c in range(1, 5):
+                dp = DynamicViscosityPoint(
+                        viscosity=ads.DynamicViscosity(value=float(row[c]), unit="cP"),
+                        ref_temp=ads.Temperature(value=13, unit='C'))
+                oil.sub_samples[c-1].physical_properties.dynamic_viscosities.append(dp)
+        if 'viscosity' in row[0].lower() and 'max' in row[0].lower():
+            viscosity_of_max_water_cont = row[1:5]
+        if 'max' in row[0].lower() and 'water cont' in row[0].lower():
+            max_water_cont = row[1:5]
+
+    if viscosity_of_max_water_cont is not None and max_water_cont is not None:
+        for c, visc, watcont in zip(range(1, 5), viscosity_of_max_water_cont, max_water_cont):
+            try:
+                eo = ads.Emulsion(water_content=ads.MassFraction(value=float(watcont), unit='%'),
+                                  ref_temp=ads.Temperature(value=13, unit='C'),
+                                  complex_viscosity=ads.DynamicViscosity(value=float(visc), unit='cP'))
+                oil.sub_samples[c-1].environmental_behavior.emulsions.append(eo)
+                print(c, eo)
+            except ValueError:
+                pass
+
+    print(oil.py_json())
+    oil.to_file('test.json')
+    stop
+
+
+oil = ads.Oil('dummy')
+oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
+for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
+    oil.sub_samples[i].metadata.name = s
+    oil.sub_samples[i].metadata.short_name = s
 
 
 results = {}  # to store the parsed values
 z = zipfile.ZipFile(b+'.zip')
 print('Parsing zipfile ' + b+'.zip')
 for table in z.namelist():
+    #wd = {}
     #print('Parsing table ' + table)
     df = pd.read_csv(z.open(table))
-    #print(df)
+    print(table, 'NAME')
+    print(df)
+    if table != 'TOR_oil-page-95-table-1.csv':
+        continue
+
+    parse_weathering_table(df, oil)
+    parsing
+
     # Search for row parameters
     for v, r in template['rows'].items():
         for name in r['names']:
@@ -95,6 +154,7 @@ for table in z.namelist():
                         print('Could not parse row: ' + str(row))
                         stop
                         pass
+    stop
 
     #print('='*30)
     #print(df)
