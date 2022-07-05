@@ -4136,6 +4136,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         if drifter is not None:
             # Extend map coverage to cover provided trajectory
+            # TODO: drifter should be list of dictionaries
             ttime = np.array(drifter['time'])
             i = np.where((ttime >= self.start_time) & (ttime <= self.time))[0]
             drifter['lon'] = np.atleast_1d(drifter['lon'])
