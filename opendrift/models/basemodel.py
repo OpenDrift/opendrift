@@ -4072,6 +4072,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              linewidth=1,
              lcs=None,
              show_elements=True,
+             show_trajectories=True,
              show_initial=True,
              density_pixelsize_m=1000,
              bgalpha=1,
@@ -4176,7 +4177,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         alpha = np.max((min_alpha, alpha))
         if legend is False:
             legend = None
-        if self.history is not None and linewidth != 0:
+        if self.history is not None and linewidth != 0 and show_trajectories is True:
             # Plot trajectories
             from matplotlib.colors import is_color_like
             if linecolor is None or is_color_like(linecolor) is True:
