@@ -6,6 +6,7 @@ Leeway
 
 from datetime import timedelta
 import cmocean
+import xarray as xr
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
 
@@ -55,3 +56,11 @@ lw.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
 # .. image:: /gallery/animations/example_leeway_0.gif
 
 lw.plot(fast=True)
+
+#%%
+# Plot density of stranded elements
+d, dsub, dstr, lon, lat = lw.get_density_array(pixelsize_m=3000)
+strand_density = xr.DataArray(dstr[-1,:,:], coords={'lon_bin': lon[0:-1], 'lat_bin': lat[0:-1]})
+lw.plot(fast=True, background=strand_density.where(strand_density>0),
+        vmin=0, vmax=20, clabel='Density of stranded elements',
+        show_elements=False, linewidth=0)
