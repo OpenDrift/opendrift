@@ -3,9 +3,23 @@ import os
 import numpy as np
 import pandas as pd
 import zipfile
+import importlib
 import adios_db.scripting as ads
 from adios_db.models.oil.physical_properties import DynamicViscosityPoint
 
+# Usage:
+# Step 1:
+#   parse report, and export preliminary results to a text file <oil_id>.tables:
+#       $ parse_oil_pdf.py <report>.pdf >! <oil_id>.tables
+#
+# Step 2:
+#   manually edit tables text file:
+#       - delete undesired tables
+#       - modify metadata, e.g. oil ID, title and authors of report
+#
+# Step 3:
+#   use template file to create a final json file <oil_id>.json for this oil:
+#       $ parse_oil_pdf.py <oil_id>.tables
 
 np.set_printoptions(suppress=True)
 
@@ -47,15 +61,81 @@ template = {
         }
     }
 
-f = sys.argv[1]
+f = sys.argv[1]  # input file name
 b = f.split('.')[0]
+suffix = f.split('.')[-1]
+sep = ','
 
-if not os.path.exists(b+'.zip'):
-    print('Parsing ' + f)
-    import camelot.io as camelot
-    tables = camelot.read_pdf(f, pages='all')
-    print("Total tables extracted:", tables.n)
-    tables.export(b+'.csv', f='csv', compress=True)
+if suffix == 'pdf':
+    # First time, the pdf is parsed and cached in a .zip file
+    if not os.path.exists(b+'.zip'):
+        print('Parsing ' + f)
+        import camelot.io as camelot
+        tables = camelot.read_pdf(f, pages='all')
+        print("Total tables extracted:", tables.n)
+        tables.export(b+'.csv', f='csv', compress=True)
+
+    z = zipfile.ZipFile(b+'.zip')
+
+    for table in z.namelist():
+        df = pd.read_csv(z.open(table))
+        if df.isnull().all().all():
+            continue  # empty table
+        if len(df.columns) not in [2, 5]:
+            continue
+        df = df.astype(str)
+        df = df.replace(r'\n',' ', regex=True)
+        headers = df.columns
+        if '\n' in headers[0]:
+            headers = headers[0].split('\n')
+            if len(headers) > len(df.columns):
+                headers = headers[0:len(df.columns)]
+            elif len(headers) < len(df.columns):
+                headers = df.columns
+                headers = [h.replace('\n', '') for h in headers]
+        maxcollengths = [df[h].astype(str).str.len().max() for h in df.columns]
+        formats = ['{:>%ss}%s' % (m,sep) for m in maxcollengths]
+        formats[0] = formats[0].replace('>', '<')
+        formats[-1] = formats[-1].replace(sep, '')
+        formats = [f.format for f in formats]
+        hs = ''
+        for h,f in zip(headers, formats):
+            hs = hs + f(h.replace('\n', ''))
+        print(hs)
+        print(df.to_string(index=False, header=False, formatters=formats))
+        print('\n')
+
+    metadata = {
+        'Key': 'Value',
+        'oilID': 'oilID',
+        'title': 'title',
+        'authors': 'authors',
+        'region': 'region',
+        }
+    
+    #print('# Metadata')
+    for i, (key, value) in enumerate(metadata.items()):
+        print('%s%s%s' % (key, sep, value))
+
+elif suffix == 'tables': # Step 3: parsing tables file to json
+    #from pandas.compat import StringIO #if this doesn't work try: from io import StringIO
+    from io import StringIO
+    print('Parsing tables file')
+    tables = open(f).read().split('\n\n')
+    print(len(tables))
+    for i, t in enumerate(tables):
+        #print(t)
+        #print(i)
+        #title = t.split('\n')[0][2:]
+        #t = '\n'.join(t.split('\n')[1:])
+        df = pd.read_csv(StringIO(t), sep=sep)
+        print(df, '\n')
+    #print(tables, 'TAB')
+
+stop
+
+def parse_cuts_table(df, oil):
+    pass
 
 def parse_weathering_table(df, oil):
     max_water_cont = None
@@ -99,11 +179,11 @@ def parse_weathering_table(df, oil):
     stop
 
 
-oil = ads.Oil('dummy')
-oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
-for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
-    oil.sub_samples[i].metadata.name = s
-    oil.sub_samples[i].metadata.short_name = s
+#oil = ads.Oil('dummy')
+#oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
+#for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
+#    oil.sub_samples[i].metadata.name = s
+#    oil.sub_samples[i].metadata.short_name = s
 
 
 results = {}  # to store the parsed values
@@ -113,8 +193,11 @@ for table in z.namelist():
     #wd = {}
     #print('Parsing table ' + table)
     df = pd.read_csv(z.open(table))
-    print(table, 'NAME')
-    print(df)
+    if df.isnull().all().all():
+        continue  # empty table
+    print('# ' + table)
+    print('%s\n' % df.to_string())
+    continue
     if table != 'TOR_oil-page-95-table-1.csv':
         continue
 
