@@ -42,7 +42,7 @@ class StructuredReader(Variables):
                                   or self.proj4 == 'fakeproj'):
 
             logger.warning(
-                "No proj string or projection could be derived, using 'fakeproj'. This assumes that the variables are structured and gridded approximately equidistantly on the surface (i.e. in meters). This must be guaranteed by the user. You can get rid of this warning by suppling a valid projection to the reader."
+                "No proj string or projection could be derived, using 'fakeproj'. This assumes that the variables are structured and gridded approximately equidistantly on the surface (i.e. in meters). This must be guaranteed by the user. You can get rid of this warning by supplying a valid projection to the reader."
             )
 
             from scipy.interpolate import LinearNDInterpolator
