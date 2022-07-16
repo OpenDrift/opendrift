@@ -112,13 +112,6 @@ test-template: &test-template
         mpl: true
 
 jobs:
-  python_311:
-    <<: *test-template
-    parallelism: 5
-    environment:
-      - COVERALLS_UPLOAD=1
-      - PYTHON_VERSION=3.11
-
   python_310:
     <<: *test-template
     parallelism: 5
@@ -405,7 +398,6 @@ workflows:
 
   test:
     jobs:
-      - python_311
       - python_310
       - python_39
       - python_38

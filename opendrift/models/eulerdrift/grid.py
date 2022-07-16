@@ -111,8 +111,7 @@ class RegularGrid:
       if crs is None:
         crs = self.ccrs
 
-      ax = plt.axes(projection = crs, label = "%s" % np.random.randint(1000))
-
+    ax = plt.axes(projection = crs, label = "%s" % np.random.randint(1000))
     im = ax.imshow(self.grid, origin = 'lower', transform = self.ccrs, extent = self.extent_xy, cmap = 'inferno')
     plt.colorbar(im, ax=ax, orientation = 'horizontal')
     ax.coastlines()
