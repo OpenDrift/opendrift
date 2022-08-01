@@ -227,6 +227,18 @@ class ChemicalDrift(OceanDrift):
             'chemical:transformations:pKa_base': {'type': 'float', 'default': -1,
                 'min': 0, 'max': 14, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:KOC_DOM': {'type': 'float', 'default': -1,
+                'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:KOC_sed': {'type': 'float', 'default': -1,
+                'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:fOC_SPM': {'type': 'float', 'default': 0.05,
+                'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:fOC_sed': {'type': 'float', 'default': 0.05,
+                'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Degradation in water column
             'chemical:transformations:t12_W_tot': {'type': 'float', 'default': 224.08,      # Naphthalene
                 'min': 1, 'max': None, 'units': 'hours',
@@ -309,6 +321,9 @@ class ChemicalDrift(OceanDrift):
                 'min': 0, 'max': 1, 'units': 'm/s',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:sediment:burial_rate': {'type': 'float', 'default': .00003,   # MacKay
+                'min': 0, 'max': 10, 'units': 'm/year',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:sediment:buried_leaking_rate': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 10, 'units': 'm/year',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             })
@@ -569,8 +584,8 @@ class ChemicalDrift(OceanDrift):
             pKa_base   = self.get_config('chemical:transformations:pKa_base')
             pH_water   = 8.1
             pH_sed     = 6.9
-            fOC_SPM    = 0.05       # typical values from 0.01 to 0.1 gOC/g
-            fOC_sed    = 0.05       # typical values from 0.01 to 0.1 gOC/g
+            fOC_SPM    = self.get_config('chemical:transformations:fOC_SPM')
+            fOC_sed    = self.get_config('chemical:transformations:fOC_sed')
                                     # Question
                                     # Do we need separate fOC for SPM and Sed
             concDOM   = 1.e-3 / Org2C    # concentration of available dissolved organic matter (kg/m3)
@@ -586,12 +601,17 @@ class ChemicalDrift(OceanDrift):
             sed_poro    = self.get_config('chemical:sediment:porosity')         # sediment porosity
             sed_H       = self.get_config('chemical:sediment:layer_thickness')  # thickness of seabed interaction layer (m)
             sed_burial  = self.get_config('chemical:sediment:burial_rate')      # sediment burial rate (m/y)
+            sed_leaking_rate = self.get_config( 'chemical:sediment:buried_leaking_rate')
 
             if diss=='nondiss':
-                KOC_DOM    = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014
-                KOC_sed    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C
-                KOC_SPM    = KOC_sed
-                #KOC_Sed    = 1.26 * kOW**0.81   # (L/KgOC),Ragas et al., 2019
+                KOC_DOM = self.get_config('chemical:transformations:KOC_DOM')
+                if KOC_DOM < 0:
+                    KOC_DOM = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014
+                KOC_sed = self.get_config('chemical:transformations:KOC_sed')
+                if KOC_sed < 0:
+                    KOC_sed = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C
+                    #KOC_Sed    = 1.26 * kOW**0.81   # (L/KgOC),Ragas et al., 2019
+                KOC_SPM = KOC_sed
             else:
                 if diss=='acid':
                     Phi_n    = 1/(1 + 10**(pH-pKa_acid))
@@ -666,7 +686,7 @@ class ChemicalDrift(OceanDrift):
 
             # Using slowly reversible specie for burial - TODO buried sediment should be a new specie
             self.transfer_rates[self.num_srev,self.num_ssrev] = sed_burial / sed_L / 31556926 # k46 (m/y) / m / (s/y) = s-1
-            self.transfer_rates[self.num_ssrev,self.num_srev] = 0                             # k64
+            self.transfer_rates[self.num_ssrev,self.num_srev] = sed_leaking_rate                # k64
 
 
             self.transfer_rates[self.num_humcol,self.num_prev] = 1.e-5      # k23, Salinity interval >20 psu
