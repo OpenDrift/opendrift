@@ -2011,9 +2011,51 @@ class ChemicalDrift(OceanDrift):
                     "Benzo(a)anthracene":       [0.12,   0.05],
                     "Benzo(a)pyrene":           [0.05,   0.02],
                     "Dibenzo(a,h)anthracene":   [0.03,   0.01],
+                    #
+                    "Acenaphthylene":           [0.12,   0.07],
+                    "Acenaphthene":             [0.19,   0.07],
+                    "Fluorene":                 [0.46,   0.10],
+                    "Anthracene":               [0.08,   0.04],
+                    "Pyrene":                   [0.31,   0.11],
+                    "Chrysene":                 [0.19,   0.07],
+                    "Benzo(b)fluoranthene":     [0.04,   0.02],
+                    "Benzo(k)fluoranthene":     [0.01,   0.01],
+                    "Indeno(1,2,3-cd)pyrene":   [0.07,   0.06],
+                    "Benzo(ghi)perylene":       [0.02,   0.01],
                     }
 
                 emission_factors_closed_loop = {
+                    #                           mean    +/-95%
+                    #                           ug/L    ug/L
+                    "Arsenic":                  [22.,    9.4],
+                    "Cadmium":                  [0.55,   0.19],
+                    "Chromium":                 [1300.,  1700.],
+                    "Copper":                   [480.,   230.],
+                    "Iron":                     [490.,   82.],
+                    "Lead":                     [7.7,    3.1],
+                    "Mercury":                  [0.07,   0.02],
+                    "Nickel":                   [2700.,  860.],
+                    "Vanadium":                 [9100.,  3200.],
+                    "Zinc":                     [370.,   200.],
+                    #
+                    "Naphthalene":              [2.08,   1.05],
+                    "Phenanthrene":             [5.00,   2.30],
+                    "Fluoranthene":             [0.63,	 0.41],
+                    "Benzo(a)anthracene":       [0.30,	 0.29],
+                    "Benzo(a)pyrene":           [0.06,	 0.05],
+                    "Dibenzo(a,h)anthracene":   [0.03,	 0.02],
+                    #
+                    "Acenaphthylene":           [0.09,   0.06],
+                    "Acenaphthene":             [0.47,   0.31],
+                    "Fluorene":                 [1.32,   0.54],
+                    "Anthracene":               [1.55,   2.00],
+                    "Pyrene":                   [0.76,   0.59],
+                    "Chrysene":                 [0.50,   0.45],
+                    "Benzo(b)fluoranthene":     [0.14,   0.12],
+                    "Benzo(k)fluoranthene":     [0.02,   0.02],
+                    "Indeno(1,2,3-cd)pyrene":   [0.04,   0.03],
+                    "Benzo(ghi)perylene":       [0.07,   0.07],
+                    "Dibenzo(a,h)anthracene":   [0.03,   0.02],
                     }
 
                 if scrubber_type=="open_loop":
