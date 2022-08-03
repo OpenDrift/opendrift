@@ -345,13 +345,12 @@ class BaseReader(Variables):
                 data[variable] = data[variable][0,:,:]
             if self.global_coverage():
                 mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
-                                         transform=ccrs.PlateCarree(), shading='nearest')
+                                         transform=ccrs.PlateCarree())
             else:
                 p = sp.transform_points(ccrs.PlateCarree(), rlon, rlat)
                 mapx = p[:,:,0]
                 mapy = p[:,:,1]
-                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax,
-                                         shading='nearest')
+                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax)
 
             cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
             cbar.set_label(variable)
