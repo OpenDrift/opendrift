@@ -3579,7 +3579,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                             time=self.start_time)
             bg = ax.pcolormesh(map_x,
                                map_y,
-                               scalar[:-1, :-1],
+                               scalar,
                                alpha=bgalpha,
                                zorder=1,
                                antialiased=True,
