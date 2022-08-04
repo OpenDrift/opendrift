@@ -2055,11 +2055,12 @@ class ChemicalDrift(OceanDrift):
                     "Benzo(k)fluoranthene":     [0.02,   0.02],
                     "Indeno(1,2,3-cd)pyrene":   [0.04,   0.03],
                     "Benzo(ghi)perylene":       [0.07,   0.07],
-                    "Dibenzo(a,h)anthracene":   [0.03,   0.02],
                     }
 
                 if scrubber_type=="open_loop":
                     return emission_factors_open_loop.get(chemical_compound)[0]
+                elif scrubber_type=="closed_loop":
+                    return emission_factors_closed_loop.get(chemical_compound)[0]
                     # TODO: Add emission uncertainty based on 95% confidence interval
 
             sel=np.where((steam > lowerbound) & (steam < higherbound))
