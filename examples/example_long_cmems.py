@@ -12,7 +12,7 @@ with username and password stored in a ``.netrc`` file with contents::
     machine nrt.cmems-du.eu login <your username> password <your password>
 
 This file must be stored in your home folder and made unreadable by others with ``chmod 700 .netrc``
-Additionally, a file ``.dodrsc`` must also be stored in your home folder, containing the following line::
+Additionally, a file ``.dodsrc`` must also be stored in your home folder, containing the following line::
 
     HTTP.NETRC=<path to your .netrc file>
 
