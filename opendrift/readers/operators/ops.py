@@ -1,11 +1,12 @@
 import numpy as np
 from ..basereader import BaseReader
 
-class Combined(BaseReader):
-    # Make sure these readers can be combined:
-    #
-    # * Extent is the union of the extent of both readers.
+from . import numops
 
+class Combined(BaseReader):
+    """
+    A combination of two readers.
+    """
     a: BaseReader
     b: BaseReader
 
@@ -34,13 +35,28 @@ class Combined(BaseReader):
 
 
 class Add(Combined):
-    def __init__(a, b):
+    def __init__(self, a, b):
         pass
 
 class Mul(Combined):
-    def __init__(a, b):
+    def __init__(self, a, b):
         pass
 
 class Div(Combined):
-    def __init__(a, b):
+    def __init__(self, a, b):
         pass
+
+
+class Combine:
+    def __add__(self, other):
+        return Add(self, other)
+
+    def __mul__(self, other):
+        return Mul(self, other)
+
+    def __div__(self, other):
+        return Div(self, other)
+
+    def __sub__(self, other):
+        return Add(self, numops.Combined.mul(-1, other))
+
