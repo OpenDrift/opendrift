@@ -325,6 +325,10 @@ class ChemicalDrift(OceanDrift):
             'chemical:sediment:burial_rate': {'type': 'float', 'default': .00003,   # MacKay
                 'min': 0, 'max': 10, 'units': 'm/year',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:sediment:buried_leaking_rate': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 10, 'units': 'm/year',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+
             # Added for dissociation and single process degradation
             # Biodegradation
             'chemical:transformations:k_DecayMax_water': {'type': 'float', 'default': 0.054,      # from AQUATOX Database (0.13 1/day)
@@ -403,19 +407,20 @@ class ChemicalDrift(OceanDrift):
                  'min': 0, 'max': None, 'units': 'Ly/day',
                  'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' average light intensity for late spring or early summer, corresponding to time when photolytic half-life is often measured '},
              # Partitioning between water, DOM, and OC
+             'chemical:transformations:KOC_DOM': {'type': 'float', 'default': -1,
+                'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'partitioning coefficient between water and organic carbon for DOC'},
              'chemical:transformations:KOC_sed': {'type': 'float', 'default': -1,
-                 'min': 0, 'max': 1e9, 'units': 'L/kg_OC',
-                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'partitioning coefficient between water and organic carbon for SPM'},
-             'chemical:transformations:KOC_DOM': {'type': 'float', 'default': -1, # Naphtalene, at 25°C
-                 'min': 0, 'max': 1e9, 'units': 'L/kg_OC',
-                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'partitioning coefficient between water and organic carbon for DOC'},
+                'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'partitioning coefficient between water and organic carbon for SPM'},
              'chemical:transformations:fOC_SPM': {'type': 'float', 'default': 0.05, # typical values from 0.01 to 0.1 gOC/g
-                 'min': 0, 'max': 1, 'units': 'g_OC/g',
-                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'fraction of organic carbon in SPM'},
+                'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'fraction of organic carbon in SPM'},
              'chemical:transformations:fOC_sed': {'type': 'float', 'default': 0.05, # typical values from 0.01 to 0.1 gOC/g
-                 'min': 0, 'max': 1, 'units': 'g_OC/g',
-                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'fraction of organic carbon in sediments'}
-      
+                'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': 'fraction of organic carbon in sediments'},
+                         
+                  
             })
 
 
@@ -1100,6 +1105,7 @@ class ChemicalDrift(OceanDrift):
             sed_poro    = self.get_config('chemical:sediment:porosity')         # sediment porosity
             sed_H       = self.get_config('chemical:sediment:layer_thickness')  # thickness of seabed interaction layer (m)
             sed_burial  = self.get_config('chemical:sediment:burial_rate')      # sediment burial rate (m/y)
+            sed_leaking_rate = self.get_config( 'chemical:sediment:buried_leaking_rate')
             
             # KOC_sed_given = self.get_config('chemical:transformations:KOC_sed_given')
             # KOC_DOM_given = self.get_config('chemical:transformations:KOC_DOM_given')
@@ -1288,7 +1294,7 @@ class ChemicalDrift(OceanDrift):
 
             # Using slowly reversible specie for burial - TODO buried sediment should be a new specie
             self.transfer_rates[self.num_srev,self.num_ssrev] = sed_burial / sed_L / 31556926 # k46 (m/y) / m / (s/y) = s-1
-            self.transfer_rates[self.num_ssrev,self.num_srev] = 0                             # k64
+            self.transfer_rates[self.num_ssrev,self.num_srev] = sed_leaking_rate                # k64
 
 
             self.transfer_rates[self.num_humcol,self.num_prev] = 1.e-5      # k23, Salinity interval >20 psu
