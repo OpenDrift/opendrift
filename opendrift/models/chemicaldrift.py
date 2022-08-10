@@ -27,6 +27,8 @@ import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 import pyproj
 from datetime import datetime
+import warnings
+import math
 
 # Defining the Chemical element properties
 class Chemical(Lagrangian3DArray):
@@ -102,9 +104,21 @@ class ChemicalDrift(OceanDrift):
         'upward_sea_water_velocity': {'fallback': 0},
         #'conc3': {'fallback': 1.e-3},
         'spm': {'fallback': 50},
-        'ocean_mixed_layer_thickness': {'fallback': 50},
+        'ocean_mixed_layer_thickness': {'fallback': 30},
         'active_sediment_layer_thickness': {'fallback': 0.03}, # TODO - currently not used, redundant with 'chemical:sediment:mixing_depth'
-        'doc': {'fallback': 0.0}
+        'doc': {'fallback': 0.0},
+        # Variables for dissociation and single process degradation
+        'sea_water_ph_reported_on_total_scale':{'fallback': 8.1, 'profiles': True}, # water_pH from CMENS with standard name # DONE
+        'pH_sediment':{'fallback': 6.9, 'profiles': False}, # supplied by the user, with pH_sediment as standard name # DONE
+        'mole_concentration_of_dissolved_molecular_oxygen_in_sea_water':{'fallback': 7.25, 'profiles': True}, # in g/m3 or mg/L from CMENS with standard name
+        'mole_concentration_of_dissolved_inorganic_carbon_in_sea_water':{'fallback': 104, 'profiles': True}, # in concentration of carbon in the water (Conc_C) in mol/m3, nedded as ueq/L (conversion: 22.73 ueq/mg_C, MW_C = 12.01 g/mol. # DONE
+        # From concentration of carbon in the water (Conc_C) in mol/m3: Conc_CO2 = ((Conc_C*MW_C)*1000)*22.73*1000; 
+        # from mol_C/m3, *12.01 g_C/mol = g_C/m3, *1000 = mg/m3, * 22.73 ueq/mg = ueq/m3, *1000 = ueq/L
+        # default from https://www.soest.hawaii.edu/oceanography/faculty/zeebe_files/Publications/ZeebeWolfEnclp07.pdf, 2.3 mmol/kg
+        
+        'solar_irradiance':{'fallback': 241}, # Available in W/m2, in the function it is nedded in Ly/day. TO DO Check UM of input for convertion. 1 Ly = 41868 J/m2 -> 1 Ly/day =  41868 J/m2 / 86400 s = 0.4843 W/m2  # DONE
+        'mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water':{'fallback': 0, 'profiles': True} # in mmol_carbon/m3 for CMENS. # TO DO *1e-6 to convert into mol/L. #  Concentration of phytoplankton as “mmol/m3 of phytoplankton expressed as carbon” 
+               
         }
 
     # The depth range (in m) which profiles shall cover
@@ -197,7 +211,7 @@ class ChemicalDrift(OceanDrift):
                 'description': 'Chemical mass is degraded.',
                 'level': self.CONFIG_LEVEL_BASIC},
             'chemical:transformations:degradation_mode': {'type': 'enum',
-                'enum': ['Test1','Test2','OverallRateConstants'], 'default': 'Test1',
+                'enum': ['Test1','Test2','OverallRateConstants', 'SingleRateConstants'], 'default': 'Test1',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:transformations:photodegradation': {'type': 'bool', 'default': False,
                 'description': 'Chemical mass is photodegraded.',
@@ -226,18 +240,6 @@ class ChemicalDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:transformations:pKa_base': {'type': 'float', 'default': -1,
                 'min': 0, 'max': 14, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:transformations:KOC_DOM': {'type': 'float', 'default': -1,
-                'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:transformations:KOC_sed': {'type': 'float', 'default': -1,
-                'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:transformations:fOC_SPM': {'type': 'float', 'default': 0.05,
-                'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:transformations:fOC_sed': {'type': 'float', 'default': 0.05,
-                'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Degradation in water column
             'chemical:transformations:t12_W_tot': {'type': 'float', 'default': 224.08,      # Naphthalene
@@ -323,9 +325,103 @@ class ChemicalDrift(OceanDrift):
             'chemical:sediment:burial_rate': {'type': 'float', 'default': .00003,   # MacKay
                 'min': 0, 'max': 10, 'units': 'm/year',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:sediment:buried_leaking_rate': {'type': 'float', 'default': 0,
-                'min': 0, 'max': 10, 'units': 'm/year',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            # Added for dissociation and single process degradation
+            # Biodegradation
+            'chemical:transformations:k_DecayMax_water': {'type': 'float', 'default': 0.054,      # from AQUATOX Database (0.13 1/day)
+                'min': 0, 'max': None, 'units': '1/hours',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' max first-order rate constant for biodegradation in aerobic condition'}, 
+            'chemical:transformations:k_Anaerobic_water': {'type': 'float', 'default': 0,      # Defalt for no anaerobic biodegradation
+                'min': 0, 'max': None, 'units': '1/hours',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' max first-order rate constant for biodegradation in anaerobic condition '},   
+            'chemical:transformations:HalfSatO_w': {'type': 'float', 'default': 0.5,      # Half-saturation constant for oxygen, default from AQUATOX Database
+                'min': 0.01, 'max': None, 'units': 'g/m3',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' Half-saturation constant for oxygen, default from AQUATOX Database'},    
+            'chemical:transformations:T_Max_bio': {'type': 'float', 'default': 50,     # Default from AQUATOX Database  
+                'min': 1, 'max': None, 'units': 'C',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' Maximum temperature at which biodegradation process will occur, default from AQUATOX Database'},     
+             'chemical:transformations:T_Opt_bio': {'type': 'float', 'default': 24,     # Default from AQUATOX Database  
+                 'min': 1, 'max': None, 'units': 'C',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' Optimal temperature for biodegradation, default from AQUATOX Database'},   
+
+             'chemical:transformations:T_Adp_bio': {'type': 'float', 'default': 2,     # Default from AQUATOX Database  
+                 'min': 0.1, 'max': None, 'units': 'C',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' “adaptation” temperature below which there is no acclimation for biobegradation, default from AQUATOX Database'},
+             'chemical:transformations:Max_Accl_bio': {'type': 'float', 'default': 2,     # Default from AQUATOX Database  
+                 'min': 0.1, 'max': None, 'units': 'C',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' Maximum acclimation allowed for biodegratation, default from AQUATOX Database'},  
+             'chemical:transformations:Dec_Accl_bio': {'type': 'float', 'default': 0.5,     # Default from AQUATOX Database  
+                 'min': 0.1, 'max': None, 'units': '',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' Coefficient for decreasing acclimation as temperature approaches T_Adp_bio, default from AQUATOX Database'},
+             'chemical:transformations:Q10_bio': {'type': 'float', 'default': 2,     # Default from AQUATOX Database  
+                 'min': 0, 'max': None, 'units': '',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' Slope or rate of change per 10°C temperature change for biodegradation, default from AQUATOX Database'},  
+             'chemical:transformations:pH_min_bio': {'type': 'float', 'default': 5,     # Default from AQUATOX Database  
+                 'min': 0, 'max': None, 'units': '',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' Minimum pH below which limitation on biodegradation rate occurs, default from AQUATOX Database'},  
+             'chemical:transformations:pH_max_bio': {'type': 'float', 'default': 8.5,     # Default from AQUATOX Database  
+                 'min': 0, 'max': None, 'units': '',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' Maximum pH over which limitation on biodegradation rate occurs, default from AQUATOX Database'}, 
+             # Hydrolysis
+             'chemical:transformations:k_Acid': {'type': 'float', 'default': 0,     # Default for no acid catalyzed hydrolysis 
+                 'min': 0, 'max': None, 'units': 'L/mol*h',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' pseudo-first-order acid-catalysed rate constant for a given pH for hydrolysis '},
+             'chemical:transformations:k_Base': {'type': 'float', 'default': 0,     # Default for no base catalyzed hydrolysis  
+                 'min': 0, 'max': None, 'units': 'L/mol*h',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' pseudo-first-order base-catalysed rate constant for a given pH '},  
+             'chemical:transformations:k_Hydr_Uncat': {'type': 'float', 'default': 0,     # Default for no hydrolysis  
+                 'min': 0, 'max': None, 'units': '1/hours',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' measured first-order hydrolysis rate at pH 7  '},
+             # Photolysis
+             'chemical:transformations:k_Photo': {'type': 'float', 'default': 0,     # Default for no photolysis  
+                 'min': 0, 'max': None, 'units': '1/hours',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' measured first-order photolysis rate  '}, 
+             'chemical:transformations:RadDistr': {'type': 'float', 'default': 1.6,     # Default from AQUATOX Database
+                 'min': 0, 'max': None, 'units': '',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' radiance distribution function, which is the ratio of the average pathlength to the depth '}, 
+             'chemical:transformations:RadDistr0_ml': {'type': 'float', 'default': 1.6,     # Default from AQUATOX Database
+                 'min': 0, 'max': None, 'units': '',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' standard radiance distribution function in the Mixed Layer '}, 
+             'chemical:transformations:RadDistr0_bml': {'type': 'float', 'default': 1.2,     # Default from AQUATOX Database
+                 'min': 0, 'max': None, 'units': '',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' standard radiance distribution function below the Mixed Layer '}, 
+             'chemical:transformations:WaterExt': {'type': 'float', 'default': 0.21,     # Default from AQUATOX Database
+                 'min': 0, 'max': None, 'units': '1/m',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' extinction coeff. of light in the water with depht due to water '}, 
+             'chemical:transformations:ExtCoeffDOM': {'type': 'float', 'default': 0.028,     # Default from AQUATOX Database
+                 'min': 0, 'max': None, 'units': '1/(m*g/m3)',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' extinction coeff. of light in the water with depht due to DOM '}, 
+             'chemical:transformations:ExtCoeffSPM': {'type': 'float', 'default': 0.17,     # Default from AQUATOX Database
+                 'min': 0, 'max': None, 'units': '1/(m*g/m3)',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' extinction coeff. of light in the water with depht due to SPM '}, 
+             'chemical:transformations:ExtCoeffPHY': {'type': 'float', 'default': 0.14,     # Default from AQUATOX Database
+                 'min': 0, 'max': None, 'units': '1/(m*g/m3)',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' extinction coeff. of light in the water with depht due to phytoplankton '}, 
+             'chemical:transformations:C2PHYC': {'type': 'float', 'default': 0.44,     # Default from https://doi.org/10.1007/BF00006636
+                 'min': 0, 'max': None, 'units': 'g_Caron/g_Biomass',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' phytoplankton carbon content '}, 
+             'chemical:transformations:AveSolar': {'type': 'float', 'default': 500,     # Default from AQUATOX Database
+                 'min': 0, 'max': None, 'units': 'Ly/day',
+                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ' average light intensity for late spring or early summer, corresponding to time when photolytic half-life is often measured '},
+             # Partitioning between water, DOM, and OC
+             'chemical:transformations:KOC_sed': {'type': 'float', 'default': -1,
+                 'min': 0, 'max': 1e9, 'units': 'L/kg_OC',
+                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'partitioning coefficient between water and organic carbon for SPM'},
+             'chemical:transformations:KOC_DOM': {'type': 'float', 'default': -1, # Naphtalene, at 25°C
+                 'min': 0, 'max': 1e9, 'units': 'L/kg_OC',
+                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'partitioning coefficient between water and organic carbon for DOC'},
+              # 'chemical:transformations:KOC_sed_given': {'type': 'bool', 'default': False,
+              #     'description': 'KOC_sed is supplied.',
+              #     'level': self.CONFIG_LEVEL_BASIC},
+              # 'chemical:transformations:KOC_DOM_given': {'type': 'bool', 'default': False,
+              #     'description': 'KOC_DOM is supplied.',
+              #     'level': self.CONFIG_LEVEL_BASIC},
+             'chemical:transformations:fOC_SPM': {'type': 'float', 'default': 0.05, # typical values from 0.01 to 0.1 gOC/g
+                 'min': 0, 'max': 1, 'units': 'g_OC/g',
+                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'fraction of organic carbon in SPM'},
+             'chemical:transformations:fOC_sed': {'type': 'float', 'default': 0.05, # typical values from 0.01 to 0.1 gOC/g
+                 'min': 0, 'max': 1, 'units': 'g_OC/g',
+                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'fraction of organic carbon in sediments'}
+      
             })
 
 
@@ -378,12 +474,12 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:species:Particle_reversible', True)
             self.set_config('chemical:species:Sediment_reversible', True)
         elif self.get_config('chemical:transfer_setup')=='organics':
-            self.set_config('chemical:species:LMM',True)
-            self.set_config('chemical:species:Particle_reversible', True)
+            self.set_config('chemical:species:LMM',True)  # Dissolved particles 
+            self.set_config('chemical:species:Particle_reversible', True) # SPM
             self.set_config('chemical:species:Particle_slowly_reversible', False)
-            self.set_config('chemical:species:Sediment_reversible', True)
-            self.set_config('chemical:species:Sediment_slowly_reversible', True)
-            self.set_config('chemical:species:Humic_colloid', True)
+            self.set_config('chemical:species:Sediment_reversible', True) # Sediment
+            self.set_config('chemical:species:Sediment_slowly_reversible', True) # Buried sediment
+            self.set_config('chemical:species:Humic_colloid', True) # DOC
         elif self.get_config('chemical:transfer_setup')=='custom':
             # Do nothing, species must be set manually
             pass
@@ -545,6 +641,458 @@ class ChemicalDrift(OceanDrift):
         corr = 10**(Setschenow*ConcSalt)
 
         return corr
+    
+    ### Functions to update partitioning coefficients
+
+    def calc_KOC_sedcorr(self, KOC_sed_initial, KOC_sed_n, pKa_acid, pKa_base, KOW, pH_sed, diss):
+        ''' Calculate correction of KOC due to pH of sediments
+        '''
+        # Estimate KOC for dissociated forms from KOW
+        KOC_sed_diss_acid = (10**(0.11*np.log10(KOW)+1.54)) # KOC for dissociated acid species (L/kg_OC), from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202.
+        
+        KOC_sed_diss_base = 10**(pKa_acid**(0.65*((KOW/(KOW+1))**0.14))) # KOC for ionized form of base species (L/kg_OC) # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+        
+        # non-diss fraction    
+        # Phi_n_sed = np.empty_like(pH_sed)
+        # diss fraction
+        # Phi_diss_sed = np.empty_like(pH_sed)
+        # Phi_anion_sed = np.empty_like(pH_sed)
+        # Phi_cation_sed = np.empty_like(pH_sed)
+        
+        # Updated values of KOC to calculate correction factor
+        KOC_sed_updated = np.empty_like(pH_sed)
+        KOC_sedcorr= np.empty_like(pH_sed)
+        
+        for i in (range(len(pH_sed))):
+            if diss=='acid':
+          
+                # Phi_n_sed[i]    = 1/(1 + 10**(pH_sed[i]-pKa_acid))
+                # Phi_diss_sed[i] = 1-Phi_n_sed[i]
+                # KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed[i]) + (Phi_diss_sed[i] * KOC_sed_diss_acid)
+                # KOC_sedcorr[i]=KOC_sed_updated[i]/KOC_sed_initial
+                           
+                Phi_n_sed    = 1/(1 + 10**(pH_sed[i]-pKa_acid))
+                Phi_diss_sed = 1-Phi_n_sed
+                KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed) + (Phi_diss_sed * KOC_sed_diss_acid)
+                KOC_sedcorr[i] = KOC_sed_updated[i]/KOC_sed_initial
+            
+            elif diss=='base':
+                # Phi_n_sed[i]    = 1/(1 + 10**(pH_sed[i]-pKa_base))
+                # Phi_diss_sed[i] = 1-Phi_n_sed[i]
+                # KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed[i]) + (Phi_diss_sed[i] * KOC_sed_diss_acid)
+                # KOC_sedcorr[i]=KOC_sed_updated[i]/KOC_sed_initial
+                
+                Phi_n_sed    = 1/(1 + 10**(pH_sed[i]-pKa_base))
+                Phi_diss_sed = 1-Phi_n_sed
+                KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed) + (Phi_diss_sed * KOC_sed_diss_acid)
+                KOC_sedcorr[i] = KOC_sed_updated[i]/KOC_sed_initial
+                
+            elif diss=='amphoter':
+                # Phi_n_sed[i]      = 1/(1 + 10**(pH_sed[i]-pKa_acid) + 10**(pKa_base))
+                # Phi_anion_sed[i]  = Phi_n_sed[i] * 10**(pH_sed[i]-pKa_acid)
+                # Phi_cation_sed[i] = pH_sed[i] * 10**(pKa_base-pH_sed[i])
+                # KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed[i]) + (Phi_anion_sed[i] * KOC_sed_diss_acid) + (Phi_cation_sed[i] * KOC_sed_diss_base)
+                
+                Phi_n_sed      = 1/(1 + 10**(pH_sed[i]-pKa_acid) + 10**(pKa_base))
+                Phi_anion_sed  = Phi_n_sed * 10**(pH_sed[i]-pKa_acid)
+                Phi_cation_sed = pH_sed[i] * 10**(pKa_base-pH_sed[i])
+                KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed) + (Phi_anion_sed * KOC_sed_diss_acid) + (Phi_cation_sed * KOC_sed_diss_base)
+                KOC_sedcorr[i]=KOC_sed_updated[i]/KOC_sed_initial
+                
+            elif diss=='undiss': 
+                KOC_sedcorr[i]=1
+        
+        # print( "KOC_sedcorr__", KOC_sedcorr)
+        
+        return KOC_sedcorr
+            
+    def calc_KOC_watcorrSPM(self, KOC_SPM_initial, KOC_sed_n, pKa_acid, pKa_base, KOW, pH_water_SPM, diss):
+        ''' Calculate correction of KOC due to pH of water for SPM
+        '''  
+        # Estimate KOC for dissociated forms from KOW
+        KOC_sed_diss_acid = (10**(0.11*np.log10(KOW)+1.54)) # KOC for dissociated acid species (L/kg_OC), from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202.
+        
+        KOC_sed_diss_base = 10**(pKa_acid**(0.65*((KOW/(KOW+1))**0.14))) # KOC for ionized form of base species (L/kg_OC) # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+        
+        # Phi_n_sed = pH_water #  Create empty array identical to pH_water 
+        # Phi_diss_sed = pH_water #  Create empty array identical to pH_water 
+        # Phi_anion_sed = pH_water #  Create empty array identical to pH_water
+        # Phi_cation_sed = pH_water #  Create empty array identical to pH_water
+        # KOC_sed_updated = pH_water #  Create empty array identical to pH_water
+            
+        # Phi_n_SPM = np.empty_like(pH_water_SPM)
+        # Phi_diss_SPM = np.empty_like(pH_water_SPM)
+        # Phi_anion_SPM = np.empty_like(pH_water_SPM)
+        # Phi_cation_SPM = np.empty_like(pH_water_SPM)
+        KOC_SPM_updated = np.empty_like(pH_water_SPM)
+        KOC_SPMcorr = np.empty_like(pH_water_SPM)
+        
+        
+        for i in (range(len(pH_water_SPM))):
+            if diss=='acid':
+                # Phi_n_SPM[i]    = 1/(1 + 10**(pH_water_SPM[i]-pKa_acid))
+                # Phi_diss_SPM[i] = 1-Phi_n_SPM[i]
+                # KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM[i]) + (Phi_diss_SPM[i] * KOC_sed_diss_acid)
+                
+                Phi_n_SPM    = 1/(1 + 10**(pH_water_SPM[i]-pKa_acid))
+                Phi_diss_SPM = 1-Phi_n_SPM
+                KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM) + (Phi_diss_SPM * KOC_sed_diss_acid)
+            
+                KOC_SPMcorr[i]=KOC_SPM_updated[i]/KOC_SPM_initial
+            
+            elif diss=='base':
+                # Phi_n_SPM[i]    = 1/(1 + 10**(pH_water_SPM[i]-pKa_base))
+                # Phi_diss_SPM[i] = 1-Phi_n_SPM[i]
+                # KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM[i]) + (Phi_diss_SPM[i] * KOC_sed_diss_acid)
+                
+                Phi_n_SPM    = 1/(1 + 10**(pH_water_SPM[i]-pKa_base))
+                Phi_diss_SPM = 1-Phi_n_SPM
+                KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM) + (Phi_diss_SPM * KOC_sed_diss_acid)
+    
+                KOC_SPMcorr[i]=KOC_SPM_updated[i]/KOC_SPM_initial
+                
+            elif diss=='amphoter':
+                # Phi_n_SPM[i]      = 1/(1 + 10**(pH_water_SPM[i]-pKa_acid) + 10**(pKa_base))
+                # Phi_anion_SPM[i]  = Phi_n_SPM[i] * 10**(pH_water_SPM[i]-pKa_acid)
+                # Phi_cation_SPM[i] = pH_water_SPM[i] * 10**(pKa_base-pH_water_SPM[i])
+                # KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM[i]) + (Phi_anion_SPM[i] * KOC_sed_diss_acid) + (Phi_cation_SPM[i] * KOC_sed_diss_base)
+                
+                Phi_n_SPM      = 1/(1 + 10**(pH_water_SPM[i]-pKa_acid) + 10**(pKa_base))
+                Phi_anion_SPM  = Phi_n_SPM * 10**(pH_water_SPM[i]-pKa_acid)
+                Phi_cation_SPM = pH_water_SPM[i] * 10**(pKa_base-pH_water_SPM[i])
+                KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM) + (Phi_anion_SPM * KOC_sed_diss_acid) + (Phi_cation_SPM * KOC_sed_diss_base)
+                
+                KOC_SPMcorr[i]=KOC_SPM_updated[i]/KOC_SPM_initial
+                
+            elif diss=='undiss': 
+                KOC_SPMcorr[i]=1
+            
+        # print ("KOC_SPMcorr_", KOC_SPMcorr)    
+        return KOC_SPMcorr
+    
+    
+    
+    def calc_KOC_watcorrDOM(self, KOC_DOM_initial, KOC_DOM_n, pKa_acid, pKa_base, KOW, pH_water_DOM, diss):
+        ''' Calculate correction of KOC due to pH of water for DOM
+        '''  
+    
+        # Phi_n_DOM  = pH_water_DOM #  Create empty array identical to pH_water_DOM 
+        # Phi_diss_DOM = pH_water_DOM #  Create empty array identical to pH_water_DOM 
+        # KOC_DOM_updated = pH_water_DOM #  Create empty array identical to pH_water_DOM
+    
+        Phi_n_DOM = np.empty_like(pH_water_DOM)
+        Phi_diss_DOM = np.empty_like(pH_water_DOM)
+        KOC_DOM_updated = np.empty_like(pH_water_DOM)
+        KOC_DOMcorr = np.empty_like(pH_water_DOM)
+    
+    
+        for i in (range(len(pH_water_DOM))):
+            if diss=='acid':
+                # Phi_n_DOM[i]    = 1/(1 + 10**(pH_water_DOM[i]-pKa_acid))
+                # Phi_diss_DOM[i]    = 1-Phi_n_DOM[i]
+                # KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM[i]*(KOC_DOM_n)) + ((1 - Phi_diss_DOM[i])*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                
+                Phi_n_DOM    = 1/(1 + 10**(pH_water_DOM[i]-pKa_acid))
+                Phi_diss_DOM    = 1-Phi_n_DOM
+                KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM*(KOC_DOM_n)) + ((1 - Phi_diss_DOM)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+    
+                KOC_DOMcorr[i]=KOC_DOM_updated[i]/KOC_DOM_initial
+            
+            elif diss=='base':
+                # Phi_n_DOM[i]    = 1/(1 + 10**(pH_water_DOM[i]-pKa_base))
+                # Phi_diss_DOM[i]    = 1-Phi_n_DOM[i]
+                # KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM[i]*(KOC_DOM_n)) + ((1 - Phi_diss_DOM[i])*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                
+                Phi_n_DOM    = 1/(1 + 10**(pH_water_DOM[i]-pKa_base))
+                Phi_diss_DOM    = 1-Phi_n_DOM
+                KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM*(KOC_DOM_n)) + ((1 - Phi_diss_DOM)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                
+                KOC_DOMcorr[i]=KOC_DOM_updated[i]/KOC_DOM_initial
+        
+                
+            elif diss=='amphoter':
+                # Phi_n_DOM[i]      = 1/(1 + 10**(pH_water_DOM[i]-pKa_acid) + 10**(pKa_base))
+                # Phi_diss_DOM[i]    = 1-Phi_n_DOM[i]
+                # KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM[i]*(KOC_DOM_n)) + ((1 - Phi_diss_DOM[i])*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                
+                Phi_n_DOM      = 1/(1 + 10**(pH_water_DOM-pKa_acid) + 10**(pKa_base))
+                Phi_diss_DOM   = 1-Phi_n_DOM
+                KOC_DOM_updated = (0.08 * ((Phi_n_DOM*(KOC_DOM_n)) + ((1 - Phi_diss_DOM)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                KOC_DOMcorr[i]=KOC_DOM_updated[i]/KOC_DOM_initial
+        
+              
+            elif diss=='undiss': 
+                    KOC_DOMcorr[i]=1
+    
+
+        # print ("KOC_DOMcorr", KOC_DOMcorr)
+        return KOC_DOMcorr
+    
+    
+# DONE    
+    def calc_DOCorr(self, HalfSatO_w, k_Anaerobic_water, k_DecayMax_water, Ox_water):
+        ''' Correction for the effects of Dissolved Ox concentration on biodegradation
+        '''   
+        # DOCorr = Ox_water #  Create empty array identical to Ox_water 
+        DOCorr = np.empty_like(Ox_water)
+        
+        # print ("k_Anaerobic_water", k_Anaerobic_water)
+        # print("k_DecayMax_water", k_DecayMax_water)
+        
+        if k_DecayMax_water == 0:
+            # print("k_DecayMax_water is set to 0 1/h, therefore  DOCorr = 0 and no biodegradation occurs")
+            logger.debug("k_DecayMax_water is set to 0 1/h, therefore  DOCorr = 0 and no biodegradation occurs")
+            
+            for i in (range(len(Ox_water))): 
+            
+                DOCorr[i] = 0.00
+            
+        elif k_DecayMax_water > 0:
+            for i in (range(len(Ox_water))): 
+            
+                MMFact_w = (Ox_water[i])/(HalfSatO_w+Ox_water[i])
+                # print ("MMFact_w", i, MMFact_w)
+                DOCorr[i] = MMFact_w + (1-MMFact_w)*(k_Anaerobic_water/k_DecayMax_water)
+                # print("Ox_water", "_", i, "_", Ox_water[i])
+                # print("DOCorr", i, "_",  DOCorr[i])
+                
+        elif k_DecayMax_water < 0:
+            # print("k_DecayMax_water is set < 0 1/h, this is not possible") # TO DO This must become a Warning
+            logger.debug("k_DecayMax_water is set < 0 1/h, this is not possible")
+        else:
+            pass
+        
+        # print(type(DOCorr))
+        
+        if any(((ele < 0) or (ele > 1)) for ele in DOCorr): 
+            # print('DOCorr is not between 0 and 1') # TO DO This must become a Warning
+            warnings.warn('DOCorr is not between 0 and 1')
+            logger.debug("DOCorr is not between 0 and 1") 
+        else:
+            pass
+
+        # print("DOCorr", DOCorr)
+
+        return DOCorr
+    
+# DONE   
+    def calc_TCorr(self, T_Max_bio, T_Opt_bio, T_Adp_bio, Max_Accl_bio, Dec_Accl_bio, Q10_bio, TW):
+        ''' Correction for the effects of water temperature on biodegradation
+        '''  
+        # TCorr = TW #  Create empty array identical to TW 
+        TCorr = np.empty_like(TW)
+        
+        # print(T_Max_bio)
+        # print(T_Opt_bio)
+        # print(T_Adp_bio)
+        # print(Max_Accl_bio)
+        # print(Dec_Accl_bio)
+        # print(Q10_bio)
+        # print(TW)
+        
+        for i in (range(len(TW))):
+        
+            Acclimation = Max_Accl_bio*(1-np.exp(-Dec_Accl_bio*abs(TW[i]-T_Adp_bio)))
+            
+            VT = ((T_Max_bio + Acclimation) - TW[i])/((T_Max_bio + Acclimation) - (T_Opt_bio + Acclimation))
+        
+            if (VT <= 0):
+                TCorr[i] = 0
+                # print('Temperature is outside of acceptable range, therefore TCorr = 0 and no biodegradation will occur')
+                logger.debug("Temperature is outside of acceptable range, therefore TCorr = 0 and no biodegradation will occur")
+                
+            elif VT > 0:
+                WT = np.log(Q10_bio)*((T_Max_bio + Acclimation) - (T_Opt_bio + Acclimation))
+                YT = np.log(Q10_bio)*((T_Max_bio + Acclimation) - (T_Opt_bio + Acclimation) + 2)
+                XT = ((WT**2)*(1+((1 + 40/YT)**(0.5)))**2)/400
+                TCorr[i] = (VT**XT)*np.exp(XT*(1-VT))
+                
+                # print('Temperature is inside of acceptable range, therefore TCorr != 0 and biodegradation will occur')
+                logger.debug("Temperature is inside of acceptable range, therefore TCorr != 0 and biodegradation will occur")
+                
+        
+        if any(((ele < 0) or (ele > 1)) for ele in TCorr): 
+            # print('TCorr is not between 0 and 1') # TO DO This must become a Warning
+            warnings.warn('TCorr is not between 0 and 1')
+            logger.debug("TCorr is not between 0 and 1")
+        else:
+            # print('TCorr is correct between 0 and 1')
+            logger.debug("TCorr is correct between 0 and 1")
+             
+        
+        # print("TCorr", TCorr)
+        return TCorr
+    
+# DONE    
+    def calc_pHCorr(self, pH_min_bio, pH_max_bio, pH_water):
+        ''' Correction for the effects of water pH on biodegradation
+        '''
+        # print(pH_water) 
+        # pHCorr = pH_water #  Create empty array identical to pH_water
+        pHCorr = np.empty_like(pH_water)
+        
+        for i in (range(len(pH_water))):
+                
+            if pH_water[i] <= pH_max_bio and pH_water[i] >= pH_min_bio:
+                pHCorr[i] = 1
+                logger.debug("pH is inside optimal range")
+            
+            elif pH_water[i] < pH_min_bio:
+                  pHCorr[i] = np.exp(pH_water[i]-pH_min_bio)
+                  logger.debug("pH is below optimal range")
+                  
+            elif pH_water[i] > pH_max_bio:
+                 pHCorr[i] = np.exp(pH_max_bio - pH_water[i])
+                 logger.debug("pH is over optimal range")
+                 
+            else:
+                pass
+        # print("pHCorr", pHCorr)
+        return pHCorr
+    
+# DONE    
+    def calc_k_hydro_water(self, k_Acid, k_Base, k_Hydr_Uncat, pH_water):
+        ''' Hydrolysis rate in water
+        ''' 
+       
+        k_W_hydro = np.empty_like(pH_water)
+        
+        if (k_Acid == 0 and k_Base == 0 and k_Hydr_Uncat == 0):
+            # print("k_DecayMax_water is set to 0 1/h, therefore  DOCorr = 0 and no biodegradation occurs")
+            logger.debug("k_Acid, k_Base, k_Hydr_Uncat are set to 0 1/h, therefore no hydolysis occurs in the water")
+            
+            for i in (range(len(pH_water))): 
+                k_W_hydro[i] = 0
+        
+        else:
+            logger.debug("k_Acid or k_Base or k_Hydr_Uncat are set != 0 1/h, therefore hydolysis occurs in the water")
+            for i in (range(len(pH_water))): 
+                         
+               k_hy_Ac = k_Acid*10**(-pH_water[i])
+               k_hy_Base = k_Base*10**(pH_water[i]-14)
+               k_W_hydro[i] = k_hy_Ac + k_hy_Base + k_Hydr_Uncat
+        
+        # print("k_W_hydro", k_W_hydro)
+        return k_W_hydro
+    
+# DONE         
+    def calc_k_hydro_sed(self, k_Acid, k_Base, k_Hydr_Uncat, pH_sed):
+        ''' Hydrolysis rate in sediments
+        ''' 
+        k_S_hydro = np.empty_like(pH_sed)
+        
+        if (k_Acid == 0 and k_Base == 0 and k_Hydr_Uncat == 0):
+            # print("k_DecayMax_water is set to 0 1/h, therefore  DOCorr = 0 and no biodegradation occurs")
+            logger.debug("k_Acid, k_Base, k_Hydr_Uncat are set to 0 1/h, therefore no hydolysis occurs in the sediments")
+            
+            for i in (range(len(pH_sed))): 
+                k_S_hydro[i] = 0
+        
+        else:
+            logger.debug("k_Acid or k_Base or k_Hydr_Uncat are set != 0 1/h, therefore hydolysis occurs in the sediments")
+            for i in (range(len(pH_sed))): 
+                         
+               k_hy_Ac = k_Acid*10**(-pH_sed[i])
+               k_hy_Base = k_Base*10**(pH_sed[i]-14)
+               k_S_hydro[i] = k_hy_Ac + k_hy_Base + k_Hydr_Uncat
+        
+        # print("k_S_hydro", k_S_hydro)
+        return k_S_hydro
+        
+    
+# DONE    
+    def calc_ScreeningFactor(self, RadDistr, RadDistr0_ml, RadDistr0_bml, WaterExt, ExtCoeffDOM, ExtCoeffSPM, ExtCoeffPHY, C2PHYC, concDOC, concSPM, Conc_Phyto_water, Depth, MLDepth):
+        ''' Screening Factor for photolisis attenuation with depth due to DOM, SPM, and Pythoplankton
+        ''' 
+        ConcDOM = (concDOC*12e-6 / 1.025 / 0.526 * 1e-3)* 1e-6 # ((Kg[OM]/L) from (umol[C]/Kg))* 1e-6 = g_DOM/m3
+              
+        # ConcSPM is already esxpressed in g_SPM/m3
+         
+        ConcPHYTO = (((Conc_Phyto_water*1e-6)*12.01)/C2PHYC)*1000 # mmol/m3*1e-6 = mol/L, *12.01 g_C/mol = g_C/L, / (g_Caron/g_Biomass) = g_Biomass/L, *1000 = g_BiomassPHYTO/m3
+          
+        Extinct = WaterExt + ExtCoeffDOM*ConcDOM + ExtCoeffSPM*concSPM +  ExtCoeffPHY*ConcPHYTO
+           
+        # ScreeningFactor = Depth #  Create empty array identical to Depth
+        ScreeningFactor = np.empty_like(Depth)
+        
+        # print("Depth", type(Depth), Depth.shape)
+        # print("ScreeningFactor", type(ScreeningFactor), ScreeningFactor.shape)
+        # print(RadDistr)
+        # print(RadDistr0_ml)
+        # print(RadDistr0_bml)
+        
+        
+        for i in (range(len(MLDepth))):
+            if Depth[i] == 0:
+                ScreeningFactor[i] = 1
+            else:
+                if Depth[i] <= MLDepth[i]:
+                    RadDistr_ratio = RadDistr/RadDistr0_ml
+                    
+                elif Depth[i] > MLDepth[i]:
+                    RadDistr_ratio = RadDistr/RadDistr0_bml
+                else:
+                    pass
+                ScreeningFactor[i] = RadDistr_ratio*((1-np.exp(-Extinct[i]*Depth[i]))/(Extinct[i]*Depth[i]))
+            
+            if math.isnan(ScreeningFactor[i]):
+                print( "ScreeningFactor for element", i, "is nan")
+                logger.debug("ScreeningFactor for element", i, "is nan")
+            else:
+                pass
+        
+        
+        # print(type(ScreeningFactor))
+        
+        if any(((ele < 0) or (ele > 1)) for ele in ScreeningFactor): 
+            # print('ScreeningFactor is not between 0 and 1')
+            warnings.warn('ScreeningFactor is not between 0 and 1')
+            logger.debug("ScreeningFactor is not between 0 and 1")
+        else:
+            pass 
+            
+        # print("ScreeningFactor", ScreeningFactor) 
+        return ScreeningFactor
+    
+# DONE    
+    def calc_LightFactor(self, AveSolar, Solar_radiation, Conc_CO2_asC, TW, Depth, MLDepth):
+        ''' Light Factor for photolisis attenuation with depth 
+        '''
+        # TW = Water temperature in °C
+        # TO DO Check here the convertion from input to Ly/day
+        
+        Solar = Solar_radiation/0.4843 # 1 Ly/day =  41868 J/m2 / 86400 s = 0.4843 W/m2, 
+        
+        # print(Solar)
+        
+        Conc_CO2 = ((Conc_CO2_asC*12.01)*1000)*22.73*1000 # from mol_C/m3, *12.01 g_C/mol = g_C/m3, *1000 = mg/m3, * 22.73 ueq/mg = ueq/m3, *1000 = ueq/L
+        # print(Conc_CO2)
+        
+        
+        
+        LightFactor = np.empty_like(MLDepth)
+        HyphoCorr = np.empty_like(MLDepth)
+        
+        for i in (range(len(MLDepth))):
+            # Depth[i] = 2
+            # MLDepth[i] = 1
+            
+            
+            if Depth[i] <= MLDepth[i]:
+                Solar0 = Solar[i]
+                LightFactor[i] = Solar0/AveSolar
+
+            elif Depth[i] > MLDepth[i]:
+                 HyphoCorr[i] = ((10**(-(6.57 - 0.0118*TW[i] + 0.00012*(TW[i]**2))))*Conc_CO2[i])*10**-14 # from AQUATOX
+                 Solar0 = Solar[i] * np.exp(-HyphoCorr[i]*MLDepth[i])
+                 LightFactor[i] = Solar0/AveSolar
+            else:
+                pass
+            
+            # LightFactor[i] = Solar0/AveSolar
+            
+        # print("LightFactor", LightFactor) 
+        return LightFactor
 
 
 
@@ -581,13 +1129,30 @@ class ChemicalDrift(OceanDrift):
 
             diss       = self.get_config('chemical:transformations:dissociation')
             pKa_acid   = self.get_config('chemical:transformations:pKa_acid')
+            if pKa_acid < 0 and diss!='nondiss':
+                print("pKa_acid must be positive")
+                UserWarning(("pKa_acid must be positive"))
+                exit()
+            else:
+                pass
+            
             pKa_base   = self.get_config('chemical:transformations:pKa_base')
-            pH_water   = 8.1
-            pH_sed     = 6.9
-            fOC_SPM    = self.get_config('chemical:transformations:fOC_SPM')
-            fOC_sed    = self.get_config('chemical:transformations:fOC_sed')
-                                    # Question
-                                    # Do we need separate fOC for SPM and Sed
+            if pKa_base < 0 and diss!='nondiss':
+                print("pKa_base must be positive")
+                UserWarning(("pKa_base must be positive"))
+                exit()
+            else:
+                pass
+            
+            # Read water pH to calculate dissociation
+            # pH_water = self.environment.sea_water_ph_reported_on_total_scale            
+            pH_water   = 8.1 # 8.1
+            
+            pH_sed     = 6.9 # 6.9
+            
+            fOC_SPM    = self.get_config('chemical:transformations:fOC_SPM')       # typical values from 0.01 to 0.1 gOC/g
+            fOC_sed    = self.get_config('chemical:transformations:fOC_sed')       # typical values from 0.01 to 0.1 gOC/g
+
             concDOM   = 1.e-3 / Org2C    # concentration of available dissolved organic matter (kg/m3)
                                          # rough initial estimate for coastal waters, doi: 10.1002/lom3.10118
             #concDOM   = 50.e-3     # HIGHER VALUE FOR TESTING!!!!!!!!!!!!
@@ -601,33 +1166,183 @@ class ChemicalDrift(OceanDrift):
             sed_poro    = self.get_config('chemical:sediment:porosity')         # sediment porosity
             sed_H       = self.get_config('chemical:sediment:layer_thickness')  # thickness of seabed interaction layer (m)
             sed_burial  = self.get_config('chemical:sediment:burial_rate')      # sediment burial rate (m/y)
-            sed_leaking_rate = self.get_config( 'chemical:sediment:buried_leaking_rate')
-
+            
+            # KOC_sed_given = self.get_config('chemical:transformations:KOC_sed_given')
+            # KOC_DOM_given = self.get_config('chemical:transformations:KOC_DOM_given')
+            
+            
+            
             if diss=='nondiss':
                 KOC_DOM = self.get_config('chemical:transformations:KOC_DOM')
                 if KOC_DOM < 0:
                     KOC_DOM = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014
+                
                 KOC_sed = self.get_config('chemical:transformations:KOC_sed')
                 if KOC_sed < 0:
                     KOC_sed = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C
                     #KOC_Sed    = 1.26 * kOW**0.81   # (L/KgOC),Ragas et al., 2019
+                
                 KOC_SPM = KOC_sed
+                               
+                # if KOC_sed_given is True:
+                #     KOC_sed = self.get_config('chemical:transformations:KOC_Sed')
+                # else:
+                #     KOC_sed    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C 
+                
+                # if KOC_DOM_given is True:
+                #     KOC_DOM = self.get_config('chemical:transformations:KOC_DOM')
+                # else:
+                #     KOC_DOM    = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 
+            
+                # KOC_SPM    = KOC_sed
+                
+                # print("nndiss", KOC_sed, KOC_DOM, KOC_SPM)
+                #KOC_Sed    = 1.26 * kOW**0.81   # (L/KgOC),Ragas et al., 2019
             else:
                 if diss=='acid':
-                    Phi_n    = 1/(1 + 10**(pH-pKa_acid))
-                    Phi_diss = 1-Phi_n
-
+                    # Dissociation in water 
+                    Phi_n_water    = 1/(1 + 10**(pH_water-pKa_acid))
+                    Phi_diss_water = 1-Phi_n_water
+                    
+                    KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    
+                    if KOC_sed_n < 0:
+                        KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
+                    else:
+                        pass
+                                            
+                    # if KOC_sed_given is True:
+                    #     KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    # else:
+                    #     KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
+                                        
+                    KOC_sed_diss_acid = (10**(0.11*np.log10(KOW)+1.54)) # KOC for dissociated acid species (L/kg_OC), from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202.
+                    
+                    KOC_SPM = (KOC_sed_n * Phi_n_water) + (Phi_diss_water * KOC_sed_diss_acid)
+                    
+                    
+                    KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
+                    
+                    if KOC_DOM_n <0:
+                        KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
+                    else:
+                        pass
+                        
+                    
+                    # if KOC_DOM_given is True:
+                    #     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
+                    # else:
+                    #     KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
+                    
+                    KOC_DOM = (0.08 * ((Phi_n_water*(KOC_DOM_n)) + ((1 - Phi_diss_water)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                    
+                    # Dissociation in sediments
+                    Phi_n_sed    = 1/(1 + 10**(pH_sed-pKa_acid))
+                    Phi_diss_sed = 1-Phi_n_sed
+                    KOC_sed = (KOC_sed_n * Phi_n_sed) + (Phi_diss_sed * KOC_sed_diss_acid)
+                    
+                    # print("acid", KOC_sed, KOC_DOM, KOC_SPM)
+                    
                 elif diss=='base':
-                    Phi_n    = 1/(1 + 10**(pH-pKa_base))
-                    Phi_diss = 1-Phi_n
-
+                    # Dissociation in water
+                    Phi_n_water    = 1/(1 + 10**(pH_water-pKa_base))
+                    Phi_diss_water = 1-Phi_n_water                   
+                    
+                    KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    if KOC_sed_n <0:
+                        KOC_sed_n   = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
+                    else:
+                        pass
+                                       
+                    
+                    # if KOC_sed_given is True:
+                    #     KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    # else:
+                    #     KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
+                    
+                                        
+                    KOC_sed_diss_base = 10**(pKa_acid**(0.65*((KOW/(KOW+1))**0.14))) # KOC for ionized form of base species (L/kg_OC) # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                    
+                    KOC_SPM = (KOC_sed_n * Phi_n_water) + (Phi_diss_water * KOC_sed_diss_base)
+                    
+                    
+                    KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
+                    if   KOC_DOM_n <0:
+                        KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
+                    else:
+                        pass
+                    
+                                       
+                    # if KOC_DOM_given is True:
+                    #     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
+                    # else:
+                    #     KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
+                    
+                    KOC_DOM = (0.08 * ((Phi_n_water*(KOC_DOM_n)) + ((1 - Phi_diss_water)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                                       
+                    # Dissociation in sediments
+                    Phi_n_sed    = 1/(1 + 10**(pH_sed-pKa_base))
+                    Phi_diss_sed = 1-Phi_n_sed
+                    KOC_sed = (KOC_sed_n * Phi_n_sed) + (Phi_diss_sed * KOC_sed_diss_base)
+                    # print("pKa_acid", pKa_acid)
+                    # print ("pH_sed-pKa_base", (pH_sed-pKa_base))
+                    # print("KOC_sed_diss_base", KOC_sed_diss_base)
+                    # print ("Phi_n_sed", Phi_n_sed)
+                    # print("base", KOC_sed, KOC_DOM, KOC_SPM)
+ 
+    
+ 
                 elif diss=='amphoter':
-                    Phi_n      = 1/(1 + 10**(pH-pKa_acid) + 10**(pKa_base))
-                    Phi_anion  = Phi_n * 10**(pH-pKa_acid)
-                    Phi_cation = Phi_n * 10**(pKa_base-pH)
+                    # Dissociation in water
+                    Phi_n_water      = 1/(1 + 10**(pH_water-pKa_acid) + 10**(pKa_base))
+                    Phi_anion_water  = Phi_n_water * 10**(pH_water-pKa_acid)
+                    Phi_cation_water = Phi_n_water * 10**(pKa_base-pH_water)
+                    Phi_diss_water   = 1 - Phi_n_water
 
-                #TODO: calculation of KOC for ionic chemicals
-
+                    
+                    KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    if KOC_sed_n < 0:
+                        KOC_sed_n =  KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
+                    else:
+                        pass
+                    
+                    # if KOC_sed_given is True:
+                    #     KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                      
+                    # else:
+                    #     KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
+                    
+                    KOC_sed_diss_base = 10**(pKa_acid**(0.65*((KOW/(KOW+1))**0.14))) # KOC for ionized form of base species (L/kg_OC) # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                    KOC_sed_diss_acid = (10**(0.11*np.log10(KOW)+1.54)) # KOC for dissociated acid species (L/kg_OC), from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202.
+                    
+                    KOC_SPM = (KOC_sed_n * Phi_n_water) + (Phi_anion_water * KOC_sed_diss_acid) + (Phi_cation_water * KOC_sed_diss_base)
+                    
+                    
+                    
+                    KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
+                    if KOC_DOM_n <0:
+                        KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
+                    else:
+                        pass
+                    
+                    
+                    # if KOC_DOM_given is True:
+                    #     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
+                    # else:
+                    #     KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
+                    
+                    KOC_DOM = (0.08 * ((Phi_n_water*(KOC_DOM_n)) + ((1 - Phi_diss_water)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
+                    
+                    # Dissociation in sediments
+                    Phi_n_sed      = 1/(1 + 10**(pH_sed-pKa_acid) + 10**(pKa_base))
+                    Phi_anion_sed  = Phi_n_sed * 10**(pH_sed-pKa_acid)
+                    Phi_cation_sed = Phi_n_sed * 10**(pKa_base-pH_sed)
+                    
+                    KOC_sed = (KOC_sed_n * Phi_n_sed) + (Phi_anion_sed * KOC_sed_diss_acid) + (Phi_cation_sed * KOC_sed_diss_base)
+                    
+                    # print("anfo",KOC_sed, KOC_DOM, KOC_SPM)
+                    
+                    
             logger.debug('Partitioning coefficients (Tref,freshwater)')
             logger.debug('KOC_sed: %s L/KgOC' % KOC_sed)
             logger.debug('KOC_SPM: %s L/KgOC' % KOC_SPM)
@@ -686,7 +1401,7 @@ class ChemicalDrift(OceanDrift):
 
             # Using slowly reversible specie for burial - TODO buried sediment should be a new specie
             self.transfer_rates[self.num_srev,self.num_ssrev] = sed_burial / sed_L / 31556926 # k46 (m/y) / m / (s/y) = s-1
-            self.transfer_rates[self.num_ssrev,self.num_srev] = sed_leaking_rate                # k64
+            self.transfer_rates[self.num_ssrev,self.num_srev] = 0                             # k64
 
 
             self.transfer_rates[self.num_humcol,self.num_prev] = 1.e-5      # k23, Salinity interval >20 psu
@@ -938,6 +1653,7 @@ class ChemicalDrift(OceanDrift):
     def update_transfer_rates(self):
         '''Pick out the correct row from transfer_rates for each element. Modify the
         transfer rates according to local environmental conditions '''
+             
 
         transfer_setup=self.get_config('chemical:transfer_setup')
         if transfer_setup == 'Bokna_137Cs' or \
@@ -947,69 +1663,268 @@ class ChemicalDrift(OceanDrift):
             self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
 
             if transfer_setup=='organics':
-                # filtering out zero values from temperature and salinity
-                # TODO: Find out if problem is in the reader or in the data
-                temperature=self.environment.sea_water_temperature
-                temperature[temperature==0]=np.median(temperature)
+                
+                diss       = self.get_config('chemical:transformations:dissociation')
+                
+                if diss=='nondiss':
+                                    
+                    # filtering out zero values from temperature and salinity
+                    # TODO: Find out if problem is in the reader or in the data
+                    temperature=self.environment.sea_water_temperature
+                    temperature[temperature==0]=np.median(temperature)
+    
+                    salinity=self.environment.sea_water_salinity
+                    salinity[salinity==0]=np.median(salinity)
+    
+                    KOWTref    = self.get_config('chemical:transformations:TrefKOW')
+                    DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
+                    DH_KOC_DOM = self.get_config('chemical:transformations:DeltaH_KOC_DOM')
+                    Setchenow  = self.get_config('chemical:transformations:Setchenow')
+    
+                    tempcorrSed = self.tempcorr("Arrhenius",DH_KOC_Sed,temperature,KOWTref)
+                    tempcorrDOM = self.tempcorr("Arrhenius",DH_KOC_DOM,temperature,KOWTref)
+                    salinitycorr = self.salinitycorr(Setchenow,temperature,salinity)
+    
+                    # Temperature and salinity correction for desorption rates (inversely proportional to Kd)
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_humcol,self.num_lmm] = \
+                        self.k21_0 / tempcorrDOM[self.elements.specie==self.num_humcol] / salinitycorr[self.elements.specie==self.num_humcol]
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_prev,self.num_lmm] = \
+                        self.k31_0 / tempcorrSed[self.elements.specie==self.num_prev] / salinitycorr[self.elements.specie==self.num_prev]
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
+                        self.k41_0 / tempcorrSed[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
+    
+                    # Updating sorption rates according to local SPM concentration
+    
+                    concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3) 
+    
+                    # Apply SPM concentration profile if SPM reader has not depth coordinate
+                    # SPM concentration is kept constant to surface value in the mixed layer
+                    # Exponentially decreasing with depth below the mixed layers
+    
+                    if not self.SPM_vertical_levels_given:
+                        lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                        #concSPM[lowerMLD] = concSPM[lowerMLD]/2
+                        concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
+                            -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                            *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
+                            )
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
+                        self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+    
+                    concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
+    
+                    # Apply DOC concentration profile if DOC reader has not depth coordinate
+                    # DOC concentration is kept constant to surface value in the mixed layer
+                    # Exponentially decreasing with depth below the mixed layers
+    
+                    if not self.DOC_vertical_levels_given:
+                        lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                        #concDOM[lowerMLD] = concDOM[lowerMLD]/2
+                        concDOM[lowerMLD] = concDOM[lowerMLD] * np.exp(
+                            -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                            *np.log(0.5)/self.get_config('chemical:doc_concentration_half_depth')
+                            )
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
+                        self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k14
+                        
+                elif diss!='nondiss':
+                    # Select elements for updating trasfer rates in sediments, SPM, and DOM
+                    
+                    #Sediments
+                    S =   (self.elements.specie == self.num_srev) \
+                        + (self.elements.specie == self.num_ssrev)
 
-                salinity=self.environment.sea_water_salinity
-                salinity[salinity==0]=np.median(salinity)
+                    SPM = (self.elements.specie == self.num_prev)
 
-                KOWTref    = self.get_config('chemical:transformations:TrefKOW')
-                DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
-                DH_KOC_DOM = self.get_config('chemical:transformations:DeltaH_KOC_DOM')
-                Setchenow  = self.get_config('chemical:transformations:Setchenow')
+                    DOM = (self.elements.specie == self.num_humcol)
+                    
+                    pH_sed = self.environment.pH_sediment[S]
+                    # pH_sed[pH_sed==0]=np.median(pH_sed)
+                    
+                    pH_water_SPM=self.environment.sea_water_ph_reported_on_total_scale[SPM]
+                    # pH_water_SPM[pH_water_SPM==0]=np.median(TW)
 
-                tempcorrSed = self.tempcorr("Arrhenius",DH_KOC_Sed,temperature,KOWTref)
-                tempcorrDOM = self.tempcorr("Arrhenius",DH_KOC_DOM,temperature,KOWTref)
-                salinitycorr = self.salinitycorr(Setchenow,temperature,salinity)
+                    pH_water_DOM=self.environment.sea_water_ph_reported_on_total_scale[DOM]
+                    # pH_water_DOM[pH_water_DOM==0]=np.median(pH_water_DOM)
+                    
+                    diss       = self.get_config('chemical:transformations:dissociation')
 
-                # Temperature and salinity correction for desorption rates (inversely proportional to Kd)
+                    pKa_acid   = self.get_config('chemical:transformations:pKa_acid')
+                    if pKa_acid < 0:
+                        print("pKa_acid must be positive")
+                        UserWarning(("pKa_acid must be positive"))
+                        exit()
+                    else:
+                        pass
 
-                self.elements.transfer_rates1D[self.elements.specie==self.num_humcol,self.num_lmm] = \
-                    self.k21_0 / tempcorrDOM[self.elements.specie==self.num_humcol] / salinitycorr[self.elements.specie==self.num_humcol]
+                    pKa_base   = self.get_config('chemical:transformations:pKa_base')
+                    if pKa_base < 0:
+                        print("pKa_base must be positive")
+                        UserWarning(("pKa_base must be positive"))
+                        exit()
+                    else:
+                        pass
 
-                self.elements.transfer_rates1D[self.elements.specie==self.num_prev,self.num_lmm] = \
-                    self.k31_0 / tempcorrSed[self.elements.specie==self.num_prev] / salinitycorr[self.elements.specie==self.num_prev]
+                    KOW = 10**self.get_config('chemical:transformations:LogKOW')
 
-                self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
-                    self.k41_0 / tempcorrSed[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
+                    # KOC_sed_given = self.get_config('chemical:transformations:KOC_sed_given')
+                    # KOC_DOM_given = self.get_config('chemical:transformations:KOC_DOM_given')
+                    
+                    KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    if KOC_sed_n < 0:
+                        KOC_sed_n = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
+                    else:
+                        pass
 
-                # Updating sorption rates according to local SPM concentration
 
-                concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3) 
+                    # if KOC_sed_given is True:
+                    #     KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    # else:
+                    #     KOC_sed_n = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
+                        
+                    KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
+                    if KOC_DOM_n < 0:
+                        KOC_DOM_n = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
+                    else:
+                        pass
 
-                # Apply SPM concentration profile if SPM reader has not depth coordinate
-                # SPM concentration is kept constant to surface value in the mixed layer
-                # Exponentially decreasing with depth below the mixed layers
+                    # if KOC_DOM_given is True:
+                    #     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
+                    # else:
+                    #     KOC_DOM_n = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
 
-                if not self.SPM_vertical_levels_given:
-                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
-                    #concSPM[lowerMLD] = concSPM[lowerMLD]/2
-                    concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
-                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
-                        *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
-                        )
 
-                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
-                    self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+                    fOC_SPM    = self.get_config('chemical:transformations:fOC_SPM')       # typical values from 0.01 to 0.1 gOC/g
+                    fOC_sed    = self.get_config('chemical:transformations:fOC_sed') 
+                    Org2C      = 0.526  # kgOC/KgOM
 
-                concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
+                    # Calculate original KOC_Values 
+                    # TO DO: Store directly KOC values
+                    # print("&&&&IN")
 
-                # Apply DOC concentration profile if DOC reader has not depth coordinate
-                # DOC concentration is kept constant to surface value in the mixed layer
-                # Exponentially decreasing with depth below the mixed layers
+                    KOC_sed_initial = (self.Kd_sed)/fOC_sed # L/Kg / KgOC/Kg = L/KgOC
+                    # print(self.Kd_sed, "_Kd_sed")
+                    # print("&&&&")
+                    KOC_SPM_initial = (self.Kd_SPM)/fOC_SPM # L/Kg / KgOC/Kg = L/KgOC
+                    # print(self.Kd_SPM, "_Kd_SPM")
+                    # print("&&&&")
+                    KOC_DOM_initial = (self.Kd_DOM)/Org2C
+                    # print(self.Kd_DOM, "_Kd_DOM")
+                    # print("&&&&")
+                   
+                    ##################################################################################################################
+                    
+                    temperature=self.environment.sea_water_temperature
+                    temperature[temperature==0]=np.median(temperature)
+    
+                    salinity=self.environment.sea_water_salinity
+                    salinity[salinity==0]=np.median(salinity)
+    
+                    KOWTref    = self.get_config('chemical:transformations:TrefKOW')
+                    DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
+                    DH_KOC_DOM = self.get_config('chemical:transformations:DeltaH_KOC_DOM')
+                    Setchenow  = self.get_config('chemical:transformations:Setchenow')
+    
+                    tempcorrSed = self.tempcorr("Arrhenius",DH_KOC_Sed,temperature,KOWTref)
+                    tempcorrDOM = self.tempcorr("Arrhenius",DH_KOC_DOM,temperature,KOWTref)
+                    salinitycorr = self.salinitycorr(Setchenow,temperature,salinity)
+                    
+                    
+                    KOC_sedcorr = self.calc_KOC_sedcorr(KOC_sed_initial, KOC_sed_n, pKa_acid, pKa_base, KOW, pH_sed, diss)
+                    KOC_watcorrSPM = self.calc_KOC_watcorrSPM(KOC_SPM_initial, KOC_sed_n, pKa_acid, pKa_base, KOW, pH_water_SPM, diss)
+                    KOC_watcorrDOM = self.calc_KOC_watcorrDOM(KOC_DOM_initial, KOC_DOM_n, pKa_acid, pKa_base, KOW, pH_water_DOM, diss)
+                    
+    
+                    # Temperature and salinity correction for desorption rates (inversely proportional to Kd)
 
-                if not self.DOC_vertical_levels_given:
-                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
-                    #concDOM[lowerMLD] = concDOM[lowerMLD]/2
-                    concDOM[lowerMLD] = concDOM[lowerMLD] * np.exp(
-                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
-                        *np.log(0.5)/self.get_config('chemical:doc_concentration_half_depth')
-                        )
+                    ####
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_humcol,self.num_lmm] = \
+                        self.k21_0 * KOC_watcorrDOM / tempcorrDOM[self.elements.specie==self.num_humcol] / salinitycorr[self.elements.specie==self.num_humcol]
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_prev,self.num_lmm] = \
+                        self.k31_0 * KOC_watcorrSPM / tempcorrSed[self.elements.specie==self.num_prev] / salinitycorr[self.elements.specie==self.num_prev]
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
+                        self.k41_0 * KOC_sedcorr / tempcorrSed[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
+                        
+                    # print("&&&&")
+                    # print(len(KOC_watcorrDOM), "__lel_watcorrDOM")
+                    # print(len(pH_water_DOM), "pH_water_DOM")
+                    # print(len((tempcorrDOM[self.elements.specie==self.num_humcol])), "__len_tempcorr_DOM")
+                    # print(len((salinitycorr[self.elements.specie==self.num_humcol])), "__len_salinitycorr_DOM")
+                    
+                    
+                    # print("&&&&")                    
+                    # print(len(KOC_watcorrSPM), "__len_watcorrSPM")
+                    # print(len(pH_water_SPM), "__len_pH_water_SPM")
+                    # print(len((tempcorrSed[self.elements.specie==self.num_prev])), "__len_tempcorr_SPM")
+                    # print(len((salinitycorr[self.elements.specie==self.num_prev])), "__len_salinitycorr_SPM")
+                    
+                    
 
-                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
-                    self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k14
+                    # print("&&&&")
+                    # print(len(KOC_sedcorr), "__len_KOC_sedcorr")
+                    # print(len(pH_sed), "__len_pH_sed")
+                    # print(len((tempcorrSed[self.elements.specie==self.num_srev])), "__len_tempcorr_sed")
+                    # print(len((salinitycorr[self.elements.specie==self.num_srev])), "__len_salinitycorr_sed")
+
+                    # print("&&&&OUT")
+ 
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+    
+                    # Updating sorption rates according to local SPM concentration
+    
+                    concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3) 
+    
+                    # Apply SPM concentration profile if SPM reader has not depth coordinate
+                    # SPM concentration is kept constant to surface value in the mixed layer
+                    # Exponentially decreasing with depth below the mixed layers
+    
+                    if not self.SPM_vertical_levels_given:
+                        lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                        #concSPM[lowerMLD] = concSPM[lowerMLD]/2
+                        concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
+                            -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                            *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
+                            )
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
+                        self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+    
+                    concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
+    
+                    # Apply DOC concentration profile if DOC reader has not depth coordinate
+                    # DOC concentration is kept constant to surface value in the mixed layer
+                    # Exponentially decreasing with depth below the mixed layers
+    
+                    if not self.DOC_vertical_levels_given:
+                        lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                        #concDOM[lowerMLD] = concDOM[lowerMLD]/2
+                        concDOM[lowerMLD] = concDOM[lowerMLD] * np.exp(
+                            -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                            *np.log(0.5)/self.get_config('chemical:doc_concentration_half_depth')
+                            )
+    
+                    self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
+                        self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k14
+                
+                
+                
+                
+                else:
+                    pass
 
 
             if self.get_config('chemical:species:Sediment_reversible'):
@@ -1272,7 +2187,11 @@ class ChemicalDrift(OceanDrift):
 
     def degradation(self):
         '''degradation. Test implementations'''
-
+        # Function added for single process degradation
+                   
+     
+       
+        
         def degradation_factors(): # NB Only used for testing
             '''Factors for specie dependent degradation'''
 
@@ -1302,7 +2221,208 @@ class ChemicalDrift(OceanDrift):
 
                 fraction_degraded = .01*degradation_factors()
                 degraded_now = self.elements.mass*fraction_degraded
+                
+            elif self.get_config('chemical:transformations:degradation_mode')=='SingleRateConstants':
+                logger.debug('Calculating single degradation rates in water')
+             
+
+                degraded_now = np.zeros(self.num_elements_active())
+                
+                # Calculations here are for overall degradation including
+                # biodegradation, photodegradation, and hydrolysys
+
+                # Define parameters for each element not from NETCDF files
+                
+                Tref_kWt = self.get_config('chemical:transformations:Tref_kWt')                
+                DH_kWt = self.get_config('chemical:transformations:DeltaH_kWt')
+                k_DecayMax_water = self.get_config('chemical:transformations:k_DecayMax_water')     
+                
+                if k_DecayMax_water == 0:
+                    logger.debug("k_DecayMax_water is set to 0 1/h, therefore  DOCorr = 0 and no biodegradation occurs")
+                else:
+                    pass
+
+                k_Anaerobic_water = self.get_config('chemical:transformations:k_Anaerobic_water')  
+                
+                if k_Anaerobic_water == 0:
+                    logger.debug("k_Anaerobic_water is set to 0 1/h, therefore no biodegradation occurs without oxigen")
+                else:
+                    pass
+                
+                
+                HalfSatO_w = self.get_config('chemical:transformations:HalfSatO_w')                
+                T_Max_bio = self.get_config('chemical:transformations:T_Max_bio')                
+                T_Opt_bio = self.get_config('chemical:transformations:T_Opt_bio')                
+                T_Adp_bio = self.get_config('chemical:transformations:T_Adp_bio')                
+                Max_Accl_bio = self.get_config('chemical:transformations:Max_Accl_bio')                
+                Dec_Accl_bio = self.get_config('chemical:transformations:Dec_Accl_bio')                
+                Q10_bio = self.get_config('chemical:transformations:Q10_bio')                
+                pH_min_bio = self.get_config('chemical:transformations:pH_min_bio')                
+                pH_max_bio = self.get_config('chemical:transformations:pH_max_bio')                
+                k_Acid = self.get_config('chemical:transformations:k_Acid')                
+                k_Base = self.get_config('chemical:transformations:k_Base')                
+                k_Hydr_Uncat = self.get_config('chemical:transformations:k_Hydr_Uncat')                
+                k_Photo = self.get_config('chemical:transformations:k_Photo') 
+                
+                if k_Photo == 0:
+                    logger.debug("k_Photo is set to 0 1/h, therefore no phodegradation occurs")
+                else:
+                    pass
+                
+                RadDistr = self.get_config('chemical:transformations:RadDistr')                
+                RadDistr0_ml = self.get_config('chemical:transformations:RadDistr0_ml')                
+                RadDistr0_bml = self.get_config('chemical:transformations:RadDistr0_bml')                
+                WaterExt = self.get_config('chemical:transformations:WaterExt')                
+                ExtCoeffDOM = self.get_config('chemical:transformations:ExtCoeffDOM')                
+                ExtCoeffSPM = self.get_config('chemical:transformations:ExtCoeffSPM')                
+                ExtCoeffPHY = self.get_config('chemical:transformations:ExtCoeffPHY')                
+                C2PHYC = self.get_config('chemical:transformations:C2PHYC')                
+                AveSolar = self.get_config('chemical:transformations:AveSolar')
+                
+                # Only "dissolved" and "DOC" elements will degrade
+                
+                # Define parameters from netCDF files
+                
+                W =   (self.elements.specie == self.num_lmm) \
+                    + (self.elements.specie == self.num_humcol)
+
+                # Temperature
+                # TW=self.environment.sea_water_temperature
+                TW=self.environment.sea_water_temperature[W]
+                TW[TW==0]=np.median(TW)
+                
+                # # Dissolved oxigen in g/m3 or mg/L                                                                                
+                Ox_water=self.environment.mole_concentration_of_dissolved_molecular_oxygen_in_sea_water[W]
+                # # Ox_water[Ox_water==0]=np.median(Ox_water)
+                
+                # # pH water                                                                                                       
+                pH_water=self.environment.sea_water_ph_reported_on_total_scale[W]
+                # # pH_water[pH_water==0]=np.median(pH_water) 
+                               
+                # # Concentration of C02 in the water column in mol_C/m3                                                            
+                Conc_CO2_asC=self.environment.mole_concentration_of_dissolved_inorganic_carbon_in_sea_water[W]
+                # # Conc_CO2_asC[Conc_CO2_asC==0]=np.median(Conc_CO2_asC)
+                
+                # # Solar radiation in W/m2                                                                                        
+                Solar_radiation=self.environment.solar_irradiance[W]
+                # # Solar_radiation[Solar_radiation==0]=np.median(Solar_radiation)
+                
+                # # Concentration of phytoplankton in the water column in mol_C/m3                                                  
+                Conc_Phyto_water=self.environment.mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water[W]
+                # # Conc_Phyto_water[Conc_Phyto_water==0]=np.median(Conc_Phyto_water)
+                
+                
+                # Concentration of SPM g/m3
+                concSPM=self.environment.spm # (g/m3) 
+
+
+                # Apply SPM concentration profile if SPM reader has not depth coordinate
+                # SPM concentration is kept constant to surface value in the mixed layer
+                # Exponentially decreasing with depth below the mixed layers
+
+                if not self.SPM_vertical_levels_given:
+                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                    #concSPM[lowerMLD] = concSPM[lowerMLD]/2
+                    concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
+                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                        *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
+                        )
+                concSPM=concSPM[W] # (g/m3)
+                
+                
+                # # # Concentration of DOC g/m3
+                concDOC = self.environment.doc # in (umol[C]/Kg)
+
+
+                # Apply DOC concentration profile if DOC reader has not depth coordinate
+                # DOC concentration is kept constant to surface value in the mixed layer
+                # Exponentially decreasing with depth below the mixed layers
+
+                if not self.DOC_vertical_levels_given:
+                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                    #concDOM[lowerMLD] = concDOM[lowerMLD]/2
+                    concDOC[lowerMLD] = concDOC[lowerMLD] * np.exp(
+                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                        *np.log(0.5)/self.get_config('chemical:doc_concentration_half_depth')
+                        )
+                concDOC=concDOC[W] # in (umol[C]/Kg)
+                
+                
+                # Mixed Layer depth in m
+                MLDepth=self.environment.ocean_mixed_layer_thickness[W] 
+                
+                
+                # MLDepth[MLDepthr==0]=np.median(MLDepth)
+                
+                # Depth of element in m
+                Depth=-self.elements.z[W]     # self.elements.z is negative                                                                                   
+                
+
+
+                # Calculating correction factors for degradation rates
+                
+                k_W_bio = k_DecayMax_water * self.calc_DOCorr(HalfSatO_w, k_Anaerobic_water, k_DecayMax_water, Ox_water)
+                k_W_bio = k_W_bio * self.calc_pHCorr(pH_min_bio, pH_max_bio, pH_water)
+                k_W_bio = k_W_bio * self.calc_TCorr(T_Max_bio, T_Opt_bio, T_Adp_bio, Max_Accl_bio, Dec_Accl_bio, Q10_bio, TW)
+                
+                k_W_photo = k_Photo * self.calc_LightFactor(AveSolar, Solar_radiation, Conc_CO2_asC, TW, Depth, MLDepth)
+                k_W_photo = k_W_photo * self.calc_ScreeningFactor(RadDistr, RadDistr0_ml, RadDistr0_bml, WaterExt, ExtCoeffDOM, ExtCoeffSPM, ExtCoeffPHY, C2PHYC, concDOC, concSPM, Conc_Phyto_water, Depth, MLDepth)
+                k_W_photo = k_W_photo * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt) 
+               
+                k_W_hydro = self.calc_k_hydro_water(k_Acid, k_Base, k_Hydr_Uncat, pH_water)
+                k_W_hydro = k_W_hydro * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
+                             
+                
+                k_W_tot = (k_W_bio + k_W_hydro + k_W_photo)/(60*60) # from 1/h to 1/s
+                k_W_fin = k_W_tot * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
+                
+
+
+                # degraded_now = self.elements.mass * (1-np.exp(-k_W_fin * self.time_step.seconds))
+                degraded_now[W] = self.elements.mass[W] * (1-np.exp(-k_W_fin * self.time_step.seconds))
+
+                # Degradation in the sediments
+                
+                # k_S_tot = -np.log(0.5)/(self.get_config('chemical:transformations:t12_S_tot')*(60*60)) # (1/s)
+                
+                Tref_kSt = self.get_config('chemical:transformations:Tref_kSt')
+                DH_kSt = self.get_config('chemical:transformations:DeltaH_kSt')
+
+                S =   (self.elements.specie == self.num_srev) \
+                    + (self.elements.specie == self.num_ssrev)
+
+                # TS=self.environment.sea_water_temperature
+                TS=self.environment.sea_water_temperature[S]
+                TS[TS==0]=np.median(TS)
+                
+                # pH sediments
+                pH_sed=self.environment.pH_sediment[S]
+                pH_sed[pH_sed==0]=np.median(pH_sed)
+                
+                k_S_bio = self.get_config('chemical:transformations:k_DecayMax_water')/4  # From AQUATOX   k_DecayMax_water is a rate (1/h), and k_S_bio is four times slower than k_DecayMax_water           
+                k_S_hydro = self.calc_k_hydro_sed(k_Acid, k_Base, k_Hydr_Uncat, pH_sed)
+                
+                k_S_tot = (k_S_bio + k_S_hydro)/(60*60) # from 1/h to 1/s
+                k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
+
+                # degraded_now = self.elements.mass * (1-np.exp(-k_S_fin * self.time_step.seconds))
+                degraded_now[S] = self.elements.mass[S] * (1-np.exp(-k_S_fin * self.time_step.seconds))
+
+                # self.elements.mass_degraded_water = self.elements.mass_degraded_water + degraded_now
+                # self.elements.mass_degraded_sediment = self.elements.mass_degraded_sediment + degraded_now
+                self.elements.mass_degraded_water[W] = self.elements.mass_degraded_water[W] + degraded_now[W]
+                self.elements.mass_degraded_sediment[S] = self.elements.mass_degraded_sediment[S] + degraded_now[S]
     
+                self.elements.mass_degraded = self.elements.mass_degraded + degraded_now
+                self.elements.mass = self.elements.mass - degraded_now
+                self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100, 
+                                         reason='removed')
+
+            #to_deactivate = self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100
+            #vol_morethan_degr = self.elements.mass_degraded >= self.elements.mass_volatilized
+            #
+            #self.deactivate_elements(to_deactivate +  vol_morethan_degr, reason='volatilized')
+            #self.deactivate_elements(to_deactivate + ~vol_morethan_degr, reason='degraded')
             elif self.get_config('chemical:transformations:degradation_mode')=='OverallRateConstants':
                 # TODO: Rearrange code. Calculations here are for overall degradation including
                 # degradation, photodegradation, and hydrolysys
@@ -1350,12 +2470,12 @@ class ChemicalDrift(OceanDrift):
             self.deactivate_elements(self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100, 
                                      reason='removed')
 
-            #to_deactivate = self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100
-            #vol_morethan_degr = self.elements.mass_degraded >= self.elements.mass_volatilized
-            #
-            #self.deactivate_elements(to_deactivate +  vol_morethan_degr, reason='volatilized')
-            #self.deactivate_elements(to_deactivate + ~vol_morethan_degr, reason='degraded')
-
+            # to_deactivate = self.elements.mass < (self.elements.mass + self.elements.mass_degraded + self.elements.mass_volatilized)/100
+            # vol_morethan_degr = self.elements.mass_degraded >= self.elements.mass_volatilized
+            
+            # self.deactivate_elements(to_deactivate +  vol_morethan_degr, reason='volatilized')
+            # self.deactivate_elements(to_deactivate + ~vol_morethan_degr, reason='degraded')
+        
         else:
             pass
         
@@ -1375,7 +2495,24 @@ class ChemicalDrift(OceanDrift):
             MolWt=self.get_config('chemical:transformations:MolWt')
             wind=5                  # (m/s) (to read from atmosferic forcing)
             mixedlayerdepth=50      # m     (to read from ocean forcing)
-            Undiss_n=1              # 1 for PAHs
+            
+            diss       = self.get_config('chemical:transformations:dissociation')
+            
+            pKa_acid   = self.get_config('chemical:transformations:pKa_acid')
+            if pKa_acid < 0 and diss!='nondiss':
+                print("pKa_acid must be positive")
+                UserWarning(("pKa_acid must be positive"))
+                exit()
+            else:
+                pass
+            
+            pKa_base   = self.get_config('chemical:transformations:pKa_base')
+            if pKa_base < 0 and diss!='nondiss':
+                print("pKa_base must be positive")
+                UserWarning(("pKa_base must be positive"))
+                exit()
+            else:
+                pass
 
             Henry=self.get_config('chemical:transformations:Henry') # (atm m3/mol)
 
@@ -1410,13 +2547,36 @@ class ChemicalDrift(OceanDrift):
                        / (Slb *  self.tempcorr("Arrhenius",DH_Slb,T,Tref_Slb))  \
                        * MolWt / 101325.    # atm m3 mol-1
 
-            #k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
+
 
             # Calculate mass transfer coefficient water side
             # Schwarzenbach et al., 2016 Eq.(19-20)
+            
+            # Read water pH to calculate dissociation
+          
+            pH_water = self.environment.sea_water_ph_reported_on_total_scale[W]
+            # pH_water[pH_water==0]=np.median(pH_water)
+                       
+            
+            if diss=='nondiss':
+                Undiss_n=1              # 1 for PAHs
+ 
+            elif diss=='acid':
+                # Dissociation in water 
+                Undiss_n = 1/(1 + 10**(pH_water-pKa_acid))
+
+            elif diss=='base':
+                # Dissociation in water
+                Undiss_n = 1/(1 + 10**(pH_water-pKa_base))
+  
+            elif diss=='amphoter':
+                # Dissociation in water
+                Undiss_n = 1/(1 + 10**(pH_water-pKa_acid) + 10**(pKa_base))
+
 
             MTCw = ((9e-4)+(7.2e-6*wind**3)) * (MolWtCO2/MolWt)**0.25 / Undiss_n
 
+            # print("MTCw", len(MTCw))
             # Calculate mass transfer coefficient air side
             # Schwarzenbach et al., 2016 Eq.(19-17)(19-18)(19-19)
 
@@ -1529,6 +2689,37 @@ class ChemicalDrift(OceanDrift):
 
 # ################
 # POSTPROCESSING
+
+
+    def simulation_summary(self, chemical_compound, o):
+        '''Print a summary of the simulation: number of elements, number of transformations
+        and final speciation
+        '''
+        
+        print(chemical_compound)
+
+        print('Final speciation:')
+        for isp,sp in enumerate(o.name_species):
+            print ('{:32}: {:>6}'.format(sp,sum(o.elements.specie==isp)))
+
+        print('Number of transformations:')
+        for isp in range(o.nspecies):
+            print('{}'.format(['{:>9}'.format(np.int(item)) for item in o.ntransformations[isp,:]]) )
+
+        m_pre = sum(o.elements.mass)+sum(o.elements_deactivated.mass)
+        m_deg = sum(o.elements.mass_degraded)+sum(o.elements_deactivated.mass_degraded)
+        m_deg_w = sum(o.elements.mass_degraded_water)+sum(o.elements_deactivated.mass_degraded_water)
+        m_deg_s = sum(o.elements.mass_degraded_sediment)+sum(o.elements_deactivated.mass_degraded_sediment)
+        m_vol = sum(o.elements.mass_volatilized)+sum(o.elements_deactivated.mass_volatilized)
+        m_tot = m_pre + m_deg + m_vol
+
+        print('Mass balance:')
+        print('mass preserved       :', m_pre * 1e-6,' g   ',m_pre/m_tot*100,'%')
+        print('mass degraded        :', m_deg * 1e-6,' g   ',m_deg/m_tot*100,'%')
+        print('     in water column :', m_deg_w * 1e-6,' g   ',m_deg_w/m_tot*100,'%')
+        print('     in sediments    :', m_deg_s * 1e-6,' g   ',m_deg_s/m_tot*100,'%')
+        print('mass volatilized     :', m_vol * 1e-6,' g   ',m_vol/m_tot*100,'%')
+
 
     def write_netcdf_chemical_density_map(self, filename, pixelsize_m='auto', zlevels=None,
                                               deltat=None,
@@ -1998,12 +3189,19 @@ class ChemicalDrift(OceanDrift):
                     "Cadmium":                  [0.8,    0.3],
                     "Chromium":                 [15.,    6.5],
                     "Copper":                   [36.,    12.],
+                    "Cobalt":                   [0.17,     0.14],
                     "Iron":                     [260.,   250.],
                     "Lead":                     [8.8,    4.4],
                     "Mercury":                  [0.09,   0.01],
                     "Nickel":                   [48.,    12.],
+                    "Selenium":                 [97.,       38],
                     "Vanadium":                 [170.,   49.],
                     "Zinc":                     [110.,   59.],
+                    #
+                    "Nitrate":                  [2830.,    2060.],
+                    "Nitrite":                  [760.,     680.],
+                    "Ammonium":                 [730.,     30.],
+                    "Sulphur":                  [2200000., 446000.],
                     #
                     "Naphthalene":              [2.81,   0.77],
                     "Phenanthrene":             [1.51,   0.29],
@@ -2027,23 +3225,30 @@ class ChemicalDrift(OceanDrift):
                 emission_factors_closed_loop = {
                     #                           mean    +/-95%
                     #                           ug/L    ug/L
-                    "Arsenic":                  [22.,    9.4],
+                    "Arsenic":                  [22,    9.4],
                     "Cadmium":                  [0.55,   0.19],
-                    "Chromium":                 [1300.,  1700.],
+                    "Chromium":                 [1300.,   1700.],
+                    "Cobalt":                   [0.,   0.],
                     "Copper":                   [480.,   230.],
-                    "Iron":                     [490.,   82.],
+                    "Iron":                     [490.,     82.],
                     "Lead":                     [7.7,    3.1],
                     "Mercury":                  [0.07,   0.02],
-                    "Nickel":                   [2700.,  860.],
-                    "Vanadium":                 [9100.,  3200.],
+                    "Nickel":                   [2700.,   860.],
+                    "Selenium":                 [0.,     0.],
+                    "Vanadium":                 [9100.,   3200.],
                     "Zinc":                     [370.,   200.],
+                    #
+                    "Nitrate":                  [110980.,  100000.],
+                    "Nitrite":                  [55760.,   55000.],
+                    "Ammonium":                 [0.,     0.],
+                    "Sulphur":                  [12280000., 10104000.],
                     #
                     "Naphthalene":              [2.08,   1.05],
                     "Phenanthrene":             [5.00,   2.30],
-                    "Fluoranthene":             [0.63,	 0.41],
-                    "Benzo(a)anthracene":       [0.30,	 0.29],
-                    "Benzo(a)pyrene":           [0.06,	 0.05],
-                    "Dibenzo(a,h)anthracene":   [0.03,	 0.02],
+                    "Fluoranthene":             [0.63,   0.41],
+                    "Benzo(a)anthracene":       [0.06,   0.29],
+                    "Benzo(a)pyrene":           [0.04,   0.04],
+                    "Dibenzo(a,h)anthracene":   [0.03,   0.02],
                     #
                     "Acenaphthylene":           [0.09,   0.06],
                     "Acenaphthene":             [0.47,   0.31],
@@ -2054,13 +3259,117 @@ class ChemicalDrift(OceanDrift):
                     "Benzo(b)fluoranthene":     [0.14,   0.12],
                     "Benzo(k)fluoranthene":     [0.02,   0.02],
                     "Indeno(1,2,3-cd)pyrene":   [0.04,   0.03],
-                    "Benzo(ghi)perylene":       [0.07,   0.07],
-                    }
-
+                    "Benzo(ghi)perylene":       [0.07,   0.07],                                                   
+                 }
+                
+                emission_factors_grey_water = {
+                    #                           mean    +/-95%
+                    #                           ug/L    ug/L
+                    "Arsenic":                  [5.98,    3.17],
+                    "Cadmium":                  [0.16,   0.09],
+                    "Chromium":                 [7.28,   2.06],
+                    "Copper":                   [267.,   97.],
+                    "Lead":                     [25.6,    21.01],
+                    "Mercury":                  [0.16,   0.09],
+                    "Nickel":                   [25.0,   19.36],
+                    "Selenium":                 [16.1,     10.64],
+                    "Zinc":                     [517.,   112.],
+                    #
+                    "Nitrogen":                  [28900., 0.0],                                          
+                 }
+                
+                emission_factors_bilge_water = {
+                    #                           mean    +/-95%
+                    #                           ug/L    ug/L
+                    "Arsenic":                  [35.9,    33.2],
+                    "Cadmium":                  [0.32,   0.07],
+                    "Chromium":                 [16.3,   15.4],
+                    "Copper":                   [49.7,   22.9],
+                    "Lead":                     [3.0,    1.24],
+                    "Nickel":                   [71.1,   11.8],
+                    "Selenium":                 [2.95,     1.01],
+                    "Vanadium":                 [76.5,   22.4],
+                    "Zinc":                     [949.,   660.],
+                    #
+                    "Nitrate":                  [110980.,  100000.],
+                    "Nitrite":                  [55760.,   55000.],
+                    "Ammonium":                 [0.,     0.],
+                    "Sulphur":                  [12280000., 10104000.],
+                    #
+                    "Naphthalene":              [50.6,   34.3],
+                    "Phenanthrene":             [3.67,   2.51],
+                    "Fluoranthene":             [0.60,   0.96],
+                    "Benzo(a)anthracene":       [0.10,   0.18],
+                    "Benzo(a)pyrene":           [0.10,   0.15],
+                    "Dibenzo(a,h)anthracene":   [0.02,   0.01],
+                    #
+                    "Acenaphthylene":           [0.29,   0.17],
+                    "Acenaphthene":             [1.42,   0.86],
+                    "Fluorene":                 [3.33,   2.43],
+                    "Anthracene":               [0.22,   0.14],
+                    "Pyrene":                   [1.23,   1.33],
+                    "Chrysene":                 [0.17,   0.25],
+                    "Benzo(b)fluoranthene":     [0.09,   0.13],
+                    "Benzo(k)fluoranthene":     [0.03,   0.00],
+                    "Indeno(1,2,3-cd)pyrene":   [0.05,   0.06],
+                    "Benzo(ghi)perylene":       [0.13,   0.16],                                                   
+                 }
+                
+                emission_factors_sewage_water = {
+                    #                           mean    +/-95%
+                    #                           ug/L    ug/L
+                    "Arsenic":                  [22.9,    7.4],
+                    "Cadmium":                  [0.12,   0.10],
+                    "Chromium":                 [11.9,    8.2],
+                    "Copper":                   [319,     190],
+                    "Lead":                     [6.5,     3.1],
+                    "Mercury":                  [0.22,   0.12],
+                    "Nickel":                   [32.3,   21.3],
+                    "Selenium":                 [43.7,   18.3],
+                    "Zinc":                     [395.,   174.],
+                    #
+                    "Nitrogen":                  [430.,  0.],
+                                           
+                 }
+                
+                emission_factors_AFP = {
+                    # # Copper = 63.546 g/mol
+                    # Zinc = 65.38 g/mol
+                    # CuPyr = 315.86 g/mol = Copper(II) pyrithione = 0.2112 of Cu
+                    # CuO = 79.55 g/mol = Copper(II) oxide = 0.7989 of Cu
+                    # Zineb = 275.7 g/mol = Zinc ethylenebis(dithiocarbamate) = 0.2371 of Zn
+                    # ZnO = 81.38 g/mol = Zinc(II) oxide = 0.8033 of Zn
+                    # ZPyr = 317.70 g/mol = Zinc(II) pyrithione = 0.2058 of Zn
+                    
+                    #                           mean    +/-95%
+                    #                           ug/L    ug/L
+                    "CuO_AFP":                  [0.2112,    0.],
+                    "CuPyr_AFP":                [0.7989,    0.],
+                    "Zineb_AFP":                [0.2371,    0.],
+                    "ZnO_AFP":                  [0.8033,     0.],
+                    "ZnPyr_AFP":                [0.2058,     0.],                                           
+                 }                
+                
+                
                 if scrubber_type=="open_loop":
-                    return emission_factors_open_loop.get(chemical_compound)[0]
+                    Emission_factors = emission_factors_open_loop.get(chemical_compound)[0]
+                # return emission_factors_open_loop.get(chemical_compound)[0]
                 elif scrubber_type=="closed_loop":
-                    return emission_factors_closed_loop.get(chemical_compound)[0]
+                    Emission_factors = emission_factors_closed_loop.get(chemical_compound)[0]
+                elif scrubber_type=="bilge_water":
+                    Emission_factors = emission_factors_bilge_water.get(chemical_compound)[0]
+                elif scrubber_type=="grey_water":
+                    Emission_factors = emission_factors_grey_water.get(chemical_compound)[0]
+                elif scrubber_type=="sewage_water":
+                    Emission_factors = emission_factors_sewage_water.get(chemical_compound)[0]
+                elif scrubber_type=="AFP": # Copper and Zinc from antifouling paint
+                    Emission_factors = 1e6*emission_factors_AFP.get(chemical_compound)[0]  # 1g = 1e6 ug: AFP is expressed as g
+                elif scrubber_type=="N_sewage": # Nitrogen from sewage
+                    Emission_factors = 1e9  # 1kg = 1e9 ug: N_sewage is expressed as kg
+                elif scrubber_type=="N_foodwaste": # Nitrogen from foodwaste
+                    Emission_factors = 1e9  # 1kg = 1e9 ug: N_sewage is expressed as kg
+                                    
+                return Emission_factors    
                     # TODO: Add emission uncertainty based on 95% confidence interval
 
             sel=np.where((steam > lowerbound) & (steam < higherbound))
