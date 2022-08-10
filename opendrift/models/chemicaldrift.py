@@ -409,12 +409,6 @@ class ChemicalDrift(OceanDrift):
              'chemical:transformations:KOC_DOM': {'type': 'float', 'default': -1, # Naphtalene, at 25°C
                  'min': 0, 'max': 1e9, 'units': 'L/kg_OC',
                  'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'partitioning coefficient between water and organic carbon for DOC'},
-              # 'chemical:transformations:KOC_sed_given': {'type': 'bool', 'default': False,
-              #     'description': 'KOC_sed is supplied.',
-              #     'level': self.CONFIG_LEVEL_BASIC},
-              # 'chemical:transformations:KOC_DOM_given': {'type': 'bool', 'default': False,
-              #     'description': 'KOC_DOM is supplied.',
-              #     'level': self.CONFIG_LEVEL_BASIC},
              'chemical:transformations:fOC_SPM': {'type': 'float', 'default': 0.05, # typical values from 0.01 to 0.1 gOC/g
                  'min': 0, 'max': 1, 'units': 'g_OC/g',
                  'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'fraction of organic carbon in SPM'},
@@ -651,36 +645,20 @@ class ChemicalDrift(OceanDrift):
         KOC_sed_diss_acid = (10**(0.11*np.log10(KOW)+1.54)) # KOC for dissociated acid species (L/kg_OC), from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202.
         
         KOC_sed_diss_base = 10**(pKa_acid**(0.65*((KOW/(KOW+1))**0.14))) # KOC for ionized form of base species (L/kg_OC) # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
-        
-        # non-diss fraction    
-        # Phi_n_sed = np.empty_like(pH_sed)
-        # diss fraction
-        # Phi_diss_sed = np.empty_like(pH_sed)
-        # Phi_anion_sed = np.empty_like(pH_sed)
-        # Phi_cation_sed = np.empty_like(pH_sed)
-        
+               
         # Updated values of KOC to calculate correction factor
         KOC_sed_updated = np.empty_like(pH_sed)
         KOC_sedcorr= np.empty_like(pH_sed)
         
         for i in (range(len(pH_sed))):
             if diss=='acid':
-          
-                # Phi_n_sed[i]    = 1/(1 + 10**(pH_sed[i]-pKa_acid))
-                # Phi_diss_sed[i] = 1-Phi_n_sed[i]
-                # KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed[i]) + (Phi_diss_sed[i] * KOC_sed_diss_acid)
-                # KOC_sedcorr[i]=KOC_sed_updated[i]/KOC_sed_initial
-                           
+                                    
                 Phi_n_sed    = 1/(1 + 10**(pH_sed[i]-pKa_acid))
                 Phi_diss_sed = 1-Phi_n_sed
                 KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed) + (Phi_diss_sed * KOC_sed_diss_acid)
                 KOC_sedcorr[i] = KOC_sed_updated[i]/KOC_sed_initial
             
             elif diss=='base':
-                # Phi_n_sed[i]    = 1/(1 + 10**(pH_sed[i]-pKa_base))
-                # Phi_diss_sed[i] = 1-Phi_n_sed[i]
-                # KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed[i]) + (Phi_diss_sed[i] * KOC_sed_diss_acid)
-                # KOC_sedcorr[i]=KOC_sed_updated[i]/KOC_sed_initial
                 
                 Phi_n_sed    = 1/(1 + 10**(pH_sed[i]-pKa_base))
                 Phi_diss_sed = 1-Phi_n_sed
@@ -688,10 +666,6 @@ class ChemicalDrift(OceanDrift):
                 KOC_sedcorr[i] = KOC_sed_updated[i]/KOC_sed_initial
                 
             elif diss=='amphoter':
-                # Phi_n_sed[i]      = 1/(1 + 10**(pH_sed[i]-pKa_acid) + 10**(pKa_base))
-                # Phi_anion_sed[i]  = Phi_n_sed[i] * 10**(pH_sed[i]-pKa_acid)
-                # Phi_cation_sed[i] = pH_sed[i] * 10**(pKa_base-pH_sed[i])
-                # KOC_sed_updated[i] = (KOC_sed_n * Phi_n_sed[i]) + (Phi_anion_sed[i] * KOC_sed_diss_acid) + (Phi_cation_sed[i] * KOC_sed_diss_base)
                 
                 Phi_n_sed      = 1/(1 + 10**(pH_sed[i]-pKa_acid) + 10**(pKa_base))
                 Phi_anion_sed  = Phi_n_sed * 10**(pH_sed[i]-pKa_acid)
@@ -714,25 +688,12 @@ class ChemicalDrift(OceanDrift):
         
         KOC_sed_diss_base = 10**(pKa_acid**(0.65*((KOW/(KOW+1))**0.14))) # KOC for ionized form of base species (L/kg_OC) # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
         
-        # Phi_n_sed = pH_water #  Create empty array identical to pH_water 
-        # Phi_diss_sed = pH_water #  Create empty array identical to pH_water 
-        # Phi_anion_sed = pH_water #  Create empty array identical to pH_water
-        # Phi_cation_sed = pH_water #  Create empty array identical to pH_water
-        # KOC_sed_updated = pH_water #  Create empty array identical to pH_water
-            
-        # Phi_n_SPM = np.empty_like(pH_water_SPM)
-        # Phi_diss_SPM = np.empty_like(pH_water_SPM)
-        # Phi_anion_SPM = np.empty_like(pH_water_SPM)
-        # Phi_cation_SPM = np.empty_like(pH_water_SPM)
         KOC_SPM_updated = np.empty_like(pH_water_SPM)
         KOC_SPMcorr = np.empty_like(pH_water_SPM)
         
         
         for i in (range(len(pH_water_SPM))):
             if diss=='acid':
-                # Phi_n_SPM[i]    = 1/(1 + 10**(pH_water_SPM[i]-pKa_acid))
-                # Phi_diss_SPM[i] = 1-Phi_n_SPM[i]
-                # KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM[i]) + (Phi_diss_SPM[i] * KOC_sed_diss_acid)
                 
                 Phi_n_SPM    = 1/(1 + 10**(pH_water_SPM[i]-pKa_acid))
                 Phi_diss_SPM = 1-Phi_n_SPM
@@ -741,9 +702,6 @@ class ChemicalDrift(OceanDrift):
                 KOC_SPMcorr[i]=KOC_SPM_updated[i]/KOC_SPM_initial
             
             elif diss=='base':
-                # Phi_n_SPM[i]    = 1/(1 + 10**(pH_water_SPM[i]-pKa_base))
-                # Phi_diss_SPM[i] = 1-Phi_n_SPM[i]
-                # KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM[i]) + (Phi_diss_SPM[i] * KOC_sed_diss_acid)
                 
                 Phi_n_SPM    = 1/(1 + 10**(pH_water_SPM[i]-pKa_base))
                 Phi_diss_SPM = 1-Phi_n_SPM
@@ -752,10 +710,6 @@ class ChemicalDrift(OceanDrift):
                 KOC_SPMcorr[i]=KOC_SPM_updated[i]/KOC_SPM_initial
                 
             elif diss=='amphoter':
-                # Phi_n_SPM[i]      = 1/(1 + 10**(pH_water_SPM[i]-pKa_acid) + 10**(pKa_base))
-                # Phi_anion_SPM[i]  = Phi_n_SPM[i] * 10**(pH_water_SPM[i]-pKa_acid)
-                # Phi_cation_SPM[i] = pH_water_SPM[i] * 10**(pKa_base-pH_water_SPM[i])
-                # KOC_SPM_updated[i] = (KOC_sed_n * Phi_n_SPM[i]) + (Phi_anion_SPM[i] * KOC_sed_diss_acid) + (Phi_cation_SPM[i] * KOC_sed_diss_base)
                 
                 Phi_n_SPM      = 1/(1 + 10**(pH_water_SPM[i]-pKa_acid) + 10**(pKa_base))
                 Phi_anion_SPM  = Phi_n_SPM * 10**(pH_water_SPM[i]-pKa_acid)
@@ -775,11 +729,7 @@ class ChemicalDrift(OceanDrift):
     def calc_KOC_watcorrDOM(self, KOC_DOM_initial, KOC_DOM_n, pKa_acid, pKa_base, KOW, pH_water_DOM, diss):
         ''' Calculate correction of KOC due to pH of water for DOM
         '''  
-    
-        # Phi_n_DOM  = pH_water_DOM #  Create empty array identical to pH_water_DOM 
-        # Phi_diss_DOM = pH_water_DOM #  Create empty array identical to pH_water_DOM 
-        # KOC_DOM_updated = pH_water_DOM #  Create empty array identical to pH_water_DOM
-    
+        
         Phi_n_DOM = np.empty_like(pH_water_DOM)
         Phi_diss_DOM = np.empty_like(pH_water_DOM)
         KOC_DOM_updated = np.empty_like(pH_water_DOM)
@@ -788,9 +738,6 @@ class ChemicalDrift(OceanDrift):
     
         for i in (range(len(pH_water_DOM))):
             if diss=='acid':
-                # Phi_n_DOM[i]    = 1/(1 + 10**(pH_water_DOM[i]-pKa_acid))
-                # Phi_diss_DOM[i]    = 1-Phi_n_DOM[i]
-                # KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM[i]*(KOC_DOM_n)) + ((1 - Phi_diss_DOM[i])*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
                 
                 Phi_n_DOM    = 1/(1 + 10**(pH_water_DOM[i]-pKa_acid))
                 Phi_diss_DOM    = 1-Phi_n_DOM
@@ -799,10 +746,7 @@ class ChemicalDrift(OceanDrift):
                 KOC_DOMcorr[i]=KOC_DOM_updated[i]/KOC_DOM_initial
             
             elif diss=='base':
-                # Phi_n_DOM[i]    = 1/(1 + 10**(pH_water_DOM[i]-pKa_base))
-                # Phi_diss_DOM[i]    = 1-Phi_n_DOM[i]
-                # KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM[i]*(KOC_DOM_n)) + ((1 - Phi_diss_DOM[i])*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
-                
+
                 Phi_n_DOM    = 1/(1 + 10**(pH_water_DOM[i]-pKa_base))
                 Phi_diss_DOM    = 1-Phi_n_DOM
                 KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM*(KOC_DOM_n)) + ((1 - Phi_diss_DOM)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
@@ -811,9 +755,6 @@ class ChemicalDrift(OceanDrift):
         
                 
             elif diss=='amphoter':
-                # Phi_n_DOM[i]      = 1/(1 + 10**(pH_water_DOM[i]-pKa_acid) + 10**(pKa_base))
-                # Phi_diss_DOM[i]    = 1-Phi_n_DOM[i]
-                # KOC_DOM_updated[i] = (0.08 * ((Phi_n_DOM[i]*(KOC_DOM_n)) + ((1 - Phi_diss_DOM[i])*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
                 
                 Phi_n_DOM      = 1/(1 + 10**(pH_water_DOM-pKa_acid) + 10**(pKa_base))
                 Phi_diss_DOM   = 1-Phi_n_DOM
@@ -829,11 +770,10 @@ class ChemicalDrift(OceanDrift):
         return KOC_DOMcorr
     
     
-# DONE    
+   
     def calc_DOCorr(self, HalfSatO_w, k_Anaerobic_water, k_DecayMax_water, Ox_water):
         ''' Correction for the effects of Dissolved Ox concentration on biodegradation
         '''   
-        # DOCorr = Ox_water #  Create empty array identical to Ox_water 
         DOCorr = np.empty_like(Ox_water)
         
         # print ("k_Anaerobic_water", k_Anaerobic_water)
@@ -879,7 +819,7 @@ class ChemicalDrift(OceanDrift):
     def calc_TCorr(self, T_Max_bio, T_Opt_bio, T_Adp_bio, Max_Accl_bio, Dec_Accl_bio, Q10_bio, TW):
         ''' Correction for the effects of water temperature on biodegradation
         '''  
-        # TCorr = TW #  Create empty array identical to TW 
+
         TCorr = np.empty_like(TW)
         
         # print(T_Max_bio)
@@ -923,12 +863,11 @@ class ChemicalDrift(OceanDrift):
         # print("TCorr", TCorr)
         return TCorr
     
-# DONE    
+  
     def calc_pHCorr(self, pH_min_bio, pH_max_bio, pH_water):
         ''' Correction for the effects of water pH on biodegradation
         '''
         # print(pH_water) 
-        # pHCorr = pH_water #  Create empty array identical to pH_water
         pHCorr = np.empty_like(pH_water)
         
         for i in (range(len(pH_water))):
@@ -950,7 +889,7 @@ class ChemicalDrift(OceanDrift):
         # print("pHCorr", pHCorr)
         return pHCorr
     
-# DONE    
+   
     def calc_k_hydro_water(self, k_Acid, k_Base, k_Hydr_Uncat, pH_water):
         ''' Hydrolysis rate in water
         ''' 
@@ -975,7 +914,7 @@ class ChemicalDrift(OceanDrift):
         # print("k_W_hydro", k_W_hydro)
         return k_W_hydro
     
-# DONE         
+        
     def calc_k_hydro_sed(self, k_Acid, k_Base, k_Hydr_Uncat, pH_sed):
         ''' Hydrolysis rate in sediments
         ''' 
@@ -1000,7 +939,7 @@ class ChemicalDrift(OceanDrift):
         return k_S_hydro
         
     
-# DONE    
+ 
     def calc_ScreeningFactor(self, RadDistr, RadDistr0_ml, RadDistr0_bml, WaterExt, ExtCoeffDOM, ExtCoeffSPM, ExtCoeffPHY, C2PHYC, concDOC, concSPM, Conc_Phyto_water, Depth, MLDepth):
         ''' Screening Factor for photolisis attenuation with depth due to DOM, SPM, and Pythoplankton
         ''' 
@@ -1012,7 +951,7 @@ class ChemicalDrift(OceanDrift):
           
         Extinct = WaterExt + ExtCoeffDOM*ConcDOM + ExtCoeffSPM*concSPM +  ExtCoeffPHY*ConcPHYTO
            
-        # ScreeningFactor = Depth #  Create empty array identical to Depth
+
         ScreeningFactor = np.empty_like(Depth)
         
         # print("Depth", type(Depth), Depth.shape)
@@ -1073,10 +1012,7 @@ class ChemicalDrift(OceanDrift):
         LightFactor = np.empty_like(MLDepth)
         HyphoCorr = np.empty_like(MLDepth)
         
-        for i in (range(len(MLDepth))):
-            # Depth[i] = 2
-            # MLDepth[i] = 1
-            
+        for i in (range(len(MLDepth))):          
             
             if Depth[i] <= MLDepth[i]:
                 Solar0 = Solar[i]
@@ -1088,9 +1024,7 @@ class ChemicalDrift(OceanDrift):
                  LightFactor[i] = Solar0/AveSolar
             else:
                 pass
-            
-            # LightFactor[i] = Solar0/AveSolar
-            
+                        
         # print("LightFactor", LightFactor) 
         return LightFactor
 
@@ -1183,20 +1117,9 @@ class ChemicalDrift(OceanDrift):
                     #KOC_Sed    = 1.26 * kOW**0.81   # (L/KgOC),Ragas et al., 2019
                 
                 KOC_SPM = KOC_sed
-                               
-                # if KOC_sed_given is True:
-                #     KOC_sed = self.get_config('chemical:transformations:KOC_Sed')
-                # else:
-                #     KOC_sed    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C 
-                
-                # if KOC_DOM_given is True:
-                #     KOC_DOM = self.get_config('chemical:transformations:KOC_DOM')
-                # else:
-                #     KOC_DOM    = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 
-            
-                # KOC_SPM    = KOC_sed
-                
+                                              
                 # print("nndiss", KOC_sed, KOC_DOM, KOC_SPM)
+                
                 #KOC_Sed    = 1.26 * kOW**0.81   # (L/KgOC),Ragas et al., 2019
             else:
                 if diss=='acid':
@@ -1204,18 +1127,13 @@ class ChemicalDrift(OceanDrift):
                     Phi_n_water    = 1/(1 + 10**(pH_water-pKa_acid))
                     Phi_diss_water = 1-Phi_n_water
                     
-                    KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    KOC_sed_n = self.get_config('chemical:transformations:KOC_sed')
                     
                     if KOC_sed_n < 0:
                         KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
                     else:
                         pass
-                                            
-                    # if KOC_sed_given is True:
-                    #     KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
-                    # else:
-                    #     KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
-                                        
+                                                                                   
                     KOC_sed_diss_acid = (10**(0.11*np.log10(KOW)+1.54)) # KOC for dissociated acid species (L/kg_OC), from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202.
                     
                     KOC_SPM = (KOC_sed_n * Phi_n_water) + (Phi_diss_water * KOC_sed_diss_acid)
@@ -1228,12 +1146,6 @@ class ChemicalDrift(OceanDrift):
                     else:
                         pass
                         
-                    
-                    # if KOC_DOM_given is True:
-                    #     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
-                    # else:
-                    #     KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
-                    
                     KOC_DOM = (0.08 * ((Phi_n_water*(KOC_DOM_n)) + ((1 - Phi_diss_water)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
                     
                     # Dissociation in sediments
@@ -1248,18 +1160,11 @@ class ChemicalDrift(OceanDrift):
                     Phi_n_water    = 1/(1 + 10**(pH_water-pKa_base))
                     Phi_diss_water = 1-Phi_n_water                   
                     
-                    KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    KOC_sed_n = self.get_config('chemical:transformations:KOC_sed')
                     if KOC_sed_n <0:
                         KOC_sed_n   = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
                     else:
                         pass
-                                       
-                    
-                    # if KOC_sed_given is True:
-                    #     KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
-                    # else:
-                    #     KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
-                    
                                         
                     KOC_sed_diss_base = 10**(pKa_acid**(0.65*((KOW/(KOW+1))**0.14))) # KOC for ionized form of base species (L/kg_OC) # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
                     
@@ -1271,12 +1176,6 @@ class ChemicalDrift(OceanDrift):
                         KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
                     else:
                         pass
-                    
-                                       
-                    # if KOC_DOM_given is True:
-                    #     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
-                    # else:
-                    #     KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
                     
                     KOC_DOM = (0.08 * ((Phi_n_water*(KOC_DOM_n)) + ((1 - Phi_diss_water)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
                                        
@@ -1300,17 +1199,11 @@ class ChemicalDrift(OceanDrift):
                     Phi_diss_water   = 1 - Phi_n_water
 
                     
-                    KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    KOC_sed_n = self.get_config('chemical:transformations:KOC_sed')
                     if KOC_sed_n < 0:
                         KOC_sed_n =  KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
                     else:
                         pass
-                    
-                    # if KOC_sed_given is True:
-                    #     KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
-                      
-                    # else:
-                    #     KOC_sed_n    = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
                     
                     KOC_sed_diss_base = 10**(pKa_acid**(0.65*((KOW/(KOW+1))**0.14))) # KOC for ionized form of base species (L/kg_OC) # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
                     KOC_sed_diss_acid = (10**(0.11*np.log10(KOW)+1.54)) # KOC for dissociated acid species (L/kg_OC), from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202.
@@ -1324,12 +1217,6 @@ class ChemicalDrift(OceanDrift):
                         KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
                     else:
                         pass
-                    
-                    
-                    # if KOC_DOM_given is True:
-                    #     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
-                    # else:
-                    #     KOC_DOM_n   = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
                     
                     KOC_DOM = (0.08 * ((Phi_n_water*(KOC_DOM_n)) + ((1 - Phi_diss_water)*10**(np.log10(KOW)-3.5))))/0.526 # from  http://i-pie.org/wp-content/uploads/2019/12/ePiE_Technical_Manual-Final_Version_20191202
                     
@@ -1771,33 +1658,18 @@ class ChemicalDrift(OceanDrift):
                         pass
 
                     KOW = 10**self.get_config('chemical:transformations:LogKOW')
-
-                    # KOC_sed_given = self.get_config('chemical:transformations:KOC_sed_given')
-                    # KOC_DOM_given = self.get_config('chemical:transformations:KOC_DOM_given')
                     
-                    KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
+                    KOC_sed_n = self.get_config('chemical:transformations:KOC_sed')
                     if KOC_sed_n < 0:
                         KOC_sed_n = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
                     else:
                         pass
-
-
-                    # if KOC_sed_given is True:
-                    #     KOC_sed_n = self.get_config('chemical:transformations:KOC_Sed')
-                    # else:
-                    #     KOC_sed_n = 2.62 * KOW**0.82   # (L/KgOC), Park and Clough, 2014 (334)/Org2C TO DO Add if choice between input and estimation
                         
                     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
                     if KOC_DOM_n < 0:
                         KOC_DOM_n = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
                     else:
                         pass
-
-                    # if KOC_DOM_given is True:
-                    #     KOC_DOM_n = self.get_config('chemical:transformations:KOC_DOM')
-                    # else:
-                    #     KOC_DOM_n = 2.88 * KOW**0.67   # (L/KgOC), Park and Clough, 2014 TO DO Add if choice between input and estimation
-
 
                     fOC_SPM    = self.get_config('chemical:transformations:fOC_SPM')       # typical values from 0.01 to 0.1 gOC/g
                     fOC_sed    = self.get_config('chemical:transformations:fOC_sed') 
@@ -1817,7 +1689,6 @@ class ChemicalDrift(OceanDrift):
                     # print(self.Kd_DOM, "_Kd_DOM")
                     # print("&&&&")
                    
-                    ##################################################################################################################
                     
                     temperature=self.environment.sea_water_temperature
                     temperature[temperature==0]=np.median(temperature)
@@ -1875,14 +1746,6 @@ class ChemicalDrift(OceanDrift):
                     # print(len((salinitycorr[self.elements.specie==self.num_srev])), "__len_salinitycorr_sed")
 
                     # print("&&&&OUT")
- 
-                        
-                        
-                        
-                        
-                        
-                        
-                        
     
                     # Updating sorption rates according to local SPM concentration
     
