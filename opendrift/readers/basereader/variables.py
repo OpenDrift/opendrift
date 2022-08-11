@@ -399,7 +399,7 @@ class ReaderDomain(Timeable):
             return None, None, None, None, None, None
         if self.times is not None:  # Time as array, possibly with holes
             indx_before = np.max((0, bisect_left(self.times, time) - 1))
-            if self.times[indx_before + 1] == time:
+            if len(self.times) > 1 and self.times[indx_before + 1] == time:
                 # Correction needed when requested time exists in times
                 indx_before = indx_before + 1
             time_before = self.times[indx_before]
