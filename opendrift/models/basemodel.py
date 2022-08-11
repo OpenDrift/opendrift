@@ -1077,7 +1077,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
     def discard_reader_if_not_relevant(self, reader):
         if reader.is_lazy:
             return False
-        if reader.start_time is not None:
+        if reader.start_time is not None and reader.always_valid is False:
             if hasattr(self, 'expected_end_time') and reader.start_time > self.expected_end_time:
                 self.discard_reader(reader, 'starts after simulation end')
                 return True

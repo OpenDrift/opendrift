@@ -311,7 +311,7 @@ class StructuredReader(Variables):
         #######################
         self.timer_start('interpolation_time')
         env_profiles = None
-        if (time_after is not None) and (time_before != time):
+        if (time_after is not None) and (time_before != time) and self.always_valid is False:
             weight_after = ((time - time_before).total_seconds() /
                             (time_after - time_before).total_seconds())
             logger.debug(('Interpolating before (%s, weight %.2f) and'
