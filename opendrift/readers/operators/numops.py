@@ -48,8 +48,8 @@ class Combined:
         """
         return getattr(self.r, attr)
 
-    def _get_variables_interpolated_(self, *args, **kwargs):
-        env, env_profiles = self.r._get_variables_interpolated_(*args, **kwargs)
+    def get_variables_interpolated(self, *args, **kwargs):
+        env, env_profiles = self.r.get_variables_interpolated(*args, **kwargs)
 
         variables = [
             var for var in env.keys() if var not in ['x', 'y', 'time']
@@ -58,12 +58,12 @@ class Combined:
         for var in variables:
             env[var] = self.op(env[var])
 
-        variables = [
-            var for var in env_profiles.keys() if var not in ['x', 'y', 'time']
-        ]
-
-        for var in variables:
-            env_profiles[var] = self.op(env_profiles[var])
+        if env_profiles is not None:
+            variables = [
+                var for var in env_profiles.keys() if var not in ['x', 'y', 'time']
+            ]
+            for var in variables:
+                env_profiles[var] = self.op(env_profiles[var])
 
         return env, env_profiles
 
