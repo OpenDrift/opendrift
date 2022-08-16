@@ -33,10 +33,11 @@ from .unstructured import UnstructuredReader
 from .continuous import ContinuousReader
 from .variables import Variables
 from .consts import *
+from ..operators.ops import Combine
 
 from opendrift.readers.interpolation import ReaderBlock
 
-class BaseReader(Variables):
+class BaseReader(Variables, Combine):
     """
     An abstract reader. Implementors provide a method to read data and specify how it is interpolated.
 
