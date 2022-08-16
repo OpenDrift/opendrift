@@ -6,7 +6,7 @@ from numbers import Number
 from types import LambdaType
 from ..basereader import BaseReader
 
-class Combined(BaseReader):
+class Combined:
     """
     A reader combined with a number.
     """
@@ -23,23 +23,24 @@ class Combined(BaseReader):
         assert isinstance(n, Number)
         assert isinstance(r, BaseReader)
 
-        super().__init__()
+        self.name = f'NumCombined({n} | {r})'
 
     @staticmethod
     def add(n, r):
-        Combined(n, r, lambda x: n + x)
+        return Combined(n, r, lambda x: n + x)
 
     @staticmethod
     def mul(n, r):
-        Combined(n, r, lambda x: n * x)
+        return Combined(n, r, lambda x: n * x)
 
     @staticmethod
     def sub(n, r):
-        Combined(n, r, lambda x: x - n)
+        return Combined(n, r, lambda x: x - n)
 
     @staticmethod
     def div(n, r):
-        Combined(n, r, lambda x: x / n)
+        return Combined(n, r, lambda x: x / n)
+
 
     def __getattr__(self, attr):
         """
