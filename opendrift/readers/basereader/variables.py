@@ -833,6 +833,7 @@ class Variables(ReaderDomain):
             :meth:`get_variables_interpolated_xy`.
 
         """
+        assert set(variables).issubset(self.variables), f"{variables} is not subset of {self.variables}"
 
         lon = self.modulate_longitude(lon)
         x, y = self.lonlat2xy(lon, lat)

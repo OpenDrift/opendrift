@@ -48,8 +48,10 @@ class Combined:
         """
         return getattr(self.r, attr)
 
-    def get_variables_interpolated(self, *args, **kwargs):
-        env, env_profiles = self.r.get_variables_interpolated(*args, **kwargs)
+    def get_variables_interpolated(self, variables, *args, **kwargs):
+        assert set(variables).issubset(self.r.variables), f"{vars} is not a subset of variables in {self.r}"
+
+        env, env_profiles = self.r.get_variables_interpolated(variables, *args, **kwargs)
 
         variables = [
             var for var in env.keys() if var not in ['x', 'y', 'time']
