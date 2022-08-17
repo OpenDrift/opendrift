@@ -33,11 +33,11 @@ from .unstructured import UnstructuredReader
 from .continuous import ContinuousReader
 from .variables import Variables
 from .consts import *
-from ..operators.ops import Combine
+from ..operators.ops import Combine, Filter
 
 from opendrift.readers.interpolation import ReaderBlock
 
-class BaseReader(Variables, Combine):
+class BaseReader(Variables, Combine, Filter):
     """
     An abstract reader. Implementors provide a method to read data and specify how it is interpolated.
 
@@ -404,7 +404,7 @@ class BaseReader(Variables, Combine):
             for var in variables:
                 data[var][i] = d[var][0]
 
-        return data 
+        return data
 
     def shift_start_time(self, start_time):
         """Shift the time coverage of reader to match given start_time"""

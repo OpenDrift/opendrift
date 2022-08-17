@@ -23,7 +23,7 @@ class Combined:
         assert isinstance(n, Number)
         assert isinstance(r, BaseReader)
 
-        self.name = f'NumCombined({n} | {r})'
+        self.name = f'NumCombined()'
 
     @staticmethod
     def add(n, r):

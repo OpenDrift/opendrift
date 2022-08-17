@@ -1,16 +1,17 @@
+from abc import abstractmethod
 from numbers import Number
 import numpy as np
 
 class Combine:
     def __add__(self, other):
-        from .reader import Add
+        from .readerops import Combined as ReaderCombined
         from .numops import Combined as NumCombined
         from ..basereader import BaseReader
 
         if isinstance(other, Number):
             return NumCombined.add(other, self)
         elif isinstance(other, BaseReader):
-            return Add(self, other)
+            return ReaderCombined(self, other, lambda a, b: a + b)
         else:
             return NotImplemented
 
@@ -21,7 +22,7 @@ class Combine:
         else:
             return NotImplemented
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         from .numops import Combined as NumCombined
 
         if isinstance(other, Number):
@@ -31,4 +32,26 @@ class Combine:
 
     def __sub__(self, other):
         return self + (-1 * other)
+
+class Filter:
+    @property
+    @abstractmethod
+    def variables(self) -> list[str]:
+        pass
+
+    def filter_vars(self, vars):
+        """
+        Only keep the specified variables.
+        """
+        from .filter import FilterVariables
+        return FilterVariables(self, vars)
+
+    def exclude_vars(self, vars):
+        """
+        Remove the specified variables.
+        """
+        from .filter import FilterVariables
+
+        vars = list(set(self.variables) - set(vars))
+        return FilterVariables(self, vars)
 
