@@ -3380,6 +3380,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                   origin_marker=None,
                   legend=None,
                   legend_loc='best',
+                  title='auto',
                   fps=8,
                   lscale=None,
                   fast=False,
@@ -3459,7 +3460,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             """Sub function needed for matplotlib animation."""
 
             ret = [points, points_deactivated]  # list of elements to return for blitting
-            ax.set_title('%s\n%s UTC' % (self._figure_title(), times[i]))
+            if title == 'auto':
+                ax.set_title('%s\n%s UTC' % (self._figure_title(), times[i]))
+            else:
+                ax.set_title('%s\n%s UTC' % (title, times[i]))
             if background is not None:
                 ret.append(bg)
                 if isinstance(background, xr.DataArray):

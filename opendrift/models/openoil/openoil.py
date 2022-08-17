@@ -1344,11 +1344,10 @@ class OpenOil(OceanDrift):
             plt.show()
 
     def get_oil_name(self):
-        if not hasattr(self, 'oil_name'):  # TODO
-            return 'unknown oiltype'
-        else:
-            # TODO line below is dangerous when importing old files
+        try:
             return self.get_config('seed:oil_type')
+        except:  # fallback if importing old files
+            return 'unknown oiltype'
 
     def cumulative_oil_entrainment_fraction(self):
         '''Returns the fraction of oil elements which has been entrained vs time'''
