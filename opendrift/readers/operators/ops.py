@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from numbers import Number
-import numpy as np
+from typing import List
 
 class Combine:
     def __add__(self, other):
@@ -36,7 +36,7 @@ class Combine:
 class Filter:
     @property
     @abstractmethod
-    def variables(self) -> list[str]:
+    def variables(self) -> List[str]:
         pass
 
     def filter_vars(self, vars):
