@@ -10,7 +10,7 @@ from adios_db.models.oil.physical_properties import DynamicViscosityPoint
 # Usage:
 # Step 1:
 #   parse report, and export preliminary results to a text file <oil_id>.tables:
-#       $ parse_oil_pdf.py <report>.pdf >! <oil_id>.tables
+#       $ parse_oil_pdf.py <report>.pdf  <oil_id>.tables
 #
 # Step 2:
 #   manually edit tables text file:
@@ -66,22 +66,97 @@ b = f.split('.')[0]
 suffix = f.split('.')[-1]
 sep = ','
 
+if len(sys.argv) > 2:
+    outfile = open(sys.argv[2], 'w')
+else:
+    outfile = sys.stdout
+
+if len(sys.argv) > 3:
+    logfile = open(sys.argv[3], 'w')
+else:
+    logfile = sys.stdout
+
+def parse_cuts_table(df, oil):
+    pass
+
+def parse_weathering_table(df, oil):
+    max_water_cont = None
+    viscosity_of_max_water_cont = None
+    try:
+        for i, row in df.iterrows():
+            logfile.write(row, 'ROW\n')
+            if 'weight residue' in row[0].lower():
+                j1
+                for c in range(1, 5):
+                    mo = ads.MassFraction(value=100-float(row[c]), unit="%")
+                    oil.sub_samples[c-1].metadata.fraction_evaporated = mo
+            elif 'density' in row[0].lower():
+                for c in range(1, 5):
+                    logfile.write(c, 'C\n')
+                    dp = ads.DensityPoint(
+                            density=ads.Density(value=float(row[c]), unit="g/ml"),
+                            ref_temp=ads.Temperature(value=13, unit='C'))
+                    oil.sub_samples[c-1].physical_properties.densities.append(dp)
+                j2
+            elif 'viscosity' in row[0].lower() and 'free' in row[0].lower():
+                j3
+                for c in range(1, 5):
+                    dp = DynamicViscosityPoint(
+                            viscosity=ads.DynamicViscosity(value=float(row[c]), unit="cP"),
+                            ref_temp=ads.Temperature(value=13, unit='C'))
+                    oil.sub_samples[c-1].physical_properties.dynamic_viscosities.append(dp)
+            elif 'viscosity' in row[0].lower() and 'max' in row[0].lower():
+                j4
+                viscosity_of_max_water_cont = row[1:5]
+            elif 'max' in row[0].lower() and 'water cont' in row[0].lower():
+                k5
+                max_water_cont = row[1:5]
+            else:
+                logfile.write('Found nothing!\n')
+    except:
+        raise ValueError('Not a weathering table')
+
+    if viscosity_of_max_water_cont is not None and max_water_cont is not None:
+        for c, visc, watcont in zip(range(1, 5), viscosity_of_max_water_cont, max_water_cont):
+            try:
+                eo = ads.Emulsion(water_content=ads.MassFraction(value=float(watcont), unit='%'),
+                                  ref_temp=ads.Temperature(value=13, unit='C'),
+                                  complex_viscosity=ads.DynamicViscosity(value=float(visc), unit='cP'))
+                oil.sub_samples[c-1].environmental_behavior.emulsions.append(eo)
+                print(c, eo)
+            except ValueError:
+                pass
+    else:
+        logfile.write('Discarding whole table\n')
+        return
+
+    logfile.write(oil.py_json() + '\n')
+    oil.to_file('test.json')
+    stop_parse_weath
+
+#######################################################
+# Step 1: the pdf is parsed and cached in a .zip file
+#######################################################
 if suffix == 'pdf':
-    # First time, the pdf is parsed and cached in a .zip file
     if not os.path.exists(b+'.zip'):
-        print('Parsing ' + f)
+        logfile.write('Parsing ' + f)
         import camelot.io as camelot
         tables = camelot.read_pdf(f, pages='all')
-        print("Total tables extracted:", tables.n)
+        logfile.write('Total tables extracted: %s\n' % tables.n)
         tables.export(b+'.csv', f='csv', compress=True)
 
     z = zipfile.ZipFile(b+'.zip')
 
     for table in z.namelist():
         df = pd.read_csv(z.open(table))
-        if df.isnull().all().all():
-            continue  # empty table
+        logfile.write('*'*33 + '\n')
+        logfile.write(str(df) + '\n')
+        logfile.write('-'*33 + '\n')
+        if df.iloc[:, 1:].isnull().all().all():
+            logfile.write('Skipping empty table\n')
+            continue  # Do not print empty tables
         if len(df.columns) not in [2, 5]:
+            logfile.write('Skipping table without 2 or 5 columns\n')
             continue
         df = df.astype(str)
         df = df.replace(r'\n',' ', regex=True)
@@ -101,9 +176,9 @@ if suffix == 'pdf':
         hs = ''
         for h,f in zip(headers, formats):
             hs = hs + f(h.replace('\n', ''))
-        print(hs)
-        print(df.to_string(index=False, header=False, formatters=formats))
-        print('\n')
+        logfile.write(str(hs) + '\n')
+        outfile.write(df.to_string(index=False, header=False, formatters=formats) + '\n\n')
+        logfile.write('*'*33 + '\n')
 
     metadata = {
         'Key': 'Value',
@@ -115,88 +190,57 @@ if suffix == 'pdf':
     
     #print('# Metadata')
     for i, (key, value) in enumerate(metadata.items()):
-        print('%s%s%s' % (key, sep, value))
+        outfile.write('%s%s%s\n' % (key, sep, value))
+    outfile.write('\n')
 
-elif suffix == 'tables': # Step 3: parsing tables file to json
+##########################################
+# Step 3: parsing tables file to create
+#         oil object, and export to json
+##########################################
+elif suffix == 'tables':
+
+    logfile.write('='*33 + '\n')
+    oil = ads.Oil('dummy')
+    oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
+    for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
+        oil.sub_samples[i].metadata.name = s
+        oil.sub_samples[i].metadata.short_name = s
+
     #from pandas.compat import StringIO #if this doesn't work try: from io import StringIO
     from io import StringIO
-    print('Parsing tables file')
+    logfile.write('Parsing tables file\n')
     tables = open(f).read().split('\n\n')
-    print(len(tables))
+    logfile.write('Number of tables: %s\n' % len(tables))
     for i, t in enumerate(tables):
         #print(t)
         #print(i)
         #title = t.split('\n')[0][2:]
         #t = '\n'.join(t.split('\n')[1:])
         df = pd.read_csv(StringIO(t), sep=sep)
-        print(df, '\n')
+        logfile.write(df, '\n\n')
+        stapp
+
+        # Parse table here, into oil object?
+        try:
+            parse_weathering_table(df, oil)
+        except:
+            logfile.write('Not a weathering table\n')
+
     #print(tables, 'TAB')
-
-stop
-
-def parse_cuts_table(df, oil):
-    pass
-
-def parse_weathering_table(df, oil):
-    max_water_cont = None
-    viscosity_of_max_water_cont = None
-    for i, row in df.iterrows():
-        print(row, 'ROW')
-        if 'weight residue' in row[0].lower():
-            for c in range(1, 5):
-                mo = ads.MassFraction(value=100-float(row[c]), unit="%")
-                oil.sub_samples[c-1].metadata.fraction_evaporated = mo
-        if 'density' in row[0].lower():
-            for c in range(1, 5):
-                dp = ads.DensityPoint(
-                        density=ads.Density(value=float(row[c]), unit="g/ml"),
-                        ref_temp=ads.Temperature(value=13, unit='C'))
-                oil.sub_samples[c-1].physical_properties.densities.append(dp)
-        if 'viscosity' in row[0].lower() and 'free' in row[0].lower():
-            for c in range(1, 5):
-                dp = DynamicViscosityPoint(
-                        viscosity=ads.DynamicViscosity(value=float(row[c]), unit="cP"),
-                        ref_temp=ads.Temperature(value=13, unit='C'))
-                oil.sub_samples[c-1].physical_properties.dynamic_viscosities.append(dp)
-        if 'viscosity' in row[0].lower() and 'max' in row[0].lower():
-            viscosity_of_max_water_cont = row[1:5]
-        if 'max' in row[0].lower() and 'water cont' in row[0].lower():
-            max_water_cont = row[1:5]
-
-    if viscosity_of_max_water_cont is not None and max_water_cont is not None:
-        for c, visc, watcont in zip(range(1, 5), viscosity_of_max_water_cont, max_water_cont):
-            try:
-                eo = ads.Emulsion(water_content=ads.MassFraction(value=float(watcont), unit='%'),
-                                  ref_temp=ads.Temperature(value=13, unit='C'),
-                                  complex_viscosity=ads.DynamicViscosity(value=float(visc), unit='cP'))
-                oil.sub_samples[c-1].environmental_behavior.emulsions.append(eo)
-                print(c, eo)
-            except ValueError:
-                pass
-
-    print(oil.py_json())
-    oil.to_file('test.json')
-    stop
-
-
-#oil = ads.Oil('dummy')
-#oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
-#for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
-#    oil.sub_samples[i].metadata.name = s
-#    oil.sub_samples[i].metadata.short_name = s
-
+    logfile.write('Finished_parsing_tables\n')
+    jolla
 
 results = {}  # to store the parsed values
 z = zipfile.ZipFile(b+'.zip')
-print('Parsing zipfile ' + b+'.zip')
+logfile.write('Parsing zipfile ' + b+'.zip\n')
 for table in z.namelist():
     #wd = {}
     #print('Parsing table ' + table)
     df = pd.read_csv(z.open(table))
     if df.isnull().all().all():
         continue  # empty table
-    print('# ' + table)
-    print('%s\n' % df.to_string())
+    logfile.write('# %s\n' % table)
+    logfile.write('%s\n\n' % df.to_string())
     continue
     if table != 'TOR_oil-page-95-table-1.csv':
         continue
@@ -234,7 +278,7 @@ for table in z.namelist():
                             results[varname] = r['add_to'] + results[varname]
                         #print(results[varname])
                     except:
-                        print('Could not parse row: ' + str(row))
+                        logfile.write('Could not parse row: %s\n' % str(row))
                         stop
                         pass
     stop
@@ -256,14 +300,14 @@ for table in z.namelist():
             for n in range(len(cut_temps)):
                 re[n*3] = cut_temps[n]
                 re[n*3+2] = cut_vols[n]
-            print('Cuts:\n' + np.array2string(re.astype(np.float32), separator='\t').replace('\n', '\t'))
+            logfile.write('Cuts:\n' + np.array2string(re.astype(np.float32), separator='\t').replace('\n', '\t') + '\n')
 #print('='*30)
 #print(pd.read_csv(z.open(z.namelist()[0])))
 #print('='*30)
 for n, r in results.items():
     if len(r) > 0 and np.sum(np.isfinite(r))>0:
-        print(n, r)
-print('='*30)
+        logfile.write(n, r, '\n')
+logfile.write('='*30 + '\n')
 
 for aas in ['', 'a', 'aa', 'aaa', 'aaaa', 'aaaaa']:
     dstring = 'density' + aas
@@ -282,9 +326,9 @@ for aas in ['', 'a', 'aa', 'aaa', 'aaaa', 'aaaaa']:
             rv[i*3+2] = results[wstring][i]
 
     if vstring in results:
-        print(vstring, np.array2string(rv.astype(np.float32), separator='\t').replace('\n', '\t'))
+        logfile.write(vstring, np.array2string(rv.astype(np.float32), separator='\t').replace('\n', '\t')+ '\n')
     if dstring in results:
-        print(dstring, np.array2string(rd.astype(np.float32), separator='\t').replace('\n', '\t'))
+        logfile.write(dstring, np.array2string(rd.astype(np.float32), separator='\t').replace('\n', '\t') + '\n')
 
     
 #try:
