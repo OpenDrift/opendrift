@@ -3210,7 +3210,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             latmin = latmin - buffer
             latmax = latmax + buffer
 
-
         if fast is True:
             logger.warning(
                 'Plotting fast. This will make your plots less accurate.')
@@ -3237,10 +3236,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         meanlat = (latmin + latmax) / 2
         aspect_ratio = float(latmax - latmin) / (float(lonmax - lonmin))
         aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
-        if aspect_ratio > 1:
-            fig = plt.figure(figsize=(11. / aspect_ratio, 11.))
+        if 'figsize' in kwargs:
+            figsize = kwargs['figsize']
         else:
-            fig = plt.figure(figsize=(11., 11. * aspect_ratio))
+            figsize = 11.  # inches
+
+        if aspect_ratio > 1:
+            fig = plt.figure(figsize=(figsize / aspect_ratio, figsize))
+        else:
+            fig = plt.figure(figsize=(figsize, figsize * aspect_ratio))
 
         ax = fig.add_subplot(111, projection=crs)
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs=ccrs.PlateCarree(globe=globe))
