@@ -197,7 +197,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         self.elements = self.ElementType()  # Empty array
 
         if loglevel != 'custom':
-            format = '%(levelname)-7s %(name)s: %(message)s'
+            format = '%(levelname)-7s %(name)s:%(lineno)d: %(message)s'
             datefmt = None
             if logtime is not False:
                 format = '%(asctime)s ' + format
@@ -1280,7 +1280,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     # hangig thredds-servers. A reader could be discarded
                     # after e.g. 3 such failed attempts
                     logger.info('========================')
-                    logger.warning(e)
+                    logger.exception(e)
                     logger.debug(traceback.format_exc())
                     logger.info('========================')
                     self.timer_end('main loop:readers:' +
