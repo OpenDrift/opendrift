@@ -26,15 +26,15 @@ class Combined(BaseReader):
 
         self.start_time = none_or_cmp(self.a.start_time, self.b.start_time, max)
         self.end_time = none_or_cmp(self.a.end_time, self.b.end_time, min)
-        self.xmin = none_or_cmp(self.a.xmin, self.b.xmin, max)
-        self.xmax = none_or_cmp(self.a.xmax, self.b.xmax, min)
-        self.ymin = none_or_cmp(self.a.ymin, self.b.ymin, max)
-        self.ymax = none_or_cmp(self.a.ymax, self.b.ymax, min)
+
+        self.xmin = -180
+        self.xmax = 180
+        self.ymin = -90
+        self.ymax = 90
 
         self.name = f'Combined({a.name} | {b.name})'
 
         self.proj4 = '+proj=latlong'
-        self.global_coverage
 
         super().__init__()
 

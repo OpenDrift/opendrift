@@ -25,12 +25,13 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
 
 #%%
 # We add a constant x_wind component to cause stranding.
-reader_onshore = reader_constant.Reader({ 'x_wind' : 10. })
+reader_onshore = reader_constant.Reader({ 'x_wind' : 10., 'y_wind': 0 })
 
 #%%
 # If we just add all readers OpenDrift will read the wind from the first available reader, so we combine the wind reader and add them in order so
 # that the combined reader is used first, then the actual sources are used next.
 r0 = reader_onshore + reader_arome
+print(r0)
 
 lw.add_reader([r0, reader_arome, reader_norkyst])
 #%%
