@@ -54,7 +54,7 @@ class Combined:
         env, env_profiles = self.r.get_variables_interpolated(variables, *args, **kwargs)
 
         variables = [
-            var for var in env.keys() if var not in ['x', 'y', 'time']
+            var for var in env.keys() if var not in ['x', 'y', 'z', 'time']
         ]
 
         for var in variables:
@@ -62,7 +62,7 @@ class Combined:
 
         if env_profiles is not None:
             variables = [
-                var for var in env_profiles.keys() if var not in ['x', 'y', 'time']
+                var for var in env_profiles.keys() if var not in ['x', 'y', 'z', 'time']
             ]
             for var in variables:
                 env_profiles[var] = self.op(env_profiles[var])

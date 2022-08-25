@@ -24,7 +24,16 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 #%%
-# We add a constant x_wind component to cause stranding.
+# First a regular simulation, without the added wind:
+lw.add_reader([reader_arome, reader_norkyst])
+object_type = 26  # 26 = Life-raft, no ballast
+lw.seed_elements(lon=4.5, lat=59.6, radius=100, number=1000,
+                 time=reader_arome.start_time, object_type=object_type)
+lw.run(duration=timedelta(hours=48), time_step=900, time_step_output=3600)
+lw.plot(fast=True)
+
+#%%
+# Then a simulation where we add a constant x_wind component to cause stranding.
 reader_onshore = reader_constant.Reader({ 'x_wind' : 10., 'y_wind': 0 })
 
 #%%
@@ -33,30 +42,24 @@ reader_onshore = reader_constant.Reader({ 'x_wind' : 10., 'y_wind': 0 })
 r0 = reader_onshore + reader_arome
 print(r0)
 
-lw.add_reader([r0, reader_arome, reader_norkyst])
+lw2 = Leeway(loglevel=20)  # Set loglevel to 0 for debug information
+lw2.add_reader([r0, reader_arome, reader_norkyst])
 #%%
 # Seed leeway elements at defined position and time
 object_type = 26  # 26 = Life-raft, no ballast
-lw.seed_elements(lon=4.5, lat=59.6, radius=100, number=1000,
+lw2.seed_elements(lon=4.5, lat=59.6, radius=100, number=1000,
                  time=reader_arome.start_time, object_type=object_type)
 
 #%%
 # Running model
-lw.run(duration=timedelta(hours=48), time_step=900, time_step_output=3600)
+lw2.run(duration=timedelta(hours=48), time_step=900, time_step_output=3600)
 
 #%%
 # Print and plot results
-print(lw)
+print(lw2)
+lw2.plot(fast=True)
 
 #%%
-# Animation with current as background.
-# Note that drift is also depending on wind, which is not shown.
-# lw.animation(background=['x_sea_water_velocity', 'y_sea_water_velocity'],
-#              skip=5,  # show every 5th vector
-#              cmap=cmocean.cm.speed, vmin=0, vmax=.8, bgalpha=.7, land_color='#666666', fast=True)
-
-#%%
-# .. image:: /gallery/animations/example_leeway_0.gif
-
-lw.plot(fast=True)
+# The first simulation compared to the second with extra wind:
+lw.plot(fast=True, compare=lw2)
 
