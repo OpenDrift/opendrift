@@ -15,7 +15,7 @@ class Combined:
     r: BaseReader
     op: LambdaType
 
-    def __init__(self, n, r, op):
+    def __init__(self, n, r, op, descop = '|'):
         self.n = n
         self.r = r
         self.op = op
@@ -23,23 +23,23 @@ class Combined:
         assert isinstance(n, Number)
         assert isinstance(r, BaseReader)
 
-        self.name = f'NumCombined()'
+        self.name = f'NumCombined({self.r} {descop} {self.n})'
 
     @staticmethod
     def add(n, r):
-        return Combined(n, r, lambda x: n + x)
+        return Combined(n, r, lambda x: n + x, '+')
 
     @staticmethod
     def mul(n, r):
-        return Combined(n, r, lambda x: n * x)
+        return Combined(n, r, lambda x: n * x, '*')
 
     @staticmethod
     def sub(n, r):
-        return Combined(n, r, lambda x: x - n)
+        return Combined(n, r, lambda x: x - n, '-')
 
     @staticmethod
     def div(n, r):
-        return Combined(n, r, lambda x: x / n)
+        return Combined(n, r, lambda x: x / n, '/')
 
 
     def __getattr__(self, attr):

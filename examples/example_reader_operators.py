@@ -3,11 +3,14 @@ Combining readers using operators
 ==================================
 
 It is possible to combine readers using operators, to create e.g. a mean reader from different sources, or adding a constant force term to another sources.
+
+.. seealso::
+
+    :py:mod:`opendrift.readers.operators`.
+
 """
 
 from datetime import timedelta
-import cmocean
-import xarray as xr
 from opendrift.readers import reader_netCDF_CF_generic, reader_constant
 from opendrift.models.leeway import Leeway
 

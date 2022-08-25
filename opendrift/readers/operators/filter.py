@@ -18,6 +18,8 @@ class FilterVariables(Combine, Filter):
 
         self.v = vars
 
+        self.name = f'Filter({self.r} | {self.v})'
+
     def __getattr__(self, attr):
         """
         Forward all other method calls and attributes to reader.
