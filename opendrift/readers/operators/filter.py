@@ -1,4 +1,3 @@
-from ..basereader import BaseReader
 from .ops import Combine, Filter
 
 class FilterVariables(Combine, Filter):
