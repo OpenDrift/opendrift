@@ -1071,7 +1071,7 @@ class ChemicalDrift(OceanDrift):
             if pKa_acid < 0 and diss!='nondiss':
                 print("pKa_acid must be positive")
                 UserWarning(("pKa_acid must be positive"))
-                exit()
+                
             else:
                 pass
             
@@ -1079,7 +1079,7 @@ class ChemicalDrift(OceanDrift):
             if pKa_base < 0 and diss!='nondiss':
                 print("pKa_base must be positive")
                 UserWarning(("pKa_base must be positive"))
-                exit()
+                
             else:
                 pass
             
@@ -1651,7 +1651,7 @@ class ChemicalDrift(OceanDrift):
                     if pKa_acid < 0:
                         print("pKa_acid must be positive")
                         UserWarning(("pKa_acid must be positive"))
-                        exit()
+                        
                     else:
                         pass
 
@@ -1659,7 +1659,7 @@ class ChemicalDrift(OceanDrift):
                     if pKa_base < 0:
                         print("pKa_base must be positive")
                         UserWarning(("pKa_base must be positive"))
-                        exit()
+                        
                     else:
                         pass
 
@@ -2371,7 +2371,7 @@ class ChemicalDrift(OceanDrift):
             if pKa_acid < 0 and diss!='nondiss':
                 print("pKa_acid must be positive")
                 UserWarning(("pKa_acid must be positive"))
-                exit()
+                
             else:
                 pass
             
@@ -2379,7 +2379,7 @@ class ChemicalDrift(OceanDrift):
             if pKa_base < 0 and diss!='nondiss':
                 print("pKa_base must be positive")
                 UserWarning(("pKa_base must be positive"))
-                exit()
+                
             else:
                 pass
 
