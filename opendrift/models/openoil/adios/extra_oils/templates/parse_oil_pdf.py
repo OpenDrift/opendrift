@@ -4,11 +4,57 @@ import numpy as np
 import pandas as pd
 import zipfile
 import importlib
+import traceback
 import tkinter as tk
 from tkinter import ttk
 import adios_db.scripting as ads
 from adios_db.models.oil.physical_properties import DynamicViscosityPoint
 
+
+def parse_weathering_table(df, oil):
+    max_water_cont = None
+    viscosity_of_max_water_cont = None
+    try:
+        for i, row in df.iterrows():
+            print(row, 'ROW')
+            if 'weight residue' in row[0].lower():
+                for c in range(1, 5):
+                    mo = ads.MassFraction(value=100-float(row[c]), unit="%")
+                    oil.sub_samples[c-1].metadata.fraction_evaporated = mo
+            elif 'density' in row[0].lower():
+                for c in range(1, 5):
+                    dp = ads.DensityPoint(
+                            density=ads.Density(value=float(row[c]), unit="g/ml"),
+                            ref_temp=ads.Temperature(value=13, unit='C'))
+                    oil.sub_samples[c-1].physical_properties.densities.append(dp)
+            elif 'viscosity' in row[0].lower() and 'free' in row[0].lower():
+                for c in range(1, 5):
+                    dp = DynamicViscosityPoint(
+                            viscosity=ads.DynamicViscosity(value=float(row[c]), unit="cP"),
+                            ref_temp=ads.Temperature(value=13, unit='C'))
+                    oil.sub_samples[c-1].physical_properties.dynamic_viscosities.append(dp)
+            elif 'viscosity' in row[0].lower() and 'max' in row[0].lower():
+                viscosity_of_max_water_cont = row[1:5]
+            elif 'max' in row[0].lower() and 'water cont' in row[0].lower():
+                max_water_cont = row[1:5]
+    except:
+        raise ValueError('Not a weathering table')
+
+    if viscosity_of_max_water_cont is not None and max_water_cont is not None:
+        for c, visc, watcont in zip(range(1, 5), viscosity_of_max_water_cont, max_water_cont):
+            try:
+                eo = ads.Emulsion(water_content=ads.MassFraction(value=float(watcont), unit='%'),
+                                  ref_temp=ads.Temperature(value=13, unit='C'),
+                                  complex_viscosity=ads.DynamicViscosity(value=float(visc), unit='cP'))
+                oil.sub_samples[c-1].environmental_behavior.emulsions.append(eo)
+                print(c, eo)
+            except ValueError:
+                pass
+    else:
+        logfile.write('Discarding whole table\n')
+        return
+
+    print(oil, 'Finished oil!')
 
 class ParseOilPDF(tk.Tk):
 
@@ -53,6 +99,7 @@ class ParseOilPDF(tk.Tk):
         weathering.grid(row=0, column=2, columnspan=4, sticky='nsew')
 
         self.tables = {}
+        self.dataframes = {}
         self.selected_tables = []
         tableno = 0
         for table in z.namelist():
@@ -77,6 +124,7 @@ class ParseOilPDF(tk.Tk):
                 parent = weathering
                 width=150
 
+            self.dataframes[table] = df
             self.tables[table] = tk.Text(parent, bg=color, padx=3, pady=3, width=width)
             tableno = tableno + 1
             self.tables[table].insert(tk.END, df)
@@ -90,67 +138,35 @@ class ParseOilPDF(tk.Tk):
         else:
             self.tables[table].config(bg='green')
             self.selected_tables.append(table)
+
         print(self.selected_tables)
+        print('Making oil')
+        oil = ads.Oil('dummy')
+        oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
+        for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
+            oil.sub_samples[i].metadata.name = s
+            oil.sub_samples[i].metadata.short_name = s
+        print(oil)
+        for tablename in self.selected_tables:
+            df = self.dataframes[tablename]
+            print('-'*22)
+            print(df, 'DF')
+            print('-'*22)
+            try:
+                parse_weathering_table(df, oil)
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
+
+        oil.to_file('test.json')
+        import os
+        os.system('cat test.json')
 
 if __name__ == '__main__':
     ParseOilPDF().mainloop()
 
 
-#def parse_weathering_table(df, oil):
-#    max_water_cont = None
-#    viscosity_of_max_water_cont = None
-#    try:
-#        for i, row in df.iterrows():
-#            logfile.write(row, 'ROW\n')
-#            if 'weight residue' in row[0].lower():
-#                j1
-#                for c in range(1, 5):
-#                    mo = ads.MassFraction(value=100-float(row[c]), unit="%")
-#                    oil.sub_samples[c-1].metadata.fraction_evaporated = mo
-#            elif 'density' in row[0].lower():
-#                for c in range(1, 5):
-#                    logfile.write(c, 'C\n')
-#                    dp = ads.DensityPoint(
-#                            density=ads.Density(value=float(row[c]), unit="g/ml"),
-#                            ref_temp=ads.Temperature(value=13, unit='C'))
-#                    oil.sub_samples[c-1].physical_properties.densities.append(dp)
-#                j2
-#            elif 'viscosity' in row[0].lower() and 'free' in row[0].lower():
-#                j3
-#                for c in range(1, 5):
-#                    dp = DynamicViscosityPoint(
-#                            viscosity=ads.DynamicViscosity(value=float(row[c]), unit="cP"),
-#                            ref_temp=ads.Temperature(value=13, unit='C'))
-#                    oil.sub_samples[c-1].physical_properties.dynamic_viscosities.append(dp)
-#            elif 'viscosity' in row[0].lower() and 'max' in row[0].lower():
-#                j4
-#                viscosity_of_max_water_cont = row[1:5]
-#            elif 'max' in row[0].lower() and 'water cont' in row[0].lower():
-#                k5
-#                max_water_cont = row[1:5]
-#            else:
-#                logfile.write('Found nothing!\n')
-#    except:
-#        raise ValueError('Not a weathering table')
-#
-#    if viscosity_of_max_water_cont is not None and max_water_cont is not None:
-#        for c, visc, watcont in zip(range(1, 5), viscosity_of_max_water_cont, max_water_cont):
-#            try:
-#                eo = ads.Emulsion(water_content=ads.MassFraction(value=float(watcont), unit='%'),
-#                                  ref_temp=ads.Temperature(value=13, unit='C'),
-#                                  complex_viscosity=ads.DynamicViscosity(value=float(visc), unit='cP'))
-#                oil.sub_samples[c-1].environmental_behavior.emulsions.append(eo)
-#                print(c, eo)
-#            except ValueError:
-#                pass
-#    else:
-#        logfile.write('Discarding whole table\n')
-#        return
-#
-#    logfile.write(oil.py_json() + '\n')
-#    oil.to_file('test.json')
-#    stop_parse_weath
-#
+
 ########################################################
 ## Step 1: the pdf is parsed and cached in a .zip file
 ########################################################
