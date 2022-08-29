@@ -2291,13 +2291,13 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:DeltaH_Solub', 38000)                   ### Benzo(a)pyrene value
 
     def plot_mass(self,
-                  legend=['dissolved','POC','sediment'],
+                  legend=['dissolved','SPM','sediment'],
                   mass_unit='g',
                   time_unit='hours',
                   title=None,
                   filename=None):
         """Plot chemical mass distribution between the different species
-            legend      list of specie labels, for example ['dissolved','POC','sediment']
+            legend      list of specie labels, for example ['dissolved','SPM','sediment']
             mass_unit   'g','mg','ug'
             time_unit   'seconds', 'minutes', 'hours' , 'days'
             title       figure title string
@@ -2350,7 +2350,7 @@ class ChemicalDrift(OceanDrift):
         if 'DOC' in legend:
             ax.bar(np.arange(steps),bars[:,1],bottom=bottom,width=1.25,color='royalblue')
             bottom=bottom+bars[:,1]
-        if 'POC' in legend:
+        if 'SPM' in legend:
             ax.bar(np.arange(steps),bars[:,2],bottom=bottom,width=1.25,color='palegreen')
             bottom=bottom+bars[:,2]
         if 'sediment' in legend:

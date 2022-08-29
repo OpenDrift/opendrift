@@ -86,7 +86,7 @@ print('mass degraded        : {:.3f}'.format(m_deg * 1e-6),' g   {:.3f}'.format(
 print('mass volatilized     : {:.3f}'.format(m_vol * 1e-6),' g   {:.3f}'.format(m_vol/m_tot*100),'%')
 
 
-legend=['dissolved', '', 'POC', 'sediment', '']
+legend=['dissolved', '', 'SPM', 'sediment', '']
 
 o.animation_profile(color='specie',
             markersize=5,
