@@ -1679,7 +1679,7 @@ class ChemicalDrift(OceanDrift):
             if deltat==None:
                 ndt = 1
             else:
-                ndt = int( deltat / (mdt.seconds/3600.) )
+                ndt = int( deltat / (mdt.total_seconds()/3600.) )
             times2 = times[::ndt]
             times2 = times2[1:]
             odt = int(cshape[0]/ndt)
