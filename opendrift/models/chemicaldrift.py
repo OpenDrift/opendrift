@@ -1545,6 +1545,31 @@ class ChemicalDrift(OceanDrift):
 
         from netCDF4 import Dataset, date2num #, stringtochar
 
+        if 'global_landmask' not in self.readers.keys():
+            from opendrift.readers import reader_global_landmask
+            global_landmask = reader_global_landmask.Reader(extent=[llcrnrlon,urcrnrlon,llcrnrlat,urcrnrlat])
+            self.add_reader(global_landmask)
+
+        if reader_sea_depth is not None:
+            from opendrift.readers import reader_netCDF_CF_generic
+            reader_sea_depth = reader_netCDF_CF_generic.Reader(reader_sea_depth)
+        else:
+            print('A reader for ''sea_floor_depth_below_sea_level'' must be specified')
+            import sys
+            sys.exit()
+
+        # Temporary workaround if self.nspecies and self.name_species are not defined
+        # TODO Make sure that these are saved when the simulation data is saved to the ncdf file
+        # Then this workaround can be removed
+        if not hasattr(self,'nspecies'):
+            self.nspecies=5
+        if not hasattr(self,'name_species'):
+            self.name_species = ['LMM',
+                                 'Humic colloid',
+                                 'Particle reversible',
+                                 'Sediment reversible',
+                                 'Sediment slowly reversible']
+
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
         # Default bathymetry resolution 500x500. Can be increased (carefully) if high-res data is available and needed
