@@ -1550,13 +1550,15 @@ class ChemicalDrift(OceanDrift):
 
         self.conc_lon=reader_sea_depth.x
         self.conc_lat=reader_sea_depth.y
-        self.conc_topo=reader_sea_depth.get_variables('sea_floor_depth_below_sea_level', x=[reader_sea_depth.xmin,reader_sea_depth.xmax], y=[reader_sea_depth.ymin,reader_sea_depth.ymax])['sea_floor_depth_below_sea_level'][:,:].transpose()
-        self.conc_topo=self.conc_topo[(self.conc_lon>llcrnrlon) & (self.conc_lon<urcrnrlon),:]
-        self.conc_topo=self.conc_topo[:,(self.conc_lat>llcrnrlat) & (self.conc_lat<urcrnrlat)]
-
         self.conc_lon=self.conc_lon[(self.conc_lon>llcrnrlon) & (self.conc_lon<urcrnrlon)]
         self.conc_lat=self.conc_lat[(self.conc_lat>llcrnrlat) & (self.conc_lat<urcrnrlat)]
         self.conc_lat,self.conc_lon=np.meshgrid(self.conc_lat,self.conc_lon)
+
+        self.conc_topo=reader_sea_depth.get_variables_interpolated_xy(['sea_floor_depth_below_sea_level'],
+                x = self.conc_lon.flatten(),
+                y = self.conc_lat.flatten(),
+                time=reader_sea_depth.times[0])[0]['sea_floor_depth_below_sea_level'].reshape(self.conc_lon.shape)
+
 
         #Downsample if bathymetry file very large
         #self.conc_topo=self.conc_topo[::10,::10]
