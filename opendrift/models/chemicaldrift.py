@@ -1545,24 +1545,42 @@ class ChemicalDrift(OceanDrift):
 
         from netCDF4 import Dataset, date2num #, stringtochar
 
+        if 'global_landmask' not in self.readers.keys():
+            from opendrift.readers import reader_global_landmask
+            global_landmask = reader_global_landmask.Reader(extent=[llcrnrlon,urcrnrlon,llcrnrlat,urcrnrlat])
+            self.add_reader(global_landmask)
+
+        if reader_sea_depth is not None:
+            from opendrift.readers import reader_netCDF_CF_generic
+            reader_sea_depth = reader_netCDF_CF_generic.Reader(reader_sea_depth)
+        else:
+            print('A reader for ''sea_floor_depth_below_sea_level'' must be specified')
+            import sys
+            sys.exit()
+
+        # Temporary workaround if self.nspecies and self.name_species are not defined
+        # TODO Make sure that these are saved when the simulation data is saved to the ncdf file
+        # Then this workaround can be removed
+        if not hasattr(self,'nspecies'):
+            self.nspecies=5
+        if not hasattr(self,'name_species'):
+            self.name_species = ['LMM',
+                                 'Humic colloid',
+                                 'Particle reversible',
+                                 'Sediment reversible',
+                                 'Sediment slowly reversible']
+
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
+        # Default bathymetry resolution 500x500. Can be increased (carefully) if high-res data is available and needed
+        grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,500), np.linspace(llcrnrlat,urcrnrlat,500))
+        self.conc_lon=grid[0]
+        self.conc_lat=grid[1]
 
-        self.conc_lon=reader_sea_depth.x
-        self.conc_lat=reader_sea_depth.y
-        self.conc_topo=reader_sea_depth.get_variables('sea_floor_depth_below_sea_level', x=[reader_sea_depth.xmin,reader_sea_depth.xmax], y=[reader_sea_depth.ymin,reader_sea_depth.ymax])['sea_floor_depth_below_sea_level'][:,:].transpose()
-        self.conc_topo=self.conc_topo[(self.conc_lon>llcrnrlon) & (self.conc_lon<urcrnrlon),:]
-        self.conc_topo=self.conc_topo[:,(self.conc_lat>llcrnrlat) & (self.conc_lat<urcrnrlat)]
-
-        self.conc_lon=self.conc_lon[(self.conc_lon>llcrnrlon) & (self.conc_lon<urcrnrlon)]
-        self.conc_lat=self.conc_lat[(self.conc_lat>llcrnrlat) & (self.conc_lat<urcrnrlat)]
-        self.conc_lat,self.conc_lon=np.meshgrid(self.conc_lat,self.conc_lon)
-
-        #Downsample if bathymetry file very large
-        #self.conc_topo=self.conc_topo[::10,::10]
-        #self.conc_lat=self.conc_lat[::10,::10]
-        #self.conc_lon=self.conc_lon[::10,::10]
-
+        self.conc_topo=reader_sea_depth.get_variables_interpolated_xy(['sea_floor_depth_below_sea_level'],
+                x = self.conc_lon.flatten(),
+                y = self.conc_lat.flatten(),
+                time=reader_sea_depth.times[0])[0]['sea_floor_depth_below_sea_level'].reshape(self.conc_lon.shape)
 
         if pixelsize_m == 'auto':
             lon, lat = self.get_lonlats()
@@ -1679,7 +1697,7 @@ class ChemicalDrift(OceanDrift):
             if deltat==None:
                 ndt = 1
             else:
-                ndt = int( deltat / (mdt.seconds/3600.) )
+                ndt = int( deltat / (mdt.total_seconds()/3600.) )
             times2 = times[::ndt]
             times2 = times2[1:]
             odt = int(cshape[0]/ndt)
