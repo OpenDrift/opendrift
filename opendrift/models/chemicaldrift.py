@@ -1547,24 +1547,15 @@ class ChemicalDrift(OceanDrift):
 
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
-
-        self.conc_lon=reader_sea_depth.x
-        self.conc_lat=reader_sea_depth.y
-        self.conc_lon=self.conc_lon[(self.conc_lon>llcrnrlon) & (self.conc_lon<urcrnrlon)]
-        self.conc_lat=self.conc_lat[(self.conc_lat>llcrnrlat) & (self.conc_lat<urcrnrlat)]
-        self.conc_lat,self.conc_lon=np.meshgrid(self.conc_lat,self.conc_lon)
+        # Default bathymetry resolution 500x500. Can be increased (carefully) if high-res data is available and needed
+        grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,500), np.linspace(llcrnrlat,urcrnrlat,500))
+        self.conc_lon=grid[0]
+        self.conc_lat=grid[1]
 
         self.conc_topo=reader_sea_depth.get_variables_interpolated_xy(['sea_floor_depth_below_sea_level'],
                 x = self.conc_lon.flatten(),
                 y = self.conc_lat.flatten(),
                 time=reader_sea_depth.times[0])[0]['sea_floor_depth_below_sea_level'].reshape(self.conc_lon.shape)
-
-
-        #Downsample if bathymetry file very large
-        #self.conc_topo=self.conc_topo[::10,::10]
-        #self.conc_lat=self.conc_lat[::10,::10]
-        #self.conc_lon=self.conc_lon[::10,::10]
-
 
         if pixelsize_m == 'auto':
             lon, lat = self.get_lonlats()
