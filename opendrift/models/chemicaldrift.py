@@ -1580,7 +1580,8 @@ class ChemicalDrift(OceanDrift):
         self.conc_topo=reader_sea_depth.get_variables_interpolated_xy(['sea_floor_depth_below_sea_level'],
                 x = self.conc_lon.flatten(),
                 y = self.conc_lat.flatten(),
-                time=reader_sea_depth.times[0])[0]['sea_floor_depth_below_sea_level'].reshape(self.conc_lon.shape)
+                time = reader_sea_depth.times[0] if reader_sea_depth.times is not None else None
+                )[0]['sea_floor_depth_below_sea_level'].reshape(self.conc_lon.shape)
 
         if pixelsize_m == 'auto':
             lon, lat = self.get_lonlats()
