@@ -75,6 +75,14 @@ class ParseOilPDF(tk.Tk):
         tk.Tk.__init__(self)
         self.title('Oil parser for Sintef PDF reports')
 
+        # Make tabs
+        self.n = ttk.Notebook(self.master)
+        self.n.grid()
+        self.tabs = ttk.Frame(self.n)
+        self.oil = ttk.Frame(self.n)
+        self.n.add(self.tabs, text='Tables')
+        self.n.add(self.oil, text='Oil')
+
         mf = tk.Frame(self, bg='cyan', width=1200, height=150, padx=3, pady=3)
         cf = tk.Frame(self, bg='gray2', width=1200, height=900, padx=3, pady=3)
 
@@ -121,6 +129,20 @@ class ParseOilPDF(tk.Tk):
                     parent = properties
                     width=60
             elif len(df.columns) == 5:
+                # Check if this is a valid weathering table
+                oil = ads.Oil('dummy')
+                oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
+                for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
+                    oil.sub_samples[i].metadata.name = s
+                    oil.sub_samples[i].metadata.short_name = s
+                try:
+                    parse_weathering_table(df, oil)
+                except Exception as e:
+                    print(e)
+                    print(traceback.format_exc())
+                    print('Not a weathering table')
+                    continue
+
                 parent = weathering
                 width=150
 
@@ -159,6 +181,8 @@ class ParseOilPDF(tk.Tk):
                 print(traceback.format_exc())
 
         oil.to_file('test.json')
+        v = oil.validate()
+        print(v, 'VALIDATE')
         import os
         os.system('cat test.json')
 
