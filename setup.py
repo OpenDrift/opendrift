@@ -31,6 +31,7 @@ setuptools.setup(
                'opendrift/scripts/opendrift_plot.py',
                'opendrift/scripts/opendrift_animate.py',
                'opendrift/scripts/opendrift_gui.py',
-               'opendrift/scripts/mp4_to_gif.bash']
+               'opendrift/scripts/mp4_to_gif.bash',
+               'opendrift/scripts/opendrift.py']
 )
 
