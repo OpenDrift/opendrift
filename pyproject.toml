@@ -1,15 +1,15 @@
 [tool.poetry]
 name = "opendrift"
-version = "1.9.0"
+version = "1.9.1-rc1"
 description = "OpenDrift - a framework for ocean trajectory modeling"
-authors = ["Knut-Frode Dagestad <knutfd@met.no>, Gaute Hope <gauteh@met.no>"]
+authors = ["Knut-Frode Dagestad <knutfd@met.no>", "Gaute Hope <gauteh@met.no>"]
 license = "GPLv2"
 
 [tool.poetry.extras]
 grib = ["cfgrib", "pygrib"]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.12"
+python = ">=3.8,<3.10"
 matplotlib = ">=3.5"
 numpy = ">=1.23"
 scipy = ">=1.9"
