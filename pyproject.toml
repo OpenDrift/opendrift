@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "opendrift"
+version = "1.9.0"
+description = "OpenDrift - a framework for ocean trajectory modeling"
+authors = ["Knut-Frode Dagestad <knutfd@met.no>, Gaute Hope <gauteh@met.no>"]
+license = "GPLv2"
+
+[tool.poetry.extras]
+grib = ["cfgrib", "pygrib"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.12"
+matplotlib = ">=3.5"
+numpy = ">=1.23"
+scipy = ">=1.9"
+netCDF4 = ">=1.6"
+pyproj = ">=2.3"
+xarray = ">=2022.6.0"
+cfgrib = {version = "^0.9.10", optional = true}
+pygrib = {version = "^2.1.4", optional = true}
+dask = {version = "^2022.9.0", optional = true}
+cmocean = "^2.0"
+geojson = "^2.5.0"
+nc-time-axis = "^1.4.1"
+coloredlogs = "^15.0.1"
+GDAL = {version = "^3.5.1", optional = true}
+Cartopy = ">=0.20"
+pynucos = ">=3"
+utm = "^0.7.0"
+roaring-landmask = ">=0.5.1"
+requests = "^2.28.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.3"
+pytest-benchmark = "^3.4.1"
+pytest-mpl = "^0.16.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
