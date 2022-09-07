@@ -371,7 +371,7 @@ class OpenDriftGUI(tk.Tk):
         except Exception as e:
             print(e)
             pass # Could not display logo
- 
+
         ##########
         # RUN
         ##########
@@ -444,8 +444,8 @@ class OpenDriftGUI(tk.Tk):
             zlayer = [-1]
             time   = None
             specie = ['LMM']
-            self.o.guipp_plotandsaveconc(filename=homefolder+'/conc_radio.nc', 
-                                         outfilename=homefolder+'/radio_plots/RadioConc', 
+            self.o.guipp_plotandsaveconc(filename=homefolder+'/conc_radio.nc',
+                                         outfilename=homefolder+'/radio_plots/RadioConc',
                                          zlayers=zlayer, time=time, specie=specie )
         elif command == 'showanimationprofile':
             self.o.guipp_showanimationprofile()
@@ -476,7 +476,7 @@ class OpenDriftGUI(tk.Tk):
             return False
 
     def set_model(self, model, rebuild_gui=True):
-        
+
         # Creating simulation object (self.o) of chosen model class
         print('Setting model: ' + model)
         if model in self.extra_args:
@@ -589,7 +589,7 @@ class OpenDriftGUI(tk.Tk):
                     if units == '1':
                         units = 'fraction'
                     varlabel = '%s [%s]' % (varlabel, units)
-        
+
             self.seed_input_label[i] = tk.Label(self.seed_frame,
                                                 text=varlabel + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
@@ -689,7 +689,7 @@ class OpenDriftGUI(tk.Tk):
         adjusted_config = self.o._config
         self.set_model(self.modelname, rebuild_gui=False)
         self.o._config = adjusted_config
-    
+
         try:
             self.budgetbutton.destroy()
         except Exception as e:
@@ -758,15 +758,15 @@ class OpenDriftGUI(tk.Tk):
         # Starting simulation run
         self.o.run(steps=duration, **extra_args)
         print(self.o)
-        
+
         try:
             os.chmod(extra_args['outfile'], 0o666)
         except:
             pass
-        
+
         # Model-specific post processing
         self.o.gui_postproc()
-        
+
 
         self.results.destroy()
         self.results = tk.Frame(self.seed, bd=2,
@@ -792,37 +792,40 @@ class OpenDriftGUI(tk.Tk):
                       command=lambda: self.handle_result(
                         'showoilbudget')).grid(row=60, column=1)
 
-        
+
         if self.model.get() =='RadionuclideDrift':
             tk.Button(self.results, text='Show animation specie',
                       command=lambda: self.handle_result(
-                          'showanimationspecie')).grid(row=30, column=2) 
+                          'showanimationspecie')).grid(row=30, column=2)
             tk.Button(self.results, text='Save animation specie',
                       command=lambda: self.handle_result(
-                          'saveanimationspecie')).grid(row=40, column=2) 
+                          'saveanimationspecie')).grid(row=40, column=2)
             tk.Button(self.results, text='Animation profile',
                       command=lambda: self.handle_result(
-                          'showanimationprofile')).grid(row=10, column=2) 
+                          'showanimationprofile')).grid(row=10, column=2)
 #             tk.Button(self.results, text='Save conc file',
 #                       command=lambda: self.handle_result(
-#                           'saveconcfile')).grid(row=20, column=2) 
+#                           'saveconcfile')).grid(row=20, column=2)
             tk.Button(self.results, text='Plot conc',
                       command=lambda: self.handle_result(
-                          'plotconc')).grid(row=20, column=2) 
+                          'plotconc')).grid(row=20, column=2)
 
-        
-        
+
+
         if self.has_diana is True:
             diana_filename = self.dianadir + self.simulationname + '.nc'
             self.o.write_netcdf_density_map(diana_filename)
             tk.Button(self.results, text='Show in Diana',
                       command=lambda: os.system('diana &')
                       ).grid(row=80, column=1)
-                      
+
             try:
                 os.chmod(diana_filename, 0o666)
             except:
                 pass
+
+def main():
+    OpenDriftGUI().mainloop()
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()

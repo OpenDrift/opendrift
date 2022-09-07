@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 #
 # This file is part of OpenDrift.
-# 
+#
 # OpenDrift is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 2
-# 
+#
 # OpenDrift is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 
@@ -39,7 +39,7 @@ except ImportError: # development
     sys.exit('Please add opendrift folder to your PYTHONPATH.')
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename',
                         help='<URL or netCDF filename>')
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                 print('---------------------------------------')
             print('...not applicable.')
 
-    if not 'r' in locals():            
+    if not 'r' in locals():
         sys.exit('No readers applicable for ' + args.filename)
 
     time = datetime.strptime(args.time, '%Y%m%d%H%M')
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     uv = r.get_variables(['x_sea_water_velocity', 'y_sea_water_velocity',
                          'sea_floor_depth_below_sea_level'],
                          time, x, y, r.z)
-                       
+
     u_comp = uv['x_sea_water_velocity'][:,i,j]
     v_comp = uv['y_sea_water_velocity'][:,i,j]
     depth = uv['sea_floor_depth_below_sea_level'][i,j]
@@ -107,3 +107,7 @@ if __name__ == '__main__':
             verticalalignment='top',
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
     plt.show()
+
+if __name__ == '__main__':
+    main()
+

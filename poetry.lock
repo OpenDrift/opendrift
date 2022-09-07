@@ -415,7 +415,6 @@ numpy = [
     {version = ">=1.18.5", markers = "platform_machine != \"aarch64\" and platform_machine != \"arm64\" and python_version < \"3.10\""},
     {version = ">=1.19.2", markers = "platform_machine == \"aarch64\" and python_version < \"3.10\""},
     {version = ">=1.20.0", markers = "platform_machine == \"arm64\" and python_version < \"3.10\""},
-    {version = ">=1.21.0", markers = "python_version >= \"3.10\""},
 ]
 python-dateutil = ">=2.8.1"
 pytz = ">=2020.1"
@@ -497,6 +496,17 @@ python-versions = "*"
 [package.dependencies]
 numpy = "*"
 pyproj = "*"
+
+[[package]]
+name = "pykdtree"
+version = "1.3.5"
+description = "Fast kd-tree implementation with OpenMP-enabled queries"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+numpy = "*"
 
 [[package]]
 name = "pynucos"
@@ -763,8 +773,8 @@ grib = ["cfgrib", "pygrib"]
 
 [metadata]
 lock-version = "1.1"
-python-versions = ">=3.9,<3.12"
-content-hash = "aa901025209dabf310901533f171cc76a147a3463271e8db1bca1eb5f64b9522"
+python-versions = ">=3.8,<3.10"
+content-hash = "660ff0334dfb951ffd3a02203107374fe7739e1c2ac228d6205ae678f581c5b3"
 
 [metadata.files]
 attrs = []
@@ -807,6 +817,7 @@ py = []
 py-cpuinfo = []
 pycparser = []
 pygrib = []
+pykdtree = []
 pynucos = []
 pyparsing = []
 pyproj = []

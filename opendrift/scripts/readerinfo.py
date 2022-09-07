@@ -43,7 +43,7 @@ except ImportError: # development
     sys.exit('Please add opendrift folder to your PYTHONPATH.')
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename',
                         help='<URL or netCDF filename>')
@@ -121,3 +121,7 @@ if __name__ == '__main__':
                 vmax = float(args.vmax)
 
             r.plot(args.variable, vmin=vmin, vmax=vmax)
+
+if __name__ == '__main__':
+    main()
+
