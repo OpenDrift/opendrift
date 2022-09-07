@@ -161,7 +161,7 @@ jobs:
           name: Publish packages
           command: |
             source activate opendrift
-            poetry publish -vv -u __token__ -p ${PYPI_TOKEN}
+            poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
 
   python_310:
     <<: *test-template
