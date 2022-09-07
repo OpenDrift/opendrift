@@ -112,6 +112,29 @@ test-template: &test-template
         mpl: true
 
 jobs:
+  build:
+    parallelism: 5
+    environment:
+      - PYTHON_VERSION=3.9
+
+    steps:
+      - checkout
+      - install_conda_environment
+      - install_cartopy_shapes
+
+      - run:
+        name: Install poetry
+        command: |
+          source activate opendrift
+          pip install poetry
+
+      - run:
+        name: Build package
+        command: |
+          source activate opendrift
+          poetry build -vv
+
+
   python_310:
     <<: *test-template
     parallelism: 5
