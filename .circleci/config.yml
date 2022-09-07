@@ -112,8 +112,10 @@ test-template: &test-template
         mpl: true
 
 jobs:
-  build:
-    parallelism: 5
+  build_package:
+    docker:
+      - image: continuumio/miniconda3
+    resource_class: medium+
     environment:
       - PYTHON_VERSION=3.9
 
@@ -123,16 +125,16 @@ jobs:
       - install_cartopy_shapes
 
       - run:
-        name: Install poetry
-        command: |
-          source activate opendrift
-          pip install poetry
+          name: Install poetry
+          command: |
+            source activate opendrift
+            pip install poetry
 
       - run:
-        name: Build package
-        command: |
-          source activate opendrift
-          poetry build -vv
+          name: Build package
+          command: |
+            source activate opendrift
+            poetry build -vv
 
 
   python_310:
@@ -421,6 +423,7 @@ workflows:
 
   test:
     jobs:
+      - build_package
       - python_310
       - python_39
       - python_38
