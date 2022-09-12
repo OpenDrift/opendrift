@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "opendrift"
-version = "1.9.1-rc1"
+version = "1.9.1-rc2"
 description = "OpenDrift - a framework for ocean trajectory modeling"
 authors = ["Knut-Frode Dagestad <knutfd@met.no>", "Gaute Hope <gauteh@met.no>"]
 license = "GPLv2"
@@ -35,7 +35,7 @@ cmocean = "^2.0"
 geojson = "^2.5.0"
 nc-time-axis = "^1.4.1"
 coloredlogs = "^15.0.1"
-GDAL = {version = "^3.5.1", optional = true}
+GDAL = {version = "^3.3.1", optional = true}
 Cartopy = ">=0.20"
 pynucos = ">=3"
 utm = "^0.7.0"
