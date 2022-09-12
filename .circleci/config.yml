@@ -136,7 +136,9 @@ jobs:
 
       - persist_to_workspace:
           root: dist
-          paths: '*.whl'
+          paths:
+            - '*.whl'
+            - '*.tar.gz'
 
   publish_package:
     docker:
