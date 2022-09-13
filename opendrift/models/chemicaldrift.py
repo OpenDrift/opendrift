@@ -101,7 +101,7 @@ class ChemicalDrift(OceanDrift):
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
         'upward_sea_water_velocity': {'fallback': 0},
         #'conc3': {'fallback': 1.e-3},
-        'spm': {'fallback': 50},
+        'spm': {'fallback': 1},
         'ocean_mixed_layer_thickness': {'fallback': 50},
         'active_sediment_layer_thickness': {'fallback': 0.03}, # TODO - currently not used, redundant with 'chemical:sediment:mixing_depth'
         'doc': {'fallback': 0.0}
@@ -702,8 +702,8 @@ class ChemicalDrift(OceanDrift):
 
 
             # Values from Simonsen et al (2019a)
-            Kd         = self.get_config('chemical:transformations:Kd')
-            Dc         = self.get_config('chemical:transformations:Dc')
+            Kd         = self.get_config('chemical:transformations:Kd') # (m3/Kg)
+            Dc         = self.get_config('chemical:transformations:Dc') # (1/s)
             slow_coeff = self.get_config('chemical:transformations:slow_coeff')
             concSPM    = 1.e-3   # concentration of available suspended particulate matter (kg/m3)
             sed_L = self.get_config('chemical:sediment:mixing_depth')     # sediment mixing depth (m)
@@ -713,6 +713,7 @@ class ChemicalDrift(OceanDrift):
             sed_poro        =  self.get_config('chemical:sediment:porosity')      # sediment porosity
             sed_H =  self.get_config('chemical:sediment:layer_thickness')      # thickness of seabed interaction layer (m)
 
+            self.k_ads = Dc * Kd * 1e3 # L/(Kg*s)
             self.transfer_rates[self.num_lmm,self.num_prev] = Dc * Kd * concSPM
             self.transfer_rates[self.num_prev,self.num_lmm] = Dc
             self.transfer_rates[self.num_lmm,self.num_srev] = \
@@ -975,6 +976,8 @@ class ChemicalDrift(OceanDrift):
                 self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
                     self.k41_0 / tempcorrSed[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
 
+            if transfer_setup=='organics' or transfer_setup == 'Bokna_137Cs':
+
                 # Updating sorption rates according to local SPM concentration
 
                 concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3) 
@@ -982,7 +985,6 @@ class ChemicalDrift(OceanDrift):
                 # Apply SPM concentration profile if SPM reader has not depth coordinate
                 # SPM concentration is kept constant to surface value in the mixed layer
                 # Exponentially decreasing with depth below the mixed layers
-
                 if not self.SPM_vertical_levels_given:
                     lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
                     #concSPM[lowerMLD] = concSPM[lowerMLD]/2
@@ -993,6 +995,8 @@ class ChemicalDrift(OceanDrift):
 
                 self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
                     self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+
+            if transfer_setup=='organics':
 
                 concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
 
@@ -1009,7 +1013,7 @@ class ChemicalDrift(OceanDrift):
                         )
 
                 self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
-                    self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k14
+                    self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k12
 
 
             if self.get_config('chemical:species:Sediment_reversible'):
@@ -1242,7 +1246,8 @@ class ChemicalDrift(OceanDrift):
         bottom = (self.elements.z <= Zmin)
 
         resusp = ( (bottom) & (speed >= critvel) )
-        resusp = ( resusp & (self.elements.specie!=self.num_ssrev) )    # Prevent ssrev (buried) to be resuspended
+        if self.get_config('chemical:slowly_fraction'):
+            resusp = ( resusp & (self.elements.specie!=self.num_ssrev) )    # Prevent ssrev (buried) to be resuspended
                                                                         # TODO buried sediment should be a new specie
         logger.info('Number of resuspended particles: {}'.format(np.sum(resusp)))
         self.elements.moving[resusp] = 1
@@ -1486,8 +1491,9 @@ class ChemicalDrift(OceanDrift):
         self.elements.specie = self.elements.specie.astype(np.int32)
 
         # Degradation and Volatilization
-        self.degradation()
-        self.volatilization()
+        if self.get_config('chemical:transfer_setup')=='organics':
+            self.degradation()
+            self.volatilization()
 
         # Dynamic Partitioning
         if self.get_config('chemical:dynamic_partitioning') is True:
@@ -2364,17 +2370,17 @@ class ChemicalDrift(OceanDrift):
 
         bottom=np.zeros_like(bars[:,0])
         if 'dissolved' in legend:
-            ax.bar(np.arange(steps),bars[:,0],width=1.25,color='midnightblue')
-            bottom=bars[:,0]
+            ax.bar(np.arange(steps),bars[:,self.num_lmm],width=1.25,color='midnightblue')
+            bottom=bars[:,self.num_lmm]
         if 'DOC' in legend:
-            ax.bar(np.arange(steps),bars[:,1],bottom=bottom,width=1.25,color='royalblue')
-            bottom=bottom+bars[:,1]
+            ax.bar(np.arange(steps),bars[:,self.num_col],bottom=bottom,width=1.25,color='royalblue')
+            bottom=bottom+bars[:,self.num_col]
         if 'SPM' in legend:
-            ax.bar(np.arange(steps),bars[:,2],bottom=bottom,width=1.25,color='palegreen')
-            bottom=bottom+bars[:,2]
+            ax.bar(np.arange(steps),bars[:,self.num_prev],bottom=bottom,width=1.25,color='palegreen')
+            bottom=bottom+bars[:,self.num_prev]
         if 'sediment' in legend:
-            ax.bar(np.arange(steps),bars[:,3],bottom=bottom,width=1.25,color='orange')
-            bottom=bottom+bars[:,3]
+            ax.bar(np.arange(steps),bars[:,self.num_srev],bottom=bottom,width=1.25,color='orange')
+            bottom=bottom+bars[:,self.num_srev]
 
         ax.legend(list(filter(None, legend)))
         ax.set_ylabel('mass [' + mass_unit + ']')
