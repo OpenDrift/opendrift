@@ -271,7 +271,11 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
         times = np.arange(infile.steps_exported)
     else:
         #self.steps_output = len(infile.dimensions['time'])
-        self.steps_output = len(times)
+        if times is not None:
+            self.steps_output = len(times)
+        else:
+            times = np.arange(len(infile.dimensions['time']))
+            self.steps_output = len(times)
 
     filetime = infile.variables['time'][times]
     units = infile.variables['time'].units
