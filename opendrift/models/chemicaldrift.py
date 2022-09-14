@@ -1990,7 +1990,7 @@ class ChemicalDrift(OceanDrift):
 
         return num_coarse
     
-    def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", mass_element_ug=100e3, **kwargs):
+    def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", mass_element_ug=100e3, number_of_elements=None, **kwargs):
             """Seed elements based on a dataarray with STEAM emission data
     
             Arguments:
@@ -2095,13 +2095,20 @@ class ChemicalDrift(OceanDrift):
 
             data=np.array(steam.data)
 
+            if number_of_elements is not None:
+                total_volume = np.sum(data[sel])
+                total_mass = total_volume * emission_factors(scrubber_type, chemical_compound)
+                mass_element_ug = total_mass / number_of_elements
+
             for i in range(0,t.size):
                 scrubberwater_vol_l=data[sel][i]
                 mass_ug=scrubberwater_vol_l * emission_factors(scrubber_type, chemical_compound)
 
-                number=np.array(mass_ug / mass_element_ug).astype('int')
+                if number_of_elements is None:
+                    number=np.array(mass_ug / mass_element_ug).astype('int')
+                else:
+                    number=np.round(np.array(mass_ug / mass_element_ug)).astype('int')
 
-                number=np.array(mass_ug / mass_element_ug).astype('int')
                 time = datetime.utcfromtimestamp((t[i] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's'))
 
                 if number>0:
@@ -2112,7 +2119,7 @@ class ChemicalDrift(OceanDrift):
 
                 mass_residual = mass_ug - number*mass_element_ug
 
-                if mass_residual>0:
+                if mass_residual>0 and number_of_elements is None:
                     z = -1*np.random.uniform(0, 1, 1)
                     self.seed_elements(lon=lo[i], lat=la[i],
                                 radius=radius, number=1, time=time,
