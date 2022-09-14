@@ -57,9 +57,10 @@ def open(filename, times=None, elements=None, load_history=True):
         module_name = n.opendrift_module
         class_name = n.opendrift_class
     except:
-        raise ValueError(filename + ' does not contain '
-                         'necessary global attributes '
-                         'opendrift_module and opendrift_class')
+        logger.warning(filename + ' does not contain global attributes '
+                       'opendrift_module and opendrift_class, defaulting to OceanDrift')
+        module_name = 'oceandrift'
+        class_name = 'OceanDrift'
     n.close()
 
     if class_name == 'OpenOil3D':
