@@ -200,11 +200,8 @@ class ChemicalDrift(OceanDrift):
                 'description': 'Chemical mass is degraded.',
                 'level': self.CONFIG_LEVEL_BASIC},
             'chemical:transformations:degradation_mode': {'type': 'enum',
-                'enum': ['Test1','Test2','OverallRateConstants'], 'default': 'Test1',
+                'enum': ['OverallRateConstants'], 'default': 'OverallRateConstants',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:photodegradation': {'type': 'bool', 'default': False,
-                'description': 'Chemical mass is photodegraded.',
-                'level': self.CONFIG_LEVEL_BASIC},
             # sorption/desorption
             'chemical:transformations:dissociation': {'type': 'enum',
                 'enum': ['nondiss','acid', 'base', 'amphoter'], 'default': 'nondiss',
@@ -1604,39 +1601,10 @@ class ChemicalDrift(OceanDrift):
         self.update_chemical_diameter(specie_in, specie_out)
 
     def degradation(self):
-        '''degradation. Test implementations'''
-
-        def degradation_factors(): # NB Only used for testing
-            '''Factors for specie dependent degradation'''
-
-            # self.num_lmm    = self.specie_name2num('LMM')
-            # self.num_prev   = self.specie_name2num('Particle reversible')
-            # self.num_srev   = self.specie_name2num('Sediment reversible')
-            # self.num_psrev  = self.specie_name2num('Particle slowly reversible')
-            # self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
-
-            factors=np.zeros(self.elements.specie.shape)    
-            factors[self.elements.specie==self.num_lmm]=3
-            factors[self.elements.specie==self.num_prev]=1
-            factors[self.elements.specie==self.num_srev]=.25
-            #factors[self.elements.specie==self.num_psrev]=.5
-            factors[self.elements.specie==self.num_ssrev]=.125
-            return factors
+        '''degradation.'''
         
         if self.get_config('chemical:transformations:degradation') is True:
-            if self.get_config('chemical:transformations:degradation_mode')=='Test1':
-                logger.debug('Calculating: degradation - mode Test1')
-                
-                fraction_degraded = .1
-                degraded_now = self.elements.mass*fraction_degraded
-    
-            elif self.get_config('chemical:transformations:degradation_mode')=='Test2':
-                logger.debug('Calculating: degradation - Mode Test2')
-
-                fraction_degraded = .01*degradation_factors()
-                degraded_now = self.elements.mass*fraction_degraded
-    
-            elif self.get_config('chemical:transformations:degradation_mode')=='OverallRateConstants':
+            if self.get_config('chemical:transformations:degradation_mode')=='OverallRateConstants':
                 # TODO: Rearrange code. Calculations here are for overall degradation including
                 # degradation, photodegradation, and hydrolysys
 
@@ -1691,13 +1659,8 @@ class ChemicalDrift(OceanDrift):
 
         else:
             pass
-        
-    def photodegradation(self):
-        if self.get_config('chemical:transformations:photodegradation') is True:
-            logger.debug('Calculating: photodegradation')        
-        else:    
-            pass
-    
+
+
     def volatilization(self):
         if self.get_config('chemical:transformations:volatilization') is True:
             logger.debug('Calculating: volatilization')
