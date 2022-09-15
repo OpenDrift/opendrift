@@ -129,7 +129,7 @@ class ChemicalDrift(OceanDrift):
         # TODO: descriptions and units must be added in config setting below
         self._add_config({
             'chemical:transfer_setup': {'type': 'enum',
-                'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom', 'organics'], 'default': 'custom',
+                'enum': ['Sandnesfj_Al','metals', '137Cs_rev', 'custom', 'organics'], 'default': 'custom',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:dynamic_partitioning': {'type': 'bool', 'default': True,
                 'level': self.CONFIG_LEVEL_BASIC, 'description': 'Toggle dynamic partitioning'},
@@ -362,7 +362,7 @@ class ChemicalDrift(OceanDrift):
 
     def init_species(self):
         # Initialize specie types
-        if self.get_config('chemical:transfer_setup')=='Bokna_137Cs':
+        if self.get_config('chemical:transfer_setup')=='metals':
             self.set_config('chemical:species:LMM',True)
             self.set_config('chemical:species:Particle_reversible', True)
             self.set_config('chemical:species:Particle_slowly_reversible', True)
@@ -918,7 +918,7 @@ class ChemicalDrift(OceanDrift):
             self.transfer_rates[self.num_humcol,self.num_prev] = 1.e-5      # k23, Salinity interval >20 psu
             self.transfer_rates[self.num_prev,self.num_humcol] = 0          # TODO check if valid for organics
 
-        elif transfer_setup == 'Bokna_137Cs':
+        elif transfer_setup == 'metals':                                # renamed from radionuclides Bokna_137Cs
 
             self.num_lmm    = self.specie_name2num('LMM')
             self.num_prev   = self.specie_name2num('Particle reversible')
@@ -1167,7 +1167,7 @@ class ChemicalDrift(OceanDrift):
         transfer rates according to local environmental conditions '''
 
         transfer_setup=self.get_config('chemical:transfer_setup')
-        if transfer_setup == 'Bokna_137Cs' or \
+        if transfer_setup == 'metals' or \
          transfer_setup=='custom' or \
          transfer_setup=='137Cs_rev'or \
          transfer_setup=='organics':
@@ -1300,7 +1300,7 @@ class ChemicalDrift(OceanDrift):
 
             # Updating sorption rates
 
-            if transfer_setup=='organics' or transfer_setup == 'Bokna_137Cs':
+            if transfer_setup=='organics' or transfer_setup == 'metals':
 
                 # Updating sorption rates according to local SPM concentration
 
