@@ -329,10 +329,13 @@ class ChemicalDrift(OceanDrift):
             'chemical:sediment:buried_leaking_rate': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 10, 'units': 'm/year',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            #
+            'chemical:compound': {'type': 'enum',
+                'enum': ['Naphthalene','Phenanthrene','Fluoranthene',
+                         'Benzo(a)anthracene','Benzo(a)pyrene','Dibenzo(a,h)anthracene', None], 
+                'default': None,
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             })
-
-
-
 
 
     def prepare_run(self):
@@ -2344,7 +2347,7 @@ class ChemicalDrift(OceanDrift):
 
         return num_coarse
 
-    def emission_factors(scrubber_type, chemical_compound):
+    def emission_factors(self, scrubber_type, chemical_compound):
         """Emission factors for heavy metals and PAHs in
             open loop and closed loop scrubbers
 
@@ -2438,6 +2441,9 @@ class ChemicalDrift(OceanDrift):
                 lowerbound:  scalar, elements with lower values are discarded
             """
 
+            if chemical_compound is None:
+                chemical_compound = self.get_config('chemical:compound')
+
             #mass_element_ug=1e3      # 1e3 - 1 element is 1mg chemical
             #mass_element_ug=20e3      # 100e3 - 1 element is 100mg chemical
             #mass_element_ug=100e3      # 100e3 - 1 element is 100mg chemical
@@ -2452,12 +2458,12 @@ class ChemicalDrift(OceanDrift):
 
             if number_of_elements is not None:
                 total_volume = np.sum(data[sel])
-                total_mass = total_volume * emission_factors(scrubber_type, chemical_compound)
+                total_mass = total_volume * self.emission_factors(scrubber_type, chemical_compound)
                 mass_element_ug = total_mass / number_of_elements
 
             for i in range(0,t.size):
                 scrubberwater_vol_l=data[sel][i]
-                mass_ug=scrubberwater_vol_l * emission_factors(scrubber_type, chemical_compound)
+                mass_ug=scrubberwater_vol_l * self.emission_factors(scrubber_type, chemical_compound)
 
                 if number_of_elements is None:
                     number=np.array(mass_ug / mass_element_ug).astype('int')
@@ -2480,7 +2486,7 @@ class ChemicalDrift(OceanDrift):
                                 radius=radius, number=1, time=time,
                                 mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
 
-    def init_chemical_compound(self,chemical_compound):
+    def init_chemical_compound(self, chemical_compound = None):
         ''' Chemical parameters for a selection of PAHs:
             Naphthalene, Phenanthrene, Fluorene,
             Benzo(a)anthracene, Benzo(a)pyrene, Dibenzo(a,h)anthracene
@@ -2491,7 +2497,13 @@ class ChemicalDrift(OceanDrift):
             Manuel Aghito (Norwegian Meteorological Institute / University of Bergen)
         '''
 
-        if  chemical_compound=="Naphthalene":
+        if chemical_compound is not None:
+            self.set_config('chemical:compound',chemical_compound)
+
+        if self.get_config('chemical:compound') is None:
+            raise ValueError("Chemical compound not defined")
+
+        if  self.get_config('chemical:compound') == "Naphthalene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2522,7 +2534,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 25300)
 
-        elif  chemical_compound=="Phenanthrene":
+        elif self.get_config('chemical:compound') == "Phenanthrene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2553,7 +2565,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 34800)
 
-        elif  chemical_compound=="Fluoranthene":
+        elif self.get_config('chemical:compound') == "Fluoranthene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2584,7 +2596,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 30315)
 
-        elif  chemical_compound=="Benzo(a)anthracene":
+        elif self.get_config('chemical:compound') == "Benzo(a)anthracene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2615,7 +2627,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 46200)
 
-        elif  chemical_compound=="Benzo(a)pyrene":
+        elif self.get_config('chemical:compound') == "Benzo(a)pyrene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2646,7 +2658,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 38000)
 
-        elif  chemical_compound=="Dibenzo(a,h)anthracene":
+        elif self.get_config('chemical:compound') == "Dibenzo(a,h)anthracene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
