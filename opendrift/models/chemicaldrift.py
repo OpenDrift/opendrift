@@ -129,7 +129,7 @@ class ChemicalDrift(OceanDrift):
         # TODO: descriptions and units must be added in config setting below
         self._add_config({
             'chemical:transfer_setup': {'type': 'enum',
-                'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom', 'organics'], 'default': 'custom',
+                'enum': ['Sandnesfj_Al','metals', '137Cs_rev', 'custom', 'organics'], 'default': 'custom',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:dynamic_partitioning': {'type': 'bool', 'default': True,
                 'level': self.CONFIG_LEVEL_BASIC, 'description': 'Toggle dynamic partitioning'},
@@ -200,11 +200,8 @@ class ChemicalDrift(OceanDrift):
                 'description': 'Chemical mass is degraded.',
                 'level': self.CONFIG_LEVEL_BASIC},
             'chemical:transformations:degradation_mode': {'type': 'enum',
-                'enum': ['Test1','Test2','OverallRateConstants'], 'default': 'Test1',
+                'enum': ['OverallRateConstants'], 'default': 'OverallRateConstants',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'chemical:transformations:photodegradation': {'type': 'bool', 'default': False,
-                'description': 'Chemical mass is photodegraded.',
-                'level': self.CONFIG_LEVEL_BASIC},
             # sorption/desorption
             'chemical:transformations:dissociation': {'type': 'enum',
                 'enum': ['nondiss','acid', 'base', 'amphoter'], 'default': 'nondiss',
@@ -329,10 +326,13 @@ class ChemicalDrift(OceanDrift):
             'chemical:sediment:buried_leaking_rate': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 10, 'units': 'm/year',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            #
+            'chemical:compound': {'type': 'enum',
+                'enum': ['Naphthalene','Phenanthrene','Fluoranthene',
+                         'Benzo(a)anthracene','Benzo(a)pyrene','Dibenzo(a,h)anthracene', None], 
+                'default': None,
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             })
-
-
-
 
 
     def prepare_run(self):
@@ -362,7 +362,7 @@ class ChemicalDrift(OceanDrift):
 
     def init_species(self):
         # Initialize specie types
-        if self.get_config('chemical:transfer_setup')=='Bokna_137Cs':
+        if self.get_config('chemical:transfer_setup')=='metals':
             self.set_config('chemical:species:LMM',True)
             self.set_config('chemical:species:Particle_reversible', True)
             self.set_config('chemical:species:Particle_slowly_reversible', True)
@@ -918,7 +918,7 @@ class ChemicalDrift(OceanDrift):
             self.transfer_rates[self.num_humcol,self.num_prev] = 1.e-5      # k23, Salinity interval >20 psu
             self.transfer_rates[self.num_prev,self.num_humcol] = 0          # TODO check if valid for organics
 
-        elif transfer_setup == 'Bokna_137Cs':
+        elif transfer_setup == 'metals':                                # renamed from radionuclides Bokna_137Cs
 
             self.num_lmm    = self.specie_name2num('LMM')
             self.num_prev   = self.specie_name2num('Particle reversible')
@@ -1167,12 +1167,14 @@ class ChemicalDrift(OceanDrift):
         transfer rates according to local environmental conditions '''
 
         transfer_setup=self.get_config('chemical:transfer_setup')
-        if transfer_setup == 'Bokna_137Cs' or \
+        if transfer_setup == 'metals' or \
          transfer_setup=='custom' or \
          transfer_setup=='137Cs_rev'or \
          transfer_setup=='organics':
             self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
             diss       = self.get_config('chemical:transformations:dissociation')
+
+            # Updating desorption rates according to local temperature, salinity, pH
 
             if transfer_setup=='organics' and diss=='nondiss':
                 # filtering out zero values from temperature and salinity
@@ -1203,44 +1205,7 @@ class ChemicalDrift(OceanDrift):
                 self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
                     self.k41_0 / tempcorrSed[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
 
-            if transfer_setup=='organics' or transfer_setup == 'Bokna_137Cs':
-
-                # Updating sorption rates according to local SPM concentration
-
-                concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3) 
-
-                # Apply SPM concentration profile if SPM reader has not depth coordinate
-                # SPM concentration is kept constant to surface value in the mixed layer
-                # Exponentially decreasing with depth below the mixed layers
-                if not self.SPM_vertical_levels_given:
-                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
-                    #concSPM[lowerMLD] = concSPM[lowerMLD]/2
-                    concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
-                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
-                        *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
-                        )
-
-                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
-                    self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
-            if transfer_setup=='organics':
-                concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
-
-                # Apply DOC concentration profile if DOC reader has not depth coordinate
-                # DOC concentration is kept constant to surface value in the mixed layer
-                # Exponentially decreasing with depth below the mixed layers
-
-                if not self.DOC_vertical_levels_given:
-                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
-                    #concDOM[lowerMLD] = concDOM[lowerMLD]/2
-                    concDOM[lowerMLD] = concDOM[lowerMLD] * np.exp(
-                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
-                        *np.log(0.5)/self.get_config('chemical:doc_concentration_half_depth')
-                        )
-
-                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
-                    self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k14
-
-            if transfer_setup=='organics' and diss!='nondiss':
+            elif transfer_setup=='organics' and diss!='nondiss':
                 # Select elements for updating trasfer rates in sediments, SPM, and DOM
 
                 #Sediments
@@ -1333,6 +1298,48 @@ class ChemicalDrift(OceanDrift):
                 self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
                     self.k41_0 * KOC_sedcorr / tempcorrSed[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
 
+            # Updating sorption rates
+
+            if transfer_setup=='organics' or transfer_setup == 'metals':
+
+                # Updating sorption rates according to local SPM concentration
+
+                concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3)
+
+                # Apply SPM concentration profile if SPM reader has not depth coordinate
+                # SPM concentration is kept constant to surface value in the mixed layer
+                # Exponentially decreasing with depth below the mixed layers
+                if not self.SPM_vertical_levels_given:
+                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                    #concSPM[lowerMLD] = concSPM[lowerMLD]/2
+                    concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
+                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                        *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
+                        )
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
+                    self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+
+            if transfer_setup=='organics':
+
+                # Updating sorption rates according to local DOC concentration
+
+                concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
+
+                # Apply DOC concentration profile if DOC reader has not depth coordinate
+                # DOC concentration is kept constant to surface value in the mixed layer
+                # Exponentially decreasing with depth below the mixed layers
+
+                if not self.DOC_vertical_levels_given:
+                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                    #concDOM[lowerMLD] = concDOM[lowerMLD]/2
+                    concDOM[lowerMLD] = concDOM[lowerMLD] * np.exp(
+                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                        *np.log(0.5)/self.get_config('chemical:doc_concentration_half_depth')
+                        )
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
+                    self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k12
 
             if self.get_config('chemical:species:Sediment_reversible'):
                 # Only LMM chemicals close to seabed are allowed to interact with sediments
@@ -1594,39 +1601,10 @@ class ChemicalDrift(OceanDrift):
         self.update_chemical_diameter(specie_in, specie_out)
 
     def degradation(self):
-        '''degradation. Test implementations'''
-
-        def degradation_factors(): # NB Only used for testing
-            '''Factors for specie dependent degradation'''
-
-            # self.num_lmm    = self.specie_name2num('LMM')
-            # self.num_prev   = self.specie_name2num('Particle reversible')
-            # self.num_srev   = self.specie_name2num('Sediment reversible')
-            # self.num_psrev  = self.specie_name2num('Particle slowly reversible')
-            # self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
-
-            factors=np.zeros(self.elements.specie.shape)    
-            factors[self.elements.specie==self.num_lmm]=3
-            factors[self.elements.specie==self.num_prev]=1
-            factors[self.elements.specie==self.num_srev]=.25
-            #factors[self.elements.specie==self.num_psrev]=.5
-            factors[self.elements.specie==self.num_ssrev]=.125
-            return factors
+        '''degradation.'''
         
         if self.get_config('chemical:transformations:degradation') is True:
-            if self.get_config('chemical:transformations:degradation_mode')=='Test1':
-                logger.debug('Calculating: degradation - mode Test1')
-                
-                fraction_degraded = .1
-                degraded_now = self.elements.mass*fraction_degraded
-    
-            elif self.get_config('chemical:transformations:degradation_mode')=='Test2':
-                logger.debug('Calculating: degradation - Mode Test2')
-
-                fraction_degraded = .01*degradation_factors()
-                degraded_now = self.elements.mass*fraction_degraded
-    
-            elif self.get_config('chemical:transformations:degradation_mode')=='OverallRateConstants':
+            if self.get_config('chemical:transformations:degradation_mode')=='OverallRateConstants':
                 # TODO: Rearrange code. Calculations here are for overall degradation including
                 # degradation, photodegradation, and hydrolysys
 
@@ -1681,13 +1659,8 @@ class ChemicalDrift(OceanDrift):
 
         else:
             pass
-        
-    def photodegradation(self):
-        if self.get_config('chemical:transformations:photodegradation') is True:
-            logger.debug('Calculating: photodegradation')        
-        else:    
-            pass
-    
+
+
     def volatilization(self):
         if self.get_config('chemical:transformations:volatilization') is True:
             logger.debug('Calculating: volatilization')
@@ -2336,7 +2309,87 @@ class ChemicalDrift(OceanDrift):
 #        num_coarse = num_coarse*msk
 
         return num_coarse
-    
+
+    def emission_factors(self, scrubber_type, chemical_compound):
+        """Emission factors for heavy metals and PAHs in
+            open loop and closed loop scrubbers
+
+            Hermansson et al 2021
+            https://doi.org/10.1016/j.trd.2021.102912
+        """
+        emission_factors_open_loop = {
+            #                           mean    +/-95%
+            #                           ug/L    ug/L
+            "Arsenic":                  [6.8,    3.4],
+            "Cadmium":                  [0.8,    0.3],
+            "Chromium":                 [15.,    6.5],
+            "Copper":                   [36.,    12.],
+            "Iron":                     [260.,   250.],
+            "Lead":                     [8.8,    4.4],
+            "Mercury":                  [0.09,   0.01],
+            "Nickel":                   [48.,    12.],
+            "Vanadium":                 [170.,   49.],
+            "Zinc":                     [110.,   59.],
+            #
+            "Naphthalene":              [2.81,   0.77],
+            "Phenanthrene":             [1.51,   0.29],
+            "Fluoranthene":             [0.16,   0.04],
+            "Benzo(a)anthracene":       [0.12,   0.05],
+            "Benzo(a)pyrene":           [0.05,   0.02],
+            "Dibenzo(a,h)anthracene":   [0.03,   0.01],
+            #
+            "Acenaphthylene":           [0.12,   0.07],
+            "Acenaphthene":             [0.19,   0.07],
+            "Fluorene":                 [0.46,   0.10],
+            "Anthracene":               [0.08,   0.04],
+            "Pyrene":                   [0.31,   0.11],
+            "Chrysene":                 [0.19,   0.07],
+            "Benzo(b)fluoranthene":     [0.04,   0.02],
+            "Benzo(k)fluoranthene":     [0.01,   0.01],
+            "Indeno(1,2,3-cd)pyrene":   [0.07,   0.06],
+            "Benzo(ghi)perylene":       [0.02,   0.01],
+            }
+
+        emission_factors_closed_loop = {
+            #                           mean    +/-95%
+            #                           ug/L    ug/L
+            "Arsenic":                  [22.,    9.4],
+            "Cadmium":                  [0.55,   0.19],
+            "Chromium":                 [1300.,  1700.],
+            "Copper":                   [480.,   230.],
+            "Iron":                     [490.,   82.],
+            "Lead":                     [7.7,    3.1],
+            "Mercury":                  [0.07,   0.02],
+            "Nickel":                   [2700.,  860.],
+            "Vanadium":                 [9100.,  3200.],
+            "Zinc":                     [370.,   200.],
+            #
+            "Naphthalene":              [2.08,   1.05],
+            "Phenanthrene":             [5.00,   2.30],
+            "Fluoranthene":             [0.63,	 0.41],
+            "Benzo(a)anthracene":       [0.30,	 0.29],
+            "Benzo(a)pyrene":           [0.06,	 0.05],
+            "Dibenzo(a,h)anthracene":   [0.03,	 0.02],
+            #
+            "Acenaphthylene":           [0.09,   0.06],
+            "Acenaphthene":             [0.47,   0.31],
+            "Fluorene":                 [1.32,   0.54],
+            "Anthracene":               [1.55,   2.00],
+            "Pyrene":                   [0.76,   0.59],
+            "Chrysene":                 [0.50,   0.45],
+            "Benzo(b)fluoranthene":     [0.14,   0.12],
+            "Benzo(k)fluoranthene":     [0.02,   0.02],
+            "Indeno(1,2,3-cd)pyrene":   [0.04,   0.03],
+            "Benzo(ghi)perylene":       [0.07,   0.07],
+            }
+
+        if scrubber_type=="open_loop":
+            return emission_factors_open_loop.get(chemical_compound)[0]
+        elif scrubber_type=="closed_loop":
+            return emission_factors_closed_loop.get(chemical_compound)[0]
+
+        # TODO: Add emission uncertainty based on 95% confidence interval
+
     def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", mass_element_ug=100e3, number_of_elements=None, **kwargs):
             """Seed elements based on a dataarray with STEAM emission data
     
@@ -2351,89 +2404,13 @@ class ChemicalDrift(OceanDrift):
                 lowerbound:  scalar, elements with lower values are discarded
             """
 
+            if chemical_compound is None:
+                chemical_compound = self.get_config('chemical:compound')
+
             #mass_element_ug=1e3      # 1e3 - 1 element is 1mg chemical
             #mass_element_ug=20e3      # 100e3 - 1 element is 100mg chemical
             #mass_element_ug=100e3      # 100e3 - 1 element is 100mg chemical
             #mass_element_ug=1e6     # 1e6 - 1 element is 1g chemical
-
-            def emission_factors(scrubber_type, chemical_compound):
-                """Emission factors for heavy metals and PAHs in
-                    open loop and closed loop scrubbers
-
-                    Hermansson et al 2021
-                    https://doi.org/10.1016/j.trd.2021.102912
-                """
-                emission_factors_open_loop = {
-                    #                           mean    +/-95%
-                    #                           ug/L    ug/L
-                    "Arsenic":                  [6.8,    3.4],
-                    "Cadmium":                  [0.8,    0.3],
-                    "Chromium":                 [15.,    6.5],
-                    "Copper":                   [36.,    12.],
-                    "Iron":                     [260.,   250.],
-                    "Lead":                     [8.8,    4.4],
-                    "Mercury":                  [0.09,   0.01],
-                    "Nickel":                   [48.,    12.],
-                    "Vanadium":                 [170.,   49.],
-                    "Zinc":                     [110.,   59.],
-                    #
-                    "Naphthalene":              [2.81,   0.77],
-                    "Phenanthrene":             [1.51,   0.29],
-                    "Fluoranthene":             [0.16,   0.04],
-                    "Benzo(a)anthracene":       [0.12,   0.05],
-                    "Benzo(a)pyrene":           [0.05,   0.02],
-                    "Dibenzo(a,h)anthracene":   [0.03,   0.01],
-                    #
-                    "Acenaphthylene":           [0.12,   0.07],
-                    "Acenaphthene":             [0.19,   0.07],
-                    "Fluorene":                 [0.46,   0.10],
-                    "Anthracene":               [0.08,   0.04],
-                    "Pyrene":                   [0.31,   0.11],
-                    "Chrysene":                 [0.19,   0.07],
-                    "Benzo(b)fluoranthene":     [0.04,   0.02],
-                    "Benzo(k)fluoranthene":     [0.01,   0.01],
-                    "Indeno(1,2,3-cd)pyrene":   [0.07,   0.06],
-                    "Benzo(ghi)perylene":       [0.02,   0.01],
-                    }
-
-                emission_factors_closed_loop = {
-                    #                           mean    +/-95%
-                    #                           ug/L    ug/L
-                    "Arsenic":                  [22.,    9.4],
-                    "Cadmium":                  [0.55,   0.19],
-                    "Chromium":                 [1300.,  1700.],
-                    "Copper":                   [480.,   230.],
-                    "Iron":                     [490.,   82.],
-                    "Lead":                     [7.7,    3.1],
-                    "Mercury":                  [0.07,   0.02],
-                    "Nickel":                   [2700.,  860.],
-                    "Vanadium":                 [9100.,  3200.],
-                    "Zinc":                     [370.,   200.],
-                    #
-                    "Naphthalene":              [2.08,   1.05],
-                    "Phenanthrene":             [5.00,   2.30],
-                    "Fluoranthene":             [0.63,	 0.41],
-                    "Benzo(a)anthracene":       [0.30,	 0.29],
-                    "Benzo(a)pyrene":           [0.06,	 0.05],
-                    "Dibenzo(a,h)anthracene":   [0.03,	 0.02],
-                    #
-                    "Acenaphthylene":           [0.09,   0.06],
-                    "Acenaphthene":             [0.47,   0.31],
-                    "Fluorene":                 [1.32,   0.54],
-                    "Anthracene":               [1.55,   2.00],
-                    "Pyrene":                   [0.76,   0.59],
-                    "Chrysene":                 [0.50,   0.45],
-                    "Benzo(b)fluoranthene":     [0.14,   0.12],
-                    "Benzo(k)fluoranthene":     [0.02,   0.02],
-                    "Indeno(1,2,3-cd)pyrene":   [0.04,   0.03],
-                    "Benzo(ghi)perylene":       [0.07,   0.07],
-                    }
-
-                if scrubber_type=="open_loop":
-                    return emission_factors_open_loop.get(chemical_compound)[0]
-                elif scrubber_type=="closed_loop":
-                    return emission_factors_closed_loop.get(chemical_compound)[0]
-                    # TODO: Add emission uncertainty based on 95% confidence interval
 
             sel=np.where((steam > lowerbound) & (steam < higherbound))
             t=steam.time[sel[0]].data
@@ -2444,12 +2421,12 @@ class ChemicalDrift(OceanDrift):
 
             if number_of_elements is not None:
                 total_volume = np.sum(data[sel])
-                total_mass = total_volume * emission_factors(scrubber_type, chemical_compound)
+                total_mass = total_volume * self.emission_factors(scrubber_type, chemical_compound)
                 mass_element_ug = total_mass / number_of_elements
 
             for i in range(0,t.size):
                 scrubberwater_vol_l=data[sel][i]
-                mass_ug=scrubberwater_vol_l * emission_factors(scrubber_type, chemical_compound)
+                mass_ug=scrubberwater_vol_l * self.emission_factors(scrubber_type, chemical_compound)
 
                 if number_of_elements is None:
                     number=np.array(mass_ug / mass_element_ug).astype('int')
@@ -2472,7 +2449,7 @@ class ChemicalDrift(OceanDrift):
                                 radius=radius, number=1, time=time,
                                 mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
 
-    def init_chemical_compound(self,chemical_compound):
+    def init_chemical_compound(self, chemical_compound = None):
         ''' Chemical parameters for a selection of PAHs:
             Naphthalene, Phenanthrene, Fluorene,
             Benzo(a)anthracene, Benzo(a)pyrene, Dibenzo(a,h)anthracene
@@ -2483,7 +2460,13 @@ class ChemicalDrift(OceanDrift):
             Manuel Aghito (Norwegian Meteorological Institute / University of Bergen)
         '''
 
-        if  chemical_compound=="Naphthalene":
+        if chemical_compound is not None:
+            self.set_config('chemical:compound',chemical_compound)
+
+        if self.get_config('chemical:compound') is None:
+            raise ValueError("Chemical compound not defined")
+
+        if  self.get_config('chemical:compound') == "Naphthalene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2514,7 +2497,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 25300)
 
-        elif  chemical_compound=="Phenanthrene":
+        elif self.get_config('chemical:compound') == "Phenanthrene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2545,7 +2528,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 34800)
 
-        elif  chemical_compound=="Fluoranthene":
+        elif self.get_config('chemical:compound') == "Fluoranthene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2576,7 +2559,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 30315)
 
-        elif  chemical_compound=="Benzo(a)anthracene":
+        elif self.get_config('chemical:compound') == "Benzo(a)anthracene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2607,7 +2590,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 46200)
 
-        elif  chemical_compound=="Benzo(a)pyrene":
+        elif self.get_config('chemical:compound') == "Benzo(a)pyrene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2638,7 +2621,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 38000)
 
-        elif  chemical_compound=="Dibenzo(a,h)anthracene":
+        elif self.get_config('chemical:compound') == "Dibenzo(a,h)anthracene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
