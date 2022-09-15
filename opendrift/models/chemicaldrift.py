@@ -1222,7 +1222,7 @@ class ChemicalDrift(OceanDrift):
 
                 self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
                     self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
-
+            if transfer_setup=='organics':
                 concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
 
                 # Apply DOC concentration profile if DOC reader has not depth coordinate
@@ -1240,7 +1240,7 @@ class ChemicalDrift(OceanDrift):
                 self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
                     self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k14
 
-            elif transfer_setup=='organics' and diss!='nondiss':
+            if transfer_setup=='organics' and diss!='nondiss':
                 # Select elements for updating trasfer rates in sediments, SPM, and DOM
 
                 #Sediments
@@ -1332,42 +1332,6 @@ class ChemicalDrift(OceanDrift):
 
                 self.elements.transfer_rates1D[self.elements.specie==self.num_srev,self.num_lmm] = \
                     self.k41_0 * KOC_sedcorr / tempcorrSed[self.elements.specie==self.num_srev] / salinitycorr[self.elements.specie==self.num_srev]
-
-                # Updating sorption rates according to local SPM concentration
-
-                concSPM=self.environment.spm * 1e-6 # (Kg/L) from (g/m3)
-
-                # Apply SPM concentration profile if SPM reader has not depth coordinate
-                # SPM concentration is kept constant to surface value in the mixed layer
-                # Exponentially decreasing with depth below the mixed layers
-
-                if not self.SPM_vertical_levels_given:
-                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
-                    #concSPM[lowerMLD] = concSPM[lowerMLD]/2
-                    concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
-                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
-                        *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
-                        )
-
-                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
-                    self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
-
-                concDOM = self.environment.doc * 12e-6 / 1.025 / 0.526 * 1e-3 # (Kg[OM]/L) from (umol[C]/Kg)
-
-                # Apply DOC concentration profile if DOC reader has not depth coordinate
-                # DOC concentration is kept constant to surface value in the mixed layer
-                # Exponentially decreasing with depth below the mixed layers
-
-                if not self.DOC_vertical_levels_given:
-                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
-                    #concDOM[lowerMLD] = concDOM[lowerMLD]/2
-                    concDOM[lowerMLD] = concDOM[lowerMLD] * np.exp(
-                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
-                        *np.log(0.5)/self.get_config('chemical:doc_concentration_half_depth')
-                        )
-
-                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_humcol] = \
-                    self.k_ads * concDOM[self.elements.specie==self.num_lmm]      # k12
 
 
             if self.get_config('chemical:species:Sediment_reversible'):
