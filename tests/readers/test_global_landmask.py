@@ -99,6 +99,23 @@ def test_plot(tmpdir):
     # plt.show()
     plt.savefig('%s/cartplot.png' % tmpdir)
 
+@pytest.mark.parametrize("scale", ["auto", "c", "f"])
+def test_plot_auto_scale(test_data, tmpdir, scale):
+    reader_global = reader_global_landmask.Reader()
+    reader_nordic = reader_ROMS_native.Reader(
+        test_data +
+        '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+
+    oc = OceanDrift(loglevel=0)
+    oc.add_reader([reader_nordic, reader_global])
+    oc.seed_elements(lon=4.8,
+                    lat=60.0,
+                    number=10,
+                    radius=1000,
+                    time=reader_nordic.start_time)
+    oc.run(steps=2)
+
+    oc.plot(buffer=5., lscale=scale)
 
 def test_global_setup(benchmark):
     benchmark(reader_global_landmask.Reader)

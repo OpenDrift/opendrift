@@ -32,4 +32,4 @@ dependencies:
   - pip
   - pip:
     - motuclient
-    - roaring-landmask
+    - roaring-landmask>=0.7
