@@ -2199,12 +2199,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # NB: should also repeat some points, if too few
         lonpoints = lonpoints[0:number]
         latpoints = latpoints[0:number]
-        if len(lonpoints) < number:
-            # If number of positions is smaller than requested,
-            # we duplicate the first ones
-            missing = number - len(lonpoints)
-            lonpoints = np.append(lonpoints, lonpoints[0:missing])
-            latpoints = np.append(latpoints, latpoints[0:missing])
+        while True:
+            if len(lonpoints) < number:
+                # If number of positions is smaller than requested,
+                # we duplicate the first ones
+                missing = number - len(lonpoints)
+                lonpoints = np.append(lonpoints, lonpoints[0:missing])
+                latpoints = np.append(latpoints, latpoints[0:missing])
+            else:
+                break
 
         # Finally seed at calculated positions
         self.seed_elements(lonpoints, latpoints, number=number, **kwargs)
