@@ -100,6 +100,7 @@ def test_plot(tmpdir):
     plt.savefig('%s/cartplot.png' % tmpdir)
 
 @pytest.mark.parametrize("scale", ["auto", "c", "f"])
+@pytest.mark.mpl_image_compare
 def test_plot_auto_scale(test_data, tmpdir, scale):
     reader_global = reader_global_landmask.Reader()
     reader_nordic = reader_ROMS_native.Reader(
@@ -115,7 +116,7 @@ def test_plot_auto_scale(test_data, tmpdir, scale):
                     time=reader_nordic.start_time)
     oc.run(steps=2)
 
-    oc.plot(buffer=5., lscale=scale)
+    return oc.plot(buffer=5., lscale=scale)[1]
 
 def test_global_setup(benchmark):
     benchmark(reader_global_landmask.Reader)
