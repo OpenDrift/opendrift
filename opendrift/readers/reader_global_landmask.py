@@ -22,6 +22,7 @@ import numpy as np
 import shapely.vectorized
 import shapely.prepared
 from shapely.geometry import box
+import shapely.wkb as wkb
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import logging
@@ -122,27 +123,41 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
         else:
             show_landmask_roaring(mask)
     else:
-        if get_mask_type() == 0:
-            logger.debug("Using existing GSHHS shapes..")
-            _, mask = get_mask(False, extent)
-            extent = box(lonmin, latmin, lonmax, latmax)
-            extent = shapely.prepared.prep(extent)
-            polys = [p for p in mask.polys.geoms if extent.intersects(p)]
+        # Roaring landmask or opendrift-landmask-data already has the GSHHG features
+        # in full resolution, but only full resolution.
 
-            ax.add_geometries(polys,
-                    ccrs.PlateCarree(globe=globe),
-                    zorder=2,
-                    facecolor=land_color,
-                    edgecolor='black')
+        # Determine scale from extent (if not specified)
+        if lscale == 'auto':
+            lscale = cfeature.GSHHSFeature._scale_from_extent(None, extent)
+
+        logger.debug(f"plotting features with scale: {lscale}")
+
+        if lscale == 'f':
+            if get_mask_type() == 0:
+                logger.debug("Using existing GSHHS shapes..")
+                _, mask = get_mask(False, extent)
+                extent = box(lonmin, latmin, lonmax, latmax)
+                extent = shapely.prepared.prep(extent)
+                polys = [p for p in mask.polys.geoms if extent.intersects(p)]
+            else:
+                logger.debug ("Adding GSHHS shapes from roaring-landmask..")
+                from roaring_landmask import Gshhg
+                polys = Gshhg.wkb()
+                polys = wkb.loads(polys)
+                extent = box(lonmin, latmin, lonmax, latmax)
+                extent = shapely.prepared.prep(extent)
+                polys = [p for p in polys.geoms if extent.intersects(p)]
+
         else:
-            logger.debug ("Adding GSHHS shapes..")
-            f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+            polys = cfeature.GSHHSFeature(scale=lscale, levels=[1],
                     facecolor=land_color)
-            ax.add_geometries(
-                    f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
-                    ccrs.PlateCarree(globe=globe),
-                    facecolor=land_color,
-                    edgecolor='black')
+            polys = polys.intersecting_geometries([lonmin, lonmax, latmin, latmax])
+
+        ax.add_geometries(polys,
+                ccrs.PlateCarree(globe=globe),
+                        zorder=2,
+                facecolor=land_color,
+                edgecolor='black')
 
 
 
