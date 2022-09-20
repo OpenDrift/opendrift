@@ -60,6 +60,14 @@ If a constant droplet diameter is not given by the user, it will be chosen rando
     o.set_config('seed:droplet_diameter_min_subsea', 0.0005)  # 0.5 mm
     o.set_config('seed:droplet_diameter_max_subsea', 0.005)   # 5 mm
 
+Alternatively, the user can specify normal or lognormal initial subsea droplet size distributions, which are later modified by wave breaking events. In these cases the user must specify the mean and standard deviation of the distribution::
+
+.. code::
+
+    o.set_config('seed:droplet_size_distribution','lognormal')
+    o.set_config('seed:droplet_diameter_mu',0.001)  # 1 mm
+    o.set_config('seed:droplet_diameter_sigma',0.0008) # 0.8 mm
+    
 Note that these config settings must be adjusted before the seeding call.
 After each wave breaking event, a new droplet diameter will be chosen based on the config setting for droplet size distribution.
 """
@@ -353,17 +361,17 @@ class OpenOil(OceanDrift):
                 'max': 1,
                 'units': 'meters',
                 'description':
-                'The mean diameter of oil droplet for a subsea release, used in normal/lognormal distribution (in the case of lognormal this is not the mean of the distribution itself, but of the underlying normal distribution it is derived from).',
+                'The mean diameter of oil droplet for a subsea release, used in normal/lognormal distributions.',
                 'level': self.CONFIG_LEVEL_BASIC
             },
             'seed:droplet_diameter_sigma': {
                 'type': 'float',
-                'default': 0.005,
+                'default': 0.0005,
                 'min': 1e-8,
                 'max': 1,
                 'units': 'meters',
                 'description':
-                'The standard deviation in diameter of oil droplet for a subsea release, used in normal/lognormal distribution (in the case of lognormal this is not the sigma of the distribution itself, but of the underlying normal distribution it is derived from).',
+                'The standard deviation in diameter of oil droplet for a subsea release, used in normal/lognormal distributions.',
                 'level': self.CONFIG_LEVEL_BASIC
             },
             'seed:droplet_diameter_min_subsea': {
@@ -1562,7 +1570,7 @@ class OpenOil(OceanDrift):
         subsea = z < 0
         if np.sum(subsea) > 0 and 'diameter' not in kwargs:
             dsd = self.get_config('seed:droplet_size_distribution')
-            if dsd == 'unifrom':
+            if dsd == 'uniform':
                 # Droplet min and max for particles seeded below sea surface
                 sub_dmin = self.get_config('seed:droplet_diameter_min_subsea')
                 sub_dmax = self.get_config('seed:droplet_diameter_max_subsea')
@@ -1574,7 +1582,7 @@ class OpenOil(OceanDrift):
                 # Droplet mu and sigma for particles seeded below sea surface
                 sub_mu = self.get_config('seed:droplet_diameter_mu')
                 sub_sigma = self.get_config('seed:droplet_diameter_sigma')
-                logger.info('Using normal droplet size distribution between with '
+                logger.info('Using normal droplet size distribution with '
                             'mu = %s and sigma = %s m for elements seeded below sea surface.' %
                             (sub_mu, sub_sigma))
                 kwargs['diameter'] = np.random.normal(sub_mu, sub_sigma, number)
@@ -1582,12 +1590,25 @@ class OpenOil(OceanDrift):
                 # Droplet mu and sigma for particles seeded below sea surface
                 sub_mu = self.get_config('seed:droplet_diameter_mu')
                 sub_sigma = self.get_config('seed:droplet_diameter_sigma')
-                logger.info('Using lognormal droplet size distribution between with '
+                logger.info('Using lognormal droplet size distribution with '
                             'mu = %s and sigma = %s m for elements seeded below sea surface.' %
                             (sub_mu, sub_sigma))
-                kwargs['diameter'] = np.random.lognormal(sub_mu, sub_sigma, number)
+                # From numpy.random.lognormal:
+                # "Note that the mean and standard deviation are not the values for the 
+                # distribution itself, but of the underlying normal distribution it is derived from."
+                # So we need to compute the input to the function from the mean and 
+                # standard deviation of the data we want to generate (assumed as input)
+                sub_sigma2 = sub_sigma**2
+                sub_sigma2_lognormal = np.log(sub_sigma2/sub_mu**2 + 1)
+                sub_mu_lognormal = np.log(sub_mu) - sub_sigma2_lognormal/2
+                sub_sigma_lognormal = sub_sigma2_lognormal**0.5
+                kwargs['diameter'] = np.random.lognormal(sub_mu_lognormal, sub_sigma_lognormal, number)
+                # check it worked
+                # print('median = '+str(np.median(kwargs['diameter'])))
+                # print('mean = '+str(np.mean(kwargs['diameter'])))
+                # print('sigma = '+str(np.std(kwargs['diameter'])))
             else:
-                raise Exception("no initial subsea droplet size distribution specified")
+                raise Exception("no valid initial subsea droplet size distribution specified")
 
         if 'oiltype' in kwargs:
             logger.warning(
