@@ -36,7 +36,7 @@ geojson = "^2.5.0"
 nc-time-axis = "^1.4.1"
 coloredlogs = "^15.0.1"
 GDAL = {version = "^3.3.1", optional = true}
-Cartopy = ">=0.20"
+Cartopy = ">=0.21"
 pynucos = ">=3"
 utm = "^0.7.0"
 roaring-landmask = ">=0.7"
