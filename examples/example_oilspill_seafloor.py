@@ -20,16 +20,16 @@ o.set_config('environment:fallback:y_wind', 7)
 o.set_config('drift:vertical_mixing', True)
 
 #%%
+# Setting the range of droplet sizes for the seafloor release
+o.set_config('seed:droplet_diameter_min_subsea', 0.0001)
+o.set_config('seed:droplet_diameter_max_subsea', 0.0005)
+
+#%%
 # Seeding some particles
 time = [reader_norkyst.start_time,
         reader_norkyst.start_time + timedelta(hours=1)]
 o.seed_elements(lon=4.5, lat=62.0, z='seafloor', radius=0, number=3000,
                 time=time, oil_type='GENERIC DIESEL')
-
-#%%
-# Setting the range of droplet sizes for the seafloor release
-o.set_config('seed:droplet_diameter_min_subsea', 0.0001)
-o.set_config('seed:droplet_diameter_max_subsea', 0.0005)
 
 #%%
 # Running model with a small timestep to resolve the boyant rising
