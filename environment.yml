@@ -3,7 +3,7 @@ channels:
   - opendrift
   - conda-forge
 dependencies:
-  - matplotlib>=3.1
+  - matplotlib>=3.5
   - numpy>=1.17
   - scipy>=1.6
   - netcdf4
@@ -21,7 +21,7 @@ dependencies:
   - pytest-cov
   - pytest-benchmark
   - pytest-mpl
-  - cartopy>=0.20
+  - cartopy>=0.21
   - nc-time-axis
   - geojson
   - pynucos>=2.12
