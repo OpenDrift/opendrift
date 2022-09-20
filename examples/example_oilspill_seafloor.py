@@ -21,8 +21,14 @@ o.set_config('drift:vertical_mixing', True)
 
 #%%
 # Setting the range of droplet sizes for the seafloor release
+o.set_config('seed:droplet_size_distribution','uniform')
 o.set_config('seed:droplet_diameter_min_subsea', 0.0001)
 o.set_config('seed:droplet_diameter_max_subsea', 0.0005)
+
+# 'normal' and 'lognormal' distributions can also be specified
+# o.set_config('seed:droplet_size_distribution','lognormal')
+# o.set_config('seed:droplet_diameter_mu',0.001)  # 1 mm
+# o.set_config('seed:droplet_diameter_sigma',0.0008) # 0.8 mm
 
 #%%
 # Seeding some particles
