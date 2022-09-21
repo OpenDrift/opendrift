@@ -29,7 +29,7 @@ dependencies:
   - coloredlogs
   - cmocean
   - utm
+  - roaring-landmask>=0.7
   - pip
   - pip:
     - motuclient
-    - roaring-landmask>=0.7
