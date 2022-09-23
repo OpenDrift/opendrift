@@ -7,24 +7,19 @@ import numpy as np
 from .oceandrift import OceanDrift, Lagrangian3DArray
 
 class SalmonLouse(Lagrangian3DArray):
+    """Keep track of degree days for application of mortality and larval development
+    during postprocessing"""
 
     variables = Lagrangian3DArray.add_variables([
         ('degree_days', {'dtype': np.float32,
                          'units': 'day * degC',
                          'default': 0}),
-        ('transition_time', {'dtype': np.float32,
-                             'units': 'day * degC',
-                             'default': 35.}), # degree days
-        ('lice', {'dtype': np.float32,
-                           'units': '',
-                           'default': 1.}),
-        ('mortality_rate', {'dtype': np.float32,
-                           'units': '',
-                           'default': 0.17})]) # fraction_of_lice_per_day
+    ]) 
+
 
 
 class SalmonLouseDrift(OceanDrift):
-    """Open source trajectory model based on the OpenDrift framework.
+    """Salmon louse trajectory model based on the OpenDrift framework.
     """
 
     ElementType = SalmonLouse
@@ -83,23 +78,11 @@ class SalmonLouseDrift(OceanDrift):
                             (self.time_step.seconds/(60*60*24))
         self.elements.degree_days[positive_temp_ind] += deg_days_increase
 
-    def adjust_for_mortality(self):
-        mortality_rate = self.time_step.seconds * 0.17 / (60*60*24) # per time step
-        self.elements.lice *= (1-mortality_rate)
-
-    def deactivate_too_old(self):
-        too_old = self.elements.degree_days > 140
-        self.deactivate_elements(too_old, reason='Lifespan exeeded max time')
-
     def update(self):
 
         self.determine_vertical_velocity_A3()
 
         self.update_degree_days()
-
-        self.adjust_for_mortality()
-
-        self.deactivate_too_old()
 
         # Advection with horizontal ocean currents
         self.advect_ocean_current()
