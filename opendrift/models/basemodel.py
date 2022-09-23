@@ -4504,7 +4504,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if show is True:
                 plt.show()
 
-        return ax, plt
+        return ax, fig
 
     def _substance_name(self):
         return None
