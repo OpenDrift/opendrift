@@ -1873,7 +1873,7 @@ class ChemicalDrift(OceanDrift):
 
         if 'global_landmask' not in self.readers.keys():
             from opendrift.readers import reader_global_landmask
-            global_landmask = reader_global_landmask.Reader(extent=[llcrnrlon,urcrnrlon,llcrnrlat,urcrnrlat])
+            global_landmask = reader_global_landmask.Reader()
             self.add_reader(global_landmask)
 
         if reader_sea_depth is not None:

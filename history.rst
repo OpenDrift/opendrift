@@ -1,6 +1,14 @@
 History
 =======
 
+Next release
+------------
+* OpenDrift and roaring-landmask is now available as conda packages in conda-forge.
+* Roaring landmask is now the only standard landmask provider. The `extent` and corners arguments
+  have been removed from the global_landmask reader. They have not been in use when roaring-landmask
+  was installed.
+* The land shapes included with roaring-landmask is used if full resolution is used during plotting. Otherwise the cartopy provider is used.
+
 2022-03-18 / Release v1.9.0
 ---------------------------
 * Now using Cartopy >= 0.20. Cartopy < 0.20 is longer supported.
