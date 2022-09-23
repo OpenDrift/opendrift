@@ -893,7 +893,9 @@ class OpenOil(OceanDrift):
                 weight_upper + \
                 Sprofiles[lower, range(Sprofiles.shape[1])] * \
                 (1-weight_upper)
-
+        
+        T0 = T0 - 273.15 # convert to Celcius - needed for the calcs in this method
+        
         rho_oil = self.elements.density
         rho_water = self.sea_water_density(T=T0, S=S0)
 
@@ -907,15 +909,15 @@ class OpenOil(OceanDrift):
 
         # terminal velocity for low Reynolds numbers
         kw = 2 * g * (1 - rhopr) / (9 * ny_w)
-        W = kw * r**2
+        W = kw * (r/2)**2 # r is diameter so divide by 2 for radius
 
         # check if we are in a high Reynolds number regime
-        Re = 2 * r * W / ny_w
+        Re = r * W / ny_w # r is diameter so no need to multiply by 2
         highRe = np.where(Re > 50)
 
         # Terminal velocity in high Reynolds numbers
         kw = (16 * g * (1 - rhopr) / 3)**0.5
-        W2 = kw * r**0.5
+        W2 = kw * (r/2)**0.5
 
         W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W

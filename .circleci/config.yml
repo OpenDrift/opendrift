@@ -112,6 +112,59 @@ test-template: &test-template
         mpl: true
 
 jobs:
+  build_package:
+    docker:
+      - image: continuumio/miniconda3
+    environment:
+      - PYTHON_VERSION=3.9
+
+    steps:
+      - checkout
+      - install_conda_environment
+
+      - run:
+          name: Install poetry
+          command: |
+            source activate opendrift
+            pip install poetry
+
+      - run:
+          name: Build package
+          command: |
+            source activate opendrift
+            poetry build -vv
+
+      - persist_to_workspace:
+          root: dist
+          paths:
+            - '*.whl'
+            - '*.tar.gz'
+
+  publish_package:
+    docker:
+      - image: continuumio/miniconda3
+    environment:
+      - PYTHON_VERSION=3.9
+
+    steps:
+      - checkout
+      - install_conda_environment
+
+      - run:
+          name: Install poetry
+          command: |
+            source activate opendrift
+            pip install poetry
+
+      - attach_workspace:
+          at: dist
+
+      - run:
+          name: Publish packages
+          command: |
+            source activate opendrift
+            poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
+
   python_310:
     <<: *test-template
     parallelism: 5
@@ -396,13 +449,21 @@ jobs:
 workflows:
   version: 2.1
 
-  test:
+  test-and-package:
     jobs:
       - python_310
       - python_39
       - python_38
       - python_37
       - python_310_o_l_d
+      - build_package
+      - publish_package:
+          requires:
+            - build_package
+            - python_39
+          filters:
+            branches:
+             only: master
 
   docs:
     jobs:

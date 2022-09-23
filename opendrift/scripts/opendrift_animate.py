@@ -20,7 +20,7 @@ import argparse
 import numpy as np
 import opendrift
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename1',
                         help='<OpenDrift filename (netCDF) of first file>')
@@ -49,3 +49,6 @@ if __name__ == '__main__':
         # Animate and compare the two runs
         o1.animation(compare=o2, legend=[args.filename1, args.filename2],
                      filename=args.outfile, color=args.color)
+
+if __name__ == '__main__':
+   main()

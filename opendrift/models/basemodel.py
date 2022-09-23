@@ -681,13 +681,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 suggestion = ''
                 if len(i['enum']) > 5:
                     import difflib
-                    matches = difflib.get_close_matches(value,
-                                                        i['enum'],
+                    lowercase_list = [s.lower() for s in i['enum']]
+                    lowercase_mapping = {lc: oc for lc, oc in zip(lowercase_list, i['enum'])}
+                    matches = difflib.get_close_matches(value.lower(),
+                                                        lowercase_list,
                                                         n=20,
                                                         cutoff=.3)
-                    containing = [e for e in i['enum'] if value in e]
+                    containing = [e for e in lowercase_list if value.lower() in e]
                     matches = list(set(matches) | set(containing))
                     if len(matches) > 0:
+                        matches = [lowercase_mapping[match] for match in matches]
                         matches.sort()
                         suggestion = '\nDid you mean any of these?\n%s' % str(
                             matches)
@@ -2196,12 +2199,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         # NB: should also repeat some points, if too few
         lonpoints = lonpoints[0:number]
         latpoints = latpoints[0:number]
-        if len(lonpoints) < number:
-            # If number of positions is smaller than requested,
-            # we duplicate the first ones
-            missing = number - len(lonpoints)
-            lonpoints = np.append(lonpoints, lonpoints[0:missing])
-            latpoints = np.append(latpoints, latpoints[0:missing])
+        while True:
+            if len(lonpoints) < number:
+                # If number of positions is smaller than requested,
+                # we duplicate the first ones
+                missing = number - len(lonpoints)
+                lonpoints = np.append(lonpoints, lonpoints[0:missing])
+                latpoints = np.append(latpoints, latpoints[0:missing])
+            else:
+                break
 
         # Finally seed at calculated positions
         self.seed_elements(lonpoints, latpoints, number=number, **kwargs)

@@ -394,6 +394,9 @@ class PhysicsMethods:
         T   = Temperature of the seawater in degrees Celsius
         '''
 
+        if np.atleast_1d(T).max() > 100:
+            raise ValueError('Temperature should be in celcius, but is > 100')
+
         R4 = 4.8314E-04
         DR350 = 28.106331
 

@@ -1,0 +1,69 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "opendrift"
+version = "1.9.1-rc2"
+description = "OpenDrift - a framework for ocean trajectory modeling"
+authors = ["Knut-Frode Dagestad <knutfd@met.no>", "Gaute Hope <gauteh@met.no>"]
+license = "GPLv2"
+
+[tool.poetry.scripts]
+hodograph = "opendrift.scripts.hodograph:main"
+readerinfo = "opendrift.scripts.readerinfo:main"
+opendrift_plot = "opendrift.scripts.opendrift_plot:main"
+opendrift_animate = "opendrift.scripts.opendrift_animate:main"
+opendrift_gui = "opendrift.scripts.opendrift_gui:main"
+# mp4_to_gif = "opendrift.scripts.opendrift_plot:main"
+
+[tool.poetry.extras]
+grib = ["cfgrib", "pygrib"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+matplotlib = ">=3.5"
+numpy = ">=1.23"
+scipy = ">=1.9"
+netCDF4 = ">=1.6"
+pyproj = ">=2.3"
+xarray = ">=2022.6.0"
+cfgrib = {version = "^0.9.10", optional = true}
+pygrib = {version = "^2.1.4", optional = true}
+dask = {version = "^2022.9.0", optional = true}
+cmocean = "^2.0"
+geojson = "^2.5.0"
+nc-time-axis = "^1.4.1"
+coloredlogs = "^15.0.1"
+GDAL = {version = "^3.3.1", optional = true}
+Cartopy = ">=0.20"
+pynucos = ">=3"
+utm = "^0.7.0"
+roaring-landmask = ">=0.5.1"
+requests = "^2.28.1"
+pykdtree = "^1.3.5"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.3"
+pytest-benchmark = "^3.4.1"
+pytest-mpl = "^0.16.1"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--benchmark-disable"
+norecursedirs = [ "wps", "benchmarks", "test_data" ]
+testpaths = [
+  "tests",
+]
+markers = [
+  "slow:mark tests as slow",
+  "veryslow: marks tests as very slow"
+]
+
+[tool.pylint.master]
+extension-pkg-whitelist="netCDF4,numpy,scipy,roaring_landmask"
+
+[tool.pylint.messages_control]
+disable = "all"
+enable = "F,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,unused-wildcard-import,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,E0001,E0011,E0012,E0100,E0101,E0102,E0103,E0104,E0105,E0107,E0108,E0110,E0111,E0112,E0113,E0114,E0115,E0116,E0117,E0118,E0202,E0203,E0211,E0213,E0236,E0237,E0238,E0239,E0240,E0241,E0301,E0302,E0303,E0401,E0402,E0601,E0602,E0603,E0604,E0611,E0632,E0633,E0701,E0702,E0703,E0704,E0710,E0711,E0712,E1003,E1101,E1102,E1111,E1120,E1121,E1123,E1124,E1125,E1126,E1127,E1128,E1129,E1130,E1131,E1132,E1133,E1134,E1135,E1137,E1138,E1139,E1200,E1201,E1205,E1206,E1300,E1301,E1302,E1303,E1304,E1305,E1306,E1310,E1700,E1701"
+
