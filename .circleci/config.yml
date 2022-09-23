@@ -44,7 +44,7 @@ commands:
             cat envconfig
 
       - restore_cache:
-          key: v18-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v19-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
 
       - run:
           name: Install requirements
@@ -70,7 +70,7 @@ commands:
             fi
 
       - save_cache:
-          key: v18-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v19-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
           paths:
             - "/opt/conda/envs"
       - run:
@@ -189,43 +189,6 @@ jobs:
     parallelism: 5
     environment:
       - PYTHON_VERSION=3.7
-
-  python_310_o_l_d:
-    docker:
-      - image: continuumio/miniconda3
-    parallelism: 5
-    environment:
-      - PYTHON_VERSION=3.10
-    steps:
-    - checkout
-
-    - install_conda_environment
-
-    - run:
-        name: Install opendrift-landmask-data and remove roaring-landmask
-        command: |
-          source activate opendrift
-          conda install -y -c conda-forge -c opendrift opendrift-landmask-data
-          pip uninstall -y roaring-landmask
-
-    - restore_cache:
-        key: v2-landmask
-
-    - run:
-        name: Generate landmask
-        command: |
-          source activate opendrift
-          python -c 'import opendrift_landmask_data as old; old.Landmask()'
-
-    - save_cache:
-        key: v2-landmask
-        paths:
-          - "/tmp/landmask"
-
-    - install_cartopy_shapes
-
-    - run_tests:
-        mpl: false
 
   docs-build-examples:
     docker:
@@ -455,7 +418,6 @@ workflows:
       - python_39
       - python_38
       - python_37
-      - python_310_o_l_d
       - build_package
       - publish_package:
           requires:
