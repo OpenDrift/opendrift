@@ -157,7 +157,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -49.4, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -49.5, 1)
         #######################################################
 
 
@@ -178,7 +178,7 @@ class TestPhysics(unittest.TestCase):
         o.run(duration=timedelta(hours=2),
               time_step_output=1800, time_step=1800)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -49.6, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -49.1, 1)
         ########################################################
 
     def test_verticalmixing_schemes(self):
@@ -200,9 +200,9 @@ class TestPhysics(unittest.TestCase):
             o.run(duration=timedelta(hours=2), time_step=900)
 
             if scheme == 'environment':  # presently this is fallback
-                self.assertAlmostEqual(o.elements.z.min(), -48.8, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -49.6, 1)
             elif scheme == 'windspeed_Large1994':
-                self.assertAlmostEqual(o.elements.z.min(), -48.8, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -49.6, 1)
             elif scheme == 'windspeed_Sundby1983':
                 self.assertAlmostEqual(o.elements.z.min(), -51.75, 1)
             elif scheme == 'constant':
