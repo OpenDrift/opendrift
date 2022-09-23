@@ -878,7 +878,7 @@ class OpenOil(OceanDrift):
 
         # Terminal velocity in high Reynolds numbers
         kw = (16 * g * (1 - rhopr) / 3)**0.5
-        W2 = kw * r**0.5
+        W2 = kw * (r/2)**0.5
 
         W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W
