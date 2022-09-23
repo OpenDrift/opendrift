@@ -70,7 +70,7 @@ def test_plot(tmpdir):
 @pytest.mark.slow
 @pytest.mark.parametrize("fast", [False, True])
 @pytest.mark.parametrize("scale", ["auto", "c", "f"])
-@pytest.mark.mpl_image_compare
+@pytest.mark.mpl_image_compare(remove_text=True)
 def test_plot_auto_scale(test_data, scale, fast, show_plot):
     reader_global = reader_global_landmask.Reader()
     reader_nordic = reader_ROMS_native.Reader(
@@ -86,7 +86,9 @@ def test_plot_auto_scale(test_data, scale, fast, show_plot):
                     time=reader_nordic.start_time)
     oc.run(steps=2)
 
-    return oc.plot(buffer=5., lscale=scale, fast=fast, show=show_plot)[1]
+    fig = oc.plot(buffer=5., lscale=scale, fast=fast, show=show_plot)[1]
+    print(fig)
+    return fig
 
 @pytest.mark.slow
 def test_performance_global(benchmark):
