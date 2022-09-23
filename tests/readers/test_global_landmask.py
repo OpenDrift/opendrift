@@ -67,6 +67,7 @@ def test_plot(tmpdir):
     # plt.show()
     plt.savefig('%s/cartplot.png' % tmpdir)
 
+@pytest.mark.slow
 @pytest.mark.parametrize("fast", [False, True])
 @pytest.mark.parametrize("scale", ["auto", "c", "f"])
 @pytest.mark.mpl_image_compare
