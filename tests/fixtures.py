@@ -10,5 +10,5 @@ def test_data():
 
 @pytest.fixture
 def show_plot(pytestconfig):
-    return pytestconfig.getoption('show_plot')
+    return pytestconfig.getoption('plot')
 
