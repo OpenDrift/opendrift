@@ -67,9 +67,10 @@ def test_plot(tmpdir):
     # plt.show()
     plt.savefig('%s/cartplot.png' % tmpdir)
 
+@pytest.mark.parametrize("fast", [False, True])
 @pytest.mark.parametrize("scale", ["auto", "c", "f"])
 @pytest.mark.mpl_image_compare
-def test_plot_auto_scale(test_data, tmpdir, scale, show_plot):
+def test_plot_auto_scale(test_data, scale, fast, show_plot):
     reader_global = reader_global_landmask.Reader()
     reader_nordic = reader_ROMS_native.Reader(
         test_data +
@@ -84,7 +85,7 @@ def test_plot_auto_scale(test_data, tmpdir, scale, show_plot):
                     time=reader_nordic.start_time)
     oc.run(steps=2)
 
-    return oc.plot(buffer=5., lscale=scale, show=show_plot)[1]
+    return oc.plot(buffer=5., lscale=scale, fast=fast, show=show_plot)[1]
 
 @pytest.mark.slow
 def test_performance_global(benchmark):

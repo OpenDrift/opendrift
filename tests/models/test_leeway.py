@@ -48,7 +48,7 @@ def test_leewayrun(tmpdir, test_data):
     """Test the expected Leeway left/right split."""
     lee = Leeway(loglevel=20)
     object_type = 50  # FISHING-VESSEL-1
-    reader_landmask = reader_global_landmask.Reader(extent=[ 3, 59.8, 6, 60.5 ])
+    reader_landmask = reader_global_landmask.Reader()
     lee.add_reader([reader_landmask])
     lee.seed_cone(lon=[4.5, 4.7], lat=[60.1, 60], number=100,
                   object_type=object_type,
