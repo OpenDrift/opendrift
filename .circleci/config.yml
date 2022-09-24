@@ -18,7 +18,7 @@ commands:
             [[ "<<parameters.mpl>>" == "true" ]] && export MPL="--mpl"
 
             source activate opendrift
-            pytest --circleci-parallelize --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow $MPL --durations=50 --benchmark-disable -v --log-cli-level=debug
+            pytest --circleci-parallelize --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow $MPL --mpl-results-path=test-results/mpl_images --durations=50 --benchmark-disable -v --log-cli-level=debug
 
       - store_test_results:
           path: test-results
