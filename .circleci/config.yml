@@ -54,14 +54,14 @@ commands:
               if [ -v PYTHON_VERSION ]; then
                 echo "Pinning python: ${PYTHON_VERSION}."
                 # pin python
-                conda create -c conda-forge -n opendrift -q -y "python=${PYTHON_VERSION}"
+                mamba create -c conda-forge -n opendrift -q -y "python=${PYTHON_VERSION}"
 
                 echo "python ${PYTHON_VERSION}.*" > /opt/conda/envs/opendrift/conda-meta/pinned
                 cat /opt/conda/envs/opendrift/conda-meta/pinned
 
-                conda env update -n opendrift -q -f environment.yml
+                mamba env update -n opendrift -q -f environment.yml
               else
-                conda env create -q --file environment.yml
+                mamba env create -q --file environment.yml
               fi
 
               source activate opendrift
@@ -77,7 +77,7 @@ commands:
           name: List environment
           command: |
             source activate opendrift
-            conda list
+            mamba list
 
   install_cartopy_shapes:
     steps:
@@ -99,7 +99,7 @@ commands:
 
 test-template: &test-template
   docker:
-    - image: continuumio/miniconda3
+    - image: condaforge/mambaforge
   resource_class: medium+
   steps:
     - checkout
@@ -114,7 +114,7 @@ test-template: &test-template
 jobs:
   build_package:
     docker:
-      - image: continuumio/miniconda3
+      - image: condaforge/mambaforge
     environment:
       - PYTHON_VERSION=3.9
 
@@ -142,7 +142,7 @@ jobs:
 
   publish_package:
     docker:
-      - image: continuumio/miniconda3
+      - image: condaforge/mambaforge
     environment:
       - PYTHON_VERSION=3.9
 
@@ -192,7 +192,7 @@ jobs:
 
   docs-build-examples:
     docker:
-      - image: continuumio/miniconda3
+      - image: condaforge/mambaforge
     parallelism: 20
     steps:
       - checkout
@@ -222,7 +222,7 @@ jobs:
           name: Install sphinx and friends
           command: |
             source activate opendrift
-            conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
 
       - run:
@@ -289,7 +289,7 @@ jobs:
 
   docs-build:
     docker:
-      - image: continuumio/miniconda3
+      - image: condaforge/mambaforge
     steps:
       - checkout
 
@@ -336,7 +336,7 @@ jobs:
           name: Install sphinx and friends
           command: |
             source activate opendrift
-            conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
 
       - save_cache:
