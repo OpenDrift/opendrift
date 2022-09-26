@@ -3473,7 +3473,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         self.get_map_background(ax, background, crs,
                                                 time=times[i])
                 # https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data
-                bg.set_array(scalar[:-1, :-1].ravel())
+                bg.set_array(scalar.ravel())
                 if type(background) is list:
                     ret.append(bg_quiv)
                     bg_quiv.set_UVC(u_component[::skip, ::skip],
