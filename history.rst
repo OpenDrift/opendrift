@@ -1,13 +1,31 @@
 History
 =======
 
-Next release
-------------
+2022-09-26 / Release v1.10.0
+----------------------------
 * OpenDrift and roaring-landmask is now available as conda packages in conda-forge.
 * Roaring landmask is now the only standard landmask provider. The `extent` and corners arguments
   have been removed from the global_landmask reader. They have not been in use when roaring-landmask
   was installed.
 * The land shapes included with roaring-landmask is used if full resolution is used during plotting. Otherwise the cartopy provider is used.
+* `Two bugs in OpenOil fixed by Giles Fearon <https://github.com/OpenDrift/opendrift/commit/78f2bd491ddc554d018e8527f97430211aafbba4>`__: in vertical mixing procedure, Temperature has wrong unit when calculating water density, and diameter was used instead of radius to calculate terminal velocity. This lead to moderate errors in vertical distribution of oil droplets: https://github.com/OpenDrift/opendrift/commit/457ed0ff263fb2cd51125cbc3df8c972e0b16fe7
+* Fixed offset error in plotting of background fields on animations, which arose due to recent updates of matplotlib.
+* Added fix (suggested by user lyingTree) for problem when seeding small number of elements within polygons.
+* `figsize` is new optional argument to plot and animation methods (default is 11 inches).
+* Possible to specify custom title for animation method.
+* Oil type is now retrieved from stored netCDF files from OpenOil simulations.
+* Fixed bug for readers with property `always_valid=True`
+* Added boolean option show_trajectories to `plot` method.
+* `reader_netCDF_CF_generic` does now only detect 1D-variables as x- and y-coordinates.
+* For animated drifters, trajectory is now shown only up to current time step.
+* Variables may now also be specified for `add_readers_from_list`.
+* Allowing more than one drifter-dictionary to be animated, if keyword `drifter` (previously named `trajectory_dict`)  is a list instead of dict.
+* New convenience method for structured readers to calculate ocean depth, area and volume within given coordinates.
+* Generic netCDF reader now raises an error of file/URL is (apparently) raw ROMS output.
+* ROMS native reader is now not rotating vectors with east/north in either variable or standard-name.
+* Updates to ROMS native reader: standard_name_mapping may be provided by user, and mask, coordinates and angle may all be read from eventual gridfile.
+* Added option to chose ensemble member in `reader_netCDF_CF_generic` (by user `mateuszmatu`).
+
 
 2022-03-18 / Release v1.9.0
 ---------------------------
