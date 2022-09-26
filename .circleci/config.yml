@@ -269,7 +269,7 @@ jobs:
             cd docs/
             make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
             ls -R source
-          no_output_timeout: 40m
+          no_output_timeout: 60m
 
       - store_test_results:
           path: docs/test-results
