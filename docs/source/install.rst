@@ -16,10 +16,10 @@ Alternative 1: Using Miniconda and Git (recommended)
 
 .. code-block:: bash
 
-  $ conda config --add channels conda-forge  # recommended, but not necessary
+  $ conda config --add channels conda-forge
   $ conda env create -f environment.yml
   $ conda activate opendrift
-  $ pip install -e .
+  $ pip install --no-deps -e .
 
 This installs the OpenDrift package as an editable package. You can therefore directly make changes to the repository or fetch the newest changes with :code:`git pull`. You do not need to add OpenDrift to PYTHONPATH as long as you have the :code:`opendrift` environment activated.
 
@@ -33,19 +33,13 @@ Alternative 2: Using Miniconda
 ++++++++++++++++++++++++++++++
 
 1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
-2. Set up a *Python 3* environment for opendrift
+2. Set up a *Python 3* environment for opendrift and install opendrift
 
 .. code-block:: bash
 
-   $ conda config --add channels conda-forge  # recommended, but not necessary
-   $ conda create -n opendrift python=3
+   $ conda config --add channels conda-forge
+   $ conda create -n opendrift python=3 opendrift
    $ conda activate opendrift
-
-3. Install OpenDrift and dependencies
-
-.. code-block:: bash
-
-  $ conda install -c opendrift -c conda-forge -c noaa-orr-erd opendrift
 
 .. _source_install:
 
@@ -54,18 +48,24 @@ Modify install to use Git version
 
 If you later want to edit the OpenDrift source code, or be able to update from repository with `git pull`, the following two steps are necessary. This yields the same as Alternative 1.
 
-4. Clone OpenDrift:
+3. Clone OpenDrift:
 
 .. code-block:: bash
 
    $ git clone https://github.com/OpenDrift/opendrift.git
    $ cd opendrift/
 
+4. Remove original package:
+
+.. code-block:: bash
+
+   $ conda remove opendrift
+
 5. Install as editable:
 
 .. code-block:: bash
 
-   $ pip install -e .
+   $ pip install -e --no-deps .
 
 Building and using the Docker image
 +++++++++++++++++++++++++++++++++++
