@@ -3,6 +3,10 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Rodríguez-Villegas C., Figueroa R.I, Pérez-Santos I, Molinet C., Saldías G.S., Rosales S.A, Álvarez G., Linford P., Díaz P.A., Continental shelf off northern Chilean Patagonia: A potential risk zone for the onset of Alexandrium catenella toxic bloom? Marine Pollution Bulletin 184 (2022) 114103, https://doi.org/10.1016/j.marpolbul.2022.11410
+
+Devis Morales A.D., Rubio E.R., Martínez D.R., Numerical modeling of oil spills in the Gulf of Morrosquillo, Colombian Caribean, Ciencia, Tecnologia y Futuro Vol 12, Num 1 June 2022. pages 69 - 83, https://doi.org/10.29047/01225383.396.
+
 Kotnik, J.; Žagar, D.; Novak, G.; Ličer, M.; Horvat, M. Dissolved Gaseous Mercury (DGM) in the Gulf of Trieste, Northern Adriatic Sea. J. Mar. Sci. Eng. 2022, 10, 587. https://doi.org/10.3390/jmse10050587
 
 Keramea P, Kokkos N, Gikas GD, Sylaios G. Operational Modeling of North Aegean Oil Spills Forced by Real-Time Met-Ocean Forecasts. Journal of Marine Science and Engineering. 2022; 10(3):411. https://doi.org/10.3390/jmse10030411
