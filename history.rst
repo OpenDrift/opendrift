@@ -25,6 +25,8 @@ History
 * ROMS native reader is now not rotating vectors with east/north in either variable or standard-name.
 * Updates to ROMS native reader: standard_name_mapping may be provided by user, and mask, coordinates and angle may all be read from eventual gridfile.
 * Added option to chose ensemble member in `reader_netCDF_CF_generic` (by user `mateuszmatu`).
+* An experimental drift model based on the Eulerian modeling scheme has been added.
+* It is now possible to combine readers using operators, e.g. to take the mean of two readers, or tune the intensity of a variable. See the `example_reader_operators.py` for an example.
 
 
 2022-03-18 / Release v1.9.0
