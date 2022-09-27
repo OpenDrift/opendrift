@@ -419,6 +419,8 @@ workflows:
           filters:
             tags:
              only: /v.*/
+            branches:
+              ignore: /.*/
 
   docs:
     jobs:
