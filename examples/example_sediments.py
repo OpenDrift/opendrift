@@ -7,7 +7,7 @@ Sediment drift from Glomma river outlet
 from datetime import timedelta, datetime
 from opendrift.models.sedimentdrift import SedimentDrift
 
-o = SedimentDrift(loglevel=50)  # 0 for debug output
+o = SedimentDrift(loglevel=0)  # 0 for debug output
 
 #%%
 # Source of sediments at Glomma river outlet
