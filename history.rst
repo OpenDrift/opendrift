@@ -4,6 +4,8 @@ History
 2022-09-27 / Release v1.10.1
 ----------------------------
 * Using cartopy shapes for full resolution again because of performance issues.
+* Unit of oil viscosity (which is kinematic viscosity) is now consistent.
+* When importing a subset in time, the number of actual active elements is now detected and used for initialization.
 
 2022-09-26 / Release v1.10.0
 ----------------------------
