@@ -37,7 +37,7 @@ for wind_speed in wind_speeds:
         b[ot] = o.get_oil_budget()
         # Get viscosity and density
         kin_viscosity = o.history['viscosity']
-        dyn_viscosity = kin_viscosity * o.history['density']
+        dyn_viscosity = kin_viscosity * o.history['density'] * 1000 # mPas
         viscosities[ot] = dyn_viscosity.mean(axis=0)
         densities[ot] = o.history['density'].mean(axis=0)
         water_fractions[ot] = o.history['water_fraction'].mean(axis=0)

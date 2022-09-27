@@ -94,8 +94,9 @@ class Oil(Lagrangian3DArray):
             'viscosity',
             {
                 'dtype': np.float32,
-                'units': 'N s/m2 (Pa s)',
+                'units': 'm2/s',
                 'seed': False,  # Taken from NOAA database
+                'description': 'Kinematic viscosity of oil',
                 'default': 0.005
             }),
         (
@@ -1373,7 +1374,7 @@ class OpenOil(OceanDrift):
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds() / 3600. for t in time_relative])
         kin_viscosity = self.history['viscosity']
-        dyn_viscosity = kin_viscosity * self.history['density']
+        dyn_viscosity = kin_viscosity * self.history['density'] * 1000  # unit of mPas
         dyn_viscosity_mean = dyn_viscosity.mean(axis=0)
         dyn_viscosity_std = dyn_viscosity.std(axis=0)
         density = self.history['density'].mean(axis=0)
