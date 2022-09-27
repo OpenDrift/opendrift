@@ -1,6 +1,10 @@
 History
 =======
 
+2022-09-27 / Release v1.10.1
+----------------------------
+* Using cartopy shapes for full resolution again because of performance issues.
+
 2022-09-26 / Release v1.10.0
 ----------------------------
 * OpenDrift and roaring-landmask is now available as conda packages in conda-forge.
