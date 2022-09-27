@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 # TODO: replace this with weakref + thread-safety
 __roaring_mask__ = None
+__polys__ = None
 
 def get_mask():
     """
@@ -56,6 +57,8 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         self.intersecting_geometries(extent=None)
 
     def intersecting_geometries(self, extent):
+        global __polys__
+
         if self._scale == 'auto':
             scale = self._scale_from_extent(extent)
         else:
@@ -65,16 +68,17 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         # fall back to Cartopy provider.
         if scale == 'f':
             logger.debug(f"Adding full GSHHG shapes from roaring-landmask, extent: {extent}..")
-            from roaring_landmask import Gshhg
-            polys = Gshhg.wkb()
-            polys = wkb.loads(polys)
+            if __polys__ is None:
+                from roaring_landmask import Gshhg
+                polys = Gshhg.wkb()
+                __polys__ = wkb.loads(polys)
 
             if extent is not None:
                 extent = box(extent[0], extent[2], extent[1], extent[3])
                 extent = shapely.prepared.prep(extent)
-                return (p for p in polys.geoms if extent.intersects(p))
+                return (p for p in __polys__.geoms if extent.intersects(p))
             else:
-                return polys.geoms
+                return __polys__.geoms
         else:
             logger.debug(f"Adding GSHHG shapes from cartopy, scale: {scale}, extent: {extent}..")
             return super().intersecting_geometries(extent)

@@ -13,7 +13,7 @@ o = SedimentDrift(loglevel=0)  # 0 for debug output
 # Source of sediments at Glomma river outlet
 lat=59.169194
 lon=10.962920
-o.seed_elements(lon=lon, lat=lat, number=10000, 
+o.seed_elements(lon=lon, lat=lat, number=10000,
                 time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=48)],
                 terminal_velocity=-.001)  # 1 mm/s settling speed
 
