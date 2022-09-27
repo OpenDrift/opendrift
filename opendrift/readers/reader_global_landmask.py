@@ -64,24 +64,24 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         else:
             scale = self._scale[0]
 
-        # If scale is full use the geometries from roaring landmask, otherwise
-        # fall back to Cartopy provider.
-        if scale == 'f':
-            logger.debug(f"Adding full GSHHG shapes from roaring-landmask, extent: {extent}..")
-            if __polys__ is None:
-                from roaring_landmask import Gshhg
-                polys = Gshhg.wkb()
-                __polys__ = wkb.loads(polys)
+        # # If scale is full use the geometries from roaring landmask, otherwise
+        # # fall back to Cartopy provider.
+        # if scale == 'f':
+        #     logger.debug(f"Adding full GSHHG shapes from roaring-landmask, extent: {extent}..")
+        #     if __polys__ is None:
+        #         from roaring_landmask import Gshhg
+        #         polys = Gshhg.wkb()
+        #         __polys__ = wkb.loads(polys)
 
-            if extent is not None:
-                extent = box(extent[0], extent[2], extent[1], extent[3])
-                extent = shapely.prepared.prep(extent)
-                return (p for p in __polys__.geoms if extent.intersects(p))
-            else:
-                return __polys__.geoms
-        else:
-            logger.debug(f"Adding GSHHG shapes from cartopy, scale: {scale}, extent: {extent}..")
-            return super().intersecting_geometries(extent)
+        #     if extent is not None:
+        #         extent = box(extent[0], extent[2], extent[1], extent[3])
+        #         extent = shapely.prepared.prep(extent)
+        #         return (p for p in __polys__.geoms if extent.intersects(p))
+        #     else:
+        #         return __polys__.geoms
+        # else:
+        logger.debug(f"Adding GSHHG shapes from cartopy, scale: {scale}, extent: {extent}..")
+        return super().intersecting_geometries(extent)
 
 def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', land_color = cfeature.COLORS['land'], lscale = 'auto', globe=None):
     """
