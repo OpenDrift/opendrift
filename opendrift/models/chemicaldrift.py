@@ -438,9 +438,9 @@ class ChemicalDrift(OceanDrift):
 
     def seed_elements(self, *args, **kwargs):
 
-        self.init_species()
-
-        self.init_transfer_rates()
+        if hasattr(self,'name_species') == False:
+            self.init_species()
+            self.init_transfer_rates()
 
 
 
@@ -1899,7 +1899,7 @@ class ChemicalDrift(OceanDrift):
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
         # Default bathymetry resolution 500x500. Can be increased (carefully) if high-res data is available and needed
-        grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,500), np.linspace(llcrnrlat,urcrnrlat,500))
+        grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,1000), np.linspace(llcrnrlat,urcrnrlat,1000))
         self.conc_lon=grid[0]
         self.conc_lat=grid[1]
 
@@ -2423,6 +2423,7 @@ class ChemicalDrift(OceanDrift):
                 total_volume = np.sum(data[sel])
                 total_mass = total_volume * self.emission_factors(scrubber_type, chemical_compound)
                 mass_element_ug = total_mass / number_of_elements
+                mass_element_ug_0 = total_mass / number_of_elements
 
             for i in range(0,t.size):
                 scrubberwater_vol_l=data[sel][i]
@@ -2431,7 +2432,8 @@ class ChemicalDrift(OceanDrift):
                 if number_of_elements is None:
                     number=np.array(mass_ug / mass_element_ug).astype('int')
                 else:
-                    number=np.round(np.array(mass_ug / mass_element_ug)).astype('int')
+                    number=np.ceil(np.array(mass_ug / mass_element_ug_0)).astype('int')
+                    mass_element_ug=mass_ug/number
 
                 time = datetime.utcfromtimestamp((t[i] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's'))
 
@@ -2710,8 +2712,8 @@ class ChemicalDrift(OceanDrift):
             ax.bar(np.arange(steps),bars[:,self.num_lmm],width=1.25,color='midnightblue')
             bottom=bars[:,self.num_lmm]
         if 'DOC' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_col],bottom=bottom,width=1.25,color='royalblue')
-            bottom=bottom+bars[:,self.num_col]
+            ax.bar(np.arange(steps),bars[:,self.num_humcol],bottom=bottom,width=1.25,color='royalblue')
+            bottom=bottom+bars[:,self.num_humcol]
         if 'SPM' in legend:
             ax.bar(np.arange(steps),bars[:,self.num_prev],bottom=bottom,width=1.25,color='palegreen')
             bottom=bottom+bars[:,self.num_prev]
