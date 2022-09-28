@@ -337,8 +337,6 @@ class ChemicalDrift(OceanDrift):
 
     def prepare_run(self):
 
-
-
         logger.info( 'Number of species: {}'.format(self.nspecies) )
         for i,sp in enumerate(self.name_species):
             logger.info( '{:>3} {}'.format( i, sp ) )
@@ -442,7 +440,6 @@ class ChemicalDrift(OceanDrift):
 
         if hasattr(self,'name_species') == False:
             self.init_species()
-
             self.init_transfer_rates()
 
 
@@ -1939,7 +1936,6 @@ class ChemicalDrift(OceanDrift):
             mass_unit='microgram'  # default unit for chemicals
 
         z = self.get_property('z')[0]
-
         if not zlevels==None:
             zlevels = np.sort(zlevels)
             z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
@@ -2407,7 +2403,6 @@ class ChemicalDrift(OceanDrift):
                 radius:      scalar, unit: meters
                 lowerbound:  scalar, elements with lower values are discarded
             """
-
 
             if chemical_compound is None:
                 chemical_compound = self.get_config('chemical:compound')
