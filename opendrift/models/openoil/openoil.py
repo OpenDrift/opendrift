@@ -855,9 +855,9 @@ class OpenOil(OceanDrift):
                 weight_upper + \
                 Sprofiles[lower, range(Sprofiles.shape[1])] * \
                 (1-weight_upper)
-        
+
         T0 = T0 - 273.15 # convert to Celcius - needed for the calcs in this method
-        
+
         rho_oil = self.elements.density
         rho_water = self.sea_water_density(T=T0, S=S0)
 
@@ -1412,6 +1412,9 @@ class OpenOil(OceanDrift):
             plt.show()
 
     def set_oiltype(self, oiltype):
+        """
+        Sets the oil type by specifying the name, the first match will be chosen. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list. OpenDrift provides a small set of extra oils.
+        """
         oiltype = adios.oil_name_alias.get(oiltype, oiltype)
         logger.info(f'setting oil_type to: {oiltype}')
 
@@ -1428,6 +1431,9 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_by_id(self, oiltypeid):
+        """
+        Sets the oil type by specifying the ADIOS ID. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list. OpenDrift provides a small set of extra oils.
+        """
         if self.oil_weathering_model == 'noaa':
             self.oiltype = adios.get_full_oil_from_id(oiltypeid)
             self.oil_name = self.oiltype.name
@@ -1440,6 +1446,9 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_by_json(self, json):
+        """
+        Sets the oil type by specifing a JSON dict. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
+        """
         if self.oil_weathering_model == 'noaa':
             self.oiltype = adios.oil.OpendriftOil(json)
             self.oil_name = self.oiltype.name
@@ -1452,6 +1461,9 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_from_file(self, path):
+        """
+        Sets the oil type by specifing a JSON file. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
+        """
         if self.oil_weathering_model == 'noaa':
             import json
             with open(path, 'r') as fd:
