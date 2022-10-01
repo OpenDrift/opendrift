@@ -1450,7 +1450,11 @@ class OpenOil(OceanDrift):
         Sets the oil type by specifing a JSON dict. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
         """
         if self.oil_weathering_model == 'noaa':
-            self.oiltype = adios.oil.OpendriftOil(json)
+            o = { 'data': { 'attributes' : json } }
+            o['data']['_id'] = o['data']['attributes']['oil_id']
+            o['data']['attributes']['metadata']['location'] = 'NORWAY'
+
+            self.oiltype = adios.oil.OpendriftOil(o)
             self.oil_name = self.oiltype.name
             if not self.oiltype.valid():
                 logger.error(
@@ -1469,13 +1473,8 @@ class OpenOil(OceanDrift):
             with open(path, 'r') as fd:
                 j = json.load(fd)
 
-            self.oiltype = adios.oil.OpendriftOil(j)
-            self.oil_name = self.oiltype.name
-            if not self.oiltype.valid():
-                logger.error(
-                    f"{self.oiltype} is not a valid oil for Opendrift simulations"
-                )
-                raise ValueError()
+            self.set_oiltype_by_json(j)
+
         else:
             raise ValueError("unsupported oil weathering model")
 
