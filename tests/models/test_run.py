@@ -71,8 +71,7 @@ class TestRun(unittest.TestCase):
     def make_OceanDrift_object(self):
         self.o = OceanDrift(loglevel=30)
         self.fake_eddy = reader_ArtificialOceanEddy.Reader(2, 62)
-        self.reader_landmask = reader_global_landmask.Reader(
-            extent = [-1.5, 59, 7, 64])
+        self.reader_landmask = reader_global_landmask.Reader()
         self.o.add_reader([self.fake_eddy, self.reader_landmask])
 
     def test_seed(self):
@@ -103,8 +102,7 @@ class TestRun(unittest.TestCase):
         """Test seeding"""
         o = OpenOil(loglevel=0)
         norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        landmask = reader_global_landmask.Reader(
-            extent=[4, 6, 60, 64])
+        landmask = reader_global_landmask.Reader()
         o.add_reader([landmask, norkyst])
         o.set_config('environment:fallback:x_wind', 0)
         o.set_config('environment:fallback:y_wind', 0)
@@ -435,8 +433,7 @@ class TestRun(unittest.TestCase):
         o1 = OceanDrift(loglevel=30)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        landmask = reader_global_landmask.Reader(
-            extent=[4.5, 6.0, 60.1, 60.4])
+        landmask = reader_global_landmask.Reader()
         o1.add_reader([landmask])
         o1.set_config('environment:fallback:x_sea_water_velocity', 0.8)  # onshore drift
         o1.seed_elements(4.8, 60.2, radius=5000, number=100,
@@ -467,8 +464,7 @@ class TestRun(unittest.TestCase):
         o1 = OceanDrift(loglevel=30)
         norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-        landmask = reader_global_landmask.Reader(
-            extent=[4.5, 5.2, 60.0, 60.5])
+        landmask = reader_global_landmask.Reader()
         o1.add_reader([landmask, norkyst])
         o1.seed_elements(4.96, 60.1, radius=3000, number=100,
                         time=norkyst.start_time)

@@ -102,8 +102,9 @@ class Oil(Lagrangian3DArray):
             'viscosity',
             {
                 'dtype': np.float32,
-                'units': 'N s/m2 (Pa s)',
+                'units': 'm2/s',
                 'seed': False,  # Taken from NOAA database
+                'description': 'Kinematic viscosity of oil',
                 'default': 0.005
             }),
         (
@@ -893,9 +894,9 @@ class OpenOil(OceanDrift):
                 weight_upper + \
                 Sprofiles[lower, range(Sprofiles.shape[1])] * \
                 (1-weight_upper)
-        
+
         T0 = T0 - 273.15 # convert to Celcius - needed for the calcs in this method
-        
+
         rho_oil = self.elements.density
         rho_water = self.sea_water_density(T=T0, S=S0)
 
@@ -1412,7 +1413,7 @@ class OpenOil(OceanDrift):
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds() / 3600. for t in time_relative])
         kin_viscosity = self.history['viscosity']
-        dyn_viscosity = kin_viscosity * self.history['density']
+        dyn_viscosity = kin_viscosity * self.history['density'] * 1000  # unit of mPas
         dyn_viscosity_mean = dyn_viscosity.mean(axis=0)
         dyn_viscosity_std = dyn_viscosity.std(axis=0)
         density = self.history['density'].mean(axis=0)
@@ -1450,6 +1451,9 @@ class OpenOil(OceanDrift):
             plt.show()
 
     def set_oiltype(self, oiltype):
+        """
+        Sets the oil type by specifying the name, the first match will be chosen. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list. OpenDrift provides a small set of extra oils.
+        """
         oiltype = adios.oil_name_alias.get(oiltype, oiltype)
         logger.info(f'setting oil_type to: {oiltype}')
 
@@ -1466,6 +1470,9 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_by_id(self, oiltypeid):
+        """
+        Sets the oil type by specifying the ADIOS ID. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list. OpenDrift provides a small set of extra oils.
+        """
         if self.oil_weathering_model == 'noaa':
             self.oiltype = adios.get_full_oil_from_id(oiltypeid)
             self.oil_name = self.oiltype.name
@@ -1478,8 +1485,15 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_by_json(self, json):
+        """
+        Sets the oil type by specifing a JSON dict. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
+        """
         if self.oil_weathering_model == 'noaa':
-            self.oiltype = adios.oil.OpendriftOil(json)
+            o = { 'data': { 'attributes' : json } }
+            o['data']['_id'] = o['data']['attributes']['oil_id']
+            o['data']['attributes']['metadata']['location'] = 'NORWAY'
+
+            self.oiltype = adios.oil.OpendriftOil(o)
             self.oil_name = self.oiltype.name
             if not self.oiltype.valid():
                 logger.error(
@@ -1490,18 +1504,16 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_from_file(self, path):
+        """
+        Sets the oil type by specifing a JSON file. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
+        """
         if self.oil_weathering_model == 'noaa':
             import json
             with open(path, 'r') as fd:
                 j = json.load(fd)
 
-            self.oiltype = adios.oil.OpendriftOil(j)
-            self.oil_name = self.oiltype.name
-            if not self.oiltype.valid():
-                logger.error(
-                    f"{self.oiltype} is not a valid oil for Opendrift simulations"
-                )
-                raise ValueError()
+            self.set_oiltype_by_json(j)
+
         else:
             raise ValueError("unsupported oil weathering model")
 

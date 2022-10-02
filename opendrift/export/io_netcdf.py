@@ -310,6 +310,18 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
     history_dtype = np.dtype(history_dtype_fields)
 
     # Import dataset (history)
+    status = infile.variables['status'][elements, times]
+    firstlast = np.ma.notmasked_edges(status, axis=1)
+    index_of_last = firstlast[1][1]
+    actual_num_elements = len(index_of_last)
+    if actual_num_elements < num_elements:
+        num_elements = actual_num_elements
+        elements = firstlast[0][0]
+        logger.warning('A subset is requested, and number of active elements is %d'
+                       % num_elements)
+    self.history = np.ma.array(
+        np.zeros([num_elements, self.steps_output]),
+        dtype=history_dtype, mask=[True])
     if load_history is True:
         self.history = np.ma.array(
             np.zeros([num_elements, self.steps_output]),
@@ -330,8 +342,9 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
         for var in infile.variables:
             if var in self.ElementType.variables:
                 kwargs[var] = self.history[var][
-                    np.arange(len(index_of_last)), index_of_last]
-        kwargs['ID'] = np.arange(len(elements)) + 1
+                    np.arange(num_elements), index_of_last]
+        #kwargs['ID'] = np.arange(num_elements) + 1
+        kwargs['ID'] = np.array(list(elements)) + 1
         self.elements = self.ElementType(**kwargs)
         self.elements_deactivated = self.ElementType()
     else:

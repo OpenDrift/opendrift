@@ -9,7 +9,7 @@ def pytest_addoption(parser):
             "--run-very-slow", action="store_true", default=False, help="run very slow tests"
             )
     parser.addoption(
-            "--show-plot", action="store_true", default=False, help="show plots"
+            "--plot", action="store_true", default=False, help="show plots"
             )
 
 

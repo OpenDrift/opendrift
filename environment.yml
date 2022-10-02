@@ -3,7 +3,7 @@ channels:
   - opendrift
   - conda-forge
 dependencies:
-  - matplotlib>=3.1
+  - matplotlib>=3.5
   - numpy>=1.17
   - scipy>=1.6
   - netcdf4
@@ -29,7 +29,7 @@ dependencies:
   - coloredlogs
   - cmocean
   - utm
+  - roaring-landmask>=0.7
   - pip
   - pip:
     - motuclient
-    - roaring-landmask

@@ -210,7 +210,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
             od_loggers = [
                 logging.getLogger('opendrift'),
-                logging.getLogger('opendrift_landmask_data')
             ]
 
             if logfile is not None:
@@ -1679,16 +1678,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             logger.info('No land reader added, '
                         'making a temporary landmask reader')
             from opendrift.models.oceandrift import OceanDrift
-            reader_landmask = reader_global_landmask.Reader(extent=[
-                np.maximum(-360,
-                           self.elements_scheduled.lon.min() - deltalon),
-                np.maximum(-89,
-                           self.elements_scheduled.lat.min() - deltalat),
-                np.minimum(720,
-                           self.elements_scheduled.lon.max() + deltalon),
-                np.minimum(89,
-                           self.elements_scheduled.lat.max() + deltalat)
-            ])
+            reader_landmask = reader_global_landmask.Reader()
             seed_state = np.random.get_state()  # Do not alter current random number generator
             o = OceanDrift(loglevel='custom')
             np.random.set_state(seed_state)
@@ -2750,8 +2740,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'Adding a customised landmask may be faster...' %
                 self.max_speed)
             self.timer_start('preparing main loop:making dynamical landmask')
-            reader_landmask = reader_global_landmask.Reader(
-                extent=simulation_extent)
+            reader_landmask = reader_global_landmask.Reader()
             self.add_reader(reader_landmask)
 
             self.timer_end('preparing main loop:making dynamical landmask')
@@ -3172,6 +3161,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         provide corners=[lonmin, lonmax, latmin, latmax] for specific map selection
         """
+        logger.debug(f"Setting up map: {corners=}, {fast=}, {lscale=}")
 
         # Initialise map
         if hasattr(self, 'ds'):  # If dataset is lazily imported
@@ -3483,7 +3473,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                         self.get_map_background(ax, background, crs,
                                                 time=times[i])
                 # https://stackoverflow.com/questions/18797175/animation-with-pcolormesh-routine-in-matplotlib-how-do-i-initialize-the-data
-                bg.set_array(scalar[:-1, :-1].ravel())
+                bg.set_array(scalar.ravel())
                 if type(background) is list:
                     ret.append(bg_quiv)
                     bg_quiv.set_UVC(u_component[::skip, ::skip],
@@ -4514,7 +4504,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if show is True:
                 plt.show()
 
-        return ax, plt
+        return ax, fig
 
     def _substance_name(self):
         return None

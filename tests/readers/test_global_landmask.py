@@ -5,41 +5,11 @@ from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
-
-@pytest.mark.veryslow
-def test_reader_landmask_generate():
-    import os, tempfile
-
-    tmpdir = os.path.join(tempfile.gettempdir(), 'landmask')
-    mmapf = os.path.join(tmpdir, 'mask.dat')
-
-    if os.path.exists(mmapf): os.unlink(mmapf)
-
-    r = reader_global_landmask.Reader()
-
-    if r.mask_type == 0:
-        assert os.path.exists(mmapf)
-
-
-@pytest.mark.veryslow
-def test_reader_landmask_generate_extent():
-    import os, tempfile
-
-    tmpdir = os.path.join(tempfile.gettempdir(), 'landmask')
-    mmapf = os.path.join(tmpdir, 'mask.dat')
-
-    if os.path.exists(mmapf): os.unlink(mmapf)
-
-    r = reader_global_landmask.Reader(extent=[4, 55, 11, 65])
-    assert r.extent is not None
-
-    if r.mask_type == 0:
-        assert os.path.exists(mmapf)
-
+def test_global_setup(benchmark):
+    benchmark(reader_global_landmask.Reader)
 
 def test_landmask_global():
-    reader_global = reader_global_landmask.Reader(extent=[4, 55, 11, 65])
-    assert reader_global.extent is not None or reader_global.mask_type == 1
+    reader_global = reader_global_landmask.Reader()
 
     assert reader_global.__on_land__(np.array([10]), np.array([60])) == [True]
     assert reader_global.__on_land__(np.array([5]), np.array([60])) == [False]
@@ -47,7 +17,6 @@ def test_landmask_global():
 
 def test_global_array(test_data):
     reader_global = reader_global_landmask.Reader()
-    assert reader_global.extent is None
 
     reader_nordic = reader_ROMS_native.Reader(
         test_data +
@@ -71,8 +40,7 @@ def test_global_array(test_data):
 @pytest.mark.veryslow
 def test_plot(tmpdir):
     print("setting up global landmask")
-    reader_global = reader_global_landmask.Reader(
-        extent=[18.64, 19.37, 69.537, 69.81])
+    reader_global = reader_global_landmask.Reader()
 
     x = np.linspace(18.641, 19.369, 10)
     y = np.linspace(69.538, 69.80, 10)
@@ -99,16 +67,33 @@ def test_plot(tmpdir):
     # plt.show()
     plt.savefig('%s/cartplot.png' % tmpdir)
 
+@pytest.mark.slow
+@pytest.mark.parametrize("fast", [False, True])
+@pytest.mark.parametrize("scale", ["auto", "c", "f"])
+@pytest.mark.mpl_image_compare(remove_text=True, tolerance=2.35)
+def test_plot_auto_scale(test_data, scale, fast, show_plot):
+    reader_global = reader_global_landmask.Reader()
+    reader_nordic = reader_ROMS_native.Reader(
+        test_data +
+        '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
-def test_global_setup(benchmark):
-    benchmark(reader_global_landmask.Reader)
+    oc = OceanDrift(loglevel=0)
+    oc.add_reader([reader_nordic, reader_global])
+    oc.seed_elements(lon=4.8,
+                    lat=60.0,
+                    number=10,
+                    radius=1000,
+                    time=reader_nordic.start_time)
+    oc.run(steps=2)
 
+    fig = oc.plot(buffer=5., lscale=scale, fast=fast, show=show_plot)[1]
+    print(fig)
+    return fig
 
 @pytest.mark.slow
 def test_performance_global(benchmark):
     print("setting up global landmask")
-    reader_global = reader_global_landmask.Reader(
-        extent=[18.64, 69.537, 19.37, 69.81])
+    reader_global = reader_global_landmask.Reader()
 
     x = np.linspace(18.641, 19.369, 100)
     y = np.linspace(69.538, 69.80, 100)

@@ -52,8 +52,7 @@ class TestReaders(unittest.TestCase):
 
     def test_adding_readers(self):
         o = OceanDrift()
-        landmask = reader_global_landmask.Reader(
-            extent=[-1.5, 7, 59, 64])
+        landmask = reader_global_landmask.Reader()
         r = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader([r, landmask])
