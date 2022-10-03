@@ -56,6 +56,60 @@ def parse_weathering_table(df, oil):
 
     print(oil, 'Finished oil!')
 
+#class ScrollbarFrame(tk.Frame):
+#    """
+#    Extends class tk.Frame to support a scrollable Frame 
+#    This class is independent from the widgets to be scrolled and 
+#    can be used to replace a standard tk.Frame
+#    """
+#    def __init__(self, parent, **kwargs):
+#        tk.Frame.__init__(self, parent, **kwargs)
+#
+#        # The Scrollbar, layout to the right
+#        vsb = tk.Scrollbar(self, orient="vertical")
+#        vsb.pack(side="right", fill="y")
+#
+#        # The Canvas which supports the Scrollbar Interface, layout to the left
+#        self.canvas = tk.Canvas(self, borderwidth=0, background="#ffffff")
+#        self.canvas.pack(side="left", fill="both", expand=True)
+#
+#        # Bind the Scrollbar to the self.canvas Scrollbar Interface
+#        self.canvas.configure(yscrollcommand=vsb.set)
+#        vsb.configure(command=self.canvas.yview)
+#
+#        # The Frame to be scrolled, layout into the canvas
+#        # All widgets to be scrolled have to use this Frame as parent
+#        self.scrolled_frame = tk.Frame(self.canvas, background=self.canvas.cget('bg'))
+#        self.canvas.create_window((4, 4), window=self.scrolled_frame, anchor="nw")
+#
+#        # Configures the scrollregion of the Canvas dynamically
+#        self.scrolled_frame.bind("<Configure>", self.on_configure)
+#
+#    def on_configure(self, event):
+#        """Set the scroll region to encompass the scrolled frame"""
+#        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+#
+
+class ScrollableFrame(tk.Frame):
+    def __init__(self, container, *args, **kwargs):
+        super().__init__(container, *args, **kwargs)
+        canvas = tk.Canvas(self)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = tk.Frame(canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        container.pack()
+        canvas.pack(side="left", fill="x", expand=0)
+        scrollbar.pack(side="right", fill="y")
+
 class ParseOilPDF(tk.Tk):
 
     def __init__(self):
@@ -77,34 +131,28 @@ class ParseOilPDF(tk.Tk):
 
         # Make tabs
         self.n = ttk.Notebook(self.master)
-        self.n.grid()
+        self.n.pack()
         self.tabs = ttk.Frame(self.n)
         self.oil = ttk.Frame(self.n)
         self.n.add(self.tabs, text='Tables')
         self.n.add(self.oil, text='Oil')
 
-        mf = tk.Frame(self, bg='cyan', width=1200, height=150, padx=3, pady=3)
-        cf = tk.Frame(self, bg='gray2', width=1200, height=900, padx=3, pady=3)
+        mf = tk.Frame(self, bg='cyan', width=1500, height=150, padx=3, pady=3)
+        cf = tk.Frame(self, bg='yellow', width=1500, height=1500, padx=3, pady=3)
 
-        # layout all of the main containers
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        mf.pack()
+        cf.pack(fill=tk.BOTH, expand=1)
 
-        mf.grid(row=0, sticky="nsew")
-        cf.grid(row=1, sticky="nsew")
+        properties = ScrollableFrame(cf)
+        cuts = ScrollableFrame(cf)
+        weathering = ScrollableFrame(cf)
 
-        # create the center widgets
-        cf.grid_rowconfigure(0, weight=1)
-        cf.grid_columnconfigure(1, weight=1) 
-
-        height = 600
-        properties = tk.Frame(cf, bg='gray', padx=3, pady=3)
-        cuts = tk.Frame(cf, bg='red', padx=3, pady=3)
-        weathering = tk.Frame(cf, bg='blue', padx=3, pady=3)
-
-        properties.grid(row=0, column=0, sticky='nsew')
-        cuts.grid(row=0, column=1, sticky='nsew')
-        weathering.grid(row=0, column=2, columnspan=4, sticky='nsew')
+        tk.Label(properties.scrollable_frame, bg='red', text="Oil properties",
+                 font=('Courier', 18, 'bold')).pack()
+        tk.Label(cuts.scrollable_frame, bg='red', text="Cuts",
+                  font=('Courier', 18, 'bold')).pack()
+        tk.Label(weathering.scrollable_frame, bg='red', text="Weathering tables",
+                  font=('Courier', 18, 'bold')).pack()
 
         self.tables = {}
         self.dataframes = {}
@@ -147,11 +195,20 @@ class ParseOilPDF(tk.Tk):
                 width=150
 
             self.dataframes[table] = df
-            self.tables[table] = tk.Text(parent, bg=color, padx=3, pady=3, width=width)
+            txt = str(df).split('\n')
+            width = len(txt[0])
+            for tx in txt:
+                print(tx, len(tx), 'JOLA')
+            color='blue'
+            self.tables[table] = tk.Text(parent.scrollable_frame, bg=color, width=width)
             tableno = tableno + 1
             self.tables[table].insert(tk.END, df)
-            self.tables[table].grid(row=tableno, column=0, sticky='ns')
+            self.tables[table].pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
             self.tables[table].bind('<Button-1>', lambda event,s=table:self.clicktable(s))
+
+        properties.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        cuts.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        weathering.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
     def clicktable(self, table):
         if table in self.selected_tables:  # Remove/unselect
