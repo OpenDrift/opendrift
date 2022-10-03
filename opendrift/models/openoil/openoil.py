@@ -47,8 +47,10 @@ When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')
 
 The droplet diameter may be given explicitly when seeding, e.g.:
 
-.. code::
+.. testcode::
 
+
+    o = OpenOil()
     o.seed_elements(4, 60, number=100, time=datetime.now(), diameter=1e-5)
 
 In this case, the diameter will not change during the simulation, which is useful e.g. for sensitivity tests. The same diameter will be used for all elements for this example, but an array of the same length as the number of elements may also be provided.
@@ -1467,6 +1469,9 @@ class OpenOil(OceanDrift):
     def set_oiltype_from_file(self, path):
         """
         Sets the oil type by specifing a JSON file. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
+
+        >>> o = OpenOil()
+        >>> o.set_oiltype_from_file('opendrift/models/openoil/adios/extra_oils/AD03128.json')
         """
         if self.oil_weathering_model == 'noaa':
             import json

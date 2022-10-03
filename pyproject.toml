@@ -50,10 +50,11 @@ pytest-mpl = "^0.16.1"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--benchmark-disable"
+addopts = "--benchmark-disable --doctest-modules"
 norecursedirs = [ "wps", "benchmarks", "test_data" ]
 testpaths = [
   "tests",
+  "opendrift",
 ]
 markers = [
   "slow:mark tests as slow",

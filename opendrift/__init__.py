@@ -9,12 +9,8 @@ Opendrift module
 
 """
 import logging; logger = logging.getLogger(__name__)
-import unittest
 import importlib
-import platform
 import numpy as np
-import time
-from datetime import timedelta
 from .version import __version__
 
 # For automated access to available drift classes, e.g. for GUI
