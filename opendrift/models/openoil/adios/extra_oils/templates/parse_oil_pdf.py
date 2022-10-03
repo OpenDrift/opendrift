@@ -7,11 +7,12 @@ import importlib
 import traceback
 import tkinter as tk
 from tkinter import ttk
-import adios_db.scripting as ads
-from adios_db.models.oil.physical_properties import DynamicViscosityPoint
 
 
 def parse_weathering_table(df, oil):
+    import adios_db.scripting as ads
+    from adios_db.models.oil.physical_properties import DynamicViscosityPoint
+
     max_water_cont = None
     viscosity_of_max_water_cont = None
     try:
@@ -58,8 +59,8 @@ def parse_weathering_table(df, oil):
 
 #class ScrollbarFrame(tk.Frame):
 #    """
-#    Extends class tk.Frame to support a scrollable Frame 
-#    This class is independent from the widgets to be scrolled and 
+#    Extends class tk.Frame to support a scrollable Frame
+#    This class is independent from the widgets to be scrolled and
 #    can be used to replace a standard tk.Frame
 #    """
 #    def __init__(self, parent, **kwargs):
@@ -301,7 +302,7 @@ if __name__ == '__main__':
 #        'authors': 'authors',
 #        'region': 'region',
 #        }
-#    
+#
 #    #print('# Metadata')
 #    for i, (key, value) in enumerate(metadata.items()):
 #        outfile.write('%s%s%s\n' % (key, sep, value))
@@ -444,7 +445,7 @@ if __name__ == '__main__':
 #    if dstring in results:
 #        logfile.write(dstring, np.array2string(rd.astype(np.float32), separator='\t').replace('\n', '\t') + '\n')
 #
-#    
+#
 ##try:
 ##    r = np.empty(12)
 ##    for i in range(4):

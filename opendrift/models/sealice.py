@@ -289,7 +289,8 @@ class SeaLice(OceanDrift):
     def degree_days(self):
         """
         Calculate the degree days of a particles
-        >>> under development <<<
+
+        XXX: under development
         """
         logger.debug("accumulate degree_days **Experimental**")
         ### define active elements

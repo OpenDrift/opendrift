@@ -3,6 +3,10 @@ Opendrift module
 
 .. currentmodule:: opendrift
 
+.. doctest::
+
+    >>> import opendrift
+
 """
 import logging; logger = logging.getLogger(__name__)
 import unittest
