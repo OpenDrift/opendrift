@@ -50,11 +50,12 @@ pytest-mpl = "^0.16.1"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--benchmark-disable --doctest-modules"
+addopts = "--benchmark-disable --doctest-modules --doctest-glob='*.rst'"
 norecursedirs = [ "wps", "benchmarks", "test_data" ]
 testpaths = [
   "tests",
   "opendrift",
+  "docs/source",
 ]
 markers = [
   "slow:mark tests as slow",
