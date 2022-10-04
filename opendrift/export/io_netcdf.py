@@ -326,7 +326,7 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
         self.history = np.ma.array(
             np.zeros([num_elements, self.steps_output]),
             dtype=history_dtype)
-        self.history = =np.ma.masked
+        self.history = np.ma.masked
         for var in infile.variables:
             if var in ['time', 'trajectory']:
                 continue
