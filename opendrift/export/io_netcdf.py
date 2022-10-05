@@ -319,9 +319,6 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
         elements = firstlast[0][0]
         logger.warning('A subset is requested, and number of active elements is %d'
                        % num_elements)
-    self.history = np.ma.array(
-        np.zeros([num_elements, self.steps_output]),
-        dtype=history_dtype, mask=[True])
     if load_history is True:
         self.history = np.ma.array(
             np.zeros([num_elements, self.steps_output]),
