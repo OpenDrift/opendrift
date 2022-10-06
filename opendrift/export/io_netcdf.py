@@ -297,14 +297,9 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
 
     dtype = np.dtype([(var[0], var[1]['dtype'])
                       for var in self.ElementType.variables.items()])
-
-    history_dtype_fields = [
-        (name, self.ElementType.variables[name]['dtype'])
-        for name in self.ElementType.variables]
-    # Add environment variables
+    history_dtype_fields = []
     self.history_metadata = self.ElementType.variables.copy()
-    for env_var in self.required_variables:
-        if env_var in infile.variables:
+    for env_var in infile.variables:
             history_dtype_fields.append((env_var, np.dtype('float32')))
             self.history_metadata[env_var] = {}
     history_dtype = np.dtype(history_dtype_fields)
