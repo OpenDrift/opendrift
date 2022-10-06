@@ -1,7 +1,8 @@
+from .state import State
 import xarray as xr
 
 
-class Result:
+class Result(State):
     data: xr.Dataset
 
     def __init__(self, data):

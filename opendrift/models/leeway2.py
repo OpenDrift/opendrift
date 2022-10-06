@@ -17,7 +17,7 @@
 """
 Leeway is the search and rescue (SAR) model developed by the US Coast Guard, as originally described in
 
-    Allen, A.A, 2005: Leeway Divergence, USCG R&D Center Technical Report CG-D-05-05. Available through http://www.ntis.gov, reference ADA435435 
+    Allen, A.A, 2005: Leeway Divergence, USCG R&D Center Technical Report CG-D-05-05. Available through http://www.ntis.gov, reference ADA435435
 
     Allen A.A. and J.V. Plourde (1999) Review of Leeway; Field Experiments and Implementation, USCG R&D Center Technical Report CG-D-08-99. Available through http://www.ntis.gov, reference ADA366414
 
@@ -37,7 +37,8 @@ import logging; logger = logging.getLogger(__name__)
 
 import numpy as np
 
-from opendrift.models.basemodel.model import OpenDriftSimulation
+from opendrift.models.basemodel.model import OpenDriftSimulation, Init, Simulation
+from opendrift.models.basemodel import init
 from opendrift.elements import LagrangianArray
 
 RIGHT = 0
@@ -104,6 +105,13 @@ class Leeway(OpenDriftSimulation):
         of the object.
     """
 
+    class Init(Init):
+        pass
+
+    class Simulation(Simulation):
+        def update(self):
+            pass
+
     ElementType = LeewayObj
 
     required_variables = {
@@ -164,19 +172,19 @@ class Leeway(OpenDriftSimulation):
         # Calling general constructor of parent class
         super(Leeway, self).__init__(*args, **kwargs)
 
-        self._add_config({
+        self.state._add_config({
             'seed:object_type': {'type': 'enum', 'enum': descriptions,
                 'default': descriptions[0],
                 'description': 'Leeway object category for this simulation',
-                'level': self.CONFIG_LEVEL_ESSENTIAL},
+                'level': init.CONFIG_LEVEL_ESSENTIAL},
             'seed:jibe_probability': {'type': 'float',
                 'default': 0.04, 'min': 0, 'max': 1,
                 'description': 'Probability per hour for jibing (objects changing orientation)',
-                'units': 'probability', 'level': self.CONFIG_LEVEL_BASIC},
+                'units': 'probability', 'level': init.CONFIG_LEVEL_BASIC},
             })
 
-        self._set_config_default('general:time_step_minutes', 10)
-        self._set_config_default('general:time_step_output_minutes', 60)
+        self.state._set_config_default('general:time_step_minutes', 10)
+        self.state._set_config_default('general:time_step_output_minutes', 60)
 
     def seed_elements(self, lon, lat, object_type=None, **kwargs):
         """Seed particles in a cone-shaped area over a time period."""

@@ -17,7 +17,8 @@ def test_classes():
 
     class Model:
         class Init(State):
-            pass
+            def __init__(self):
+                print("ModelInit.init")
 
         class Simulation(State):
             pass
@@ -31,8 +32,9 @@ def test_classes():
             self.state = self.Init()
 
     class CustomModel(Model):
-        class Init(State):
+        class Init(Model.Init):
             def __init__(self):
+                super().__init__()
                 print("CustomInit.init")
 
         def __init__(self):
