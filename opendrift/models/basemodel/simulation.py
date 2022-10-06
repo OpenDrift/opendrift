@@ -14,7 +14,12 @@ class Simulation(State):
         Step the model one time step.
         """
 
+        return False
+
     def _run_(self):
         # for ..:
         #   self.update(..)
+        pass
+
+    def to_result(self) -> 'Result':
         pass
