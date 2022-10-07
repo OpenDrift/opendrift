@@ -32,3 +32,22 @@ def test_auto_landmask():
 
     assert 'land_binary_mask' in env2.list_environment_variables()
 
+def test_missing_variable():
+    env = Environment(["x_wind"])
+    c = Configurable()
+    c._add_config({
+        # type, default, min, max, enum, important, value, units, description
+        'general:use_auto_landmask': {
+            'type':
+            'bool',
+            'default':
+            True,
+            'description':
+            'A built-in GSHHG global landmask is used if True, '
+            'otherwise landmask is taken from reader or fallback value.',
+            'level':
+            CONFIG_LEVEL_ADVANCED
+        }})
+    with pytest.raises(ValueError):
+        env = env.finalize(c)
+
