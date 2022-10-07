@@ -39,6 +39,7 @@ class Simulation(State, Configurable):
 
     def __init__(self,
                  init: Init,
+                 start_time=None,
                  time_step=None,
                  steps=None,
                  time_step_output=None,
@@ -65,9 +66,18 @@ class Simulation(State, Configurable):
         self.env = init.env.finalize(self)
 
         ## Simulation parameters
-        self.__init_time_steps__(time_step, steps, time_step_output, duration, end_time)
+        self.__init_time_steps__(start_time, time_step, steps, time_step_output, duration, end_time)
+
+        self.expected_steps_output = duration.total_seconds() / \
+            self.time_step_output.total_seconds() + 1  # Includes start and end
+        self.expected_steps_calculation = duration.total_seconds() / \
+            self.time_step.total_seconds()
+        self.expected_steps_output = int(self.expected_steps_output)
+        self.expected_steps_calculation = int(self.expected_steps_calculation)
+        self.expected_end_time = self.start_time + self.expected_steps_calculation * self.time_step
 
     def __init_time_steps__(self,
+                            start_time=None,
                             time_step=None,
                             steps=None,
                             time_step_output=None,
@@ -111,10 +121,16 @@ class Simulation(State, Configurable):
         ########################
         # Simulation duration
         ########################
+        self.start_time = start_time
+
         if time_step.days < 0:
             logger.info(
                 'Backwards simulation, starting from last seeded element')
-            self.start_time = self.elements_scheduled_time.max()
+            start_time = self.elements_scheduled_time.max()
+
+        if self.start_time != start_time:
+            logger.error("Simulation start time does not coincide with first seeded element.")
+
         if (duration is not None and end_time is not None) or \
             (duration is not None and steps is not None) or \
                 (steps is not None and end_time is not None):

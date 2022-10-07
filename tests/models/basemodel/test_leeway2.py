@@ -32,7 +32,7 @@ def test_leeway_construct_simulation(test_data):
     l.seed_elements(lon=4.5, lat=59.6, radius=100, number=1000,
                     time=reader_arome.start_time, object_type=26)
 
-    l.into_simulation(duration=timedelta(days=1))
+    l.into_simulation(start_time = reader_arome.start_time, duration=timedelta(days=1))
 
 def test_leeway_run_simulation(test_data):
     l = Leeway()
@@ -40,6 +40,6 @@ def test_leeway_run_simulation(test_data):
     l.seed_elements(lon=4.5, lat=59.6, radius=100, number=1000,
                     time=reader_arome.start_time, object_type=26)
 
-    l.into_simulation(duration=timedelta(days=1))
+    l.into_simulation(start_time = reader_arome.start_time, duration=timedelta(days=1))
     l.run()
 
