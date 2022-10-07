@@ -1,13 +1,16 @@
 from abc import abstractmethod, abstractproperty
-from typing import Any, Dict, OrderedDict
+from typing import Any, Dict, OrderedDict, List
+import types
 import traceback
 import sys
 import logging
 import xarray as xr
 import numpy as np
 from datetime import timedelta, datetime
+import pyproj
 
 from opendrift.elements import LagrangianArray
+from opendrift.models.physics_methods import PhysicsMethods
 from opendrift.timer import Timeable
 
 from .environment import Environment
@@ -18,11 +21,13 @@ from .config import Configurable
 logger = logging.getLogger(__name__)
 
 
-class Simulation(State, Configurable, Timeable):
+class Simulation(State, Configurable, Timeable, PhysicsMethods):
     ElementType: LagrangianArray
 
     elements_scheduled: LagrangianArray
     elements_deactivated: LagrangianArray
+    elements_scheduled_time: List
+
     """ Active elements being simulated """
     elements: LagrangianArray
 
@@ -36,6 +41,12 @@ class Simulation(State, Configurable, Timeable):
     expected_steps_output = None
     expected_steps_calculation = None
     simulation_extent = None
+    stop_on_error = False
+    show_continuous_performance = False
+
+    status_categories: List[str]  # Particles are active by default
+    minvals: Dict
+    maxvals: Dict
 
     ## Output
     steps_calculation = 0
@@ -54,12 +65,29 @@ class Simulation(State, Configurable, Timeable):
                  export_buffer_length=100,
                  stop_on_error=False):
 
+        iomodule = 'netcdf'
+        try:
+            io_module = __import__(
+                'opendrift.export.io_' + iomodule,
+                fromlist=['init', 'write_buffer', 'close', 'import_file'])
+        except ImportError:
+            logger.info('Could not import iomodule ' + iomodule)
+        self.io_init = types.MethodType(io_module.init, self)
+        self.io_write_buffer = types.MethodType(io_module.write_buffer, self)
+        self.io_close = types.MethodType(io_module.close, self)
+        self.io_import_file = types.MethodType(io_module.import_file, self)
+        self.io_import_file_xarray = types.MethodType(
+            io_module.import_file_xarray, self)
+
+        self.stop_on_error = stop_on_error
+
         init = init.copy()  # TODO: keep this?
         self._config = init._config
 
         self.ElementType = init.ElementType
 
         self.elements_scheduled = init.elements_scheduled
+        self.elements_scheduled_time = init.elements_scheduled_time
         self.elements_deactivated = self.ElementType()
         self.elements = self.ElementType()
 
@@ -70,6 +98,10 @@ class Simulation(State, Configurable, Timeable):
         self.env = init.env.finalize(self)
 
         ## Simulation parameters
+        self.status_categories = [ "active" ]
+        self.minvals = {}  # Dicionaries to store minimum and maximum values of variables
+        self.maxvals = {}
+
         self.__init_time_steps__(start_time, time_step, steps,
                                  time_step_output, duration, end_time)
 
@@ -245,6 +277,10 @@ class Simulation(State, Configurable, Timeable):
                                    outfile=None,
                                    export_variables=None,
                                    export_buffer_length=100):
+        self.outfile = outfile
+        self.export_variables = export_variables
+        self.export_buffer_length = export_buffer_length
+
         ####################################################################
         # Preparing history array for storage in memory and eventually file
         ####################################################################
@@ -359,7 +395,7 @@ class Simulation(State, Configurable, Timeable):
                                          self.elements.lon,
                                          self.elements.lat,
                                          self.elements.z,
-                                         self.required_profiles)
+                                         self.env.required_profiles)
 
                 self.store_previous_variables()
 
@@ -423,12 +459,11 @@ class Simulation(State, Configurable, Timeable):
                 logger.info(e)
                 logger.info(traceback.format_exc())
                 logger.info(self.get_messages())
-                if not hasattr(self, 'environment'):
-                    sys.exit('Simulation aborted. ' + self.get_messages())
                 logger.info('========================')
-                if stop_on_error is True:
+                if self.stop_on_error is True:
                     sys.exit('Stopping on error. ' + self.get_messages())
                 if self.steps_calculation <= 1:
+                    raise
                     raise ValueError('Simulation stopped within '
                                      'first timestep. ' + self.get_messages())
                 break
@@ -443,26 +478,26 @@ class Simulation(State, Configurable, Timeable):
         #############################
         # Add some metadata
         #############################
-        for var in self.required_variables:
+        for var in self.env.required_variables:
             keyword = 'reader_' + var
-            if var not in self.priority_list:
-                if var in self.fallback_values:
-                    self.add_metadata(keyword, self.fallback_values[var])
+            if var not in self.env.priority_list:
+                if var in self.env.fallback_values:
+                    self.add_metadata(keyword, self.env.fallback_values[var])
                 else:
                     self.add_metadata(keyword, None)
             else:
-                readers = self.priority_list[var]
+                readers = self.env.priority_list[var]
                 if readers[0].startswith(
-                        'constant_reader') and var in self.readers[
+                        'constant_reader') and var in self.env.readers[
                             readers[0]]._parameter_value_map:
                     self.add_metadata(
                         keyword,
-                        self.readers[readers[0]]._parameter_value_map[var][0])
+                        self.env.readers[readers[0]]._parameter_value_map[var][0])
                 else:
-                    self.add_metadata(keyword, self.priority_list[var])
+                    self.add_metadata(keyword, self.env.priority_list[var])
 
-        if outfile is not None:
-            logger.debug('Writing and closing output file: %s' % outfile)
+        if self.outfile is not None:
+            logger.debug('Writing and closing output file: %s' % self.outfile)
             # Write buffer to outfile, and close
             if self.steps_output >= self.steps_exported:
                 # Write last lines, if needed
@@ -472,7 +507,7 @@ class Simulation(State, Configurable, Timeable):
         # Remove any elements scheduled for deactivation during last step
         self.remove_deactivated_elements()
 
-        if export_buffer_length is None:
+        if self.export_buffer_length is None:
             # Remove columns for unseeded elements in history array
             if self.num_elements_scheduled() > 0:
                 logger.info(
@@ -489,7 +524,7 @@ class Simulation(State, Configurable, Timeable):
             del self.environment
             if hasattr(self, 'environment_profiles'):
                 del self.environment_profiles
-            self.io_import_file(outfile)
+            self.io_import_file(self.outfile)
 
         self.timer_end('cleaning up')
         self.timer_end('total time')
@@ -566,4 +601,406 @@ class Simulation(State, Configurable, Timeable):
             return str(self.messages).strip('[]') + '\n'
         else:
             return ''
+
+    def store_present_positions(self, IDs=None, lons=None, lats=None):
+        """Store present element positions, in case they shall be moved back"""
+        if self.get_config('general:coastline_action') == 'previous' or (
+                'general:seafloor_action' in self._config
+                and self.get_config('general:seafloor_action') == 'previous'):
+            if not hasattr(self, 'previous_lon'):
+                self.previous_lon = np.ma.masked_all(self.num_elements_total())
+                self.previous_lat = np.ma.masked_all(self.num_elements_total())
+            if IDs is None:
+                IDs = self.elements.ID
+                lons = self.elements.lon
+                lats = self.elements.lat
+                self.newly_seeded_IDs = None
+            else:
+                # to check if seeded on land
+                if len(IDs) > 0:
+                    self.newly_seeded_IDs = np.copy(IDs)
+                else:
+                    self.newly_seeded_IDs = None
+            self.previous_lon[IDs - 1] = np.copy(lons)
+            self.previous_lat[IDs - 1] = np.copy(lats)
+
+    def increase_age_and_retire(self):
+        """Increase age of elements, and retire if older than config setting."""
+        # Increase age of elements
+        self.elements.age_seconds += self.time_step.total_seconds()
+
+        # Deactivate elements that exceed a certain age
+        if self.get_config('drift:max_age_seconds') is not None:
+            self.deactivate_elements(self.elements.age_seconds >=
+                                     self.get_config('drift:max_age_seconds'),
+                                     reason='retired')
+
+        # Deacticate any elements outside validity domain set by user
+        if self.validity_domain is not None:
+            W, E, S, N = self.validity_domain
+            if W is not None:
+                self.deactivate_elements(self.elements.lon < W,
+                                         reason='outside')
+            if E is not None:
+                self.deactivate_elements(self.elements.lon > E,
+                                         reason='outside')
+            if S is not None:
+                self.deactivate_elements(self.elements.lat < S,
+                                         reason='outside')
+            if N is not None:
+                self.deactivate_elements(self.elements.lat > N,
+                                         reason='outside')
+
+    def interact_with_seafloor(self):
+        """Seafloor interaction according to configuration setting"""
+        if self.num_elements_active() == 0:
+            return
+        if 'sea_floor_depth_below_sea_level' not in self.env.priority_list:
+            return
+        sea_floor_depth = self.sea_floor_depth()
+        below = np.where(self.elements.z < -sea_floor_depth)[0]
+        if len(below) == 0:
+            logger.debug('No elements hit seafloor.')
+            return
+
+        i = self.get_config('general:seafloor_action')
+        if i == 'lift_to_seafloor':
+            logger.debug('Lifting %s elements to seafloor.' % len(below))
+            self.elements.z[below] = -sea_floor_depth[below]
+        elif i == 'deactivate':
+            self.deactivate_elements(self.elements.z < -sea_floor_depth,
+                                     reason='seafloor')
+            self.elements.z[below] = -sea_floor_depth[below]
+        elif i == 'previous':  # Go back to previous position (in water)
+            logger.warning('%s elements hit seafloor, '
+                           'moving back ' % len(below))
+            below_ID = self.elements.ID[below]
+            self.elements.lon[below] = \
+                np.copy(self.previous_lon[below_ID - 1])
+            self.elements.lat[below] = \
+                np.copy(self.previous_lat[below_ID - 1])
+
+    def closest_ocean_points(self, lon, lat):
+        """Return the closest ocean points for given lon, lat"""
+
+        deltalon = 0.01  # grid
+        deltalat = 0.01
+        numbuffer = 10
+        lonmin = lon.min() - deltalon * numbuffer
+        lonmax = lon.max() + deltalon * numbuffer
+        latmin = lat.min() - deltalat * numbuffer
+        latmax = lat.max() + deltalat * numbuffer
+        if not 'land_binary_mask' in self.env.priority_list:
+            logger.info('No land reader added, '
+                        'making a temporary landmask reader')
+            from opendrift.readers import reader_from_url, reader_global_landmask
+            land_reader = reader_global_landmask.Reader()
+        else:
+            logger.info('Using existing reader for land_binary_mask')
+            land_reader_name = self.env.priority_list['land_binary_mask'][0]
+            land_reader = self.env.readers[land_reader_name]
+            o = self
+
+        land = land_reader.__on_land__(lon, lat)
+
+        if land.max() == 0:
+            logger.info('All points are in ocean')
+            return lon, lat
+        logger.info('Moving %i out of %i points from land to water' %
+                    (np.sum(land != 0), len(lon)))
+        landlons = lon[land != 0]
+        landlats = lat[land != 0]
+        longrid = np.arange(lonmin, lonmax, deltalon)
+        latgrid = np.arange(latmin, latmax, deltalat)
+        longrid, latgrid = np.meshgrid(longrid, latgrid)
+        longrid = longrid.ravel()
+        latgrid = latgrid.ravel()
+        # Remove grid-points not covered by this reader
+        latgrid_covered = land_reader.covers_positions(longrid, latgrid)[0]
+        longrid = longrid[latgrid_covered]
+        latgrid = latgrid[latgrid_covered]
+        landgrid = o.get_environment(['land_binary_mask'],
+                                     lon=longrid,
+                                     lat=latgrid,
+                                     z=0 * longrid,
+                                     time=land_reader.start_time,
+                                     profiles=None)[0]['land_binary_mask']
+        if landgrid.min() == 1 or np.isnan(landgrid.min()):
+            logger.warning('No ocean pixels nearby, cannot move elements.')
+            return lon, lat
+
+        oceangridlons = longrid[landgrid == 0]
+        oceangridlats = latgrid[landgrid == 0]
+        from scipy import spatial
+        tree = scipy.spatial.cKDTree(
+            np.dstack([oceangridlons, oceangridlats])[0])
+        landpoints = np.dstack([landlons, landlats])
+        dist, indices = tree.query(landpoints)
+        indices = indices.ravel()
+        lon[land != 0] = oceangridlons[indices]
+        lat[land != 0] = oceangridlats[indices]
+
+        return lon, lat
+
+    def store_previous_variables(self):
+        """Store some environment variables, for access at next time step"""
+
+        if not hasattr(self, 'store_previous'):
+            return
+        if not hasattr(self, 'variables_previous'):
+            # Create ndarray to store previous variables
+            dtype = [(var, np.float32) for var in self.store_previous]
+            self.variables_previous = np.array(np.full(
+                self.num_elements_total(), np.nan),
+                                               dtype=dtype)
+
+        # Copying variables_previous to environment_previous
+        self.environment_previous = self.variables_previous[self.elements.ID -
+                                                            1]
+
+        # Use new values for new elements which have no previous value
+        for var in self.store_previous:
+            undefined = np.isnan(self.environment_previous[var])
+            self.environment_previous[var][undefined] = getattr(
+                self.environment, var)[undefined]
+
+        self.environment_previous = self.environment_previous.view(np.recarray)
+
+        for var in self.store_previous:
+            self.variables_previous[var][self.elements.ID - 1] = getattr(
+                self.environment, var)
+
+    def report_missing_variables(self):
+        """Issue warning if some environment variables missing."""
+
+        missing_variables = []
+        for var in self.env.required_variables:
+            if np.isnan(getattr(self.environment, var).min()):
+                missing_variables.append(var)
+
+        if len(missing_variables) > 0:
+            logger.warning('Missing variables: ' + str(missing_variables))
+            self.store_message('Missing variables: ' + str(missing_variables))
+
+    def interact_with_coastline(self, final=False):
+        """Coastline interaction according to configuration setting"""
+        if self.num_elements_active() == 0:
+            return
+        i = self.get_config('general:coastline_action')
+        if not hasattr(self, 'environment') or not hasattr(
+                self.environment, 'land_binary_mask'):
+            return
+        if i == 'none':  # Do nothing
+            return
+        if final is True:  # Get land_binary_mask for final location
+            en, en_prof, missing = \
+                self.env.get_environment(['land_binary_mask'],
+                                     self.time,
+                                     self.elements.lon,
+                                     self.elements.lat,
+                                     self.elements.z,
+                                     None)
+            self.environment.land_binary_mask = en.land_binary_mask
+
+        if i == 'stranding':  # Deactivate elements on land
+            self.deactivate_elements(self.environment.land_binary_mask == 1,
+                                     reason='stranded')
+        elif i == 'previous':  # Go back to previous position (in water)
+            if self.newly_seeded_IDs is not None:
+                self.deactivate_elements(
+                    (self.environment.land_binary_mask == 1) &
+                    (self.elements.age_seconds
+                     == self.time_step.total_seconds()),
+                    reason='seeded_on_land')
+            on_land = np.where(self.environment.land_binary_mask == 1)[0]
+            if len(on_land) == 0:
+                logger.debug('No elements hit coastline.')
+            else:
+                logger.debug('%s elements hit coastline, '
+                             'moving back to water' % len(on_land))
+                on_land_ID = self.elements.ID[on_land]
+                self.elements.lon[on_land] = \
+                    np.copy(self.previous_lon[on_land_ID - 1])
+                self.elements.lat[on_land] = \
+                    np.copy(self.previous_lat[on_land_ID - 1])
+                self.environment.land_binary_mask[on_land] = 0
+
+    def deactivate_elements(self, indices, reason='deactivated'):
+        """Schedule deactivated particles for deletion (at end of step)"""
+        if any(indices) is False:
+            return
+        if reason not in self.status_categories:
+            self.status_categories.append(reason)
+            logger.debug('Added status %s' % (reason))
+        reason_number = self.status_categories.index(reason)
+        #if not hasattr(self.elements.status, "__len__"):
+        if len(np.atleast_1d(self.elements.status)) == 1:
+            status = self.elements.status.item()
+            self.elements.status = np.zeros(self.num_elements_active())
+            self.elements.status.fill(status)
+        # Deactivate elements, if they have not already been deactivated
+        self.elements.status[indices & (self.elements.status ==0)] = \
+            reason_number
+        self.elements.moving[indices] = 0
+        logger.debug('%s elements scheduled for deactivation (%s)' %
+                     (np.sum(indices), reason))
+        logger.debug(
+            '\t(z: %f to %f)' %
+            (self.elements.z[indices].min(), self.elements.z[indices].max()))
+
+    def remove_deactivated_elements(self):
+        """Moving deactivated elements from self.elements
+        to self.elements_deactivated."""
+
+        # All particles scheduled for deletion
+        indices = (self.elements.status != 0)
+        #try:
+        #    len(indices)
+        #except:
+        if len(indices) == 0 or np.sum(indices) == 0:
+            logger.debug('No elements to deactivate')
+            return  # No elements scheduled for deactivation
+        # Basic, but some more housekeeping will be required later
+        self.elements.move_elements(self.elements_deactivated, indices)
+        logger.debug('Removed %i elements.' % (np.sum(indices)))
+        if hasattr(self, 'environment'):
+            self.environment = self.environment[~indices]
+            logger.debug('Removed %i values from environment.' %
+                         (np.sum(indices)))
+        if hasattr(self, 'environment_profiles') and \
+                self.environment_profiles is not None:
+            for varname, profiles in self.environment_profiles.items():
+                logger.debug('remove items from profile for ' + varname)
+                if varname != 'z':
+                    self.environment_profiles[varname] = \
+                        profiles[:, ~indices]
+            logger.debug('Removed %i values from environment_profiles.' %
+                         (np.sum(indices)))
+            #if self.num_elements_active() == 0:
+            #    raise ValueError('No more active elements.')  # End simulation
+
+    def state_to_buffer(self):
+        """Append present state (elements and environment) to recarray."""
+
+        steps_calculation_float = \
+            (self.steps_calculation * self.time_step.total_seconds() /
+             self.time_step_output.total_seconds()) + 1
+        if self.time_step <= timedelta(seconds=1):
+            self.steps_output = int(np.round(steps_calculation_float))
+        else:
+            self.steps_output = int(np.floor(steps_calculation_float))
+
+        ID_ind = self.elements.ID - 1
+        time_ind = self.steps_output - 1 - self.steps_exported
+        if self.steps_calculation == self.expected_steps_calculation:
+            final_time_step = True
+        else:
+            final_time_step = False
+
+        if steps_calculation_float.is_integer() or self.time_step < timedelta(
+                seconds=1) or final_time_step is True:
+            element_ind = range(len(ID_ind))  # We write all elements
+        else:
+            deactivated = np.where(self.elements.status != 0)[0]
+            if len(deactivated) == 0:
+                return  # No deactivated elements this sub-timestep
+            # We write history for deactivated elements only:
+            logger.debug('Writing history for %s deactivated elements' %
+                         len(deactivated))
+            ID_ind = ID_ind[deactivated]
+            element_ind = deactivated
+            time_ind = np.minimum(time_ind + 1, self.history.shape[1] - 1)
+
+        # TODO: storing of variables and environment below should be collected in a single loop
+        # Store present state in history recarray
+        for i, var in enumerate(self.elements.variables):
+            if self.export_variables is not None and \
+                    var not in self.export_variables:
+                continue
+            # Temporarily assuming elements numbered
+            # from 0 to num_elements_active()
+            # Does not hold when importing ID from a saved file, where
+            # some elements have been deactivated
+            self.history[var][ID_ind, time_ind] = \
+                getattr(self.elements, var)[element_ind]
+            if len(ID_ind) > 0:
+                newmin = np.min(self.history[var][ID_ind, time_ind])
+                newmax = np.max(self.history[var][ID_ind, time_ind])
+                if var not in self.minvals:
+                    self.minvals[var] = newmin
+                    self.maxvals[var] = newmax
+                else:
+                    self.minvals[var] = np.minimum(self.minvals[var], newmin)
+                    self.maxvals[var] = np.maximum(self.maxvals[var], newmax)
+        # Copy environment data to history array
+        for i, var in enumerate(self.environment.dtype.names):
+            if self.export_variables is not None and \
+                    var not in self.export_variables:
+                continue
+            self.history[var][ID_ind, time_ind] = \
+                getattr(self.environment, var)[element_ind]
+            if len(ID_ind) > 0:
+                newmin = np.min(self.history[var][ID_ind, time_ind])
+                newmax = np.max(self.history[var][ID_ind, time_ind])
+                if var not in self.minvals:
+                    self.minvals[var] = newmin
+                    self.maxvals[var] = newmax
+                else:
+                    self.minvals[var] = np.minimum(self.minvals[var], newmin)
+                    self.maxvals[var] = np.maximum(self.maxvals[var], newmax)
+
+        # Call writer if buffer is full
+        if (self.outfile is not None) and \
+                ((self.steps_output - self.steps_exported) ==
+                    self.export_buffer_length):
+            self.io_write_buffer()
+
+
+    def update_positions(self, x_vel, y_vel):
+        """Move particles according to given velocity components.
+
+        This method shall account for projection metrics (a distance
+        on a map projection does not necessarily correspond to the same
+        distance over true ground (not yet implemented).
+
+        Arguments:
+            x_vel and v_vel: floats, velocities in m/s of particle along
+                             x- and y-axes of the inherit SRS (proj4).
+        """
+
+        geod = pyproj.Geod(ellps='WGS84')
+
+        azimuth = np.degrees(np.arctan2(x_vel, y_vel))  # Direction of motion
+        velocity = np.sqrt(x_vel**2 + y_vel**2)  # Velocity in m/s
+        velocity = velocity * self.elements.moving  # Do not move frosen elements
+
+        # Calculate new positions
+        self.elements.lon, self.elements.lat, back_az = geod.fwd(
+            self.elements.lon, self.elements.lat, azimuth,
+            velocity * self.time_step.total_seconds())
+
+        # Check that new positions are valid
+        if (self.elements.lon.min() < -180) or (
+                self.elements.lon.min() > 360
+        ) or (self.elements.lat.min() < -90) or (self.elements.lat.max() > 90):
+            logger.info('Invalid new coordinates:')
+            logger.info(self.elements)
+            raise ValueError()
+
+    def horizontal_diffusion(self):
+        """Move elements with random walk according to given horizontal diffuivity."""
+        D = self.get_config('drift:horizontal_diffusivity')
+        if D == 0:
+            logger.debug('Horizontal diffusivity is 0, no random walk.')
+            return
+        dt = np.abs(self.time_step.total_seconds())
+        x_vel = self.elements.moving * np.sqrt(2*D/dt) * np.random.normal(
+            scale=1, size=self.num_elements_active())
+        y_vel = self.elements.moving * np.sqrt(2*D/dt) * np.random.normal(
+            scale=1, size=self.num_elements_active())
+        speed = np.sqrt(x_vel * x_vel + y_vel * y_vel)
+        logger.debug(
+            'Moving elements according to horizontal diffusivity of %s, with speeds between %s and %s m/s'
+            % (D, speed.min(), speed.max()))
+        self.update_positions(x_vel, y_vel)
 

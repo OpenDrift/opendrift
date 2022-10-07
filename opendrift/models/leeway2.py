@@ -133,6 +133,24 @@ class Leeway(OpenDriftSimulation):
     class Init(Init):
         ElementType = LeewayObj
 
+        required_variables = {
+            'x_wind': {
+                'fallback': None
+            },
+            'y_wind': {
+                'fallback': None
+            },
+            'x_sea_water_velocity': {
+                'fallback': None
+            },
+            'y_sea_water_velocity': {
+                'fallback': None
+            },
+            'land_binary_mask': {
+                'fallback': None
+            },
+        }
+
         def __init__(self):
             super().__init__()
             self.__read_obj_properties__()
@@ -351,23 +369,6 @@ class Leeway(OpenDriftSimulation):
                          (np.sum(jib), self.num_elements_active()))
 
 
-    required_variables = {
-        'x_wind': {
-            'fallback': None
-        },
-        'y_wind': {
-            'fallback': None
-        },
-        'x_sea_water_velocity': {
-            'fallback': None
-        },
-        'y_sea_water_velocity': {
-            'fallback': None
-        },
-        'land_binary_mask': {
-            'fallback': None
-        },
-    }
 
     # Default colors for plotting
     status_colors = {

@@ -6,6 +6,7 @@ import numpy as np
 import pyproj
 
 from opendrift.elements.elements import LagrangianArray
+from opendrift.readers.basereader import standard_names
 
 from .environment import Environment
 from .state import State
@@ -212,6 +213,51 @@ class Init(State, Configurable):
                 'level': CONFIG_LEVEL_ADVANCED
             },
         })
+
+
+        # Add constant and fallback environment variables to config
+        c = {}
+        for v in self.required_variables:
+            minval = maxval = units = None
+            description_constant = 'Use constant value for %s' % v
+            description_fallback = 'Fallback value for %s if not available from any reader' % v
+            if v in standard_names:
+                if 'valid_min' in standard_names[v]:
+                    minval = standard_names[v]['valid_min']
+                if 'valid_max' in standard_names[v]:
+                    maxval = standard_names[v]['valid_max']
+                if 'long_name' in standard_names[v]:
+                    description_constant = description_fallback = standard_names[
+                        v]['long_name']
+                if 'units' in standard_names[v]:
+                    units = standard_names[v]['units']
+            c['environment:constant:%s' % v] = {
+                'type': 'float',
+                'min': minval,
+                'max': maxval,
+                'units': units,
+                'default': None,
+                'level': CONFIG_LEVEL_BASIC,
+                'description': description_constant
+            }
+            c['environment:fallback:%s' % v] = {
+                'type':
+                'float',
+                'min':
+                minval,
+                'max':
+                maxval,
+                'units':
+                units,
+                'default':
+                self.required_variables[v]['fallback']
+                if 'fallback' in self.required_variables[v] else None,
+                'level':
+                CONFIG_LEVEL_BASIC,
+                'description':
+                description_fallback
+            }
+        self._add_config(c)
 
         self.elements_scheduled = self.ElementType()
         self.elements_scheduled_time = np.array([])

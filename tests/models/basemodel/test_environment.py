@@ -12,7 +12,7 @@ def test_add_reader(test_data):
 
 @pytest.mark.slow
 def test_auto_landmask():
-    env = Environment(["land_binary_mask"])
+    env = Environment({ 'land_binary_mask': {'fallback': None}, })
     c = Configurable()
     c._add_config({
         # type, default, min, max, enum, important, value, units, description
@@ -33,7 +33,7 @@ def test_auto_landmask():
     assert 'land_binary_mask' in env2.list_environment_variables()
 
 def test_missing_variable():
-    env = Environment(["x_wind"])
+    env = Environment({ 'x_wind': {'fallback': None}, })
     c = Configurable()
     c._add_config({
         # type, default, min, max, enum, important, value, units, description

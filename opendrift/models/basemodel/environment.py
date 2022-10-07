@@ -1,23 +1,29 @@
 import logging
 from typing import OrderedDict, Dict, List
 import copy
+import traceback
 import numpy as np
+import pyproj
 
 from opendrift.timer import Timeable
 from opendrift.readers.basereader import BaseReader, standard_names
 from opendrift.readers import reader_from_url, reader_global_landmask
+from opendrift.errors import NotCoveredError
 
 from .config import Configurable
 
 logger = logging.getLogger(__name__)
 
-class Environment(Timeable):
+class Environment(Timeable, Configurable):
     fallback_values: Dict
     readers: OrderedDict
     priority_list: OrderedDict
-    required_variables: List[str]
+    required_variables: Dict
+    required_profiles_z_range = None  # [min_depth, max_depth]
 
     max_speed = 1.0
+
+    proj_latlon = pyproj.Proj('+proj=latlong')
 
     def __init__(self, required_variables):
         super().__init__()
@@ -28,6 +34,20 @@ class Environment(Timeable):
 
         self.required_variables = required_variables
 
+        # Find variables which require profiles
+        self.required_profiles = [
+            var for var in self.required_variables
+            if 'profiles' in self.required_variables[var]
+            and self.required_variables[var]['profiles'] is True
+        ]
+
+        # Find variables which are desired, but not required
+        self.desired_variables = [
+            var for var in self.required_variables
+            if 'important' in self.required_variables[var]
+            and self.required_variables[var]['important'] is False
+        ]
+
     def finalize(self, target: Configurable):
         """
         Prepare environment for simulation.
@@ -37,6 +57,7 @@ class Environment(Timeable):
         env.__generate_constant_readers__(target)
         env.__add_auto_landmask__(target)
         env.__assert_no_missing_variables__()
+        env._config = target._config
 
         return env
 
@@ -375,6 +396,7 @@ class Environment(Timeable):
 
         '''
         self.timer_start('main loop:readers')
+        print(f"{variables=}")
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon)) * np.nan, dtype=dtype)
@@ -628,7 +650,7 @@ class Environment(Timeable):
                         '      Using fallback value %s for %s for all profiles'
                         % (self.fallback_values[var], var))
                     env_profiles[var] = self.fallback_values[var]*\
-                        np.ma.ones((len(env_profiles['z']), self.num_elements_active()))
+                        np.ma.ones((len(env_profiles['z']), len(lon)))
                 else:
                     mask = env_profiles[var].mask
                     num_masked_values_per_element = np.sum(mask == True)
@@ -730,29 +752,29 @@ class Environment(Timeable):
                 logger.debug('    %s: %g (min) %g (max)' %
                              (var, env[var].min(), env[var].max()))
             logger.debug('---------------------------------')
-            logger.debug('\t\t%s active elements' % self.num_elements_active())
-            if self.num_elements_active() > 0:
-                lonmin = self.elements.lon.min()
-                lonmax = self.elements.lon.max()
-                latmin = self.elements.lat.min()
-                latmax = self.elements.lat.max()
-                zmin = self.elements.z.min()
-                zmax = self.elements.z.max()
-                if latmin == latmax:
-                    logger.debug('\t\tlatitude =  %s' % (latmin))
-                else:
-                    logger.debug('\t\t%s <- latitude  -> %s' %
-                                 (latmin, latmax))
-                if lonmin == lonmax:
-                    logger.debug('\t\tlongitude = %s' % (lonmin))
-                else:
-                    logger.debug('\t\t%s <- longitude -> %s' %
-                                 (lonmin, lonmax))
-                if zmin == zmax:
-                    logger.debug('\t\tz = %s' % (zmin))
-                else:
-                    logger.debug('\t\t%s   <- z ->   %s' % (zmin, zmax))
-                logger.debug('---------------------------------')
+            # logger.debug('\t\t%s active elements' % self.num_elements_active())
+            # if self.num_elements_active() > 0:
+            #     lonmin = self.elements.lon.min()
+            #     lonmax = self.elements.lon.max()
+            #     latmin = self.elements.lat.min()
+            #     latmax = self.elements.lat.max()
+            #     zmin = self.elements.z.min()
+            #     zmax = self.elements.z.max()
+            #     if latmin == latmax:
+            #         logger.debug('\t\tlatitude =  %s' % (latmin))
+            #     else:
+            #         logger.debug('\t\t%s <- latitude  -> %s' %
+            #                      (latmin, latmax))
+            #     if lonmin == lonmax:
+            #         logger.debug('\t\tlongitude = %s' % (lonmin))
+            #     else:
+            #         logger.debug('\t\t%s <- longitude -> %s' %
+            #                      (lonmin, lonmax))
+            #     if zmin == zmax:
+            #         logger.debug('\t\tz = %s' % (zmin))
+            #     else:
+            #         logger.debug('\t\t%s   <- z ->   %s' % (zmin, zmax))
+            #     logger.debug('---------------------------------')
 
         # Prepare array indiciating which elements contain any invalid values
         missing = np.ma.masked_invalid(env[variables[0]]).mask
