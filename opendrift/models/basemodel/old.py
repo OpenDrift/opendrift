@@ -15,6 +15,8 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 # Copyright 2020, Gaute Hope, MET Norway
 
+from . import init, result, state, model
+
 import sys
 import os
 import types
