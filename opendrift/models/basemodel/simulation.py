@@ -58,16 +58,7 @@ class Simulation(State, Configurable):
 
         return False
 
-    def run(self,
-            time_step=None,
-            steps=None,
-            time_step_output=None,
-            duration=None,
-            end_time=None,
-            outfile=None,
-            export_variables=None,
-            export_buffer_length=100,
-            stop_on_error=False):
+    def run(self):
         assert len(self.elements_scheduled) > 0, "No elements seeded"
 
     def release_elements(self):

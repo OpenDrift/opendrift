@@ -1,5 +1,5 @@
 from abc import abstractproperty
-from typing import Any, OrderedDict, Type
+from typing import Any, OrderedDict, Type, List
 import copy
 import logging
 import numpy as np
@@ -221,7 +221,7 @@ class Init(State, Configurable):
     def __init__(self):
         self.elements_scheduled = self.ElementType()
         self.elements_scheduled_time = np.array([])
-        self.env = Environment()
+        self.env = Environment(self.required_variables)
 
     def seed_elements(self,
                       lon,
@@ -429,6 +429,13 @@ class Init(State, Configurable):
         """Any trajectory model implementation must define an ElementType."""
         from opendrift.elements import LagrangianArray
         return LagrangianArray
+
+    @abstractproperty
+    def required_variables(self) -> List[str]:
+        """
+        list of strings of CF standard_names which is needed by this model (update function) to update properties of particles ('elements') at each time_step. This core class has no required_elements, this is implemented by subclasses/modules.
+        """
+        return []
 
     def num_elements_scheduled(self):
         return len(self.elements_scheduled)

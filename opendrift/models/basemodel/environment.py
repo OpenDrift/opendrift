@@ -1,25 +1,41 @@
 import logging
-from typing import OrderedDict, Dict
+from typing import OrderedDict, Dict, List
+import copy
 import numpy as np
+
+from opendrift.timer import Timeable
+from opendrift.readers.basereader import BaseReader, standard_names
 
 from .config import Configurable
 
 logger = logging.getLogger(__name__)
 
-class Environment:
+class Environment(Timeable):
     fallback_values: Dict
     readers: OrderedDict
+    priority_list: OrderedDict
+    required_variables: List[str]
 
-    def __init__(self):
+    max_speed = 1.0
+
+    def __init__(self, required_variables):
+        super().__init__()
+
         self.fallback_values = {}
         self.readers = OrderedDict()
+        self.priority_list = OrderedDict()
+
+        self.required_variables = required_variables
 
     def finalize(self, target: Configurable):
         """
-        Prepare environment for simulation. The environment object is no longer suitable for re-use.
+        Prepare environment for simulation.
         """
-        self.fallback_values = target.get_fallback_values()
-        self.__generate_constant_readers__(target)
+        env = copy.deepcopy(self)
+        env.fallback_values = target.get_fallback_values()
+        env.__generate_constant_readers__(target)
+
+        return env
 
     def __generate_constant_readers__(self, config: Configurable):
         # Make constant readers if config environment:constant:<var> is
